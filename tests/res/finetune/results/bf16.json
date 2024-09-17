@@ -1,0 +1,13 @@
+{
+    "best_completed_steps": 32,
+    "best_eval_loss": 0.8132166862487793,
+    "completed_steps": 40,
+    "dev_loss": 0,
+    "epoch": 9,
+    "eval_loss": 0.8194452524185181,
+    "grad_norm": 1.3536194562911987,
+    "lr": 1.7077534966650766e-06,
+    "passes": 80,
+    "samples": 320,
+    "train_loss": 0.03996884450316429
+}

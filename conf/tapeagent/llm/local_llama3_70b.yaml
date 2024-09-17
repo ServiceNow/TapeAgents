@@ -1,0 +1,10 @@
+_target_: tapeagents.llms.LLAMA
+use_cache: false
+conf:
+  _target_: tapeagents.llms.LLAMAConfig
+  base_url: http://0.0.0.0:8080
+  model_name: meta-llama/Meta-Llama-3-70B-Instruct
+  context_size: 8000
+  request_parameters:
+    temperature: 0.05
+    max_tokens: 1000

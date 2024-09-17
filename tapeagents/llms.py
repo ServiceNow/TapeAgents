@@ -1,0 +1,550 @@
+from __future__ import annotations
+
+import datetime
+import hashlib
+import json
+import logging
+import os
+import time
+from abc import ABC, abstractmethod
+from typing import Any, Generator, Type
+
+import litellm
+import openai
+import requests
+import transformers
+from Levenshtein import ratio
+from pydantic import BaseModel, Field
+from tenacity import retry, stop_after_attempt, wait_exponential
+from termcolor import colored
+
+from .config import DB_DEFAULT_FILENAME
+from .core import Completion, LLMMessage, Prompt, Step, TrainingText
+from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
+from .utils import FatalError, diff_strings
+
+requests.packages.urllib3.disable_warnings()  # type: ignore
+logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+
+TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
+
+
+class LLMEvent(BaseModel):
+    chunk: str | None = None
+    completion: LLMMessage | None = None
+
+
+class LLMStream:
+    """Wrapper around LLM generator to allow for fast-tracking to the complete message."""
+
+    def __init__(self, generator: Generator[LLMEvent, None, None] | None, prompt: Prompt):
+        self.generator = generator
+        self.prompt = prompt
+
+    def __bool__(self):
+        return self.generator is not None
+
+    def __iter__(self):
+        if self.generator is None:
+            raise ValueError("can't iterate a null stream")
+        return self
+
+    def __next__(self) -> LLMEvent:
+        if self.generator is None:
+            raise StopIteration
+        return next(self.generator)
+
+    def get_message(self) -> LLMMessage:
+        for event in self:
+            if event.completion:
+                return event.completion
+        raise ValueError("LLM did not produce a completion")
+
+    def get_text(self) -> str:
+        message = self.get_message()
+        if not message.role == "assistant" or message.content is None:
+            raise ValueError("LLM did not produce an assistant message")
+        return message.content
+
+
+class LLM(BaseModel, ABC):
+    model_name: str
+    parameters: dict = {}
+    context_size: int = 32000
+    tokenizer_name: str = ""
+    tokenizer: Any = None
+    token_count: int = 0
+    _log: list = []
+
+    @abstractmethod
+    def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
+        pass
+
+    @abstractmethod
+    def count_tokens(self, messages: list[dict] | str) -> int:
+        pass
+
+    @abstractmethod
+    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+        pass
+
+    def log_completion(self, prompt: Prompt, message: LLMMessage, cached: bool = False):
+        llm_call = LLMCall(
+            timestamp=datetime.datetime.now().isoformat(),
+            prompt=prompt,
+            completion=message,
+            prompt_length_tokens=self.count_tokens(prompt.messages),
+            completion_length_tokens=self.count_tokens(message.content) if message.content else 0,
+            cached=cached,
+        )
+        self._log.append(llm_call.model_dump())
+        observe_llm_call(llm_call)
+
+
+# Use this variable to force all LLMs to use cache
+# This is meant to be used for testing purposes only
+_force_cache = False
+
+
+class CachedLLM(LLM):
+    use_cache: bool = False
+    stream: bool = False
+    _cache: dict = {}
+
+    def model_post_init(self, __content):
+        global _force_cache_file
+        if _force_cache:
+            print("LLM cache is forced!")
+            self.use_cache = True
+        if not self.use_cache:
+            return
+        logger.info("Use LLM Cache")
+        param_hash = self._key(json.dumps({k: v for k, v in self.parameters.items() if k != "token"}))
+        name = self.model_name.replace("/", "__")
+        self._cache_file = f"llm_cache_{name}_{param_hash}.jsonl"
+        if os.path.exists(self._cache_file):
+            with open(self._cache_file) as f:
+                for line in f:
+                    key, event_dict = json.loads(line)
+                    if key not in self._cache:
+                        self._cache[key] = []
+                    self._cache[key].append(event_dict)
+            logger.info(f"Loaded cache with {len(self._cache)} keys")
+        else:
+            logger.info("Cache file not found")
+
+    def reindex_log(self):
+        cnt = 0
+        for log_data in self._log:
+            key = self.get_prompt_key(Prompt.model_validate(log_data["prompt"]))
+            self._add_to_cache(key, LLMEvent(completion=LLMMessage.model_validate(log_data["completion"])).model_dump())
+            cnt += 1
+        logger.info(f"Reindexed {cnt} log entries")
+
+    def _add_to_cache(self, key: str, event_dict: dict):
+        if not self.use_cache:
+            return
+        if key not in self._cache:
+            self._cache[key] = []
+        self._cache[key].append(event_dict)
+        with open(self._cache_file, "a") as f:
+            f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
+
+    def get_prompt_key(self, prompt: Prompt) -> str:
+        prompt_text = prompt.model_dump_json(exclude={"id"})
+        return self._key(prompt_text)
+
+    def _key(self, text: str) -> str:
+        return hashlib.md5(text.encode("utf-8")).hexdigest()
+
+    def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
+        def _implementation():
+            key = self.get_prompt_key(prompt)
+            if self.use_cache and key in self._cache:
+                logger.info(colored(f"llm cache hit, {len(self._cache[key])} events", "green"))
+                for event_dict in self._cache[key]:
+                    event = LLMEvent.model_validate(event_dict)
+                    if event.completion is not None:
+                        self.log_completion(prompt, event.completion, cached=True)
+                    yield event
+            else:
+                toks = self.count_tokens(prompt.messages)
+                self.token_count += toks
+                logger.info(f"{toks} prompt tokens, total: {self.token_count}")
+                for event in self._generate(prompt, **kwargs):
+                    self._add_to_cache(key, event.model_dump())
+                    # note: the underlying LLM will log the completion
+                    yield event
+
+        return LLMStream(_implementation(), prompt)
+
+    @abstractmethod
+    def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
+        pass
+
+
+class Tokenizers:
+    """Singleton cached holder of all loaded tokenizers."""
+
+    _instance = None
+
+    def __init__(self):
+        self._cache = {}
+
+    def _get(self, model_name: str):
+        if model_name not in self._cache:
+            try:
+                self._cache[model_name] = transformers.AutoTokenizer.from_pretrained(model_name)
+            except Exception:
+                self._cache[model_name] = None
+        return self._cache[model_name]
+
+    @staticmethod
+    def _get_instance() -> Tokenizers:
+        if not Tokenizers._instance:
+            Tokenizers._instance = Tokenizers()
+        return Tokenizers._instance
+
+    @staticmethod
+    def get(model_name: str):
+        return Tokenizers._get_instance()._get(model_name)
+
+
+class NoTokenizerError(ValueError):
+    pass
+
+
+class LiteLLM(CachedLLM):
+    def count_tokens(self, messages: list[dict] | str) -> int:
+        if isinstance(messages, str):
+            return litellm.token_counter(model=self.model_name, text=messages)
+        else:
+            return litellm.token_counter(model=self.model_name, messages=messages)
+
+    def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
+        while True:
+            try:
+                response = litellm.completion(
+                    model=self.model_name,
+                    messages=prompt.messages,
+                    tools=prompt.tools,
+                    stream=self.stream,
+                    **self.parameters,
+                )
+                break
+            except openai.APITimeoutError as e:
+                logger.error("API Timeout, retrying in 1 sec")
+                time.sleep(1.0)
+        if self.stream:
+            buffer = []
+            for part in response:
+                assert isinstance(part, litellm.ModelResponse)
+                if isinstance(part.choices[0], litellm.utils.StreamingChoices):
+                    content_delta = part.choices[0].delta.content
+                    if content_delta:
+                        buffer.append(content_delta)
+                        yield LLMEvent(chunk=content_delta)
+                    tool_delta = part.choices[0].delta.tool_calls
+                    if tool_delta:
+                        raise NotImplementedError(f"TODO: streaming with function calls not implemented yet")
+                else:
+                    raise ValueError(f"Unexpected response {part.model_dump()}")
+            completion = LLMMessage(content="".join(buffer))
+        else:
+            assert isinstance(response, litellm.ModelResponse)
+            assert isinstance(response.choices[0], litellm.utils.Choices)
+            completion = response.choices[0].message
+        self.log_completion(prompt, completion)
+        yield LLMEvent(completion=completion)
+
+    def make_traning_text(self, *args, **kwargs) -> TrainingText:
+        raise NotImplementedError()
+
+
+class LLAMAConfig(BaseModel):
+    model_name: str
+    base_url: str
+    parameters: dict[str, Any] = {}
+
+
+class TypedVLLM(LLM):
+    """
+    VLLM inference API with typed responses, using json schema enforcing by lm-format-enforcer
+    """
+
+    _obj_log: dict
+
+    def __init__(self, config: LLAMAConfig, use_cache: bool = True, only_cache: bool = False):
+        self.model_name = config.model_name
+        self.parameters = config.parameters
+        self.use_cache = use_cache
+        self.only_cache = only_cache
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(config.model_name)
+        self.context_size = config.parameters.pop("context_size", 8000)
+        self.base_url = config.base_url
+        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN)
+        self._obj_log = {}
+
+    def get_prompt_key(self, prompt: Prompt) -> str:
+        return prompt.model_dump_json(exclude={"id"})
+
+    def count_tokens(self, messages: list[dict]) -> int:
+        return litellm.token_counter(model=self.model_name, messages=messages)
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
+    def generate(self, prompt: Prompt, response_type: Type[BaseModel], suggest_outputs: bool = True) -> LLMStream:
+        def _implementation():
+            k = self.get_prompt_key(prompt)
+            if k in self._log:
+                logger.info(colored("llm cache hit", "green"))
+                object_json = self._obj_log[k]
+                yield LLMEvent(completion=response_type.model_validate_json(object_json))  # type: ignore
+                return
+            elif self.only_cache:
+                raise ValueError("llm cache miss not allowed")
+
+            logger.debug("llm cache miss")
+
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_token}",
+            }
+
+            schema = self.prepare_schema(response_type.model_json_schema())
+            if suggest_outputs:
+                prompt.messages[-1]["content"] += "\nAllowed outputs: {schema}"
+            data = {
+                "model": self.model_name,
+                "messages": prompt.messages,
+                "guided_json": schema,
+                "guided_decoding_backend": "lm-format-enforcer",
+            }
+            r = requests.post(
+                url=f"{self.base_url}/v1/chat/completions",
+                json=data | self.parameters,
+                headers=headers,
+                verify=False,
+            )
+            r.raise_for_status()
+            response = r.json()
+            try:
+                object_json = response["choices"][0]["message"]["content"]
+                response_object = response_type.model_validate_json(object_json)
+                self._obj_log[k] = object_json  # only cache if parsed successfully
+            except Exception as e:
+                logger.exception(f"Failed to parse llm response: {response}")
+                raise e
+            yield LLMEvent(completion=response_object)  # type: ignore
+
+        return LLMStream(_implementation(), prompt=prompt)
+
+    def make_traning_text(self, *args, **kwargs) -> TrainingText:
+        raise NotImplementedError()
+
+    def prepare_schema(self, schema: dict) -> dict:
+        """
+        Prepare schema with oneOf replaced with anyOf, as it is buggy in lm-format-encforcer lib inside vllm
+        TODO: remove this workaround when the bug is fixed in https://github.com/noamgat/lm-format-enforcer
+        """
+
+        # recursive function to replace oneOf with anyOf and fix kind required
+        def fix_schema(schema: dict) -> dict:
+            if "oneOf" in schema:
+                schema["anyOf"] = schema.pop("oneOf")
+            if (
+                "required" in schema
+                and "properties" in schema
+                and "kind" in schema["properties"]
+                and "kind" not in schema["required"]
+            ):
+                schema["required"].append("kind")
+            for key, value in schema.items():
+                if isinstance(value, dict):
+                    schema[key] = fix_schema(value)
+            return schema
+
+        return fix_schema(schema)
+
+
+class LLAMA(CachedLLM):
+    """Talk to HF TGI serving LLAMA using OpenAI API.
+
+    # TODO: use OpenAI Python client when the certificate issue is resolved.
+    # TODO: consider using litellm
+
+    """
+
+    base_url: str
+    api_token: str = ""
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        self.api_token = str(os.getenv(TAPEAGENTS_LLM_TOKEN))
+        self.tokenizer = Tokenizers.get(self.tokenizer_name or self.model_name)
+
+    def count_tokens(self, messages: list[dict] | str) -> int:
+        if self.tokenizer is None:
+            logger.warning(f"Tokenizer not found for {self.model_name}")
+            return 0
+        if isinstance(messages, str):
+            return len(self.tokenizer(messages).input_ids)
+        else:
+            return len(self.tokenizer.apply_chat_template(messages))
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
+    def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+        data = {
+            "model": self.model_name,
+            "messages": prompt.messages,
+            "stream": self.stream,
+        }
+        r = requests.post(
+            url=f"{self.base_url}/v1/chat/completions",
+            json=data | self.parameters,
+            headers=headers,
+            stream=self.stream,
+            verify=False,
+        )
+        if not r.ok:
+            logger.error(f"Failed to get completion: {r.text}")
+            r.raise_for_status()
+        if self.stream:
+            response_buffer = []
+            for byte_payload in r.iter_lines():
+                if byte_payload == b"\n":
+                    continue
+                payload = byte_payload.decode("utf-8")
+                if payload.startswith("data:"):
+                    if payload == "data: [DONE]":
+                        continue
+                    json_payload = json.loads(payload.lstrip("data:").rstrip("\n"))
+                    response_delta = json_payload["choices"][0]["delta"].get("content", "")
+                    if not response_delta:
+                        continue
+                    response_buffer.append(response_delta)
+                    yield LLMEvent(chunk=response_delta)
+            completion = LLMMessage(content="".join(response_buffer))
+        else:
+            data = r.json()
+            try:
+                content = data["choices"][0]["message"]["content"]
+                if not content:
+                    logger.warning(f"Empty completion {data}")
+                completion = LLMMessage(content=content)
+            except Exception as e:
+                logger.exception(f"Failed to parse llm response: {r}")
+                raise e
+        self.log_completion(prompt, completion)
+        yield LLMEvent(completion=completion)
+
+    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+        if self.tokenizer is None:
+            raise NoTokenizerError(f"Tokenizer not found for {self.model_name}")
+        return llama_make_training_text(prompt, completion, self.tokenizer)
+
+
+class ReplayLLM(LLM):
+    completions: dict[str, str] = Field(default_factory=dict)
+    llm_calls: list[LLMCall]
+
+    @classmethod
+    def from_llm(cls, llm: LLM, run_dir: str, prompts_file: str = DB_DEFAULT_FILENAME):
+        sqlite_fpath = os.path.join(run_dir, prompts_file)
+        assert os.path.exists(sqlite_fpath)
+        llm_calls = retrieve_all_llm_calls(sqlite_fpath)
+        llm = ReplayLLM(
+            llm_calls=llm_calls,
+            model_name=llm.tokenizer_name or llm.model_name,
+            context_size=llm.context_size,
+        )
+        return llm
+
+    def model_post_init(self, __context: Any) -> None:
+        dups = 0
+        for llm_call in self.llm_calls:
+            prompt = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False)
+            completion = llm_call.completion.content or ""
+            if prompt in self.completions and completion != self.completions[prompt]:
+                logger.warning("Completion duplicate!")
+                logger.warning(diff_strings(completion, self.completions[prompt]))
+                dups += 1
+            else:
+                self.completions[prompt] = completion
+        logger.info(f"Loaded {len(self.completions)} completions, {dups} duplicates")
+        return super().model_post_init(__context)
+
+    def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
+        def _implementation():
+            prompt_key = json.dumps(prompt.model_dump()["messages"], indent=2, ensure_ascii=False)
+            if prompt_key in self.completions:
+                logger.info(colored("prompt cache hit", "green"))
+                completion = self.completions[prompt_key]
+            else:
+                logger.warning(
+                    colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
+                )
+                ratios = [(k, ratio(prompt_key, k, score_cutoff=0.5)) for k in self.completions.keys()]
+                ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
+                closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
+                if score >= 0.7:
+                    logger.warning(diff_strings(prompt_key, closest))
+                    logger.warning(f"Closest prompt score: {score:.3f}")
+                raise FatalError("prompt not found")
+            yield LLMEvent(completion=LLMMessage(content=completion))
+
+        return LLMStream(_implementation(), prompt=prompt)
+
+    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+        tokenizer = Tokenizers.get(self.model_name)
+        return llama_make_training_text(prompt, completion, tokenizer)
+
+    def count_tokens(self, messages: list[dict] | str) -> int:
+        tokenizer = Tokenizers.get(self.model_name)
+        if not tokenizer:
+            return 0
+        if isinstance(messages, str):
+            return len(tokenizer(messages).input_ids)
+        else:
+            return len(tokenizer.apply_chat_template(messages))
+
+
+class MockLLM(LLM):
+    call_number: int = 0
+    mock_completions: list[str] = [
+        "Agent: I'm good, thank you",
+        "Agent: Sure, I worked at ServiceNow for 10 years",
+        "Agent: I have 10 zillion parameters",
+    ]
+    prompts: list[Prompt] = []
+
+    def generate(self, prompt: Prompt) -> LLMStream:
+        def _implementation():
+            self.prompts.append(prompt)
+            completion = self.mock_completions[self.call_number % len(self.mock_completions)]
+            time.sleep(0.01)
+            yield LLMEvent(completion=LLMMessage(content=completion))
+            self.call_number += 1
+
+        return LLMStream(_implementation(), prompt=prompt)
+
+    def count_tokens(self, messages: list[dict] | str) -> int:
+        return 42
+
+    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+        return TrainingText(text="mock trace", n_predicted=10)
+
+
+def llama_make_training_text(prompt: Prompt, completion: Completion, tokenizer) -> TrainingText:
+    prompt_text = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=False)
+    completion_text = tokenizer.apply_chat_template(
+        [{"role": "assistant", "content": completion.content}], tokenize=False
+    )
+    if tokenizer.bos_token and completion_text.startswith(tokenizer.bos_token):
+        completion_text = completion_text[len(tokenizer.bos_token) :]
+    text = f"{prompt_text}{completion_text}"
+
+    return TrainingText(text=text, n_predicted=len(completion_text))

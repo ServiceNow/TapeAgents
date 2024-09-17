@@ -1,0 +1,27 @@
+command_file: null
+commands: null
+compute_environment: LOCAL_MACHINE
+deepspeed_config:
+  zero3_init_flag: true  # this is accelerate specific
+  # Do not override other deepspeed params here
+  # instead, create your own my_deepspeed.json (which takes precedence over this file)
+  # and pass it to `accelerate` with the --deepspeed_config_file
+distributed_type: MULTI_GPU
+downcast_bf16: 'no'
+dynamo_backend: 'NO'
+fsdp_config: {}
+gpu_ids: null
+machine_rank: 0
+main_process_ip: null
+main_process_port: null
+main_training_function: main
+megatron_lm_config: {}
+mixed_precision: bf16
+num_processes: 1
+###########
+num_machines: 1
+rdzv_backend: static
+same_network: true
+tpu_name: null
+tpu_zone: null
+use_cpu: false

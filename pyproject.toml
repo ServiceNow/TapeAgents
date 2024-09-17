@@ -1,0 +1,17 @@
+[project]
+name = "TapeAgents"
+version = "0.0.3"
+description = "TapeAgents framework for building, tuning and evaluating LLM Agents"
+authors = [
+  {name="Dzmitry Bahdanau", email="dzmitry.bahdanau@servicenow.com"},
+  {name="Oleh Shliazhko", email="oleh.shliazhko@servicenow.com"},
+  {name="Alexandre Piché", email="alexandre.piche@servicenow.com"},
+]
+readme = "README.md"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+include = ["tapeagents*"]

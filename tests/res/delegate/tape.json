@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "id": "368fbd1d-393f-4084-9a60-b12836597ba7",
+    "parent_id": "ef59a456-553e-40c8-bc76-66f1cfe68590",
+    "author": "",
+    "author_tape_id": null,
+    "n_added_steps": 2,
+    "error": null,
+    "result": null
+  },
+  "context": "I am a text with some verbs like running, jumping, and swimming.",
+  "steps": [
+    {
+      "prompt_id": "84d0de06-d4d0-4901-8d85-9aa8938f1650",
+      "task": "",
+      "by": "FindIrregularVerbs/FindVerbs",
+      "role": "all_verbs",
+      "verbs": [
+        "am",
+        "running",
+        "jumping",
+        "swimming"
+      ]
+    },
+    {
+      "prompt_id": "c04bb451-fe1b-41fd-a44a-4c77fbdda3fe",
+      "task": "",
+      "by": "FindIrregularVerbs/FilterIrregular",
+      "role": "irregular_verbs",
+      "verbs": [
+        "be",
+        "jump",
+        "swim"
+      ]
+    }
+  ]
+}

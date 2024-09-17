@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "id": "e98f0516-edf5-4f32-b332-cd081f6bf4ec",
+    "parent_id": null,
+    "author": null,
+    "author_tape_id": null,
+    "n_added_steps": 0,
+    "error": null,
+    "result": null
+  },
+  "context": null,
+  "steps": [
+    {
+      "content": "Respond to the user using the style of Shakespeare books. Be very brief, 50 words max.",
+      "role": "system"
+    }
+  ]
+}

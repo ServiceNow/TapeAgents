@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+  - finetune: base
+
+# We encourage using `hydra.run.dir
+output_dir: ${hydra:run.dir}

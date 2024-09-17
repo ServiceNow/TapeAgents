@@ -1,0 +1,18 @@
+defaults:
+  - base
+  - _self_
+  
+config_name: meta-llama/Meta-Llama-3.1-8B-Instruct
+learning_rate: 2e-5
+train_batch_size: 4
+gradient_accumulation_passes: 4
+seq_length: 2048
+load_as_bf16: True
+max_train_steps: 1000
+save_checkpoint_steps: 100
+lora:
+  enabled: True
+  r: 64
+  alpha: 16
+  target_modules: ["q_proj", "k_proj", "v_proj", "up_proj", "down_proj", "o_proj", "gate_proj"]
+   

@@ -1,0 +1,232 @@
+from __future__ import annotations
+
+import datetime
+import json
+from typing import Any, Generic, Iterable, Iterator, Literal, Type, TypeAlias, TypeVar
+from uuid import uuid4
+
+import litellm
+from pydantic import BaseModel, Field, SerializeAsAny
+from typing_extensions import Self
+
+
+class TrainingText(BaseModel):
+    """
+    Data sample to finetune a language model
+    """
+
+    text: str
+    n_predicted: int
+
+    @property
+    def prompt_str(self) -> str:
+        return self.text[: -self.n_predicted]
+
+    @property
+    def completion_str(self) -> str:
+        return self.text[-self.n_predicted :]
+
+
+class Step(BaseModel):
+    def llm_dict(self) -> dict[str, Any]:
+        """Dump step data only, drop the metadata"""
+        return self.model_dump(exclude_none=True)
+
+    def llm_view(self, indent: int = 2) -> str:
+        return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
+
+
+def get_role(step_class: Type):
+    return step_class.model_fields["role"].default
+
+
+class PartialStep(BaseModel):
+    """Wrap your step as partial step to indicate that it is not finished yet."""
+
+    step: Step
+
+
+class Observation(Step):
+    pass
+
+
+class Error(Observation):
+    pass
+
+
+class AgentStep(Step):
+    prompt_id: str = ""
+    task: str = ""
+    by: str = ""
+
+    def llm_dict(self) -> dict:
+        return self.model_dump(exclude={"prompt_id", "task", "by"}, exclude_none=True)
+
+
+class Thought(AgentStep):
+    pass
+
+
+class Action(AgentStep):
+    pass
+
+
+class AgentResponseParsingFailureAction(Action):
+    """
+    Action produced automatically when the agent response parsing failed
+    """
+
+    kind: Literal["agent_response_parsing_failure_action"] = "agent_response_parsing_failure_action"
+    error: str
+
+
+class FinalStep(Action):
+    role: Literal["final_step"] = "final_step"
+    reason: str = ""
+
+
+class Jump(Thought):
+    role: Literal["jump"] = "jump"
+    next_node: int
+    
+    
+class Pass(Thought):
+    role: Literal["pass"] = "pass"    
+
+
+StepType = TypeVar("StepType", bound=Action | Observation | Thought)
+
+
+class TapeMetadata(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    parent_id: str | None = None
+    author: str | None = None
+    author_tape_id: str | None = None
+    n_added_steps: int = 0
+    error: Any | None = None
+    result: Any = None
+
+
+ContextType = TypeVar("ContextType")
+
+
+class Tape(BaseModel, Generic[ContextType, StepType]):
+    """
+    A sequence of steps produced by agents and environments
+    """
+
+    metadata: TapeMetadata = TapeMetadata()
+    context: ContextType | None = None
+    steps: list[StepType] = []
+
+    def __iter__(self) -> Iterator[StepType]:  # type: ignore
+        return iter(self.steps)
+
+    def __len__(self):
+        return len(self.steps)
+
+    def __getitem__(self, key: int | slice) -> StepType | Self:
+        if isinstance(key, slice):  # cut and erase metadata
+            return self.model_copy(update=dict(steps=self.steps[key.start : key.stop], metadata=TapeMetadata()))
+        return self.steps[key]
+
+    def __add__(self, tape: Self | Iterable[Step]) -> Self:
+        """
+        Concatenate two tapes or append list of steps to the tape
+        """
+        new_steps = tape.steps if isinstance(tape, Tape) else list(tape)
+        return self.model_copy(
+            update=dict(steps=self.steps + new_steps, metadata=TapeMetadata(n_added_steps=len(new_steps)))
+        )
+
+    def append(self, step: StepType) -> Self:
+        """
+        Add a step to the tape
+        """
+        return self.model_copy(update=dict(steps=self.steps + [step], metadata=TapeMetadata(n_added_steps=1)))
+
+    def with_new_id(self) -> Self:
+        return self.model_copy(update=dict(metadata=TapeMetadata()))
+
+    def llm_list(self) -> list[dict]:
+        return [step.llm_dict() for step in self.steps
+                if not isinstance(step, (Pass, Jump))]
+
+
+TapeType = TypeVar("TapeType", bound=Tape)
+
+
+class Prompt(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    tools: list[dict] | None = None
+    messages: list[dict] = []
+
+    @staticmethod
+    def from_user_message(content: str) -> Prompt:
+        return Prompt(messages=[{"role": "user", "content": content}])
+
+    def __bool__(self) -> bool:
+        return bool(self.messages)
+
+
+class JsonPrompt(BaseModel):
+    prompt: str
+    response_schema: dict
+
+
+LLMMessage: TypeAlias = litellm.utils.Message
+Completion: TypeAlias = LLMMessage
+
+
+class LLMCall(BaseModel):
+    timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
+    prompt: Prompt
+    completion: LLMMessage
+    prompt_length_tokens: int = -1
+    completion_length_tokens: int = -1
+    cached: bool
+
+
+AnnotatorTape = Tape[TapeType, StepType]
+AnnotatorTapeType = TypeVar("AnnotatorTapeType", bound=AnnotatorTape)
+
+
+class AnnotationWithMetadata(BaseModel):
+    annotation: Any
+    annotator_tape_id: str
+
+
+class Episode(BaseModel):
+    """
+    Auxiliary data structure for tape with annotations attached.
+    Humans may want to look at a tape with one-or-many annotations attached to agent's actions.
+    This is a data structure to store such tapes. We store the tape id for traceability.
+    """
+
+    tape: Tape
+    annotator_tapes: dict[int, list[Tape]]
+    obs_making_tapes: dict[int, Tape]
+
+    def group_by_step(self) -> Iterator[tuple[Tape | None, Step, list[Tape]]]:
+        for i, step in enumerate(self.tape.steps):
+            yield self.obs_making_tapes.get(i, None), step, self.annotator_tapes.get(i, [])
+
+
+class AgentEvent(BaseModel, Generic[TapeType]):
+    """
+    Event produced by the agent during the run.
+    Can contain a step, a final tape with all new steps, or a partial step when used in streaming mode.
+    Fields are mutually exclusive.
+    """
+
+    step: SerializeAsAny[Step] | None = None
+    partial_step: PartialStep | None = None
+    partial_tape: TapeType | None = None
+    final_tape: TapeType | None = None
+
+
+ObservationMakerTapeType = TypeVar("ObservationMakerTapeType", bound=Tape)
+
+
+class MakeObservation(Action, Generic[StepType]):
+    new_observation: StepType

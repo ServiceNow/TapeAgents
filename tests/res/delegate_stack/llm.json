@@ -1,0 +1,12 @@
+{
+  "model_name": "meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
+  "parameters": {
+    "temperature": 0.7,
+    "max_tokens": 512
+  },
+  "context_size": 32000,
+  "tokenizer_name": "",
+  "use_cache": true,
+  "stream": false,
+  "base_url": "https://api.together.xyz"
+}
