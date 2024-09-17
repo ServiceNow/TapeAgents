@@ -35,7 +35,7 @@ Note: sometimes the chat manager gets confused and asks a wrong agent to go next
 # TapeAgents
 TapeAgents is a framework that helps AI Agent Builders improve their agents with methods beyond manual prompting, such as learning in simulation.
 
-<img align="right" width="500" alt="image" src="assets/2083404/1c88a710-6ffa-4bc8-9f0f-03a303f6b99f">
+<img align="right" width="500" alt="image" src="https://github.com/user-attachments/assets/eff8d259-4d39-4d78-9094-0ca17933e435">
 
 - [TapeAgents](#tapeagents)
   - [Requirements](#requirements)
@@ -133,7 +133,7 @@ between different but related agents. The tape represents both the input and the
 ## Workflow
 Agent usually runs in the loop with the specific environment and some kind of starter tape, that could be empty or contain some initial input data. Main interaction performed in the 3 nested loops:  
 
-<img width="746" alt="image" src="assets/2083404/64e42d81-014f-4167-b1d6-abc7c2a7ac21">
+<img width="746" alt="image" src="https://github.com/user-attachments/assets/e04233bd-7269-403f-8470-7b8bf8cc5022">
 
 The agent and the environment work in a common main loop. They interact by appending new steps to the tape.
 
