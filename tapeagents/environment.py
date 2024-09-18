@@ -1,12 +1,14 @@
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable, Generic
+from typing import Callable, Generic, Literal
 
 from langchain_core.tools import BaseTool, tool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from litellm.utils import Function
 from pydantic import TypeAdapter
+
+from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 
 from .agent import TapeType
 from .core import Action, Observation, Prompt, Tape
@@ -138,3 +140,31 @@ class ToolEnvironment(Environment):
                 self.raise_unexpected_action(action)
 
         return tape
+
+
+class ExecuteCode(Action):
+    role: Literal["execute_code"] = "execute_code"
+    code: list[CodeBlock]
+
+
+class CodeExecutionResult(Observation):
+    role: Literal["code_execution_result"] = "code_execution_result"
+    result: CommandLineCodeResult
+    
+
+class CodeExecutionEnvironment(Environment):
+    """
+    Environment for the collective agents
+    The only action that the environment can perform is to execute the code blocks
+    """
+
+    def __init__(self, container_executor: ContainerExecutor):
+        self.container_executor = container_executor
+
+    def react(self, tape: Tape) -> Tape:
+        match step := tape.steps[-1]:
+            case ExecuteCode():
+                result = self.container_executor.execute_code_blocks(step.code)
+                return tape.append(CodeExecutionResult(result=result))
+            case _:
+                return tape

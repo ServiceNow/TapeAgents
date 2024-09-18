@@ -8,7 +8,7 @@ import yaml
 from .agent import Agent
 from .collective import CodeExecutionResult, ExecuteCode
 from .observe import LLMCall, retrieve_tape_llm_calls
-from .tools.container_executor import CodeBlock
+from .container_executor import CodeBlock
 from .view import Call, Respond
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
 from .dialog import (
