@@ -19,7 +19,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
 from .config import DB_DEFAULT_FILENAME
-from .core import Completion, LLMMessage, Prompt, Step, TrainingText
+from .core import Completion, LLMMessage, Prompt, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
 
@@ -479,10 +479,15 @@ class ReplayLLM(LLM):
 
     def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
         def _implementation():
-            prompt_key = json.dumps(prompt.model_dump()["messages"], indent=2, ensure_ascii=False)
-            if prompt_key in self.completions:
+            prompt_key = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=False)
+            prompt_key_ordered = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
+            if prompt_key in self.completions or prompt_key_ordered in self.completions:
                 logger.info(colored("prompt cache hit", "green"))
-                completion = self.completions[prompt_key]
+                completion = (
+                    self.completions[prompt_key]
+                    if prompt_key in self.completions
+                    else self.completions[prompt_key_ordered]
+                )
             else:
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")

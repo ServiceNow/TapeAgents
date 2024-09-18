@@ -38,9 +38,6 @@ class GuidedAgent(Agent, Generic[TapeType]):
     max_iterations: int = 2
 
     def delegate(self, tape: TapeType):
-        # Agent.delegate is currently not compatible with this agent, because
-        # this agent is often used with tapes whose steps contain `step.kind` instead
-        # of `step.role`. This will be fixed by using `step.kind` everywhere in the repo.
         return self
 
     def get_steps_description(self, tape) -> str:
@@ -66,24 +63,19 @@ class GuidedAgent(Agent, Generic[TapeType]):
         return tape
 
     def tape_to_messages(self, tape: Tape) -> list[dict]:
-        messages: list[Step] = [
-            SystemStep(content=self.templates["system_prompt"]),
-            UserStep(content=self.get_steps_description(tape)),
+        messages: list[dict] = [
+            {"role": "system", "content": self.templates["system_prompt"]},
+            {"role": "user", "content": self.get_steps_description(tape)},
         ]
         for step in tape:
-            messages.append(
-                AssistantStep(content=step.llm_view())
-                if isinstance(step, AgentStep)
-                else UserStep(content=step.llm_view())
-            )
+            role = "assistant" if isinstance(step, AgentStep) else "user"
+            messages.append({"role": role, "content": step.llm_view()})
         if tape.steps[-1].kind in self.templates:
             guidance = self.templates[tape.steps[-1].kind]
-            messages.append(UserStep(content=guidance))
+            messages.append({"role": "user", "content": guidance})
         elif "_default" in self.templates:
-            messages.append(UserStep(content=self.templates["_default"]))
-        # FIXME: remove prompt_id from the generated LLM messages.
-        # This requires regenerated test data.
-        return [m.llm_dict() for m in messages]
+            messages.append({"role": "user", "content": self.templates["_default"]})
+        return messages
 
     def generate_steps(self, tape: Tape, llm_stream: LLMStream) -> Generator[Step | PartialStep, None, None]:
         new_steps = []

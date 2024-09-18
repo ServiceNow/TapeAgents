@@ -14,7 +14,10 @@ class LLAMAChatBot(Agent[Dialog]):
         return "llamachatbot"
 
     def make_prompt(self, tape: Dialog):
-        return Prompt(messages=tape.llm_list())
+        messages = tape.llm_list()
+        for message in messages:
+            message["role"] = message.pop("kind")
+        return Prompt(messages=messages)
 
     def generate_steps(self, tape: Tape, llm_stream: LLMStream):
         buffer = []

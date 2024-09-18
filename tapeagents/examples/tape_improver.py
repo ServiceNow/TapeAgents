@@ -6,14 +6,22 @@ from typing import Any, Literal
 from tapeagents.agent import Agent
 from tapeagents.chain import Call, Chain, Respond
 from tapeagents.collective import CollectiveTape
-from tapeagents.core import Action, AgentStep, FinalStep, Prompt, Tape, TapeMetadata, Thought
+from tapeagents.core import (
+    Action,
+    AgentStep,
+    FinalStep,
+    Prompt,
+    Tape,
+    TapeMetadata,
+    Thought,
+)
 from tapeagents.develop import Develop
-from tapeagents.view import Call, Respond
 from tapeagents.examples import data_science
 from tapeagents.llms import LLM, LiteLLM, LLMStream
 from tapeagents.observe import observe_tape
 from tapeagents.rendering import PrettyRenderer
 from tapeagents.utils import run_in_tmp_dir_to_make_test_data
+from tapeagents.view import Call, Respond
 
 MUST_BE_JSON = """Output ONLY the JSON in the requested format. Do not output any text before or after JSON. Do not output triple quotes before or after JSON."""
 
@@ -81,26 +89,26 @@ REWRITE_STEP_SUFFIX = """In the previous steps you found that the agent {agent_n
 
 
 class SelectAgent(Thought):
-    role: str = "select_agent"
+    kind: str = "select_agent"
     agent_name: str | None
     reason: str
 
 
 class SelectStep(Thought):
-    role: str = "select_step"
+    kind: str = "select_step"
     reasoning: str
     step_index: int | None
 
 
 class RewriteStep(Action):
-    role: str = "rewrite_step"
+    kind: str = "rewrite_step"
     step_index: int
     # code can be written in either Call or Respond messages
     new_step: Call | Respond
 
 
 class StepParsingError(Action):
-    role: str = "step_parsing_error"
+    kind: str = "step_parsing_error"
     error: str
 
 
@@ -154,7 +162,9 @@ class StepRewriter(Agent):
             return Prompt()
         usr_msg = CONTEXT_TAPE_PREFIX.format(context_tape=improver_tape_view(tape.context))
         usr_msg += REWRITE_STEP_SUFFIX.format(
-            agent_name=select_agent.agent_name, step_index=select_step.step_index, reasoning=select_step.reasoning
+            agent_name=select_agent.agent_name,
+            step_index=select_step.step_index,
+            reasoning=select_step.reasoning,
         )
         usr_msg += MUST_BE_JSON
         return Prompt.from_user_message(usr_msg)
@@ -179,7 +189,9 @@ def make_world(llm: LLM | None = None) -> tuple[Agent, Tape, Tape]:
     improver_tape = CodeImproverTape(context=bad_tape, steps=[])
 
     llm = llm or LiteLLM(
-        model_name="gpt-4o", parameters={"timeout": 15.0, "response_format": {"type": "json_object"}}, use_cache=True
+        model_name="gpt-4o",
+        parameters={"timeout": 15.0, "response_format": {"type": "json_object"}},
+        use_cache=True,
     )
     code_improver = Chain.create(
         name="CodeImprover",

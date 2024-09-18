@@ -36,10 +36,6 @@ class Step(BaseModel):
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
 
 
-def get_role(step_class: Type):
-    return step_class.model_fields["role"].default
-
-
 class PartialStep(BaseModel):
     """Wrap your step as partial step to indicate that it is not finished yet."""
 
@@ -81,17 +77,17 @@ class AgentResponseParsingFailureAction(Action):
 
 
 class FinalStep(Action):
-    role: Literal["final_step"] = "final_step"
+    kind: Literal["final_step"] = "final_step"
     reason: str = ""
 
 
 class Jump(Thought):
-    role: Literal["jump"] = "jump"
+    kind: Literal["jump"] = "jump"
     next_node: int
-    
-    
+
+
 class Pass(Thought):
-    role: Literal["pass"] = "pass"    
+    kind: Literal["pass"] = "pass"
 
 
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
@@ -136,7 +132,10 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
         """
         new_steps = tape.steps if isinstance(tape, Tape) else list(tape)
         return self.model_copy(
-            update=dict(steps=self.steps + new_steps, metadata=TapeMetadata(n_added_steps=len(new_steps)))
+            update=dict(
+                steps=self.steps + new_steps,
+                metadata=TapeMetadata(n_added_steps=len(new_steps)),
+            )
         )
 
     def append(self, step: StepType) -> Self:
@@ -149,8 +148,8 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
         return self.model_copy(update=dict(metadata=TapeMetadata()))
 
     def llm_list(self) -> list[dict]:
-        return [step.llm_dict() for step in self.steps
-                if not isinstance(step, (Pass, Jump))]
+        dicts = [step.llm_dict() for step in self.steps if not isinstance(step, (Pass, Jump))]
+        return dicts
 
 
 TapeType = TypeVar("TapeType", bound=Tape)
@@ -209,7 +208,11 @@ class Episode(BaseModel):
 
     def group_by_step(self) -> Iterator[tuple[Tape | None, Step, list[Tape]]]:
         for i, step in enumerate(self.tape.steps):
-            yield self.obs_making_tapes.get(i, None), step, self.annotator_tapes.get(i, [])
+            yield (
+                self.obs_making_tapes.get(i, None),
+                step,
+                self.annotator_tapes.get(i, []),
+            )
 
 
 class AgentEvent(BaseModel, Generic[TapeType]):

@@ -14,7 +14,7 @@
       "prompt_id": "84d0de06-d4d0-4901-8d85-9aa8938f1650",
       "task": "",
       "by": "FindIrregularVerbs/FindVerbs",
-      "role": "all_verbs",
+      "kind": "all_verbs",
       "verbs": [
         "am",
         "running",
@@ -26,7 +26,7 @@
       "prompt_id": "c04bb451-fe1b-41fd-a44a-4c77fbdda3fe",
       "task": "",
       "by": "FindIrregularVerbs/FilterIrregular",
-      "role": "irregular_verbs",
+      "kind": "irregular_verbs",
       "verbs": [
         "be",
         "jump",
