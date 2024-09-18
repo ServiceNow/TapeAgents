@@ -1,2 +1,3 @@
 pytest==8.3.3
 testbook==0.4.2
+flake8==6.0.0
