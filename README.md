@@ -38,13 +38,13 @@ pip install -e .
 
 In the coming days we will present to you the following examples:
 
-- How to build teams of TapeAgents with AutoGen-style low-code programming paradigm
+- How to build teams of TapeAgents with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
 - How to finetune a TapeAgent with a small LLM to be better at math problem solving
 - An agent that searches the web and uses code interpreter to answer precise questions. We built this agent to solves tasks from the [GAIA challenge](https://huggingface.co/spaces/gaia-benchmark/leaderboard)
 
 # Learn more 
 
-TODO: paper link
+See our [Now AI paper](https://servicenow.sharepoint.com/sites/snrcat/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fsnrcat%2FShared%20Documents%2FTapeAgents%2FTapeAgents%5F2024nowai%2Epdf&parent=%2Fsites%2Fsnrcat%2FShared%20Documents%2FTapeAgents&p=true&ga=1) on TapeAgents.
 
 # Contact
 
@@ -54,6 +54,6 @@ snr-cat@servicenow.com
 
 # Acknowledgements
 
-We acknowledge the inspiration from prior frameworks, in particular LangGraph, AutoGen, Agents and DSPY.
+We acknowledge the inspiration we took from prior frameworks, in particular [LangGraph](https://github.com/langchain-ai/langgraph), [AutoGen](https://github.com/microsoft/autogen), [Agents](https://github.com/aiwaves-cn/agents) and [DSPY](https://github.com/stanfordnlp/dspy).
 
 
