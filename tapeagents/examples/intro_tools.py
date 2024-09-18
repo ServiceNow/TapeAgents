@@ -50,7 +50,7 @@ def get_stock_data(symbol: str, start_date: str, end_date: str):
             prices = prices[::2]
         
         return list(zip(
-            [datetime.datetime.fromtimestamp(ts, datetime.UTC).strftime('%Y-%m-%d') for ts in timestamps],
+            [datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).strftime('%Y-%m-%d') for ts in timestamps],
             prices
         ))
     except Exception as e:

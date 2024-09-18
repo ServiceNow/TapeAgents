@@ -2,7 +2,8 @@ import datetime
 import logging
 
 from tapeagents.core import FinalStep
-from tapeagents.tools.container_executor import ContainerExecutor
+from tapeagents.environment import CodeExecutionEnvironment
+from tapeagents.container_executor import ContainerExecutor
 from tapeagents.view import Call, Respond
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -10,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 import sys
 
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.collective import CollectiveAgent, CollectiveEnvironment, CollectiveTape
+from tapeagents.collective import CollectiveAgent, CollectiveTape
 from tapeagents.develop import Develop
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
@@ -47,7 +48,7 @@ def try_chat(develop: bool):
     )
     start_tape = CollectiveTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
-    env = CollectiveEnvironment(ContainerExecutor(work_dir=f"outputs/multi_chat_code/{now}"))
+    env = CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/multi_chat_code/{now}"))
     if develop:
         renderers = {
             "messages": PrettyRenderer(filter_steps=(Call, Respond, FinalStep), render_llm_calls=False),

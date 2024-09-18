@@ -9,22 +9,12 @@ from pydantic import ConfigDict
 from tapeagents.agent import DEFAULT, Agent
 from tapeagents.autogen_prompts import SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE, SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE
 from tapeagents.core import Action, FinalStep, Jump, Observation, Prompt, Tape, Pass
-from tapeagents.environment import Environment
+from tapeagents.environment import CodeExecutionResult, Environment, ExecuteCode
 from tapeagents.llms import LLM, LLMStream
-from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor, extract_code_blocks
+from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor, extract_code_blocks
 from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
-
-
-class ExecuteCode(Action):
-    role: Literal["execute_code"] = "execute_code"
-    code: list[CodeBlock]
-
-
-class CodeExecutionResult(Observation):
-    role: Literal["code_execution_result"] = "code_execution_result"
-    result: CommandLineCodeResult
 
 
 CollectiveTape = Tape[None, Call | Respond | Broadcast | FinalStep | Jump | ExecuteCode | CodeExecutionResult | Pass]
@@ -260,21 +250,3 @@ class CollectiveAgent(Agent[CollectiveTape]):
             step.task = view.task.value
             yield step
         return
-
-
-class CollectiveEnvironment(Environment):
-    """
-    Environment for the collective agents
-    The only action that the environment can perform is to execute the code blocks
-    """
-
-    def __init__(self, container_executor: ContainerExecutor):
-        self.container_executor = container_executor
-
-    def react(self, tape: CollectiveTape) -> CollectiveTape:
-        match step := tape.steps[-1]:
-            case ExecuteCode():
-                result = self.container_executor.execute_code_blocks(step.code)
-                return tape.append(CodeExecutionResult(result=result))
-            case _:
-                return tape
