@@ -1,4 +1,12 @@
-TapeAgents is an experimental framework to build, debug, serve and optimize AI agents. The key concept of the framework is Tape: a complete semantic-level log of the agent's session. All Agent-Environment interactions are mediated by the orchestrator and must go through the tape.
+<div align="center">
+
+# TapeAgents
+
+![Supported Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
+
+</div>
+
+*TapeAgents* is an experimental framework to build, debug, serve and optimize AI agents. The key concept of the framework is *Tape*: a complete semantic-level log of the agent's session. All Agent-Environment interactions are mediated by the orchestrator and must go through the tape.
 
 ![image](/assets/overview.png)
 
