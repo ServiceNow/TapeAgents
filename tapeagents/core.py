@@ -148,8 +148,21 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
         return self.model_copy(update=dict(metadata=TapeMetadata()))
 
     def as_prompt_messages(self) -> list[dict]:
-        messages = [step.llm_dict() for step in self.steps if not isinstance(step, (Pass, Jump))]
-        return [{"role": message["kind"]} | {k: v for k, v in message.items() if k != "kind"} for message in messages]
+        messages = []
+        for step in self.steps:
+            message = step.llm_dict()
+            kind = message.pop("kind", None)
+            if kind == "system":
+                role = "system"
+            elif isinstance(step, (Thought, Action)):
+                role = "assistant"
+            elif isinstance(step, Observation):
+                role = "user"
+            else:
+                raise ValueError(f"Cannot convert step type: {step} to role")
+            message["role"] = role
+            messages.append(message)
+        return messages
 
 
 TapeType = TypeVar("TapeType", bound=Tape)

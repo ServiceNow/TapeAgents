@@ -31,9 +31,6 @@ class AssistantThought(Thought):
     content: str
     kind: Literal["assistant_thought"] = "assistant_thought"
 
-    def llm_dict(self) -> dict:
-        return {"kind": "assistant", "content": self.content}
-
 
 class AssistantStep(Action):
     content: str
