@@ -160,8 +160,7 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
                 role = "user"
             else:
                 raise ValueError(f"Cannot convert step type: {step} to role")
-            message["role"] = role
-            messages.append(message)
+            messages.append({"role": role, **message})
         return messages
 
 
