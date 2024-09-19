@@ -392,7 +392,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def make_training_text(self, llm_call: LLMCall) -> TrainingText:
         """Routes the request to make trace to the appropriate agent's LLM."""
         # TODO: support more than 1 LLM
-        return self.llm.make_traning_text(llm_call.prompt, llm_call.completion)
+        return self.llm.make_training_text(llm_call.prompt, llm_call.completion)
 
     def make_training_data(self, tape: TapeType) -> list[TrainingText]:
         _, llm_calls = self.reuse(tape)

@@ -86,7 +86,7 @@ class LLM(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
         pass
 
     def log_completion(self, prompt: Prompt, message: LLMMessage, cached: bool = False):
@@ -258,7 +258,7 @@ class LiteLLM(CachedLLM):
         self.log_completion(prompt, completion)
         yield LLMEvent(completion=completion)
 
-    def make_traning_text(self, *args, **kwargs) -> TrainingText:
+    def make_training_text(self, *args, **kwargs) -> TrainingText:
         raise NotImplementedError()
 
 
@@ -339,7 +339,7 @@ class TypedVLLM(LLM):
 
         return LLMStream(_implementation(), prompt=prompt)
 
-    def make_traning_text(self, *args, **kwargs) -> TrainingText:
+    def make_training_text(self, *args, **kwargs) -> TrainingText:
         raise NotImplementedError()
 
     def prepare_schema(self, schema: dict) -> dict:
@@ -441,7 +441,7 @@ class LLAMA(CachedLLM):
         self.log_completion(prompt, completion)
         yield LLMEvent(completion=completion)
 
-    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
         if self.tokenizer is None:
             raise NoTokenizerError(f"Tokenizer not found for {self.model_name}")
         return llama_make_training_text(prompt, completion, self.tokenizer)
@@ -498,7 +498,7 @@ class ReplayLLM(LLM):
 
         return LLMStream(_implementation(), prompt=prompt)
 
-    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
         tokenizer = Tokenizers.get(self.model_name)
         return llama_make_training_text(prompt, completion, tokenizer)
 
@@ -534,7 +534,7 @@ class MockLLM(LLM):
     def count_tokens(self, messages: list[dict] | str) -> int:
         return 42
 
-    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
         return TrainingText(text="mock trace", n_predicted=10)
 
 
