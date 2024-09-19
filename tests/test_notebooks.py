@@ -5,7 +5,7 @@ import testbook
 res_dir = f"{pathlib.Path(__file__).parent.resolve()}/res"
 
 def test_intro_notebook():
-    intro_notebook_path = Path("tapeagents/examples/intro.ipynb").resolve()
+    intro_notebook_path = Path("intro.ipynb").resolve()
     with testbook.testbook(intro_notebook_path) as tb:
         tb.inject(
             f"""
