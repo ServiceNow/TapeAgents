@@ -19,7 +19,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
 from .config import DB_DEFAULT_FILENAME
-from .core import Completion, LLMMessage, Prompt, Step, TrainingText
+from .core import Completion, LLMMessage, Prompt, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
 
@@ -109,14 +109,15 @@ _force_cache = False
 
 class CachedLLM(LLM):
     use_cache: bool = False
+    only_cache: bool = False
     stream: bool = False
     _cache: dict = {}
 
     def model_post_init(self, __content):
-        global _force_cache_file
         if _force_cache:
             print("LLM cache is forced!")
             self.use_cache = True
+            self.only_cache = True
         if not self.use_cache:
             return
         logger.info("Use LLM Cache")
@@ -169,6 +170,8 @@ class CachedLLM(LLM):
                         self.log_completion(prompt, event.completion, cached=True)
                     yield event
             else:
+                if self.only_cache:
+                    raise ValueError(f"llm cache miss not allowed, prompt:\n{prompt.messages}")
                 toks = self.count_tokens(prompt.messages)
                 self.token_count += toks
                 logger.info(f"{toks} prompt tokens, total: {self.token_count}")
@@ -466,20 +469,19 @@ class ReplayLLM(LLM):
     def model_post_init(self, __context: Any) -> None:
         dups = 0
         for llm_call in self.llm_calls:
-            prompt = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False)
+            prompt_key = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
             completion = llm_call.completion.content or ""
-            if prompt in self.completions and completion != self.completions[prompt]:
-                logger.warning("Completion duplicate!")
-                logger.warning(diff_strings(completion, self.completions[prompt]))
+            if prompt_key in self.completions and completion != self.completions[prompt_key]:
+                logger.warning(f"Completion duplicate!\n{diff_strings(completion, self.completions[prompt_key])}")
                 dups += 1
             else:
-                self.completions[prompt] = completion
+                self.completions[prompt_key] = completion
         logger.info(f"Loaded {len(self.completions)} completions, {dups} duplicates")
         return super().model_post_init(__context)
 
     def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
         def _implementation():
-            prompt_key = json.dumps(prompt.model_dump()["messages"], indent=2, ensure_ascii=False)
+            prompt_key = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
             if prompt_key in self.completions:
                 logger.info(colored("prompt cache hit", "green"))
                 completion = self.completions[prompt_key]
@@ -487,12 +489,10 @@ class ReplayLLM(LLM):
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
                 )
-                ratios = [(k, ratio(prompt_key, k, score_cutoff=0.5)) for k in self.completions.keys()]
-                ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
-                closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
+                known_prompts = list(self.completions.keys())
+                closest, score = closest_prompt(prompt_key, known_prompts)
                 if score >= 0.7:
-                    logger.warning(diff_strings(prompt_key, closest))
-                    logger.warning(f"Closest prompt score: {score:.3f}")
+                    logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(prompt_key, closest)}")
                 raise FatalError("prompt not found")
             yield LLMEvent(completion=LLMMessage(content=completion))
 
@@ -510,6 +510,13 @@ class ReplayLLM(LLM):
             return len(tokenizer(messages).input_ids)
         else:
             return len(tokenizer.apply_chat_template(messages))
+
+
+def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, float]:
+    ratios = [(k, ratio(prompt_key, k, score_cutoff=0.5)) for k in known_prompts]
+    ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
+    closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
+    return closest, score
 
 
 class MockLLM(LLM):
