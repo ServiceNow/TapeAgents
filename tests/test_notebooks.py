@@ -16,9 +16,9 @@ def test_intro_notebook():
         with run_test_in_tmp_dir("intro_notebook"):
             shutil.copytree(assets_path, Path("assets"))
             tb.inject(
-                """
+                f"""
                 from tapeagents import llms
-                llms._force_cache = True
+                llms._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
                 """,
                 before=0,
             )
