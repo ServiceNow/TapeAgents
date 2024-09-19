@@ -20,10 +20,9 @@ class MainLoopEvent(BaseModel, Generic[TapeType]):
 
 
 class MainLoopStream:
-    
     def __init__(self, generator: Generator[MainLoopEvent[TapeType], None, None]):
         self.generator = generator
-        
+
     def __bool__(self):
         return self.generator is not None
 
@@ -36,7 +35,7 @@ class MainLoopStream:
         if self.generator is None:
             raise StopIteration
         return next(self.generator)
-    
+
     def get_final_tape(self) -> Tape:
         last_final_tape = None
         for event in self:
@@ -66,6 +65,7 @@ def main_loop(
 
     :return: generator of MainLoopEvent objects
     """
+
     def _implementation():
         n_loops = 0
         tape = start_tape
@@ -95,6 +95,7 @@ def main_loop(
                 logger.info(f"Environment emitted final step {observation}")
                 break
             n_loops += 1
+
     return MainLoopStream(_implementation())
 
 
@@ -140,9 +141,11 @@ def replay_tape(
                 step_dict = event.step.llm_dict()
                 old_step_dict = tape.steps[i].llm_dict()
                 i += 1
-                if step_dict.get("kind") != old_step_dict.get("kind"):
+                kind = step_dict.get("kind")
+                old_kind = old_step_dict.get("kind")
+                if kind != old_kind:
                     logger.error(
-                        f"Step {i} kind mismatch: Old {old_step_dict.get('kind')}, New {step_dict.get('kind')}"
+                        f"Step {i} kind mismatch: Old {old_kind}, New {kind}\nOld step: {old_step_dict}\nNew step: {step_dict}"
                     )
                     match = False
                     if stop_on_mismatch:
