@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, Literal, Type, TypeAlias, TypeVar
+from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import litellm
@@ -150,18 +150,27 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
     def as_prompt_messages(self) -> list[dict]:
         messages = []
         for step in self.steps:
-            message = step.llm_dict()
-            kind = message.pop("kind", None)
-            if kind == "system":
-                role = "system"
-            elif isinstance(step, (Thought, Action)):
-                role = "assistant"
-            elif isinstance(step, Observation):
-                role = "user"
-            else:
-                raise ValueError(f"Cannot convert step type: {step} to role")
-            messages.append({"role": role, **message})
+            if isinstance(step, (Pass, Jump)):
+                continue
+            llm_message = self.step_to_message(step)
+            messages.append(llm_message)
         return messages
+
+    def step_to_message(self, step: Step) -> dict[str, str]:
+        message = step.llm_dict()
+        kind = message.pop("kind", None)
+        if kind == "system":
+            role = "system"
+        elif kind == "tool":
+            role = "tool"
+        elif isinstance(step, (Thought, Action)):
+            role = "assistant"
+        elif isinstance(step, Observation):
+            role = "user"
+        else:
+            raise ValueError(f"Cannot convert step type: {step} to role")
+        llm_message = {"role": role, **message}
+        return llm_message
 
 
 TapeType = TypeVar("TapeType", bound=Tape)

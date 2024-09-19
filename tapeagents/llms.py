@@ -86,7 +86,7 @@ class LLM(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
         pass
 
     def log_completion(self, prompt: Prompt, message: LLMMessage, cached: bool = False):
@@ -102,23 +102,27 @@ class LLM(BaseModel, ABC):
         observe_llm_call(llm_call)
 
 
-# Use this variable to force all LLMs to use cache
+# Use this variable to force all LLMs to use cache from the sqlite DB
 # This is meant to be used for testing purposes only
-_force_cache = False
+_REPLAY_SQLITE: str = ""
 
 
 class CachedLLM(LLM):
     use_cache: bool = False
-    only_cache: bool = False
     stream: bool = False
     _cache: dict = {}
 
     def model_post_init(self, __content):
-        if _force_cache:
-            print("LLM cache is forced!")
+        if _REPLAY_SQLITE:
             self.use_cache = True
-            self.only_cache = True
-        if not self.use_cache:
+            self._cache = {}
+            llm_calls = retrieve_all_llm_calls(_REPLAY_SQLITE)
+            for llm_call in llm_calls:
+                key = self.get_prompt_key(llm_call.prompt)
+                self._cache[key] = [LLMEvent(completion=llm_call.completion)]
+            logger.info(f"Enforced LLM cache from {_REPLAY_SQLITE}, {len(self._cache)} entries")
+            return
+        elif not self.use_cache:
             return
         logger.info("Use LLM Cache")
         param_hash = self._key(json.dumps({k: v for k, v in self.parameters.items() if k != "token"}))
@@ -153,10 +157,13 @@ class CachedLLM(LLM):
             f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 
     def get_prompt_key(self, prompt: Prompt) -> str:
-        prompt_text = prompt.model_dump_json(exclude={"id"})
+        prompt_text = json.dumps(prompt.model_dump(exclude={"id"}), ensure_ascii=False, sort_keys=True)
         return self._key(prompt_text)
 
     def _key(self, text: str) -> str:
+        if _REPLAY_SQLITE:
+            # use exact text as a key during testing
+            return text
         return hashlib.md5(text.encode("utf-8")).hexdigest()
 
     def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
@@ -170,8 +177,12 @@ class CachedLLM(LLM):
                         self.log_completion(prompt, event.completion, cached=True)
                     yield event
             else:
-                if self.only_cache:
-                    raise ValueError(f"llm cache miss not allowed, prompt:\n{prompt.messages}")
+                if _REPLAY_SQLITE:
+                    closest, score = closest_prompt(key, list(self._cache.keys()))
+                    logger.error(
+                        f"llm cache miss, closest in cache has score {score:.3f}\nDIFF:\n{diff_strings(key, closest)}"
+                    )
+                    raise ValueError(f"llm cache miss not allowed, prompt: {key}")
                 toks = self.count_tokens(prompt.messages)
                 self.token_count += toks
                 logger.info(f"{toks} prompt tokens, total: {self.token_count}")
@@ -261,7 +272,7 @@ class LiteLLM(CachedLLM):
         self.log_completion(prompt, completion)
         yield LLMEvent(completion=completion)
 
-    def make_traning_text(self, *args, **kwargs) -> TrainingText:
+    def make_training_text(self, *args, **kwargs) -> TrainingText:
         raise NotImplementedError()
 
 
@@ -342,7 +353,7 @@ class TypedVLLM(LLM):
 
         return LLMStream(_implementation(), prompt=prompt)
 
-    def make_traning_text(self, *args, **kwargs) -> TrainingText:
+    def make_training_text(self, *args, **kwargs) -> TrainingText:
         raise NotImplementedError()
 
     def prepare_schema(self, schema: dict) -> dict:
@@ -444,7 +455,7 @@ class LLAMA(CachedLLM):
         self.log_completion(prompt, completion)
         yield LLMEvent(completion=completion)
 
-    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
         if self.tokenizer is None:
             raise NoTokenizerError(f"Tokenizer not found for {self.model_name}")
         return llama_make_training_text(prompt, completion, self.tokenizer)
@@ -498,7 +509,7 @@ class ReplayLLM(LLM):
 
         return LLMStream(_implementation(), prompt=prompt)
 
-    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
         tokenizer = Tokenizers.get(self.model_name)
         return llama_make_training_text(prompt, completion, tokenizer)
 
@@ -541,7 +552,7 @@ class MockLLM(LLM):
     def count_tokens(self, messages: list[dict] | str) -> int:
         return 42
 
-    def make_traning_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
         return TrainingText(text="mock trace", n_predicted=10)
 
 

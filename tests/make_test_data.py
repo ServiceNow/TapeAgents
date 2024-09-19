@@ -1,4 +1,5 @@
 import sys
+import shutil
 import testbook
 from pathlib import Path
 
@@ -11,8 +12,10 @@ if __name__ == "__main__":
             with run_in_tmp_dir_to_make_test_data("delegate_stack"):
                 delegate_stack.main()
         case ["intro_notebook"]:
-            intro_notebook_path = Path("tapeagents/examples/intro.ipynb").resolve()
+            intro_notebook_path = Path("intro.ipynb").resolve()
+            assets_path = Path("assets").resolve()
             with run_in_tmp_dir_to_make_test_data("intro_notebook", keep_llm_cache=True):
+                shutil.copytree(assets_path, Path("assets"))                
                 with testbook.testbook(intro_notebook_path) as tb:
                     tb.inject(
                         """
