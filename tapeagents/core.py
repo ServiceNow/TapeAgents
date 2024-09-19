@@ -147,9 +147,9 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
     def with_new_id(self) -> Self:
         return self.model_copy(update=dict(metadata=TapeMetadata()))
 
-    def llm_list(self) -> list[dict]:
-        dicts = [step.llm_dict() for step in self.steps if not isinstance(step, (Pass, Jump))]
-        return dicts
+    def as_prompt_messages(self) -> list[dict]:
+        messages = [step.llm_dict() for step in self.steps if not isinstance(step, (Pass, Jump))]
+        return [{"role": message["kind"]} | {k: v for k, v in message.items() if k != "kind"} for message in messages]
 
 
 TapeType = TypeVar("TapeType", bound=Tape)

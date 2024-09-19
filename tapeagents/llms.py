@@ -109,14 +109,15 @@ _force_cache = False
 
 class CachedLLM(LLM):
     use_cache: bool = False
+    only_cache: bool = False
     stream: bool = False
     _cache: dict = {}
 
     def model_post_init(self, __content):
-        global _force_cache_file
         if _force_cache:
             print("LLM cache is forced!")
             self.use_cache = True
+            self.only_cache = True
         if not self.use_cache:
             return
         logger.info("Use LLM Cache")
@@ -169,6 +170,8 @@ class CachedLLM(LLM):
                         self.log_completion(prompt, event.completion, cached=True)
                     yield event
             else:
+                if self.only_cache:
+                    raise ValueError(f"llm cache miss not allowed, prompt:\n{prompt.messages}")
                 toks = self.count_tokens(prompt.messages)
                 self.token_count += toks
                 logger.info(f"{toks} prompt tokens, total: {self.token_count}")
@@ -492,9 +495,8 @@ class ReplayLLM(LLM):
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
                 )
-                ratios = [(k, ratio(prompt_key, k, score_cutoff=0.5)) for k in self.completions.keys()]
-                ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
-                closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
+                known_prompts = list(self.completions.keys())
+                closest, score = closest_prompt(prompt_key, known_prompts)
                 if score >= 0.7:
                     logger.warning(diff_strings(prompt_key, closest))
                     logger.warning(f"Closest prompt score: {score:.3f}")
@@ -515,6 +517,13 @@ class ReplayLLM(LLM):
             return len(tokenizer(messages).input_ids)
         else:
             return len(tokenizer.apply_chat_template(messages))
+
+
+def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, float]:
+    ratios = [(k, ratio(prompt_key, k, score_cutoff=0.5)) for k in known_prompts]
+    ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
+    closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
+    return closest, score
 
 
 class MockLLM(LLM):
