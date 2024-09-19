@@ -83,7 +83,7 @@ class CollectiveAgent(Agent[CollectiveTape]):
                 # originating from other agents, and "kind" == "assistant" for messages by this agent.
                 case Call() if step.by == self.full_name:
                     # I called someone
-                    llm_messages.append({"kind": "assistant", "content": step.content})
+                    llm_messages.append({"role": "assistant", "content": step.content})
                 case Call():
                     # someone called me
                     # we exclude empty call messages from the prompt
@@ -91,38 +91,38 @@ class CollectiveAgent(Agent[CollectiveTape]):
                         continue
                     llm_messages.append(
                         {
-                            "kind": "user",
+                            "role": "user",
                             "content": step.content,
                             "name": step.by.split("/")[-1],
                         }
                     )
                 case Respond() if step.by == self.full_name:
                     # I responded to someone
-                    llm_messages.append({"kind": "assistant", "content": step.content})
+                    llm_messages.append({"role": "assistant", "content": step.content})
                 case Respond():
                     # someone responded to me
                     who_returned = step.by.split("/")[-1]
-                    llm_messages.append({"kind": "user", "content": step.content, "name": who_returned})
+                    llm_messages.append({"role": "user", "content": step.content, "name": who_returned})
                 case Broadcast():
-                    llm_messages.append({"kind": "user", "content": step.content, "name": step.from_})
+                    llm_messages.append({"role": "user", "content": step.content, "name": step.from_})
         match view.task:
             case Task.select_and_call:
                 subagents = ", ".join(self.get_subagent_names())
                 select_before = [
                     {
-                        "kind": "system",
+                        "role": "system",
                         "content": self.templates["select_before"].format(subagents=subagents),
                     }
                 ]
                 select_after = [
                     {
-                        "kind": "system",
+                        "role": "system",
                         "content": self.templates["select_after"].format(subagents=subagents),
                     }
                 ]
                 return Prompt(messages=select_before + llm_messages + select_after)
             case _ if view.should_generate_message:
-                system = [{"kind": "system", "content": self.templates["system"]}]
+                system = [{"role": "system", "content": self.templates["system"]}]
                 return Prompt(messages=system + llm_messages)
             case _:
                 return Prompt()
