@@ -469,28 +469,22 @@ class ReplayLLM(LLM):
     def model_post_init(self, __context: Any) -> None:
         dups = 0
         for llm_call in self.llm_calls:
-            prompt = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False)
+            prompt_key = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
             completion = llm_call.completion.content or ""
-            if prompt in self.completions and completion != self.completions[prompt]:
-                logger.warning("Completion duplicate!")
-                logger.warning(diff_strings(completion, self.completions[prompt]))
+            if prompt_key in self.completions and completion != self.completions[prompt_key]:
+                logger.warning(f"Completion duplicate!\n{diff_strings(completion, self.completions[prompt_key])}")
                 dups += 1
             else:
-                self.completions[prompt] = completion
+                self.completions[prompt_key] = completion
         logger.info(f"Loaded {len(self.completions)} completions, {dups} duplicates")
         return super().model_post_init(__context)
 
     def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
         def _implementation():
-            prompt_key = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=False)
-            prompt_key_ordered = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
-            if prompt_key in self.completions or prompt_key_ordered in self.completions:
+            prompt_key = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
+            if prompt_key in self.completions:
                 logger.info(colored("prompt cache hit", "green"))
-                completion = (
-                    self.completions[prompt_key]
-                    if prompt_key in self.completions
-                    else self.completions[prompt_key_ordered]
-                )
+                completion = self.completions[prompt_key]
             else:
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
@@ -498,8 +492,7 @@ class ReplayLLM(LLM):
                 known_prompts = list(self.completions.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
                 if score >= 0.7:
-                    logger.warning(diff_strings(prompt_key, closest))
-                    logger.warning(f"Closest prompt score: {score:.3f}")
+                    logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(prompt_key, closest)}")
                 raise FatalError("prompt not found")
             yield LLMEvent(completion=LLMMessage(content=completion))
 
