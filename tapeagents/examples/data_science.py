@@ -1,28 +1,24 @@
 import datetime
 import logging
-import os
-import tempfile
-
-from tapeagents.agent import Agent
-from tapeagents.core import Action, AgentEvent, FinalStep, Observation, Tape
-from tapeagents.environment import CodeExecutionEnvironment, Environment
-from tapeagents.utils import run_in_tmp_dir_to_make_test_data
-from tapeagents.view import Call, Respond
-from tapeagents.container_executor import ContainerExecutor
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
 import sys
 
+from tapeagents.agent import Agent
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
 from tapeagents.collective import CollectiveAgent, CollectiveTape
+from tapeagents.container_executor import ContainerExecutor
+from tapeagents.core import Action, FinalStep, Observation, Tape
 from tapeagents.develop import Develop
+from tapeagents.environment import CodeExecutionEnvironment, Environment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
 from tapeagents.runtime import main_loop
+from tapeagents.utils import run_in_tmp_dir_to_make_test_data
+from tapeagents.view import Call, Respond
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
-def make_world(llm: LLM | None = None) -> tuple[Agent, Tape, Environment]:
+def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[Agent, Tape, Environment]:
     llm = llm or LiteLLM(model_name="gpt-4o", parameters={"timeout": 15.0})
     coder = CollectiveAgent.create(
         name="SoftwareEngineer",
@@ -52,7 +48,7 @@ def make_world(llm: LLM | None = None) -> tuple[Agent, Tape, Environment]:
     )
     start_tape = CollectiveTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
-    env = CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/data_science/{now}"))
+    env = env or CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/data_science/{now}"))
     return org, start_tape, env
 
 

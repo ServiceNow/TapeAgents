@@ -1,3 +1,4 @@
+import contextlib
 import difflib
 import json
 import os
@@ -5,7 +6,6 @@ from pathlib import Path
 import shutil
 import tempfile
 from typing import Annotated, Any, Type
-import contextlib   
 
 import jsonref
 from pydantic import TypeAdapter
@@ -42,8 +42,8 @@ def diff_strings(a: str, b: str, use_html: bool = False, by_words: bool = False)
     color_fn = html_colored if use_html else colored
     output = []
     if by_words:
-        a = a.replace("\n", " \n").split(" ")
-        b = b.replace("\n", " \n").split(" ")
+        a = a.replace("\n", " \n").split(" ")  # type: ignore
+        b = b.replace("\n", " \n").split(" ")  # type: ignore
     matcher = difflib.SequenceMatcher(None, a, b)
     splitter = " " if by_words else ""
     for opcode, a0, a1, b0, b1 in matcher.get_opcodes():
@@ -122,7 +122,7 @@ def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
             for file in files:
                 # For most of the code we test in TapeAgents we create ReplayLLM
                 # that looks up prompts and outputs in the SQLite database. For this
-                # reason, by default we don't save the LLM cache files. If you want 
+                # reason, by default we don't save the LLM cache files. If you want
                 # make test data for a Jupyter notebook, you can use the keep_llm_cache
                 # to save the LLM cache files.
                 if file.startswith("llm_cache") and not keep_llm_cache:
@@ -134,4 +134,3 @@ def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
         print("To update test data, run these commands:")
         print(f"mkdir {test_data_dir}")
         print(f"TMP={tmpdir}; cp {cp_source} {test_data_dir}")
-        

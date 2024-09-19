@@ -5,42 +5,48 @@ from litellm.utils import ChatCompletionMessageToolCall
 from pydantic import BaseModel
 
 from .agent import Annotator, ObservationMaker
-from .core import Action, AgentEvent, Jump, MakeObservation, Observation, Pass, Tape, Thought
+from .core import (
+    Action,
+    AgentEvent,
+    Jump,
+    MakeObservation,
+    Observation,
+    Pass,
+    Tape,
+    Thought,
+)
 
 
 class SystemStep(Observation):
     content: str
-    role: Literal["system"] = "system"
+    kind: Literal["system"] = "system"
 
 
 class UserStep(Observation):
     content: str
-    role: Literal["user"] = "user"
+    kind: Literal["user"] = "user"
 
 
 class AssistantThought(Thought):
     content: str
-    role: Literal["assistant_thought"] = "assistant_thought"
-    
-    def llm_dict(self) -> dict:
-        return {"role": "assistant", "content": self.content}
+    kind: Literal["assistant_thought"] = "assistant_thought"
 
 
 class AssistantStep(Action):
     content: str
-    role: Literal["assistant"] = "assistant"
+    kind: Literal["assistant"] = "assistant"
 
 
 class ToolCalls(Action):
     tool_calls: list[ChatCompletionMessageToolCall]
-    role: Literal["assistant"] = "assistant"
+    kind: Literal["assistant"] = "assistant"
 
 
 class ToolResult(Observation):
     content: Any
     tool_call_id: str
-    role: Literal["tool"] = "tool"
-    
+    kind: Literal["tool"] = "tool"
+
 
 DialogStep: TypeAlias = UserStep | AssistantStep | SystemStep | AssistantThought | Jump | Pass
 FunctionDialogStep: TypeAlias = DialogStep | ToolCalls | ToolResult

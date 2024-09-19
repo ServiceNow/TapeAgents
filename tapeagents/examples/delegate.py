@@ -1,12 +1,12 @@
-import logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
 import json
+import logging
 from typing import Literal
 
 from tapeagents.agent import Agent, AgentEvent
 from tapeagents.core import Action, Prompt, Tape, Thought
 from tapeagents.llms import LLAMA, LLM, LLMStream
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 EXAMPLE_TEXT = """I am a text with some verbs like running, jumping, and swimming."""
 
@@ -37,12 +37,12 @@ Do not output any text before or after JSON. Use the infinitive form for each ve
 
 
 class AllVerbs(Thought):
-    role: Literal["all_verbs"] = "all_verbs"
+    kind: Literal["all_verbs"] = "all_verbs"
     verbs: list[str]
 
 
 class IrregularVerbs(Action):
-    role: Literal["irregular_verbs"] = "irregular_verbs"
+    kind: Literal["irregular_verbs"] = "irregular_verbs"
     verbs: list[str]
 
 
@@ -73,13 +73,11 @@ class FilterIrregular(Agent[ExampleTape]):
 
 class FindIrregularVerbs(Agent[ExampleTape]):
     @classmethod
-    def create(cls, llm: LLM): # type: ignore
-        return super().create(
-            subagents=[FindVerbs.create(llm), FilterIrregular.create(llm)]
-        )
+    def create(cls, llm: LLM):  # type: ignore
+        return super().create(subagents=[FindVerbs.create(llm), FilterIrregular.create(llm)])
 
     def delegate(self, tape: ExampleTape) -> Agent[ExampleTape]:
-        state = set(step.role for step in tape.steps)
+        state = set(step.kind for step in tape.steps)
         if state == set():
             return self.find_subagent("FindVerbs")
         elif state == {"all_verbs"}:

@@ -12,7 +12,7 @@
   "steps": [
     {
       "content": "Respond to the user using the style of Shakespeare books. Be very brief, 50 words max.",
-      "role": "system"
+      "kind": "system"
     }
   ]
 }

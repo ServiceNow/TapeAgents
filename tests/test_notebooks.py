@@ -1,11 +1,13 @@
-import shutil
 import pathlib
+import shutil
 from pathlib import Path
+
 import testbook
 
 from tapeagents.utils import run_test_in_tmp_dir
 
 res_dir = f"{pathlib.Path(__file__).parent.resolve()}/res"
+
 
 def test_intro_notebook():
     intro_notebook_path = Path("intro.ipynb").resolve()
@@ -14,10 +16,10 @@ def test_intro_notebook():
         with run_test_in_tmp_dir("intro_notebook"):
             shutil.copytree(assets_path, Path("assets"))
             tb.inject(
-                f"""
+                """
                 from tapeagents import llms
                 llms._force_cache = True
                 """,
-                before=0
+                before=0,
             )
             tb.execute()

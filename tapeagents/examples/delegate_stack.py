@@ -68,37 +68,37 @@ Write a nice message discussing the style of the text based on the information y
 class InputText(Thought):
     """Thought that the agent should use to pass text as an input to a worker"""
 
-    role: Literal["input_text"] = "input_text"
+    kind: Literal["input_text"] = "input_text"
     text: str
 
 
 class AllVerbs(Thought):
-    role: Literal["all_verbs"] = "all_verbs"
+    kind: Literal["all_verbs"] = "all_verbs"
     verbs: list[str]
 
 
 class AllNouns(Thought):
-    role: Literal["all_nouns"] = "all_nouns"
+    kind: Literal["all_nouns"] = "all_nouns"
     nouns: list[str]
 
 
 class IrregularVerbs(Thought):
-    role: Literal["irregular_verbs"] = "irregular_verbs"
+    kind: Literal["irregular_verbs"] = "irregular_verbs"
     verbs: list[str]
 
 
 class PresentResults(Action):
-    role: Literal["present_results"] = "present_results"
+    kind: Literal["present_results"] = "present_results"
     content: str
 
 
 class LastStep(FinalStep):
-    role: Literal["last_step"] = "last_step"
+    kind: Literal["last_step"] = "last_step"
 
 
 KnownStep: TypeAlias = Annotated[
     InputText | AllVerbs | AllNouns | IrregularVerbs | Call | Respond | LastStep | PresentResults,
-    Field(discriminator="role"),
+    Field(discriminator="kind"),
 ]
 ExampleTape = Tape[str, KnownStep]
 
@@ -149,7 +149,10 @@ class Linguist(Chain[ExampleTape]):
                         name="FindIrregularVerbs",
                         subagents_with_inputs=[
                             (FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE), ()),
-                            (FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE), (-1,)),
+                            (
+                                FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE),
+                                (-1,),
+                            ),
                         ],
                     ),
                     (),
@@ -160,13 +163,16 @@ class Linguist(Chain[ExampleTape]):
 
     def make_prompt(self, tape: ExampleTape) -> Prompt:
         state = TapeViewStack.compute(tape)
-        if "all_nouns" in state.top.steps_by_role and "irregular_verbs" in state.top.steps_by_role:
-            (nouns,) = state.top.steps_by_role["all_nouns"]
-            irregular_verbs = state.top.steps_by_role["irregular_verbs"][0]
+        if "all_nouns" in state.top.steps_by_kind and "irregular_verbs" in state.top.steps_by_kind:
+            (nouns,) = state.top.steps_by_kind["all_nouns"]
+            irregular_verbs = state.top.steps_by_kind["irregular_verbs"][0]
             assert isinstance(nouns, AllNouns)
             assert isinstance(irregular_verbs, IrregularVerbs)
             return Prompt.from_user_message(
-                self.template.format(nouns=json.dumps(nouns.nouns), irregural_verbs=json.dumps(irregular_verbs.verbs))
+                self.template.format(
+                    nouns=json.dumps(nouns.nouns),
+                    irregural_verbs=json.dumps(irregular_verbs.verbs),
+                )
             )
         else:
             return Prompt()
@@ -184,7 +190,8 @@ class PresentAnalysis(Agent[ExampleTape]):
         assert isinstance(tape.steps[-1], IrregularVerbs)
         return Prompt.from_user_message(
             self.template.format(
-                nouns=json.dumps(tape.steps[-2].nouns), irregural_verbs=json.dumps(tape.steps[-1].verbs)
+                nouns=json.dumps(tape.steps[-2].nouns),
+                irregural_verbs=json.dumps(tape.steps[-1].verbs),
             )
         )
 
@@ -203,7 +210,10 @@ def make_analyze_text_chain(llm: LLM):
                     name="FindIrregularVerbs",
                     subagents_with_inputs=[
                         (FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE), ()),
-                        (FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE), (-1,)),
+                        (
+                            FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE),
+                            (-1,),
+                        ),
                     ],
                 ),
                 (),
@@ -237,6 +247,6 @@ def main():
     with open("tape2.json", "w") as f:
         json.dump(tape2.model_dump(), f, indent=2)
 
-    
+
 if __name__ == "__main__":
     main()

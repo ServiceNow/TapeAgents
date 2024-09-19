@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Literal
 
 from pydantic import ConfigDict
 
 from tapeagents.agent import DEFAULT, Agent
 from tapeagents.autogen_prompts import SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE, SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE
-from tapeagents.core import Action, FinalStep, Jump, Observation, Prompt, Tape, Pass
-from tapeagents.environment import CodeExecutionResult, Environment, ExecuteCode
+from tapeagents.container_executor import extract_code_blocks
+from tapeagents.core import FinalStep, Jump, Pass, Prompt, Tape
+from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM, LLMStream
-from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor, extract_code_blocks
 from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
@@ -47,7 +46,7 @@ class ActiveCollectiveAgentView:
         self.last_non_empty_message = next((m for m in reversed(self.messages) if m.content), None)
         self.task = agent.get_task(view)
         self.steps = view.top.steps
-        self.steps_by_role = view.top.steps_by_role
+        self.steps_by_kind = view.top.steps_by_kind
         self.exec_result = self.steps[-1] if self.steps and isinstance(self.steps[-1], CodeExecutionResult) else None
         self.should_generate_message = (
             self.task in {Task.call, Task.respond}
@@ -56,13 +55,13 @@ class ActiveCollectiveAgentView:
             and "system" in agent.templates
         )
         self.should_stop = (
-            agent.max_calls and (agent.max_calls and len(self.steps_by_role.get("call", [])) >= agent.max_calls)
+            agent.max_calls and (agent.max_calls and len(self.steps_by_kind.get("call", [])) >= agent.max_calls)
         ) or (self.messages and ("TERMINATE" in self.messages[-1].content))
 
 
 class CollectiveAgent(Agent[CollectiveTape]):
     """
-    Agent designed to work in the collective with similar other agents performing different roles
+    Agent designed to work in the collective with similar other agents performing different kinds
     """
 
     max_calls: int | None = None
@@ -80,8 +79,8 @@ class CollectiveAgent(Agent[CollectiveTape]):
         llm_messages = []
         for step in view.messages:
             match step:
-                # When we make the LLM messages, we use "role" == "user" for messages
-                # originating from other agents, and "role" == "assistant" for messages by this agent.
+                # When we make the LLM messages, we use "kind" == "user" for messages
+                # originating from other agents, and "kind" == "assistant" for messages by this agent.
                 case Call() if step.by == self.full_name:
                     # I called someone
                     llm_messages.append({"role": "assistant", "content": step.content})
@@ -90,7 +89,13 @@ class CollectiveAgent(Agent[CollectiveTape]):
                     # we exclude empty call messages from the prompt
                     if not step.content:
                         continue
-                    llm_messages.append({"role": "user", "content": step.content, "name": step.by.split("/")[-1]})
+                    llm_messages.append(
+                        {
+                            "role": "user",
+                            "content": step.content,
+                            "name": step.by.split("/")[-1],
+                        }
+                    )
                 case Respond() if step.by == self.full_name:
                     # I responded to someone
                     llm_messages.append({"role": "assistant", "content": step.content})
@@ -104,10 +109,16 @@ class CollectiveAgent(Agent[CollectiveTape]):
             case Task.select_and_call:
                 subagents = ", ".join(self.get_subagent_names())
                 select_before = [
-                    {"role": "system", "content": self.templates["select_before"].format(subagents=subagents)}
+                    {
+                        "role": "system",
+                        "content": self.templates["select_before"].format(subagents=subagents),
+                    }
                 ]
                 select_after = [
-                    {"role": "system", "content": self.templates["select_after"].format(subagents=subagents)}
+                    {
+                        "role": "system",
+                        "content": self.templates["select_after"].format(subagents=subagents),
+                    }
                 ]
                 return Prompt(messages=select_before + llm_messages + select_after)
             case _ if view.should_generate_message:
@@ -117,7 +128,13 @@ class CollectiveAgent(Agent[CollectiveTape]):
                 return Prompt()
 
     @classmethod
-    def create(cls, name: str, system_prompt: str | None = None, llm: LLM | None = None, execute_code: bool = False):  # type: ignore
+    def create(
+        cls,
+        name: str,
+        system_prompt: str | None = None,
+        llm: LLM | None = None,
+        execute_code: bool = False,
+    ):  # type: ignore
         """
         Create a simple agent that can execute code, think and respond to messages
         """
@@ -129,7 +146,13 @@ class CollectiveAgent(Agent[CollectiveTape]):
         )
 
     @classmethod
-    def create_collective_manager(cls, name: str, subagents: list[Agent[CollectiveTape]], llm: LLM, max_calls: int = 1):
+    def create_collective_manager(
+        cls,
+        name: str,
+        subagents: list[Agent[CollectiveTape]],
+        llm: LLM,
+        max_calls: int = 1,
+    ):
         """
         Create a collective manager that broadcasts the last message to all subagents, selects one of them to call, call it and
         responds to the last message if the termination message is not received.
@@ -137,7 +160,11 @@ class CollectiveAgent(Agent[CollectiveTape]):
         return cls(
             name=name,
             subagents=subagents,
-            tasks=[Task.broadcast_last_message, Task.select_and_call, Task.respond_or_repeat],
+            tasks=[
+                Task.broadcast_last_message,
+                Task.select_and_call,
+                Task.respond_or_repeat,
+            ],
             max_calls=max_calls,
             templates={
                 "select_before": SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE,
@@ -193,7 +220,11 @@ class CollectiveAgent(Agent[CollectiveTape]):
                             yield Broadcast(content=last.content, from_=from_, to=list(recipients))
                         case Respond():
                             recipients = [name for name in recipients if name != last.by.split("/")[-1]]
-                            yield Broadcast(content=view.messages[-1].content, from_=from_, to=list(recipients))
+                            yield Broadcast(
+                                content=view.messages[-1].content,
+                                from_=from_,
+                                to=list(recipients),
+                            )
                         case Broadcast():
                             pass
                         case _:

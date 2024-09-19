@@ -9,6 +9,7 @@ from tapeagents.collective import CollectiveTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog import Dialog
+from tapeagents.environment import EmptyEnvironment
 from tapeagents.examples import data_science, tape_improver
 from tapeagents.examples.delegate import ExampleTape, FindIrregularVerbs
 from tapeagents.examples.delegate_stack import ExampleTape as ExampleTapeStack
@@ -162,7 +163,7 @@ def test_delegate_stack():
 def test_data_science():
     run_dir = f"{res_path}/data_science"
     llm = ReplayLLM.from_llm(llama(), run_dir)
-    agent, start_tape, env = data_science.make_world(llm)
+    agent, start_tape, env = data_science.make_world(llm, EmptyEnvironment())
     final_tape = CollectiveTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=start_tape, env=env, reuse_observations=True)
 

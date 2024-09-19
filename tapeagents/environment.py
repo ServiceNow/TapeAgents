@@ -109,7 +109,7 @@ class ToolEnvironment(Environment):
 
     def get_tool_schemas(self) -> list[ToolSpec]:
         return [TypeAdapter(ToolSpec).validate_python(convert_to_openai_tool(tool)) for tool in self.tools]
-    
+
     def get_tool_schema_dicts(self) -> list[dict]:
         return [t.model_dump() for t in self.get_tool_schemas()]
 
@@ -119,7 +119,7 @@ class ToolEnvironment(Environment):
             if isinstance(tape.steps[i], Observation):
                 break
             if isinstance(tape.steps[i], Action):
-                orphan_actions.append(tape.steps[i]) 
+                orphan_actions.append(tape.steps[i])
         if not orphan_actions:
             raise ValueError("No actions to react to")
         for action in orphan_actions:
@@ -143,14 +143,14 @@ class ToolEnvironment(Environment):
 
 
 class ExecuteCode(Action):
-    role: Literal["execute_code"] = "execute_code"
+    kind: Literal["execute_code"] = "execute_code"
     code: list[CodeBlock]
 
 
 class CodeExecutionResult(Observation):
-    role: Literal["code_execution_result"] = "code_execution_result"
+    kind: Literal["code_execution_result"] = "code_execution_result"
     result: CommandLineCodeResult
-    
+
 
 class CodeExecutionEnvironment(Environment):
     """
