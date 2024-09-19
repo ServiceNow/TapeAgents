@@ -1,6 +1,8 @@
 import difflib
 import json
 import os
+from pathlib import Path
+import shutil
 import tempfile
 from typing import Annotated, Any, Type
 import contextlib   
@@ -98,6 +100,16 @@ def get_step_schemas_from_union_type(cls) -> str:
 
 
 @contextlib.contextmanager
+def run_test_in_tmp_dir(test_name: str):
+    """Copy test resources to a temporary directory and run the test there"""
+    tmpdir = tempfile.mkdtemp()
+    test_data_dir = Path(f"tests/res/{test_name}").resolve()
+    os.chdir(tmpdir)
+    shutil.copytree(test_data_dir, tmpdir, dirs_exist_ok=True)
+    yield
+
+
+@contextlib.contextmanager
 def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
     tmpdir = tempfile.mkdtemp()
     os.chdir(tmpdir)
@@ -117,7 +129,7 @@ def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
                     continue
                 created_files.append(os.path.relpath(os.path.join(root, file), tmpdir))
         cp_source = " ".join(f"$TMP/{f}" for f in created_files)
-        test_data_dir = f"tapeagents/tests/res/{test_name}"
+        test_data_dir = f"tests/res/{test_name}"
         print("Saved test data to ", tmpdir)
         print("To update test data, run these commands:")
         print(f"mkdir {test_data_dir}")
