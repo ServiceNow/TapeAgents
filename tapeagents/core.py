@@ -150,6 +150,8 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
     def as_prompt_messages(self) -> list[dict]:
         messages = []
         for step in self.steps:
+            if isinstance(step, (Pass, Jump)):
+                continue
             message = step.llm_dict()
             kind = message.pop("kind", None)
             if kind == "system":
