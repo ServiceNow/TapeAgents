@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 import sys
 
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.team import CollectiveAgent, TeamTape
+from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.develop import Develop
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
@@ -20,28 +20,28 @@ from tapeagents.runtime import main_loop
 
 def try_chat(develop: bool):
     llm = LiteLLM(model_name="gpt-4o", parameters={"timeout": 15.0}, use_cache=True)
-    product_manager = CollectiveAgent.create(
+    product_manager = TeamAgent.create(
         name="ProductManager",
         system_prompt="Creative in software product ideas.",
         llm=llm,
     )
-    coder = CollectiveAgent.create(
+    coder = TeamAgent.create(
         name="SoftwareEngineer",
         system_prompt=AUTOGEN_ASSISTANT_SYSTEM_MESSAGE,
         llm=llm,
     )
-    code_executor = CollectiveAgent.create(
+    code_executor = TeamAgent.create(
         name="CodeExecutor",
         llm=llm,
         execute_code=True,
     )
-    team = CollectiveAgent.create_collective_manager(
+    team = TeamAgent.create_collective_manager(
         name="GroupChatManager",
         subagents=[product_manager, coder, code_executor],
         max_calls=15,
         llm=llm,
     )
-    org = CollectiveAgent.create_chat_initiator(
+    org = TeamAgent.create_chat_initiator(
         name="UserProxy",
         init_message="Find a latest paper about gpt-4 on arxiv and find its potential applications in software.",
         collective_manager=team,

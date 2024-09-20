@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 import sys
 
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.team import CollectiveAgent, TeamTape
+from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.develop import Develop
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import PrettyRenderer
@@ -18,11 +18,11 @@ from tapeagents.runtime import main_loop
 
 def try_chat(llm: LLM, develop: bool):
     # equilavent of https://microsoft.github.io/autogen/docs/tutorial/introduction
-    org = CollectiveAgent.create_chat_initiator(
+    org = TeamAgent.create_chat_initiator(
         name="UserProxy",
         llm=llm,
         system_prompt="",
-        collective_manager=CollectiveAgent.create(
+        collective_manager=TeamAgent.create(
             name="Assistant",
             system_prompt=AUTOGEN_ASSISTANT_SYSTEM_MESSAGE,
             llm=llm,

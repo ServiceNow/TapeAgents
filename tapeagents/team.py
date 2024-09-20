@@ -21,7 +21,7 @@ TeamTape = Tape[None, Call | Respond | Broadcast | FinalStep | Jump | ExecuteCod
 
 class Task(str, Enum):
     """
-    List of tasks that the agent from the collective can perform
+    List of tasks that the agent from the team can perform
     """
 
     broadcast_last_message = "broadcast_last_message"
@@ -34,7 +34,7 @@ class Task(str, Enum):
 
 
 class ActiveCollectiveAgentView:
-    def __init__(self, agent: CollectiveAgent, tape: TeamTape):
+    def __init__(self, agent: TeamAgent, tape: TeamTape):
         """
         CollectiveTapeView contains the ephemeral state computed from the tape. This class extracts the data relevant to
         the given agent and also computes some additional information from it, e.g. whether the agent
@@ -59,9 +59,9 @@ class ActiveCollectiveAgentView:
         ) or (self.messages and ("TERMINATE" in self.messages[-1].content))
 
 
-class CollectiveAgent(Agent[TeamTape]):
+class TeamAgent(Agent[TeamTape]):
     """
-    Agent designed to work in the collective with similar other agents performing different kinds
+    Agent designed to work in the team with similar other agents performing different kinds
     """
 
     max_calls: int | None = None
