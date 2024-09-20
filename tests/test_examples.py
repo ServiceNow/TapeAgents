@@ -2,23 +2,26 @@ import contextlib
 import json
 import logging
 import os
+import sys
 import tempfile
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).parent.parent.resolve()))
+
+from examples import data_science, tape_improver
+from examples.delegate import ExampleTape, FindIrregularVerbs
+from examples.delegate_stack import ExampleTape as ExampleTapeStack
+from examples.delegate_stack import Linguist, make_analyze_text_chain
+from examples.gaia_agent.agent import GaiaAgent
+from examples.gaia_agent.environment import GaiaEnvironment
+from examples.gaia_agent.eval import load_results
+from examples.gaia_agent.tape import GaiaTape
+from examples.llama_agent import LLAMAChatBot
 from tapeagents.collective import CollectiveTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog import Dialog
 from tapeagents.environment import EmptyEnvironment
-from tapeagents.examples import data_science, tape_improver
-from tapeagents.examples.delegate import ExampleTape, FindIrregularVerbs
-from tapeagents.examples.delegate_stack import ExampleTape as ExampleTapeStack
-from tapeagents.examples.delegate_stack import Linguist, make_analyze_text_chain
-from tapeagents.examples.gaia_agent.agent import GaiaAgent
-from tapeagents.examples.gaia_agent.environment import GaiaEnvironment
-from tapeagents.examples.gaia_agent.eval import load_results
-from tapeagents.examples.gaia_agent.tape import GaiaTape
-from tapeagents.examples.llama_agent import LLAMAChatBot
 from tapeagents.llms import LLAMA, ReplayLLM
 from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls
 from tapeagents.runtime import replay_tape, replay_tapes
