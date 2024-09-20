@@ -33,7 +33,7 @@ class Task(str, Enum):
     respond_or_repeat = "respond_or_repeat"
 
 
-class ActiveCollectiveAgentView:
+class ActiveTeamAgentView:
     def __init__(self, agent: TeamAgent, tape: TeamTape):
         """
         CollectiveTapeView contains the ephemeral state computed from the tape. This class extracts the data relevant to
@@ -75,7 +75,7 @@ class TeamAgent(Agent[TeamTape]):
         return Task(self.tasks[view.top.next_node])
 
     def make_prompt(self, tape: TeamTape) -> Prompt:
-        view = ActiveCollectiveAgentView(self, tape)
+        view = ActiveTeamAgentView(self, tape)
         llm_messages = []
         for step in view.messages:
             match step:
@@ -200,7 +200,7 @@ class TeamAgent(Agent[TeamTape]):
         )
 
     def generate_steps(self, tape: TeamTape, llm_stream: LLMStream):
-        view = ActiveCollectiveAgentView(self, tape)
+        view = ActiveTeamAgentView(self, tape)
 
         exec_result_message = ""
         if view.exec_result:
