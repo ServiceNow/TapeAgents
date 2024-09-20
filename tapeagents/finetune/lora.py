@@ -1,5 +1,7 @@
 import json
+import logging
 import os
+import sys
 from pathlib import Path
 
 import torch
@@ -9,9 +11,9 @@ from peft.tuners.lora import LoraConfig
 from peft.utils.other import prepare_model_for_kbit_training
 from peft.utils.save_and_load import set_peft_model_state_dict
 from safetensors.torch import load_file
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from .context import logger
+logger = logging.getLogger(__name__)
 
 
 def has_lora_checkpoint(current_dir: Path) -> bool:
@@ -135,3 +137,29 @@ def apply_lora(model, lora_model_path):
                 wdiff = (lora_b @ lora_a) * scaling
                 layer_weights.data += wdiff
                 break
+
+
+def merge_lora(lora_model_path, same_folder=False):
+    if lora_model_path[-1] == "/":
+        lora_model_path = lora_model_path[:-1]
+    assert os.path.isdir(lora_model_path), f"{lora_model_path} is not a dir"
+    lora_model_config = os.path.join(lora_model_path, "adapter_config.json")
+    assert os.path.exists(lora_model_config), f"{lora_model_config} does not exists"
+
+    logger.info(f"Merge lora checkpoint {lora_model_path}")
+    model = lora_load_and_merge(lora_model_path, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True)
+    tokenizer = AutoTokenizer.from_pretrained(lora_model_path)
+
+    tmp_dir = f"{lora_model_path}_merged"
+    logger.info(f"Save merged model to {tmp_dir}")
+    model.save_pretrained(tmp_dir, safe_serialization=True)
+    tokenizer.save_pretrained(tmp_dir)
+
+    os.rename(lora_model_path, f"{lora_model_path}_lora")
+    os.rename(tmp_dir, lora_model_path)
+    logger.info(f"Merged model saved to {lora_model_path}")
+
+
+if __name__ == "__main__":
+    assert len(sys.argv) == 2, "Merging lora weights: python lora.py <lora_weights_dir>"
+    merge_lora(sys.argv[1])
