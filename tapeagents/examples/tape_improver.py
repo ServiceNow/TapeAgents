@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from tapeagents.agent import Agent
 from tapeagents.chain import Chain
-from tapeagents.collective import CollectiveTape
+from tapeagents.team import CollectiveTape
 from tapeagents.core import (
     Action,
     AgentStep,

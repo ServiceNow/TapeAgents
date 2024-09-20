@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 import sys
 
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.collective import CollectiveAgent, CollectiveTape
+from tapeagents.team import CollectiveAgent, CollectiveTape
 from tapeagents.develop import Develop
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import BasicRenderer, PrettyRenderer

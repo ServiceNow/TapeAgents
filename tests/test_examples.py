@@ -5,7 +5,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from tapeagents.collective import CollectiveTape
+from tapeagents.team import CollectiveTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog import Dialog
