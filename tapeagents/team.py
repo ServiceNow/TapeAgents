@@ -36,7 +36,7 @@ class Task(str, Enum):
 class ActiveTeamAgentView:
     def __init__(self, agent: TeamAgent, tape: TeamTape):
         """
-        CollectiveTapeView contains the ephemeral state computed from the tape. This class extracts the data relevant to
+        TeamTapeView contains the ephemeral state computed from the tape. This class extracts the data relevant to
         the given agent and also computes some additional information from it, e.g. whether the agent
         should call the LLM to generate a message or respond with an already available one.
 
@@ -146,7 +146,7 @@ class TeamAgent(Agent[TeamTape]):
         )
 
     @classmethod
-    def create_collective_manager(
+    def create_team_manager(
         cls,
         name: str,
         subagents: list[Agent[TeamTape]],
@@ -154,7 +154,7 @@ class TeamAgent(Agent[TeamTape]):
         max_calls: int = 1,
     ):
         """
-        Create a collective manager that broadcasts the last message to all subagents, selects one of them to call, call it and
+        Create a team manager that broadcasts the last message to all subagents, selects one of them to call, call it and
         responds to the last message if the termination message is not received.
         """
         return cls(
@@ -177,7 +177,7 @@ class TeamAgent(Agent[TeamTape]):
     def create_chat_initiator(
         cls,
         name: str,
-        collective_manager: Agent[TeamTape],
+        team_manager: Agent[TeamTape],
         init_message: str,
         system_prompt: str = "",
         llm: LLM | None = None,
@@ -185,7 +185,7 @@ class TeamAgent(Agent[TeamTape]):
         execute_code: bool = False,
     ):
         """
-        Create an agent that sets the collective's initial message and calls the collective manager
+        Create an agent that sets the team's initial message and calls the team manager
         """
         return cls(
             name=name,
@@ -193,7 +193,7 @@ class TeamAgent(Agent[TeamTape]):
                 "system": system_prompt,
             },
             llms={DEFAULT: llm} if llm else {},
-            subagents=[collective_manager],
+            subagents=[team_manager],
             tasks=([Task.execute_code] if execute_code else []) + [Task.call, Task.terminate_or_repeat],
             max_calls=max_calls,
             init_message=init_message,
