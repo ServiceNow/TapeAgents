@@ -1,6 +1,6 @@
 import sys
 
-from tapeagents.team import CollectiveAgent, CollectiveTape
+from tapeagents.team import CollectiveAgent, TeamTape
 from tapeagents.develop import Develop
 from tapeagents.llms import LLAMA, LLM
 from tapeagents.rendering import PrettyRenderer
@@ -19,9 +19,9 @@ def try_chat(llm: LLM, develop: bool):
         init_message="Hey Cathy, tell me a joke",
     )
     if develop:
-        Develop(comedy_duo, CollectiveTape(context=None, steps=[]), PrettyRenderer()).launch()
+        Develop(comedy_duo, TeamTape(context=None, steps=[]), PrettyRenderer()).launch()
     else:
-        for event in comedy_duo.run(CollectiveTape(context=None, steps=[])):
+        for event in comedy_duo.run(TeamTape(context=None, steps=[])):
             print(event.model_dump_json(indent=2))
 
 

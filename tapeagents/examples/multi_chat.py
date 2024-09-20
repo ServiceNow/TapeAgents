@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 import sys
 
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.team import CollectiveAgent, CollectiveTape
+from tapeagents.team import CollectiveAgent, TeamTape
 from tapeagents.develop import Develop
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
@@ -46,7 +46,7 @@ def try_chat(develop: bool):
         init_message="Find a latest paper about gpt-4 on arxiv and find its potential applications in software.",
         collective_manager=team,
     )
-    start_tape = CollectiveTape(context=None, steps=[])
+    start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     env = CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/multi_chat_code/{now}"))
     if develop:

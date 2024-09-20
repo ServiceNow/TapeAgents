@@ -5,7 +5,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from tapeagents.team import CollectiveTape
+from tapeagents.team import TeamTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog import Dialog
@@ -162,7 +162,7 @@ def test_data_science():
     run_dir = f"{res_path}/data_science"
     llm = ReplayLLM.from_llm(llama(), run_dir)
     agent, start_tape, env = data_science.make_world(llm, EmptyEnvironment())
-    final_tape = CollectiveTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
+    final_tape = TeamTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=start_tape, env=env, reuse_observations=True)
 
 

@@ -16,7 +16,7 @@ from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
 logger = logging.getLogger(__name__)
 
 
-CollectiveTape = Tape[None, Call | Respond | Broadcast | FinalStep | Jump | ExecuteCode | CodeExecutionResult | Pass]
+TeamTape = Tape[None, Call | Respond | Broadcast | FinalStep | Jump | ExecuteCode | CodeExecutionResult | Pass]
 
 
 class Task(str, Enum):
@@ -34,7 +34,7 @@ class Task(str, Enum):
 
 
 class ActiveCollectiveAgentView:
-    def __init__(self, agent: CollectiveAgent, tape: CollectiveTape):
+    def __init__(self, agent: CollectiveAgent, tape: TeamTape):
         """
         CollectiveTapeView contains the ephemeral state computed from the tape. This class extracts the data relevant to
         the given agent and also computes some additional information from it, e.g. whether the agent
@@ -59,7 +59,7 @@ class ActiveCollectiveAgentView:
         ) or (self.messages and ("TERMINATE" in self.messages[-1].content))
 
 
-class CollectiveAgent(Agent[CollectiveTape]):
+class CollectiveAgent(Agent[TeamTape]):
     """
     Agent designed to work in the collective with similar other agents performing different kinds
     """
@@ -74,7 +74,7 @@ class CollectiveAgent(Agent[CollectiveTape]):
         # TODO: use nodes
         return Task(self.tasks[view.top.next_node])
 
-    def make_prompt(self, tape: CollectiveTape) -> Prompt:
+    def make_prompt(self, tape: TeamTape) -> Prompt:
         view = ActiveCollectiveAgentView(self, tape)
         llm_messages = []
         for step in view.messages:
@@ -149,7 +149,7 @@ class CollectiveAgent(Agent[CollectiveTape]):
     def create_collective_manager(
         cls,
         name: str,
-        subagents: list[Agent[CollectiveTape]],
+        subagents: list[Agent[TeamTape]],
         llm: LLM,
         max_calls: int = 1,
     ):
@@ -177,7 +177,7 @@ class CollectiveAgent(Agent[CollectiveTape]):
     def create_chat_initiator(
         cls,
         name: str,
-        collective_manager: Agent[CollectiveTape],
+        collective_manager: Agent[TeamTape],
         init_message: str,
         system_prompt: str = "",
         llm: LLM | None = None,
@@ -199,7 +199,7 @@ class CollectiveAgent(Agent[CollectiveTape]):
             init_message=init_message,
         )
 
-    def generate_steps(self, tape: CollectiveTape, llm_stream: LLMStream):
+    def generate_steps(self, tape: TeamTape, llm_stream: LLMStream):
         view = ActiveCollectiveAgentView(self, tape)
 
         exec_result_message = ""

@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 import sys
 
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.team import CollectiveAgent, CollectiveTape
+from tapeagents.team import CollectiveAgent, TeamTape
 from tapeagents.develop import Develop
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import PrettyRenderer
@@ -31,7 +31,7 @@ def try_chat(llm: LLM, develop: bool):
         init_message="compute 5 fibonacci numbers",
         execute_code=True,
     )
-    start_tape = CollectiveTape(context=None, steps=[])
+    start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     env = CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/chat_code/{now}"))
     if develop:

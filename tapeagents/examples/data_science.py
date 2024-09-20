@@ -4,7 +4,7 @@ import sys
 
 from tapeagents.agent import Agent
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.team import CollectiveAgent, CollectiveTape
+from tapeagents.team import CollectiveAgent, TeamTape
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import Action, FinalStep, Observation, Tape
 from tapeagents.environment import CodeExecutionEnvironment, Environment
@@ -45,7 +45,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
         ),
         collective_manager=team,
     )
-    start_tape = CollectiveTape(context=None, steps=[])
+    start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     env = env or CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/data_science/{now}"))
     return org, start_tape, env
