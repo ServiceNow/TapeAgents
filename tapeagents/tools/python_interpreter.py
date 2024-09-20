@@ -18,9 +18,13 @@
 import ast
 import builtins
 import difflib
+import json
 import math
+import sys
+import traceback
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, List, Optional
+from io import StringIO
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 
 class InterpreterError(ValueError):
@@ -911,3 +915,35 @@ def evaluate_python_code(
             state["print_outputs"] = PRINT_OUTPUTS
 
     return result
+
+
+def run_python_code(code: str, facts: dict) -> Tuple[str, str, str]:
+    # run code and capture stdout, stderr
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    sys.stdout = mystdout = StringIO()
+    sys.stderr = mystderr = StringIO()
+
+    result = None
+    try:
+        result = evaluate_python_code(code, state=facts.copy(), tools=BASE_PYTHON_TOOLS)
+    except Exception:
+        traceback.print_exc()
+    finally:
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+    try:
+        str_result = json.dumps(result)
+    except Exception:
+        str_result = str(result)
+    return str_result, mystdout.getvalue(), mystderr.getvalue()
+
+
+def python_calculate(expression: str, values_dict: dict[str, Any]) -> str:
+    result = evaluate_python_code(expression, state=values_dict.copy(), tools=BASE_PYTHON_TOOLS)
+    try:
+        str_result = json.dumps(result)
+    except Exception:
+        str_result = str(result)
+    return str_result

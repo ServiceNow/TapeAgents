@@ -22,7 +22,6 @@ from tapeagents.examples.llama_agent import LLAMAChatBot
 from tapeagents.llms import LLAMA, ReplayLLM
 from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls
 from tapeagents.runtime import replay_tape, replay_tapes
-from tapeagents.tools import BasicToolbox
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -122,9 +121,8 @@ def test_gaia_agent():
     results = load_results(os.path.join(run_dir, "results.json"))
 
     llm = ReplayLLM(llm_calls=[LLMCall.model_validate(p) for p in results.prompts], model_name=results.model)
-    tools = BasicToolbox(only_cached_webpages=True, safe_calculator=False)
-    tools.set_web_cache(results.web_cache)
-    env = GaiaEnvironment(tools)
+    env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
+    env.browser.set_web_cache(results.web_cache)
     agent = GaiaAgent(llms={"default": llm}, short_steps=True)
 
     tapes = [GaiaTape.model_validate(tape) for tape in results.tapes]

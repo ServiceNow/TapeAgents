@@ -6,7 +6,7 @@ from browsergym.workarena.tasks.base import AbstractServiceNowTask
 
 from tapeagents.core import AgentResponseParsingFailureAction
 from tapeagents.environment import Environment
-from tapeagents.tools import BasicToolbox
+from tapeagents.tools.gym_browser import GymBrowser
 from tapeagents.utils import FatalError
 
 from ..gaia_agent.steps import ActionExecutionFailure
@@ -40,11 +40,10 @@ class WorkArenaEnvironment(Environment):
     Translates action steps into gym browser python commands in the form of a string.
     """
 
-    def __init__(self, tools: BasicToolbox, baseline_obs: bool = False) -> None:
+    def __init__(self, exp_path: str, baseline_obs: bool = False, headless: bool = True) -> None:
         super().__init__()
         self.baseline_obs = baseline_obs  # use baseline observation format to replicate original workarena agent
-        self.tools = tools
-        self.browser = self.tools.interactive_browser
+        self.browser = GymBrowser(headless=headless, log_path=exp_path)
         self.action_map = {
             ClickAction: self.click,
             SelectOptionAction: self.select_option,

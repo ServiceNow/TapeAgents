@@ -9,7 +9,7 @@ from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep
 from tapeagents.environment import Environment
 from tapeagents.guided_agent import GuidedAgent
 from tapeagents.runtime import main_loop
-from tapeagents.tools import BasicToolbox
+from tapeagents.tools.calculator import calculate
 from tapeagents.utils import get_step_schemas_from_union_type
 
 logger = logging.getLogger(__name__)
@@ -118,7 +118,6 @@ class MathAgent(GuidedAgent):
 class MathEnvironment(Environment):
     def __init__(self) -> None:
         super().__init__()
-        self.tools = BasicToolbox()
 
     def react(self, tape: MathTape) -> MathTape:
         actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
@@ -128,7 +127,7 @@ class MathEnvironment(Environment):
             try:
                 match action:
                     case UseCalculatorAction():
-                        observation = CalculationResultObservation(result=self.tools.calculate(action.expression, {}))
+                        observation = CalculationResultObservation(result=calculate(action.expression, {}))
                         tape = tape.append(observation)
                     case _:
                         raise Exception(f"Unknown action: {type(action)}")

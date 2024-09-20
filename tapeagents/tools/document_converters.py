@@ -15,7 +15,6 @@ import traceback
 from typing import Any, List, Optional, Union
 from urllib.parse import parse_qs, urlparse
 
-import easyocr
 import mammoth
 import markdownify
 import numpy as np
@@ -477,6 +476,8 @@ class Mp3Converter(WavConverter):
 
 class ImageConverter(DocumentConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        import easyocr
+
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
         if extension.lower() not in [".jpg", ".jpeg", ".png"]:

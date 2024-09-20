@@ -5,12 +5,10 @@ defaults:
 exp_name: comparison_test_1
 exp_path: ../workarena/runs/${exp_name}
 agent: guided
-tools:
-  interactive_browser: True
-  interactive_browser_headless: True
-  exp_path: ${exp_path}
 env:
+  exp_path: ${exp_path}
   baseline_obs: True
+  headless: True
 seeds: [0, 42, 1337]
   
 hydra:

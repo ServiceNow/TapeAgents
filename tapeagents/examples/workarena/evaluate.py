@@ -11,13 +11,8 @@ from tapeagents.examples.workarena.environment import WorkArenaEnvironment
 from tapeagents.examples.workarena.steps import WorkArenaAction
 from tapeagents.llms import CachedLLM
 from tapeagents.runtime import main_loop
-from tapeagents.tools import BasicToolbox
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +24,7 @@ logger = logging.getLogger(__name__)
 )
 def main(cfg: DictConfig) -> None:
     llm: CachedLLM = hydra.utils.instantiate(cfg.llm)
-    tools = BasicToolbox(**cfg.tools)
-    env = WorkArenaEnvironment(tools, **cfg.env)
+    env = WorkArenaEnvironment(**cfg.env)
     if cfg.agent == "baseline":
         agent = WorkArenaBaseline(llms={"default": llm})
     else:

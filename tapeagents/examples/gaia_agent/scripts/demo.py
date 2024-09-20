@@ -10,7 +10,6 @@ from tapeagents.examples.gaia_agent.environment import GaiaEnvironment
 from tapeagents.examples.gaia_agent.steps import GaiaQuestion
 from tapeagents.examples.gaia_agent.tape import GaiaTape
 from tapeagents.rendering import TapeBrowserRenderer, get_step_text, get_step_title
-from tapeagents.tools import BasicToolbox
 
 
 class GaiaDemo(Demo):
@@ -101,7 +100,7 @@ class GaiaRender(TapeBrowserRenderer):
 )
 def main(cfg: DictConfig) -> None:
     llm = hydra.utils.instantiate(cfg.llm)
-    env = GaiaEnvironment(BasicToolbox())
+    env = GaiaEnvironment(vision_lm=llm)
     agent = GaiaAgent(llms={"default": llm}, **cfg.agent)
     demo = GaiaDemo(agent, GaiaTape(), env, GaiaRender())
     demo.launch(server_name="0.0.0.0")

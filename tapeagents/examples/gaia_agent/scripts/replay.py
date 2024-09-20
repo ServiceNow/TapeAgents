@@ -1,22 +1,19 @@
 import logging
 import os
+import sys
 
 from termcolor import colored
 
+from tapeagents.core import LLMCall, LLMMessage, Prompt
 from tapeagents.examples.gaia_agent.agent import GaiaAgent
 from tapeagents.examples.gaia_agent.environment import GaiaEnvironment
 from tapeagents.examples.gaia_agent.eval import load_dataset, load_results
 from tapeagents.examples.gaia_agent.tape import GaiaTape
 from tapeagents.llms import ReplayLLM
 from tapeagents.runtime import replay_tapes
-from tapeagents.tools import BasicToolbox
 from tapeagents.utils import diff_dicts
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +25,10 @@ def main(fname: str, dataset_path: str = ""):
     results = load_results(fname)
 
     prompts = results.prompts
+    llm_calls = [
+        LLMCall(prompt=Prompt.model_validate(prompt), completion=LLMMessage(), cached=False)
+        for prompt in results.prompts
+    ]
     model_name = results.model
     params = results.llm_config
 
@@ -35,14 +36,12 @@ def main(fname: str, dataset_path: str = ""):
     assert data_dir, "Dataset path is not provided"
     tasks = load_dataset(data_dir)
     llm = ReplayLLM(
-        prompts=prompts,
+        llm_calls=llm_calls,
         model_name=model_name,
         context_size=params.get("context_size", 32000),
     )
-    vision_lm = None  # None or llm
-    tools = BasicToolbox(vision_lm=vision_lm, only_cached_webpages=True, safe_calculator=False)
-    tools._cache = results.web_cache
-    env = GaiaEnvironment(tools)
+    env = GaiaEnvironment(only_cached_webpages=True)
+    env.browser._cache = results.web_cache
     agent = GaiaAgent(llms={"default": llm}, short_steps=True)
 
     logger.info(f"Web Cache {len(results.web_cache)}")
@@ -71,7 +70,8 @@ def main(fname: str, dataset_path: str = ""):
 
 
 if __name__ == "__main__":
+    assert len(sys.argv) > 1, "Provide the path to the results file"
     main(
-        "../gaia/tapes/l1_gpt-4o-2024-05-13_2024-07-12_commonsteps5.json",
+        sys.argv[1],
         "../gaia/dataset/validation/",
     )

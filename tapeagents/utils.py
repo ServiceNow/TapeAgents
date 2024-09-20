@@ -2,10 +2,10 @@ import contextlib
 import difflib
 import json
 import os
-from pathlib import Path
 import shutil
 import tempfile
-from typing import Annotated, Any, Type
+from pathlib import Path
+from typing import Any
 
 import jsonref
 from pydantic import TypeAdapter
