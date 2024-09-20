@@ -35,7 +35,7 @@ def try_chat(develop: bool):
         llm=llm,
         execute_code=True,
     )
-    team = TeamAgent.create_collective_manager(
+    team = TeamAgent.create_team_manager(
         name="GroupChatManager",
         subagents=[product_manager, coder, code_executor],
         max_calls=15,
@@ -44,7 +44,7 @@ def try_chat(develop: bool):
     org = TeamAgent.create_chat_initiator(
         name="UserProxy",
         init_message="Find a latest paper about gpt-4 on arxiv and find its potential applications in software.",
-        collective_manager=team,
+        team_manager=team,
     )
     start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"

@@ -12,7 +12,7 @@ def try_chat(llm: LLM, develop: bool):
         name="Joe",
         llm=llm,
         system_prompt="Your name is Joe and you are a part of a duo of comedians.",
-        collective_manager=TeamAgent.create(
+        team_manager=TeamAgent.create(
             name="Cathy", llm=llm, system_prompt="Your name is Cathy and you are a part of a duo of comedians."
         ),
         max_turns=3,

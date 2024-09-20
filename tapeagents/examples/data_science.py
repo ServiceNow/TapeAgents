@@ -31,7 +31,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
         llm=llm,
         execute_code=True,
     )
-    team = TeamAgent.create_collective_manager(
+    team = TeamAgent.create_team_manager(
         name="GroupChatManager",
         subagents=[coder, code_executor],
         max_calls=15,
@@ -43,7 +43,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
             "Make a plot comparing the stocks of ServiceNow and Salesforce"
             " since beginning of 2024. Save it to a PNG file."
         ),
-        collective_manager=team,
+        team_manager=team,
     )
     start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
