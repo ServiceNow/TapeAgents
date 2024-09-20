@@ -7,7 +7,6 @@ from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
 from tapeagents.collective import CollectiveAgent, CollectiveTape
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import Action, FinalStep, Observation, Tape
-from tapeagents.develop import Develop
 from tapeagents.environment import CodeExecutionEnvironment, Environment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
@@ -63,6 +62,8 @@ def make_renderers() -> dict[str, BasicRenderer]:
 def main(develop: bool):
     agent, start_tape, env = make_world()
     if develop:
+        from tapeagents.develop import Develop
+
         Develop(agent, start_tape, make_renderers(), env).launch()
     else:
         events = list(main_loop(agent, start_tape, env))

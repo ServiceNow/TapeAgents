@@ -1,7 +1,9 @@
 import logging
 
 from tapeagents.environment import Environment
-from tapeagents.tools import BasicToolbox
+from tapeagents.tools.calculator import calculate
+from tapeagents.tools.python_interpreter import python_calculate, run_python_code
+from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.utils import FatalError
 
 from .steps import (
@@ -25,9 +27,10 @@ logger = logging.getLogger(__name__)
 
 
 class GaiaEnvironment(Environment):
-    def __init__(self, tools: BasicToolbox) -> None:
+    def __init__(self, safe_calculator: bool = True, **kwargs) -> None:
         super().__init__()
-        self.tools = tools
+        self.browser = SimpleTextBrowser(**kwargs)
+        self.calculate = calculate if safe_calculator else python_calculate
 
     def react(self, tape: GaiaTape) -> GaiaTape:
         actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, GaiaAction)]
@@ -35,17 +38,34 @@ class GaiaEnvironment(Environment):
             try:
                 match action:
                     case SearchAction():
-                        tape = tape.append(self.search(action))
+                        if "web" not in action.source and "wiki" not in action.source:
+                            raise ValueError(f"Supported sources are 'web' and 'wiki', got {action.source}")
+                        serp = self.browser.websearch(action.query, source=action.source)
+                        tape = tape.append(SearchResultsObservation(query=action.query, serp=serp))
                     case ReadDocumentAction():
-                        tape = tape.append(self.read_document(action))
+                        text, current_page, total_pages = self.browser.get_page(action.url)
+                        tape = tape.append(
+                            PageObservation(text=text, current_page=current_page, total_pages=total_pages)
+                        )
                     case NextPageAction():
-                        tape = tape.append(self.next_page(action))
+                        text, current_page, total_pages = self.browser.get_next_page()
+                        tape = tape.append(
+                            PageObservation(text=text, current_page=current_page, total_pages=total_pages)
+                        )
                     case ConvertFactAction():
-                        tape = tape.append(self.convert(action))
+                        result = self.calculate(
+                            action.expression,
+                            {"value": action.fact_value, action.original_fact_name: action.fact_value},
+                        )
+                        tape = tape.append(CalculationResultObservation(name=action.converted_fact_name, result=result))
                     case UseCalculatorAction():
-                        tape = tape.append(self.calculate(action))
+                        result = self.calculate(action.expression, action.facts or {})
+                        tape = tape.append(CalculationResultObservation(name=action.fact_name, result=result))
                     case PythonCodeAction():
-                        tape = tape.append(self.run_python_code(action))
+                        result, stdout, stderr = run_python_code(action.code, action.facts or {})
+                        tape = tape.append(
+                            CodeResultObservation(name=action.fact_name, result=result, stdout=stdout, stderr=stderr)
+                        )
                     case AgentResponseParsingFailureAction():
                         pass
                     case _:
@@ -57,31 +77,3 @@ class GaiaEnvironment(Environment):
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape
-
-    def convert(self, action: ConvertFactAction) -> CalculationResultObservation:
-        result = self.tools.calculate(
-            action.expression, {"value": action.fact_value, action.original_fact_name: action.fact_value}
-        )
-        return CalculationResultObservation(name=action.converted_fact_name, result=result)
-
-    def calculate(self, action: UseCalculatorAction) -> CalculationResultObservation:
-        result = self.tools.calculate(action.expression, action.facts or {})
-        return CalculationResultObservation(name=action.fact_name, result=result)
-
-    def run_python_code(self, action: PythonCodeAction) -> CodeResultObservation:
-        result, stdout, stderr = self.tools.run_python_code(action.code, action.facts or {})
-        return CodeResultObservation(name=action.fact_name, result=result, stdout=stdout, stderr=stderr)
-
-    def read_document(self, action: ReadDocumentAction) -> PageObservation:
-        text, current_page, total_pages = self.tools.get_page(action.url)
-        return PageObservation(text=text, current_page=current_page, total_pages=total_pages)
-
-    def next_page(self, action: NextPageAction) -> PageObservation:
-        text, current_page, total_pages = self.tools.get_next_page()
-        return PageObservation(text=text, current_page=current_page, total_pages=total_pages)
-
-    def search(self, action) -> SearchResultsObservation:
-        if "web" not in action.source and "wiki" not in action.source:
-            raise ValueError(f"Supported sources are 'web' and 'wiki', got {action.source}")
-        last_serp = self.tools.websearch(action.query, source=action.source)
-        return SearchResultsObservation(query=action.query, serp=last_serp)

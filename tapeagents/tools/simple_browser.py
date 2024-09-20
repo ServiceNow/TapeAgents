@@ -1,5 +1,7 @@
 # based on Autogen project, MIT License: https://github.com/microsoft/autogen/blob/gaia_multiagent_v01_march_1st/autogen/browser_utils.py
 
+import json
+import logging
 import mimetypes
 import os
 import pathlib
@@ -12,14 +14,21 @@ from urllib.parse import unquote, urljoin, urlparse
 import pathvalidate
 import requests
 from googlesearch import search
+from Levenshtein import ratio
 from tavily import TavilyClient
 from termcolor import colored
+
+from tapeagents.core import Prompt
+from tapeagents.llms import LLM
+from tapeagents.utils import FatalError, diff_strings
 
 from .document_converters import (
     FileConversionException,
     FileConverter,
     UnsupportedFormatException,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_tavily_key():
@@ -39,10 +48,12 @@ class SimpleTextBrowser:
     def __init__(
         self,
         start_page: Optional[str] = None,
-        viewport_size: Optional[int] = 1024 * 8,
+        viewport_size: Optional[int] = 32000,
         downloads_folder: str = "/tmp/agent_browser_downloads",
         use_tavily: bool = False,
-        converter: Optional[FileConverter] = None,
+        use_web_cache: bool = True,
+        only_cached_webpages: bool = False,
+        vision_lm: LLM | None = None,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
         converter_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -57,7 +68,18 @@ class SimpleTextBrowser:
         self.set_address(self.start_page)
         self.request_kwargs = request_kwargs or {"headers": {"User-Agent": self.user_agent}}
         self.request_kwargs["headers"] = self.request_kwargs.get("headers", {})
-        self._mdconvert = converter or FileConverter()
+
+        def img2text(messages: list[dict]) -> str:
+            assert vision_lm
+            for event in vision_lm.generate(Prompt(messages=messages)):
+                if event.completion and event.completion.content:
+                    logger.debug("Image caption", event.completion.content)
+                    return event.completion.content
+            raise Exception("No answer from vision model")
+
+        mlm_client = img2text if vision_lm else None
+        self._mdconvert = FileConverter(mlm_client=mlm_client)
+
         self._page_content: str = ""
         self._page_error: int = 0
         self.tavily = TavilyClient(api_key=get_tavily_key()) if use_tavily else None
@@ -65,6 +87,16 @@ class SimpleTextBrowser:
 
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
+
+        self.use_web_cache = use_web_cache
+        self.only_cached_webpages = only_cached_webpages
+        self._cache = {}
+        self._log = {}
+        self._cache_filename = "web_cache.json"
+        if os.path.exists(self._cache_filename):
+            with open(self._cache_filename) as f:
+                self._cache = json.load(f)
+            logger.info(f"Loaded {len(self._cache)} web results from cache")
 
     @property
     def address(self) -> str:
@@ -367,3 +399,79 @@ class SimpleTextBrowser:
         else:
             header = f"Title: {self.page_title}\n=======================\n" if self.page_title else ""
         return header + self.viewport.strip()
+
+    def set_web_cache(self, cache: dict) -> None:
+        self._cache = cache
+
+    def _add_to_cache(self, k: str, value: Any) -> None:
+        self._cache[k] = value
+        self._log[k] = value
+        with open(self._cache_filename, "w") as f:
+            json.dump(self._cache, f)
+
+    def websearch(self, query: str, source: str = "") -> list[dict]:
+        if "wiki" in source:
+            query = f"site:wikipedia.org {query}"
+        if self.use_web_cache and query in self._cache:
+            print(colored(f"Cache hit for search {query}", "green"))
+            self._log[query] = self._cache[query]
+            return self._cache[query]
+        if self.only_cached_webpages:
+            ratios = [(k, ratio(query, k, score_cutoff=0.5)) for k in self._cache.keys()]
+            ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
+            closest = ratios[0][0]
+            score = ratios[0][1]
+            raise FatalError(f'No cache for "{query}"\nClosest is "{closest}"\nWith score {score}')
+        result = self.get_search_results(query)
+        self._add_to_cache(query, result)
+        return result
+
+    def get_page(self, url: str) -> tuple[str, int, int]:
+        """
+        Load web page and return content of its first viewport (first screen), current page number and total number of pages.
+        """
+        if url.startswith("/"):
+            # in case of a local file
+            url = f"file://{url}"
+        if self.use_web_cache and url in self._cache:
+            logger.info(colored(f"Cache hit {url}", "green"))
+            self._log[url] = self._cache[url]
+            content, title = self._cache[url]
+            self.history.append((url, time.time()))
+            self.page_title = title
+            self._set_page_content(content)
+            self.viewport_current_page = 0
+        elif self.only_cached_webpages:
+            ratios = [(k, ratio(url, k, score_cutoff=0.7)) for k in self._cache.keys()]
+            closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
+            if score >= 0.7:
+                logger.warning(diff_strings(url, closest))
+                logger.warning(f"Closest url score: {score:.3f}")
+            raise FatalError(f"Page {url} not in cache")
+        else:
+            logger.info(colored(f"Page {url} not in cache", "yellow"))
+            self.page_title = ""
+            self.visit_page(url)
+            self._add_to_cache(url, (self.page_content, self.page_title))
+        return (
+            self.page_with_title(),
+            self.viewport_current_page + 1,
+            len(self.viewport_pages),
+        )
+
+    def get_next_page(self) -> tuple[str, int, int]:
+        if self.viewport_current_page + 1 == len(self.viewport_pages):
+            raise ValueError("No more pages to read.")
+        self.page_down()
+        return (
+            self.page_with_title(),
+            self.viewport_current_page + 1,
+            len(self.viewport_pages),
+        )
+
+    def get_whole_document(self, url: str) -> str:
+        try:
+            self.get_page(url)
+        except Exception as e:
+            raise Exception(f"Failed to load page {url}.\nError: {e}")
+        return self.page_content

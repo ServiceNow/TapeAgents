@@ -189,11 +189,6 @@ class Prompt(BaseModel):
         return bool(self.messages)
 
 
-class JsonPrompt(BaseModel):
-    prompt: str
-    response_schema: dict
-
-
 LLMMessage: TypeAlias = litellm.utils.Message
 Completion: TypeAlias = LLMMessage
 

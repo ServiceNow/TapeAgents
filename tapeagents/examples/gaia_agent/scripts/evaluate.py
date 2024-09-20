@@ -12,7 +12,6 @@ from tapeagents.examples.gaia_agent.agent import GaiaAgent
 from tapeagents.examples.gaia_agent.environment import GaiaEnvironment
 from tapeagents.examples.gaia_agent.eval import GaiaResults, load_dataset, load_results, save_results, solve_task
 from tapeagents.llms import CachedLLM
-from tapeagents.tools import BasicToolbox
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(
     version_base=None,
-    config_path="../../../conf/tapeagent",
+    config_path="../../../../conf/tapeagent",
     config_name="gaia_openai",
 )
 def main(cfg: DictConfig) -> None:
@@ -34,22 +33,19 @@ def main(cfg: DictConfig) -> None:
     the separate files per level. If needed continue solving the unsolved tasks in the
     next run.
     """
-    date = datetime.datetime.now().strftime("%Y-%m-%d")
     llm: CachedLLM = instantiate(cfg.llm)
-    vision_lm = llm
-    tools = BasicToolbox(vision_lm=vision_lm)
+    env = GaiaEnvironment(vision_lm=llm)
     if cfg.load_webcache_from_run:
         with open(cfg.load_webcache_from_run) as f:
             old_results_dict = json.load(f)
             webcache = old_results_dict["web_cache"]
-        tools._cache |= webcache
+        env.browser._cache |= webcache
         logger.info(
             colored(
-                f"Updated tools cache with {len(webcache)} items from the old result. New cache size {len(tools._cache)}",
+                f"Updated tools cache with {len(webcache)} items from the old result. New cache size {len(env.browser._cache)}",
                 "yellow",
             )
         )
-    env = GaiaEnvironment(tools)
     agent = GaiaAgent(llms={"default": llm}, **cfg.agent)
     tasks = load_dataset(cfg.data_dir)
 
@@ -67,7 +63,7 @@ def main(cfg: DictConfig) -> None:
         logger.info(f"Start level {i} with {len(level)} tasks, save to {outfile}")
         if os.path.exists(outfile):
             results = load_results(outfile)
-            tools._cache |= results.web_cache
+            env.browser._cache |= results.web_cache
             llm._log = results.prompts
             llm.reindex_log()
             logger.info(f"Loaded previous solutions for {len(results.tapes)} tasks, continue")
@@ -77,8 +73,9 @@ def main(cfg: DictConfig) -> None:
             tape = solve_task(task, agent, env, cfg.n_attempts)
             results.tapes.append(tape.model_dump())
             results.prompts = llm._log
-            results.web_cache |= tools._log
+            results.web_cache |= env.browser._log
             save_results(results, outfile)
+            break
 
         break  # remove this line to solve all tasks
 

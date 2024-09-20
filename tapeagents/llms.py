@@ -7,12 +7,11 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Generator, Type
+from typing import Any, Callable, Generator, Type
 
 import litellm
 import openai
 import requests
-import transformers
 from Levenshtein import ratio
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -198,33 +197,6 @@ class CachedLLM(LLM):
         pass
 
 
-class Tokenizers:
-    """Singleton cached holder of all loaded tokenizers."""
-
-    _instance = None
-
-    def __init__(self):
-        self._cache = {}
-
-    def _get(self, model_name: str):
-        if model_name not in self._cache:
-            try:
-                self._cache[model_name] = transformers.AutoTokenizer.from_pretrained(model_name)
-            except Exception:
-                self._cache[model_name] = None
-        return self._cache[model_name]
-
-    @staticmethod
-    def _get_instance() -> Tokenizers:
-        if not Tokenizers._instance:
-            Tokenizers._instance = Tokenizers()
-        return Tokenizers._instance
-
-    @staticmethod
-    def get(model_name: str):
-        return Tokenizers._get_instance()._get(model_name)
-
-
 class NoTokenizerError(ValueError):
     pass
 
@@ -290,6 +262,8 @@ class TypedVLLM(LLM):
     _obj_log: dict
 
     def __init__(self, config: LLAMAConfig, use_cache: bool = True, only_cache: bool = False):
+        import transformers
+
         self.model_name = config.model_name
         self.parameters = config.parameters
         self.use_cache = use_cache
@@ -395,16 +369,6 @@ class LLAMA(CachedLLM):
     def model_post_init(self, __context):
         super().model_post_init(__context)
         self.api_token = str(os.getenv(TAPEAGENTS_LLM_TOKEN))
-        self.tokenizer = Tokenizers.get(self.tokenizer_name or self.model_name)
-
-    def count_tokens(self, messages: list[dict] | str) -> int:
-        if self.tokenizer is None:
-            logger.warning(f"Tokenizer not found for {self.model_name}")
-            return 0
-        if isinstance(messages, str):
-            return len(self.tokenizer(messages).input_ids)
-        else:
-            return len(self.tokenizer.apply_chat_template(messages))
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
@@ -455,27 +419,44 @@ class LLAMA(CachedLLM):
         self.log_completion(prompt, completion)
         yield LLMEvent(completion=completion)
 
-    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def load_tokenizer(self):
         if self.tokenizer is None:
-            raise NoTokenizerError(f"Tokenizer not found for {self.model_name}")
+            import transformers
+
+            self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.tokenizer_name or self.model_name)
+
+    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+        self.load_tokenizer()
         return llama_make_training_text(prompt, completion, self.tokenizer)
+
+    def count_tokens(self, messages: list[dict] | str) -> int:
+        self.load_tokenizer()
+        if isinstance(messages, str):
+            return len(self.tokenizer(messages).input_ids)
+        else:
+            return len(self.tokenizer.apply_chat_template(messages))
 
 
 class ReplayLLM(LLM):
     completions: dict[str, str] = Field(default_factory=dict)
     llm_calls: list[LLMCall]
+    count_tokens_fn: Callable = lambda x: 0
+    make_training_text_fn: Callable = lambda x, y: TrainingText(text="", n_predicted=0)
 
     @classmethod
     def from_llm(cls, llm: LLM, run_dir: str, prompts_file: str = DB_DEFAULT_FILENAME):
         sqlite_fpath = os.path.join(run_dir, prompts_file)
         assert os.path.exists(sqlite_fpath)
         llm_calls = retrieve_all_llm_calls(sqlite_fpath)
-        llm = ReplayLLM(
+        replay_llm = ReplayLLM(
             llm_calls=llm_calls,
             model_name=llm.tokenizer_name or llm.model_name,
             context_size=llm.context_size,
         )
-        return llm
+        replay_llm.tokenizer = llm.tokenizer
+        replay_llm.count_tokens_fn = llm.count_tokens
+        replay_llm.make_training_text_fn = llm.make_training_text
+        return replay_llm
 
     def model_post_init(self, __context: Any) -> None:
         dups = 0
@@ -510,17 +491,10 @@ class ReplayLLM(LLM):
         return LLMStream(_implementation(), prompt=prompt)
 
     def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
-        tokenizer = Tokenizers.get(self.model_name)
-        return llama_make_training_text(prompt, completion, tokenizer)
+        return self.make_training_text_fn(prompt, completion)
 
     def count_tokens(self, messages: list[dict] | str) -> int:
-        tokenizer = Tokenizers.get(self.model_name)
-        if not tokenizer:
-            return 0
-        if isinstance(messages, str):
-            return len(tokenizer(messages).input_ids)
-        else:
-            return len(tokenizer.apply_chat_template(messages))
+        return self.count_tokens_fn(messages)
 
 
 def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, float]:

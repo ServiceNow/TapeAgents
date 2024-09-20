@@ -15,11 +15,8 @@ import traceback
 from typing import Any, List, Optional, Union
 from urllib.parse import parse_qs, urlparse
 
-import easyocr
-import mammoth
 import markdownify
 import numpy as np
-import pandas as pd
 import PIL
 import pptx
 import puremagic
@@ -105,7 +102,7 @@ class HtmlConverter(DocumentConverter):
         return result
 
     def _convert(
-        self, html_content, readability: bool, strip_links: bool, strip_images: bool
+        self, html_content, readability: bool = False, strip_links: bool = False, strip_images: bool = False
     ) -> Union[None, DocumentConverterResult]:
         """Helper function that converts and HTML string."""
 
@@ -317,6 +314,8 @@ class DocxConverter(HtmlConverter):
             return None
 
         result = None
+        import mammoth
+
         with open(local_path, "rb") as docx_file:
             result = mammoth.convert_to_html(docx_file)
             html_content = result.value
@@ -331,6 +330,7 @@ class XlsxConverter(HtmlConverter):
         extension = kwargs.get("file_extension", "")
         if extension.lower() != ".xlsx":
             return None
+        import pandas as pd
 
         sheets = pd.read_excel(local_path, sheet_name=None)
         md_content = ""
@@ -477,6 +477,8 @@ class Mp3Converter(WavConverter):
 
 class ImageConverter(DocumentConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        import easyocr
+
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
         if extension.lower() not in [".jpg", ".jpeg", ".png"]:

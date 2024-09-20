@@ -1,5 +1,8 @@
+# derived from https://github.com/pyparsing/pyparsing/blob/master/examples/fourFn.py
+
 from __future__ import division
 
+import json
 import math
 import operator
 import re
@@ -115,12 +118,12 @@ class NumericStringParser(object):
 
     def eval(self, num_string, parseAll=True):
         self.exprStack = []
-        results = self.bnf.parseString(num_string, parseAll)
+        self.bnf.parseString(num_string, parseAll)
         val = self.evaluateStack(self.exprStack[:])
         return val
 
 
-def eval_expression_on_dict(expr: str, values_dict: dict[str, Any]) -> Any:
+def calculate(expr: str, values_dict: dict[str, Any]) -> str:
     pairs = values_dict.items()
     pairs = sorted(pairs, key=lambda x: len(x[0]), reverse=True)  # substitute longest vars first
     for k, v in pairs:
@@ -129,6 +132,11 @@ def eval_expression_on_dict(expr: str, values_dict: dict[str, Any]) -> Any:
         else:
             expr = re.sub(k, str(v), expr)
     try:
-        return NumericStringParser().eval(expr)
+        result = NumericStringParser().eval(expr)
     except Exception:
         raise ValueError(f"Error evaluating expression: {expr}")
+    try:
+        str_result = json.dumps(result)
+    except Exception:
+        str_result = str(result)
+    return str_result

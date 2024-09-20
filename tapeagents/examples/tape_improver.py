@@ -4,7 +4,7 @@ import sys
 from typing import Any, Literal
 
 from tapeagents.agent import Agent
-from tapeagents.chain import Call, Chain, Respond
+from tapeagents.chain import Chain
 from tapeagents.collective import CollectiveTape
 from tapeagents.core import (
     Action,
@@ -15,7 +15,6 @@ from tapeagents.core import (
     TapeMetadata,
     Thought,
 )
-from tapeagents.develop import Develop
 from tapeagents.examples import data_science
 from tapeagents.llms import LLM, LiteLLM, LLMStream
 from tapeagents.observe import observe_tape
@@ -213,6 +212,8 @@ def main(mode: Literal["run improver", "develop agent", "develop improver"]):
         with open("final_tape.json", "w") as f:
             f.write(final_tape.model_dump_json(indent=2))
     elif mode == "develop improver":
+        from tapeagents.develop import Develop
+
         Develop(code_improver, improver_tape, PrettyRenderer()).launch()
     elif mode == "develop agent":
         data_science_agent, _, env = data_science.make_world()
@@ -235,6 +236,8 @@ def main(mode: Literal["run improver", "develop agent", "develop improver"]):
             return result
 
         transforms = {"improve_code": improve_code}
+        from tapeagents.develop import Develop
+
         Develop(data_science_agent, bad_tape, data_science.make_renderers(), env, transforms).launch()
     else:
         assert False, f"Invalid mode {mode}"
@@ -251,4 +254,4 @@ if __name__ == "__main__":
                 main("run improver")
         case _:
             # print usage and exit
-            print(f"Usage: python -m tapeagents.examples.data_science [develop agent] [develop improver]")
+            print("Usage: python -m tapeagents.examples.data_science [develop agent] [develop improver]")

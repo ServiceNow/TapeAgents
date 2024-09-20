@@ -32,8 +32,8 @@ class GymBrowser:
 
     def __init__(
         self,
-        viewport_size: int,
-        headless: bool,
+        viewport_size: int = 32000,
+        headless: bool = True,
         log_path: str | None = None,
     ) -> None:
         self.viewport_size = viewport_size
