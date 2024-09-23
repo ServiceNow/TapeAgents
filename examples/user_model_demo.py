@@ -16,7 +16,7 @@ from tapeagents.dialog import (
     UserStep,
 )
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llms import LiteLLM, LLMMessage
+from tapeagents.llms import LiteLLM, LLMOutput
 from tapeagents.rendering import BasicRenderer, render_dialog_plain_text
 
 from .annotator import GroundednessAnnotator
@@ -44,7 +44,7 @@ class DemoUserModel(UserModel):
         # say we don't need streaming for the agent model here
         for event in self.llm.generate(prompt):
             if m := event.completion:
-                assert isinstance(m, LLMMessage)
+                assert isinstance(m, LLMOutput)
                 try:
                     result = json.loads(m.content)
                 except Exception:

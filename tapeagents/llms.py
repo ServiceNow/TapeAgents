@@ -18,7 +18,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
 from .config import DB_DEFAULT_FILENAME
-from .core import LLMOutput, LLMMessage, Prompt, TrainingText
+from .core import LLMOutput, LLMOutput, Prompt, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
 
@@ -31,7 +31,7 @@ TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
 
 class LLMEvent(BaseModel):
     chunk: str | None = None
-    completion: LLMMessage | None = None
+    completion: LLMOutput | None = None
 
 
 class LLMStream:
@@ -54,7 +54,7 @@ class LLMStream:
             raise StopIteration
         return next(self.generator)
 
-    def get_message(self) -> LLMMessage:
+    def get_message(self) -> LLMOutput:
         for event in self:
             if event.completion:
                 return event.completion
@@ -88,7 +88,7 @@ class LLM(BaseModel, ABC):
     def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
         pass
 
-    def log_completion(self, prompt: Prompt, message: LLMMessage, cached: bool = False):
+    def log_completion(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
             prompt=prompt,
@@ -142,7 +142,7 @@ class CachedLLM(LLM):
         cnt = 0
         for log_data in self._log:
             key = self.get_prompt_key(Prompt.model_validate(log_data["prompt"]))
-            self._add_to_cache(key, LLMEvent(completion=LLMMessage.model_validate(log_data["completion"])).model_dump())
+            self._add_to_cache(key, LLMEvent(completion=LLMOutput.model_validate(log_data["completion"])).model_dump())
             cnt += 1
         logger.info(f"Reindexed {cnt} log entries")
 
@@ -236,7 +236,7 @@ class LiteLLM(CachedLLM):
                         raise NotImplementedError(f"TODO: streaming with function calls not implemented yet")
                 else:
                     raise ValueError(f"Unexpected response {part.model_dump()}")
-            completion = LLMMessage(content="".join(buffer))
+            completion = LLMOutput(content="".join(buffer))
         else:
             assert isinstance(response, litellm.ModelResponse)
             assert isinstance(response.choices[0], litellm.utils.Choices)
@@ -405,14 +405,14 @@ class LLAMA(CachedLLM):
                         continue
                     response_buffer.append(response_delta)
                     yield LLMEvent(chunk=response_delta)
-            completion = LLMMessage(content="".join(response_buffer))
+            completion = LLMOutput(content="".join(response_buffer))
         else:
             data = r.json()
             try:
                 content = data["choices"][0]["message"]["content"]
                 if not content:
                     logger.warning(f"Empty completion {data}")
-                completion = LLMMessage(content=content)
+                completion = LLMOutput(content=content)
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
@@ -486,7 +486,7 @@ class ReplayLLM(LLM):
                 if score >= 0.7:
                     logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(prompt_key, closest)}")
                 raise FatalError("prompt not found")
-            yield LLMEvent(completion=LLMMessage(content=completion))
+            yield LLMEvent(completion=LLMOutput(content=completion))
 
         return LLMStream(_implementation(), prompt=prompt)
 
@@ -518,7 +518,7 @@ class MockLLM(LLM):
             self.prompts.append(prompt)
             completion = self.mock_completions[self.call_number % len(self.mock_completions)]
             time.sleep(0.01)
-            yield LLMEvent(completion=LLMMessage(content=completion))
+            yield LLMEvent(completion=LLMOutput(content=completion))
             self.call_number += 1
 
         return LLMStream(_implementation(), prompt=prompt)

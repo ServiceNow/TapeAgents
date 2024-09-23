@@ -196,7 +196,7 @@ LLMOutput: TypeAlias = LLMMessage
 class LLMCall(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
     prompt: Prompt
-    completion: LLMMessage
+    completion: LLMOutput
     prompt_length_tokens: int = -1
     completion_length_tokens: int = -1
     cached: bool

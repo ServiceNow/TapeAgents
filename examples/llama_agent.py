@@ -5,7 +5,7 @@ import tempfile
 from tapeagents.agent import Agent
 from tapeagents.core import LLMOutput, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
 from tapeagents.dialog import AssistantStep, Dialog, SystemStep, UserStep
-from tapeagents.llms import LLAMA, LLM, LLMMessage, LLMStream
+from tapeagents.llms import LLAMA, LLM, LLMOutput, LLMStream
 
 
 class LLAMAChatBot(Agent[Dialog]):
@@ -26,7 +26,7 @@ class LLAMAChatBot(Agent[Dialog]):
             if event.chunk:
                 buffer.append(event.chunk)
                 yield PartialStep(step=AssistantStep(content="".join(buffer)))
-            elif (m := event.completion) and isinstance(m, LLMMessage):
+            elif (m := event.completion) and isinstance(m, LLMOutput):
                 yield AssistantStep(content=m.content or "")
                 return
             else:
@@ -36,7 +36,7 @@ class LLAMAChatBot(Agent[Dialog]):
     def make_completion(self, tape: Dialog, index: int) -> LLMOutput:
         if not isinstance(step := tape.steps[index], AssistantStep):
             raise ValueError(f"Can only make completion for AssistantStep, got {step}")
-        return LLMMessage(content=step.content)
+        return LLMOutput(content=step.content)
 
 
 def try_llama_chatbot(llm: LLM):

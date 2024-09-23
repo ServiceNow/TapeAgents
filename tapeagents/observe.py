@@ -7,7 +7,7 @@ from typing import Callable, Type
 from pydantic import BaseModel
 
 from .config import sqlite_db_path
-from .core import LLMCall, LLMMessage, Prompt, Tape
+from .core import LLMCall, LLMOutput, Prompt, Tape
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ def retrieve_llm_call(prompt_id: str) -> LLMCall | None:
         return LLMCall(
             timestamp=row[1],
             prompt=Prompt.model_validate_json(row[2]),
-            completion=LLMMessage.model_validate_json(row[3]),
+            completion=LLMOutput.model_validate_json(row[3]),
             prompt_length_tokens=row[4],
             completion_length_tokens=row[5],
             cached=row[6],
@@ -185,7 +185,7 @@ def retrieve_all_llm_calls(sqlite_fpath: str) -> list[LLMCall]:
             LLMCall(
                 timestamp=timestamp,
                 prompt=Prompt(**json.loads(prompt_str)),
-                completion=LLMMessage(**json.loads(completion)),
+                completion=LLMOutput(**json.loads(completion)),
                 prompt_length_tokens=prompt_length_tokens,
                 completion_length_tokens=completion_length_tokens,
                 cached=cached,
