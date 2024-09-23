@@ -2,7 +2,7 @@ import sys
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Jump, Prompt, Tape
-from tapeagents.dialog_tape import AssistantStep, AssistantThought, Dialog, UserStep
+from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, UserStep
 from tapeagents.llms import LLAMA, LLM, LLMStream
 from tapeagents.view import TapeView
 
@@ -34,7 +34,7 @@ def hello_world(llm: LLM):
             .with_generate_steps(lambda agent, tape, llm_stream: (yield AssistantStep(content=llm_stream.get_text()))),
         ],
     )
-    start_tape = Dialog(steps=[UserStep(content="Hi!")])
+    start_tape = DialogTape(steps=[UserStep(content="Hi!")])
     print(agent.run(start_tape).get_final_tape().model_dump_json(indent=2))
 
 
@@ -59,7 +59,7 @@ def control_flow():
     )
 
     user_messages = ["Go left", "Go right", "Do a kick-flip!"]
-    tape = Dialog(context=None, steps=[])
+    tape = DialogTape(context=None, steps=[])
     for msg in user_messages:
         tape = tape.append(UserStep(content=msg))
         tape = agent.run(tape).get_final_tape()
@@ -88,7 +88,7 @@ def classy_hello_world(llm: LLM):
             yield AssistantStep(content=llm_stream.get_text())
 
     agent = Agent.create(llm, flow=[ThinkingNode(), RespondingNode()])
-    start_tape = Dialog(steps=[UserStep(content="Hi!")])
+    start_tape = DialogTape(steps=[UserStep(content="Hi!")])
     print(agent.run(start_tape).get_final_tape().model_dump_json(indent=2))
 
 

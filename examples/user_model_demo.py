@@ -7,7 +7,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from tapeagents.core import MakeObservation, Prompt
 from tapeagents.demo import Demo
 from tapeagents.dialog_tape import (
-    Dialog,
+    DialogTape,
     DialogContext,
     UserModel,
     UserModelEvent,
@@ -59,7 +59,7 @@ def user_model_demo():
     big_llm = LiteLLM(model_name="gpt-4-turbo")
     agent = FunctionCallingAgent(llms={"default": small_llm})
     environment = ToolEnvironment(tools=[TavilySearchResults()])
-    init_dialog = Dialog(context=DialogContext(tools=environment.get_tool_schemas()), steps=[])
+    init_dialog = DialogTape(context=DialogContext(tools=environment.get_tool_schemas()), steps=[])
     user_models = [
         DemoUserModel(big_llm, "ask about a celebrity"),
         DemoUserModel(big_llm, "ask about a movie"),

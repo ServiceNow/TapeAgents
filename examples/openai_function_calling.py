@@ -7,7 +7,7 @@ from tapeagents.agent import Agent
 from tapeagents.core import Prompt
 from tapeagents.dialog_tape import (
     AssistantStep,
-    Dialog,
+    DialogTape,
     DialogContext,
     ToolCalls,
     ToolResult,
@@ -22,8 +22,8 @@ from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.runtime import main_loop
 
 
-class FunctionCallingAgent(Agent[Dialog]):
-    def make_prompt(self, tape: Dialog):
+class FunctionCallingAgent(Agent[DialogTape]):
+    def make_prompt(self, tape: DialogTape):
         steps = list(tape.steps)
         for i in range(len(steps)):
             if isinstance(steps[i], ToolResult):
@@ -67,7 +67,7 @@ TOOL_SCHEMAS = TypeAdapter(list[ToolSpec]).validate_python(
 def try_openai_function_calling():
     llm = LiteLLM(model_name="gpt-3.5-turbo")
     agent = FunctionCallingAgent.create(llm)
-    dialog = Dialog(context=DialogContext(tools=TOOL_SCHEMAS), steps=[])
+    dialog = DialogTape(context=DialogContext(tools=TOOL_SCHEMAS), steps=[])
 
     for event in agent.run(dialog.append(UserStep(content="What's the weather like in San Francisco, Tokyo"))):
         if event.step:
@@ -99,7 +99,7 @@ def try_openai_function_calling():
 def try_openai_function_callling_with_environment():
     llm = LiteLLM(model_name="gpt-3.5-turbo")
     agent = FunctionCallingAgent.create(llm)
-    dialog = Dialog(
+    dialog = DialogTape(
         context=DialogContext(tools=TOOL_SCHEMAS),
         steps=[UserStep(content="What's the weather like in San Francisco, Tokyo")],
     )

@@ -8,7 +8,7 @@ from tapeagents.dialog_tape import (
     AnnotationAction,
     AnnotatorFreeFormThought,
     AssistantStep,
-    Dialog,
+    DialogTape,
     DialogAnnotator,
     DialogAnnotatorTape,
     DialogContext,
@@ -79,7 +79,7 @@ TOOL_SCHEMAS = TypeAdapter(list[ToolSpec]).validate_python(
 
 
 def try_annotator():
-    dialog1 = Dialog(
+    dialog1 = DialogTape(
         context=DialogContext(tools=TOOL_SCHEMAS),
         steps=[
             UserStep(content="Tell me about Montreal"),

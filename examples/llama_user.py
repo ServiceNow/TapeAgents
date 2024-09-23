@@ -2,7 +2,7 @@ import json
 
 from tapeagents.core import MakeObservation, Prompt
 from tapeagents.dialog_tape import (
-    Dialog,
+    DialogTape,
     SystemStep,
     UserModel,
     UserModelInstruction,
@@ -46,7 +46,7 @@ class LLAMAUserModel(UserModel):
 
 
 def try_llama_user_model(llm: LLAMA):
-    dialog = Dialog(
+    dialog = DialogTape(
         context=None,
         steps=[
             SystemStep(content="Respond to the user using the style of Shakespeare books. Be very brief, 5 words max."),

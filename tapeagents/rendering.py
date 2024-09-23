@@ -13,7 +13,7 @@ from .view import Call, Respond
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
 from .dialog_tape import (
     AssistantStep,
-    Dialog,
+    DialogTape,
     DialogContext,
     SystemStep,
     ToolCalls,
@@ -22,7 +22,7 @@ from .dialog_tape import (
 )
 
 
-def render_dialog_plain_text(dialog: Dialog) -> str:
+def render_dialog_plain_text(dialog: DialogTape) -> str:
     lines = []
     for step in dialog:
         if isinstance(step, UserStep):

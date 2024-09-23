@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 
 from tapeagents.batch import ObsLayerConfig, batch_add_observations
-from tapeagents.dialog_tape import AssistantStep, Dialog, SystemStep, UserStep
+from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
 from tapeagents.io import save_tapes
 from tapeagents.llms import LLAMA, LLM
 
@@ -14,7 +14,7 @@ def try_batch_add_observations(llm: LLM):
         instruction="come up with a follow-up message that a user may write to their conversational assistant",
         llms={"default": llm},
     )
-    tape = Dialog(
+    tape = DialogTape(
         context=None,
         steps=[
             SystemStep(content="You are a helpful assistant."),
