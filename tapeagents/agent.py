@@ -63,7 +63,7 @@ StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | Parti
 class Node(BaseModel):
     """
     A node in the agent's flow.
-    The node is correspond to some state of the tape, has a name and contains 2 main functions:
+    The node corresponds to some state of the tape, has a name and contains 2 main functions:
      - one to make a prompt out of the tape
      - one to generate steps out of the received llm completion
     """
