@@ -6,7 +6,7 @@ from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
 from tapeagents.collective import CollectiveAgent, CollectiveTape
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import FinalStep
-from tapeagents.studio import Develop
+from tapeagents.studio import Studio
 from tapeagents.environment import CodeExecutionEnvironment
 from tapeagents.llms import LiteLLM
 from tapeagents.rendering import PrettyRenderer
@@ -52,7 +52,7 @@ def try_chat(develop: bool):
             "messages": PrettyRenderer(filter_steps=(Call, Respond, FinalStep), render_llm_calls=False),
             "full": PrettyRenderer(),
         }
-        Develop(org, start_tape, renderers, env).launch()
+        Studio(org, start_tape, renderers, env).launch()
     else:
         _ = list(main_loop(org, start_tape, env))
 

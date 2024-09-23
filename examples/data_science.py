@@ -62,9 +62,9 @@ def make_renderers() -> dict[str, BasicRenderer]:
 def main(develop: bool):
     agent, start_tape, env = make_world()
     if develop:
-        from tapeagents.studio import Develop
+        from tapeagents.studio import Studio
 
-        Develop(agent, start_tape, make_renderers(), env).launch()
+        Studio(agent, start_tape, make_renderers(), env).launch()
     else:
         events = list(main_loop(agent, start_tape, env))
         assert (ae := events[-1].agent_event) and ae.final_tape

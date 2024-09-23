@@ -214,9 +214,9 @@ def main(mode: Literal["run improver", "develop agent", "develop improver"]):
         with open("final_tape.json", "w") as f:
             f.write(final_tape.model_dump_json(indent=2))
     elif mode == "develop improver":
-        from tapeagents.studio import Develop
+        from tapeagents.studio import Studio
 
-        Develop(code_improver, improver_tape, PrettyRenderer()).launch()
+        Studio(code_improver, improver_tape, PrettyRenderer()).launch()
     elif mode == "develop agent":
         data_science_agent, _, env = data_science_make_world()
 
@@ -238,9 +238,9 @@ def main(mode: Literal["run improver", "develop agent", "develop improver"]):
             return result
 
         transforms = {"improve_code": improve_code}
-        from tapeagents.studio import Develop
+        from tapeagents.studio import Studio
 
-        Develop(data_science_agent, bad_tape, make_renderers(), env, transforms).launch()
+        Studio(data_science_agent, bad_tape, make_renderers(), env, transforms).launch()
     else:
         assert False, f"Invalid mode {mode}"
 

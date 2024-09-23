@@ -5,7 +5,7 @@ import sys
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
 from tapeagents.collective import CollectiveAgent, CollectiveTape
 from tapeagents.container_executor import ContainerExecutor
-from tapeagents.studio import Develop
+from tapeagents.studio import Studio
 from tapeagents.environment import CodeExecutionEnvironment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import PrettyRenderer
@@ -33,7 +33,7 @@ def try_chat(llm: LLM, develop: bool):
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     env = CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/chat_code/{now}"))
     if develop:
-        Develop(org, start_tape, PrettyRenderer(), env).launch()
+        Studio(org, start_tape, PrettyRenderer(), env).launch()
     else:
         loop = main_loop(org, start_tape, env)
         for event in loop:

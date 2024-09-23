@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from tapeagents.studio import Develop
+from tapeagents.studio import Studio
 from tapeagents.dialog import Dialog, SystemStep, UserStep
 from tapeagents.llms import LLAMA
 from tapeagents.rendering import PrettyRenderer
@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 def try_development_app_with_stack(llm):
     tape = ExampleTape(context=EXAMPLE_TEXT)
     agent = make_analyze_text_chain(llm)
-    Develop(agent, tape, PrettyRenderer()).launch()
+    Studio(agent, tape, PrettyRenderer()).launch()
 
 
 def try_development_app_with_chat(llm):
@@ -29,7 +29,7 @@ def try_development_app_with_chat(llm):
         ],
     )
     agent = LLAMAChatBot.create(llm)
-    Develop(agent, tape, PrettyRenderer()).launch()
+    Studio(agent, tape, PrettyRenderer()).launch()
 
 
 if __name__ == "__main__":
