@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum
+from typing import Generator
 
 from pydantic import ConfigDict
 
-from tapeagents.agent import DEFAULT, Agent
+from tapeagents.agent import DEFAULT, Agent, AgentStep, Node
 from tapeagents.autogen_prompts import SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE, SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE
 from tapeagents.container_executor import extract_code_blocks
 from tapeagents.core import FinalStep, Jump, Pass, Prompt, Tape
@@ -19,37 +19,22 @@ logger = logging.getLogger(__name__)
 TeamTape = Tape[None, Call | Respond | Broadcast | FinalStep | Jump | ExecuteCode | CodeExecutionResult | Pass]
 
 
-class Task(str, Enum):
-    """
-    List of tasks that the agent from the team can perform
-    """
-
-    broadcast_last_message = "broadcast_last_message"
-    call = "call"
-    select_and_call = "select_and_call"
-    execute_code = "execute_code"
-    respond = "respond"
-    terminate_or_repeat = "terminate_or_repeat"
-    respond_or_repeat = "respond_or_repeat"
-
-
 class ActiveTeamAgentView:
     def __init__(self, agent: TeamAgent, tape: TeamTape):
         """
-        TeamTapeView contains the ephemeral state computed from the tape. This class extracts the data relevant to
+        ActiveTeamAgentView contains the ephemeral state computed from the tape. This class extracts the data relevant to
         the given agent and also computes some additional information from it, e.g. whether the agent
         should call the LLM to generate a message or respond with an already available one.
-
         """
         view = TapeViewStack.compute(tape)
         self.messages = view.messages_by_agent[agent.full_name]
         self.last_non_empty_message = next((m for m in reversed(self.messages) if m.content), None)
-        self.task = agent.get_task(view)
+        self.node = agent.get_node(view)
         self.steps = view.top.steps
         self.steps_by_kind = view.top.steps_by_kind
         self.exec_result = self.steps[-1] if self.steps and isinstance(self.steps[-1], CodeExecutionResult) else None
         self.should_generate_message = (
-            self.task in {Task.call, Task.respond}
+            isinstance(self.node, (NodeCall, NodeRespond))
             and self.messages
             and not self.exec_result
             and "system" in agent.templates
@@ -66,66 +51,11 @@ class TeamAgent(Agent[TeamTape]):
 
     max_calls: int | None = None
     init_message: str | None = None
-    tasks: list[Task]
 
     model_config = ConfigDict(use_enum_values=True)
 
-    def get_task(self, view: TapeViewStack) -> Task:
-        # TODO: use nodes
-        return Task(self.tasks[view.top.next_node])
-
-    def make_prompt(self, tape: TeamTape) -> Prompt:
-        view = ActiveTeamAgentView(self, tape)
-        llm_messages = []
-        for step in view.messages:
-            match step:
-                # When we make the LLM messages, we use "kind" == "user" for messages
-                # originating from other agents, and "kind" == "assistant" for messages by this agent.
-                case Call() if step.by == self.full_name:
-                    # I called someone
-                    llm_messages.append({"role": "assistant", "content": step.content})
-                case Call():
-                    # someone called me
-                    # we exclude empty call messages from the prompt
-                    if not step.content:
-                        continue
-                    llm_messages.append(
-                        {
-                            "role": "user",
-                            "content": step.content,
-                            "name": step.by.split("/")[-1],
-                        }
-                    )
-                case Respond() if step.by == self.full_name:
-                    # I responded to someone
-                    llm_messages.append({"role": "assistant", "content": step.content})
-                case Respond():
-                    # someone responded to me
-                    who_returned = step.by.split("/")[-1]
-                    llm_messages.append({"role": "user", "content": step.content, "name": who_returned})
-                case Broadcast():
-                    llm_messages.append({"role": "user", "content": step.content, "name": step.from_})
-        match view.task:
-            case Task.select_and_call:
-                subagents = ", ".join(self.get_subagent_names())
-                select_before = [
-                    {
-                        "role": "system",
-                        "content": self.templates["select_before"].format(subagents=subagents),
-                    }
-                ]
-                select_after = [
-                    {
-                        "role": "system",
-                        "content": self.templates["select_after"].format(subagents=subagents),
-                    }
-                ]
-                return Prompt(messages=select_before + llm_messages + select_after)
-            case _ if view.should_generate_message:
-                system = [{"role": "system", "content": self.templates["system"]}]
-                return Prompt(messages=system + llm_messages)
-            case _:
-                return Prompt()
+    def get_node(self, view: TapeViewStack) -> Node:
+        return self.flow[view.top.next_node]
 
     @classmethod
     def create(
@@ -142,7 +72,7 @@ class TeamAgent(Agent[TeamTape]):
             name=name,
             templates={"system": system_prompt} if system_prompt else {},
             llms={DEFAULT: llm} if llm else {},
-            tasks=([Task.execute_code] if execute_code else []) + [Task.respond],
+            flow=([NodeExecuteCode()] if execute_code else []) + [NodeRespond()],
         )
 
     @classmethod
@@ -160,10 +90,10 @@ class TeamAgent(Agent[TeamTape]):
         return cls(
             name=name,
             subagents=subagents,
-            tasks=[
-                Task.broadcast_last_message,
-                Task.select_and_call,
-                Task.respond_or_repeat,
+            flow=[
+                NodeBroadcastLastMessage(),
+                NodeSelectAndCall(),
+                NodeRespondOrRepeat(),
             ],
             max_calls=max_calls,
             templates={
@@ -194,90 +124,201 @@ class TeamAgent(Agent[TeamTape]):
             },
             llms={DEFAULT: llm} if llm else {},
             subagents=[team_manager],
-            tasks=([Task.execute_code] if execute_code else []) + [Task.call, Task.terminate_or_repeat],
+            flow=([NodeExecuteCode()] if execute_code else []) + [NodeCall(), NodeTerminateOrRepeat()],
             max_calls=max_calls,
             init_message=init_message,
         )
 
-    def generate_steps(self, tape: TeamTape, llm_stream: LLMStream):
-        view = ActiveTeamAgentView(self, tape)
 
-        exec_result_message = ""
-        if view.exec_result:
-            if output := view.exec_result.result.output.strip():
-                exec_result_message = f"I ran the code and got the following output:\n\n{output}"
-            else:
-                exec_result_message = f"I ran the code, the exit code was {view.exec_result.result.exit_code}."
+class NodeBroadcastLastMessage(Node):
+    name: str = "broadcast_last_message"
 
-        def _implementation():
-            match view.task:
-                case Task.broadcast_last_message:
-                    recipients = self.get_subagent_names()
-                    last = view.messages[-1]
-                    from_ = last.by.split("/")[-1]
-                    match last:
-                        case Call():
-                            yield Broadcast(content=last.content, from_=from_, to=list(recipients))
-                        case Respond():
-                            recipients = [name for name in recipients if name != last.by.split("/")[-1]]
-                            yield Broadcast(
-                                content=view.messages[-1].content,
-                                from_=from_,
-                                to=list(recipients),
-                            )
-                        case Broadcast():
-                            pass
-                        case _:
-                            assert False
-                case Task.select_and_call:
-                    callee_name = llm_stream.get_text()
-                    # check if the callee is an existing subagent
-                    _ = self.find_subagent(callee_name)
-                    yield Call(agent_name=callee_name)
-                case Task.call:
-                    # if last task
-                    (other,) = self.subagents
-                    if view.should_generate_message:
-                        yield Call(agent_name=other.name, content=llm_stream.get_text())
-                    elif view.exec_result:
-                        yield Call(agent_name=other.name, content=exec_result_message)
-                    else:
-                        assert self.init_message and not view.messages
-                        yield Call(agent_name=other.name, content=self.init_message)
-                case Task.execute_code:
-                    assert not llm_stream
-                    if view.last_non_empty_message is None:
-                        yield Pass()
-                    elif code := extract_code_blocks(view.last_non_empty_message.content):
-                        yield ExecuteCode(code=code)
-                    else:
-                        yield Pass()
-                case Task.respond:
-                    if view.should_generate_message:
-                        yield Respond(content=llm_stream.get_text())
-                    elif view.exec_result:
-                        yield Respond(content=exec_result_message)
-                    else:
-                        logger.info(
-                            f"Agent {self.full_name} had to respond with an empty message."
-                            f" You might want to optimize your orchestration logic."
-                        )
-                        yield Respond()
-                case Task.terminate_or_repeat:
-                    assert not llm_stream
-                    if view.should_stop:
-                        yield FinalStep(reason="Termination message received")
-                    else:
-                        yield Jump(next_node=0)
-                case Task.respond_or_repeat:
-                    if view.should_stop:
-                        yield Respond()
-                    else:
-                        yield Jump(next_node=0)
-                case _:
-                    raise ValueError()
+    def generate_steps(
+        self, agent: TeamAgent, tape: TeamTape, llm_stream: LLMStream
+    ) -> Generator[AgentStep, None, None]:
+        view = ActiveTeamAgentView(agent, tape)
+        recipients = agent.get_subagent_names()
+        last = view.messages[-1]
+        from_ = last.by.split("/")[-1]
+        match last:
+            case Call():
+                yield Broadcast(task=self.name, content=last.content, from_=from_, to=list(recipients))
+            case Respond():
+                recipients = [name for name in recipients if name != last.by.split("/")[-1]]
+                yield Broadcast(
+                    task=self.name,
+                    content=view.messages[-1].content,
+                    from_=from_,
+                    to=list(recipients),
+                )
+            case Broadcast(task=self.name):
+                pass
+            case _:
+                assert False
 
-        for step in _implementation():
-            step.task = view.task.value
-            yield step
-        return
+
+class NodeCall(Node):
+    name: str = "call"
+
+    def make_prompt(self, agent: TeamAgent, tape: TeamTape) -> Prompt:
+        p = Prompt()
+        view = ActiveTeamAgentView(agent, tape)
+        if view.should_generate_message:
+            system = [{"role": "system", "content": agent.templates["system"]}]
+            p = Prompt(messages=system + _llm_messages_from_tape(agent, tape))
+        return p
+
+    def generate_steps(
+        self, agent: TeamAgent, tape: TeamTape, llm_stream: LLMStream
+    ) -> Generator[AgentStep, None, None]:
+        view = ActiveTeamAgentView(agent, tape)
+        # if last node
+        (other,) = agent.subagents
+        if view.should_generate_message:
+            yield Call(task=self.name, agent_name=other.name, content=llm_stream.get_text())
+        elif view.exec_result:
+            yield Call(task=self.name, agent_name=other.name, content=_exec_result_message(agent, tape))
+        else:
+            assert agent.init_message and not view.messages
+            yield Call(task=self.name, agent_name=other.name, content=agent.init_message)
+
+
+class NodeSelectAndCall(Node):
+    name: str = "select_and_call"
+
+    def make_prompt(self, agent: TeamAgent, tape: TeamTape) -> Prompt:
+        subagents = ", ".join(agent.get_subagent_names())
+        select_before = [
+            {
+                "role": "system",
+                "content": agent.templates["select_before"].format(subagents=subagents),
+            }
+        ]
+        select_after = [
+            {
+                "role": "system",
+                "content": agent.templates["select_after"].format(subagents=subagents),
+            }
+        ]
+        return Prompt(messages=select_before + _llm_messages_from_tape(agent, tape) + select_after)
+
+    def generate_steps(
+        self, agent: TeamAgent, tape: TeamTape, llm_stream: LLMStream
+    ) -> Generator[AgentStep, None, None]:
+        callee_name = llm_stream.get_text()
+        # check if the callee is an existing subagent
+        _ = agent.find_subagent(callee_name)
+        yield Call(task=self.name, agent_name=callee_name)
+
+
+class NodeExecuteCode(Node):
+    name: str = "execute_code"
+
+    def generate_steps(self, agent: logging.Any, tape: Tape, llm_stream: LLMStream) -> Generator[AgentStep, None, None]:
+        assert not llm_stream
+        view = ActiveTeamAgentView(agent, tape)
+        if view.last_non_empty_message is None:
+            yield Pass(task=self.name)
+        elif code := extract_code_blocks(view.last_non_empty_message.content):
+            yield ExecuteCode(task=self.name, code=code)
+        else:
+            yield Pass(task=self.name)
+
+
+class NodeRespond(Node):
+    name: str = "respond"
+
+    def make_prompt(self, agent: TeamAgent, tape: TeamTape) -> Prompt:
+        p = Prompt()
+        view = ActiveTeamAgentView(agent, tape)
+        if view.should_generate_message:
+            system = [{"role": "system", "content": agent.templates["system"]}]
+            p = Prompt(messages=system + _llm_messages_from_tape(agent, tape))
+        return p
+
+    def generate_steps(
+        self, agent: TeamAgent, tape: TeamTape, llm_stream: LLMStream
+    ) -> Generator[AgentStep, None, None]:
+        view = ActiveTeamAgentView(agent, tape)
+        if view.should_generate_message:
+            yield Respond(task=self.name, content=llm_stream.get_text())
+        elif view.exec_result:
+            yield Respond(task=self.name, content=_exec_result_message(agent, tape))
+        else:
+            logger.info(
+                f"Agent {agent.full_name} had to respond with an empty message."
+                f" You might want to optimize your orchestration logic."
+            )
+            yield Respond(task=self.name)
+
+
+class NodeTerminateOrRepeat(Node):
+    name: str = "terminate_or_repeat"
+
+    def generate_steps(
+        self, agent: TeamAgent, tape: TeamTape, llm_stream: LLMStream
+    ) -> Generator[AgentStep, None, None]:
+        assert not llm_stream
+        view = ActiveTeamAgentView(agent, tape)
+        if view.should_stop:
+            yield FinalStep(task=self.name, reason="Termination message received")
+        else:
+            yield Jump(task=self.name, next_node=0)
+
+
+class NodeRespondOrRepeat(Node):
+    name: str = "respond_or_repeat"
+
+    def generate_steps(
+        self, agent: TeamAgent, tape: TeamTape, llm_stream: LLMStream
+    ) -> Generator[AgentStep, None, None]:
+        view = ActiveTeamAgentView(agent, tape)
+        if view.should_stop:
+            yield Respond(task=self.name)
+        else:
+            yield Jump(task=self.name, next_node=0)
+
+
+def _exec_result_message(agent: TeamAgent, tape: TeamTape) -> str:
+    view = ActiveTeamAgentView(agent, tape)
+    exec_result_message = ""
+    if view.exec_result:
+        if output := view.exec_result.result.output.strip():
+            exec_result_message = f"I ran the code and got the following output:\n\n{output}"
+        else:
+            exec_result_message = f"I ran the code, the exit code was {view.exec_result.result.exit_code}."
+    return exec_result_message
+
+
+def _llm_messages_from_tape(agent: TeamAgent, tape: TeamTape) -> list[dict[str, str]]:
+    view = ActiveTeamAgentView(agent, tape)
+    llm_messages = []
+    for step in view.messages:
+        match step:
+            # When we make the LLM messages, we use "kind" == "user" for messages
+            # originating from other agents, and "kind" == "assistant" for messages by this agent.
+            case Call() if step.by == agent.full_name:
+                # I called someone
+                llm_messages.append({"role": "assistant", "content": step.content})
+            case Call():
+                # someone called me
+                # we exclude empty call messages from the prompt
+                if not step.content:
+                    continue
+                llm_messages.append(
+                    {
+                        "role": "user",
+                        "content": step.content,
+                        "name": step.by.split("/")[-1],
+                    }
+                )
+            case Respond() if step.by == agent.full_name:
+                # I responded to someone
+                llm_messages.append({"role": "assistant", "content": step.content})
+            case Respond():
+                # someone responded to me
+                who_returned = step.by.split("/")[-1]
+                llm_messages.append({"role": "user", "content": step.content, "name": who_returned})
+            case Broadcast():
+                llm_messages.append({"role": "user", "content": step.content, "name": step.from_})
+    return llm_messages
