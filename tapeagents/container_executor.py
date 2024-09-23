@@ -1,5 +1,5 @@
 # TODO: add Autogen license
-# the code is mostly copied from 
+# the code is mostly copied from
 # https://github.com/microsoft/autogen/blob/main/autogen/coding/docker_commandline_code_executor.py
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from podman.errors import ImageNotFound
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
 
 def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
     elapsed_time = 0.0
@@ -241,7 +242,7 @@ class ContainerExecutor:
                 break
 
         return CommandLineCodeResult(
-            exit_code=last_exit_code, 
+            exit_code=last_exit_code,
             output="".join(outputs),
             code_files=[str(file) for file in files],
         )
@@ -264,10 +265,12 @@ class ContainerExecutor:
     ) -> None:
         self.stop()
 
+
 # utils:
 
 CODE_BLOCK_PATTERN = r"```[ \t]*(\w+)?[ \t]*\r?\n(.*?)\r?\n[ \t]*```"
 UNKNOWN = "unknown"
+
 
 def infer_lang(code: str) -> str:
     """infer the language for the code.
@@ -283,26 +286,30 @@ def infer_lang(code: str) -> str:
     except SyntaxError:
         # not a valid python code
         return UNKNOWN
-    
-    
+
+
 class CodeBlock(BaseModel):
     """A class that represents a code block."""
+
     code: str = Field(description="The code to execute.")
     language: str = Field(description="The language of the code.")
-    
-    
+
+
 class CodeResult(BaseModel):
     """A class that represents the result of a code execution."""
+
     exit_code: int = Field(description="The exit code of the code execution.")
-    output: str = Field(description="The output of the code execution.")    
-    
+    output: str = Field(description="The output of the code execution.")
+
+
 class CommandLineCodeResult(CodeResult):
     """(Experimental) A code result class for command line code executor."""
+
     code_files: list[str] = Field(
         default=None,
         description="The file that the executed code block was saved to.",
     )
-    
+
 
 def extract_code_blocks(message: str) -> List[CodeBlock]:
     """(Experimental) Extract code blocks from a message. If no code blocks are found,

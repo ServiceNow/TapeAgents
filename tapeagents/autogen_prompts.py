@@ -2,8 +2,7 @@
 
 # note the ask to avoid using if __name__ == "__main__": block in the code
 # this is the only change to the original Autogen assistant message that we make here
-AUTOGEN_ASSISTANT_SYSTEM_MESSAGE = (
-"""You are a helpful AI assistant.
+AUTOGEN_ASSISTANT_SYSTEM_MESSAGE = """You are a helpful AI assistant.
 Solve tasks using your coding and language skills.
 In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
     1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
@@ -16,14 +15,11 @@ If the result indicates there is an error, fix the error and output the code aga
 When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
 Reply "TERMINATE" in the end when everything is done.
 """
-)
 
-SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE = (
-"""You are in a role play game. The following roles are available:
+SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE = """You are in a role play game. The following roles are available:
 {subagents}. Read the following conversation. Then select the next role from {subagents} to play. Only return the role.
 """
-)
-                
+
 SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE = (
     """Read the above conversation. Then select the next role from {subagents} to play. Only return the role."""
 )

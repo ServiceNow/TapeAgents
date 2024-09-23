@@ -6,6 +6,7 @@ from typing import Any, Callable, Generator, Iterable, Literal, TypeVar
 InputType = TypeVar("InputType")
 OutputType = TypeVar("OutputType")
 
+
 def sequential_processor(
     stream: Iterable[InputType],
     worker_func: Callable[[InputType], OutputType],
@@ -168,7 +169,7 @@ def lazy_thread_pool_processor(
                         except Exception as e:
                             yield e
                     except Empty:
-                        # If queue is empty and producer was done before we checked the queue, 
+                        # If queue is empty and producer was done before we checked the queue,
                         # break out of loop
                         if producer_was_done_before_get:
                             break

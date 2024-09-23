@@ -40,7 +40,7 @@ class GaiaAgent(GuidedAgent):
     subtasks: bool = False
     _start_step_cls: Any = GaiaQuestion
     _agent_step_cls: Any = GaiaAgentStep
-    
+
     def prepare_guidance_prompts(self):
         guidance_prompts = {}
         if self.planning_mode == PlanningMode.simple:

@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class TapeSaver:
-
     def __init__(self, yaml_dumper: yaml.SafeDumper):
         self._dumper = yaml_dumper
 

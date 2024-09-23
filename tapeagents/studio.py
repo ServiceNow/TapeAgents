@@ -16,14 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 class Studio:
-
     def __init__(
-        self, 
+        self,
         agent: Agent,
-        tape: Tape, 
+        tape: Tape,
         renderers: BasicRenderer | Mapping[str, BasicRenderer],
         environment: Environment | None = None,
-        transforms: Mapping[str, Callable[[Tape], Tape]] | None = None
+        transforms: Mapping[str, Callable[[Tape], Tape]] | None = None,
     ):
         self.renderers = {"renderer": renderers} if isinstance(renderers, BasicRenderer) else renderers
         self.environment = environment
@@ -43,7 +42,7 @@ class Studio:
                     choices = list(self.renderers.keys())
                     renderer_choice = gr.Dropdown(choices=choices, value=choices[0], label="Choose the tape renderer")
                     if transforms:
-                       transform_choice = gr.Dropdown(list(transforms.keys()), label="Run a transform")
+                        transform_choice = gr.Dropdown(list(transforms.keys()), label="Run a transform")
                 with gr.Column():
                     tape_render = gr.HTML("")
                 with gr.Column():
@@ -58,76 +57,41 @@ class Studio:
                     if environment:
                         run_enviroment = gr.Button("Run Environment")
                         run_loop = gr.Button("Run Loop")
-                    else: 
+                    else:
                         run_enviroment = None
                         run_loop = None
 
-            render_tape = (
-                self.render_tape, [renderer_choice, tape_state], [tape_data, tape_render]
-            )
+            render_tape = (self.render_tape, [renderer_choice, tape_state], [tape_data, tape_render])
 
-            blocks.load(
-                *render_tape
-            ).then(
-                self.render_agent, [agent_state], [agent_config]
-            )
+            blocks.load(*render_tape).then(self.render_agent, [agent_state], [agent_config])
 
             # Tape controls
             tape_data.submit(
-                lambda data: tape.model_validate(yaml.safe_load(data)).with_new_id(), 
-                [tape_data], [tape_state]
-            ).then(
-                *render_tape
-            ).then(
-                lambda tape: observe_tape(tape), [tape_state], []
-            )            
-            pop.submit(
-                self.pop_n_steps, [tape_state, pop], [tape_state]
-            ).then(
-                *render_tape
-            )
-            keep.submit(
-                self.keep_n_steps, [tape_state, keep], [tape_state]
-            ).then(
-                *render_tape
-            )
-            load.submit(
-                self.load_tape, [tape_state, load], [tape_state]
-            ).then(
-                *render_tape
-            )
-            renderer_choice.change(
-                *render_tape
-            )
+                lambda data: tape.model_validate(yaml.safe_load(data)).with_new_id(), [tape_data], [tape_state]
+            ).then(*render_tape).then(lambda tape: observe_tape(tape), [tape_state], [])
+            pop.submit(self.pop_n_steps, [tape_state, pop], [tape_state]).then(*render_tape)
+            keep.submit(self.keep_n_steps, [tape_state, keep], [tape_state]).then(*render_tape)
+            load.submit(self.load_tape, [tape_state, load], [tape_state]).then(*render_tape)
+            renderer_choice.change(*render_tape)
             if transforms:
                 transform_choice.change(
-                    lambda transform, tape: self.transforms[transform](tape), 
-                    [transform_choice, tape_state], [tape_state]
-                ).then(
-                    *render_tape
-                )            
+                    lambda transform, tape: self.transforms[transform](tape),
+                    [transform_choice, tape_state],
+                    [tape_state],
+                ).then(*render_tape)
 
             # Agent controls
-            agent_config.submit(
-                self.update_agent, 
-                [agent_config, agent_state], [agent_state]
-            ).then(
+            agent_config.submit(self.update_agent, [agent_config, agent_state], [agent_state]).then(
                 lambda: gr.Info("Agent updated")
             )
             run_agent.click(
-                self.run_agent, 
-                [renderer_choice, agent_state, tape_state], [tape_state, tape_data, tape_render]
+                self.run_agent, [renderer_choice, agent_state, tape_state], [tape_state, tape_data, tape_render]
             )
             if environment:
                 assert run_enviroment and run_loop
-                run_enviroment.click(
-                    self.run_environment, [tape_state], [tape_state]
-                ).then(
-                    *render_tape
-                )
+                run_enviroment.click(self.run_environment, [tape_state], [tape_state]).then(*render_tape)
                 run_loop.click(
-                    self.run_main_loop, 
-                    [renderer_choice, agent_state, tape_state], [tape_state, tape_data, tape_render]
+                    self.run_main_loop, [renderer_choice, agent_state, tape_state], [tape_state, tape_data, tape_render]
                 )
 
         self.blocks = blocks
@@ -141,12 +105,12 @@ class Studio:
         if n > len(tape):
             raise gr.Error(f"Cannot keep {n} steps from tape with {len(tape)} steps")
         return tape[:n]
-    
+
     def transform_tape(self, transform: str, tape: Tape) -> Tape:
         result = self.transforms[transform](tape)
         observe_tape(result)
         return result
-    
+
     def load_tape(self, cur_tape: Tape, tape_id: str) -> Tape:
         if not tape_id:
             tape_id = get_latest_tape_id()
@@ -166,7 +130,9 @@ class Studio:
     def update_agent(self, config: str, agent: Agent) -> Agent:
         return agent.update(yaml.safe_load(config))
 
-    def run_agent(self, renderer_name: str, agent: Agent, start_tape: Tape) -> Generator[tuple[Tape, str, str], None, None]:
+    def run_agent(
+        self, renderer_name: str, agent: Agent, start_tape: Tape
+    ) -> Generator[tuple[Tape, str, str], None, None]:
         for event in agent.run(start_tape):
             if tape := event.partial_tape or event.final_tape:
                 observe_tape(tape)
@@ -175,8 +141,10 @@ class Studio:
     def run_environment(self, tape: Tape) -> Tape:
         assert self.environment
         return self.environment.react(tape)
-    
-    def run_main_loop(self, renderer_name: str, agent: Agent, start_tape: Tape) -> Generator[tuple[Tape, str, str], None, None]:
+
+    def run_main_loop(
+        self, renderer_name: str, agent: Agent, start_tape: Tape
+    ) -> Generator[tuple[Tape, str, str], None, None]:
         assert self.environment
         last_tape = start_tape
         for event in main_loop(agent, start_tape, self.environment):
