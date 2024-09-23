@@ -20,7 +20,7 @@ def try_chat(llm: LLM, develop: bool):
         name="UserProxy",
         llm=llm,
         system_prompt="",
-        team_manager=TeamAgent.create(
+        teammate=TeamAgent.create(
             name="Assistant",
             system_prompt=AUTOGEN_ASSISTANT_SYSTEM_MESSAGE,
             llm=llm,

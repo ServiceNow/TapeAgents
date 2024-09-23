@@ -43,7 +43,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
             "Make a plot comparing the stocks of ServiceNow and Salesforce"
             " since beginning of 2024. Save it to a PNG file."
         ),
-        team_manager=team,
+        teammate=team,
     )
     start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"

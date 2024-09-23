@@ -42,7 +42,7 @@ def try_chat(develop: bool):
     org = TeamAgent.create_chat_initiator(
         name="UserProxy",
         init_message="Find a latest paper about gpt-4 on arxiv and find its potential applications in software.",
-        team_manager=team,
+        teammate=team,
     )
     start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"

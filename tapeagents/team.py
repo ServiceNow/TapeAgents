@@ -34,7 +34,7 @@ class ActiveTeamAgentView:
         self.steps_by_kind = view.top.steps_by_kind
         self.exec_result = self.steps[-1] if self.steps and isinstance(self.steps[-1], CodeExecutionResult) else None
         self.should_generate_message = (
-            isinstance(self.node, (NodeCall, NodeRespond))
+            isinstance(self.node, (CallNode, RespondNode))
             and self.messages
             and not self.exec_result
             and "system" in agent.templates
@@ -72,7 +72,7 @@ class TeamAgent(Agent[TeamTape]):
             name=name,
             templates={"system": system_prompt} if system_prompt else {},
             llms={DEFAULT: llm} if llm else {},
-            flow=([NodeExecuteCode()] if execute_code else []) + [NodeRespond()],
+            flow=([ExecuteCodeNode()] if execute_code else []) + [RespondNode()],
         )
 
     @classmethod
@@ -91,9 +91,9 @@ class TeamAgent(Agent[TeamTape]):
             name=name,
             subagents=subagents,
             flow=[
-                NodeBroadcastLastMessage(),
-                NodeSelectAndCall(),
-                NodeRespondOrRepeat(),
+                BroadcastLastMessageNode(),
+                SelectAndCallNode(),
+                RespondOrRepeatNode(),
             ],
             max_calls=max_calls,
             templates={
@@ -107,7 +107,7 @@ class TeamAgent(Agent[TeamTape]):
     def create_chat_initiator(
         cls,
         name: str,
-        team_manager: Agent[TeamTape],
+        teammate: Agent[TeamTape],
         init_message: str,
         system_prompt: str = "",
         llm: LLM | None = None,
@@ -123,14 +123,14 @@ class TeamAgent(Agent[TeamTape]):
                 "system": system_prompt,
             },
             llms={DEFAULT: llm} if llm else {},
-            subagents=[team_manager],
-            flow=([NodeExecuteCode()] if execute_code else []) + [NodeCall(), NodeTerminateOrRepeat()],
+            subagents=[teammate],
+            flow=([ExecuteCodeNode()] if execute_code else []) + [CallNode(), TerminateOrRepeatNode()],
             max_calls=max_calls,
             init_message=init_message,
         )
 
 
-class NodeBroadcastLastMessage(Node):
+class BroadcastLastMessageNode(Node):
     name: str = "broadcast_last_message"
 
     def generate_steps(
@@ -157,7 +157,7 @@ class NodeBroadcastLastMessage(Node):
                 assert False
 
 
-class NodeCall(Node):
+class CallNode(Node):
     name: str = "call"
 
     def make_prompt(self, agent: TeamAgent, tape: TeamTape) -> Prompt:
@@ -183,7 +183,7 @@ class NodeCall(Node):
             yield Call(task=self.name, agent_name=other.name, content=agent.init_message)
 
 
-class NodeSelectAndCall(Node):
+class SelectAndCallNode(Node):
     name: str = "select_and_call"
 
     def make_prompt(self, agent: TeamAgent, tape: TeamTape) -> Prompt:
@@ -211,7 +211,7 @@ class NodeSelectAndCall(Node):
         yield Call(task=self.name, agent_name=callee_name)
 
 
-class NodeExecuteCode(Node):
+class ExecuteCodeNode(Node):
     name: str = "execute_code"
 
     def generate_steps(self, agent: logging.Any, tape: Tape, llm_stream: LLMStream) -> Generator[AgentStep, None, None]:
@@ -225,7 +225,7 @@ class NodeExecuteCode(Node):
             yield Pass(task=self.name)
 
 
-class NodeRespond(Node):
+class RespondNode(Node):
     name: str = "respond"
 
     def make_prompt(self, agent: TeamAgent, tape: TeamTape) -> Prompt:
@@ -252,7 +252,7 @@ class NodeRespond(Node):
             yield Respond(task=self.name)
 
 
-class NodeTerminateOrRepeat(Node):
+class TerminateOrRepeatNode(Node):
     name: str = "terminate_or_repeat"
 
     def generate_steps(
@@ -266,7 +266,7 @@ class NodeTerminateOrRepeat(Node):
             yield Jump(task=self.name, next_node=0)
 
 
-class NodeRespondOrRepeat(Node):
+class RespondOrRepeatNode(Node):
     name: str = "respond_or_repeat"
 
     def generate_steps(
