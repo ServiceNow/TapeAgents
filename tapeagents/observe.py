@@ -40,9 +40,9 @@ def init_sqlite_if_not_exists(only_once: bool = False):
         prompt_id TEXT PRIMARY KEY,
         timestamp TEXT,
         prompt TEXT,
-        completion TEXT,
+        output TEXT,
         prompt_length_tokens INTEGER,
-        completion_length_tokens INTEGER,
+        output_length_tokens INTEGER,
         cached INTEGER
     )
     """)
@@ -66,7 +66,7 @@ def sqlite_store_llm_call(call: LLMCall):
     with sqlite3.connect(sqlite_db_path()) as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, completion, prompt_length_tokens, completion_length_tokens, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 call.prompt.id,
                 call.timestamp,
@@ -175,19 +175,19 @@ def retrieve_all_llm_calls(sqlite_fpath: str) -> list[LLMCall]:
     conn = sqlite3.connect(sqlite_fpath)
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT timestamp, prompt, completion, prompt_length_tokens, completion_length_tokens, cached FROM LLMCalls"
+        "SELECT timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached FROM LLMCalls"
     )
     rows = cursor.fetchall()
     cursor.close()
     calls: list[LLMCall] = []
-    for timestamp, prompt_str, completion, prompt_length_tokens, completion_length_tokens, cached in rows:
+    for timestamp, prompt_str, output, prompt_length_tokens, output_length_tokens, cached in rows:
         calls.append(
             LLMCall(
                 timestamp=timestamp,
                 prompt=Prompt(**json.loads(prompt_str)),
-                output=LLMOutput(**json.loads(completion)),
+                output=LLMOutput(**json.loads(output)),
                 prompt_length_tokens=prompt_length_tokens,
-                output_length_tokens=completion_length_tokens,
+                output_length_tokens=output_length_tokens,
                 cached=cached,
             )
         )
