@@ -33,7 +33,7 @@ class LLAMAChatBot(Agent[Dialog]):
                 raise ValueError(f"Uknown event type from LLM: {event}")
         raise ValueError("LLM didn't return completion")
 
-    def make_completion(self, tape: Dialog, index: int) -> LLMOutput:
+    def make_llm_output(self, tape: Dialog, index: int) -> LLMOutput:
         if not isinstance(step := tape.steps[index], AssistantStep):
             raise ValueError(f"Can only make completion for AssistantStep, got {step}")
         return LLMOutput(content=step.content)

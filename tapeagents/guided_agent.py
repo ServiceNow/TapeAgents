@@ -53,7 +53,7 @@ class GuidedAgent(Agent, Generic[TapeType]):
         messages = self.tape_to_messages(cleaned_tape)
         return Prompt(messages=messages)
 
-    def make_completion(self, tape: TapeType, index: int) -> LLMOutput:
+    def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
         return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
 
     def prepare_tape(self, tape: Tape) -> Tape:
