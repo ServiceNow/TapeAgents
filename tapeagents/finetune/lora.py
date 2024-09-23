@@ -139,7 +139,7 @@ def apply_lora(model, lora_model_path):
                 break
 
 
-def merge_lora(lora_model_path, same_folder=False):
+def merge_lora(lora_model_path):
     if lora_model_path[-1] == "/":
         lora_model_path = lora_model_path[:-1]
     assert os.path.isdir(lora_model_path), f"{lora_model_path} is not a dir"
