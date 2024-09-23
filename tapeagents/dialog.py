@@ -1,8 +1,9 @@
 import json
-from typing import Any, Literal, TypeAlias
+from typing import Any, Callable, Literal, TypeAlias
 
 from litellm.utils import ChatCompletionMessageToolCall
 from pydantic import BaseModel
+from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from .agent import Annotator, ObservationMaker
 from .core import (
@@ -62,6 +63,10 @@ class FunctionSpec(BaseModel):
 class ToolSpec(BaseModel):
     type: Literal["function"] = "function"
     function: FunctionSpec
+    
+    @classmethod
+    def from_function(cls, function: Callable):
+        return cls.model_validate(convert_to_openai_tool(function))
 
 
 class DialogContext(BaseModel):

@@ -16,7 +16,7 @@ class Call(Thought):
 
 class Respond(Thought):
     content: str = ""
-    kind: Literal["return"] = "return"
+    kind: Literal["respond"] = "respond"
 
 
 class Broadcast(Thought):

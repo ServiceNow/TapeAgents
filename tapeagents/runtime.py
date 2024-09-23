@@ -6,7 +6,7 @@ from termcolor import colored
 
 from .agent import Agent
 from .core import AgentEvent, FinalStep, Observation, Step, Tape, TapeType
-from .environment import Environment, ExternalObservationNeeded
+from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
 from .rendering import step_view
 from .utils import FatalError, diff_dicts
 
@@ -84,9 +84,10 @@ def main_loop(
                 break
             try:
                 tape = environment.react(agent_tape)
-            except ExternalObservationNeeded:
+            except (ExternalObservationNeeded, NoActionsToReactTo) as e:
                 # TODO: do not use exceptions for this, use return value
                 break
+            
             observation = None
             for observation in tape[len(agent_tape) :]:
                 logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
