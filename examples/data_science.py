@@ -4,7 +4,7 @@ import sys
 
 from tapeagents.agent import Agent
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.collective import CollectiveAgent, CollectiveTape
+from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import Action, FinalStep, Observation, Tape
 from tapeagents.environment import CodeExecutionEnvironment, Environment
@@ -19,33 +19,33 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 
 def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[Agent, Tape, Environment]:
     llm = llm or LiteLLM(model_name="gpt-4o", parameters={"timeout": 15.0})
-    coder = CollectiveAgent.create(
+    coder = TeamAgent.create(
         name="SoftwareEngineer",
         system_prompt=(
             AUTOGEN_ASSISTANT_SYSTEM_MESSAGE + "Only say TERMINATE when your code was successfully executed."
         ),
         llm=llm,
     )
-    code_executor = CollectiveAgent.create(
+    code_executor = TeamAgent.create(
         name="CodeExecutor",
         llm=llm,
         execute_code=True,
     )
-    team = CollectiveAgent.create_collective_manager(
+    team = TeamAgent.create_team_manager(
         name="GroupChatManager",
         subagents=[coder, code_executor],
         max_calls=15,
         llm=llm,
     )
-    org = CollectiveAgent.create_chat_initiator(
+    org = TeamAgent.create_chat_initiator(
         name="UserProxy",
         init_message=(
             "Make a plot comparing the stocks of ServiceNow and Salesforce"
             " since beginning of 2024. Save it to a PNG file."
         ),
-        collective_manager=team,
+        teammate=team,
     )
-    start_tape = CollectiveTape(context=None, steps=[])
+    start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     env = env or CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/data_science/{now}"))
     return org, start_tape, env
@@ -59,12 +59,12 @@ def make_renderers() -> dict[str, BasicRenderer]:
     }
 
 
-def main(develop: bool):
+def main(studio: bool):
     agent, start_tape, env = make_world()
-    if develop:
-        from tapeagents.develop import Develop
+    if studio:
+        from tapeagents.studio import Studio
 
-        Develop(agent, start_tape, make_renderers(), env).launch()
+        Studio(agent, start_tape, make_renderers(), env).launch()
     else:
         events = list(main_loop(agent, start_tape, env))
         assert (ae := events[-1].agent_event) and ae.final_tape
@@ -75,12 +75,12 @@ def main(develop: bool):
 if __name__ == "__main__":
     match sys.argv[1:]:
         case []:
-            main(develop=False)
-        case ["develop"]:
-            main(develop=True)
+            main(studio=False)
+        case ["studio"]:
+            main(studio=True)
         case ["make_test_data"]:
             with run_in_tmp_dir_to_make_test_data("data_science"):
-                main(develop=False)
+                main(studio=False)
         case _:
-            print("Usage: python -m examples.data_science [develop]")
+            print("Usage: python -m examples.data_science [studio]")
             sys.exit(1)

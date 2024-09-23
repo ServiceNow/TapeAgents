@@ -23,7 +23,7 @@ In the order of increasing complexity:
 - [gaia_agent](examples/gaia_agent) - custom agent that solves Gaia benchmark using planning and a set of tools with web search, documents and media parsers, code execution.
 - [delegate.py](examples/delegate.py) - multi-agent setup where agent contains multiple sub-agents and delegates the tasks to them.
 - [delegate_stack.py](examples/delegate_stack.py) - more complex multi-agent setup where agent uses stack of the tape views to track data for each sub-agent.
-- [develop.py](examples/develop.py) - interactive Gradio demo of agent that could be edited in runtime.
+- [studio.py](examples/studio.py) - interactive Gradio demo of agent that could be edited in runtime.
 - [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
 - [gsm8k_tuning](examples/gsm8k_tuning) - custom agent that solves GSM-8k benchmark, collect tapes and finetune smaller LLaMA model on them.
 

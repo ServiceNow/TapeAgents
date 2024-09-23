@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from tapeagents.develop import Develop
+from tapeagents.studio import Studio
 from tapeagents.dialog_tape import DialogTape, SystemStep, UserStep
 from tapeagents.llms import LLAMA
 from tapeagents.rendering import PrettyRenderer
@@ -12,13 +12,13 @@ from .llama_agent import LLAMAChatBot
 logging.basicConfig(level=logging.INFO)
 
 
-def try_development_app_with_stack(llm):
+def try_studio_with_stack(llm):
     tape = ExampleTape(context=EXAMPLE_TEXT)
     agent = make_analyze_text_chain(llm)
-    Develop(agent, tape, PrettyRenderer()).launch()
+    Studio(agent, tape, PrettyRenderer()).launch()
 
 
-def try_development_app_with_chat(llm):
+def try_studio_with_chat(llm):
     tape = DialogTape(
         context=None,
         steps=[
@@ -29,7 +29,7 @@ def try_development_app_with_chat(llm):
         ],
     )
     agent = LLAMAChatBot.create(llm)
-    Develop(agent, tape, PrettyRenderer()).launch()
+    Studio(agent, tape, PrettyRenderer()).launch()
 
 
 if __name__ == "__main__":
@@ -39,8 +39,8 @@ if __name__ == "__main__":
         parameters=dict(temperature=0.7, max_tokens=512),
     )
     if sys.argv[1] == "chat":
-        try_development_app_with_chat(llm)
+        try_studio_with_chat(llm)
     elif sys.argv[1] == "stack":
-        try_development_app_with_stack(llm)
+        try_studio_with_stack(llm)
     else:
         raise ValueError("Unknown mode")

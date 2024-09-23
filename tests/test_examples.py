@@ -17,7 +17,7 @@ from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.eval import load_results
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
-from tapeagents.collective import CollectiveTape
+from tapeagents.team import TeamTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
@@ -165,7 +165,7 @@ def test_data_science():
     run_dir = f"{res_path}/data_science"
     llm = ReplayLLM.from_llm(llama(), run_dir)
     agent, start_tape, env = data_science.make_world(llm, EmptyEnvironment())
-    final_tape = CollectiveTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
+    final_tape = TeamTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=start_tape, env=env, reuse_observations=True)
 
 

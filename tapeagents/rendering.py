@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import yaml
 
 from .agent import Agent
-from .collective import CodeExecutionResult, ExecuteCode
+from .team import CodeExecutionResult, ExecuteCode
 from .observe import LLMCall, retrieve_tape_llm_calls
 from .container_executor import CodeBlock
 from .view import Call, Respond
@@ -415,7 +415,7 @@ def render_agent_tree(agent: Agent):
 
     Like this:
 
-    - Big Boss
+    - The Manager
       - His Assistant 1
       - His Helper 2
 

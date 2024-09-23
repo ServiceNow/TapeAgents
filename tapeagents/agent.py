@@ -125,7 +125,7 @@ class Agent(BaseModel, Generic[TapeType]):
     )
     max_iterations: int = 100
 
-    _boss: Any | None = None
+    _manager: Any | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -138,9 +138,9 @@ class Agent(BaseModel, Generic[TapeType]):
         for agent in self.subagents:
             names.add(agent.name)
             if isinstance(agent, Agent):
-                if agent._boss is not None:
+                if agent._manager is not None:
                     raise ValueError("Agent is already a subagent of another agent. Make a copy of your agent.")
-                agent._boss = self
+                agent._manager = self
             else:
                 raise ValueError("Subagents must be instances of Agent")
         if len(names) < len(self.subagents):
@@ -148,10 +148,10 @@ class Agent(BaseModel, Generic[TapeType]):
         return super().model_post_init(__context)
 
     @property
-    def boss(self):
-        if self._boss is None:
-            raise ValueError("Agent doesn't have a boss")
-        return self._boss
+    def manager(self):
+        if self._manager is None:
+            raise ValueError("Agent doesn't have a manager")
+        return self._manager
 
     @property
     def llm(self):
@@ -167,9 +167,9 @@ class Agent(BaseModel, Generic[TapeType]):
 
     @property
     def full_name(self):
-        if self._boss is None:
+        if self._manager is None:
             return self.name
-        return f"{self._boss.full_name}/{self.name}"
+        return f"{self._manager.full_name}/{self.name}"
 
     def find_subagent(self, name: str):
         for agent in self.subagents:
