@@ -8,7 +8,6 @@ ipywidgets==8.1.5
 jsonref==1.1.0
 langchain-community==0.0.38
 langchain-core==0.1.52
-langchain==0.1.20
 Levenshtein==0.25.1
 litellm==1.37.9
 matplotlib==3.9.0
