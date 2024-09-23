@@ -415,7 +415,7 @@ def render_agent_tree(agent: Agent):
 
     Like this:
 
-    - Big Boss
+    - The Manager
       - His Assistant 1
       - His Helper 2
 

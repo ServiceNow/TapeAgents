@@ -135,7 +135,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 new_top.outputs_by_subagent[top.agent_name] = top_step
                 break
 
-                # TODO: what if the agent was not called by its immediate boss?
+                # TODO: what if the agent was not called by its immediate manager?
         receiver = step.by.rsplit("/", 1)[0]
         self.messages_by_agent[step.by].append(step)
         self.messages_by_agent[receiver].append(step)
