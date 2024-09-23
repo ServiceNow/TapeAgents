@@ -17,10 +17,10 @@ from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.eval import load_results
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
-from tapeagents.collective import CollectiveTape
+from tapeagents.team import TeamTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
-from tapeagents.dialog import Dialog
+from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLAMA, ReplayLLM
 from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls
@@ -74,7 +74,7 @@ def test_llama_agent():
     run_dir = str(res_path / "llama_agent")
     llm = ReplayLLM.from_llm(llama(), run_dir)
     agent = LLAMAChatBot.create(llm)
-    tape = Dialog.model_validate(load_tape_dict(run_dir))
+    tape = DialogTape.model_validate(load_tape_dict(run_dir))
 
     assert replay_tape(agent, tape, reuse_observations=True)
 
@@ -83,7 +83,7 @@ def test_llama_agent_traces():
     run_dir = f"{res_path}/llama_agent"
     llm = llama()
     agent = LLAMAChatBot.create(llm)
-    tape = Dialog.model_validate(load_tape_dict(run_dir))
+    tape = DialogTape.model_validate(load_tape_dict(run_dir))
     orig_traces = load_traces(run_dir)
 
     with set_sqlite_db_dir(run_dir):
@@ -98,7 +98,7 @@ def test_llama_agent_tape_reuse():
     data_dir = f"{res_path}/llama_agent"
     llm = llama()
     agent = LLAMAChatBot.create(llm)
-    tape = Dialog.model_validate(load_tape_dict(data_dir))
+    tape = DialogTape.model_validate(load_tape_dict(data_dir))
     orig_traces = load_traces(data_dir)
 
     with tempfile.TemporaryDirectory() as run_dir:
@@ -165,7 +165,7 @@ def test_data_science():
     run_dir = f"{res_path}/data_science"
     llm = ReplayLLM.from_llm(llama(), run_dir)
     agent, start_tape, env = data_science.make_world(llm, EmptyEnvironment())
-    final_tape = CollectiveTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
+    final_tape = TeamTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=start_tape, env=env, reuse_observations=True)
 
 

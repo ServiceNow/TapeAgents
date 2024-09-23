@@ -5,9 +5,9 @@ from pydantic import TypeAdapter
 
 from tapeagents.agent import Agent
 from tapeagents.core import Prompt
-from tapeagents.dialog import (
+from tapeagents.dialog_tape import (
     AssistantStep,
-    Dialog,
+    DialogTape,
     DialogContext,
     ToolCalls,
     ToolResult,
@@ -22,8 +22,8 @@ from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.runtime import main_loop
 
 
-class FunctionCallingAgent(Agent[Dialog]):
-    def make_prompt(self, tape: Dialog):
+class FunctionCallingAgent(Agent[DialogTape]):
+    def make_prompt(self, tape: DialogTape):
         steps = list(tape.steps)
         for i in range(len(steps)):
             if isinstance(steps[i], ToolResult):
@@ -67,19 +67,19 @@ TOOL_SCHEMAS = TypeAdapter(list[ToolSpec]).validate_python(
 def try_openai_function_calling():
     llm = LiteLLM(model_name="gpt-3.5-turbo")
     agent = FunctionCallingAgent.create(llm)
-    dialog = Dialog(context=DialogContext(tools=TOOL_SCHEMAS), steps=[])
+    tape = DialogTape(context=DialogContext(tools=TOOL_SCHEMAS), steps=[])
 
-    for event in agent.run(dialog.append(UserStep(content="What's the weather like in San Francisco, Tokyo"))):
+    for event in agent.run(tape.append(UserStep(content="What's the weather like in San Francisco, Tokyo"))):
         if event.step:
             print(event.step)
 
     assert event.final_tape
-    dialog = event.final_tape
-    tool_call_step = dialog.steps[-1]
+    tape = event.final_tape
+    tool_call_step = tape.steps[-1]
     assert isinstance(tool_call_step, ToolCalls)
     tool_calls = tool_call_step.tool_calls
 
-    dialog = dialog.append(
+    tape = tape.append(
         ToolResult(
             tool_call_id=tool_calls[0].id,
             content="Cloudy, 13C",
@@ -91,7 +91,7 @@ def try_openai_function_calling():
         )
     )
 
-    for event in agent.run(dialog):
+    for event in agent.run(tape):
         if event.step:
             print(event.step)
 
@@ -99,16 +99,16 @@ def try_openai_function_calling():
 def try_openai_function_callling_with_environment():
     llm = LiteLLM(model_name="gpt-3.5-turbo")
     agent = FunctionCallingAgent.create(llm)
-    dialog = Dialog(
+    tape = DialogTape(
         context=DialogContext(tools=TOOL_SCHEMAS),
         steps=[UserStep(content="What's the weather like in San Francisco, Tokyo")],
     )
     environment = MockToolEnvironment(llm)
-    for s in dialog.steps:
+    for s in tape.steps:
         print("USER STEP")
         pprint(s.model_dump(exclude_none=True))
     try:
-        for event in main_loop(agent, dialog, environment, max_loops=3):
+        for event in main_loop(agent, tape, environment, max_loops=3):
             if ae := event.agent_event:
                 if ae.step:
                     print("AGENT STEP")

@@ -6,14 +6,14 @@ from pydantic import BaseModel
 import yaml
 
 from .agent import Agent
-from .collective import CodeExecutionResult, ExecuteCode
+from .team import CodeExecutionResult, ExecuteCode
 from .observe import LLMCall, retrieve_tape_llm_calls
 from .container_executor import CodeBlock
 from .view import Call, Respond
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
-from .dialog import (
+from .dialog_tape import (
     AssistantStep,
-    Dialog,
+    DialogTape,
     DialogContext,
     SystemStep,
     ToolCalls,
@@ -22,9 +22,9 @@ from .dialog import (
 )
 
 
-def render_dialog_plain_text(dialog: Dialog) -> str:
+def render_dialog_plain_text(tape: DialogTape) -> str:
     lines = []
-    for step in dialog:
+    for step in tape:
         if isinstance(step, UserStep):
             lines.append(f"User: {step.content}")
         elif isinstance(step, AssistantStep):
@@ -415,7 +415,7 @@ def render_agent_tree(agent: Agent):
 
     Like this:
 
-    - Big Boss
+    - The Manager
       - His Assistant 1
       - His Helper 2
 
