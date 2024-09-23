@@ -368,7 +368,7 @@ class Agent(BaseModel, Generic[TapeType]):
 
                 # Validate that the reconstructed llm call leads to the same steps as in the given tape
                 def _generator():
-                    yield LLMEvent(completion=completion)
+                    yield LLMEvent(output=completion)
 
                 new_steps = list(current_agent.run_iteration(past_tape, LLMStream(_generator(), prompt)))
                 for j, new_step in enumerate(new_steps):

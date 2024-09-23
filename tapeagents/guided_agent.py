@@ -82,10 +82,10 @@ class GuidedAgent(Agent, Generic[TapeType]):
         try:
             cnt = 0
             for event in llm_stream:
-                if event.completion:
+                if event.output:
                     cnt += 1
-                    assert event.completion.content
-                    for step in self.parse_completion(event.completion.content, llm_stream.prompt.id):
+                    assert event.output.content
+                    for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
                         step = self.postprocess_step(tape, new_steps, step)
                         new_steps.append(step)
                         yield step

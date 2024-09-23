@@ -31,7 +31,7 @@ TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
 
 class LLMEvent(BaseModel):
     chunk: str | None = None
-    completion: LLMOutput | None = None
+    output: LLMOutput | None = None
 
 
 class LLMStream:
@@ -56,9 +56,9 @@ class LLMStream:
 
     def get_message(self) -> LLMOutput:
         for event in self:
-            if event.completion:
-                return event.completion
-        raise ValueError("LLM did not produce a completion")
+            if event.output:
+                return event.output
+        raise ValueError("LLM did not produce an output")
 
     def get_text(self) -> str:
         message = self.get_message()
@@ -85,10 +85,10 @@ class LLM(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         pass
 
-    def log_completion(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
+    def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
             prompt=prompt,
@@ -118,7 +118,7 @@ class CachedLLM(LLM):
             llm_calls = retrieve_all_llm_calls(_REPLAY_SQLITE)
             for llm_call in llm_calls:
                 key = self.get_prompt_key(llm_call.prompt)
-                self._cache[key] = [LLMEvent(completion=llm_call.output)]
+                self._cache[key] = [LLMEvent(output=llm_call.output)]
             logger.info(f"Enforced LLM cache from {_REPLAY_SQLITE}, {len(self._cache)} entries")
             return
         elif not self.use_cache:
@@ -142,7 +142,7 @@ class CachedLLM(LLM):
         cnt = 0
         for log_data in self._log:
             key = self.get_prompt_key(Prompt.model_validate(log_data["prompt"]))
-            self._add_to_cache(key, LLMEvent(completion=LLMOutput.model_validate(log_data["completion"])).model_dump())
+            self._add_to_cache(key, LLMEvent(output=LLMOutput.model_validate(log_data["output"])).model_dump())
             cnt += 1
         logger.info(f"Reindexed {cnt} log entries")
 
@@ -172,8 +172,8 @@ class CachedLLM(LLM):
                 logger.info(colored(f"llm cache hit, {len(self._cache[key])} events", "green"))
                 for event_dict in self._cache[key]:
                     event = LLMEvent.model_validate(event_dict)
-                    if event.completion is not None:
-                        self.log_completion(prompt, event.completion, cached=True)
+                    if event.output is not None:
+                        self.log_output(prompt, event.output, cached=True)
                     yield event
             else:
                 if _REPLAY_SQLITE:
@@ -187,7 +187,7 @@ class CachedLLM(LLM):
                 logger.info(f"{toks} prompt tokens, total: {self.token_count}")
                 for event in self._generate(prompt, **kwargs):
                     self._add_to_cache(key, event.model_dump())
-                    # note: the underlying LLM will log the completion
+                    # note: the underlying LLM will log the output
                     yield event
 
         return LLMStream(_implementation(), prompt)
@@ -236,13 +236,13 @@ class LiteLLM(CachedLLM):
                         raise NotImplementedError(f"TODO: streaming with function calls not implemented yet")
                 else:
                     raise ValueError(f"Unexpected response {part.model_dump()}")
-            completion = LLMOutput(content="".join(buffer))
+            output = LLMOutput(content="".join(buffer))
         else:
             assert isinstance(response, litellm.ModelResponse)
             assert isinstance(response.choices[0], litellm.utils.Choices)
-            completion = response.choices[0].message
-        self.log_completion(prompt, completion)
-        yield LLMEvent(completion=completion)
+            output = response.choices[0].message
+        self.log_output(prompt, output)
+        yield LLMEvent(output=output)
 
     def make_training_text(self, *args, **kwargs) -> TrainingText:
         raise NotImplementedError()
@@ -287,7 +287,7 @@ class TypedVLLM(LLM):
             if k in self._log:
                 logger.info(colored("llm cache hit", "green"))
                 object_json = self._obj_log[k]
-                yield LLMEvent(completion=response_type.model_validate_json(object_json))  # type: ignore
+                yield LLMEvent(output=response_type.model_validate_json(object_json))  # type: ignore
                 return
             elif self.only_cache:
                 raise ValueError("llm cache miss not allowed")
@@ -323,7 +323,7 @@ class TypedVLLM(LLM):
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {response}")
                 raise e
-            yield LLMEvent(completion=response_object)  # type: ignore
+            yield LLMEvent(output=response_object)  # type: ignore
 
         return LLMStream(_implementation(), prompt=prompt)
 
@@ -405,19 +405,19 @@ class LLAMA(CachedLLM):
                         continue
                     response_buffer.append(response_delta)
                     yield LLMEvent(chunk=response_delta)
-            completion = LLMOutput(content="".join(response_buffer))
+            output = LLMOutput(content="".join(response_buffer))
         else:
             data = r.json()
             try:
                 content = data["choices"][0]["message"]["content"]
                 if not content:
                     logger.warning(f"Empty completion {data}")
-                completion = LLMOutput(content=content)
+                output = LLMOutput(content=content)
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
-        self.log_completion(prompt, completion)
-        yield LLMEvent(completion=completion)
+        self.log_output(prompt, output)
+        yield LLMEvent(output=output)
 
     def load_tokenizer(self):
         if self.tokenizer is None:
@@ -425,9 +425,9 @@ class LLAMA(CachedLLM):
 
             self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.tokenizer_name or self.model_name)
 
-    def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         self.load_tokenizer()
-        return llama_make_training_text(prompt, completion, self.tokenizer)
+        return llama_make_training_text(prompt, output, self.tokenizer)
 
     def count_tokens(self, messages: list[dict] | str) -> int:
         self.load_tokenizer()
@@ -438,7 +438,7 @@ class LLAMA(CachedLLM):
 
 
 class ReplayLLM(LLM):
-    completions: dict[str, str] = Field(default_factory=dict)
+    outputs: dict[str, str] = Field(default_factory=dict)
     llm_calls: list[LLMCall]
     count_tokens_fn: Callable = lambda x: 0
     make_training_text_fn: Callable = lambda x, y: TrainingText(text="", n_predicted=0)
@@ -462,36 +462,36 @@ class ReplayLLM(LLM):
         dups = 0
         for llm_call in self.llm_calls:
             prompt_key = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
-            completion = llm_call.output.content or ""
-            if prompt_key in self.completions and completion != self.completions[prompt_key]:
-                logger.warning(f"Completion duplicate!\n{diff_strings(completion, self.completions[prompt_key])}")
+            output = llm_call.output.content or ""
+            if prompt_key in self.outputs and output != self.outputs[prompt_key]:
+                logger.warning(f"Output duplicate!\n{diff_strings(output, self.outputs[prompt_key])}")
                 dups += 1
             else:
-                self.completions[prompt_key] = completion
-        logger.info(f"Loaded {len(self.completions)} completions, {dups} duplicates")
+                self.outputs[prompt_key] = output
+        logger.info(f"Loaded {len(self.outputs)} outputs, {dups} duplicates")
         return super().model_post_init(__context)
 
     def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
         def _implementation():
             prompt_key = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
-            if prompt_key in self.completions:
+            if prompt_key in self.outputs:
                 logger.info(colored("prompt cache hit", "green"))
-                completion = self.completions[prompt_key]
+                output = self.outputs[prompt_key]
             else:
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
                 )
-                known_prompts = list(self.completions.keys())
+                known_prompts = list(self.outputs.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
                 if score >= 0.7:
                     logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(prompt_key, closest)}")
                 raise FatalError("prompt not found")
-            yield LLMEvent(completion=LLMOutput(content=completion))
+            yield LLMEvent(output=LLMOutput(content=output))
 
         return LLMStream(_implementation(), prompt=prompt)
 
-    def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
-        return self.make_training_text_fn(prompt, completion)
+    def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
+        return self.make_training_text_fn(prompt, output)
 
     def count_tokens(self, messages: list[dict] | str) -> int:
         return self.count_tokens_fn(messages)
@@ -506,7 +506,7 @@ def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, floa
 
 class MockLLM(LLM):
     call_number: int = 0
-    mock_completions: list[str] = [
+    mock_outputs: list[str] = [
         "Agent: I'm good, thank you",
         "Agent: Sure, I worked at ServiceNow for 10 years",
         "Agent: I have 10 zillion parameters",
@@ -516,9 +516,9 @@ class MockLLM(LLM):
     def generate(self, prompt: Prompt) -> LLMStream:
         def _implementation():
             self.prompts.append(prompt)
-            completion = self.mock_completions[self.call_number % len(self.mock_completions)]
+            output = self.mock_outputs[self.call_number % len(self.mock_outputs)]
             time.sleep(0.01)
-            yield LLMEvent(completion=LLMOutput(content=completion))
+            yield LLMEvent(output=LLMOutput(content=output))
             self.call_number += 1
 
         return LLMStream(_implementation(), prompt=prompt)
@@ -526,17 +526,17 @@ class MockLLM(LLM):
     def count_tokens(self, messages: list[dict] | str) -> int:
         return 42
 
-    def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         return TrainingText(text="mock trace", n_predicted=10)
 
 
-def llama_make_training_text(prompt: Prompt, completion: LLMOutput, tokenizer) -> TrainingText:
+def llama_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
     prompt_text = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=False)
-    completion_text = tokenizer.apply_chat_template(
-        [{"role": "assistant", "content": completion.content}], tokenize=False
+    output_text = tokenizer.apply_chat_template(
+        [{"role": "assistant", "content": output.content}], tokenize=False
     )
-    if tokenizer.bos_token and completion_text.startswith(tokenizer.bos_token):
-        completion_text = completion_text[len(tokenizer.bos_token) :]
-    text = f"{prompt_text}{completion_text}"
+    if tokenizer.bos_token and output_text.startswith(tokenizer.bos_token):
+        output_text = output_text[len(tokenizer.bos_token) :]
+    text = f"{prompt_text}{output_text}"
 
-    return TrainingText(text=text, n_predicted=len(completion_text))
+    return TrainingText(text=text, n_predicted=len(output_text))

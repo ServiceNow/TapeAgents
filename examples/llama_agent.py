@@ -26,7 +26,7 @@ class LLAMAChatBot(Agent[Dialog]):
             if event.chunk:
                 buffer.append(event.chunk)
                 yield PartialStep(step=AssistantStep(content="".join(buffer)))
-            elif (m := event.completion) and isinstance(m, LLMOutput):
+            elif (m := event.output) and isinstance(m, LLMOutput):
                 yield AssistantStep(content=m.content or "")
                 return
             else:
