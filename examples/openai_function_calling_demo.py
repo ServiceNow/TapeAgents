@@ -10,9 +10,9 @@ from .openai_function_calling import TOOL_SCHEMAS, FunctionCallingAgent
 def try_openai_function_calling_interactive_demo():
     llm = LiteLLM(model_name="gpt-3.5-turbo")    
     agent = FunctionCallingAgent.create(llm)
-    dialog = DialogTape(context=DialogContext(tools=TOOL_SCHEMAS), steps=[])
+    tape = DialogTape(context=DialogContext(tools=TOOL_SCHEMAS), steps=[])
     environment = MockToolEnvironment(llm)
-    demo = Demo(agent, dialog, environment, BasicRenderer())
+    demo = Demo(agent, tape, environment, BasicRenderer())
     demo.launch()
 
 

@@ -22,9 +22,9 @@ from .dialog_tape import (
 )
 
 
-def render_dialog_plain_text(dialog: DialogTape) -> str:
+def render_dialog_plain_text(tape: DialogTape) -> str:
     lines = []
-    for step in dialog:
+    for step in tape:
         if isinstance(step, UserStep):
             lines.append(f"User: {step.content}")
         elif isinstance(step, AssistantStep):
