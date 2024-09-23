@@ -154,7 +154,7 @@ class CodeExecutionResult(Observation):
 
 class CodeExecutionEnvironment(Environment):
     """
-    Environment for the collective agents
+    Environment for the team agents
     The only action that the environment can perform is to execute the code blocks
     """
 
