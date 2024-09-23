@@ -15,7 +15,7 @@ from .rendering import BasicRenderer, render_agent_tree
 logger = logging.getLogger(__name__)
 
 
-class Develop:
+class Studio:
 
     def __init__(
         self, 

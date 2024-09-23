@@ -4,7 +4,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from tapeagents.develop import Develop
+from tapeagents.studio import Studio
 from tapeagents.llms import CachedLLM
 from tapeagents.rendering import TapeBrowserRenderer
 
@@ -39,7 +39,7 @@ def main(cfg: DictConfig) -> None:
     agent = GaiaAgent.create(llm, config=instantiate(cfg.agent_config))
     agent.max_iterations = 10
     tape = GaiaTape(steps=[GaiaQuestion(content="How many calories in 2 teaspoons of hummus")])
-    Develop(agent, tape, TapeBrowserRenderer(), env).launch()
+    Studio(agent, tape, TapeBrowserRenderer(), env).launch()
 
 
 if __name__ == "__main__":

@@ -1,12 +1,12 @@
 import sys
 
 from tapeagents.team import TeamAgent, TeamTape
-from tapeagents.develop import Develop
+from tapeagents.studio import Studio
 from tapeagents.llms import LLAMA, LLM
 from tapeagents.rendering import PrettyRenderer
 
 
-def try_chat(llm: LLM, develop: bool):
+def try_chat(llm: LLM, studio: bool):
     # equilavent of https://microsoft.github.io/autogen/docs/tutorial/introduction
     comedy_duo = TeamAgent.create_chat_initiator(
         name="Joe",
@@ -18,8 +18,8 @@ def try_chat(llm: LLM, develop: bool):
         max_turns=3,
         init_message="Hey Cathy, tell me a joke",
     )
-    if develop:
-        Develop(comedy_duo, TeamTape(context=None, steps=[]), PrettyRenderer()).launch()
+    if studio:
+        Studio(comedy_duo, TeamTape(context=None, steps=[]), PrettyRenderer()).launch()
     else:
         for event in comedy_duo.run(TeamTape(context=None, steps=[])):
             print(event.model_dump_json(indent=2))
@@ -32,11 +32,11 @@ if __name__ == "__main__":
         parameters=dict(temperature=0.7, max_tokens=512),
     )
     if len(sys.argv) == 2:
-        if sys.argv[1] == "develop":
-            try_chat(llm, develop=True)
+        if sys.argv[1] == "studio":
+            try_chat(llm, studio=True)
         else:
             raise ValueError()
     elif len(sys.argv) == 1:
-        try_chat(llm, develop=False)
+        try_chat(llm, studio=False)
     else:
         raise ValueError()
