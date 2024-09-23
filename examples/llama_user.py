@@ -1,7 +1,7 @@
 import json
 
 from tapeagents.core import MakeObservation, Prompt
-from tapeagents.dialog import (
+from tapeagents.dialog_tape import (
     Dialog,
     SystemStep,
     UserModel,

@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 
 from tapeagents.batch import batch_main_loop
-from tapeagents.dialog import Dialog, SystemStep, UserStep
+from tapeagents.dialog_tape import Dialog, SystemStep, UserStep
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.io import save_tapes
 from tapeagents.llms import LLAMA, LLM

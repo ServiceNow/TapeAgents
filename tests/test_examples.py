@@ -20,7 +20,7 @@ from examples.llama_agent import LLAMAChatBot
 from tapeagents.collective import CollectiveTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
-from tapeagents.dialog import Dialog
+from tapeagents.dialog_tape import Dialog
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLAMA, ReplayLLM
 from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls

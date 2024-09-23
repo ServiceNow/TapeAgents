@@ -6,7 +6,7 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 
 from tapeagents.core import MakeObservation, Prompt
 from tapeagents.demo import Demo
-from tapeagents.dialog import (
+from tapeagents.dialog_tape import (
     Dialog,
     DialogContext,
     UserModel,

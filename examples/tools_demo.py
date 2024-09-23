@@ -1,7 +1,7 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 from tapeagents.demo import Demo
-from tapeagents.dialog import Dialog, DialogContext
+from tapeagents.dialog_tape import Dialog, DialogContext
 from tapeagents.environment import ToolEnvironment
 from tapeagents.llms import LiteLLM
 from tapeagents.rendering import BasicRenderer

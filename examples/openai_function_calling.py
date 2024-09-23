@@ -5,7 +5,7 @@ from pydantic import TypeAdapter
 
 from tapeagents.agent import Agent
 from tapeagents.core import Prompt
-from tapeagents.dialog import (
+from tapeagents.dialog_tape import (
     AssistantStep,
     Dialog,
     DialogContext,

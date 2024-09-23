@@ -12,7 +12,7 @@ from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, Cont
 
 from .agent import TapeType
 from .core import Action, Observation, Prompt, Tape
-from .dialog import AssistantStep, Dialog, ToolCalls, ToolResult, ToolSpec
+from .dialog_tape import AssistantStep, Dialog, ToolCalls, ToolResult, ToolSpec
 from .llms import LiteLLM
 
 logger = logging.getLogger(__name__)

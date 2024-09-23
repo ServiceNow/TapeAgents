@@ -1,5 +1,5 @@
 from tapeagents.demo import Demo
-from tapeagents.dialog import Dialog, DialogContext
+from tapeagents.dialog_tape import Dialog, DialogContext
 from tapeagents.environment import MockToolEnvironment
 from tapeagents.llms import LiteLLM
 from tapeagents.rendering import BasicRenderer

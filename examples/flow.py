@@ -2,7 +2,7 @@ import sys
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Jump, Prompt, Tape
-from tapeagents.dialog import AssistantStep, AssistantThought, Dialog, UserStep
+from tapeagents.dialog_tape import AssistantStep, AssistantThought, Dialog, UserStep
 from tapeagents.llms import LLAMA, LLM, LLMStream
 from tapeagents.view import TapeView
 

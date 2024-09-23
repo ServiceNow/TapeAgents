@@ -4,7 +4,7 @@ from litellm.utils import ChatCompletionMessageToolCall
 from pydantic import TypeAdapter
 
 from tapeagents.core import Prompt
-from tapeagents.dialog import (
+from tapeagents.dialog_tape import (
     AnnotationAction,
     AnnotatorFreeFormThought,
     AssistantStep,
