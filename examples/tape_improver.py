@@ -206,18 +206,18 @@ def make_world(llm: LLM | None = None) -> tuple[Agent, Tape, Tape]:
     return code_improver, bad_tape, improver_tape
 
 
-def main(mode: Literal["run improver", "develop agent", "develop improver"]):
+def main(mode: Literal["run improver", "studio agent", "studio improver"]):
     code_improver, bad_tape, improver_tape = make_world()
 
     if mode == "run improver":
         final_tape = code_improver.run(improver_tape).get_final_tape()
         with open("final_tape.json", "w") as f:
             f.write(final_tape.model_dump_json(indent=2))
-    elif mode == "develop improver":
+    elif mode == "studio improver":
         from tapeagents.studio import Studio
 
         Studio(code_improver, improver_tape, PrettyRenderer()).launch()
-    elif mode == "develop agent":
+    elif mode == "studio agent":
         data_science_agent, _, env = data_science_make_world()
 
         def improve_code(tape: Tape):
@@ -247,13 +247,13 @@ def main(mode: Literal["run improver", "develop agent", "develop improver"]):
 
 if __name__ == "__main__":
     match sys.argv[1:]:
-        case ["develop", "agent"]:
-            main("develop agent")
-        case ["develop", "improver"]:
-            main("develop improver")
+        case ["studio", "agent"]:
+            main("studio agent")
+        case ["studio", "improver"]:
+            main("studio improver")
         case ["make_test_data"]:
             with run_in_tmp_dir_to_make_test_data("tape_improver"):
                 main("run improver")
         case _:
             # print usage and exit
-            print("Usage: python -m examples.data_science [develop agent] [develop improver]")
+            print("Usage: python -m examples.data_science [studio agent] [studio improver]")

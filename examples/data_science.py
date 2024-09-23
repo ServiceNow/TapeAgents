@@ -59,9 +59,9 @@ def make_renderers() -> dict[str, BasicRenderer]:
     }
 
 
-def main(develop: bool):
+def main(studio: bool):
     agent, start_tape, env = make_world()
-    if develop:
+    if studio:
         from tapeagents.studio import Studio
 
         Studio(agent, start_tape, make_renderers(), env).launch()
@@ -75,12 +75,12 @@ def main(develop: bool):
 if __name__ == "__main__":
     match sys.argv[1:]:
         case []:
-            main(develop=False)
-        case ["develop"]:
-            main(develop=True)
+            main(studio=False)
+        case ["studio"]:
+            main(studio=True)
         case ["make_test_data"]:
             with run_in_tmp_dir_to_make_test_data("data_science"):
-                main(develop=False)
+                main(studio=False)
         case _:
-            print("Usage: python -m examples.data_science [develop]")
+            print("Usage: python -m examples.data_science [studio]")
             sys.exit(1)
