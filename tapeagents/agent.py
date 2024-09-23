@@ -15,7 +15,7 @@ from .core import (
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
-    Completion,
+    LLMOutput,
     LLMCall,
     MakeObservation,
     ObservationMakerTapeType,
@@ -73,8 +73,8 @@ class Node(BaseModel):
     generate_steps_func: StepsGeneratorFunction = Field(
         default=lambda agent, tape, llm_stream: (step for step in ()), exclude=True
     )
-    make_completion_func: Callable[[Any, Tape, int], Completion] = Field(
-        default=lambda agent, tape, index: Completion(role="assistant", content=tape.steps[index].content), exclude=True
+    make_completion_func: Callable[[Any, Tape, int], LLMOutput] = Field(
+        default=lambda agent, tape, index: LLMOutput(role="assistant", content=tape.steps[index].content), exclude=True
     )
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
@@ -85,7 +85,7 @@ class Node(BaseModel):
     ) -> Generator[Step | PartialStep, None, None]:
         yield from self.generate_steps_func(agent, tape, llm_stream)
 
-    def make_completion(self, agent: Any, tape: Tape, index: int) -> Completion:
+    def make_completion(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         """"""
         return self.make_completion_func(agent, tape, index)
 
@@ -100,7 +100,7 @@ class Node(BaseModel):
         self.generate_steps_func = generate_steps
         return self
 
-    def with_completion(self, make_completion: Callable[[Any, Tape, int], Completion]) -> Node:
+    def with_completion(self, make_completion: Callable[[Any, Tape, int], LLMOutput]) -> Node:
         self.make_completion_func = make_completion
         return self
 
@@ -269,7 +269,7 @@ class Agent(BaseModel, Generic[TapeType]):
         """
         yield from self.select_node(tape).generate_steps(self, tape, llm_stream)
 
-    def make_completion(self, tape: TapeType, index: int) -> Completion:
+    def make_completion(self, tape: TapeType, index: int) -> LLMOutput:
         return self.select_node(tape[:index]).make_completion(self, tape, index)
 
     def delegate(self, tape: TapeType) -> Agent[TapeType]:

@@ -3,7 +3,7 @@ import os
 import tempfile
 
 from tapeagents.agent import Agent
-from tapeagents.core import Completion, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
+from tapeagents.core import LLMOutput, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
 from tapeagents.dialog import AssistantStep, Dialog, SystemStep, UserStep
 from tapeagents.llms import LLAMA, LLM, LLMMessage, LLMStream
 
@@ -33,7 +33,7 @@ class LLAMAChatBot(Agent[Dialog]):
                 raise ValueError(f"Uknown event type from LLM: {event}")
         raise ValueError("LLM didn't return completion")
 
-    def make_completion(self, tape: Dialog, index: int) -> Completion:
+    def make_completion(self, tape: Dialog, index: int) -> LLMOutput:
         if not isinstance(step := tape.steps[index], AssistantStep):
             raise ValueError(f"Can only make completion for AssistantStep, got {step}")
         return LLMMessage(content=step.content)

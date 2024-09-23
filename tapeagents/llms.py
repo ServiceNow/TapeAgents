@@ -18,7 +18,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
 from .config import DB_DEFAULT_FILENAME
-from .core import Completion, LLMMessage, Prompt, TrainingText
+from .core import LLMOutput, LLMMessage, Prompt, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
 
@@ -85,7 +85,7 @@ class LLM(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
         pass
 
     def log_completion(self, prompt: Prompt, message: LLMMessage, cached: bool = False):
@@ -425,7 +425,7 @@ class LLAMA(CachedLLM):
 
             self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.tokenizer_name or self.model_name)
 
-    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
         self.load_tokenizer()
         return llama_make_training_text(prompt, completion, self.tokenizer)
 
@@ -490,7 +490,7 @@ class ReplayLLM(LLM):
 
         return LLMStream(_implementation(), prompt=prompt)
 
-    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
         return self.make_training_text_fn(prompt, completion)
 
     def count_tokens(self, messages: list[dict] | str) -> int:
@@ -526,11 +526,11 @@ class MockLLM(LLM):
     def count_tokens(self, messages: list[dict] | str) -> int:
         return 42
 
-    def make_training_text(self, prompt: Prompt, completion: Completion) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, completion: LLMOutput) -> TrainingText:
         return TrainingText(text="mock trace", n_predicted=10)
 
 
-def llama_make_training_text(prompt: Prompt, completion: Completion, tokenizer) -> TrainingText:
+def llama_make_training_text(prompt: Prompt, completion: LLMOutput, tokenizer) -> TrainingText:
     prompt_text = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=False)
     completion_text = tokenizer.apply_chat_template(
         [{"role": "assistant", "content": completion.content}], tokenize=False

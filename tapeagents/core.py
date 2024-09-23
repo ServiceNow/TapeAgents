@@ -190,7 +190,7 @@ class Prompt(BaseModel):
 
 
 LLMMessage: TypeAlias = litellm.utils.Message
-Completion: TypeAlias = LLMMessage
+LLMOutput: TypeAlias = LLMMessage
 
 
 class LLMCall(BaseModel):
