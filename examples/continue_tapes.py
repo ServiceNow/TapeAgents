@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 
 from tapeagents.batch import generate_tapes
-from tapeagents.dialog import AssistantStep, Dialog, SystemStep, UserStep
+from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLAMA, LLM
 
@@ -21,7 +21,7 @@ def try_continue_tapes(llm: LLM):
         llms={"default": llm},
     )
 
-    tape = Dialog(
+    tape = DialogTape(
         context=None,
         steps=[
             SystemStep(content="You are a helpful assistant."),

@@ -2,7 +2,7 @@ import logging
 import sys
 
 from tapeagents.studio import Studio
-from tapeagents.dialog import Dialog, SystemStep, UserStep
+from tapeagents.dialog_tape import DialogTape, SystemStep, UserStep
 from tapeagents.llms import LLAMA
 from tapeagents.rendering import PrettyRenderer
 
@@ -19,7 +19,7 @@ def try_studio_with_stack(llm):
 
 
 def try_studio_with_chat(llm):
-    tape = Dialog(
+    tape = DialogTape(
         context=None,
         steps=[
             SystemStep(

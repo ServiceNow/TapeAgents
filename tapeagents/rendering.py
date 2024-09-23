@@ -11,9 +11,9 @@ from .observe import LLMCall, retrieve_tape_llm_calls
 from .container_executor import CodeBlock
 from .view import Call, Respond
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
-from .dialog import (
+from .dialog_tape import (
     AssistantStep,
-    Dialog,
+    DialogTape,
     DialogContext,
     SystemStep,
     ToolCalls,
@@ -22,9 +22,9 @@ from .dialog import (
 )
 
 
-def render_dialog_plain_text(dialog: Dialog) -> str:
+def render_dialog_plain_text(tape: DialogTape) -> str:
     lines = []
-    for step in dialog:
+    for step in tape:
         if isinstance(step, UserStep):
             lines.append(f"User: {step.content}")
         elif isinstance(step, AssistantStep):

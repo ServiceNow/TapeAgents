@@ -4,11 +4,11 @@ import tempfile
 
 from tapeagents.agent import Agent
 from tapeagents.core import Completion, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
-from tapeagents.dialog import AssistantStep, Dialog, SystemStep, UserStep
+from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
 from tapeagents.llms import LLAMA, LLM, LLMMessage, LLMStream
 
 
-class LLAMAChatBot(Agent[Dialog]):
+class LLAMAChatBot(Agent[DialogTape]):
     """
     Example of an agent that responds to user messages using the LLAMA model.
     """
@@ -17,7 +17,7 @@ class LLAMAChatBot(Agent[Dialog]):
     def signature(self):
         return "llamachatbot"
 
-    def make_prompt(self, tape: Dialog):
+    def make_prompt(self, tape: DialogTape):
         return Prompt(messages=tape.as_prompt_messages())
 
     def generate_steps(self, tape: Tape, llm_stream: LLMStream):
@@ -33,7 +33,7 @@ class LLAMAChatBot(Agent[Dialog]):
                 raise ValueError(f"Uknown event type from LLM: {event}")
         raise ValueError("LLM didn't return completion")
 
-    def make_completion(self, tape: Dialog, index: int) -> Completion:
+    def make_completion(self, tape: DialogTape, index: int) -> Completion:
         if not isinstance(step := tape.steps[index], AssistantStep):
             raise ValueError(f"Can only make completion for AssistantStep, got {step}")
         return LLMMessage(content=step.content)
@@ -48,7 +48,7 @@ def try_llama_chatbot(llm: LLM):
         "How many parameters do you have?",
     ]
 
-    tape = Dialog(
+    tape = DialogTape(
         context=None,
         steps=[
             SystemStep(content="Respond to the user using the style of Shakespeare books. Be very brief, 50 words max.")
@@ -94,7 +94,7 @@ def try_llama_chatbot(llm: LLM):
         cur_tape = tape_db.get(cur_tape.metadata.parent_id, None)
 
     print("--- CHECK DESERIALIZATION ---")
-    reconstructed_tape = Dialog.model_validate(tape.model_dump())
+    reconstructed_tape = DialogTape.model_validate(tape.model_dump())
     assert reconstructed_tape == tape
     print("didn't crash, we are good")
 

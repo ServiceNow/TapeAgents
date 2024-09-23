@@ -2,7 +2,7 @@ import platform
 from typing import Any
 
 from tapeagents.core import Prompt
-from tapeagents.dialog import SystemStep, UserStep
+from tapeagents.dialog_tape import SystemStep, UserStep
 from tapeagents.guided_agent import GuidedAgent
 from tapeagents.utils import get_step_schemas_from_union_type
 

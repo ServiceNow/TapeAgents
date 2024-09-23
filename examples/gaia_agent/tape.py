@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import Field
 
 from tapeagents.core import Tape, TapeMetadata
-from tapeagents.dialog import DialogContext
+from tapeagents.dialog_tape import DialogContext
 from tapeagents.utils import _value_from_str
 
 from .steps import (
