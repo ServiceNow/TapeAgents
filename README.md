@@ -50,6 +50,21 @@ In the coming days we will present to you the following examples:
 - How to finetune a TapeAgent with a small LLM to be better at math problem solving
 - An agent that searches the web and uses code interpreter to answer precise questions. We built this agent to solves tasks from the [GAIA challenge](https://huggingface.co/spaces/gaia-benchmark/leaderboard)
 
+
+The [examples/](examples/) directory contains examples of how to use the TapeAgents framework for building, debugging and improving agents. Each example is a self-contained Python script that demonstrates how to use the framework to build an agent for a specific task.
+
+## Main Examples
+The short list of examples that demonstrate the main aspects of the TapeAgents framework:
+
+- [intro.ipynb](intro.ipynb) - Step by step tutorial that shows you how to build a few agents of increasing complexity and demonstrates the core concepts of the TapeAgents framework.
+- [data_science.py](examples/data_science.py) - data-science oriented multi-agent setup that solve a single data processing task using python.
+- [workarena](examples/workarena) - custom agent that solves WorkArena benchmark using BrowserGym environment.
+- [gaia_agent](examples/gaia_agent) - custom agent that solves Gaia benchmark using planning and a set of tools with web search, documents and media parsers, code execution.
+- [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
+- [gsm8k_tuning](examples/gsm8k_tuning) - custom agent that solves GSM-8k benchmark, collect tapes and finetune smaller LLaMA model on them.
+
+
+
 # Learn more 
 
 See our [Now AI paper](https://servicenow.sharepoint.com/sites/snrcat/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fsnrcat%2FShared%20Documents%2FTapeAgents%2FTapeAgents%5F2024nowai%2Epdf&parent=%2Fsites%2Fsnrcat%2FShared%20Documents%2FTapeAgents&p=true&ga=1) on TapeAgents.
