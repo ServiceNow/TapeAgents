@@ -27,7 +27,7 @@ def main(fname: str, dataset_path: str = ""):
 
     prompts = results.prompts
     llm_calls = [
-        LLMCall(prompt=Prompt.model_validate(prompt), completion=LLMOutput(), cached=False)
+        LLMCall(prompt=Prompt.model_validate(prompt), output=LLMOutput(), cached=False)
         for prompt in results.prompts
     ]
     model_name = results.model

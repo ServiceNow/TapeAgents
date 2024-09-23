@@ -92,9 +92,9 @@ class LLM(BaseModel, ABC):
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
             prompt=prompt,
-            completion=message,
+            output=message,
             prompt_length_tokens=self.count_tokens(prompt.messages),
-            completion_length_tokens=self.count_tokens(message.content) if message.content else 0,
+            output_length_tokens=self.count_tokens(message.content) if message.content else 0,
             cached=cached,
         )
         self._log.append(llm_call.model_dump())
@@ -118,7 +118,7 @@ class CachedLLM(LLM):
             llm_calls = retrieve_all_llm_calls(_REPLAY_SQLITE)
             for llm_call in llm_calls:
                 key = self.get_prompt_key(llm_call.prompt)
-                self._cache[key] = [LLMEvent(completion=llm_call.completion)]
+                self._cache[key] = [LLMEvent(completion=llm_call.output)]
             logger.info(f"Enforced LLM cache from {_REPLAY_SQLITE}, {len(self._cache)} entries")
             return
         elif not self.use_cache:
@@ -462,7 +462,7 @@ class ReplayLLM(LLM):
         dups = 0
         for llm_call in self.llm_calls:
             prompt_key = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
-            completion = llm_call.completion.content or ""
+            completion = llm_call.output.content or ""
             if prompt_key in self.completions and completion != self.completions[prompt_key]:
                 logger.warning(f"Completion duplicate!\n{diff_strings(completion, self.completions[prompt_key])}")
                 dups += 1

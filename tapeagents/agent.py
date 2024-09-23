@@ -363,7 +363,7 @@ class Agent(BaseModel, Generic[TapeType]):
                 current_agent = self.delegate(past_tape)
                 prompt = current_agent.make_prompt(past_tape)
                 completion = current_agent.make_completion(tape, i)
-                llm_call = LLMCall(prompt=prompt, completion=completion, cached=True)
+                llm_call = LLMCall(prompt=prompt, output=completion, cached=True)
                 observe_llm_call(llm_call)
 
                 # Validate that the reconstructed llm call leads to the same steps as in the given tape
@@ -392,7 +392,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def make_training_text(self, llm_call: LLMCall) -> TrainingText:
         """Routes the request to make trace to the appropriate agent's LLM."""
         # TODO: support more than 1 LLM
-        return self.llm.make_training_text(llm_call.prompt, llm_call.completion)
+        return self.llm.make_training_text(llm_call.prompt, llm_call.output)
 
     def make_training_data(self, tape: TapeType) -> list[TrainingText]:
         _, llm_calls = self.reuse(tape)

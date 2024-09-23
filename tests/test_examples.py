@@ -91,7 +91,7 @@ def test_llama_agent_traces():
         assert len(traces) == len(orig_traces), f"Expected {len(orig_traces)} traces, got {len(traces)}"
         for trace, orig_trace in zip(traces, orig_traces):
             assert trace.prompt_str == orig_trace.prompt_str
-            assert trace.completion_str == orig_trace.completion_str
+            assert trace.output_str == orig_trace.output_str
 
 
 def test_llama_agent_tape_reuse():
@@ -116,7 +116,7 @@ def test_llama_agent_tape_reuse():
                 assert len(traces) == len(orig_traces), f"Expected {len(orig_traces)} traces, got {len(traces)}"
                 for trace, orig_trace in zip(traces, orig_traces):
                     assert trace.prompt_str == orig_trace.prompt_str
-                    assert trace.completion_str == orig_trace.completion_str
+                    assert trace.output_str == orig_trace.output_str
 
 
 def test_gaia_agent():

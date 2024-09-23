@@ -71,9 +71,9 @@ def sqlite_store_llm_call(call: LLMCall):
                 call.prompt.id,
                 call.timestamp,
                 call.prompt.model_dump_json(),
-                call.completion.model_dump_json(),
+                call.output.model_dump_json(),
                 call.prompt_length_tokens,
-                call.completion_length_tokens,
+                call.output_length_tokens,
                 call.cached,
             ),
         )
@@ -120,9 +120,9 @@ def retrieve_llm_call(prompt_id: str) -> LLMCall | None:
         return LLMCall(
             timestamp=row[1],
             prompt=Prompt.model_validate_json(row[2]),
-            completion=LLMOutput.model_validate_json(row[3]),
+            output=LLMOutput.model_validate_json(row[3]),
             prompt_length_tokens=row[4],
-            completion_length_tokens=row[5],
+            output_length_tokens=row[5],
             cached=row[6],
         )
 
@@ -185,9 +185,9 @@ def retrieve_all_llm_calls(sqlite_fpath: str) -> list[LLMCall]:
             LLMCall(
                 timestamp=timestamp,
                 prompt=Prompt(**json.loads(prompt_str)),
-                completion=LLMOutput(**json.loads(completion)),
+                output=LLMOutput(**json.loads(completion)),
                 prompt_length_tokens=prompt_length_tokens,
-                completion_length_tokens=completion_length_tokens,
+                output_length_tokens=completion_length_tokens,
                 cached=cached,
             )
         )

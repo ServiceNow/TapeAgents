@@ -80,7 +80,7 @@ def try_llama_chatbot(llm: LLM):
     for i, trace in enumerate(agent.make_training_data(tape)):
         print(f"TRACE {i}")
         print("CONTEXT", trace.prompt_str)
-        print("COMPLETION", trace.completion_str)
+        print("COMPLETION", trace.output_str)
         traces.append(trace)
     with open("traces.json", "w") as f:
         json.dump([t.model_dump() for t in traces], f, indent=2)
