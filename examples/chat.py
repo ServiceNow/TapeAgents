@@ -1,7 +1,7 @@
 import sys
 
 from tapeagents.collective import CollectiveAgent, CollectiveTape
-from tapeagents.develop import Develop
+from tapeagents.studio import Develop
 from tapeagents.llms import LLAMA, LLM
 from tapeagents.rendering import PrettyRenderer
 

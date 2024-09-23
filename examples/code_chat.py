@@ -5,7 +5,7 @@ import sys
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
 from tapeagents.collective import CollectiveAgent, CollectiveTape
 from tapeagents.container_executor import ContainerExecutor
-from tapeagents.develop import Develop
+from tapeagents.studio import Develop
 from tapeagents.environment import CodeExecutionEnvironment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import PrettyRenderer

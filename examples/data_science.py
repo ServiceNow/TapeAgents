@@ -62,7 +62,7 @@ def make_renderers() -> dict[str, BasicRenderer]:
 def main(develop: bool):
     agent, start_tape, env = make_world()
     if develop:
-        from tapeagents.develop import Develop
+        from tapeagents.studio import Develop
 
         Develop(agent, start_tape, make_renderers(), env).launch()
     else:

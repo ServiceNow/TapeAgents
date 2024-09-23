@@ -4,7 +4,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from tapeagents.develop import Develop
+from tapeagents.studio import Develop
 from tapeagents.llms import CachedLLM
 from tapeagents.rendering import TapeBrowserRenderer
 
