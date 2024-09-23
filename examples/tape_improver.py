@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from tapeagents.agent import Agent
 from tapeagents.chain import Chain
-from tapeagents.collective import CollectiveTape
+from tapeagents.team import TeamTape
 from tapeagents.core import (
     Action,
     AgentStep,
@@ -113,7 +113,7 @@ class StepParsingError(Action):
     error: str
 
 
-CodeImproverTape = Tape[CollectiveTape, SelectAgent | SelectStep | RewriteStep | FinalStep | Call | Respond]
+CodeImproverTape = Tape[TeamTape, SelectAgent | SelectStep | RewriteStep | FinalStep | Call | Respond]
 
 
 def improver_tape_view(tape: Tape) -> str:
@@ -186,7 +186,7 @@ class StepRewriter(Agent):
 def make_world(llm: LLM | None = None) -> tuple[Agent, Tape, Tape]:
     res_dir = f"{pathlib.Path(__file__).parent.resolve()}/res"
     with open(f"{res_dir}/bad_tape.json", "r") as f:
-        bad_tape = CollectiveTape.model_validate(json.load(f))
+        bad_tape = TeamTape.model_validate(json.load(f))
     improver_tape = CodeImproverTape(context=bad_tape, steps=[])
 
     llm = llm or LiteLLM(
