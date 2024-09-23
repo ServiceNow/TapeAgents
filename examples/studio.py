@@ -12,13 +12,13 @@ from .llama_agent import LLAMAChatBot
 logging.basicConfig(level=logging.INFO)
 
 
-def try_development_app_with_stack(llm):
+def try_studio_with_stack(llm):
     tape = ExampleTape(context=EXAMPLE_TEXT)
     agent = make_analyze_text_chain(llm)
     Studio(agent, tape, PrettyRenderer()).launch()
 
 
-def try_development_app_with_chat(llm):
+def try_studio_with_chat(llm):
     tape = Dialog(
         context=None,
         steps=[
@@ -39,8 +39,8 @@ if __name__ == "__main__":
         parameters=dict(temperature=0.7, max_tokens=512),
     )
     if sys.argv[1] == "chat":
-        try_development_app_with_chat(llm)
+        try_studio_with_chat(llm)
     elif sys.argv[1] == "stack":
-        try_development_app_with_stack(llm)
+        try_studio_with_stack(llm)
     else:
         raise ValueError("Unknown mode")
