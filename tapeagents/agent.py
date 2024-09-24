@@ -308,7 +308,7 @@ class Agent(BaseModel, Generic[TapeType]):
             llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
         for item in self.generate_steps(tape, llm_stream):
             if isinstance(item, AgentStep):
-                item.prompt_id = llm_stream.prompt.id
+                item._metadata.prompt_id = llm_stream.prompt.id
                 yield item
                 new_steps.append(item)
             else:
@@ -326,13 +326,13 @@ class Agent(BaseModel, Generic[TapeType]):
             stop = False
             while n_iterations < self.max_iterations and not stop:
                 current_subagent = self.delegate(tape)
-                for item in current_subagent.run_iteration(tape):
-                    if isinstance(item, PartialStep):
-                        yield AgentEvent(partial_step=item)
-                    elif isinstance(item, AgentStep):
-                        item.by = current_subagent.full_name
-                        tape = tape.append(item)
-                        yield AgentEvent(step=item, partial_tape=tape)
+                for step in current_subagent.run_iteration(tape):
+                    if isinstance(step, PartialStep):
+                        yield AgentEvent(partial_step=step)
+                    elif isinstance(step, AgentStep):
+                        step._metadata.by = current_subagent.full_name
+                        tape = tape.append(step)
+                        yield AgentEvent(step=step, partial_tape=tape)
                         if self.should_stop(tape):
                             stop = True
                     else:

@@ -69,8 +69,8 @@ class WorkArenaEnvironment(Environment):
             text=text,
             current_page=self.browser.current_viewport,
             total_pages=self.browser.n_viewports,
-            screenshot_path=screen,
         )
+        obs._metadata.other["screenshot_path"] = screen
         tape = WorkArenaTape(steps=[obs, WorkArenaTask(task=info["goal"])])
         return tape, info
 
@@ -121,14 +121,15 @@ class WorkArenaEnvironment(Environment):
 
     def perform_browser_action(self, action: str) -> PageObservation:
         text, screen, last_action_error, finished = self.browser.perform_action(action, self.baseline_obs)
-        return PageObservation(
+        obs = PageObservation(
             text=text,
             current_page=self.browser.current_viewport,
             total_pages=self.browser.n_viewports,
-            screenshot_path=screen,
-            env_finished=finished,
             last_action_error=last_action_error,
         )
+        obs._metadata.other["screenshot_path"] = screen
+        obs._metadata.other["env_finished"] = finished
+        return obs
 
     def goto_page(self, action: GotoPageAction) -> PageObservation:
         return self.perform_browser_action(f"goto('{action.url}')")
@@ -156,7 +157,6 @@ class WorkArenaEnvironment(Environment):
             text=self.browser.scroll(action.direction),
             current_page=self.browser.current_viewport,
             total_pages=self.browser.n_viewports,
-            screenshot_path="",
         )
 
     def tab_focus(self, action: TabFocusAction) -> PageObservation:

@@ -2,24 +2,24 @@ import json
 import re
 from typing import Any, Type
 
-from pydantic import BaseModel
 import yaml
+from pydantic import BaseModel
 
 from .agent import Agent
-from .team import CodeExecutionResult, ExecuteCode
-from .observe import LLMCall, retrieve_tape_llm_calls
 from .container_executor import CodeBlock
-from .view import Call, Respond
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
 from .dialog_tape import (
     AssistantStep,
-    DialogTape,
     DialogContext,
+    DialogTape,
     SystemStep,
     ToolCalls,
     ToolResult,
     UserStep,
 )
+from .observe import LLMCall, retrieve_tape_llm_calls
+from .team import CodeExecutionResult, ExecuteCode
+from .view import Call, Respond
 
 
 def render_dialog_plain_text(tape: DialogTape) -> str:
@@ -226,11 +226,11 @@ class PrettyRenderer(BasicRenderer):
             class_ = "observation"
         elif isinstance(step, Call):
             role = ""
-            title = f"{step.by.split('/')[-1]} calls {step.agent_name}"
+            title = f"{step._metadata.by.split('/')[-1]} calls {step.agent_name}"
             class_ = "call"
         elif isinstance(step, Respond):
             role = ""
-            parts = step.by.split("/")
+            parts = step._metadata.by.split("/")
             title = f"{parts[-1]} responds to {parts[-2]}"
             class_ = "return"
         elif isinstance(step, Thought):

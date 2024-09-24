@@ -5,7 +5,6 @@ from typing import Any, Literal
 
 from tapeagents.agent import Agent
 from tapeagents.chain import Chain
-from tapeagents.team import TeamTape
 from tapeagents.core import (
     Action,
     AgentStep,
@@ -18,6 +17,7 @@ from tapeagents.core import (
 from tapeagents.llms import LLM, LiteLLM, LLMStream
 from tapeagents.observe import observe_tape
 from tapeagents.rendering import PrettyRenderer
+from tapeagents.team import TeamTape
 from tapeagents.utils import run_in_tmp_dir_to_make_test_data
 from tapeagents.view import Call, Respond
 
@@ -122,7 +122,7 @@ def improver_tape_view(tape: Tape) -> str:
         data.append(step.llm_dict())
         data[-1]["index"] = index
         if isinstance(step, AgentStep):
-            data[-1]["by"] = step.by
+            data[-1]["by"] = step._metadata.by
     return json.dumps(data, indent=2)
 
 

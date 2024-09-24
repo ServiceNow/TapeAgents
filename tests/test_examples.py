@@ -108,7 +108,7 @@ def test_llama_agent_tape_reuse():
             for reused_step, step in zip(reused_tape, tape):
                 if isinstance(step, AgentStep):
                     assert isinstance(reused_step, AgentStep)
-                    assert reused_step.prompt_id != step.prompt_id
+                    assert reused_step._metadata.prompt_id != step._metadata.prompt_id
             traces_from_logs = [
                 agent.make_training_text(llm_call) for llm_call in retrieve_tape_llm_calls(reused_tape).values()
             ]

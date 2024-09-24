@@ -138,8 +138,13 @@ class WorkArenaRender(GaiaRender):
     def render_step(self, step: Step | dict, folded: bool = True, **kwargs) -> str:
         step_dict = step.model_dump() if isinstance(step, Step) else step
         html = super().render_step(step, folded, **kwargs)
+        screenshot_path = None
         if "screenshot_path" in step_dict:
-            screenshot_url = os.path.join("static", kwargs["tape_dir"], "screenshots", step_dict["screenshot_path"])
+            screenshot_path = step_dict["screenshot_path"]
+        if "screenshot_path" in step_dict.get("_metadata", {}).get("other", {}):
+            screenshot_path = step_dict["_metadata"]["other"]["screenshot_path"]
+        if screenshot_path:
+            screenshot_url = os.path.join("static", kwargs["tape_dir"], "screenshots", screenshot_path)
             html = f"<div class='basic-renderer-box' style='background-color:#baffc9;'><div><img src='{screenshot_url}' style='max-width: 100%;'></div>{html}</div>"
         return html
 

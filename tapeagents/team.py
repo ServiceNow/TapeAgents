@@ -8,7 +8,7 @@ from pydantic import ConfigDict
 from tapeagents.agent import DEFAULT, Agent, AgentStep, Node
 from tapeagents.autogen_prompts import SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE, SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE
 from tapeagents.container_executor import extract_code_blocks
-from tapeagents.core import FinalStep, Jump, Pass, Prompt, Tape
+from tapeagents.core import FinalStep, Jump, Pass, Prompt, StepMetadata, Tape
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
@@ -124,7 +124,7 @@ class TeamAgent(Agent[TeamTape]):
             },
             llms={DEFAULT: llm} if llm else {},
             subagents=[teammate],
-            flow=([ExecuteCodeNode()] if execute_code else []) + [CallNode(), TerminateOrRepeatNode()],
+            flow=([ExecuteCodeNode()] if execute_code else []) + [CallNode(), TerminateOrRepeatNode()],  # type: ignore
             max_calls=max_calls,
             init_message=init_message,
         )
@@ -139,19 +139,18 @@ class BroadcastLastMessageNode(Node):
         view = ActiveTeamAgentView(agent, tape)
         recipients = agent.get_subagent_names()
         last = view.messages[-1]
-        from_ = last.by.split("/")[-1]
+        from_ = last._metadata.by.split("/")[-1]
         match last:
             case Call():
-                yield Broadcast(task=self.name, content=last.content, from_=from_, to=list(recipients))
+                yield Broadcast(content=last.content, from_=from_, to=list(recipients)).task(self.name)
             case Respond():
-                recipients = [name for name in recipients if name != last.by.split("/")[-1]]
+                recipients = [name for name in recipients if name != last._metadata.by.split("/")[-1]]
                 yield Broadcast(
-                    task=self.name,
                     content=view.messages[-1].content,
                     from_=from_,
                     to=list(recipients),
-                )
-            case Broadcast(task=self.name):
+                ).task(self.name)
+            case Broadcast(_metadata=StepMetadata(task=self.name)):
                 pass
             case _:
                 assert False
@@ -175,12 +174,12 @@ class CallNode(Node):
         # if last node
         (other,) = agent.subagents
         if view.should_generate_message:
-            yield Call(task=self.name, agent_name=other.name, content=llm_stream.get_text())
+            yield Call(agent_name=other.name, content=llm_stream.get_text()).task(self.name)
         elif view.exec_result:
-            yield Call(task=self.name, agent_name=other.name, content=_exec_result_message(agent, tape))
+            yield Call(agent_name=other.name, content=_exec_result_message(agent, tape)).task(self.name)
         else:
             assert agent.init_message and not view.messages
-            yield Call(task=self.name, agent_name=other.name, content=agent.init_message)
+            yield Call(agent_name=other.name, content=agent.init_message).task(self.name)
 
 
 class SelectAndCallNode(Node):
@@ -208,21 +207,21 @@ class SelectAndCallNode(Node):
         callee_name = llm_stream.get_text()
         # check if the callee is an existing subagent
         _ = agent.find_subagent(callee_name)
-        yield Call(task=self.name, agent_name=callee_name)
+        yield Call(agent_name=callee_name).task(self.name)
 
 
 class ExecuteCodeNode(Node):
     name: str = "execute_code"
 
-    def generate_steps(self, agent: logging.Any, tape: Tape, llm_stream: LLMStream) -> Generator[AgentStep, None, None]:
+    def generate_steps(self, agent: TeamAgent, tape: Tape, llm_stream: LLMStream) -> Generator[AgentStep, None, None]:
         assert not llm_stream
         view = ActiveTeamAgentView(agent, tape)
         if view.last_non_empty_message is None:
-            yield Pass(task=self.name)
+            yield Pass().task(self.name)
         elif code := extract_code_blocks(view.last_non_empty_message.content):
-            yield ExecuteCode(task=self.name, code=code)
+            yield ExecuteCode(code=code).task(self.name)
         else:
-            yield Pass(task=self.name)
+            yield Pass().task(self.name)
 
 
 class RespondNode(Node):
@@ -241,15 +240,15 @@ class RespondNode(Node):
     ) -> Generator[AgentStep, None, None]:
         view = ActiveTeamAgentView(agent, tape)
         if view.should_generate_message:
-            yield Respond(task=self.name, content=llm_stream.get_text())
+            yield Respond(content=llm_stream.get_text()).task(self.name)
         elif view.exec_result:
-            yield Respond(task=self.name, content=_exec_result_message(agent, tape))
+            yield Respond(content=_exec_result_message(agent, tape)).task(self.name)
         else:
             logger.info(
                 f"Agent {agent.full_name} had to respond with an empty message."
                 f" You might want to optimize your orchestration logic."
             )
-            yield Respond(task=self.name)
+            yield Respond().task(self.name)
 
 
 class TerminateOrRepeatNode(Node):
@@ -261,9 +260,9 @@ class TerminateOrRepeatNode(Node):
         assert not llm_stream
         view = ActiveTeamAgentView(agent, tape)
         if view.should_stop:
-            yield FinalStep(task=self.name, reason="Termination message received")
+            yield FinalStep(reason="Termination message received").task(self.name)
         else:
-            yield Jump(task=self.name, next_node=0)
+            yield Jump(next_node=0).task(self.name)
 
 
 class RespondOrRepeatNode(Node):
@@ -274,9 +273,9 @@ class RespondOrRepeatNode(Node):
     ) -> Generator[AgentStep, None, None]:
         view = ActiveTeamAgentView(agent, tape)
         if view.should_stop:
-            yield Respond(task=self.name)
+            yield Respond().task(self.name)
         else:
-            yield Jump(task=self.name, next_node=0)
+            yield Jump(next_node=0).task(self.name)
 
 
 def _exec_result_message(agent: TeamAgent, tape: TeamTape) -> str:
@@ -297,7 +296,7 @@ def _llm_messages_from_tape(agent: TeamAgent, tape: TeamTape) -> list[dict[str, 
         match step:
             # When we make the LLM messages, we use "kind" == "user" for messages
             # originating from other agents, and "kind" == "assistant" for messages by this agent.
-            case Call() if step.by == agent.full_name:
+            case Call() if step._metadata.by == agent.full_name:
                 # I called someone
                 llm_messages.append({"role": "assistant", "content": step.content})
             case Call():
@@ -309,15 +308,15 @@ def _llm_messages_from_tape(agent: TeamAgent, tape: TeamTape) -> list[dict[str, 
                     {
                         "role": "user",
                         "content": step.content,
-                        "name": step.by.split("/")[-1],
+                        "name": step._metadata.by.split("/")[-1],
                     }
                 )
-            case Respond() if step.by == agent.full_name:
+            case Respond() if step._metadata.by == agent.full_name:
                 # I responded to someone
                 llm_messages.append({"role": "assistant", "content": step.content})
             case Respond():
                 # someone responded to me
-                who_returned = step.by.split("/")[-1]
+                who_returned = step._metadata.by.split("/")[-1]
                 llm_messages.append({"role": "user", "content": step.content, "name": who_returned})
             case Broadcast():
                 llm_messages.append({"role": "user", "content": step.content, "name": step.from_})
