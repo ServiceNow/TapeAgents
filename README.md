@@ -39,6 +39,7 @@ conda activate tapeagents
 ```
 3. Install the package in editable mode from the current directory:
 ```
+cd TapeAgents
 pip install -e .
 ```
 
@@ -77,6 +78,6 @@ snr-cat@servicenow.com
 
 # Acknowledgements
 
-We acknowledge the inspiration we took from prior frameworks, in particular [LangGraph](https://github.com/langchain-ai/langgraph), [AutoGen](https://github.com/microsoft/autogen), [Agents](https://github.com/aiwaves-cn/agents) and [DSPY](https://github.com/stanfordnlp/dspy).
+We acknowledge the inspiration we took from prior frameworks, in particular [LangGraph](https://github.com/langchain-ai/langgraph), [AutoGen](https://github.com/microsoft/autogen), [Agents](https://github.com/aiwaves-cn/agents) and [DSPy](https://github.com/stanfordnlp/dspy).
 
 
