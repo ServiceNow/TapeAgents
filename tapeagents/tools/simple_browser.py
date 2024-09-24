@@ -72,9 +72,9 @@ class SimpleTextBrowser:
         def img2text(messages: list[dict]) -> str:
             assert vision_lm
             for event in vision_lm.generate(Prompt(messages=messages)):
-                if event.completion and event.completion.content:
-                    logger.debug("Image caption", event.completion.content)
-                    return event.completion.content
+                if event.output and event.output.content:
+                    logger.debug("Image caption", event.output.content)
+                    return event.output.content
             raise Exception("No answer from vision model")
 
         mlm_client = img2text if vision_lm else None

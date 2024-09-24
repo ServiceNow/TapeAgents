@@ -16,7 +16,7 @@ from tapeagents.dialog_tape import (
     UserStep,
 )
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llms import LiteLLM, LLMMessage
+from tapeagents.llms import LiteLLM, LLMOutput
 from tapeagents.rendering import BasicRenderer, render_dialog_plain_text
 
 from .annotator import GroundednessAnnotator
@@ -43,12 +43,12 @@ class DemoUserModel(UserModel):
     def generate_events(self, prompt: Prompt) -> Generator[UserModelEvent, None, None]:
         # say we don't need streaming for the agent model here
         for event in self.llm.generate(prompt):
-            if m := event.completion:
-                assert isinstance(m, LLMMessage)
+            if m := event.output:
+                assert isinstance(m, LLMOutput)
                 try:
                     result = json.loads(m.content)
                 except Exception:
-                    raise ValueError(f"User model LLM returned invalid JSON: {event.completion}")
+                    raise ValueError(f"User model LLM returned invalid JSON: {event.output}")
                 yield UserModelEvent(step=MakeObservation(new_observation=UserStep(**result)))
                 return
         raise ValueError("User model LLM didn't return completion")
