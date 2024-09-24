@@ -56,7 +56,6 @@ class TapeView(BaseModel, Generic[StepType]):
         self.steps_by_kind[kind].append(step)
 
     def get_output(self, subagent_name_or_index: int | str) -> StepType:
-        print("-" * 60, "self.outputs_by_subagent\n", self.outputs_by_subagent, "\n", "=" * 60)
         if isinstance(subagent_name_or_index, int):
             return list(self.outputs_by_subagent.values())[subagent_name_or_index]
         return self.outputs_by_subagent[subagent_name_or_index]

@@ -135,7 +135,7 @@ def observe_tape(tape: Tape):
 def retrieve_tape_llm_calls(tape: Tape) -> dict[str, LLMCall]:
     result = {}
     for step in tape:
-        if prompt_id := getattr(step, "prompt_id", None):
+        if prompt_id := getattr(step, "prompt_id", step.metadata.prompt_id):
             if call := retrieve_llm_call(prompt_id):
                 result[prompt_id] = call
     return result
