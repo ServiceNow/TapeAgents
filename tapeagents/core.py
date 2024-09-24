@@ -88,6 +88,40 @@ class Jump(Thought):
 
 class Pass(Thought):
     kind: Literal["pass"] = "pass"
+    
+    
+class Call(Thought):
+    kind: Literal["call"] = "call"
+    content: str = ""
+    agent_name: str
+
+
+class Respond(Thought):
+    content: str = ""
+    kind: Literal["respond"] = "respond"    
+
+
+def step_to_message(step: Step) -> dict[str, str]:
+    message = step.llm_dict()
+    kind = message.pop("kind", None)
+    name = None
+    if kind == "system":
+        role = "system"
+    elif kind == "tool":
+        role = "tool"
+    elif isinstance(step, Call):
+        role = "user"
+        name = step.by.split("/")[-1]
+    elif isinstance(step, (Thought, Action)):
+        role = "assistant"
+    elif isinstance(step, Observation):
+        role = "user"
+    else:
+        raise ValueError(f"Cannot convert step type: {step} to role")
+    llm_message = {"role": role, **message}
+    if name:
+        llm_message["name"] = name
+    return llm_message
 
 
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
@@ -148,29 +182,14 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
         return self.model_copy(update=dict(metadata=TapeMetadata()))
 
     def as_prompt_messages(self) -> list[dict]:
+        """The default way of representing tape steps as LLM messages."""
         messages = []
         for step in self.steps:
             if isinstance(step, (Pass, Jump)):
                 continue
-            llm_message = self.step_to_message(step)
+            llm_message = step_to_message(step)
             messages.append(llm_message)
         return messages
-
-    def step_to_message(self, step: Step) -> dict[str, str]:
-        message = step.llm_dict()
-        kind = message.pop("kind", None)
-        if kind == "system":
-            role = "system"
-        elif kind == "tool":
-            role = "tool"
-        elif isinstance(step, (Thought, Action)):
-            role = "assistant"
-        elif isinstance(step, Observation):
-            role = "user"
-        else:
-            raise ValueError(f"Cannot convert step type: {step} to role")
-        llm_message = {"role": role, **message}
-        return llm_message
 
 
 TapeType = TypeVar("TapeType", bound=Tape)

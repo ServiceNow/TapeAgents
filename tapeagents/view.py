@@ -5,18 +5,7 @@ from typing import Generic, Literal
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Jump, Observation, StepType, Tape, Thought
-
-
-class Call(Thought):
-    kind: Literal["call"] = "call"
-    content: str = ""
-    agent_name: str
-
-
-class Respond(Thought):
-    content: str = ""
-    kind: Literal["respond"] = "respond"
+from tapeagents.core import AgentStep, Call, Jump, Observation, Respond, StepType, Tape, Thought
 
 
 class Broadcast(Thought):

@@ -286,6 +286,11 @@ class SimpleTextBrowser:
         self._set_page_content(content)
 
     def get_search_results(self, query: str, max_results: int = 5) -> list[dict]:
+        """Get search results for the query.
+        
+        Return list of dictionaries with keys 'title', 'url', and 'content'.
+        
+        """
         if self.tavily is not None:
             serp = self.tavily.search(query=query, search_depth="basic", max_results=max_results) or {"results": []}
             results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
@@ -460,6 +465,9 @@ class SimpleTextBrowser:
         )
 
     def get_next_page(self) -> tuple[str, int, int]:
+        """
+        Load next page of the document and return the current content of the viewport, current page number and total number of pages.
+        """
         if self.viewport_current_page + 1 == len(self.viewport_pages):
             raise ValueError("No more pages to read.")
         self.page_down()

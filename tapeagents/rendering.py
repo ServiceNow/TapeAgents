@@ -201,7 +201,7 @@ class PrettyRenderer(BasicRenderer):
             ".action { background-color: #cccccc; }"
             ".thought { background-color: #ffffdb; }"
             ".call { background-color: #ffffff; }"
-            ".return { background-color: #ffffff; }"
+            ".respond { background-color: #ffffff; }"
             ".step-header { margin: 2pt 2pt 2pt 0 !important; }"
             ".step-text { font-size: 12px; white-space: pre-wrap; word-wrap: break-word;}"
             "</style>"
@@ -232,7 +232,7 @@ class PrettyRenderer(BasicRenderer):
             role = ""
             parts = step.by.split("/")
             title = f"{parts[-1]} responds to {parts[-2]}"
-            class_ = "return"
+            class_ = "respond"
         elif isinstance(step, Thought):
             role = "Thought"
             class_ = "thought"

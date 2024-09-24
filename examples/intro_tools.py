@@ -60,7 +60,7 @@ def get_stock_data(symbol: str, start_date: str, end_date: str):
         return None
     
     
-def search_web(query: str) -> list[dict]
+def search_web(query: str) -> list[dict]:
     return SimpleTextBrowser().get_search_results(query)
 
 

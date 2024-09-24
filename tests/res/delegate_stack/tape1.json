@@ -33,7 +33,7 @@
       "task": "",
       "by": "Linguist/FindNouns",
       "content": "",
-      "kind": "return"
+      "kind": "respond"
     },
     {
       "prompt_id": "7e7c2ab2-130d-4d59-9ee2-68b2ba715f79",
@@ -68,7 +68,7 @@
       "task": "",
       "by": "Linguist/FindIrregularVerbs/FindVerbs",
       "content": "",
-      "kind": "return"
+      "kind": "respond"
     },
     {
       "prompt_id": "60a26c0d-47e4-4e16-8d45-9905ed112b8e",
@@ -107,14 +107,14 @@
       "task": "",
       "by": "Linguist/FindIrregularVerbs/FilterIrregular",
       "content": "",
-      "kind": "return"
+      "kind": "respond"
     },
     {
       "prompt_id": "b0f6484f-db41-4702-b157-edaae1900c52",
       "task": "",
       "by": "Linguist/FindIrregularVerbs",
       "content": "",
-      "kind": "return"
+      "kind": "respond"
     },
     {
       "prompt_id": "d5259ee6-02f8-4a9c-ad1c-922f34251bb9",
