@@ -26,7 +26,8 @@ test:
 test-slow:
 	$(CONDA) run --name ${ENV_NAME} pytest -m "slow" tests/
 
-test-all: $(CONDA) run --name ${ENV_NAME} pytest tests/
+test-all:
+	$(CONDA) run --name ${ENV_NAME} pytest tests/
 
 clean:
 	$(CONDA) env remove --name $(ENV_NAME) --yes
