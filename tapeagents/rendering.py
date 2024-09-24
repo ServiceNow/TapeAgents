@@ -11,9 +11,9 @@ from .observe import LLMCall, retrieve_tape_llm_calls
 from .container_executor import CodeBlock
 from .view import Call, Respond
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
-from .dialog import (
+from .dialog_tape import (
     AssistantStep,
-    Dialog,
+    DialogTape,
     DialogContext,
     SystemStep,
     ToolCalls,
@@ -22,9 +22,9 @@ from .dialog import (
 )
 
 
-def render_dialog_plain_text(dialog: Dialog) -> str:
+def render_dialog_plain_text(tape: DialogTape) -> str:
     lines = []
-    for step in dialog:
+    for step in tape:
         if isinstance(step, UserStep):
             lines.append(f"User: {step.content}")
         elif isinstance(step, AssistantStep):
@@ -106,7 +106,7 @@ class BasicRenderer:
                         chunks.append("<hr style='margin: 2pt 0pt 2pt 0pt;'>")
                     llm_call = llm_calls.get(prompt_id)
                     if llm_call:
-                        completion = llm_call.completion.model_dump_json(indent=2)
+                        completion = llm_call.output.model_dump_json(indent=2)
                         chunks.append(self.render_llm_call(llm_call.prompt, completion))
                     last_prompt_id = prompt_id
             chunks.append(self.render_step(step, index))

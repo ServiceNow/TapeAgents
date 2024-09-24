@@ -8,14 +8,14 @@ from .agent import Agent
 from .core import (
     AgentResponseParsingFailureAction,
     AgentStep,
-    Completion,
+    LLMOutput,
     PartialStep,
     Prompt,
     Step,
     Tape,
     TapeType,
 )
-from .dialog import AssistantStep, SystemStep, UserStep
+from .dialog_tape import AssistantStep, SystemStep, UserStep
 from .llms import LLMStream
 from .utils import FatalError, sanitize_json_completion
 
@@ -53,8 +53,8 @@ class GuidedAgent(Agent, Generic[TapeType]):
         messages = self.tape_to_messages(cleaned_tape)
         return Prompt(messages=messages)
 
-    def make_completion(self, tape: TapeType, index: int) -> Completion:
-        return Completion(role="assistant", content=tape.steps[index].llm_view())
+    def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
+        return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
 
     def prepare_tape(self, tape: Tape) -> Tape:
         return tape
@@ -82,10 +82,10 @@ class GuidedAgent(Agent, Generic[TapeType]):
         try:
             cnt = 0
             for event in llm_stream:
-                if event.completion:
+                if event.output:
                     cnt += 1
-                    assert event.completion.content
-                    for step in self.parse_completion(event.completion.content, llm_stream.prompt.id):
+                    assert event.output.content
+                    for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
                         step = self.postprocess_step(tape, new_steps, step)
                         new_steps.append(step)
                         yield step

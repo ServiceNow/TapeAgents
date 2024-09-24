@@ -6,7 +6,7 @@ from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
 from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import FinalStep
-from tapeagents.develop import Develop
+from tapeagents.studio import Studio
 from tapeagents.environment import CodeExecutionEnvironment
 from tapeagents.llms import LiteLLM
 from tapeagents.rendering import PrettyRenderer
@@ -16,7 +16,7 @@ from tapeagents.view import Call, Respond
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
-def try_chat(develop: bool):
+def try_chat(studio: bool):
     llm = LiteLLM(model_name="gpt-4o", parameters={"timeout": 15.0}, use_cache=True)
     product_manager = TeamAgent.create(
         name="ProductManager",
@@ -47,22 +47,22 @@ def try_chat(develop: bool):
     start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     env = CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/multi_chat_code/{now}"))
-    if develop:
+    if studio:
         renderers = {
             "messages": PrettyRenderer(filter_steps=(Call, Respond, FinalStep), render_llm_calls=False),
             "full": PrettyRenderer(),
         }
-        Develop(org, start_tape, renderers, env).launch()
+        Studio(org, start_tape, renderers, env).launch()
     else:
         _ = list(main_loop(org, start_tape, env))
 
 
 if __name__ == "__main__":
     match sys.argv[1:]:
-        case ["develop"]:
-            try_chat(develop=True)
+        case ["studio"]:
+            try_chat(studio=True)
         case []:
-            try_chat(develop=False)
+            try_chat(studio=False)
         case _:
-            print("Usage: python multi_chat.py [develop]")
+            print("Usage: python multi_chat.py [studio]")
             sys.exit(1)

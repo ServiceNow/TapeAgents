@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 
 from tapeagents.batch import batch_main_loop
-from tapeagents.dialog import Dialog, SystemStep, UserStep
+from tapeagents.dialog_tape import DialogTape, SystemStep, UserStep
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.io import save_tapes
 from tapeagents.llms import LLAMA, LLM
@@ -12,7 +12,7 @@ from .llama_agent import LLAMAChatBot
 
 def try_batch_main_loop(llm: LLM):
     agent = LLAMAChatBot.create(llms=llm)
-    tape = Dialog(
+    tape = DialogTape(
         context=None,
         steps=[
             SystemStep(

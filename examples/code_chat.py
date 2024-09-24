@@ -5,7 +5,7 @@ import sys
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
 from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.container_executor import ContainerExecutor
-from tapeagents.develop import Develop
+from tapeagents.studio import Studio
 from tapeagents.environment import CodeExecutionEnvironment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import PrettyRenderer
@@ -14,7 +14,7 @@ from tapeagents.runtime import main_loop
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
-def try_chat(llm: LLM, develop: bool):
+def try_chat(llm: LLM, studio: bool):
     # equilavent of https://microsoft.github.io/autogen/docs/tutorial/introduction
     org = TeamAgent.create_chat_initiator(
         name="UserProxy",
@@ -32,8 +32,8 @@ def try_chat(llm: LLM, develop: bool):
     start_tape = TeamTape(context=None, steps=[])
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     env = CodeExecutionEnvironment(ContainerExecutor(work_dir=f"outputs/chat_code/{now}"))
-    if develop:
-        Develop(org, start_tape, PrettyRenderer(), env).launch()
+    if studio:
+        Studio(org, start_tape, PrettyRenderer(), env).launch()
     else:
         loop = main_loop(org, start_tape, env)
         for event in loop:
@@ -48,11 +48,11 @@ def try_chat(llm: LLM, develop: bool):
 if __name__ == "__main__":
     llm = LiteLLM(model_name="gpt-4o")
     if len(sys.argv) == 2:
-        if sys.argv[1] == "develop":
-            try_chat(llm, develop=True)
+        if sys.argv[1] == "studio":
+            try_chat(llm, studio=True)
         else:
             raise ValueError()
     elif len(sys.argv) == 1:
-        try_chat(llm, develop=False)
+        try_chat(llm, studio=False)
     else:
         raise ValueError()
