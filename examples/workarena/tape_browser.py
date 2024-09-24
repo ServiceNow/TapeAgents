@@ -141,8 +141,8 @@ class WorkArenaRender(GaiaRender):
         screenshot_path = None
         if "screenshot_path" in step_dict:
             screenshot_path = step_dict["screenshot_path"]
-        if "screenshot_path" in step_dict.get("_metadata", {}).get("other", {}):
-            screenshot_path = step_dict["_metadata"]["other"]["screenshot_path"]
+        if "screenshot_path" in step_dict.get("metadata", {}).get("other", {}):
+            screenshot_path = step_dict["metadata"]["other"]["screenshot_path"]
         if screenshot_path:
             screenshot_url = os.path.join("static", kwargs["tape_dir"], "screenshots", screenshot_path)
             html = f"<div class='basic-renderer-box' style='background-color:#baffc9;'><div><img src='{screenshot_url}' style='max-width: 100%;'></div>{html}</div>"

@@ -139,18 +139,18 @@ class BroadcastLastMessageNode(Node):
         view = ActiveTeamAgentView(agent, tape)
         recipients = agent.get_subagent_names()
         last = view.messages[-1]
-        from_ = last._metadata.by.split("/")[-1]
+        from_ = last.metadata.by.split("/")[-1]
         match last:
             case Call():
                 yield Broadcast(content=last.content, from_=from_, to=list(recipients)).task(self.name)
             case Respond():
-                recipients = [name for name in recipients if name != last._metadata.by.split("/")[-1]]
+                recipients = [name for name in recipients if name != last.metadata.by.split("/")[-1]]
                 yield Broadcast(
                     content=view.messages[-1].content,
                     from_=from_,
                     to=list(recipients),
                 ).task(self.name)
-            case Broadcast(_metadata=StepMetadata(task=self.name)):
+            case Broadcast(metadata=StepMetadata(task=self.name)):
                 pass
             case _:
                 assert False
@@ -296,7 +296,7 @@ def _llm_messages_from_tape(agent: TeamAgent, tape: TeamTape) -> list[dict[str, 
         match step:
             # When we make the LLM messages, we use "kind" == "user" for messages
             # originating from other agents, and "kind" == "assistant" for messages by this agent.
-            case Call() if step._metadata.by == agent.full_name:
+            case Call() if step.metadata.by == agent.full_name:
                 # I called someone
                 llm_messages.append({"role": "assistant", "content": step.content})
             case Call():
@@ -308,15 +308,15 @@ def _llm_messages_from_tape(agent: TeamAgent, tape: TeamTape) -> list[dict[str, 
                     {
                         "role": "user",
                         "content": step.content,
-                        "name": step._metadata.by.split("/")[-1],
+                        "name": step.metadata.by.split("/")[-1],
                     }
                 )
-            case Respond() if step._metadata.by == agent.full_name:
+            case Respond() if step.metadata.by == agent.full_name:
                 # I responded to someone
                 llm_messages.append({"role": "assistant", "content": step.content})
             case Respond():
                 # someone responded to me
-                who_returned = step._metadata.by.split("/")[-1]
+                who_returned = step.metadata.by.split("/")[-1]
                 llm_messages.append({"role": "user", "content": step.content, "name": who_returned})
             case Broadcast():
                 llm_messages.append({"role": "user", "content": step.content, "name": step.from_})

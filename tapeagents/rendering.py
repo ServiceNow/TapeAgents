@@ -226,11 +226,11 @@ class PrettyRenderer(BasicRenderer):
             class_ = "observation"
         elif isinstance(step, Call):
             role = ""
-            title = f"{step._metadata.by.split('/')[-1]} calls {step.agent_name}"
+            title = f"{step.metadata.by.split('/')[-1]} calls {step.agent_name}"
             class_ = "call"
         elif isinstance(step, Respond):
             role = ""
-            parts = step._metadata.by.split("/")
+            parts = step.metadata.by.split("/")
             title = f"{parts[-1]} responds to {parts[-2]}"
             class_ = "return"
         elif isinstance(step, Thought):

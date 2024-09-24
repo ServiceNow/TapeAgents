@@ -40,11 +40,11 @@ class StepMetadata(BaseModel):
 
 
 class Step(BaseModel):
-    _metadata: StepMetadata = StepMetadata()
+    metadata: StepMetadata = StepMetadata()
 
     def llm_dict(self) -> dict[str, Any]:
         """Dump step data only, drop the metadata"""
-        return self.model_dump(exclude_none=True, exclude={"_metadata"})
+        return self.model_dump(exclude_none=True, exclude={"metadata"})
 
     def llm_view(self, indent: int = 2) -> str:
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
@@ -71,7 +71,7 @@ class AgentStep(Step):
         """
         Set the task that is being solved when the step is produced
         """
-        self._metadata.task = task
+        self.metadata.task = task
         return self
 
 
