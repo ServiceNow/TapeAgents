@@ -3,7 +3,7 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 from pydantic import Field
 
 from tapeagents.core import Action, FinalStep, Observation, Tape, Thought
-from tapeagents.dialog import DialogContext
+from tapeagents.dialog_tape import DialogContext
 
 from ..gaia_agent.steps import ActionExecutionFailure
 

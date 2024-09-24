@@ -74,11 +74,10 @@ class DialogContext(BaseModel):
     tools: list[ToolSpec]
 
 
-# TODO: call me MessageTape?
-Dialog = Tape[DialogContext | None, FunctionDialogStep]
+DialogTape = Tape[DialogContext | None, FunctionDialogStep]
 
 
-DialogEvent: TypeAlias = AgentEvent[Dialog]
+DialogEvent: TypeAlias = AgentEvent[DialogTape]
 
 
 class AnnotatorFreeFormThought(Thought):
@@ -89,11 +88,11 @@ class AnnotationAction(Action):
     annotation: dict
 
 
-DialogAnnotatorTape: TypeAlias = Tape[Dialog, AnnotatorFreeFormThought | AnnotationAction]
+DialogAnnotatorTape: TypeAlias = Tape[DialogTape, AnnotatorFreeFormThought | AnnotationAction]
 
 
-class DialogAnnotator(Annotator[Dialog, DialogAnnotatorTape]):
-    def make_own_tape(self, tape: Dialog) -> DialogAnnotatorTape:
+class DialogAnnotator(Annotator[DialogTape, DialogAnnotatorTape]):
+    def make_own_tape(self, tape: DialogTape) -> DialogAnnotatorTape:
         return DialogAnnotatorTape(context=tape)
 
 
@@ -105,14 +104,14 @@ class UserModelFreeFormThought(Observation):
     content: str
 
 
-UserModelTape = Tape[Dialog, MakeObservation[UserStep] | UserModelFreeFormThought | UserModelInstruction]
+UserModelTape = Tape[DialogTape, MakeObservation[UserStep] | UserModelFreeFormThought | UserModelInstruction]
 UserModelEvent = AgentEvent[UserModelTape]
 
 
-class UserModel(ObservationMaker[Dialog, UserModelTape]):
+class UserModel(ObservationMaker[DialogTape, UserModelTape]):
     instruction: str
 
-    def make_own_tape(self, tape: Dialog) -> UserModelTape:
+    def make_own_tape(self, tape: DialogTape) -> UserModelTape:
         return UserModelTape(context=tape).append(UserModelInstruction(instruction=self.instruction))
 
     @property

@@ -1,7 +1,7 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 from tapeagents.demo import Demo
-from tapeagents.dialog import Dialog, DialogContext
+from tapeagents.dialog_tape import DialogTape, DialogContext
 from tapeagents.environment import ToolEnvironment
 from tapeagents.llms import LiteLLM
 from tapeagents.rendering import BasicRenderer
@@ -13,7 +13,7 @@ def main():
     llm = LiteLLM(model_name="gpt-3.5-turbo")
     agent = FunctionCallingAgent.create(llm)
     environment = ToolEnvironment(tools=[TavilySearchResults()])
-    init_dialog = Dialog(context=DialogContext(tools=environment.get_tool_schemas()), steps=[])
+    init_dialog = DialogTape(context=DialogContext(tools=environment.get_tool_schemas()), steps=[])
     demo = Demo(agent, init_dialog, environment, BasicRenderer())
     demo.launch()
 
