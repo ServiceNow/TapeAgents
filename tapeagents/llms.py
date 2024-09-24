@@ -104,6 +104,8 @@ class LLM(BaseModel, ABC):
 # Use this variable to force all LLMs to use cache from the sqlite DB
 # This is meant to be used for testing purposes only
 _REPLAY_SQLITE: str = ""
+# force replacement of the tokenizer during testing
+_MOCK_TOKENIZER: str = ""
 
 
 class CachedLLM(LLM):
@@ -423,7 +425,8 @@ class LLAMA(CachedLLM):
         if self.tokenizer is None:
             import transformers
 
-            self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.tokenizer_name or self.model_name)
+            name = _MOCK_TOKENIZER if _MOCK_TOKENIZER else (self.tokenizer_name or self.model_name)
+            self.tokenizer = transformers.AutoTokenizer.from_pretrained(name)
 
     def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         self.load_tokenizer()

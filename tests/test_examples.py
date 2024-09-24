@@ -17,14 +17,14 @@ from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.eval import load_results
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
-from tapeagents.team import TeamTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
-from tapeagents.llms import LLAMA, ReplayLLM
+from tapeagents.llms import LLAMA, LLM, ReplayLLM
 from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls
 from tapeagents.runtime import replay_tape, replay_tapes
+from tapeagents.team import TeamTape
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -32,13 +32,14 @@ logging.basicConfig(level=logging.INFO)
 res_path = Path(__file__).parent.resolve() / "res"
 
 
-def llama() -> LLAMA:
-    return LLAMA(
+def mock_llm(run_dir: str) -> LLM:
+    llama = LLAMA(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
-        tokenizer_name="meta-llama/Meta-Llama-3-70B-Instruct",
+        tokenizer_name="tests/res/meta_llama_3_70b_tokenizer",
         parameters=dict(temperature=0.7, max_tokens=512),
     )
+    return ReplayLLM.from_llm(llama, run_dir)
 
 
 @contextlib.contextmanager
@@ -72,7 +73,7 @@ def load_traces(run_dir: str, fname: str = "traces.json") -> list[TrainingText]:
 
 def test_llama_agent():
     run_dir = str(res_path / "llama_agent")
-    llm = ReplayLLM.from_llm(llama(), run_dir)
+    llm = mock_llm(run_dir)
     agent = LLAMAChatBot.create(llm)
     tape = DialogTape.model_validate(load_tape_dict(run_dir))
 
@@ -81,7 +82,7 @@ def test_llama_agent():
 
 def test_llama_agent_traces():
     run_dir = f"{res_path}/llama_agent"
-    llm = llama()
+    llm = mock_llm(run_dir)
     agent = LLAMAChatBot.create(llm)
     tape = DialogTape.model_validate(load_tape_dict(run_dir))
     orig_traces = load_traces(run_dir)
@@ -96,7 +97,7 @@ def test_llama_agent_traces():
 
 def test_llama_agent_tape_reuse():
     data_dir = f"{res_path}/llama_agent"
-    llm = llama()
+    llm = mock_llm(data_dir)
     agent = LLAMAChatBot.create(llm)
     tape = DialogTape.model_validate(load_tape_dict(data_dir))
     orig_traces = load_traces(data_dir)
@@ -138,7 +139,7 @@ def test_gaia_agent():
 
 def test_delegate():
     run_dir = str(res_path / "delegate")
-    llm = ReplayLLM.from_llm(llama(), run_dir)
+    llm = mock_llm(run_dir)
     agent = FindIrregularVerbs.create(llm)
 
     start_tape = ExampleTape.model_validate(load_tape_dict(run_dir, fname="start_tape.json"))
@@ -149,7 +150,7 @@ def test_delegate():
 
 def test_delegate_stack():
     run_dir = str(res_path / "delegate_stack")
-    llm = ReplayLLM.from_llm(llama(), run_dir)
+    llm = mock_llm(run_dir)
     agent1 = Linguist.create(llm)
     agent2 = make_analyze_text_chain(llm)
 
@@ -163,7 +164,7 @@ def test_delegate_stack():
 
 def test_data_science():
     run_dir = f"{res_path}/data_science"
-    llm = ReplayLLM.from_llm(llama(), run_dir)
+    llm = mock_llm(run_dir)
     agent, start_tape, env = data_science.make_world(llm, EmptyEnvironment())
     final_tape = TeamTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=start_tape, env=env, reuse_observations=True)
@@ -171,7 +172,7 @@ def test_data_science():
 
 def test_tape_improver():
     run_dir = f"{res_path}/tape_improver"
-    llm = ReplayLLM.from_llm(llama(), run_dir)
+    llm = mock_llm(run_dir)
     agent, _, improver_tape = tape_improver.make_world(llm)
     final_tape = tape_improver.CodeImproverTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=improver_tape, reuse_observations=True)
