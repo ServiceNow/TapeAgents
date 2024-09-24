@@ -50,9 +50,6 @@ class TapeView(BaseModel, Generic[StepType]):
         return self.outputs_by_subagent[subagent_name_or_index]
 
 
-_view_stack_cache: dict[int, TapeViewStack] = {}
-
-
 class TapeViewStack(BaseModel, Generic[StepType]):
     """
     Stack of tape views of the agents in the call chain.
@@ -153,10 +150,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     @staticmethod
     def compute(tape: Tape) -> TapeViewStack[StepType]:
         # TODO: retrieve view from a prefix of the tape, recompute from the prefix
-        if (cached_view_stack := _view_stack_cache.get(id(tape))) is not None:
-            return cached_view_stack
+
         stack = TapeViewStack(stack=[TapeView(agent_name="root", agent_full_name="root")])
         for step in tape.steps:
             stack.update(step)
-        _view_stack_cache[id(tape)] = stack
         return stack  # type: ignore
