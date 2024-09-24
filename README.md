@@ -32,14 +32,9 @@ We highly recommend starting with the [introductory Jupyter notebook](/intro.ipy
 ```
 git clone https://github.com/ServiceNow/TapeAgents.git
 ```
-2. Create and activate a new conda environment:
+2. Create conda environment and install the package in editable mode:
 ```
-conda create -y -n tapeagents python=3.10
-conda activate tapeagents
-```
-3. Install the package in editable mode from the current directory:
-```
-pip install -e .
+make setup
 ```
 
 # Examples
