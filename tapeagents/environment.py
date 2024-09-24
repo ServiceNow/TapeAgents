@@ -83,8 +83,8 @@ class MockToolEnvironment(Environment):
         assert isinstance(action, Action)
         if isinstance(action, ToolCalls):
             for tc in action.tool_calls:
-                prompt_str = MOCK_TOOL_ENV_PROMPT_TEMPLATE.format(function_call=tc.function)
-                messages = [{"role": "user", "content": prompt_str}]
+                prompt_text = MOCK_TOOL_ENV_PROMPT_TEMPLATE.format(function_call=tc.function)
+                messages = [{"role": "user", "content": prompt_text}]
                 for event in self.llm.generate(Prompt(messages=messages)):
                     completion = event.output
                     if completion and not isinstance(completion, str):

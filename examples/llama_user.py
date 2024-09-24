@@ -72,8 +72,8 @@ def try_llama_user_model(llm: LLAMA):
 
     print("--- CHECK TRACES ---")
     for trace in llama_user_model1.make_training_data(own_tape1):
-        print("<CONTEXT>", trace.prompt_str, sep="")
-        print("<COMPLETION>", trace.output_str, sep="")
+        print("<CONTEXT>", trace.prompt_text, sep="")
+        print("<COMPLETION>", trace.output_text, sep="")
 
     print("--- CHECK GENERATED USER MESSAGE 2 ---")
     new_tape = llama_user_model2.continue_tape(new_tape)
