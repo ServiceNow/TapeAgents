@@ -9,10 +9,13 @@ from .agent import Annotator, ObservationMaker
 from .core import (
     Action,
     AgentEvent,
+    Call,
+    FinalStep,
     Jump,
     MakeObservation,
     Observation,
     Pass,
+    Respond,
     Tape,
     Thought,
 )
@@ -49,8 +52,14 @@ class ToolResult(Observation):
     kind: Literal["tool"] = "tool"
 
 
-DialogStep: TypeAlias = UserStep | AssistantStep | SystemStep | AssistantThought | Jump | Pass
-FunctionDialogStep: TypeAlias = DialogStep | ToolCalls | ToolResult
+DialogStep: TypeAlias = (
+    # observations
+    UserStep| ToolResult | SystemStep |
+    # thoughts
+    AssistantThought | Jump | Pass | Call | Respond |
+    # actions
+    FinalStep | AssistantStep | ToolCalls
+) 
 
 
 # TODO: define type signature for tools including JSONSchema and etc
@@ -74,7 +83,7 @@ class DialogContext(BaseModel):
     tools: list[ToolSpec]
 
 
-DialogTape = Tape[DialogContext | None, FunctionDialogStep]
+DialogTape = Tape[DialogContext | None, DialogStep]
 
 
 DialogEvent: TypeAlias = AgentEvent[DialogTape]

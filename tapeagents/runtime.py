@@ -19,7 +19,7 @@ class MainLoopEvent(BaseModel, Generic[TapeType]):
     observation: Observation | None = None
 
 
-class MainLoopStream:
+class MainLoopStream(Generic[TapeType]):
     def __init__(self, generator: Generator[MainLoopEvent[TapeType], None, None]):
         self.generator = generator
 
@@ -35,6 +35,11 @@ class MainLoopStream:
         if self.generator is None:
             raise StopIteration
         return next(self.generator)
+    
+    def agent_events(self) -> Generator[AgentEvent[TapeType], None, None]:
+        for event in self:
+            if event.agent_event:
+                yield event.agent_event
 
     def get_final_tape(self) -> Tape:
         last_final_tape = None

@@ -231,7 +231,11 @@ class PrettyRenderer(BasicRenderer):
         elif isinstance(step, Respond):
             role = ""
             parts = step.by.split("/")
-            title = f"{parts[-1]} responds to {parts[-2]}"
+            title = (
+                f"{parts[-1]} responds to {parts[-2]}" 
+                if len(parts) > 1 else
+                f"{step.by} responds"
+            )
             class_ = "respond"
         elif isinstance(step, Thought):
             role = "Thought"
@@ -257,23 +261,28 @@ class PrettyRenderer(BasicRenderer):
                 dump.pop("agent_name", None)
                 dump.pop("by", None)
 
-        def pretty_yaml(d):
+        def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
+        def maybe_fold(content: str):
+            summary = f"{len(content)} characters ..." 
+            if len(content) > 1000:
+                return f"<details><summary>{summary}</summary>{content}</details>"
+            return content
 
         if (content := getattr(step, "content", None)) is not None:
             # TODO: also show metadata here
             del dump["content"]
-            text = pretty_yaml(dump) + "\n" + content
+            text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
         elif isinstance(step, ExecuteCode):
             del dump["code"]
 
             def format_code_block(block: CodeBlock) -> str:
                 return f"```{block.language}\n{block.code}\n```"
-
-            text = pretty_yaml(dump) + "\n".join([format_code_block(block) for block in step.code])
+            code_blocks = "\n".join([format_code_block(block) for block in step.code])
+            text = pretty_yaml(dump) + "\n" + maybe_fold(code_blocks)
         elif isinstance(step, CodeExecutionResult):
             del dump["result"]["output"]
-            text = pretty_yaml(dump) + "\n" + step.result.output
+            text = pretty_yaml(dump) + "\n" + maybe_fold(step.result.output)
         else:
             text = pretty_yaml(dump)
 
