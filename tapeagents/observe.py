@@ -135,7 +135,7 @@ def observe_tape(tape: Tape):
 def retrieve_tape_llm_calls(tape: Tape) -> dict[str, LLMCall]:
     result = {}
     for step in tape:
-        if prompt_id := step.metadata.prompt_id
+        if prompt_id := step.metadata.prompt_id:
             if call := retrieve_llm_call(prompt_id):
                 result[prompt_id] = call
     return result
@@ -174,9 +174,7 @@ def get_latest_tape_id() -> str:
 def retrieve_all_llm_calls(sqlite_fpath: str) -> list[LLMCall]:
     conn = sqlite3.connect(sqlite_fpath)
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached FROM LLMCalls"
-    )
+    cursor.execute("SELECT timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached FROM LLMCalls")
     rows = cursor.fetchall()
     cursor.close()
     calls: list[LLMCall] = []
