@@ -258,11 +258,17 @@ class Agent(BaseModel, Generic[TapeType]):
         return self.select_node(tape[:index]).make_llm_output(self, tape, index)
 
     def delegate(self, tape: TapeType) -> Agent[TapeType]:
-        view = self.compute_view(tape)
-        result = self
-        for frame in view.stack[1:]:
-            result = result.find_subagent(frame.agent_name)
-        return result
+        """
+        Recursively find the subagent that should run based on the current state of the tape.
+
+        :param tape: the tape to make the decision on
+        :return: the subagent to run
+        """
+        views = self.compute_view(tape)
+        subagent = self
+        for view in views.stack[1:]:
+            subagent = subagent.find_subagent(view.agent_name)
+        return subagent
 
     def is_agent_step(self, step: Step) -> bool:
         """Check if the step was produced by the agent or by the environment."""
@@ -271,6 +277,14 @@ class Agent(BaseModel, Generic[TapeType]):
     def should_stop(self, tape: TapeType) -> bool:
         """Check if the agent should stop its turn and wait for observations."""
         return isinstance(tape.steps[-1], Action)
+
+    def get_node_name(self, tape: TapeType) -> str:
+        idx = self.compute_view(tape).top.next_node
+        try:
+            name = self.flow[idx].name
+        except IndexError:
+            name = ""
+        return name
 
     def run_iteration(
         self, tape: TapeType, llm_stream: LLMStream | None = None
@@ -285,7 +299,7 @@ class Agent(BaseModel, Generic[TapeType]):
         reuses a tape.
 
         """
-        new_steps = []
+        node_name = self.get_node_name(tape)
         if llm_stream is None:
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:
@@ -294,8 +308,8 @@ class Agent(BaseModel, Generic[TapeType]):
         for step in self.generate_steps(tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.prompt_id = llm_stream.prompt.id
+                step.metadata.node = node_name
                 yield step
-                new_steps.append(step)
             else:
                 yield step
 
