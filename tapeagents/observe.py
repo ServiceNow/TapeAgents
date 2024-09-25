@@ -178,11 +178,11 @@ def retrieve_all_llm_calls(sqlite_fpath: str) -> list[LLMCall]:
     rows = cursor.fetchall()
     cursor.close()
     calls: list[LLMCall] = []
-    for timestamp, prompt_str, output, prompt_length_tokens, output_length_tokens, cached in rows:
+    for timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached in rows:
         calls.append(
             LLMCall(
                 timestamp=timestamp,
-                prompt=Prompt(**json.loads(prompt_str)),
+                prompt=Prompt(**json.loads(prompt)),
                 output=LLMOutput(**json.loads(output)),
                 prompt_length_tokens=prompt_length_tokens,
                 output_length_tokens=output_length_tokens,

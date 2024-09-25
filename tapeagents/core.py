@@ -19,11 +19,11 @@ class TrainingText(BaseModel):
     n_predicted: int
 
     @property
-    def prompt_str(self) -> str:
+    def prompt_text(self) -> str:
         return self.text[: -self.n_predicted]
 
     @property
-    def output_str(self) -> str:
+    def output_text(self) -> str:
         return self.text[-self.n_predicted :]
 
 
