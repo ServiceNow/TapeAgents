@@ -136,8 +136,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 break
 
                 # TODO: what if the agent was not called by its immediate manager?
-        receiver = step.metadata.by.rsplit("/", 1)[0]
-        self.messages_by_agent[step.metadata.by].append(step)
+        receiver = step.metadata.agent.rsplit("/", 1)[0]
+        self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)
         new_top.add_step(step)
 
@@ -145,7 +145,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         top = self.stack[-1]
         top.add_step(step)
         for to in step.to:
-            receiver = f"{step.metadata.by}/{to}"
+            receiver = f"{step.metadata.agent}/{to}"
             self.messages_by_agent[receiver].append(step)
 
     def put_new_view_on_stack(self, step):
@@ -157,8 +157,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 agent_full_name=top.agent_full_name + "/" + step.agent_name,
             )
         )
-        receiver = f"{step.metadata.by}/{step.agent_name}"
-        self.messages_by_agent[step.metadata.by].append(step)
+        receiver = f"{step.metadata.agent}/{step.agent_name}"
+        self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)
 
     @staticmethod

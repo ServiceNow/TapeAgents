@@ -122,7 +122,7 @@ def improver_tape_view(tape: Tape) -> str:
         data.append(step.llm_dict())
         data[-1]["index"] = index
         if isinstance(step, AgentStep):
-            data[-1]["metadata"] = step.metadata.model_dump(exclude_defaults=True)
+            data[-1]["metadata"] = {"agent": step.metadata.agent}
     return json.dumps(data, indent=2)
 
 
