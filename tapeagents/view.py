@@ -160,7 +160,6 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     @staticmethod
     def compute(tape: Tape) -> TapeViewStack[StepType]:
         # TODO: retrieve view from a prefix of the tape, recompute from the prefix
-
         stack = TapeViewStack(stack=[TapeView(agent_name="root", agent_full_name="root")])
         for step in tape.steps:
             stack.update(step)

@@ -106,7 +106,7 @@ class BasicRenderer:
                         chunks.append("<hr style='margin: 2pt 0pt 2pt 0pt;'>")
                     llm_call = llm_calls.get(prompt_id)
                     if llm_call:
-                        completion = llm_call.completion.model_dump_json(indent=2)
+                        completion = llm_call.output.model_dump_json(indent=2)
                         chunks.append(self.render_llm_call(llm_call.prompt, completion))
                     last_prompt_id = prompt_id
             chunks.append(self.render_step(step, index))

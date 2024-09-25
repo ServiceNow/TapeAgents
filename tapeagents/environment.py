@@ -93,7 +93,7 @@ class MockToolEnvironment(Environment):
                 prompt_str = MOCK_TOOL_ENV_PROMPT_TEMPLATE.format(function_call=tc.function)
                 messages = [{"role": "user", "content": prompt_str}]
                 for event in self.llm.generate(Prompt(messages=messages)):
-                    completion = event.completion
+                    completion = event.output
                     if completion and not isinstance(completion, str):
                         completion = completion.content
                     if completion:
