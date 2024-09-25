@@ -24,9 +24,9 @@ from tapeagents.view import Call, Respond
 from .data_science import make_renderers
 from .data_science import make_world as data_science_make_world
 
-MUST_BE_JSON = """Output ONLY the JSON in the requested format. Do not output any text before or after JSON. Do not output triple quotes before or after JSON."""
+MUST_BE_JSON: str = """Output ONLY the JSON in the requested format. Do not output any text before or after JSON. Do not output triple quotes before or after JSON."""
 
-CONTEXT_TAPE_PREFIX = """You are observing a history of a team of AI agents working together. We will refer to this history as 'tape'. The tape
+CONTEXT_TAPE_PREFIX: str = """You are observing a history of a team of AI agents working together. We will refer to this history as 'tape'. The tape
 consists of steps taken by different agents. The steps may include reasoning thoughts, messages to each other, as well as 
 observations coming from the environment. The steps by the agents on the team all have a 'by' attribute with the hierarchical name of the agent. 
 As the agent are arranged in an hierarchy, the 'by' attribute also includes of the parents of the agents. Here's the tape:
@@ -122,12 +122,13 @@ def improver_tape_view(tape: Tape) -> str:
         data.append(step.llm_dict())
         data[-1]["index"] = index
         if isinstance(step, AgentStep):
-            data[-1]["metadata"]["by"] = step.metadata.by
+            data[-1]["by"] = step.metadata.by
     return json.dumps(data, indent=2)
 
 
 class AgentSelector(Agent):
     def make_prompt(self, tape: CodeImproverTape) -> Prompt:
+        assert tape.context is not None
         usr_msg = CONTEXT_TAPE_PREFIX.format(context_tape=improver_tape_view(tape.context))
         usr_msg += SELECT_AGENT_SUFFIX
         usr_msg += MUST_BE_JSON
@@ -143,6 +144,7 @@ class StepSelector(Agent):
         assert isinstance(select_step := tape.steps[-1], SelectAgent)
         if select_step.agent_name is None:
             return Prompt()
+        assert tape.context is not None
         usr_msg = CONTEXT_TAPE_PREFIX.format(context_tape=improver_tape_view(tape.context))
         usr_msg += SELECT_STEP_SUFFIX.format(agent_name=select_step.agent_name)
         usr_msg += MUST_BE_JSON
@@ -161,6 +163,7 @@ class StepRewriter(Agent):
         assert isinstance(select_step := tape.steps[-1], SelectStep)
         if select_agent.agent_name is None or select_step.step_index is None:
             return Prompt()
+        assert tape.context is not None
         usr_msg = CONTEXT_TAPE_PREFIX.format(context_tape=improver_tape_view(tape.context))
         usr_msg += REWRITE_STEP_SUFFIX.format(
             agent_name=select_agent.agent_name,
