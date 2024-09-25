@@ -67,13 +67,6 @@ class Error(Observation):
 class AgentStep(Step):
     pass
 
-    def by_node(self, node_name: str) -> Self:
-        """
-        Set the node_name that is being run when the step is produced
-        """
-        self.metadata.node = node_name
-        return self
-
 
 class Thought(AgentStep):
     pass
