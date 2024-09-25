@@ -4,7 +4,7 @@ import sys
 
 from termcolor import colored
 
-from tapeagents.core import LLMCall, LLMMessage, Prompt
+from tapeagents.core import LLMCall, LLMOutput, Prompt
 from tapeagents.llms import ReplayLLM
 from tapeagents.runtime import replay_tapes
 from tapeagents.utils import diff_dicts
@@ -27,7 +27,7 @@ def main(fname: str, dataset_path: str = ""):
 
     prompts = results.prompts
     llm_calls = [
-        LLMCall(prompt=Prompt.model_validate(prompt), completion=LLMMessage(), cached=False)
+        LLMCall(prompt=Prompt.model_validate(prompt), output=LLMOutput(), cached=False)
         for prompt in results.prompts
     ]
     model_name = results.model

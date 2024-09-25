@@ -3,9 +3,9 @@ import os
 import tempfile
 
 from tapeagents.agent import Agent
-from tapeagents.core import Completion, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
+from tapeagents.core import LLMOutput, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
 from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
-from tapeagents.llms import LLAMA, LLM, LLMMessage, LLMStream
+from tapeagents.llms import LLAMA, LLM, LLMStream
 
 
 class LLAMAChatBot(Agent[DialogTape]):
@@ -26,17 +26,17 @@ class LLAMAChatBot(Agent[DialogTape]):
             if event.chunk:
                 buffer.append(event.chunk)
                 yield PartialStep(step=AssistantStep(content="".join(buffer)))
-            elif (m := event.completion) and isinstance(m, LLMMessage):
+            elif (m := event.output) and isinstance(m, LLMOutput):
                 yield AssistantStep(content=m.content or "")
                 return
             else:
                 raise ValueError(f"Uknown event type from LLM: {event}")
         raise ValueError("LLM didn't return completion")
 
-    def make_completion(self, tape: DialogTape, index: int) -> Completion:
+    def make_llm_output(self, tape: DialogTape, index: int) -> LLMOutput:
         if not isinstance(step := tape.steps[index], AssistantStep):
             raise ValueError(f"Can only make completion for AssistantStep, got {step}")
-        return LLMMessage(content=step.content)
+        return LLMOutput(content=step.content)
 
 
 def try_llama_chatbot(llm: LLM):
@@ -80,7 +80,7 @@ def try_llama_chatbot(llm: LLM):
     for i, trace in enumerate(agent.make_training_data(tape)):
         print(f"TRACE {i}")
         print("CONTEXT", trace.prompt_str)
-        print("COMPLETION", trace.completion_str)
+        print("COMPLETION", trace.output_str)
         traces.append(trace)
     with open("traces.json", "w") as f:
         json.dump([t.model_dump() for t in traces], f, indent=2)

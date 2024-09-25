@@ -15,7 +15,7 @@ from .core import (
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
-    Completion,
+    LLMOutput,
     LLMCall,
     MakeObservation,
     ObservationMakerTapeType,
@@ -63,9 +63,9 @@ StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | Parti
 class Node(BaseModel):
     """
     A node in the agent's flow.
-    The node is correspond to some state of the tape, has a name and contains 2 main functions:
+    The node corresponds to some state of the tape, has a name and contains 2 main functions:
      - one to make a prompt out of the tape
-     - one to generate steps out of the received llm completion
+     - one to generate steps out of the received llm output
     """
 
     name: str = ""
@@ -73,8 +73,8 @@ class Node(BaseModel):
     generate_steps_func: StepsGeneratorFunction = Field(
         default=lambda agent, tape, llm_stream: (step for step in ()), exclude=True
     )
-    make_completion_func: Callable[[Any, Tape, int], Completion] = Field(
-        default=lambda agent, tape, index: Completion(role="assistant", content=tape.steps[index].content), exclude=True
+    make_llm_output_func: Callable[[Any, Tape, int], LLMOutput] = Field(
+        default=lambda agent, tape, index: LLMOutput(role="assistant", content=tape.steps[index].content), exclude=True
     )
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
@@ -85,9 +85,9 @@ class Node(BaseModel):
     ) -> Generator[Step | PartialStep, None, None]:
         yield from self.generate_steps_func(agent, tape, llm_stream)
 
-    def make_completion(self, agent: Any, tape: Tape, index: int) -> Completion:
+    def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         """"""
-        return self.make_completion_func(agent, tape, index)
+        return self.make_llm_output_func(agent, tape, index)
 
     def with_prompt(self, make_prompt: PromptMakerFunction) -> Node:
         self.make_prompt_func = make_prompt
@@ -95,18 +95,18 @@ class Node(BaseModel):
 
     def with_generate_steps(self, generate_steps: StepsGeneratorFunction) -> Node:
         """
-        Set the function that generates steps from the LLM completion
+        Set the function that generates steps from the LLM output
         """
         self.generate_steps_func = generate_steps
         return self
 
-    def with_completion(self, make_completion: Callable[[Any, Tape, int], Completion]) -> Node:
-        self.make_completion_func = make_completion
+    def with_llm_output(self, make_llm_output: Callable[[Any, Tape, int], LLMOutput]) -> Node:
+        self.make_llm_output_func = make_llm_output
         return self
 
     def with_fixed_steps(self, steps: list[Step]) -> Node:
         """
-        Use fixed steps instead of generating them from the LLM completion for that node
+        Use fixed steps instead of generating them from the LLM output for that node
         """
         self.generate_steps_func = lambda agent, tape, llm_stream: (yield from steps)  # type: ignore
         return self
@@ -255,8 +255,8 @@ class Agent(BaseModel, Generic[TapeType]):
         """
         yield from self.select_node(tape).generate_steps(self, tape, llm_stream)
 
-    def make_completion(self, tape: TapeType, index: int) -> Completion:
-        return self.select_node(tape[:index]).make_completion(self, tape, index)
+    def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
+        return self.select_node(tape[:index]).make_llm_output(self, tape, index)
 
     def delegate(self, tape: TapeType) -> Agent[TapeType]:
         view = self.compute_view(tape)
@@ -335,7 +335,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def reuse(self, tape: TapeType) -> tuple[TapeType, list[LLMCall]]:
         """Reuse another agent's tape as one's own.
 
-        Construct completions at each step where a prompt is made. Check that completion
+        Construct LLM outputs at each step where a prompt is made. Check that output
         parsing yield the same steps as in the original tape. Rewrite metadata for all steps.
 
         """
@@ -348,13 +348,13 @@ class Agent(BaseModel, Generic[TapeType]):
             if self.is_agent_step(step):
                 current_agent = self.delegate(past_tape)
                 prompt = current_agent.make_prompt(past_tape)
-                completion = current_agent.make_completion(tape, i)
-                llm_call = LLMCall(prompt=prompt, completion=completion, cached=True)
+                output = current_agent.make_llm_output(tape, i)
+                llm_call = LLMCall(prompt=prompt, output=output, cached=True)
                 observe_llm_call(llm_call)
 
                 # Validate that the reconstructed llm call leads to the same steps as in the given tape
                 def _generator():
-                    yield LLMEvent(completion=completion)
+                    yield LLMEvent(output=output)
 
                 new_steps = list(current_agent.run_iteration(past_tape, LLMStream(_generator(), prompt)))
                 for j, new_step in enumerate(new_steps):
@@ -378,7 +378,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def make_training_text(self, llm_call: LLMCall) -> TrainingText:
         """Routes the request to make trace to the appropriate agent's LLM."""
         # TODO: support more than 1 LLM
-        return self.llm.make_training_text(llm_call.prompt, llm_call.completion)
+        return self.llm.make_training_text(llm_call.prompt, llm_call.output)
 
     def make_training_data(self, tape: TapeType) -> list[TrainingText]:
         _, llm_calls = self.reuse(tape)

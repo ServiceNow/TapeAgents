@@ -23,7 +23,7 @@ class TrainingText(BaseModel):
         return self.text[: -self.n_predicted]
 
     @property
-    def completion_str(self) -> str:
+    def output_str(self) -> str:
         return self.text[-self.n_predicted :]
 
 
@@ -206,15 +206,15 @@ class Prompt(BaseModel):
 
 
 LLMMessage: TypeAlias = litellm.utils.Message
-Completion: TypeAlias = LLMMessage
+LLMOutput: TypeAlias = LLMMessage
 
 
 class LLMCall(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
     prompt: Prompt
-    completion: LLMMessage
+    output: LLMOutput
     prompt_length_tokens: int = -1
-    completion_length_tokens: int = -1
+    output_length_tokens: int = -1
     cached: bool
 
 
