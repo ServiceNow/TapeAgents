@@ -12,19 +12,23 @@
   "steps": [
     {
       "content": "Tell me about Vulcan Materials in 3 sentences",
-      "kind": "user"
+      "kind": "user",
+      "metadata": {
+        "agent": "",
+        "node": "",
+        "prompt_id": ""
+      }
     },
     {
-      "prompt_id": "bcb93d11-e11c-4e94-a6cb-af8b207898ab",
-      "task": "",
-      "by": "Agent",
       "content": "Here's a plan to help the user learn about Vulcan Materials using the available tools:\n\n1. **Get the stock ticker symbol**: Use the `get_stock_ticker` function to retrieve the stock ticker symbol for Vulcan Materials by passing 'Vulcan Materials' as the `company_name` parameter. This will give us the ticker symbol, which we'll use for further research.\n\n2. **Get historical stock data**: Use the `get_stock_data` function to retrieve the historical stock prices for Vulcan Materials. We'll pass the obtained ticker symbol, a start date (e.g., '2020-01-01'), and an end date (e.g., '2024-09-17') as parameters to get the stock prices over the specified period.\n\n3. **Analyze the stock data**: Examine the obtained stock prices to identify trends, patterns, and correlations. We can calculate key metrics such as the average stock price, highest and lowest prices, and the overall stock performance over the specified period.\n\n4. **Provide an overview of Vulcan Materials**: Combine the obtained data with additional information about Vulcan Materials, such as its industry, sector, market capitalization, and major competitors, to provide a comprehensive overview of the company.\n\nLet's execute this plan!",
-      "kind": "assistant_thought"
+      "kind": "assistant_thought",
+      "metadata": {
+        "agent": "Agent",
+        "node": "",
+        "prompt_id": "bcb93d11-e11c-4e94-a6cb-af8b207898ab"
+      }
     },
     {
-      "prompt_id": "c6e251b5-908b-4c10-bb0a-6e7223608b5b",
-      "task": "",
-      "by": "Agent",
       "tool_calls": [
         {
           "function": {
@@ -35,24 +39,33 @@
           "type": "function"
         }
       ],
-      "kind": "assistant"
+      "kind": "assistant",
+      "metadata": {
+        "agent": "Agent",
+        "node": "",
+        "prompt_id": "c6e251b5-908b-4c10-bb0a-6e7223608b5b"
+      }
     },
     {
-      "prompt_id": "c6e251b5-908b-4c10-bb0a-6e7223608b5b",
-      "task": "",
-      "by": "Agent",
       "kind": "jump",
-      "next_node": 1
+      "next_node": 1,
+      "metadata": {
+        "agent": "Agent",
+        "node": "",
+        "prompt_id": "c6e251b5-908b-4c10-bb0a-6e7223608b5b"
+      }
     },
     {
       "content": "VMC",
       "tool_call_id": "tool_call_0_node_starts_at_2",
-      "kind": "tool"
+      "kind": "tool",
+      "metadata": {
+        "agent": "",
+        "node": "",
+        "prompt_id": ""
+      }
     },
     {
-      "prompt_id": "c7ce2c29-8535-4ace-9e91-c26d5c9ce941",
-      "task": "",
-      "by": "Agent",
       "tool_calls": [
         {
           "function": {
@@ -63,24 +76,33 @@
           "type": "function"
         }
       ],
-      "kind": "assistant"
+      "kind": "assistant",
+      "metadata": {
+        "agent": "Agent",
+        "node": "",
+        "prompt_id": "c7ce2c29-8535-4ace-9e91-c26d5c9ce941"
+      }
     },
     {
-      "prompt_id": "c7ce2c29-8535-4ace-9e91-c26d5c9ce941",
-      "task": "",
-      "by": "Agent",
       "kind": "jump",
-      "next_node": 1
+      "next_node": 1,
+      "metadata": {
+        "agent": "Agent",
+        "node": "",
+        "prompt_id": "c7ce2c29-8535-4ace-9e91-c26d5c9ce941"
+      }
     },
     {
       "content": "[('2020-01-02', 142.72000122070312), ('2020-01-27', 138.8800048828125), ('2020-02-19', 135.39999389648438), ('2020-03-12', 107.12000274658203), ('2020-04-03', 99.20999908447266), ('2020-04-28', 110.7699966430664), ('2020-05-20', 101.47000122070312), ('2020-06-12', 112.08999633789062), ('2020-07-07', 122.66999816894531), ('2020-07-29', 121.08000183105469), ('2020-08-20', 126.11000061035156), ('2020-09-14', 130.33999633789062), ('2020-10-06', 141.30999755859375), ('2020-10-28', 137.47999572753906), ('2020-11-19', 140.11000061035156), ('2020-12-14', 135.44000244140625), ('2021-01-07', 162.00999450683594), ('2021-02-01', 152.0), ('2021-02-24', 174.14999389648438), ('2021-03-18', 168.0500030517578), ('2021-04-12', 174.35000610351562), ('2021-05-04', 189.2100067138672), ('2021-05-26', 183.92999267578125), ('2021-06-18', 165.83999633789062), ('2021-07-13', 173.52999877929688), ('2021-08-04', 179.66000366210938), ('2021-08-26', 187.52999877929688), ('2021-09-20', 169.4199981689453), ('2021-10-12', 170.8300018310547), ('2021-11-03', 195.0), ('2021-11-26', 197.4499969482422), ('2021-12-20', 198.77999877929688), ('2022-01-12', 202.8800048828125), ('2022-02-04', 184.0399932861328), ('2022-03-01', 174.44000244140625), ('2022-03-23', 177.33999633789062), ('2022-04-14', 174.77000427246094), ('2022-05-09', 162.9499969482422), ('2022-06-01', 164.5399932861328), ('2022-06-24', 145.82000732421875), ('2022-07-19', 152.57000732421875), ('2022-08-10', 174.52000427246094), ('2022-09-01', 166.22000122070312), ('2022-09-26', 153.9499969482422), ('2022-10-18', 158.77999877929688), ('2022-11-09', 168.94000244140625), ('2022-12-02', 184.49000549316406), ('2022-12-27', 175.67999267578125), ('2023-01-20', 178.88999938964844), ('2023-02-13', 186.05999755859375), ('2023-03-08', 178.9199981689453), ('2023-03-30', 170.13999938964844), ('2023-04-24', 171.41000366210938), ('2023-05-16', 195.00999450683594), ('2023-06-08', 206.17999267578125), ('2023-07-03', 223.33999633789062), ('2023-07-26', 223.4600067138672), ('2023-08-17', 213.3300018310547), ('2023-09-11', 216.58999633789062), ('2023-10-03', 199.99000549316406), ('2023-10-25', 203.3699951171875), ('2023-11-16', 212.27000427246094), ('2023-12-11', 218.86000061035156), ('2024-01-04', 220.67999267578125), ('2024-01-29', 229.3699951171875), ('2024-02-21', 253.42999267578125), ('2024-03-14', 270.7300109863281), ('2024-04-08', 269.7200012207031), ('2024-04-30', 257.6300048828125), ('2024-05-22', 260.8699951171875), ('2024-06-14', 252.63999938964844), ('2024-07-10', 247.72000122070312), ('2024-08-01', 271.1300048828125), ('2024-08-23', 254.88999938964844)]",
       "tool_call_id": "tool_call_0_node_starts_at_5",
-      "kind": "tool"
+      "kind": "tool",
+      "metadata": {
+        "agent": "",
+        "node": "",
+        "prompt_id": ""
+      }
     },
     {
-      "prompt_id": "a432fc95-28a0-43ba-8ae2-3d28a4e1cf94",
-      "task": "",
-      "by": "Agent",
       "tool_calls": [
         {
           "function": {
@@ -91,14 +113,21 @@
           "type": "function"
         }
       ],
-      "kind": "assistant"
+      "kind": "assistant",
+      "metadata": {
+        "agent": "Agent",
+        "node": "",
+        "prompt_id": "a432fc95-28a0-43ba-8ae2-3d28a4e1cf94"
+      }
     },
     {
-      "prompt_id": "a432fc95-28a0-43ba-8ae2-3d28a4e1cf94",
-      "task": "",
-      "by": "Agent",
       "kind": "jump",
-      "next_node": 1
+      "next_node": 1,
+      "metadata": {
+        "agent": "Agent",
+        "node": "",
+        "prompt_id": "a432fc95-28a0-43ba-8ae2-3d28a4e1cf94"
+      }
     }
   ]
 }
