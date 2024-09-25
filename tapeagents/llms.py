@@ -487,7 +487,6 @@ class ReplayLLM(LLM):
                 known_prompts = list(self.completions.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
                 if score >= 0.7:
-                    print("NEW\n", prompt_key, "\n")
                     logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(closest, prompt_key)}")
                 raise FatalError("prompt not found")
             yield LLMEvent(completion=LLMMessage(content=completion))
