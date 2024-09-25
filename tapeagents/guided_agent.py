@@ -125,5 +125,5 @@ class GuidedAgent(Agent, Generic[TapeType]):
             )
             return
         for step in steps:
-            step.prompt_id = prompt_id
+            step.metadata.prompt_id = prompt_id
             yield step

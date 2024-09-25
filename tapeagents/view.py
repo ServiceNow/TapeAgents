@@ -87,7 +87,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         # we need cut of the first component
         if not isinstance(step, AgentStep):
             return False
-        parts_by = step.by.split("/")
+        parts_by = step.metadata.agent.split("/")
         parts_frame_by = self.top.agent_full_name.split("/")
         return parts_by[1:] == parts_frame_by[1:]
 
@@ -114,9 +114,9 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         if self.is_step_by_active_agent(step):
             if not isinstance(step, Jump):
                 assert isinstance(step, AgentStep)
-                if step.prompt_id != top.last_prompt_id:
+                if step.metadata.prompt_id != top.last_prompt_id:
                     top.next_node += 1
-            top.last_prompt_id = step.prompt_id
+            top.last_prompt_id = step.metadata.prompt_id
 
     def pop_view_from_stack(self, step):
         top = self.stack[-1]
@@ -136,8 +136,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 break
 
                 # TODO: what if the agent was not called by its immediate manager?
-        receiver = step.by.rsplit("/", 1)[0]
-        self.messages_by_agent[step.by].append(step)
+        receiver = step.metadata.agent.rsplit("/", 1)[0]
+        self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)
         new_top.add_step(step)
 
@@ -145,7 +145,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         top = self.stack[-1]
         top.add_step(step)
         for to in step.to:
-            receiver = f"{step.by}/{to}"
+            receiver = f"{step.metadata.agent}/{to}"
             self.messages_by_agent[receiver].append(step)
 
     def put_new_view_on_stack(self, step):
@@ -157,8 +157,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 agent_full_name=top.agent_full_name + "/" + step.agent_name,
             )
         )
-        receiver = f"{step.by}/{step.agent_name}"
-        self.messages_by_agent[step.by].append(step)
+        receiver = f"{step.metadata.agent}/{step.agent_name}"
+        self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)
 
     @staticmethod

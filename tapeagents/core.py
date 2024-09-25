@@ -27,10 +27,24 @@ class TrainingText(BaseModel):
         return self.text[-self.n_predicted :]
 
 
+class StepMetadata(BaseModel):
+    """
+    Metadata for the step
+    """
+
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    prompt_id: str = ""
+    node: str = ""
+    agent: str = ""
+    other: dict[str, Any] = Field(default_factory=dict)
+
+
 class Step(BaseModel):
+    metadata: StepMetadata = StepMetadata()
+
     def llm_dict(self) -> dict[str, Any]:
         """Dump step data only, drop the metadata"""
-        return self.model_dump(exclude_none=True)
+        return self.model_dump(exclude_none=True, exclude={"metadata"})
 
     def llm_view(self, indent: int = 2) -> str:
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
@@ -51,12 +65,7 @@ class Error(Observation):
 
 
 class AgentStep(Step):
-    prompt_id: str = ""
-    task: str = ""
-    by: str = ""
-
-    def llm_dict(self) -> dict:
-        return self.model_dump(exclude={"prompt_id", "task", "by"}, exclude_none=True)
+    pass
 
 
 class Thought(AgentStep):

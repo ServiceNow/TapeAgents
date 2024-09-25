@@ -11,154 +11,188 @@
   "context": "I am a text with some verbs like running, jumping, and swimming.",
   "steps": [
     {
-      "prompt_id": "bd4062a2-2b74-4e12-804c-ff1866b78a71",
-      "task": "",
-      "by": "Linguist",
       "kind": "call",
       "content": "",
-      "agent_name": "FindNouns"
+      "agent_name": "FindNouns",
+      "metadata": {
+        "agent": "Linguist",
+        "node": "",
+        "prompt_id": "bd4062a2-2b74-4e12-804c-ff1866b78a71"
+      }
     },
     {
-      "prompt_id": "85c70017-b023-4466-84b3-cdd2d16b923a",
-      "task": "",
-      "by": "Linguist/FindNouns",
       "kind": "all_nouns",
       "nouns": [
         "text",
         "verbs"
-      ]
+      ],
+      "metadata": {
+        "agent": "Linguist/FindNouns",
+        "node": "",
+        "prompt_id": "85c70017-b023-4466-84b3-cdd2d16b923a"
+      }
     },
     {
-      "prompt_id": "85c70017-b023-4466-84b3-cdd2d16b923a",
-      "task": "",
-      "by": "Linguist/FindNouns",
       "content": "",
-      "kind": "return"
+      "kind": "return",
+      "metadata": {
+        "agent": "Linguist/FindNouns",
+        "node": "",
+        "prompt_id": "85c70017-b023-4466-84b3-cdd2d16b923a"
+      }
     },
     {
-      "prompt_id": "dc4c31c6-6c8d-463b-8ba2-967c54f70078",
-      "task": "",
-      "by": "Linguist",
       "kind": "call",
       "content": "",
-      "agent_name": "FindIrregularVerbs"
+      "agent_name": "FindIrregularVerbs",
+      "metadata": {
+        "agent": "Linguist",
+        "node": "",
+        "prompt_id": "dc4c31c6-6c8d-463b-8ba2-967c54f70078"
+      }
     },
     {
-      "prompt_id": "bf592e04-ca1c-420a-80b2-e2be3d13d4ad",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs",
       "kind": "call",
       "content": "",
-      "agent_name": "FindVerbs"
+      "agent_name": "FindVerbs",
+      "metadata": {
+        "agent": "Linguist/FindIrregularVerbs",
+        "node": "",
+        "prompt_id": "bf592e04-ca1c-420a-80b2-e2be3d13d4ad"
+      }
     },
     {
-      "prompt_id": "e16d2f18-b301-42c6-b1cd-bc8f594bc375",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs/FindVerbs",
       "kind": "all_verbs",
       "verbs": [
         "am",
         "running",
         "jumping",
         "swimming"
-      ]
+      ],
+      "metadata": {
+        "agent": "Linguist/FindIrregularVerbs/FindVerbs",
+        "node": "",
+        "prompt_id": "e16d2f18-b301-42c6-b1cd-bc8f594bc375"
+      }
     },
     {
-      "prompt_id": "e16d2f18-b301-42c6-b1cd-bc8f594bc375",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs/FindVerbs",
       "content": "",
-      "kind": "return"
+      "kind": "return",
+      "metadata": {
+        "agent": "Linguist/FindIrregularVerbs/FindVerbs",
+        "node": "",
+        "prompt_id": "e16d2f18-b301-42c6-b1cd-bc8f594bc375"
+      }
     },
     {
-      "prompt_id": "9c372b07-e076-47b4-9708-58ed54790345",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs",
       "kind": "call",
       "content": "",
-      "agent_name": "FilterIrregular"
+      "agent_name": "FilterIrregular",
+      "metadata": {
+        "agent": "Linguist/FindIrregularVerbs",
+        "node": "",
+        "prompt_id": "9c372b07-e076-47b4-9708-58ed54790345"
+      }
     },
     {
-      "prompt_id": "9c372b07-e076-47b4-9708-58ed54790345",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs",
       "kind": "all_verbs",
       "verbs": [
         "am",
         "running",
         "jumping",
         "swimming"
-      ]
+      ],
+      "metadata": {
+        "agent": "Linguist/FindIrregularVerbs",
+        "node": "",
+        "prompt_id": "9c372b07-e076-47b4-9708-58ed54790345"
+      }
     },
     {
-      "prompt_id": "17e4eb0a-da2b-4d8e-9afa-db925b36a6af",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs/FilterIrregular",
       "kind": "irregular_verbs",
       "verbs": [
         "be",
         "run",
         "jump",
         "swim"
-      ]
+      ],
+      "metadata": {
+        "agent": "Linguist/FindIrregularVerbs/FilterIrregular",
+        "node": "",
+        "prompt_id": "17e4eb0a-da2b-4d8e-9afa-db925b36a6af"
+      }
     },
     {
-      "prompt_id": "17e4eb0a-da2b-4d8e-9afa-db925b36a6af",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs/FilterIrregular",
       "content": "",
-      "kind": "return"
+      "kind": "return",
+      "metadata": {
+        "agent": "Linguist/FindIrregularVerbs/FilterIrregular",
+        "node": "",
+        "prompt_id": "17e4eb0a-da2b-4d8e-9afa-db925b36a6af"
+      }
     },
     {
-      "prompt_id": "b260f6e0-4b3c-444b-991f-ef8bb22b46ec",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs",
       "content": "",
-      "kind": "return"
+      "kind": "return",
+      "metadata": {
+        "agent": "Linguist/FindIrregularVerbs",
+        "node": "",
+        "prompt_id": "b260f6e0-4b3c-444b-991f-ef8bb22b46ec"
+      }
     },
     {
-      "prompt_id": "3f2eacbc-ff79-4870-ba84-378b55d64988",
-      "task": "",
-      "by": "Linguist",
       "kind": "call",
       "content": "",
-      "agent_name": "PresentAnalysis"
+      "agent_name": "PresentAnalysis",
+      "metadata": {
+        "agent": "Linguist",
+        "node": "",
+        "prompt_id": "3f2eacbc-ff79-4870-ba84-378b55d64988"
+      }
     },
     {
-      "prompt_id": "3f2eacbc-ff79-4870-ba84-378b55d64988",
-      "task": "",
-      "by": "Linguist",
       "kind": "all_nouns",
       "nouns": [
         "text",
         "verbs"
-      ]
+      ],
+      "metadata": {
+        "agent": "Linguist",
+        "node": "",
+        "prompt_id": "3f2eacbc-ff79-4870-ba84-378b55d64988"
+      }
     },
     {
-      "prompt_id": "3f2eacbc-ff79-4870-ba84-378b55d64988",
-      "task": "",
-      "by": "Linguist",
       "kind": "irregular_verbs",
       "verbs": [
         "be",
         "run",
         "jump",
         "swim"
-      ]
+      ],
+      "metadata": {
+        "agent": "Linguist",
+        "node": "",
+        "prompt_id": "3f2eacbc-ff79-4870-ba84-378b55d64988"
+      }
     },
     {
-      "prompt_id": "bbc328cb-ff32-4ed6-b20b-dd75b861e6f2",
-      "task": "",
-      "by": "Linguist/PresentAnalysis",
       "kind": "present_results",
-      "content": "What a fascinating text we have here!\n\nAfter conducting a linguistic analysis, I've uncovered some intriguing features that reveal the author's writing style. The presence of nouns like \"text\" and \"verbs\" suggests that the author is likely to be a linguist or someone with a strong interest in language, perhaps even a meta-linguist who enjoys exploring the very fabric of communication. This self-referential nod to the text itself creates a sense of introspection and awareness, hinting at a writer who is thoughtful, analytical, and possibly even playful.\n\nFurthermore, the irregular verbs \"be\", \"run\", \"jump\", and \"swim\" that I've identified indicate a preference for action-oriented language. These verbs evoke a sense of dynamism and energy, suggesting that the author is comfortable with conveying a sense of movement and activity. The inclusion of \"be\" as an irregular verb is particularly interesting, as it implies a willingness to challenge traditional grammatical norms and push the boundaries of language.\n\nTaken together, these linguistic features paint a picture of an author who is not only introspective and analytical but also dynamic, creative, and unafraid to experiment with language. The text exudes a sense of intellectual curiosity and a passion for the art of communication. I, for one, am excited to delve deeper into this text and uncover more secrets about the author's writing style!"
+      "content": "What a fascinating text we have here!\n\nAfter conducting a linguistic analysis, I've uncovered some intriguing features that reveal the author's writing style. The presence of nouns like \"text\" and \"verbs\" suggests that the author is likely to be a linguist or someone with a strong interest in language, perhaps even a meta-linguist who enjoys exploring the very fabric of communication. This self-referential nod to the text itself creates a sense of introspection and awareness, hinting at a writer who is thoughtful, analytical, and possibly even playful.\n\nFurthermore, the irregular verbs \"be\", \"run\", \"jump\", and \"swim\" that I've identified indicate a preference for action-oriented language. These verbs evoke a sense of dynamism and energy, suggesting that the author is comfortable with conveying a sense of movement and activity. The inclusion of \"be\" as an irregular verb is particularly interesting, as it implies a willingness to challenge traditional grammatical norms and push the boundaries of language.\n\nTaken together, these linguistic features paint a picture of an author who is not only introspective and analytical but also dynamic, creative, and unafraid to experiment with language. The text exudes a sense of intellectual curiosity and a passion for the art of communication. I, for one, am excited to delve deeper into this text and uncover more secrets about the author's writing style!",
+      "metadata": {
+        "agent": "Linguist/PresentAnalysis",
+        "node": "",
+        "prompt_id": "bbc328cb-ff32-4ed6-b20b-dd75b861e6f2"
+      }
     },
     {
-      "prompt_id": "bbc328cb-ff32-4ed6-b20b-dd75b861e6f2",
-      "task": "",
-      "by": "Linguist/PresentAnalysis",
       "content": "",
-      "kind": "return"
+      "kind": "return",
+      "metadata": {
+        "agent": "Linguist/PresentAnalysis",
+        "node": "",
+        "prompt_id": "bbc328cb-ff32-4ed6-b20b-dd75b861e6f2"
+      }
     }
   ]
 }

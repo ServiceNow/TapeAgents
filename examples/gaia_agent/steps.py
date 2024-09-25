@@ -399,7 +399,7 @@ def get_allowed_steps(short_steps: bool, subtasks: bool, plan_thoughts: bool) ->
                 | {
                     k: purge_key(v, "title")
                     for k, v in s["properties"].items()
-                    if k not in ["kind", "prompt_id", "task", "facts", "by", "role", "reason"]
+                    if k not in ["kind", "metadata", "facts", "role", "reason"]
                 },
             }
             for s in schemas
