@@ -292,13 +292,13 @@ class Agent(BaseModel, Generic[TapeType]):
             if len(self.llms) > 1:
                 raise NotImplementedError("TODO: implement LLM choice in the prompt")
             llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
-        for item in self.generate_steps(tape, llm_stream):
-            if isinstance(item, AgentStep):
-                item.metadata.prompt_id = llm_stream.prompt.id
-                yield item
-                new_steps.append(item)
+        for step in self.generate_steps(tape, llm_stream):
+            if isinstance(step, AgentStep):
+                step.metadata.prompt_id = llm_stream.prompt.id
+                yield step
+                new_steps.append(step)
             else:
-                yield item
+                yield step
 
     def run(self, tape: TapeType) -> AgentStream[TapeType]:
         """
