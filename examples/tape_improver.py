@@ -18,11 +18,10 @@ from tapeagents.core import (
 from tapeagents.llms import LLM, LiteLLM, LLMStream
 from tapeagents.observe import observe_tape
 from tapeagents.rendering import PrettyRenderer
-from tapeagents.utils import run_in_tmp_dir_to_make_test_data
 from tapeagents.view import Call, Respond
 
-from .data_science import make_renderers
-from .data_science import make_world as data_science_make_world
+from examples.data_science import make_renderers
+from examples.data_science import make_world as data_science_make_world
 
 MUST_BE_JSON = """Output ONLY the JSON in the requested format. Do not output any text before or after JSON. Do not output triple quotes before or after JSON."""
 
@@ -135,7 +134,7 @@ class AgentSelector(Agent):
 
     def generate_steps(self, tape: CodeImproverTape, llm_stream: LLMStream):
         yield SelectAgent.model_validate_json(llm_stream.get_text())
-        yield Respond()
+        yield Respond(copy_output=True)
 
 
 class StepSelector(Agent):
@@ -152,7 +151,7 @@ class StepSelector(Agent):
         if not llm_stream:
             yield FinalStep()
         yield SelectStep.model_validate_json(llm_stream.get_text())
-        yield Respond()
+        yield Respond(copy_output=True)
 
 
 class StepRewriter(Agent):
@@ -251,9 +250,8 @@ if __name__ == "__main__":
             main("studio agent")
         case ["studio", "improver"]:
             main("studio improver")
-        case ["make_test_data"]:
-            with run_in_tmp_dir_to_make_test_data("tape_improver"):
-                main("run improver")
+        case ["run", "improver"]:
+            main("run improver")
         case _:
             # print usage and exit
             print("Usage: python -m examples.data_science [studio agent] [studio improver]")

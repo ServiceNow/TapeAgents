@@ -99,6 +99,7 @@ class Call(Thought):
 class Respond(Thought):
     content: str = ""
     kind: Literal["respond"] = "respond"    
+    copy_output: bool = False
 
 
 def step_to_message(step: Step) -> dict[str, str]:

@@ -27,7 +27,7 @@ class RespondIfNotRootNode(Node):
     def generate_steps(self, _: Any, tape: Tape, llm_stream: LLMStream):
         view = TapeViewStack.compute(tape)
         if len(view.stack) > 1:
-            yield Respond()
+            yield Respond(copy_output=True)
         return
 
 

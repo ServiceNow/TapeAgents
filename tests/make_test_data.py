@@ -4,7 +4,7 @@ from pathlib import Path
 
 import testbook
 
-from examples import delegate_stack
+from examples import delegate_stack, tape_improver
 from tapeagents.utils import run_in_tmp_dir_to_make_test_data
 
 if __name__ == "__main__":
@@ -26,6 +26,9 @@ if __name__ == "__main__":
                         before=0,
                     )
                     tb.execute()
+        case ["tape_improver"]:
+            with run_in_tmp_dir_to_make_test_data("tape_improver"):
+                tape_improver.main("run improver")                    
         case _:
             print("Usage: python -m examples.make_test_data [delegate_stack]")
             sys.exit(1)

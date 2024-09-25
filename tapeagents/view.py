@@ -112,25 +112,26 @@ class TapeViewStack(BaseModel, Generic[StepType]):
             case _:
                 raise ValueError(f"Unsupported step type {step}")
 
-    def pop_view_from_stack(self, step):
+    def pop_view_from_stack(self, step: Respond):
         top = self.stack[-1]
         self.stack.pop()
         new_top = self.stack[-1]
 
-        for top_step in reversed(top.steps):
-            # How we choose the output step of the frame.
-            # - exclude the input steps that the caller agent added to the tape for the given agent
-            #   (note that by this line the former caller agent is the active agent)
-            # - exclude Call and Respond steps
-            # - exclude Observation steps
-            # - among the remaining steps pick the last one
-            if (not self.is_step_by_active_agent(top_step) 
-                    and not isinstance(top_step, (Call, Respond, Observation))):
-                new_top.add_step(top_step)
-                new_top.outputs_by_subagent[top.agent_name] = top_step
-                break
-
-                # TODO: what if the agent was not called by its immediate manager?
+        if step.copy_output:
+            for top_step in reversed(top.steps):
+                # How we choose the output step of the frame.
+                # - exclude the input steps that the caller agent added to the tape for the given agent
+                #   (note that by this line the former caller agent is the active agent)
+                # - exclude Call and Respond steps
+                # - exclude Observation steps
+                # - among the remaining steps pick the last one
+                if (not self.is_step_by_active_agent(top_step) 
+                        and not isinstance(top_step, (Call, Respond, Observation))):
+                    new_top.add_step(top_step)
+                    new_top.outputs_by_subagent[top.agent_name] = top_step
+                    break
+                    # TODO: what if the agent was not called by its immediate manager?
+                
         receiver = step.by.rsplit("/", 1)[0]
         self.messages_by_agent[step.by].append(step)
         self.messages_by_agent[receiver].append(step)
