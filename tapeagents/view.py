@@ -5,7 +5,7 @@ from typing import Generic, Literal
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Call, Jump, Observation, Pass, Respond, StepType, Tape, Thought, step_to_message
+from tapeagents.core import AgentStep, Call, Jump, Observation, Pass, Respond, StepType, Tape, Thought
 
 
 class Broadcast(Thought):
@@ -48,15 +48,6 @@ class TapeView(BaseModel, Generic[StepType]):
         if isinstance(subagent_name_or_index, int):
             return list(self.outputs_by_subagent.values())[subagent_name_or_index]
         return self.outputs_by_subagent[subagent_name_or_index]
-    
-    def as_prompt_messages(self) -> list[dict]:
-        messages = []
-        for step in self.steps:
-            if isinstance(step, (Pass, Jump)):
-                continue
-            llm_message = step_to_message(step)
-            messages.append(llm_message)
-        return messages
         
 
 class TapeViewStack(BaseModel, Generic[StepType]):
