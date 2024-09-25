@@ -183,9 +183,9 @@ class Agent(BaseModel, Generic[TapeType]):
     @classmethod
     def create(
         cls,
-        llms: dict[str, LLM] | LLM | None = {},
-        subagents: list[Agent[TapeType]] | None = [],
-        templates: dict[str, str] | str | None = {},
+        llms: dict[str, LLM] | LLM | None = None,
+        subagents: list[Agent[TapeType]] | None = None,
+        templates: dict[str, str] | str | None = None,
         **kwargs,
     ) -> Self:
         """The user-friendly way to create an agent that flexible-typed inputs.
@@ -197,21 +197,7 @@ class Agent(BaseModel, Generic[TapeType]):
             llms = {DEFAULT: llms}
         if isinstance(templates, str):
             templates = {DEFAULT: templates}
-        if subagents:
-            subagents = list(subagents)
-        if templates:
-            templates = dict(templates)
-        extra_kwargs = {
-            k: v
-            for k, v in {
-                "llms": llms,
-                "subagents": subagents,
-                "templates": templates,
-            }.items()
-            if v is not None
-        }
-
-        return cls(**(extra_kwargs | kwargs))
+        return cls(llms=llms or {}, subagents=subagents or [], templates=templates or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
         """
