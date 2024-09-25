@@ -1,8 +1,8 @@
 import json
 
 from tapeagents.core import MakeObservation, Prompt
-from tapeagents.dialog import (
-    Dialog,
+from tapeagents.dialog_tape import (
+    DialogTape,
     SystemStep,
     UserModel,
     UserModelInstruction,
@@ -46,7 +46,7 @@ class LLAMAUserModel(UserModel):
 
 
 def try_llama_user_model(llm: LLAMA):
-    dialog = Dialog(
+    tape = DialogTape(
         context=None,
         steps=[
             SystemStep(content="Respond to the user using the style of Shakespeare books. Be very brief, 5 words max."),
@@ -59,13 +59,13 @@ def try_llama_user_model(llm: LLAMA):
         instruction="repeats the USER's previous message and adds 'yay' at the end", llms={"default": llm}
     )
 
-    own_tape1 = llama_user_model1.run(llama_user_model1.make_own_tape(dialog)).get_final_tape()
-    new_tape = llama_user_model1.add_observation(dialog, own_tape1)
+    own_tape1 = llama_user_model1.run(llama_user_model1.make_own_tape(tape)).get_final_tape()
+    new_tape = llama_user_model1.add_observation(tape, own_tape1)
     print("--- CHECK GENERATED USER MESSAGE 1 ---")
     print(new_tape.steps[-1])
 
     print("--- CHECK ORIGINAL TAPE ---")
-    print(json.dumps(dialog.model_dump(), indent=2))
+    print(json.dumps(tape.model_dump(), indent=2))
     print("--- CHECK NEW TAPE")
 
     print(json.dumps(new_tape.model_dump(), indent=2))
@@ -73,7 +73,7 @@ def try_llama_user_model(llm: LLAMA):
     print("--- CHECK TRACES ---")
     for trace in llama_user_model1.make_training_data(own_tape1):
         print("<CONTEXT>", trace.prompt_str, sep="")
-        print("<COMPLETION>", trace.completion_str, sep="")
+        print("<COMPLETION>", trace.output_str, sep="")
 
     print("--- CHECK GENERATED USER MESSAGE 2 ---")
     new_tape = llama_user_model2.continue_tape(new_tape)

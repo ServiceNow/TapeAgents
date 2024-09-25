@@ -12,7 +12,7 @@ from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, Cont
 
 from .agent import TapeType
 from .core import Action, Observation, Prompt, Tape
-from .dialog import AssistantStep, Dialog, ToolCalls, ToolResult, ToolSpec
+from .dialog_tape import AssistantStep, DialogTape, ToolCalls, ToolResult, ToolSpec
 from .llms import LiteLLM
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ class MockToolEnvironment(Environment):
     def __init__(self, llm: LiteLLM):
         self.llm = llm
 
-    def react(self, tape: Dialog) -> Dialog:
+    def react(self, tape: DialogTape) -> DialogTape:
         # TODO: move prompting to a separate agent?
         action = tape.steps[-1]
         assert isinstance(action, Action)
@@ -86,7 +86,7 @@ class MockToolEnvironment(Environment):
                 prompt_str = MOCK_TOOL_ENV_PROMPT_TEMPLATE.format(function_call=tc.function)
                 messages = [{"role": "user", "content": prompt_str}]
                 for event in self.llm.generate(Prompt(messages=messages)):
-                    completion = event.completion
+                    completion = event.output
                     if completion and not isinstance(completion, str):
                         completion = completion.content
                     if completion:
@@ -113,7 +113,7 @@ class ToolEnvironment(Environment):
     def get_tool_schema_dicts(self) -> list[dict]:
         return [t.model_dump() for t in self.get_tool_schemas()]
 
-    def react(self, tape: Dialog) -> Dialog:
+    def react(self, tape: DialogTape) -> DialogTape:
         orphan_actions = []
         for i in reversed(range(len(tape))):
             if isinstance(tape.steps[i], Observation):
@@ -154,7 +154,7 @@ class CodeExecutionResult(Observation):
 
 class CodeExecutionEnvironment(Environment):
     """
-    Environment for the collective agents
+    Environment for the team agents
     The only action that the environment can perform is to execute the code blocks
     """
 

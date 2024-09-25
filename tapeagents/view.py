@@ -135,7 +135,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 new_top.outputs_by_subagent[top.agent_name] = top_step
                 break
 
-                # TODO: what if the agent was not called by its immediate boss?
+                # TODO: what if the agent was not called by its immediate manager?
         receiver = step.by.rsplit("/", 1)[0]
         self.messages_by_agent[step.by].append(step)
         self.messages_by_agent[receiver].append(step)
@@ -164,8 +164,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     @staticmethod
     def compute(tape: Tape) -> TapeViewStack[StepType]:
         # TODO: retrieve view from a prefix of the tape, recompute from the prefix
-        if (cached_view_stack := _view_stack_cache.get(id(tape))) is not None:
-            return cached_view_stack
+        # if (cached_view_stack := _view_stack_cache.get(id(tape))) is not None:
+        #     return cached_view_stack
         stack = TapeViewStack(stack=[TapeView(agent_name="root", agent_full_name="root")])
         for step in tape.steps:
             stack.update(step)

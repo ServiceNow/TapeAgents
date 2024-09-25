@@ -6,8 +6,8 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 
 from tapeagents.core import MakeObservation, Prompt
 from tapeagents.demo import Demo
-from tapeagents.dialog import (
-    Dialog,
+from tapeagents.dialog_tape import (
+    DialogTape,
     DialogContext,
     UserModel,
     UserModelEvent,
@@ -16,7 +16,7 @@ from tapeagents.dialog import (
     UserStep,
 )
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llms import LiteLLM, LLMMessage
+from tapeagents.llms import LiteLLM, LLMOutput
 from tapeagents.rendering import BasicRenderer, render_dialog_plain_text
 
 from .annotator import GroundednessAnnotator
@@ -43,12 +43,12 @@ class DemoUserModel(UserModel):
     def generate_events(self, prompt: Prompt) -> Generator[UserModelEvent, None, None]:
         # say we don't need streaming for the agent model here
         for event in self.llm.generate(prompt):
-            if m := event.completion:
-                assert isinstance(m, LLMMessage)
+            if m := event.output:
+                assert isinstance(m, LLMOutput)
                 try:
                     result = json.loads(m.content)
                 except Exception:
-                    raise ValueError(f"User model LLM returned invalid JSON: {event.completion}")
+                    raise ValueError(f"User model LLM returned invalid JSON: {event.output}")
                 yield UserModelEvent(step=MakeObservation(new_observation=UserStep(**result)))
                 return
         raise ValueError("User model LLM didn't return completion")
@@ -59,7 +59,7 @@ def user_model_demo():
     big_llm = LiteLLM(model_name="gpt-4-turbo")
     agent = FunctionCallingAgent(llms={"default": small_llm})
     environment = ToolEnvironment(tools=[TavilySearchResults()])
-    init_dialog = Dialog(context=DialogContext(tools=environment.get_tool_schemas()), steps=[])
+    init_dialog = DialogTape(context=DialogContext(tools=environment.get_tool_schemas()), steps=[])
     user_models = [
         DemoUserModel(big_llm, "ask about a celebrity"),
         DemoUserModel(big_llm, "ask about a movie"),
