@@ -18,7 +18,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
 from .config import DB_DEFAULT_FILENAME
-from .core import LLMOutput, LLMOutput, Prompt, TrainingText
+from .core import LLMOutput, Prompt, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
 
@@ -535,9 +535,7 @@ class MockLLM(LLM):
 
 def llama_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
     prompt_text = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=False)
-    output_text = tokenizer.apply_chat_template(
-        [{"role": "assistant", "content": output.content}], tokenize=False
-    )
+    output_text = tokenizer.apply_chat_template([{"role": "assistant", "content": output.content}], tokenize=False)
     if tokenizer.bos_token and output_text.startswith(tokenizer.bos_token):
         output_text = output_text[len(tokenizer.bos_token) :]
     text = f"{prompt_text}{output_text}"

@@ -15,8 +15,8 @@ from .core import (
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
-    LLMOutput,
     LLMCall,
+    LLMOutput,
     MakeObservation,
     ObservationMakerTapeType,
     PartialStep,
@@ -184,7 +184,6 @@ class Agent(BaseModel, Generic[TapeType]):
     def create(
         cls,
         llms: dict[str, LLM] | LLM | None = None,
-        subagents: list[Agent[TapeType]] | None = None,
         templates: dict[str, str] | str | None = None,
         **kwargs,
     ) -> Self:
@@ -197,7 +196,7 @@ class Agent(BaseModel, Generic[TapeType]):
             llms = {DEFAULT: llms}
         if isinstance(templates, str):
             templates = {DEFAULT: templates}
-        return cls(llms=llms or {}, subagents=subagents or [], templates=templates or {}, **kwargs)
+        return cls(llms=llms or {}, templates=templates or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
         """
