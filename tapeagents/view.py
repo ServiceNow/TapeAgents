@@ -87,7 +87,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         # we need cut of the first component
         if not isinstance(step, AgentStep):
             return False
-        parts_by = step.metadata.by.split("/")
+        parts_by = step.metadata.agent.split("/")
         parts_frame_by = self.top.agent_full_name.split("/")
         return parts_by[1:] == parts_frame_by[1:]
 

@@ -315,7 +315,7 @@ class Agent(BaseModel, Generic[TapeType]):
                     if isinstance(step, PartialStep):
                         yield AgentEvent(partial_step=step)
                     elif isinstance(step, AgentStep):
-                        step.metadata.by = current_subagent.full_name
+                        step.metadata.agent = current_subagent.full_name
                         tape = tape.append(step)
                         yield AgentEvent(step=step, partial_tape=tape)
                         if self.should_stop(tape):

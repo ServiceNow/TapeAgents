@@ -36,7 +36,7 @@ def mock_llm(run_dir: str) -> LLM:
     llama = LLAMA(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
-        tokenizer_name="tests/res/meta_llama_3_70b_tokenizer",
+        tokenizer_name="tests/res/tokenizer/meta_llama_3_70b_tokenizer",
         parameters=dict(temperature=0.7, max_tokens=512),
     )
     return ReplayLLM.from_llm(llama, run_dir)

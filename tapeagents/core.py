@@ -34,8 +34,8 @@ class StepMetadata(BaseModel):
 
     id: str = Field(default_factory=lambda: str(uuid4()))
     prompt_id: str = ""
-    task: str = ""
-    by: str = ""
+    node: str = ""
+    agent: str = ""
     other: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -67,11 +67,11 @@ class Error(Observation):
 class AgentStep(Step):
     pass
 
-    def task(self, task: str) -> Self:
+    def by_node(self, node_name: str) -> Self:
         """
-        Set the task that is being solved when the step is produced
+        Set the node_name that is being run when the step is produced
         """
-        self.metadata.task = task
+        self.metadata.node = node_name
         return self
 
 

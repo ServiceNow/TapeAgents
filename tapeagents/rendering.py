@@ -226,11 +226,11 @@ class PrettyRenderer(BasicRenderer):
             class_ = "observation"
         elif isinstance(step, Call):
             role = ""
-            title = f"{step.metadata.by.split('/')[-1]} calls {step.agent_name}"
+            title = f"{step.metadata.agent.split('/')[-1]} calls {step.agent_name}"
             class_ = "call"
         elif isinstance(step, Respond):
             role = ""
-            parts = step.metadata.by.split("/")
+            parts = step.metadata.agent.split("/")
             title = f"{parts[-1]} responds to {parts[-2]}"
             class_ = "return"
         elif isinstance(step, Thought):
@@ -250,12 +250,7 @@ class PrettyRenderer(BasicRenderer):
 
         dump = step.model_dump()
         if not self.show_metadata:
-            dump.pop("prompt_id", None)
-            dump.pop("task", None)
-            dump.pop("role", None)
-            if isinstance(step, (Call, Respond)):
-                dump.pop("agent_name", None)
-                dump.pop("by", None)
+            dump.pop("metadata", None)
 
         def pretty_yaml(d):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
