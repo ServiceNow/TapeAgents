@@ -273,7 +273,7 @@ class TypedVLLM(LLM):
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(config.model_name)
         self.context_size = config.parameters.pop("context_size", 8000)
         self.base_url = config.base_url
-        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN)
+        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
         self._obj_log = {}
 
     def get_prompt_key(self, prompt: Prompt) -> str:
@@ -370,7 +370,7 @@ class LLAMA(CachedLLM):
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
-        self.api_token = str(os.getenv(TAPEAGENTS_LLM_TOKEN))
+        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
