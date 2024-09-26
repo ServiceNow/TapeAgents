@@ -3,6 +3,8 @@
 This example introduces two agents that solve the tasks from the [Workarena Benchmark](https://github.com/ServiceNow/WorkArena).
 The agents could use OpenAI or big LLAMA models to solve these tasks.
 
+<img width="1233" alt="image" src="https://github.com/user-attachments/assets/9e4bc7e5-5547-41cb-aa5f-374c72669da2">
+
 ## Structure
 Both agents are built on top of the GuidedAgent class, which implements the following workflow:
 - Expose the set of all available actions and thoughts to the model in each prompt
