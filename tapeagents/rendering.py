@@ -18,7 +18,6 @@ from .dialog_tape import (
     UserStep,
 )
 from .observe import LLMCall, retrieve_tape_llm_calls
-from .team import CodeExecutionResult, ExecuteCode
 from .view import Call, Respond
 
 
@@ -239,7 +238,7 @@ class PrettyRenderer(BasicRenderer):
         elif isinstance(step, Action):
             role = "Action"
             class_ = "action"
-        elif isinstance(step, CodeExecutionResult):
+        elif getattr(step, "kind", None) == "code_execution_result":
             role = "Observation"
             class_ = "error_observation" if step.result.exit_code != 0 else "observation"
         elif isinstance(step, Observation):
@@ -259,7 +258,7 @@ class PrettyRenderer(BasicRenderer):
             # TODO: also show metadata here
             del dump["content"]
             text = pretty_yaml(dump) + "\n" + content
-        elif isinstance(step, ExecuteCode):
+        elif getattr(step, "kind", None) == "execute_code":
             del dump["code"]
 
             def format_code_block(block: CodeBlock) -> str:
