@@ -20,8 +20,8 @@ from tapeagents.rendering import PrettyRenderer
 from tapeagents.team import TeamTape
 from tapeagents.view import Call, Respond
 
-from examples.data_science import make_renderers
-from examples.data_science import make_world as data_science_make_world
+from .data_science import make_renderers
+from .data_science import make_world as data_science_make_world
 
 MUST_BE_JSON: str = """Output ONLY the JSON in the requested format. Do not output any text before or after JSON. Do not output triple quotes before or after JSON."""
 
