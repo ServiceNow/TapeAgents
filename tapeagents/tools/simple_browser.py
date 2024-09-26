@@ -39,6 +39,7 @@ def get_tavily_key():
     if key is None:
         raise ValueError("TAVILY_API_KEY environment variable must be set.")
 
+_FORCE_CACHE_FILE_NAME = None
 
 class SimpleTextBrowser:
     """An extremely simple text-based web browser suitable for Agentic use."""
@@ -92,7 +93,11 @@ class SimpleTextBrowser:
         self.only_cached_webpages = only_cached_webpages
         self._cache = {}
         self._log = {}
-        self._cache_filename = "web_cache.json"
+        self._cache_filename = (
+            "web_cache.json" 
+            if _FORCE_CACHE_FILE_NAME is None 
+            else _FORCE_CACHE_FILE_NAME
+        )
         if os.path.exists(self._cache_filename):
             with open(self._cache_filename) as f:
                 self._cache = json.load(f)

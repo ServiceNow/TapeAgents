@@ -20,6 +20,8 @@ def test_intro_notebook():
                 from tapeagents import llms
                 llms._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
                 llms._MOCK_TOKENIZER = "{res_dir}/tokenizer/meta_llama_3_70b_tokenizer"
+                from tapeagents.tools import simple_browser
+                simple_browser._FORCE_CACHE_FILE_NAME = "{res_dir}/intro_notebook/web_cache.json"
                 """,
                 before=0,
             )
