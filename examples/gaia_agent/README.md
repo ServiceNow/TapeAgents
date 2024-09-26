@@ -2,6 +2,9 @@
 The Gaia Agent is an agent that solves the tasks from the [GAIA Benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
 The agent can use OpenAI or big LLAMA models to solve these tasks.
 
+<img width="1232" alt="image" src="https://github.com/user-attachments/assets/f02d9dff-0cfb-4ad6-b061-9d7568d75baa">
+
+
 ## Structure
 The agent is built on top of the GuidedAgent class, which implements the following workflow:
 - Expose the set of all available actions and thoughts to the model in each prompt
