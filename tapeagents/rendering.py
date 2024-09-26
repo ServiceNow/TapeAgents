@@ -265,7 +265,7 @@ class PrettyRenderer(BasicRenderer):
                 return f"```{block.language}\n{block.code}\n```"
 
             text = pretty_yaml(dump) + "\n".join([format_code_block(block) for block in step.code])
-        elif isinstance(step, CodeExecutionResult):
+        elif getattr(step, "kind", None) == "code_execution_result":
             del dump["result"]["output"]
             text = pretty_yaml(dump) + "\n" + step.result.output
         else:
