@@ -41,24 +41,18 @@ make setup
 
 # Examples
 
-In the coming days we will present to you the following examples:
-
-- How to build teams of TapeAgents with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
-- How to finetune a TapeAgent with a small LLM to be better at math problem solving
-- An agent that searches the web and uses code interpreter to answer precise questions. We built this agent to solves tasks from the [GAIA challenge](https://huggingface.co/spaces/gaia-benchmark/leaderboard)
-
-
 The [examples/](examples/) directory contains examples of how to use the TapeAgents framework for building, debugging and improving agents. Each example is a self-contained Python script that demonstrates how to use the framework to build an agent for a specific task.
 
-## Main Examples
-The short list of examples that demonstrate the main aspects of the TapeAgents framework:
+- [intro.ipynb](intro.ipynb) - Quickstart, step by step tutorial that shows you how to build a few agents of increasing complexity and demonstrates the core concepts of the TapeAgents framework.
+- How to build [teams of TapeAgents](examples/data_science.py) with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
+- How to [finetune a TapeAgent](examples/gsm8k_tuning) with a small LLM to be better at math problem solving on GSM-8k dataset.
+- An agent that [does planning, searches the web and uses code interpreter](examples/gaia_agent) to answer precise questions, solving the tasks from the [GAIA benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
 
-- [intro.ipynb](intro.ipynb) - Step by step tutorial that shows you how to build a few agents of increasing complexity and demonstrates the core concepts of the TapeAgents framework.
-- [data_science.py](examples/data_science.py) - data-science oriented multi-agent setup that solve a single data processing task using python.
+Other notable examples that demonstrate the main aspects of the framework:
 - [workarena](examples/workarena) - custom agent that solves WorkArena benchmark using BrowserGym environment.
-- [gaia_agent](examples/gaia_agent) - custom agent that solves Gaia benchmark using planning and a set of tools with web search, documents and media parsers, code execution.
+- [annotator.py](annotator.py) - example of the agent that annotates the existing tape with some score or label.
 - [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
-- [gsm8k_tuning](examples/gsm8k_tuning) - custom agent that solves GSM-8k benchmark, collect tapes and finetune smaller LLaMA model on them.
+- [studio.py](examples/studio.py) - interactive Gradio demo of agent that could be edited in runtime.
 
 
 
