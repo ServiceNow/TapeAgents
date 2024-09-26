@@ -18,7 +18,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
 from .config import DB_DEFAULT_FILENAME
-from .core import LLMOutput, LLMOutput, Prompt, TrainingText
+from .core import LLMOutput, Prompt, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
 
@@ -273,7 +273,7 @@ class TypedVLLM(LLM):
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(config.model_name)
         self.context_size = config.parameters.pop("context_size", 8000)
         self.base_url = config.base_url
-        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN)
+        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
         self._obj_log = {}
 
     def get_prompt_key(self, prompt: Prompt) -> str:
@@ -370,7 +370,7 @@ class LLAMA(CachedLLM):
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
-        self.api_token = str(os.getenv(TAPEAGENTS_LLM_TOKEN))
+        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
@@ -487,7 +487,7 @@ class ReplayLLM(LLM):
                 known_prompts = list(self.outputs.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
                 if score >= 0.7:
-                    logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(prompt_key, closest)}")
+                    logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(closest, prompt_key)}")
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 
@@ -535,9 +535,7 @@ class MockLLM(LLM):
 
 def llama_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
     prompt_text = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=False)
-    output_text = tokenizer.apply_chat_template(
-        [{"role": "assistant", "content": output.content}], tokenize=False
-    )
+    output_text = tokenizer.apply_chat_template([{"role": "assistant", "content": output.content}], tokenize=False)
     if tokenizer.bos_token and output_text.startswith(tokenizer.bos_token):
         output_text = output_text[len(tokenizer.bos_token) :]
     text = f"{prompt_text}{output_text}"

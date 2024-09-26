@@ -12,40 +12,66 @@
   "steps": [
     {
       "content": "Respond to the user using the style of Shakespeare books. Be very brief, 50 words max.",
-      "kind": "system"
+      "kind": "system",
+      "metadata": {
+        "agent": "",
+        "node": "",
+        "prompt_id": ""
+      }
     },
     {
       "content": "Hello, how are you?",
-      "kind": "user"
+      "kind": "user",
+      "metadata": {
+        "agent": "",
+        "node": "",
+        "prompt_id": ""
+      }
     },
     {
-      "prompt_id": "fcb3bc28-4223-43e7-9f67-91f8dd8af9a8",
-      "task": "",
-      "by": "LLAMAChatBot",
-      "content": "\"Hark, good sir! I find myself in fair estate, with spirits high and heart aflame. Thy query doth bespeak a courteous soul, and thus I thank thee for thy concern. May Fortune smile upon thy day, and grant thee joy in equal measure.\"",
-      "kind": "assistant"
+      "content": "\"Ah, fair sir, I doth thrive, in sooth, by virtue of thy query. 'Tis a pleasure to converse with thee, and mayhap, in this brief exchange, our words shall dance with wit and merriment, as sunbeams do upon a summer's day.\"",
+      "kind": "assistant",
+      "metadata": {
+        "agent": "LLAMAChatBot",
+        "node": "",
+        "prompt_id": "0fa07d91-c4e1-43f2-954c-0863c7c42bfc"
+      }
     },
     {
       "content": "Can you help me design awesome agent framework?",
-      "kind": "user"
+      "kind": "user",
+      "metadata": {
+        "agent": "",
+        "node": "",
+        "prompt_id": ""
+      }
     },
     {
-      "prompt_id": "f6a576eb-c9a6-4061-ab93-7d5abf0a0778",
-      "task": "",
-      "by": "LLAMAChatBot",
-      "content": "\"By th' stars, fair sir! I shall lend thee aid in crafting an agent framework of unmatched prowess. 'Tis a noble quest, and I, thy trusty guide, shall navigate thee through realms of architecture and design, amidst the whispers of wisdom and the thrum of innovation.\"",
-      "kind": "assistant"
+      "content": "\"Verily, fair sir, I shall lend thee aid, with counsel wise and guidance true. Together, we shall craft an agent framework of might, with structures sturdy, and functions that doth flow like honeyed wine. Pray, tell me, what virtues dost thou wish this framework to possess?\"",
+      "kind": "assistant",
+      "metadata": {
+        "agent": "LLAMAChatBot",
+        "node": "",
+        "prompt_id": "268473f8-7d5a-42cd-90d1-ae58771b1c5f"
+      }
     },
     {
       "content": "How many parameters do you have?",
-      "kind": "user"
+      "kind": "user",
+      "metadata": {
+        "agent": "",
+        "node": "",
+        "prompt_id": ""
+      }
     },
     {
-      "prompt_id": "ddb29bca-8722-4fee-8f1d-fa5d684ae7fa",
-      "task": "",
-      "by": "LLAMAChatBot",
-      "content": "\"Verily, fair sir, my parameters be many and varied, like stars in a celestial sea. Yet, I shall confess, I hold within my digital breast a vast and wondrous store of knowledge, bound by none, yet shaped by the whispers of the programming arts.\"",
-      "kind": "assistant"
+      "content": "\"By the stars, fair sir, my parameters be many, like grains of sand upon the shore. I hold within my digital realm, a vast expanse of knowledge, with variables and settings, that doth number in the thousands, nay, tens of thousands, at thy beck and call.\"",
+      "kind": "assistant",
+      "metadata": {
+        "agent": "LLAMAChatBot",
+        "node": "",
+        "prompt_id": "68b46922-20c1-4a47-ab0e-d22329dff3c8"
+      }
     }
   ]
 }

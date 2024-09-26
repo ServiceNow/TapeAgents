@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "id": "a46b7903-e92a-4633-8d51-3bbea2453434",
-    "parent_id": "c3730872-acea-48af-a7a3-1f61306b5a38",
+    "id": "4a425e6f-1e7a-4fe6-b84f-24ac7416d1eb",
+    "parent_id": "f31af369-b84d-40be-8ae0-9eb100632514",
     "author": "",
     "author_tape_id": null,
     "n_added_steps": 17,
@@ -11,17 +11,25 @@
   "context": "I am a text with some verbs like running, jumping, and swimming.",
   "steps": [
     {
-      "prompt_id": "786107ab-1a91-489c-b83b-3d72fa2fe2c2",
-      "task": "",
-      "by": "Linguist",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "eff3aaed-9c66-44ef-9487-fcf39a9fd283",
+        "node": "",
+        "agent": "Linguist",
+        "other": {}
+      },
       "kind": "call",
       "content": "",
       "agent_name": "FindNouns"
     },
     {
-      "prompt_id": "7b5438d1-0176-49c6-8b81-3d1c3582bcf3",
-      "task": "",
-      "by": "Linguist/FindNouns",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "33844d48-b7c9-46e8-a20c-ec6a9483a3e2",
+        "node": "",
+        "agent": "Linguist/FindNouns",
+        "other": {}
+      },
       "kind": "all_nouns",
       "nouns": [
         "text",
@@ -29,33 +37,49 @@
       ]
     },
     {
-      "prompt_id": "7b5438d1-0176-49c6-8b81-3d1c3582bcf3",
-      "task": "",
-      "by": "Linguist/FindNouns",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "33844d48-b7c9-46e8-a20c-ec6a9483a3e2",
+        "node": "",
+        "agent": "Linguist/FindNouns",
+        "other": {}
+      },
       "content": "",
       "kind": "respond",
       "copy_output": true
     },
     {
-      "prompt_id": "77f763e9-e79d-455a-833d-7031693b81b0",
-      "task": "",
-      "by": "Linguist",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "b908f8f9-2653-45eb-9e1d-096c99e2f9a5",
+        "node": "",
+        "agent": "Linguist",
+        "other": {}
+      },
       "kind": "call",
       "content": "",
       "agent_name": "FindIrregularVerbs"
     },
     {
-      "prompt_id": "cba63510-8906-4642-8e77-4706e3ebe2ba",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "d7ac2982-51a6-455b-82c6-b0b4c60fc948",
+        "node": "",
+        "agent": "Linguist/FindIrregularVerbs",
+        "other": {}
+      },
       "kind": "call",
       "content": "",
       "agent_name": "FindVerbs"
     },
     {
-      "prompt_id": "1850cf2d-9d7c-4a2c-b976-89d3c45c0c1d",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs/FindVerbs",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "4cdd3cf5-34ac-44ca-8911-333029b3032a",
+        "node": "",
+        "agent": "Linguist/FindIrregularVerbs/FindVerbs",
+        "other": {}
+      },
       "kind": "all_verbs",
       "verbs": [
         "am",
@@ -65,25 +89,37 @@
       ]
     },
     {
-      "prompt_id": "1850cf2d-9d7c-4a2c-b976-89d3c45c0c1d",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs/FindVerbs",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "4cdd3cf5-34ac-44ca-8911-333029b3032a",
+        "node": "",
+        "agent": "Linguist/FindIrregularVerbs/FindVerbs",
+        "other": {}
+      },
       "content": "",
       "kind": "respond",
       "copy_output": true
     },
     {
-      "prompt_id": "f336d194-7fbf-4665-b680-d31b580f910e",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "3c1015c4-6690-4db2-b14b-fe46b4177462",
+        "node": "",
+        "agent": "Linguist/FindIrregularVerbs",
+        "other": {}
+      },
       "kind": "call",
       "content": "",
       "agent_name": "FilterIrregular"
     },
     {
-      "prompt_id": "f336d194-7fbf-4665-b680-d31b580f910e",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "3c1015c4-6690-4db2-b14b-fe46b4177462",
+        "node": "",
+        "agent": "Linguist/FindIrregularVerbs",
+        "other": {}
+      },
       "kind": "all_verbs",
       "verbs": [
         "am",
@@ -93,9 +129,13 @@
       ]
     },
     {
-      "prompt_id": "2272da55-4dd9-44aa-bd14-65c3d571390c",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs/FilterIrregular",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "94189117-d7ef-4f5a-b301-b73a53723f44",
+        "node": "",
+        "agent": "Linguist/FindIrregularVerbs/FilterIrregular",
+        "other": {}
+      },
       "kind": "irregular_verbs",
       "verbs": [
         "be",
@@ -105,33 +145,49 @@
       ]
     },
     {
-      "prompt_id": "2272da55-4dd9-44aa-bd14-65c3d571390c",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs/FilterIrregular",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "94189117-d7ef-4f5a-b301-b73a53723f44",
+        "node": "",
+        "agent": "Linguist/FindIrregularVerbs/FilterIrregular",
+        "other": {}
+      },
       "content": "",
       "kind": "respond",
       "copy_output": true
     },
     {
-      "prompt_id": "ee75dc7c-3c7d-4225-a555-d1e4cf6f3f85",
-      "task": "",
-      "by": "Linguist/FindIrregularVerbs",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "5e1543cd-9d69-461e-957b-609cffc9b6f4",
+        "node": "",
+        "agent": "Linguist/FindIrregularVerbs",
+        "other": {}
+      },
       "content": "",
       "kind": "respond",
       "copy_output": true
     },
     {
-      "prompt_id": "fb05b16e-133b-45a8-af74-dfe14756bbc3",
-      "task": "",
-      "by": "Linguist",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "85b4144f-88a6-4568-b466-00d30a5e2461",
+        "node": "",
+        "agent": "Linguist",
+        "other": {}
+      },
       "kind": "call",
       "content": "",
       "agent_name": "PresentAnalysis"
     },
     {
-      "prompt_id": "fb05b16e-133b-45a8-af74-dfe14756bbc3",
-      "task": "",
-      "by": "Linguist",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "85b4144f-88a6-4568-b466-00d30a5e2461",
+        "node": "",
+        "agent": "Linguist",
+        "other": {}
+      },
       "kind": "all_nouns",
       "nouns": [
         "text",
@@ -139,9 +195,13 @@
       ]
     },
     {
-      "prompt_id": "fb05b16e-133b-45a8-af74-dfe14756bbc3",
-      "task": "",
-      "by": "Linguist",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "85b4144f-88a6-4568-b466-00d30a5e2461",
+        "node": "",
+        "agent": "Linguist",
+        "other": {}
+      },
       "kind": "irregular_verbs",
       "verbs": [
         "be",
@@ -151,16 +211,24 @@
       ]
     },
     {
-      "prompt_id": "7b77c366-6920-4093-8485-168132ee9649",
-      "task": "",
-      "by": "Linguist/PresentAnalysis",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "56160089-39b4-4e92-beb8-61c82f6f2ba7",
+        "node": "",
+        "agent": "Linguist/PresentAnalysis",
+        "other": {}
+      },
       "kind": "present_results",
-      "content": "What a fascinating text we have before us! Based on my analysis, I'd like to offer some observations about the style of this text.\n\nFirstly, the presence of nouns like \"text\" and \"verbs\" suggests that the author is quite self-aware and reflective about the nature of language itself. This meta-linguistic bent implies that the text may be more abstract and philosophical in tone, with the author exploring the very fabric of communication.\n\nFurthermore, the selection of irregular verbs such as \"be\", \"run\", \"jump\", and \"swim\" reveals a few interesting characteristics about the author's writing style. The inclusion of \"be\", a linking verb that connects subjects to predicates, hints at a more introspective and contemplative tone. The presence of dynamic verbs like \"run\", \"jump\", and \"swim\", on the other hand, suggests a sense of energy and action, which may indicate that the text also contains elements of excitement, movement, or even playfulness.\n\nGiven these findings, I would venture to say that the style of this text is likely to be a unique blend of introspection and dynamism. The author may be using language to explore abstract concepts while still infusing the text with a sense of vitality and movement. Overall, I'm excited to delve deeper into the text and uncover the ways in which these linguistic features come together to create a rich and engaging narrative."
+      "content": "The text before us! A fascinating specimen of language, don't you think? As a linguist, I've had the pleasure of delving into its depths, and I must say, the findings are quite intriguing.\n\nOne of the first things that struck me was the prevalence of concrete, tangible nouns. The text is peppered with words like \"text\" itself, which suggests a focus on the written word, on the physical manifestation of language. This tells me that the author is likely concerned with the nuts and bolts of communication, with the way words are arranged on a page to convey meaning.\n\nBut what's equally interesting is the selection of irregular verbs that appear throughout the text. \"Be\", \"run\", \"jump\", and \"swim\" are all verbs that don't follow the usual patterns of conjugation, and this irregularity speaks to a certain playfulness, a willingness to break free from the constraints of traditional grammar. This suggests that the author is not afraid to take risks, to push the boundaries of language to create a unique voice.\n\nTogether, these elements paint a picture of an author who is both grounded and experimental, someone who values the building blocks of language while also seeking to subvert them. The result is a style that is at once accessible and innovative, a true delight to read and analyze."
     },
     {
-      "prompt_id": "7b77c366-6920-4093-8485-168132ee9649",
-      "task": "",
-      "by": "Linguist/PresentAnalysis",
+      "metadata": {
+        "id": "2e9bb2ff-5596-4680-b10c-d34109c87c3d",
+        "prompt_id": "56160089-39b4-4e92-beb8-61c82f6f2ba7",
+        "node": "",
+        "agent": "Linguist/PresentAnalysis",
+        "other": {}
+      },
       "content": "",
       "kind": "respond",
       "copy_output": true

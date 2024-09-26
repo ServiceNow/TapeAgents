@@ -36,7 +36,7 @@ def mock_llm(run_dir: str) -> LLM:
     llama = LLAMA(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
-        tokenizer_name="tests/res/meta_llama_3_70b_tokenizer",
+        tokenizer_name="tests/res/tokenizer/meta_llama_3_70b_tokenizer",
         parameters=dict(temperature=0.7, max_tokens=512),
     )
     return ReplayLLM.from_llm(llama, run_dir)
@@ -91,8 +91,8 @@ def test_llama_agent_traces():
         traces = agent.make_training_data(tape)
         assert len(traces) == len(orig_traces), f"Expected {len(orig_traces)} traces, got {len(traces)}"
         for trace, orig_trace in zip(traces, orig_traces):
-            assert trace.prompt_str == orig_trace.prompt_str
-            assert trace.output_str == orig_trace.output_str
+            assert trace.prompt_text == orig_trace.prompt_text
+            assert trace.output_text == orig_trace.output_text
 
 
 def test_llama_agent_tape_reuse():
@@ -108,7 +108,7 @@ def test_llama_agent_tape_reuse():
             for reused_step, step in zip(reused_tape, tape):
                 if isinstance(step, AgentStep):
                     assert isinstance(reused_step, AgentStep)
-                    assert reused_step.prompt_id != step.prompt_id
+                    assert reused_step.metadata.prompt_id != step.metadata.prompt_id
             traces_from_logs = [
                 agent.make_training_text(llm_call) for llm_call in retrieve_tape_llm_calls(reused_tape).values()
             ]
@@ -116,8 +116,8 @@ def test_llama_agent_tape_reuse():
             for traces in [traces_from_logs, direct_traces]:
                 assert len(traces) == len(orig_traces), f"Expected {len(orig_traces)} traces, got {len(traces)}"
                 for trace, orig_trace in zip(traces, orig_traces):
-                    assert trace.prompt_str == orig_trace.prompt_str
-                    assert trace.output_str == orig_trace.output_str
+                    assert trace.prompt_text == orig_trace.prompt_text
+                    assert trace.output_text == orig_trace.output_text
 
 
 def test_gaia_agent():

@@ -15,8 +15,8 @@ from .core import (
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
-    LLMOutput,
     LLMCall,
+    LLMOutput,
     MakeObservation,
     ObservationMakerTapeType,
     PartialStep,
@@ -63,7 +63,7 @@ StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | Parti
 class Node(BaseModel):
     """
     A node in the agent's flow.
-    The node is correspond to some state of the tape, has a name and contains 2 main functions:
+    The node corresponds to some state of the tape, has a name and contains 2 main functions:
      - one to make a prompt out of the tape
      - one to generate steps out of the received llm output
     """
@@ -183,9 +183,8 @@ class Agent(BaseModel, Generic[TapeType]):
     @classmethod
     def create(
         cls,
-        llms: dict[str, LLM] | LLM | None = {},
-        subagents: list[Agent[TapeType]] | None = [],
-        templates: dict[str, str] | str | None = {},
+        llms: dict[str, LLM] | LLM | None = None,
+        templates: dict[str, str] | str | None = None,
         **kwargs,
     ) -> Self:
         """The user-friendly way to create an agent that flexible-typed inputs.
@@ -197,21 +196,7 @@ class Agent(BaseModel, Generic[TapeType]):
             llms = {DEFAULT: llms}
         if isinstance(templates, str):
             templates = {DEFAULT: templates}
-        if subagents:
-            subagents = list(subagents)
-        if templates:
-            templates = dict(templates)
-        extra_kwargs = {
-            k: v
-            for k, v in {
-                "llms": llms,
-                "subagents": subagents,
-                "templates": templates,
-            }.items()
-            if v is not None
-        }
-
-        return cls(**(extra_kwargs | kwargs))
+        return cls(llms=llms or {}, templates=templates or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
         """
@@ -273,11 +258,17 @@ class Agent(BaseModel, Generic[TapeType]):
         return self.select_node(tape[:index]).make_llm_output(self, tape, index)
 
     def delegate(self, tape: TapeType) -> Agent[TapeType]:
-        view = self.compute_view(tape)
-        result = self
-        for frame in view.stack[1:]:
-            result = result.find_subagent(frame.agent_name)
-        return result
+        """
+        Recursively find the subagent that should run based on the current state of the tape.
+
+        :param tape: the tape to make the decision on
+        :return: the subagent to run
+        """
+        views = self.compute_view(tape)
+        subagent = self
+        for view in views.stack[1:]:
+            subagent = subagent.find_subagent(view.agent_name)
+        return subagent
 
     def is_agent_step(self, step: Step) -> bool:
         """Check if the step was produced by the agent or by the environment."""
@@ -286,6 +277,14 @@ class Agent(BaseModel, Generic[TapeType]):
     def should_stop(self, tape: TapeType) -> bool:
         """Check if the agent should stop its turn and wait for observations."""
         return isinstance(tape.steps[-1], Action)
+
+    def get_node_name(self, tape: TapeType) -> str:
+        idx = self.compute_view(tape).top.next_node
+        try:
+            name = self.flow[idx].name
+        except IndexError:
+            name = ""
+        return name
 
     def run_iteration(
         self, tape: TapeType, llm_stream: LLMStream | None = None
@@ -300,19 +299,19 @@ class Agent(BaseModel, Generic[TapeType]):
         reuses a tape.
 
         """
-        new_steps = []
+        node_name = self.get_node_name(tape)
         if llm_stream is None:
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:
                 raise NotImplementedError("TODO: implement LLM choice in the prompt")
             llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
-        for item in self.generate_steps(tape, llm_stream):
-            if isinstance(item, AgentStep):
-                item.prompt_id = llm_stream.prompt.id
-                yield item
-                new_steps.append(item)
+        for step in self.generate_steps(tape, llm_stream):
+            if isinstance(step, AgentStep):
+                step.metadata.prompt_id = llm_stream.prompt.id
+                step.metadata.node = node_name
+                yield step
             else:
-                yield item
+                yield step
 
     def run(self, tape: TapeType) -> AgentStream[TapeType]:
         """
@@ -326,13 +325,13 @@ class Agent(BaseModel, Generic[TapeType]):
             stop = False
             while n_iterations < self.max_iterations and not stop:
                 current_subagent = self.delegate(tape)
-                for item in current_subagent.run_iteration(tape):
-                    if isinstance(item, PartialStep):
-                        yield AgentEvent(partial_step=item)
-                    elif isinstance(item, AgentStep):
-                        item.by = current_subagent.full_name
-                        tape = tape.append(item)
-                        yield AgentEvent(step=item, partial_tape=tape)
+                for step in current_subagent.run_iteration(tape):
+                    if isinstance(step, PartialStep):
+                        yield AgentEvent(partial_step=step)
+                    elif isinstance(step, AgentStep):
+                        step.metadata.agent = current_subagent.full_name
+                        tape = tape.append(step)
+                        yield AgentEvent(step=step, partial_tape=tape)
                         if self.should_stop(tape):
                             stop = True
                     else:

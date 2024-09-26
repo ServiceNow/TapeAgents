@@ -11,27 +11,31 @@
   "context": "I am a text with some verbs like running, jumping, and swimming.",
   "steps": [
     {
-      "prompt_id": "84d0de06-d4d0-4901-8d85-9aa8938f1650",
-      "task": "",
-      "by": "FindIrregularVerbs/FindVerbs",
       "kind": "all_verbs",
       "verbs": [
         "am",
         "running",
         "jumping",
         "swimming"
-      ]
+      ],
+      "metadata": {
+        "agent": "FindIrregularVerbs/FindVerbs",
+        "node": "",
+        "prompt_id": "84d0de06-d4d0-4901-8d85-9aa8938f1650"
+      }
     },
     {
-      "prompt_id": "c04bb451-fe1b-41fd-a44a-4c77fbdda3fe",
-      "task": "",
-      "by": "FindIrregularVerbs/FilterIrregular",
       "kind": "irregular_verbs",
       "verbs": [
         "be",
         "jump",
         "swim"
-      ]
+      ],
+      "metadata": {
+        "agent": "FindIrregularVerbs/FilterIrregular",
+        "node": "",
+        "prompt_id": "c04bb451-fe1b-41fd-a44a-4c77fbdda3fe"
+      }
     }
   ]
 }

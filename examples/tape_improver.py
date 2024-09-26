@@ -5,7 +5,6 @@ from typing import Any, Literal
 
 from tapeagents.agent import Agent
 from tapeagents.chain import Chain
-from tapeagents.team import TeamTape
 from tapeagents.core import (
     Action,
     AgentStep,
@@ -18,14 +17,15 @@ from tapeagents.core import (
 from tapeagents.llms import LLM, LiteLLM, LLMStream
 from tapeagents.observe import observe_tape
 from tapeagents.rendering import PrettyRenderer
+from tapeagents.team import TeamTape
 from tapeagents.view import Call, Respond
 
 from examples.data_science import make_renderers
 from examples.data_science import make_world as data_science_make_world
 
-MUST_BE_JSON = """Output ONLY the JSON in the requested format. Do not output any text before or after JSON. Do not output triple quotes before or after JSON."""
+MUST_BE_JSON: str = """Output ONLY the JSON in the requested format. Do not output any text before or after JSON. Do not output triple quotes before or after JSON."""
 
-CONTEXT_TAPE_PREFIX = """You are observing a history of a team of AI agents working together. We will refer to this history as 'tape'. The tape
+CONTEXT_TAPE_PREFIX: str = """You are observing a history of a team of AI agents working together. We will refer to this history as 'tape'. The tape
 consists of steps taken by different agents. The steps may include reasoning thoughts, messages to each other, as well as 
 observations coming from the environment. The steps by the agents on the team all have a 'by' attribute with the hierarchical name of the agent. 
 As the agent are arranged in an hierarchy, the 'by' attribute also includes of the parents of the agents. Here's the tape:
@@ -121,12 +121,13 @@ def improver_tape_view(tape: Tape) -> str:
         data.append(step.llm_dict())
         data[-1]["index"] = index
         if isinstance(step, AgentStep):
-            data[-1]["by"] = step.by
+            data[-1]["metadata"] = {"agent": step.metadata.agent}
     return json.dumps(data, indent=2)
 
 
 class AgentSelector(Agent):
     def make_prompt(self, tape: CodeImproverTape) -> Prompt:
+        assert tape.context is not None
         usr_msg = CONTEXT_TAPE_PREFIX.format(context_tape=improver_tape_view(tape.context))
         usr_msg += SELECT_AGENT_SUFFIX
         usr_msg += MUST_BE_JSON
@@ -142,6 +143,7 @@ class StepSelector(Agent):
         assert isinstance(select_step := tape.steps[-1], SelectAgent)
         if select_step.agent_name is None:
             return Prompt()
+        assert tape.context is not None
         usr_msg = CONTEXT_TAPE_PREFIX.format(context_tape=improver_tape_view(tape.context))
         usr_msg += SELECT_STEP_SUFFIX.format(agent_name=select_step.agent_name)
         usr_msg += MUST_BE_JSON
@@ -160,6 +162,7 @@ class StepRewriter(Agent):
         assert isinstance(select_step := tape.steps[-1], SelectStep)
         if select_agent.agent_name is None or select_step.step_index is None:
             return Prompt()
+        assert tape.context is not None
         usr_msg = CONTEXT_TAPE_PREFIX.format(context_tape=improver_tape_view(tape.context))
         usr_msg += REWRITE_STEP_SUFFIX.format(
             agent_name=select_agent.agent_name,
@@ -177,6 +180,8 @@ class StepRewriter(Agent):
         assert select_step.step_index is not None
         try:
             new_step = tape.context.steps[select_step.step_index].model_validate(data)
+            # deterministic step id to make this example testable
+            new_step.metadata.id = '123'
             yield RewriteStep(step_index=select_step.step_index, new_step=new_step)
         except Exception as e:
             yield StepParsingError(error=str(e))

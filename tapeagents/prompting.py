@@ -9,23 +9,24 @@ def step_to_message(step: Step, agent: Agent | None = None) -> dict[str, str]:
     
     name = None
     content = step.llm_dict()
+    content.pop("kind")
     match step:
         case SystemStep():
             role = "system"
         case ToolResult():
             role = "tool"
-        case Call() if step.by == agent.full_name: # type: ignore
+        case Call() if step.metadata.agent == agent.full_name: # type: ignore
             role = "assistant"
             content["content"] = f"Call {step.agent_name} with the message '{step.content}'" 
         case Call():
             role = "user"
-            name = step.by.split("/")[-1]
+            name = step.metadata.agent.split("/")[-1]
         case Respond():
             # use this prompt-making utility only for agents that respond only once,
             # agents that do not have a conversation history
-            assert step.by != agent.full_name # type: ignore
+            assert step.metadata.agent != agent.full_name # type: ignore
             role = "user"
-            name = step.by.split("/")[-1]
+            name = step.metadata.agent.split("/")[-1]
         case AgentStep():
             role = "assistant"
         case Observation():

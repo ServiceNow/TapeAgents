@@ -34,12 +34,7 @@ class PageObservation(WorkArenaObservation):
     text: str
     current_page: int
     total_pages: int
-    screenshot_path: str = ""
-    env_finished: bool = False
     last_action_error: str = ""
-
-    def llm_dict(self) -> dict[str, Any]:
-        return self.model_dump(exclude={"prompt_id", "screenshot_path", "env_finished"}, exclude_none=True)
 
 
 class ReasoningThought(WorkArenaThought):

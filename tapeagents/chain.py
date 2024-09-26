@@ -20,7 +20,7 @@ class CallChainAgentNode(Node):
         view = TapeViewStack.compute(tape)
         yield Call(agent_name=self.agent_name)
         for input_ in self.inputs:
-            yield view.top.get_output(input_).model_copy()
+            yield view.top.get_output(input_).model_copy(deep=True)
 
 
 class RespondIfNotRootNode(Node):
