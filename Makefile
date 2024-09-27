@@ -36,3 +36,6 @@ clean:
 update-intro:
 	cp examples/intro_clean.ipynb intro.ipynb
 	$(CONDA) run --name ${ENV_NAME} jupyter execute --inplace intro.ipynb
+
+clean-intro:
+	$(CONDA) run --name ${ENV_NAME} jupyter nbconvert intro.ipynb --output=examples/intro_clean.ipynb --to notebook --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
