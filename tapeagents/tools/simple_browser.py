@@ -276,9 +276,9 @@ class SimpleTextBrowser:
         if self.only_cached_webpages:
             ratios = [(k, ratio(query, k, score_cutoff=0.5)) for k in self._cache.keys()]
             if not len(ratios):
-                raise FatalError(f"No similar cache for {query}")
+                raise FatalError(f'No cache for "{query}"')
             closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
-            raise FatalError(f'No cache for "{query}"\nClosest is "{closest}"\nWith score {score}')
+            raise FatalError(f'No cache for "{query}". Closest with score {score}:\n"{closest}"')
         if self.tavily is not None:
             serp = self.tavily.search(query=query, search_depth="basic", max_results=max_results) or {"results": []}
             results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
