@@ -18,7 +18,6 @@ from tapeagents.llms import LLM, LiteLLM, LLMStream
 from tapeagents.observe import observe_tape
 from tapeagents.rendering import PrettyRenderer
 from tapeagents.team import TeamTape
-from tapeagents.utils import run_in_tmp_dir_to_make_test_data
 from tapeagents.view import Call, Respond
 
 from .data_science import make_renderers
@@ -136,7 +135,7 @@ class AgentSelector(Agent):
 
     def generate_steps(self, tape: CodeImproverTape, llm_stream: LLMStream):
         yield SelectAgent.model_validate_json(llm_stream.get_text())
-        yield Respond()
+        yield Respond(copy_output=True)
 
 
 class StepSelector(Agent):
@@ -154,7 +153,7 @@ class StepSelector(Agent):
         if not llm_stream:
             yield FinalStep()
         yield SelectStep.model_validate_json(llm_stream.get_text())
-        yield Respond()
+        yield Respond(copy_output=True)
 
 
 class StepRewriter(Agent):
@@ -181,6 +180,8 @@ class StepRewriter(Agent):
         assert select_step.step_index is not None
         try:
             new_step = tape.context.steps[select_step.step_index].model_validate(data)
+            # deterministic step id to make this example testable
+            new_step.metadata.id = '123'
             yield RewriteStep(step_index=select_step.step_index, new_step=new_step)
         except Exception as e:
             yield StepParsingError(error=str(e))
@@ -254,9 +255,8 @@ if __name__ == "__main__":
             main("studio agent")
         case ["studio", "improver"]:
             main("studio improver")
-        case ["make_test_data"]:
-            with run_in_tmp_dir_to_make_test_data("tape_improver"):
-                main("run improver")
+        case ["run", "improver"]:
+            main("run improver")
         case _:
             # print usage and exit
             print("Usage: python -m examples.data_science [studio agent] [studio improver]")

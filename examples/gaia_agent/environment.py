@@ -40,7 +40,8 @@ class GaiaEnvironment(Environment):
                     case SearchAction():
                         if "web" not in action.source and "wiki" not in action.source:
                             raise ValueError(f"Supported sources are 'web' and 'wiki', got {action.source}")
-                        serp = self.browser.websearch(action.query, source=action.source)
+                        query = f"site:wikipedia.org {action.query}" if "wiki" in action.source else action.query
+                        serp = self.browser.get_search_results(query)
                         tape = tape.append(SearchResultsObservation(query=action.query, serp=serp))
                     case ReadDocumentAction():
                         text, current_page, total_pages = self.browser.get_page(action.url)

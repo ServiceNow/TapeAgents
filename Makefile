@@ -14,7 +14,7 @@ env:
 	$(CONDA) create --name $(ENV_NAME) python=$(PYTHON_VERSION) --yes
 
 install:
-	$(CONDA) run --name $(ENV_NAME) pip install -r ./requirements.txt -r ./requirements-dev.txt -r ./requirements-finetune.txt -r ./requirements-converters.txt
+	$(CONDA) run --name $(ENV_NAME) pip install -r ./requirements.txt -r ./requirements.dev.txt -r ./requirements.finetune.txt -r ./requirements.converters.txt
 	$(CONDA) run --name $(ENV_NAME) pip install -e .
 
 lint:
@@ -32,3 +32,7 @@ test-all:
 clean:
 	$(CONDA) env remove --name $(ENV_NAME) --yes
 	$(CONDA) clean --all --yes
+
+update-intro:
+	cp examples/intro_clean.ipynb intro.ipynb
+	$(CONDA) run --name ${ENV_NAME} jupyter execute --inplace intro.ipynb

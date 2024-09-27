@@ -358,7 +358,7 @@ class TypedVLLM(LLM):
 
 
 class LLAMA(CachedLLM):
-    """Talk to HF TGI serving LLAMA using OpenAI API.
+    """Talk to TGI or VLLM endpoints serving LLAMA (or another HF based model) using OpenAI API.
 
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
@@ -366,7 +366,7 @@ class LLAMA(CachedLLM):
     """
 
     base_url: str
-    api_token: str = ""
+    api_token: str = Field(default="", exclude=True)
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -502,6 +502,8 @@ class ReplayLLM(LLM):
 
 def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, float]:
     ratios = [(k, ratio(prompt_key, k, score_cutoff=0.5)) for k in known_prompts]
+    if not len(ratios):
+        return "", 0.0
     ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
     closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
     return closest, score

@@ -40,6 +40,9 @@ def get_tavily_key():
         raise ValueError("TAVILY_API_KEY environment variable must be set.")
 
 
+_FORCE_CACHE_PATH = None  # For testing purposes only
+
+
 class SimpleTextBrowser:
     """An extremely simple text-based web browser suitable for Agentic use."""
 
@@ -93,6 +96,10 @@ class SimpleTextBrowser:
         self._cache = {}
         self._log = {}
         self._cache_filename = "web_cache.json"
+        if _FORCE_CACHE_PATH:
+            self._cache_filename = _FORCE_CACHE_PATH
+            self.only_cached_webpages = True
+            assert os.path.exists(self._cache_filename), "Forced cache file not found"
         if os.path.exists(self._cache_filename):
             with open(self._cache_filename) as f:
                 self._cache = json.load(f)
@@ -110,8 +117,6 @@ class SimpleTextBrowser:
         # Handle special URIs
         if uri_or_path == "about:blank":
             self._set_page_content("")
-        elif uri_or_path.startswith("search:"):
-            self._search(uri_or_path[len("search:") :].strip())
         else:
             if (
                 not uri_or_path.startswith("http:")
@@ -258,34 +263,22 @@ class SimpleTextBrowser:
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _search(self, query: str) -> None:
-        results = self.get_search_results(query)
-
-        def _prev_visit(url):
-            for i in range(len(self.history) - 1, -1, -1):
-                if self.history[i][0] == url:
-                    # Todo make this more human-friendly
-                    return f"You previously visited this page {round(time.time() - self.history[i][1])} seconds ago.\n"
-            return ""
-
-        web_snippets: List[str] = list()
-        idx = 0
-        for page in results:
-            title = page["title"]
-            _url = page["url"]
-            description = page["content"]
-            idx += 1
-            web_snippets.append(f"{idx}. [{title}]({_url})\n{_prev_visit(_url)}{description}")
-
-        self.page_title = f"{query} - Search"
-
-        content = f"Search for '{query}' found {len(web_snippets)} results:\n\n## Web Results\n" + "\n\n".join(
-            web_snippets
-        )
-
-        self._set_page_content(content)
-
     def get_search_results(self, query: str, max_results: int = 5) -> list[dict]:
+        """Get search results for the query.
+
+        Return list of dictionaries with keys 'title', 'url', and 'content'.
+
+        """
+        if self.use_web_cache and query in self._cache:
+            logger.info(colored(f"Cache hit for search {query}", "green"))
+            self._log[query] = self._cache[query]
+            return self._cache[query][:max_results]
+        if self.only_cached_webpages:
+            ratios = [(k, ratio(query, k, score_cutoff=0.5)) for k in self._cache.keys()]
+            if not len(ratios):
+                raise FatalError(f'No cache for "{query}"')
+            closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
+            raise FatalError(f'No cache for "{query}". Closest with score {score}:\n"{closest}"')
         if self.tavily is not None:
             serp = self.tavily.search(query=query, search_depth="basic", max_results=max_results) or {"results": []}
             results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
@@ -294,6 +287,7 @@ class SimpleTextBrowser:
                 {"title": r.title, "url": r.url, "content": r.description}
                 for r in search(query, advanced=True, num_results=max_results)
             ]
+        self._add_to_cache(query, results)
         return results[:max_results]
 
     def _fetch_page(self, url: str) -> None:
@@ -409,23 +403,6 @@ class SimpleTextBrowser:
         with open(self._cache_filename, "w") as f:
             json.dump(self._cache, f)
 
-    def websearch(self, query: str, source: str = "") -> list[dict]:
-        if "wiki" in source:
-            query = f"site:wikipedia.org {query}"
-        if self.use_web_cache and query in self._cache:
-            print(colored(f"Cache hit for search {query}", "green"))
-            self._log[query] = self._cache[query]
-            return self._cache[query]
-        if self.only_cached_webpages:
-            ratios = [(k, ratio(query, k, score_cutoff=0.5)) for k in self._cache.keys()]
-            ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
-            closest = ratios[0][0]
-            score = ratios[0][1]
-            raise FatalError(f'No cache for "{query}"\nClosest is "{closest}"\nWith score {score}')
-        result = self.get_search_results(query)
-        self._add_to_cache(query, result)
-        return result
-
     def get_page(self, url: str) -> tuple[str, int, int]:
         """
         Load web page and return content of its first viewport (first screen), current page number and total number of pages.
@@ -460,6 +437,9 @@ class SimpleTextBrowser:
         )
 
     def get_next_page(self) -> tuple[str, int, int]:
+        """
+        Load next page of the document and return the current content of the viewport, current page number and total number of pages.
+        """
         if self.viewport_current_page + 1 == len(self.viewport_pages):
             raise ValueError("No more pages to read.")
         self.page_down()

@@ -19,6 +19,8 @@ def test_intro_notebook():
                 f"""
                 from tapeagents import llms
                 llms._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
+                from tapeagents.tools import simple_browser
+                simple_browser._FORCE_CACHE_PATH = "{res_dir}/intro_notebook/web_cache.json"
                 """,
                 before=0,
             )

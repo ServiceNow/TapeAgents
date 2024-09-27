@@ -9,6 +9,7 @@ from litellm.utils import Function
 from pydantic import TypeAdapter
 
 from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
+from tapeagents.utils import FatalError
 
 from .agent import TapeType
 from .core import Action, Observation, Prompt, Tape
@@ -27,6 +28,13 @@ class ExternalObservationNeeded(Exception):
 
     def __str__(self) -> str:
         return f"Environment needs external observation for action {self.action}"
+
+
+class NoActionsToReactTo(Exception):
+    """Environments raise this when there are no actions to react to"""
+
+    def __init__(self, *args, **wargs):
+        super().__init__(*args, **wargs)
 
 
 class Environment(ABC, Generic[TapeType]):
@@ -121,7 +129,7 @@ class ToolEnvironment(Environment):
             if isinstance(tape.steps[i], Action):
                 orphan_actions.append(tape.steps[i])
         if not orphan_actions:
-            raise ValueError("No actions to react to")
+            raise NoActionsToReactTo("No actions to react to")
         for action in orphan_actions:
             if isinstance(action, ToolCalls):
                 for tc in action.tool_calls:
@@ -131,6 +139,8 @@ class ToolEnvironment(Environment):
                     args = json.loads(tc.function.arguments)
                     try:
                         content = str(tool.run(tool_input=args))
+                    except FatalError as e:
+                        raise e
                     except Exception as e:
                         content = str(e)
                     tape = tape.append(ToolResult(content=content, tool_call_id=tc.id))

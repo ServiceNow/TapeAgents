@@ -62,7 +62,7 @@ StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | Parti
 
 class Node(BaseModel):
     """
-    A node in the agent's flow.
+    A node in the agent.
     The node corresponds to some state of the tape, has a name and contains 2 main functions:
      - one to make a prompt out of the tape
      - one to generate steps out of the received llm output
@@ -119,9 +119,9 @@ class Agent(BaseModel, Generic[TapeType]):
     # https://github.com/pydantic/pydantic/issues/9969
     subagents: list[Any] = []
     templates: dict[str, str] = {}
-    flow: list[SerializeAsAny[Node]] = Field(
+    nodes: list[SerializeAsAny[Node]] = Field(
         default_factory=lambda: [],
-        description="List of nodes in the agent's flow, order of the list used to determine the prioirty during activation",
+        description="List of nodes in the agent, order of the list used to determine the prioirty during activation",
     )
     max_iterations: int = 100
 
@@ -179,7 +179,12 @@ class Agent(BaseModel, Generic[TapeType]):
 
     def get_subagent_names(self) -> list[str]:
         return [agent.name for agent in self.subagents]
-
+    
+    def clone(self) -> Self:
+        result = self.model_copy(deep=True)
+        result._manager = None
+        return result
+        
     @classmethod
     def create(
         cls,
@@ -233,7 +238,7 @@ class Agent(BaseModel, Generic[TapeType]):
         :param tape: the tape to make the decision on
         :return: the node to run next
         """
-        return self.flow[self.compute_view(tape).top.next_node]
+        return self.nodes[self.compute_view(tape).top.next_node]
 
     def make_prompt(self, tape: TapeType) -> Prompt:
         """Make the prompt for the next iteration of the agent.
@@ -281,7 +286,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def get_node_name(self, tape: TapeType) -> str:
         idx = self.compute_view(tape).top.next_node
         try:
-            name = self.flow[idx].name
+            name = self.nodes[idx].name
         except IndexError:
             name = ""
         return name
