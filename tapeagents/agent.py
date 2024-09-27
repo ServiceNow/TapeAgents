@@ -179,7 +179,12 @@ class Agent(BaseModel, Generic[TapeType]):
 
     def get_subagent_names(self) -> list[str]:
         return [agent.name for agent in self.subagents]
-
+    
+    def clone(self) -> Self:
+        result = self.model_copy(deep=True)
+        result._manager = None
+        return result
+        
     @classmethod
     def create(
         cls,
