@@ -502,6 +502,8 @@ class ReplayLLM(LLM):
 
 def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, float]:
     ratios = [(k, ratio(prompt_key, k, score_cutoff=0.5)) for k in known_prompts]
+    if not len(ratios):
+        return "", 0.0
     ratios = sorted(ratios, key=lambda x: x[1], reverse=True)
     closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
     return closest, score

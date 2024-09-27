@@ -20,23 +20,17 @@ class MainLoopStatus(enum.Enum):
     NO_ACTIONS = "no_actions"
     EXTERNAL_INPUT_NEEDED = "external_input_needed"
     UNKNOWN_ACTION = "unknown_action"
-    
+
 
 class MainLoopEvent(BaseModel, Generic[TapeType]):
     # TODO: validate that event must have only either the agent or the environment data
-    agent_event: AgentEvent[TapeType] | None = Field(
-        default=None, description="Propagates all the agent events"
-    )
-    agent_tape: TapeType | None = Field(
-        default=None, description="The tape after agent.run()")
+    agent_event: AgentEvent[TapeType] | None = Field(default=None, description="Propagates all the agent events")
+    agent_tape: TapeType | None = Field(default=None, description="The tape after agent.run()")
     observation: Observation | None = Field(
         default=None, description="One of the observations produced by environment.react()"
     )
-    env_tape: TapeType | None = Field(
-        default=None, description="The tape after environment.react()"
-    )
+    env_tape: TapeType | None = Field(default=None, description="The tape after environment.react()")
     status: MainLoopStatus = MainLoopStatus.OK
-    
 
 
 class MainLoopStream(Generic[TapeType]):
@@ -55,7 +49,7 @@ class MainLoopStream(Generic[TapeType]):
         if self.generator is None:
             raise StopIteration
         return next(self.generator)
-    
+
     def agent_events(self) -> Generator[AgentEvent[TapeType], None, None]:
         for event in self:
             if event.agent_event:
@@ -109,7 +103,7 @@ def main_loop(
             assert event and event.final_tape
             agent_tape = event.final_tape
             yield MainLoopEvent(agent_tape=agent_tape)
-            
+
             # --- RUN THE ENVIRONMENT ---
             if isinstance(agent_tape.steps[-1], FinalStep):
                 logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
@@ -123,11 +117,11 @@ def main_loop(
             except ExternalObservationNeeded as e:
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
-            for observation in tape[len(agent_tape):]:
+            for observation in tape[len(agent_tape) :]:
                 logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
                 yield MainLoopEvent(observation=observation)
             yield MainLoopEvent[TapeType](env_tape=tape)
-            
+
             # --- REPEAT ---
             n_loops += 1
 
