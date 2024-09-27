@@ -32,3 +32,7 @@ test-all:
 clean:
 	$(CONDA) env remove --name $(ENV_NAME) --yes
 	$(CONDA) clean --all --yes
+
+update-intro:
+	cp examples/intro_clean.ipynb intro.ipynb
+	$(CONDA) run --name ${ENV_NAME} jupyter execute --inplace intro.ipynb
