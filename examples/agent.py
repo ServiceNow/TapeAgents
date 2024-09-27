@@ -3,7 +3,7 @@ import sys
 from tapeagents.agent import Agent, Node
 from tapeagents.core import SetNextNode, Prompt, Tape
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, UserStep
-from tapeagents.llms import LLAMA, LLM, LLMStream
+from tapeagents.llms import TrainableLLM, LLM, LLMStream
 
 
 def hello_world(llm: LLM):
@@ -92,7 +92,7 @@ def classy_hello_world(llm: LLM):
 
 
 if __name__ == "__main__":
-    llm = LLAMA(
+    llm = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
         tokenizer_name="meta-llama/Meta-Llama-3-70B-Instruct",

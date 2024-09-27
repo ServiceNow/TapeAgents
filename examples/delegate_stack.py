@@ -14,7 +14,7 @@ from tapeagents.core import (
     Tape,
     Thought,
 )
-from tapeagents.llms import LLAMA, LLM, LLMStream
+from tapeagents.llms import TrainableLLM, LLM, LLMStream
 from tapeagents.view import Call, Respond, TapeViewStack
 
 EXAMPLE_TEXT = """I am a text with some verbs like running, jumping, and swimming."""
@@ -224,7 +224,7 @@ def make_analyze_text_chain(llm: LLM):
 
 
 def main():
-    llama = LLAMA(
+    llama = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
         tokenizer_name="meta-llama/Meta-Llama-3-70B-Instruct",

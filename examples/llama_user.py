@@ -9,7 +9,7 @@ from tapeagents.dialog_tape import (
     UserModelTape,
     UserStep,
 )
-from tapeagents.llms import LLAMA, LLMStream
+from tapeagents.llms import TrainableLLM, LLMStream
 
 USER_MODEL_TEMPLATE = """You will generate the next user message in the following conversation.
 
@@ -45,7 +45,7 @@ class LLAMAUserModel(UserModel):
         return json.dumps({"model": "llama", "prompt": self.instruction})
 
 
-def try_llama_user_model(llm: LLAMA):
+def try_llama_user_model(llm: TrainableLLM):
     tape = DialogTape(
         context=None,
         steps=[
@@ -82,7 +82,7 @@ def try_llama_user_model(llm: LLAMA):
 
 if __name__ == "__main__":
     try_llama_user_model(
-        LLAMA(
+        TrainableLLM(
             base_url="https://api.together.xyz",
             model_name="meta-llama/Llama-3-8b-chat-hf",
             parameters=dict(temperature=0.7, max_tokens=512),

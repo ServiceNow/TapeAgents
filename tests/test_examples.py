@@ -21,7 +21,7 @@ from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
-from tapeagents.llms import LLAMA, LLM, ReplayLLM
+from tapeagents.llms import TrainableLLM, LLM, ReplayLLM
 from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls
 from tapeagents.runtime import replay_tape, replay_tapes
 from tapeagents.team import TeamTape
@@ -33,7 +33,7 @@ res_path = Path(__file__).parent.resolve() / "res"
 
 
 def mock_llm(run_dir: str) -> LLM:
-    llama = LLAMA(
+    llama = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
         tokenizer_name="meta-llama/Meta-Llama-3-70B-Instruct",

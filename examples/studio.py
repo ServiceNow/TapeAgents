@@ -3,7 +3,7 @@ import sys
 
 from tapeagents.studio import Studio
 from tapeagents.dialog_tape import DialogTape, SystemStep, UserStep
-from tapeagents.llms import LLAMA
+from tapeagents.llms import TrainableLLM
 from tapeagents.rendering import PrettyRenderer
 
 from .delegate_stack import EXAMPLE_TEXT, ExampleTape, make_analyze_text_chain
@@ -33,7 +33,7 @@ def try_studio_with_chat(llm):
 
 
 if __name__ == "__main__":
-    llm = LLAMA(
+    llm = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
         parameters=dict(temperature=0.7, max_tokens=512),
