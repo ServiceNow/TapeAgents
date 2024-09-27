@@ -14,7 +14,7 @@ env:
 	$(CONDA) create --name $(ENV_NAME) python=$(PYTHON_VERSION) --yes
 
 install:
-	$(CONDA) run --name $(ENV_NAME) pip install -r ./requirements.txt -r ./requirements-dev.txt -r ./requirements-finetune.txt -r ./requirements-converters.txt
+	$(CONDA) run --name $(ENV_NAME) pip install -r ./requirements.txt -r ./requirements.dev.txt -r ./requirements.finetune.txt -r ./requirements.converters.txt
 	$(CONDA) run --name $(ENV_NAME) pip install -e .
 
 lint:
