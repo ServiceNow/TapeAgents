@@ -8,7 +8,7 @@ from pydantic import ConfigDict
 from tapeagents.agent import DEFAULT, Agent, AgentStep, Node
 from tapeagents.autogen_prompts import SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE, SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE
 from tapeagents.container_executor import extract_code_blocks
-from tapeagents.core import FinalStep, Jump, Pass, Prompt, StepMetadata, Tape
+from tapeagents.core import FinalStep, SetNextNode, Pass, Prompt, StepMetadata, Tape
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
@@ -16,7 +16,7 @@ from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
 logger = logging.getLogger(__name__)
 
 
-TeamTape = Tape[None, Call | Respond | Broadcast | FinalStep | Jump | ExecuteCode | CodeExecutionResult | Pass]
+TeamTape = Tape[None, Call | Respond | Broadcast | FinalStep | SetNextNode | ExecuteCode | CodeExecutionResult | Pass]
 
 
 class ActiveTeamAgentView:
@@ -262,7 +262,7 @@ class TerminateOrRepeatNode(Node):
         if view.should_stop:
             yield FinalStep(reason="Termination message received")
         else:
-            yield Jump(next_node=0)
+            yield SetNextNode(next_node=0)
 
 
 class RespondOrRepeatNode(Node):
@@ -275,7 +275,7 @@ class RespondOrRepeatNode(Node):
         if view.should_stop:
             yield Respond()
         else:
-            yield Jump(next_node=0)
+            yield SetNextNode(next_node=0)
 
 
 def _exec_result_message(agent: TeamAgent, tape: TeamTape) -> str:

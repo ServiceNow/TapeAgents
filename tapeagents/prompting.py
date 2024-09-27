@@ -1,5 +1,5 @@
 from tapeagents.agent import Agent
-from tapeagents.core import AgentStep, Call, Jump, Observation, Pass, Respond, Step, Tape
+from tapeagents.core import AgentStep, Call, SetNextNode, Observation, Pass, Respond, Step, Tape
 from tapeagents.dialog_tape import SystemStep, ToolResult
 from tapeagents.view import TapeView
 
@@ -43,7 +43,7 @@ def tape_to_messages(tape: Tape, agent: Agent | None = None) -> list[dict]:
     """The default way of representing tape steps as LLM messages."""
     messages = []
     for step in tape.steps:
-        if isinstance(step, (Pass, Jump)):
+        if isinstance(step, (Pass, SetNextNode)):
             continue
         llm_message = step_to_message(step, agent)
         messages.append(llm_message)
@@ -53,7 +53,7 @@ def tape_to_messages(tape: Tape, agent: Agent | None = None) -> list[dict]:
 def view_to_messages(view: TapeView, agent: Agent | None = None) -> list[dict]:
     messages = []
     for step in view.steps:
-        assert not isinstance(step, (Pass, Jump))
+        assert not isinstance(step, (Pass, SetNextNode))
         llm_message = step_to_message(step, agent)
         messages.append(llm_message)
     return messages
