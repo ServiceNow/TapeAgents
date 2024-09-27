@@ -9,6 +9,5 @@ Follow the following format.
 
 ---
 
-{input_prompt}
-"""
+{input_prompt}"""
 )
