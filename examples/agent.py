@@ -1,7 +1,7 @@
 import sys
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Jump, Prompt, Tape
+from tapeagents.core import SetNextNode, Prompt, Tape
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, UserStep
 from tapeagents.llms import LLAMA, LLM, LLMStream
 
@@ -40,19 +40,19 @@ def hello_world(llm: LLM):
 def control_nodes():
     def router(agent: Agent, tape: Tape, llm_stream: LLMStream):
         if tape[-1].content == "Go left":  # type: ignore
-            yield Jump(next_node=1)
+            yield SetNextNode(next_node=1)
         elif tape[-1].content == "Go right":  # type: ignore
-            yield Jump(next_node=2)
+            yield SetNextNode(next_node=2)
         else:
-            yield Jump(next_node=3)
+            yield SetNextNode(next_node=3)
 
     agent = Agent(
         nodes=[
             Node(name="router").with_generate_steps(router),
-            Node(name="go_left").with_fixed_steps([AssistantStep(content="You went left!"), Jump(next_node=0)]),
-            Node(name="go_right").with_fixed_steps([AssistantStep(content="You went right!"), Jump(next_node=0)]),
+            Node(name="go_left").with_fixed_steps([AssistantStep(content="You went left!"), SetNextNode(next_node=0)]),
+            Node(name="go_right").with_fixed_steps([AssistantStep(content="You went right!"), SetNextNode(next_node=0)]),
             Node(name="something_else").with_fixed_steps(
-                [AssistantStep(content="What do you mean?"), Jump(next_node=0)]
+                [AssistantStep(content="What do you mean?"), SetNextNode(next_node=0)]
             ),
         ]
     )

@@ -90,8 +90,8 @@ class FinalStep(Action):
     reason: str = ""
 
 
-class Jump(Thought):
-    kind: Literal["jump"] = "jump"
+class SetNextNode(Thought):
+    kind: Literal["set_next_node"] = "set_next_node"
     next_node: int
 
 

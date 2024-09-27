@@ -60,7 +60,7 @@
         "prompt_id": "d541e24c-b3d6-4331-b42e-432a57a62c31",
         "task": "respond_or_repeat",
         "by": "UserProxy/GroupChatManager",
-        "kind": "jump",
+        "kind": "set_next_node",
         "next_node": 0
       },
       {
@@ -116,7 +116,7 @@
         "prompt_id": "5636b6b4-e5bf-46f4-870c-2ab8abb31e52",
         "task": "respond_or_repeat",
         "by": "UserProxy/GroupChatManager",
-        "kind": "jump",
+        "kind": "set_next_node",
         "next_node": 0
       },
       {
@@ -150,7 +150,7 @@
         "prompt_id": "2b794469-923c-41e3-a69e-3d6302740157",
         "task": "respond_or_repeat",
         "by": "UserProxy/GroupChatManager",
-        "kind": "jump",
+        "kind": "set_next_node",
         "next_node": 0
       },
       {
@@ -211,7 +211,7 @@
         "prompt_id": "c8a6848a-f0db-4d83-b8bd-c961f2ab2f8d",
         "task": "respond_or_repeat",
         "by": "UserProxy/GroupChatManager",
-        "kind": "jump",
+        "kind": "set_next_node",
         "next_node": 0
       },
       {
@@ -245,7 +245,7 @@
         "prompt_id": "0b7b093c-fc49-4de5-a7f3-465d4cddbea7",
         "task": "respond_or_repeat",
         "by": "UserProxy/GroupChatManager",
-        "kind": "jump",
+        "kind": "set_next_node",
         "next_node": 0
       },
       {
@@ -306,7 +306,7 @@
         "prompt_id": "cb59b2f4-8a22-4673-8e47-1ab94199b700",
         "task": "respond_or_repeat",
         "by": "UserProxy/GroupChatManager",
-        "kind": "jump",
+        "kind": "set_next_node",
         "next_node": 0
       },
       {
@@ -340,7 +340,7 @@
         "prompt_id": "7405a02b-d8ea-499d-aac9-9c8921002516",
         "task": "respond_or_repeat",
         "by": "UserProxy/GroupChatManager",
-        "kind": "jump",
+        "kind": "set_next_node",
         "next_node": 0
       },
       {
@@ -396,7 +396,7 @@
         "prompt_id": "67699d16-4c61-46fb-806d-1f8b7c5e1a09",
         "task": "respond_or_repeat",
         "by": "UserProxy/GroupChatManager",
-        "kind": "jump",
+        "kind": "set_next_node",
         "next_node": 0
       },
       {

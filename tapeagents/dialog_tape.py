@@ -11,7 +11,7 @@ from .core import (
     AgentEvent,
     Call,
     FinalStep,
-    Jump,
+    SetNextNode,
     MakeObservation,
     Observation,
     Pass,
@@ -56,7 +56,7 @@ DialogStep: TypeAlias = (
     # observations
     UserStep| ToolResult | SystemStep |
     # thoughts
-    AssistantThought | Jump | Pass | Call | Respond |
+    AssistantThought | SetNextNode | Pass | Call | Respond |
     # actions
     FinalStep | AssistantStep | ToolCalls
 ) 

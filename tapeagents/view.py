@@ -5,7 +5,7 @@ from typing import Generic, Literal
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Call, Jump, Observation, Pass, Respond, StepType, Tape, Thought
+from tapeagents.core import AgentStep, Call, SetNextNode, Observation, Pass, Respond, StepType, Tape, Thought
 
 
 class Broadcast(Thought):
@@ -82,7 +82,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         
         if isinstance(step, AgentStep):
             # the first step of each iteration always bumps up the next node pointer, 
-            # note: if this step is Jump, the next node pointer will be updated again by the code below
+            # note: if this step is SetNextNode, the next node pointer will be updated again by the code below
             if step.metadata.prompt_id != top.last_prompt_id:
                 top.next_node += 1
             top.last_prompt_id = step.metadata.prompt_id
@@ -94,7 +94,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 self.broadcast(step)
             case Respond():
                 self.pop_view_from_stack(step)
-            case Jump():
+            case SetNextNode():
                 top.next_node = step.next_node
             case AgentStep():
                 top.add_step(step)
