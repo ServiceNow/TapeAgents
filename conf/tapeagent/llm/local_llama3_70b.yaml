@@ -1,7 +1,7 @@
-_target_: tapeagents.llms.LLAMA
+_target_: tapeagents.llms.TrainableLLM
 use_cache: false
 conf:
-  _target_: tapeagents.llms.LLAMAConfig
+  _target_: tapeagents.llms.TrainableLLMConfig
   base_url: http://0.0.0.0:8080
   model_name: meta-llama/Meta-Llama-3-70B-Instruct
   context_size: 8000

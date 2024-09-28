@@ -4,7 +4,7 @@ from typing import Literal
 
 from tapeagents.agent import Agent, AgentEvent
 from tapeagents.core import Action, Prompt, Tape, Thought
-from tapeagents.llms import LLAMA, LLM, LLMStream
+from tapeagents.llms import TrainableLLM, LLM, LLMStream
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
@@ -86,7 +86,7 @@ class FindIrregularVerbs(Agent[ExampleTape]):
             raise ValueError(f"Invalid state {state}")
 
 
-def try_delegation(llama: LLAMA):
+def try_delegation(llama: TrainableLLM):
     tape = ExampleTape(context=EXAMPLE_TEXT)
     with open("start_tape.json", "w") as f:
         json.dump(tape.model_dump(), f, indent=2)
@@ -104,7 +104,7 @@ def try_delegation(llama: LLAMA):
 
 if __name__ == "__main__":
     try_delegation(
-        LLAMA(
+        TrainableLLM(
             base_url="https://api.together.xyz",
             model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
             parameters=dict(temperature=0.7, max_tokens=512),
