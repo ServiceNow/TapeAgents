@@ -1,4 +1,4 @@
-.PHONY: setup env install lint test test-slow test-all clean update-clean-intro clear-clean-intro
+.PHONY: setup env install lint test test-slow test-all clean update-intro update-clean-intro clear-clean-intro
 
 ENV_NAME=tapeagents
 PYTHON_VERSION=3.10
