@@ -118,7 +118,7 @@ class Agent(BaseModel, Generic[TapeType]):
     # can't use list[Agent] because of pydantic bug
     # https://github.com/pydantic/pydantic/issues/9969
     subagents: list[Any] = []
-    templates: dict[str, str] = {}
+    templates: dict[str, Any] = {}
     nodes: list[SerializeAsAny[Node]] = Field(
         default_factory=lambda: [],
         description="List of nodes in the agent, order of the list used to determine the prioirty during activation",
@@ -318,17 +318,19 @@ class Agent(BaseModel, Generic[TapeType]):
             else:
                 yield step
 
-    def run(self, tape: TapeType) -> AgentStream[TapeType]:
+    def run(self, tape: TapeType, max_iterations: int | None = None) -> AgentStream[TapeType]:
         """
         Run the agent on the tape until it produces a stop step, but no more than max_iterations.
         """
+        if max_iterations is None:
+            max_iterations = self.max_iterations
 
         def _run_implementation():
             nonlocal tape
             n_iterations = 0
             input_tape_length = len(tape)
             stop = False
-            while n_iterations < self.max_iterations and not stop:
+            while n_iterations < max_iterations and not stop:
                 current_subagent = self.delegate(tape)
                 for step in current_subagent.run_iteration(tape):
                     if isinstance(step, PartialStep):
