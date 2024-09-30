@@ -428,6 +428,10 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
 
 
 class Annotator(Agent[AnnotatorTapeType], Generic[TapeType, AnnotatorTapeType]):
+    """
+    Annotator is the base class for agents that produce annotations for the tape of another agent.
+    It annotates the tape by converting it into its own tape and then producing an annotation step appended to the converted tape.
+    """
     @abstractmethod
     def make_own_tape(self, tape: TapeType) -> AnnotatorTapeType:
         pass

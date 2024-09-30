@@ -48,7 +48,9 @@ class ToolResult(Observation):
     kind: Literal["tool"] = "tool"
 
 
+# Steps allowed in dialog tape
 DialogStep: TypeAlias = UserStep | AssistantStep | SystemStep | AssistantThought | Jump | Pass
+# Steps allowed in dialog tape with tools
 FunctionDialogStep: TypeAlias = DialogStep | ToolCalls | ToolResult
 
 
@@ -65,10 +67,14 @@ class ToolSpec(BaseModel):
 
 
 class DialogContext(BaseModel):
+    """
+    Context for dialog agents, containing tools and other information.
+    """
     # TODO: define type signature for tools including JSONSchema and etc
     tools: list[ToolSpec]
 
 
+# Tape for dialog agents, containing dialog steps and optional context
 DialogTape = Tape[DialogContext | None, FunctionDialogStep]
 
 

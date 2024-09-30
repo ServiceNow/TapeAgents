@@ -201,6 +201,9 @@ class PresentAnalysis(Agent[ExampleTape]):
 
 
 def make_analyze_text_chain(llm: LLM):
+    """
+    The agent that analyzes the text for nouns and irregular verbs and then presents the results.
+    """
     return Chain.create(
         name="Linguist",
         subagents_with_inputs=[

@@ -5,6 +5,8 @@ from typing import Any, Type
 import yaml
 from pydantic import BaseModel
 
+from tapeagents.environment import CodeExecutionResult, ExecuteCode
+
 from .agent import Agent
 from .container_executor import CodeBlock
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
@@ -21,7 +23,9 @@ from .observe import LLMCall, retrieve_tape_llm_calls
 from .view import Call, Respond
 
 
-def render_dialog_plain_text(tape: DialogTape) -> str:
+def render_dialog_plain_text(tape: DialogTape | None) -> str:
+    if tape is None:
+        return ""
     lines = []
     for step in tape:
         if isinstance(step, UserStep):
@@ -238,7 +242,7 @@ class PrettyRenderer(BasicRenderer):
         elif isinstance(step, Action):
             role = "Action"
             class_ = "action"
-        elif getattr(step, "kind", None) == "code_execution_result":
+        elif isinstance(step, CodeExecutionResult):
             role = "Observation"
             class_ = "error_observation" if step.result.exit_code != 0 else "observation"
         elif isinstance(step, Observation):
@@ -258,14 +262,14 @@ class PrettyRenderer(BasicRenderer):
             # TODO: also show metadata here
             del dump["content"]
             text = pretty_yaml(dump) + "\n" + content
-        elif getattr(step, "kind", None) == "execute_code":
+        elif isinstance(step, ExecuteCode):
             del dump["code"]
 
             def format_code_block(block: CodeBlock) -> str:
                 return f"```{block.language}\n{block.code}\n```"
 
             text = pretty_yaml(dump) + "\n".join([format_code_block(block) for block in step.code])
-        elif getattr(step, "kind", None) == "code_execution_result":
+        elif isinstance(step, CodeExecutionResult):
             del dump["result"]["output"]
             text = pretty_yaml(dump) + "\n" + step.result.output
         else:
