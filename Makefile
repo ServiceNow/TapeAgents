@@ -1,4 +1,4 @@
-.PHONY: setup env install lint test test-slow test-all clean
+.PHONY: setup env install lint test test-slow test-all clean update-intro update-clean-intro clear-clean-intro
 
 ENV_NAME=tapeagents
 PYTHON_VERSION=3.10
@@ -14,7 +14,7 @@ env:
 	$(CONDA) create --name $(ENV_NAME) python=$(PYTHON_VERSION) --yes
 
 install:
-	$(CONDA) run --name $(ENV_NAME) pip install -r ./requirements.txt -r ./requirements-dev.txt -r ./requirements-finetune.txt -r ./requirements-converters.txt
+	$(CONDA) run --name $(ENV_NAME) pip install -r ./requirements.txt -r ./requirements.dev.txt -r ./requirements.finetune.txt -r ./requirements.converters.txt
 	$(CONDA) run --name $(ENV_NAME) pip install -e .
 
 lint:
@@ -32,3 +32,13 @@ test-all:
 clean:
 	$(CONDA) env remove --name $(ENV_NAME) --yes
 	$(CONDA) clean --all --yes
+
+update-intro:
+	cp examples/intro_clean.ipynb intro.ipynb
+	$(CONDA) run --name ${ENV_NAME} jupyter execute --inplace intro.ipynb
+
+update-clean-intro:
+	$(CONDA) run --name ${ENV_NAME} jupyter nbconvert intro.ipynb --output=examples/intro_clean.ipynb --to notebook --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
+
+clear-clean-intro:
+	$(CONDA) run --name ${ENV_NAME} jupyter nbconvert --inplace examples/intro_clean.ipynb --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True

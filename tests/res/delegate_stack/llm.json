@@ -5,8 +5,11 @@
     "max_tokens": 512
   },
   "context_size": 32000,
-  "tokenizer_name": "",
+  "tokenizer_name": "meta-llama/Meta-Llama-3-70B-Instruct",
+  "tokenizer": null,
+  "token_count": 0,
   "use_cache": true,
   "stream": false,
-  "base_url": "https://api.together.xyz"
+  "base_url": "https://api.together.xyz",
+  "api_token": "8814ee08c0dcaf6943f0109815deab03b79913bb388e2e20f665bade0f7c26b4"
 }

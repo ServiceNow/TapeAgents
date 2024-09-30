@@ -5,18 +5,7 @@ from typing import Generic, Literal
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Jump, Observation, StepType, Tape, Thought
-
-
-class Call(Thought):
-    kind: Literal["call"] = "call"
-    content: str = ""
-    agent_name: str
-
-
-class Respond(Thought):
-    content: str = ""
-    kind: Literal["return"] = "return"
+from tapeagents.core import AgentStep, Call, SetNextNode, Observation, Pass, Respond, StepType, Tape, Thought
 
 
 class Broadcast(Thought):
@@ -59,10 +48,7 @@ class TapeView(BaseModel, Generic[StepType]):
         if isinstance(subagent_name_or_index, int):
             return list(self.outputs_by_subagent.values())[subagent_name_or_index]
         return self.outputs_by_subagent[subagent_name_or_index]
-
-
-_view_stack_cache: dict[int, TapeViewStack] = {}
-
+        
 
 class TapeViewStack(BaseModel, Generic[StepType]):
     """
@@ -93,6 +79,14 @@ class TapeViewStack(BaseModel, Generic[StepType]):
 
     def update(self, step: StepType):
         top = self.stack[-1]
+        
+        if isinstance(step, AgentStep):
+            # the first step of each iteration always bumps up the next node pointer, 
+            # note: if this step is SetNextNode, the next node pointer will be updated again by the code below
+            if step.metadata.prompt_id != top.last_prompt_id:
+                top.next_node += 1
+            top.last_prompt_id = step.metadata.prompt_id
+        
         match step:
             case Call():
                 self.put_new_view_on_stack(step)
@@ -100,7 +94,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 self.broadcast(step)
             case Respond():
                 self.pop_view_from_stack(step)
-            case Jump():
+            case SetNextNode():
                 top.next_node = step.next_node
             case AgentStep():
                 top.add_step(step)
@@ -108,34 +102,27 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 top.add_step(step)
             case _:
                 raise ValueError(f"Unsupported step type {step}")
-        # TODO: one day if we want to support the recursion we will need to label steps
-        # not just with the name of agent but also with the id of the frame that the step came from
-        top = self.stack[-1]
-        if self.is_step_by_active_agent(step):
-            if not isinstance(step, Jump):
-                assert isinstance(step, AgentStep)
-                if step.metadata.prompt_id != top.last_prompt_id:
-                    top.next_node += 1
-            top.last_prompt_id = step.metadata.prompt_id
 
-    def pop_view_from_stack(self, step):
+    def pop_view_from_stack(self, step: Respond):
         top = self.stack[-1]
         self.stack.pop()
         new_top = self.stack[-1]
-        new_top.next_node += 1
 
-        for top_step in reversed(top.steps):
-            # How we choose the output step of the frame.
-            # - exclude the input steps that the caller agent added to the tape for the given agent
-            #   (note that by this line the former caller agent is the active agent)
-            # - exclude Call and Respond steps
-            # - among the remaining steps pick the last one
-            if not isinstance(top_step, (Call, Respond)) and not self.is_step_by_active_agent(top_step):
-                new_top.add_step(top_step)
-                new_top.outputs_by_subagent[top.agent_name] = top_step
-                break
-
-                # TODO: what if the agent was not called by its immediate manager?
+        if step.copy_output:
+            for top_step in reversed(top.steps):
+                # How we choose the output step of the frame.
+                # - exclude the input steps that the caller agent added to the tape for the given agent
+                #   (note that by this line the former caller agent is the active agent)
+                # - exclude Call and Respond steps
+                # - exclude Observation steps
+                # - among the remaining steps pick the last one
+                if (not self.is_step_by_active_agent(top_step) 
+                        and not isinstance(top_step, (Call, Respond, Observation))):
+                    new_top.add_step(top_step)
+                    new_top.outputs_by_subagent[top.agent_name] = top_step
+                    break
+                    # TODO: what if the agent was not called by its immediate manager?
+                
         receiver = step.metadata.agent.rsplit("/", 1)[0]
         self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)
@@ -157,6 +144,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 agent_full_name=top.agent_full_name + "/" + step.agent_name,
             )
         )
+        self.stack[-1].add_step(step)
         receiver = f"{step.metadata.agent}/{step.agent_name}"
         self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)
@@ -164,10 +152,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     @staticmethod
     def compute(tape: Tape) -> TapeViewStack[StepType]:
         # TODO: retrieve view from a prefix of the tape, recompute from the prefix
-        # if (cached_view_stack := _view_stack_cache.get(id(tape))) is not None:
-        #     return cached_view_stack
         stack = TapeViewStack(stack=[TapeView(agent_name="root", agent_full_name="root")])
         for step in tape.steps:
             stack.update(step)
-        _view_stack_cache[id(tape)] = stack
         return stack  # type: ignore
+       

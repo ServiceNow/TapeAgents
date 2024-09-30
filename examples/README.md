@@ -13,7 +13,7 @@ In the order of increasing complexity:
 - [openai_function_calling.py](examples/openai_function_calling.py) - agent that uses OpenAI API function calling to report weather in a city.
 - [openai_function_calling_demo.py](openai_function_calling_demo.py) - interactice Gradio demo of the previous agent.
 - [tools_demo.py](examples/tools_demo.py) - demo of the previous agent with external web search tool.
-- [flow.py](examples/flow.py) - examples of using nodes for control flow in the agent.
+- [agent.py](examples/agent.py) - examples of using nodes to control the agent.
 - [code_chat.py](examples/code_chat.py) - simple agent that can solve tasks using python code.
 - [annotator.py](annotator.py) - example of the agent that annotates the existing tape with some score or label.
 - [annotator_demo.py](examples/annotator_demo.py) - interactive Gradio demo of the previous agent.

@@ -4,7 +4,7 @@ from pathlib import Path
 from tapeagents.batch import ObsLayerConfig, batch_add_observations
 from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
 from tapeagents.io import save_tapes
-from tapeagents.llms import LLAMA, LLM
+from tapeagents.llms import TrainableLLM, LLM
 
 from .llama_user import LLAMAUserModel
 
@@ -40,7 +40,7 @@ def try_batch_add_observations(llm: LLM):
 
 if __name__ == "__main__":
     try_batch_add_observations(
-        LLAMA(
+        TrainableLLM(
             base_url="https://api.together.xyz",
             model_name="meta-llama/Llama-3-8b-chat-hf",
             parameters=dict(temperature=0.7, max_tokens=512),

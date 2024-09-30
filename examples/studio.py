@@ -1,10 +1,10 @@
 import logging
 import sys
 
-from tapeagents.studio import Studio
 from tapeagents.dialog_tape import DialogTape, SystemStep, UserStep
-from tapeagents.llms import LLAMA, LLM
+from tapeagents.llms import LLM, TrainableLLM
 from tapeagents.rendering import PrettyRenderer
+from tapeagents.studio import Studio
 
 from .delegate_stack import EXAMPLE_TEXT, ExampleTape, make_analyze_text_chain
 from .llama_agent import LLAMAChatBot
@@ -40,7 +40,7 @@ def try_studio_with_chat(llm: LLM):
 
 # Interactive Gradio demo of the agent that could be changed in runtime.
 if __name__ == "__main__":
-    llm = LLAMA(
+    llm = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
         parameters=dict(temperature=0.7, max_tokens=512),

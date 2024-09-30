@@ -162,6 +162,7 @@ cython_debug/
 .vscode/tasks.json
 *.code-workspace
 *cache*.json
+!/tests/res/*/*.json
 *.jsonl
 !tests/res/*/*.jsonl
 *.log

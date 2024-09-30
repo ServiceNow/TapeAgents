@@ -8,7 +8,7 @@ from pydantic import ConfigDict
 from tapeagents.agent import DEFAULT, Agent, AgentStep, Node
 from tapeagents.autogen_prompts import SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE, SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE
 from tapeagents.container_executor import extract_code_blocks
-from tapeagents.core import FinalStep, Jump, Pass, Prompt, StepMetadata, Tape
+from tapeagents.core import FinalStep, SetNextNode, Pass, Prompt, StepMetadata, Tape
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
@@ -16,7 +16,7 @@ from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
 logger = logging.getLogger(__name__)
 
 
-TeamTape = Tape[None, Call | Respond | Broadcast | FinalStep | Jump | ExecuteCode | CodeExecutionResult | Pass]
+TeamTape = Tape[None, Call | Respond | Broadcast | FinalStep | SetNextNode | ExecuteCode | CodeExecutionResult | Pass]
 
 
 class ActiveTeamAgentView:
@@ -55,7 +55,7 @@ class TeamAgent(Agent[TeamTape]):
     model_config = ConfigDict(use_enum_values=True)
 
     def get_node(self, view: TapeViewStack) -> Node:
-        return self.flow[view.top.next_node]
+        return self.nodes[view.top.next_node]
 
     @classmethod
     def create(
@@ -72,7 +72,7 @@ class TeamAgent(Agent[TeamTape]):
             name=name,
             templates={"system": system_prompt} if system_prompt else {},
             llms={DEFAULT: llm} if llm else {},
-            flow=([ExecuteCodeNode()] if execute_code else []) + [RespondNode()],
+            nodes=([ExecuteCodeNode()] if execute_code else []) + [RespondNode()],
         )
 
     @classmethod
@@ -90,7 +90,7 @@ class TeamAgent(Agent[TeamTape]):
         return cls(
             name=name,
             subagents=subagents,
-            flow=[
+            nodes=[
                 BroadcastLastMessageNode(),
                 SelectAndCallNode(),
                 RespondOrRepeatNode(),
@@ -124,7 +124,7 @@ class TeamAgent(Agent[TeamTape]):
             },
             llms={DEFAULT: llm} if llm else {},
             subagents=[teammate],
-            flow=([ExecuteCodeNode()] if execute_code else []) + [CallNode(), TerminateOrRepeatNode()],  # type: ignore
+            nodes=([ExecuteCodeNode()] if execute_code else []) + [CallNode(), TerminateOrRepeatNode()],  # type: ignore
             max_calls=max_calls,
             init_message=init_message,
         )
@@ -262,7 +262,7 @@ class TerminateOrRepeatNode(Node):
         if view.should_stop:
             yield FinalStep(reason="Termination message received")
         else:
-            yield Jump(next_node=0)
+            yield SetNextNode(next_node=0)
 
 
 class RespondOrRepeatNode(Node):
@@ -275,7 +275,7 @@ class RespondOrRepeatNode(Node):
         if view.should_stop:
             yield Respond()
         else:
-            yield Jump(next_node=0)
+            yield SetNextNode(next_node=0)
 
 
 def _exec_result_message(agent: TeamAgent, tape: TeamTape) -> str:
