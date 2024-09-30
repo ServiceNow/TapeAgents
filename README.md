@@ -41,24 +41,55 @@ make setup
 
 # Examples
 
-In the coming days we will present to you the following examples:
+The simplest agent just to show the basic structure of the agent:
+```python
 
-- How to build teams of TapeAgents with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
-- How to finetune a TapeAgent with a small LLM to be better at math problem solving
-- An agent that searches the web and uses code interpreter to answer precise questions. We built this agent to solves tasks from the [GAIA challenge](https://huggingface.co/spaces/gaia-benchmark/leaderboard)
+from tapeagents.agent import Agent
+from tapeagents.core import Prompt
+from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
+from tapeagents.llms import LLMStream, LiteLLM
 
 
-The [examples/](examples/) directory contains examples of how to use the TapeAgents framework for building, debugging and improving agents. Each example is a self-contained Python script that demonstrates how to use the framework to build an agent for a specific task.
+class MyFirstAgent(Agent[DialogTape]):
+    def make_prompt(self, tape: DialogTape) -> Prompt:
+        """
+        Render tape into the prompt, each step is converted into a message
+        """
+        return Prompt(messages=tape.as_prompt_messages())
 
-## Main Examples
-The short list of examples that demonstrate the main aspects of the TapeAgents framework:
+    def generate_steps(self, tape: DialogTape, llm_stream: LLMStream):
+        """
+        Generate single tape step from the LLM output messages stream.
+        """
+        yield AssistantStep(content=llm_stream.get_text())
 
-- [intro.ipynb](intro.ipynb) - Step by step tutorial that shows you how to build a few agents of increasing complexity and demonstrates the core concepts of the TapeAgents framework.
-- [data_science.py](examples/data_science.py) - data-science oriented multi-agent setup that solve a single data processing task using python.
+llm = LiteLLM(model_name="gpt-4o-mini-2024-07-18")
+agent = MyFirstAgent.create(llm)
+
+# Tape is a sequence of steps that contains all the interactions between the user and the agent happened during the session.
+# Let's provide the agent with the description of the task and the first step to start the conversation.
+start_tape = DialogTape(
+    steps=[
+        SystemStep(content="Respond to the user using the style of Shakespeare books. Be very brief, 50 words max."),
+        UserStep(content="Hello, tell me about Montreal."),
+    ],
+)
+final_tape = agent.run(start_tape).get_final_tape()
+print(f"Final tape: {final_tape.model_dump_json(indent=2)}")
+```
+
+The [examples/](examples/) directory contains examples of how to use the TapeAgents framework for building, debugging, serving and improving agents. Each example is a self-contained Python script (or module) that demonstrates how to use the framework to build an agent for a specific task.
+
+- How to build a single agent that [does planning, searches the web and uses code interpreter](examples/gaia_agent) to answer knowledge-grounded questions, solving the tasks from the [GAIA benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
+- How to build [a team of TapeAgents](examples/data_science.py) with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
+- How to [finetune a TapeAgent](examples/gsm8k_tuning) with a small LLM to be better at math problem solving on GSM-8k dataset.
+
+
+Other notable examples that demonstrate the main aspects of the framework:
 - [workarena](examples/workarena) - custom agent that solves WorkArena benchmark using BrowserGym environment.
-- [gaia_agent](examples/gaia_agent) - custom agent that solves Gaia benchmark using planning and a set of tools with web search, documents and media parsers, code execution.
+- [annotator.py](annotator.py) - example of the agent that annotates the existing tape with some score or label.
 - [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
-- [gsm8k_tuning](examples/gsm8k_tuning) - custom agent that solves GSM-8k benchmark, collect tapes and finetune smaller LLaMA model on them.
+- [studio.py](examples/studio.py) - interactive Gradio demo of agent that could be changed in runtime.
 
 
 

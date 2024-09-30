@@ -1,9 +1,9 @@
 import json
 from typing import Any, Callable, Literal, TypeAlias
 
+from langchain_core.utils.function_calling import convert_to_openai_tool
 from litellm.utils import ChatCompletionMessageToolCall
 from pydantic import BaseModel
-from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from .agent import Annotator, ObservationMaker
 from .core import (
@@ -11,11 +11,11 @@ from .core import (
     AgentEvent,
     Call,
     FinalStep,
-    SetNextNode,
     MakeObservation,
     Observation,
     Pass,
     Respond,
+    SetNextNode,
     Tape,
     Thought,
 )
@@ -54,12 +54,20 @@ class ToolResult(Observation):
 
 DialogStep: TypeAlias = (
     # observations
-    UserStep| ToolResult | SystemStep |
+    UserStep
+    | ToolResult
+    | SystemStep
     # thoughts
-    AssistantThought | SetNextNode | Pass | Call | Respond |
+    | AssistantThought
+    | SetNextNode
+    | Pass
+    | Call
+    | Respond
     # actions
-    FinalStep | AssistantStep | ToolCalls
-) 
+    | FinalStep
+    | AssistantStep
+    | ToolCalls
+)
 
 
 # TODO: define type signature for tools including JSONSchema and etc
@@ -72,17 +80,22 @@ class FunctionSpec(BaseModel):
 class ToolSpec(BaseModel):
     type: Literal["function"] = "function"
     function: FunctionSpec
-    
+
     @classmethod
     def from_function(cls, function: Callable):
         return cls.model_validate(convert_to_openai_tool(function))
 
 
 class DialogContext(BaseModel):
+    """
+    Context for dialog agents, containing tools and other information.
+    """
+
     # TODO: define type signature for tools including JSONSchema and etc
     tools: list[ToolSpec]
 
 
+# Tape for dialog agents, containing dialog steps and optional context
 DialogTape = Tape[DialogContext | None, DialogStep]
 
 

@@ -5,6 +5,8 @@ from typing import Any, Type
 import yaml
 from pydantic import BaseModel
 
+from tapeagents.environment import CodeExecutionResult, ExecuteCode
+
 from .agent import Agent
 from .container_executor import CodeBlock
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
@@ -18,11 +20,12 @@ from .dialog_tape import (
     UserStep,
 )
 from .observe import LLMCall, retrieve_tape_llm_calls
-from .team import CodeExecutionResult, ExecuteCode
 from .view import Call, Respond
 
 
-def render_dialog_plain_text(tape: DialogTape) -> str:
+def render_dialog_plain_text(tape: DialogTape | None) -> str:
+    if tape is None:
+        return ""
     lines = []
     for step in tape:
         if isinstance(step, UserStep):
