@@ -33,7 +33,8 @@ def diff_dicts(a: dict, b: dict) -> str:
 
 
 def diff_strings(a: str, b: str, use_html: bool = False, by_words: bool = False) -> str:
-    def html_colored(s, color):
+    def html_colored(s, on_color):
+        color = on_color[3:] if on_color.startswith("on_") else on_color
         style = f"color: {color} !important;"
         if color == "red":
             style += "text-decoration: line-through !important;"  # strike-through for deleted text
@@ -52,12 +53,12 @@ def diff_strings(a: str, b: str, use_html: bool = False, by_words: bool = False)
         if opcode == "equal":
             output.append(a_segment)
         elif opcode == "insert":
-            output.append(color_fn(f"{b_segment}", "green"))
+            output.append(color_fn(f"{b_segment}", on_color="on_green"))
         elif opcode == "delete":
-            output.append(color_fn(f"{a_segment}", "red"))
+            output.append(color_fn(f"{a_segment}", on_color="on_red"))
         elif opcode == "replace":
-            output.append(color_fn(f"{b_segment}", "green"))
-            output.append(color_fn(f"{a_segment}", "red"))
+            output.append(color_fn(f"{b_segment}", on_color="on_green"))
+            output.append(color_fn(f"{a_segment}", on_color="on_red"))
     return splitter.join(output)
 
 
