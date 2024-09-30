@@ -43,10 +43,6 @@ class UserModel(ObservationMaker[DialogTape, UserModelTape]):
     def make_own_tape(self, tape: DialogTape) -> UserModelTape:
         return UserModelTape(context=tape).append(UserModelInstruction(instruction=self.instruction))
 
-    @property
-    def signature(self) -> str:
-        return json.dumps({"model": "user model", "instruction": self.instruction})
-
 
 class LLAMAUserModel(UserModel):
     def make_prompt(self, tape: UserModelTape):
@@ -61,10 +57,6 @@ class LLAMAUserModel(UserModel):
 
     def generate_steps(self, _, llm_stream: LLMStream):
         yield MakeObservation(new_observation=UserStep.model_validate_json(llm_stream.get_text()))
-
-    @property
-    def signature(self):
-        return json.dumps({"model": "llama", "prompt": self.instruction})
 
 
 def try_llama_user_model(llm: TrainableLLM):

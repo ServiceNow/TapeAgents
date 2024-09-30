@@ -179,12 +179,12 @@ class Agent(BaseModel, Generic[TapeType]):
 
     def get_subagent_names(self) -> list[str]:
         return [agent.name for agent in self.subagents]
-    
+
     def clone(self) -> Self:
         result = self.model_copy(deep=True)
         result._manager = None
         return result
-        
+
     @classmethod
     def create(
         cls,
@@ -223,10 +223,6 @@ class Agent(BaseModel, Generic[TapeType]):
         config_copy["llms"] = llms
         config_copy["subagents"] = subagents
         return type(self).model_validate(config_copy)
-
-    @property
-    def signature(self):
-        return ""
 
     def compute_view(self, tape: TapeType) -> TapeViewStack:
         return TapeViewStack.compute(tape)
@@ -344,7 +340,7 @@ class Agent(BaseModel, Generic[TapeType]):
                 n_iterations += 1
             final_tape = tape
             final_tape.metadata = TapeMetadata(
-                n_added_steps=len(tape) - input_tape_length, parent_id=tape.metadata.id, author=self.signature
+                n_added_steps=len(tape) - input_tape_length, parent_id=tape.metadata.id, author=self.name
             )
             yield AgentEvent(final_tape=final_tape)
 
@@ -437,6 +433,7 @@ class Annotator(Agent[AnnotatorTapeType], Generic[TapeType, AnnotatorTapeType]):
     Annotator is the base class for agents that produce annotations for the tape of another agent.
     It annotates the tape by converting it into its own tape and then producing an annotation step appended to the converted tape.
     """
+
     @abstractmethod
     def make_own_tape(self, tape: TapeType) -> AnnotatorTapeType:
         pass
@@ -458,7 +455,7 @@ class ObservationMaker(Agent[ObservationMakerTapeType], Generic[TapeType, Observ
         if not isinstance(own_tape.steps[-1], MakeObservation):
             raise ValueError("Own tape must end with MakeObservation to add observation to the target tape")
         metadata = TapeMetadata(
-            parent_id=tape.metadata.id, author_tape_id=own_tape.metadata.id, author=self.signature, n_added_steps=1
+            parent_id=tape.metadata.id, author_tape_id=own_tape.metadata.id, author=self.name, n_added_steps=1
         )
         return tape.append(last_step.new_observation).model_copy(update=dict(metadata=metadata))
 
