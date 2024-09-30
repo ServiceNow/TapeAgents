@@ -1,12 +1,16 @@
+import json
+
 from pathlib import Path
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Prompt, Tape
-from tapeagents.dialog_tape import AssistantThought, DialogTape, UserStep
+from tapeagents.core import Prompt, Step, Tape
+from tapeagents.dialog_tape import AssistantThought, DialogStep, DialogTape, ToolCalls, UserStep
+from tapeagents.environment import ToolEnvironment
 from tapeagents.llm_function_template import LLM_FUNCTION_TEMPLATE
 from tapeagents.llms import LLMStream, LiteLLM
+from tapeagents.observe import retrieve_tape_llm_calls
 from tapeagents.utils import diff_strings
 
 
@@ -14,14 +18,10 @@ class InputStep(BaseModel):
     name: str
     prefix: str = ""
     desc: str = ""
-    # TODO: support more ways of extracting inputs from tapes, e.g. by the node name and the step kind
-    offset: int
     
     def get_prefix(self):
         return self.prefix or f"{self.name.title()}:"
-    
-    def render(self, tape: Tape):
-        return tape.steps[self.offset].content
+   
     
 class OutputStep(BaseModel):
     name: str = ""
@@ -31,12 +31,18 @@ class OutputStep(BaseModel):
     def get_prefix(self):
         return self.prefix or f"{self.name.title()}:"
 
+
 # TODO: better decompose the roles between LLMFunctionNode and LLMFunctionTemplate
 class LLMFunctionTemplate(BaseModel):
     desc: str
     inputs: list[InputStep]
     outputs: list[OutputStep]
-    demos: list[Any] = []
+    partial_demos: list[Tape] = Field(
+        default=[], description="Tape that contain key outputs but may lack intermediate steps"
+    )
+    demos: list[Tape] = Field(
+        default=[], description="Tapes that contain all input and all output steps"
+    )
     
     def make_prompt(self, input_values: list) -> Prompt:
         lines = []
@@ -56,6 +62,7 @@ class LLMFunctionTemplate(BaseModel):
             function_desc=self.desc, format_desc=format_desc, input_prompt=input_prompt
         )
         return Prompt.from_user_message(text)
+        
         
 class LLMFunctionNode(Node):
     template_name: str
@@ -151,6 +158,61 @@ def test_dspy_cot_prompt():
     print(final_tape.model_dump_json(indent=2))
     
     
+def test_fewshot_prompt():
+    with open(res_path / "llm_function" / "rag_demos.json") as f:
+        demos = json.load(f)
+        
+    
+        
+    
+def test_basic_rag_agent():
+    import dspy 
+    def retrieve(query: str) -> str:
+        """Retrieve Wikipedia abstracts"""
+        results = dspy.ColBERTv2(url='http://20.102.90.50:2017/wiki17_abstracts')(query)
+        texts = [r['text'] for r in results[:3]]
+        return "\n".join(f"[{i + 1}] «{t}»" for i, t in enumerate(texts))
+    env = ToolEnvironment(tools=[retrieve])
+    
+    tc = {
+        "function": {
+            "name": "retrieve",
+            "arguments": json.dumps({"query": "What castle did David Gregory inherit?"})
+        }
+    }
+    steps = [
+        UserStep(content="What castle did David Gregory inherit?"),
+        ToolCalls.from_dicts([tc])
+    ]
+    start_tape = DialogTape(steps=steps)
+    tape_with_context = env.react(start_tape)
+    # print(tape.model_dump_json(indent=2)) 
+    
+    func = LLMFunctionTemplate(
+        desc="Answer questions with short factoid answers.",
+        inputs=[
+            InputStep(name="question"),
+            InputStep(name="context")
+        ],
+        outputs=[
+            OutputStep(prefix="Reasoning: Let's think step by step in order to", desc="${produce the answer}. We ..."),
+            OutputStep(name="answer", desc="often between 1 and 5 words")
+        ]
+    )  
+    
+    agent = Agent.create(
+        llms=LiteLLM(model_name="gpt-3.5-turbo", parameters={"temperature": 0.}),        
+        # TODO: change templates signature everywhere
+        templates={"rag": func},
+        nodes=[LLMFunctionNode(template_name="rag", input_offsets=[-3, -1])],
+    )
+    final_tape = agent.run(tape_with_context, max_iterations=1).get_final_tape()
+    calls = retrieve_tape_llm_calls(final_tape)
+    print(list(calls.values())[0].prompt.messages[0]["content"])
+    print(list(calls.values())[0].output.content)
+    
+    
 if __name__ == "__main__":
-    test_dspy_qa_prompt()
-    test_dspy_cot_prompt()
+    # test_dspy_qa_prompt()
+    # test_dspy_cot_prompt()
+    test_basic_rag_agent()

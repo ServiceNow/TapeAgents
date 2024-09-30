@@ -44,7 +44,11 @@ class AssistantStep(Action):
 class ToolCalls(Action):
     tool_calls: list[ChatCompletionMessageToolCall]
     kind: Literal["assistant"] = "assistant"
-
+    
+    @staticmethod
+    def from_dicts(dicts: list):
+        return ToolCalls.model_validate({"tool_calls": dicts})
+        
 
 class ToolResult(Observation):
     content: Any
