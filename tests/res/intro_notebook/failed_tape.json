@@ -47,7 +47,7 @@
       }
     },
     {
-      "kind": "jump",
+      "kind": "set_next_node",
       "next_node": 1,
       "metadata": {
         "agent": "Agent",
@@ -84,7 +84,7 @@
       }
     },
     {
-      "kind": "jump",
+      "kind": "set_next_node",
       "next_node": 1,
       "metadata": {
         "agent": "Agent",
@@ -121,7 +121,7 @@
       }
     },
     {
-      "kind": "jump",
+      "kind": "set_next_node",
       "next_node": 1,
       "metadata": {
         "agent": "Agent",

@@ -5,6 +5,8 @@ from typing import Any, Type
 import yaml
 from pydantic import BaseModel
 
+from tapeagents.environment import CodeExecutionResult, ExecuteCode
+
 from .agent import Agent
 from .container_executor import CodeBlock
 from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
@@ -18,11 +20,12 @@ from .dialog_tape import (
     UserStep,
 )
 from .observe import LLMCall, retrieve_tape_llm_calls
-from .team import CodeExecutionResult, ExecuteCode
 from .view import Call, Respond
 
 
-def render_dialog_plain_text(tape: DialogTape) -> str:
+def render_dialog_plain_text(tape: DialogTape | None) -> str:
+    if tape is None:
+        return ""
     lines = []
     for step in tape:
         if isinstance(step, UserStep):
@@ -201,7 +204,7 @@ class PrettyRenderer(BasicRenderer):
             ".action { background-color: #cccccc; }"
             ".thought { background-color: #ffffdb; }"
             ".call { background-color: #ffffff; }"
-            ".return { background-color: #ffffff; }"
+            ".respond { background-color: #ffffff; }"
             ".step-header { margin: 2pt 2pt 2pt 0 !important; }"
             ".step-text { font-size: 12px; white-space: pre-wrap; word-wrap: break-word;}"
             "</style>"
@@ -231,8 +234,12 @@ class PrettyRenderer(BasicRenderer):
         elif isinstance(step, Respond):
             role = ""
             parts = step.metadata.agent.split("/")
-            title = f"{parts[-1]} responds to {parts[-2]}"
-            class_ = "return"
+            title = (
+                f"{parts[-1]} responds to {parts[-2]}" 
+                if len(parts) > 1 else
+                f"{step.metadata.agent} responds"
+            )
+            class_ = "respond"
         elif isinstance(step, Thought):
             role = "Thought"
             class_ = "thought"
@@ -252,23 +259,28 @@ class PrettyRenderer(BasicRenderer):
         if not self.show_metadata:
             dump.pop("metadata", None)
 
-        def pretty_yaml(d):
+        def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
+        def maybe_fold(content: str):
+            summary = f"{len(content)} characters ..." 
+            if len(content) > 1000:
+                return f"<details><summary>{summary}</summary>{content}</details>"
+            return content
 
         if (content := getattr(step, "content", None)) is not None:
             # TODO: also show metadata here
             del dump["content"]
-            text = pretty_yaml(dump) + "\n" + content
+            text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
         elif isinstance(step, ExecuteCode):
             del dump["code"]
 
             def format_code_block(block: CodeBlock) -> str:
                 return f"```{block.language}\n{block.code}\n```"
-
-            text = pretty_yaml(dump) + "\n".join([format_code_block(block) for block in step.code])
+            code_blocks = "\n".join([format_code_block(block) for block in step.code])
+            text = pretty_yaml(dump) + "\n" + maybe_fold(code_blocks)
         elif isinstance(step, CodeExecutionResult):
             del dump["result"]["output"]
-            text = pretty_yaml(dump) + "\n" + step.result.output
+            text = pretty_yaml(dump) + "\n" + maybe_fold(step.result.output)
         else:
             text = pretty_yaml(dump)
 

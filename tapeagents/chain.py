@@ -27,7 +27,7 @@ class RespondIfNotRootNode(Node):
     def generate_steps(self, _: Any, tape: Tape, llm_stream: LLMStream):
         view = TapeViewStack.compute(tape)
         if len(view.stack) > 1:
-            yield Respond()
+            yield Respond(copy_output=True)
         return
 
 
@@ -36,10 +36,10 @@ class Chain(Agent[TapeType], Generic[TapeType]):
 
     @classmethod
     def create(cls, subagents_with_inputs: list[tuple[Agent, AgentInputs]], **kwargs) -> Self:
-        flow = []
+        nodes = []
         subagents = []
         for subagent, inputs in subagents_with_inputs:
             subagents.append(subagent)
-            flow.append(CallChainAgentNode(agent_name=subagent.name, inputs=inputs))
-        flow.append(RespondIfNotRootNode())
-        return super().create(flow=flow, subagents=subagents, **kwargs)
+            nodes.append(CallChainAgentNode(agent_name=subagent.name, inputs=inputs))
+        nodes.append(RespondIfNotRootNode())
+        return super().create(nodes=nodes, subagents=subagents, **kwargs)

@@ -1,25 +1,39 @@
+import enum
 import logging
 from typing import Generator, Generic
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from termcolor import colored
 
 from .agent import Agent
 from .core import AgentEvent, FinalStep, Observation, Step, Tape, TapeType
-from .environment import Environment, ExternalObservationNeeded
+from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
 from .rendering import step_view
 from .utils import FatalError, diff_dicts
 
 logger = logging.getLogger(__name__)
 
 
+class MainLoopStatus(enum.Enum):
+    OK = "ok"
+    FINISHED = "finished"
+    NO_ACTIONS = "no_actions"
+    EXTERNAL_INPUT_NEEDED = "external_input_needed"
+    UNKNOWN_ACTION = "unknown_action"
+
+
 class MainLoopEvent(BaseModel, Generic[TapeType]):
-    # TODO: validate one of
-    agent_event: AgentEvent[TapeType] | None = None
-    observation: Observation | None = None
+    # TODO: validate that event must have only either the agent or the environment data
+    agent_event: AgentEvent[TapeType] | None = Field(default=None, description="Propagates all the agent events")
+    agent_tape: TapeType | None = Field(default=None, description="The tape after agent.run()")
+    observation: Observation | None = Field(
+        default=None, description="One of the observations produced by environment.react()"
+    )
+    env_tape: TapeType | None = Field(default=None, description="The tape after environment.react()")
+    status: MainLoopStatus = MainLoopStatus.OK
 
 
-class MainLoopStream:
+class MainLoopStream(Generic[TapeType]):
     def __init__(self, generator: Generator[MainLoopEvent[TapeType], None, None]):
         self.generator = generator
 
@@ -36,14 +50,22 @@ class MainLoopStream:
             raise StopIteration
         return next(self.generator)
 
+    def agent_events(self) -> Generator[AgentEvent[TapeType], None, None]:
+        for event in self:
+            if event.agent_event:
+                yield event.agent_event
+
     def get_final_tape(self) -> Tape:
+        """Return the last tape by either the agent or the environment."""
         last_final_tape = None
         for event in self:
-            if event.agent_event and event.agent_event.final_tape:
-                last_final_tape = event.agent_event.final_tape
+            if event.agent_tape:
+                last_final_tape = event.agent_tape
+            if event.env_tape:
+                last_final_tape = event.env_tape
         if last_final_tape is not None:
             return last_final_tape
-        raise ValueError("Agent didn't produce final tape")
+        raise ValueError("No tape by either the agent or the environment")
 
 
 def main_loop(
@@ -71,6 +93,7 @@ def main_loop(
         tape = start_tape
         event = None
         while n_loops < max_loops or max_loops == -1:
+            # --- RUN THE AGENT ---
             for event in agent.run(tape):
                 yield MainLoopEvent(agent_event=event)
                 if event.step:
@@ -79,21 +102,27 @@ def main_loop(
                     break
             assert event and event.final_tape
             agent_tape = event.final_tape
+            yield MainLoopEvent(agent_tape=agent_tape)
+
+            # --- RUN THE ENVIRONMENT ---
             if isinstance(agent_tape.steps[-1], FinalStep):
                 logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
-                break
+                yield MainLoopEvent(status=MainLoopStatus.FINISHED)
+                return
             try:
                 tape = environment.react(agent_tape)
-            except ExternalObservationNeeded:
-                # TODO: do not use exceptions for this, use return value
-                break
-            observation = None
+            except NoActionsToReactTo as e:
+                yield MainLoopEvent(status=MainLoopStatus.NO_ACTIONS)
+                return
+            except ExternalObservationNeeded as e:
+                yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
+                return
             for observation in tape[len(agent_tape) :]:
                 logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
-                yield MainLoopEvent[TapeType](observation=observation)
-            if isinstance(observation, FinalStep):
-                logger.info(f"Environment emitted final step {observation}")
-                break
+                yield MainLoopEvent(observation=observation)
+            yield MainLoopEvent[TapeType](env_tape=tape)
+
+            # --- REPEAT ---
             n_loops += 1
 
     return MainLoopStream(_implementation())

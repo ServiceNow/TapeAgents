@@ -1,10 +1,9 @@
 import sys
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Jump, Prompt, Tape
+from tapeagents.core import SetNextNode, Prompt, Tape
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, UserStep
-from tapeagents.llms import LLAMA, LLM, LLMStream
-from tapeagents.view import TapeView
+from tapeagents.llms import TrainableLLM, LLM, LLMStream
 
 
 def hello_world(llm: LLM):
@@ -13,7 +12,7 @@ def hello_world(llm: LLM):
     """
     agent = Agent.create(
         llm,
-        flow=[
+        nodes=[
             Node(name="think")
             .with_prompt(
                 lambda agent, tape: Prompt(
@@ -38,22 +37,22 @@ def hello_world(llm: LLM):
     print(agent.run(start_tape).get_final_tape().model_dump_json(indent=2))
 
 
-def control_flow():
+def control_nodes():
     def router(agent: Agent, tape: Tape, llm_stream: LLMStream):
         if tape[-1].content == "Go left":  # type: ignore
-            yield Jump(next_node=1)
+            yield SetNextNode(next_node=1)
         elif tape[-1].content == "Go right":  # type: ignore
-            yield Jump(next_node=2)
+            yield SetNextNode(next_node=2)
         else:
-            yield Jump(next_node=3)
+            yield SetNextNode(next_node=3)
 
     agent = Agent(
-        flow=[
+        nodes=[
             Node(name="router").with_generate_steps(router),
-            Node(name="go_left").with_fixed_steps([AssistantStep(content="You went left!"), Jump(next_node=0)]),
-            Node(name="go_right").with_fixed_steps([AssistantStep(content="You went right!"), Jump(next_node=0)]),
+            Node(name="go_left").with_fixed_steps([AssistantStep(content="You went left!"), SetNextNode(next_node=0)]),
+            Node(name="go_right").with_fixed_steps([AssistantStep(content="You went right!"), SetNextNode(next_node=0)]),
             Node(name="something_else").with_fixed_steps(
-                [AssistantStep(content="What do you mean?"), Jump(next_node=0)]
+                [AssistantStep(content="What do you mean?"), SetNextNode(next_node=0)]
             ),
         ]
     )
@@ -87,13 +86,13 @@ def classy_hello_world(llm: LLM):
         def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
             yield AssistantStep(content=llm_stream.get_text())
 
-    agent = Agent.create(llm, flow=[ThinkingNode(), RespondingNode()])
+    agent = Agent.create(llm, nodes=[ThinkingNode(), RespondingNode()])
     start_tape = DialogTape(steps=[UserStep(content="Hi!")])
     print(agent.run(start_tape).get_final_tape().model_dump_json(indent=2))
 
 
 if __name__ == "__main__":
-    llm = LLAMA(
+    llm = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
         tokenizer_name="meta-llama/Meta-Llama-3-70B-Instruct",
@@ -104,9 +103,9 @@ if __name__ == "__main__":
             hello_world(llm)
         case ["classy"]:
             classy_hello_world(llm)
-        case ["control_flow"]:
-            control_flow()
+        case ["control_nodes"]:
+            control_nodes()
         case _:
             raise Exception(
-                'Usage: TAPEAGENTS_LLM_TOKEN="<your_together_ai_token>" python -m examples.flow [classy|control_flow]'
+                'Usage: TAPEAGENTS_LLM_TOKEN="<your_together_ai_token>" python -m examples.nodes [classy|control_nodes]'
             )

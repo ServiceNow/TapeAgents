@@ -5,7 +5,7 @@ from tapeagents.batch import batch_main_loop
 from tapeagents.dialog_tape import DialogTape, SystemStep, UserStep
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.io import save_tapes
-from tapeagents.llms import LLAMA, LLM
+from tapeagents.llms import TrainableLLM, LLM
 
 from .llama_agent import LLAMAChatBot
 
@@ -33,7 +33,7 @@ def try_batch_main_loop(llm: LLM):
 
 if __name__ == "__main__":
     try_batch_main_loop(
-        LLAMA(
+        TrainableLLM(
             base_url="https://api.together.xyz",
             model_name="meta-llama/Llama-3-8b-chat-hf",
             parameters=dict(temperature=0.7, max_tokens=512),

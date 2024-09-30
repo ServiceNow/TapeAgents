@@ -4,7 +4,7 @@ from pathlib import Path
 from tapeagents.batch import generate_tapes
 from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
 from tapeagents.environment import EmptyEnvironment
-from tapeagents.llms import LLAMA, LLM
+from tapeagents.llms import TrainableLLM, LLM
 
 from .llama_agent import LLAMAChatBot
 from .llama_user import LLAMAUserModel
@@ -48,7 +48,7 @@ def try_continue_tapes(llm: LLM):
 
 if __name__ == "__main__":
     try_continue_tapes(
-        LLAMA(
+        TrainableLLM(
             base_url="https://api.together.xyz",
             model_name="meta-llama/Llama-3-8b-chat-hf",
             parameters=dict(temperature=0.7, max_tokens=512),
