@@ -4,7 +4,7 @@ import sys
 from typing import Any, Literal
 
 from tapeagents.agent import Agent
-from tapeagents.chain import Chain
+from tapeagents.chain import Chain, Subagent
 from tapeagents.core import (
     Action,
     AgentStep,
@@ -252,10 +252,10 @@ def make_world(llm: LLM | None = None) -> tuple[Agent, Tape, Tape]:
     # Create the code improver agent (in the form of the chain agent) with the subagents required to improve the code
     code_improver = Chain.create(
         name="CodeImprover",
-        subagents_with_inputs=[
-            (AgentSelector.create(llm), ()),
-            (StepSelector.create(llm), (-1,)),
-            (StepRewriter.create(llm), (-2, -1)),
+        nodes=[
+            Subagent(agent=AgentSelector.create(llm)),
+            Subagent(agent=StepSelector.create(llm), inputs=("AgentSelector",)),
+            Subagent(agent=StepRewriter.create(llm), inputs=("AgentSelector", "StepSelector")),
         ],
     )
 

@@ -1,9 +1,10 @@
 import sys
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import SetNextNode, Prompt, Tape
+from tapeagents.core import Prompt, SetNextNode, Tape
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, UserStep
-from tapeagents.llms import TrainableLLM, LLM, LLMStream
+from tapeagents.llms import LLM, LLMStream, TrainableLLM
+from tapeagents.prompting import prompt_with_guidance, tape_to_messages
 
 
 def hello_world(llm: LLM):
@@ -50,7 +51,9 @@ def control_nodes():
         nodes=[
             Node(name="router").with_generate_steps(router),
             Node(name="go_left").with_fixed_steps([AssistantStep(content="You went left!"), SetNextNode(next_node=0)]),
-            Node(name="go_right").with_fixed_steps([AssistantStep(content="You went right!"), SetNextNode(next_node=0)]),
+            Node(name="go_right").with_fixed_steps(
+                [AssistantStep(content="You went right!"), SetNextNode(next_node=0)]
+            ),
             Node(name="something_else").with_fixed_steps(
                 [AssistantStep(content="What do you mean?"), SetNextNode(next_node=0)]
             ),
@@ -67,21 +70,15 @@ def control_nodes():
 
 def classy_hello_world(llm: LLM):
     class ThinkingNode(Node):
-        name: str = "think"
-
         def make_prompt(self, agent, tape: Tape) -> Prompt:
-            messages = tape.steps + [UserStep(content="Describe how Shakespeare would say hello world")]
-            return Prompt(messages=[m.llm_dict() for m in messages])
+            return prompt_with_guidance(tape, "Describe how Shakespeare would say hello world")
 
         def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
             yield AssistantThought(content=llm_stream.get_text())
 
     class RespondingNode(Node):
-        name: str = "respond"
-
         def make_prompt(self, agent, tape: Tape) -> Prompt:
-            messages = tape.steps + [UserStep(content="Respond with the hello world in the described style")]
-            return Prompt(messages=[m.llm_dict() for m in messages])
+            return prompt_with_guidance(tape, "Respond with the hello world in the described style")
 
         def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
             yield AssistantStep(content=llm_stream.get_text())

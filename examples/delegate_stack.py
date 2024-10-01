@@ -6,7 +6,7 @@ from typing import Annotated, Literal, TypeAlias
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.chain import Chain
+from tapeagents.chain import Chain, Subagent
 from tapeagents.core import (
     Action,
     FinalStep,
@@ -14,7 +14,7 @@ from tapeagents.core import (
     Tape,
     Thought,
 )
-from tapeagents.llms import TrainableLLM, LLM, LLMStream
+from tapeagents.llms import LLM, LLMStream, TrainableLLM
 from tapeagents.view import Call, Respond, TapeViewStack
 
 EXAMPLE_TEXT = """I am a text with some verbs like running, jumping, and swimming."""
@@ -142,20 +142,19 @@ class Linguist(Chain[ExampleTape]):
     def create(cls, llm: LLM):  # type: ignore
         return super().create(
             llms=llm,
-            subagents_with_inputs=[
-                (FindNouns.create(llms=llm, templates=FIND_NOUNS_MESSAGE), ()),
-                (
-                    Chain.create(
+            nodes=[
+                Subagent(agent=FindNouns.create(llms=llm, templates=FIND_NOUNS_MESSAGE)),
+                Subagent(
+                    agent=Chain.create(
                         name="FindIrregularVerbs",
-                        subagents_with_inputs=[
-                            (FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE), ()),
-                            (
-                                FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE),
-                                (-1,),
+                        nodes=[
+                            Subagent(agent=FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE)),
+                            Subagent(
+                                agent=FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE),
+                                inputs=(-1,),
                             ),
                         ],
                     ),
-                    (),
                 ),
             ],
             templates=PRESENT_RESULTS_MESSAGE,
@@ -206,24 +205,23 @@ def make_analyze_text_chain(llm: LLM):
     """
     return Chain.create(
         name="Linguist",
-        subagents_with_inputs=[
-            (FindNouns.create(llms=llm, templates=FIND_NOUNS_MESSAGE), ()),
-            (
-                Chain.create(
+        nodes=[
+            Subagent(agent=FindNouns.create(llms=llm, templates=FIND_NOUNS_MESSAGE)),
+            Subagent(
+                agent=Chain.create(
                     name="FindIrregularVerbs",
-                    subagents_with_inputs=[
-                        (FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE), ()),
-                        (
-                            FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE),
-                            (-1,),
+                    nodes=[
+                        Subagent(agent=FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE)),
+                        Subagent(
+                            agent=FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE),
+                            inputs=(-1,),
                         ),
                     ],
                 ),
-                (),
             ),
-            (PresentAnalysis.create(llm, templates=PRESENT_RESULTS_MESSAGE), (-2, -1)),
+            Subagent(agent=PresentAnalysis.create(llm, templates=PRESENT_RESULTS_MESSAGE), inputs=(-2, -1)),
         ],
-    )  # type: ignore
+    )
 
 
 def main():

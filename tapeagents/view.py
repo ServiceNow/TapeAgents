@@ -5,7 +5,7 @@ from typing import Generic, Literal
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Call, SetNextNode, Observation, Pass, Respond, StepType, Tape, Thought
+from tapeagents.core import AgentStep, Call, Observation, Respond, SetNextNode, StepType, Tape, Thought
 
 
 class Broadcast(Thought):
@@ -48,7 +48,7 @@ class TapeView(BaseModel, Generic[StepType]):
         if isinstance(subagent_name_or_index, int):
             return list(self.outputs_by_subagent.values())[subagent_name_or_index]
         return self.outputs_by_subagent[subagent_name_or_index]
-        
+
 
 class TapeViewStack(BaseModel, Generic[StepType]):
     """
@@ -79,14 +79,14 @@ class TapeViewStack(BaseModel, Generic[StepType]):
 
     def update(self, step: StepType):
         top = self.stack[-1]
-        
+
         if isinstance(step, AgentStep):
-            # the first step of each iteration always bumps up the next node pointer, 
+            # the first step of each iteration always bumps up the next node pointer,
             # note: if this step is SetNextNode, the next node pointer will be updated again by the code below
             if step.metadata.prompt_id != top.last_prompt_id:
                 top.next_node += 1
             top.last_prompt_id = step.metadata.prompt_id
-        
+
         match step:
             case Call():
                 self.put_new_view_on_stack(step)
@@ -116,13 +116,14 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 # - exclude Call and Respond steps
                 # - exclude Observation steps
                 # - among the remaining steps pick the last one
-                if (not self.is_step_by_active_agent(top_step) 
-                        and not isinstance(top_step, (Call, Respond, Observation))):
+                if not self.is_step_by_active_agent(top_step) and not isinstance(
+                    top_step, (Call, Respond, Observation)
+                ):
                     new_top.add_step(top_step)
                     new_top.outputs_by_subagent[top.agent_name] = top_step
                     break
                     # TODO: what if the agent was not called by its immediate manager?
-                
+
         receiver = step.metadata.agent.rsplit("/", 1)[0]
         self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)
@@ -156,4 +157,3 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         for step in tape.steps:
             stack.update(step)
         return stack  # type: ignore
-       
