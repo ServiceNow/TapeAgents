@@ -6,7 +6,7 @@ import yaml
 
 from tapeagents.environment import Environment
 from tapeagents.observe import get_latest_tape_id, observe_tape, retrieve_tape_llm_calls, retrieve_tape
-from tapeagents.runtime import main_loop
+from tapeagents.runtime import main_loop, MainLoopEvent
 
 from .agent import Agent
 from .core import Tape
@@ -189,8 +189,10 @@ class Studio:
             elif event.observation:
                 last_tape = last_tape.append(event.observation)
                 yield (last_tape,) + self.render_tape(renderer_name, last_tape)
+            elif isinstance(event, MainLoopEvent):
+                pass
             else:
-                raise ValueError("Unexpected event")
+                raise ValueError("Unexpected event", event)
 
     def launch(self, *args, **kwargs):
         self.blocks.launch(*args, **kwargs)
