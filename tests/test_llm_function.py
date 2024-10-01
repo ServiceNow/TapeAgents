@@ -1,11 +1,12 @@
-
-        
-## TESTS        
-    
 import json
+import sys
 from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent.resolve()))
+
+from examples.optimize import render_contexts
 from tapeagents.dialog_tape import ToolResult, UserStep
-from tapeagents.llm_function import InputStep, LLMFunctionTemplate, OutputStep, render_contexts
+from tapeagents.llm_function import InputStep, LLMFunctionTemplate, OutputStep
 from tapeagents.utils import diff_strings
 
 
@@ -19,6 +20,7 @@ tool_call_id=""
 )
     
 res_path = Path(__file__).parent.resolve() / ".." / "tests" / "res"
+examples_res_path = Path(__file__).parent.resolve() / ".." / "examples" / "res"
     
 def test_dspy_qa_prompt():
     func = LLMFunctionTemplate(
@@ -60,7 +62,7 @@ def test_dspy_cot_prompt():
     
     
 def test_fewshot_prompt():
-    with open(res_path / "llm_function" / "rag_demos.json") as f:
+    with open(examples_res_path / "llm_function_rag_demos.json") as f:
         demos_json = json.load(f)
     partial_demos = []
     demos = [] 
