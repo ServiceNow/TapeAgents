@@ -2,7 +2,7 @@ import sys
 
 from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.studio import Studio
-from tapeagents.llms import LLAMA, LLM
+from tapeagents.llms import TrainableLLM, LLM
 from tapeagents.rendering import PrettyRenderer
 
 
@@ -26,7 +26,7 @@ def try_chat(llm: LLM, studio: bool):
 
 
 if __name__ == "__main__":
-    llm = LLAMA(
+    llm = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
         parameters=dict(temperature=0.7, max_tokens=512),

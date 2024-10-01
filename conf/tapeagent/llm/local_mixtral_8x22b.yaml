@@ -1,7 +1,7 @@
-_target_: tapeagents.llms.LLAMA
+_target_: tapeagents.llms.TrainableLLM
 use_cache: false
 conf:
-  _target_: tapeagents.llms.LLAMAConfig
+  _target_: tapeagents.llms.TrainableLLMConfig
   base_url: http://0.0.0.0:8080
   model_name: mistralai/Mixtral-8x22B-v0.1
   context_size: 8000

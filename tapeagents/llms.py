@@ -250,7 +250,7 @@ class LiteLLM(CachedLLM):
         raise NotImplementedError()
 
 
-class LLAMAConfig(BaseModel):
+class TrainableLLMConfig(BaseModel):
     model_name: str
     base_url: str
     parameters: dict[str, Any] = {}
@@ -263,7 +263,7 @@ class TypedVLLM(LLM):
 
     _obj_log: dict
 
-    def __init__(self, config: LLAMAConfig, use_cache: bool = True, only_cache: bool = False):
+    def __init__(self, config: TrainableLLMConfig, use_cache: bool = True, only_cache: bool = False):
         import transformers
 
         self.model_name = config.model_name
@@ -357,12 +357,11 @@ class TypedVLLM(LLM):
         return fix_schema(schema)
 
 
-class LLAMA(CachedLLM):
-    """Talk to TGI or VLLM endpoints serving LLAMA (or another HF based model) using OpenAI API.
+class TrainableLLM(CachedLLM):
+    """Talk to TGI or VLLM endpoints serving HF based model (Llama, Mistral, etc.) using OpenAI API.
 
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
-
     """
 
     base_url: str
@@ -430,7 +429,7 @@ class LLAMA(CachedLLM):
 
     def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         self.load_tokenizer()
-        return llama_make_training_text(prompt, output, self.tokenizer)
+        return trainable_llm_make_training_text(prompt, output, self.tokenizer)
 
     def count_tokens(self, messages: list[dict] | str) -> int:
         self.load_tokenizer()
@@ -535,7 +534,7 @@ class MockLLM(LLM):
         return TrainingText(text="mock trace", n_predicted=10)
 
 
-def llama_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
+def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
     prompt_text = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=False)
     output_text = tokenizer.apply_chat_template([{"role": "assistant", "content": output.content}], tokenize=False)
     if tokenizer.bos_token and output_text.startswith(tokenizer.bos_token):

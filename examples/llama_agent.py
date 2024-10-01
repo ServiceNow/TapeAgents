@@ -5,7 +5,7 @@ import tempfile
 from tapeagents.agent import Agent
 from tapeagents.core import LLMOutput, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
 from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
-from tapeagents.llms import LLAMA, LLM, LLMStream
+from tapeagents.llms import TrainableLLM, LLM, LLMStream
 from tapeagents.prompting import tape_to_messages
 
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     tmpdir = tempfile.mkdtemp()
     os.chdir(tmpdir)
     try_llama_chatbot(
-        LLAMA(
+        TrainableLLM(
             base_url="https://api.together.xyz",
             model_name="meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
             tokenizer_name="meta-llama/Meta-Llama-3-70B-Instruct",
