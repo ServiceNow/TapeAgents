@@ -8,7 +8,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
-from examples import data_science, tape_improver
+from examples import tape_improver
+from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
 from examples.delegate_stack import ExampleTape as ExampleTapeStack
 from examples.delegate_stack import Linguist, make_analyze_text_chain

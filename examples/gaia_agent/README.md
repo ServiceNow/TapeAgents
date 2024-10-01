@@ -5,7 +5,7 @@ The Gaia Agent is an agent that can answer knowledge-grounded questions using we
 
 
 ## Structure
-The agent is built on top of the [GuidedAgent](tapeagents/guided_agent.py) class, which implements the following workflow:
+The agent is built on top of the [GuidedAgent](../../tapeagents/guided_agent.py) class, which implements the following workflow:
 - Expose the set of all available actions and thoughts to the model in each prompt
 - Render the whole tape into the prompt, trimming only in case when the tape does not fit into the context window
 - Based on the end of the current tape, select the short textual guidance prompt that briefly instructs the LLM what to do next

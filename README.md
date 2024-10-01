@@ -81,7 +81,7 @@ print(f"Final tape: {final_tape.model_dump_json(indent=2)}")
 The [examples/](examples/) directory contains examples of how to use the TapeAgents framework for building, debugging, serving and improving agents. Each example is a self-contained Python script (or module) that demonstrates how to use the framework to build an agent for a specific task.
 
 - How to build a single agent that [does planning, searches the web and uses code interpreter](examples/gaia_agent) to answer knowledge-grounded questions, solving the tasks from the [GAIA benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
-- How to build [a team of TapeAgents](examples/data_science.py) with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
+- How to build [a team of TapeAgents](examples/data_science) with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
 - How to [finetune a TapeAgent](examples/gsm8k_tuning) with a small LLM to be better at math problem solving on GSM-8k dataset.
 
 
