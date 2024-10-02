@@ -11,7 +11,7 @@ from tapeagents.llms import LLMStream
 from tapeagents.view import Call, Respond, TapeViewStack
 
 
-class SubagentCall(Node):
+class CallSubagent(Node):
     """
     Node that calls a subagent with inputs from the current tape view.
     """
@@ -44,7 +44,7 @@ class Chain(Agent[TapeType], Generic[TapeType]):
     """Calls agents sequentially. Copies thoughts of previous agents for the next agents."""
 
     @classmethod
-    def create(cls, nodes: list[Subagent], **kwargs) -> Self:
+    def create(cls, nodes: list[CallSubagent], **kwargs) -> Self:
         subagents = []
         for node in nodes:
             subagents.append(node.agent)

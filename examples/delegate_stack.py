@@ -6,7 +6,7 @@ from typing import Annotated, Literal, TypeAlias
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.chain import Chain, Subagent
+from tapeagents.chain import CallSubagent, Chain
 from tapeagents.core import (
     Action,
     FinalStep,
@@ -143,13 +143,13 @@ class Linguist(Chain[ExampleTape]):
         return super().create(
             llms=llm,
             nodes=[
-                Subagent(agent=FindNouns.create(llms=llm, templates=FIND_NOUNS_MESSAGE)),
-                Subagent(
+                CallSubagent(agent=FindNouns.create(llms=llm, templates=FIND_NOUNS_MESSAGE)),
+                CallSubagent(
                     agent=Chain.create(
                         name="FindIrregularVerbs",
                         nodes=[
-                            Subagent(agent=FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE)),
-                            Subagent(
+                            CallSubagent(agent=FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE)),
+                            CallSubagent(
                                 agent=FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE),
                                 inputs=(-1,),
                             ),
@@ -206,20 +206,20 @@ def make_analyze_text_chain(llm: LLM):
     return Chain.create(
         name="Linguist",
         nodes=[
-            Subagent(agent=FindNouns.create(llms=llm, templates=FIND_NOUNS_MESSAGE)),
-            Subagent(
+            CallSubagent(agent=FindNouns.create(llms=llm, templates=FIND_NOUNS_MESSAGE)),
+            CallSubagent(
                 agent=Chain.create(
                     name="FindIrregularVerbs",
                     nodes=[
-                        Subagent(agent=FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE)),
-                        Subagent(
+                        CallSubagent(agent=FindVerbs.create(llm, templates=FIND_VERBS_MESSAGE)),
+                        CallSubagent(
                             agent=FilterIrregular.create(llm, templates=FILTER_IRREGULAR_MESSAGE),
                             inputs=(-1,),
                         ),
                     ],
                 ),
             ),
-            Subagent(agent=PresentAnalysis.create(llm, templates=PRESENT_RESULTS_MESSAGE), inputs=(-2, -1)),
+            CallSubagent(agent=PresentAnalysis.create(llm, templates=PRESENT_RESULTS_MESSAGE), inputs=(-2, -1)),
         ],
     )
 
