@@ -4,15 +4,12 @@ from typing import Generator
 
 from langchain_community.tools.tavily_search import TavilySearchResults
 
+from examples.llama_user import UserModel, UserModelEvent, UserModelInstruction, UserModelTape
 from tapeagents.core import MakeObservation, Prompt
 from tapeagents.demo import Demo
 from tapeagents.dialog_tape import (
-    DialogTape,
     DialogContext,
-    UserModel,
-    UserModelEvent,
-    UserModelInstruction,
-    UserModelTape,
+    DialogTape,
     UserStep,
 )
 from tapeagents.environment import ToolEnvironment

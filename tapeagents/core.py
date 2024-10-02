@@ -101,8 +101,8 @@ class SetNextNode(Thought):
 
 class Pass(Thought):
     kind: Literal["pass"] = "pass"
-    
-    
+
+
 class Call(Thought):
     kind: Literal["call"] = "call"
     content: str = ""
@@ -111,7 +111,7 @@ class Call(Thought):
 
 class Respond(Thought):
     content: str = ""
-    kind: Literal["respond"] = "respond"    
+    kind: Literal["respond"] = "respond"
     copy_output: bool = False
 
 

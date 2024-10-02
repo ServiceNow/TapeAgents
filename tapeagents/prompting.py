@@ -1,12 +1,13 @@
 from tapeagents.agent import Agent
-from tapeagents.core import AgentStep, Call, SetNextNode, Observation, Pass, Respond, Step, Tape
+from tapeagents.core import AgentStep, Call, Observation, Pass, Prompt, Respond, SetNextNode, Step, Tape
 from tapeagents.dialog_tape import SystemStep, ToolResult
 from tapeagents.view import TapeView
+
 
 def step_to_message(step: Step, agent: Agent | None = None) -> dict[str, str]:
     if agent is None and isinstance(step, (Call, Respond)):
         raise ValueError("must known the agent to convert Call or Respond to message")
-    
+
     name = None
     content = step.llm_dict()
     content.pop("kind")
@@ -15,16 +16,16 @@ def step_to_message(step: Step, agent: Agent | None = None) -> dict[str, str]:
             role = "system"
         case ToolResult():
             role = "tool"
-        case Call() if step.metadata.agent == agent.full_name: # type: ignore
+        case Call() if step.metadata.agent == agent.full_name:  # type: ignore
             role = "assistant"
-            content["content"] = f"Call {step.agent_name} with the message '{step.content}'" 
+            content["content"] = f"Call {step.agent_name} with the message '{step.content}'"
         case Call():
             role = "user"
             name = step.metadata.agent.split("/")[-1]
         case Respond():
             # use this prompt-making utility only for agents that respond only once,
             # agents that do not have a conversation history
-            assert step.metadata.agent != agent.full_name # type: ignore
+            assert step.metadata.agent != agent.full_name  # type: ignore
             role = "user"
             name = step.metadata.agent.split("/")[-1]
         case AgentStep():
@@ -48,6 +49,12 @@ def tape_to_messages(tape: Tape, agent: Agent | None = None) -> list[dict]:
         llm_message = step_to_message(step, agent)
         messages.append(llm_message)
     return messages
+
+
+def prompt_with_guidance(tape: Tape, guidance: str) -> Prompt:
+    guidance_message = {"role": "user", "content": guidance}
+    messages = tape_to_messages(tape) + [guidance_message]
+    return Prompt(messages=messages)
 
 
 def view_to_messages(view: TapeView, agent: Agent | None = None) -> list[dict]:

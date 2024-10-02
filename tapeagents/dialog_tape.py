@@ -1,16 +1,14 @@
-import json
 from typing import Any, Callable, Literal, TypeAlias
 
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
-from .agent import Annotator, ObservationMaker
+from .agent import Annotator
 from .core import (
     Action,
     AgentEvent,
     Call,
     FinalStep,
-    MakeObservation,
     Observation,
     Pass,
     Respond,
@@ -135,26 +133,3 @@ DialogAnnotatorTape: TypeAlias = Tape[DialogTape, AnnotatorFreeFormThought | Ann
 class DialogAnnotator(Annotator[DialogTape, DialogAnnotatorTape]):
     def make_own_tape(self, tape: DialogTape) -> DialogAnnotatorTape:
         return DialogAnnotatorTape(context=tape)
-
-
-class UserModelInstruction(Observation):
-    instruction: str
-
-
-class UserModelFreeFormThought(Observation):
-    content: str
-
-
-UserModelTape = Tape[DialogTape, MakeObservation[UserStep] | UserModelFreeFormThought | UserModelInstruction]
-UserModelEvent = AgentEvent[UserModelTape]
-
-
-class UserModel(ObservationMaker[DialogTape, UserModelTape]):
-    instruction: str
-
-    def make_own_tape(self, tape: DialogTape) -> UserModelTape:
-        return UserModelTape(context=tape).append(UserModelInstruction(instruction=self.instruction))
-
-    @property
-    def signature(self) -> str:
-        return json.dumps({"model": "user model", "instruction": self.instruction})
