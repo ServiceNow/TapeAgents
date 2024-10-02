@@ -23,7 +23,9 @@ class TapeSaver:
 
 
 @contextmanager
-def save_tapes(filename: Path, mode: str = "w") -> Generator[TapeSaver, None, None]:
+def save_tapes(filename: Path | str, mode: str = "w") -> Generator[TapeSaver, None, None]:
+    if isinstance(filename, str):
+        filename = Path(filename)
     logger.info(f"Writing to {filename} in mode {mode}")
 
     # Create directory path if it does not exist

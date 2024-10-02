@@ -5,5 +5,7 @@ target: ???
 rag:
   partial_demos: true
   demos: true
+agentic_rag:
+  max_hops: 3
 dataset:
-  dev_size: 200
+  dev_size: 50

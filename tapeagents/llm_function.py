@@ -2,6 +2,7 @@ import json
 
 from pathlib import Path
 from typing import Any, Generator, Type, cast
+from typing_extensions import Self
 from pydantic import BaseModel, Field
 
 from tapeagents.agent import Agent, Node
@@ -26,6 +27,9 @@ class InputStep(BaseModel):
     
     def get_desc(self):
         return self.desc or f"${{{self.name}}}"
+    
+    def render(self, value: Step):
+        return value.content # type: ignore
    
     
 class OutputStep(BaseModel):
@@ -33,13 +37,19 @@ class OutputStep(BaseModel):
     prefix: str = ""
     desc: str
     separator: str = " "
-    _step_class: Type = AssistantStep
+    # TODO: add a step registry to make this serializable
+    step_class: Type = AssistantStep
     
     def get_prefix(self):
         return self.prefix or f"{self.name.title()}:"
     
+    def render(self, value: Step):
+        return value.content # type: ignore
+    
+    def parse(self, text: str) -> Step:
+        return self.step_class.model_validate({"content": text})
+    
 
-# TODO: better decompose the roles between LLMFunctionNode and LLMFunctionTemplate
 class LLMFunctionTemplate(BaseModel):
     desc: str
     inputs: list[InputStep]
@@ -52,10 +62,10 @@ class LLMFunctionTemplate(BaseModel):
             lines = []
             for input in self.inputs:
                 if input.name in demo:
-                    lines.append(f"{input.get_prefix()}{input.separator}{demo[input.name]}")
+                    lines.append(f"{input.get_prefix()}{input.separator}{input.render(demo[input.name])}")
             for output in self.outputs:
                 if output.name in demo:
-                    lines.append(f"{output.get_prefix()}{output.separator}{demo[output.name]}")
+                    lines.append(f"{output.get_prefix()}{output.separator}{output.render(demo[output.name])}")
             return "\n".join(lines)
         
         # PARTIAL DEMOS
@@ -77,7 +87,7 @@ class LLMFunctionTemplate(BaseModel):
         # INPUT PROMPT
         lines = []
         for input, value in zip(self.inputs, input_values):
-            lines.append(f"{input.get_prefix()}{input.separator}{value.content}")
+            lines.append(f"{input.get_prefix()}{input.separator}{input.render(value)}")
         lines.append(self.outputs[0].get_prefix())
         input_prompt = "\n".join(lines)
         
@@ -100,12 +110,25 @@ class LLMFunctionTemplate(BaseModel):
         output_lines = text.split("\n")[-len(self.outputs):]
         output_values = [output_lines[0]] + [line.split(":")[1].strip() for line in output_lines[1:]]
         for output, value in zip(self.outputs, output_values):
-            yield output._step_class.model_validate({"content": value})
+            yield output.parse(value)
         
+        
+class KindRef(BaseModel):
+    """Refer to the input by the step kind. Refers the last step with the given kind."""
+    kind: str
+    
+    @staticmethod
+    def to(step_class: Type) -> KindRef:
+        return KindRef(kind=step_class.get_kind())
+    
+    
+class NodeRef(BaseModel):
+    name: str
+    
         
 class LLMFunctionNode(Node):
     template_name: str
-    input_offsets: list[int]
+    input_refs: list[int | NodeRef | KindRef | Step] = []
     
     def get_template(self, agent):
         template = agent.templates[self.template_name]
@@ -114,9 +137,32 @@ class LLMFunctionNode(Node):
         return template
     
     def make_prompt(self, agent, tape: Tape):
-        return self.get_template(agent).make_prompt(
-            [tape.steps[offset] for offset in self.input_offsets]
-        )
+        inputs = []
+        for ref in self.input_refs:
+            resolved = False
+            if isinstance(ref, int):
+                inputs.append(tape.steps[ref])
+            elif isinstance(ref, NodeRef):  
+                for step in reversed(tape.steps):
+                    if step.metadata.node == ref.name:
+                        inputs.append(step)
+                        resolved = True
+                        break
+                if not resolved:
+                    raise ValueError(f"Node {ref.name} not found in tape")
+            elif isinstance(ref, KindRef):
+                for step in reversed(tape.steps):
+                    if step.kind == ref.kind:
+                        inputs.append(step)
+                        resolved = True
+                        break
+                if not resolved: 
+                    raise ValueError(f"Step with kind {ref.kind} not found in tape")
+            elif isinstance(ref, Step):
+                inputs.append(ref)
+            else:
+                raise ValueError(f"Invalid input reference {ref}")
+        return self.get_template(agent).make_prompt(inputs)
         
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         yield from self.get_template(agent).generate_steps(agent, tape, llm_stream)

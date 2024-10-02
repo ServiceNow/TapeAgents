@@ -104,7 +104,7 @@ class BasicRenderer:
             if self.filter_steps and not isinstance(step, self.filter_steps):
                 continue
             if self.render_llm_calls:
-                if (prompt_id := getattr(step, "prompt_id", None)) and prompt_id != last_prompt_id:
+                if (prompt_id := step.metadata.prompt_id) and prompt_id != last_prompt_id:
                     if last_prompt_id:
                         chunks.append("<hr style='margin: 2pt 0pt 2pt 0pt;'>")
                     llm_call = llm_calls.get(prompt_id)
@@ -262,7 +262,8 @@ class PrettyRenderer(BasicRenderer):
 
         def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
-        def maybe_fold(content: str):
+        def maybe_fold(content: Any):
+            content = str(content)
             summary = f"{len(content)} characters ..." 
             if len(content) > 1000:
                 return f"<details><summary>{summary}</summary>{content}</details>"

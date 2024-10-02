@@ -7,6 +7,7 @@ from omegaconf import DictConfig
 from tapeagents.io import load_tapes, save_tapes
 from tapeagents.observe import retrieve_all_llm_calls, retrieve_tape_llm_calls
 from tapeagents.rendering import PrettyRenderer
+from tapeagents.studio import Studio
 from tapeagents.tape_browser import TapeBrowser
 
 logging.basicConfig(
@@ -18,15 +19,17 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 import json
 import pathlib
 import dspy
+import dsp.utils
+import dspy.evaluate
+from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
-from dspy.evaluate.metrics import answer_exact_match
 import tqdm
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Tape
-from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, ToolCalls, UserStep
+from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, FunctionCall, ToolCall, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llm_function import InputStep, LLMFunctionNode, LLMFunctionTemplate, OutputStep
+from tapeagents.llm_function import InputStep, KindRef, LLMFunctionNode, LLMFunctionTemplate, NodeRef, OutputStep
 from tapeagents.llms import LLMStream, LiteLLM
 from tapeagents.runtime import main_loop
 from tapeagents.batch import batch_main_loop
@@ -39,29 +42,44 @@ def render_contexts(contexts: list[str]) -> str:
     return "\n".join(f"[{i + 1}] «{t}»" for i, t in enumerate(contexts))
 
 
-def retrieve(query: str) -> str:
+def retrieve(query: str) -> list[str]:
     """Retrieve Wikipedia abstracts"""
     results = dspy.ColBERTv2(url='http://20.102.90.50:2017/wiki17_abstracts')(query)
-    texts = [r['text'] for r in results[:3]]
-    return "\n".join(f"[{i + 1}] «{t}»" for i, t in enumerate(texts))
+    return [r['text'] for r in results[:3]]
 
 
-def make_rag_function_template() -> LLMFunctionTemplate:
+def load_few_shot_demos() -> tuple[list, list]:
     with open(res_dir / "llm_function_rag_demos.json") as f:
         demos_json = json.load(f)
     partial_demos = []
     demos = [] 
     for demo in demos_json:
         if demo.get("augmented"):
-            demo["context"] = render_contexts(demo["context"])
+            demo = {
+                "question": UserStep(content=demo["question"]),
+                "context": ToolResult(content=demo["context"], tool_call_id=""),
+                "rationale": AssistantThought(content=demo["rationale"]),
+                "answer": AssistantStep(content=demo["answer"]),
+            }            
             demos.append(demo)
         else:
+            demo = {
+                "question": UserStep(content=demo["question"]),
+                "answer": AssistantStep(content=demo["answer"]),
+            }
             partial_demos.append(demo)
-        
+    return partial_demos, demos
+
+
+def make_answer_template() -> LLMFunctionTemplate:
+    partial_demos, demos = load_few_shot_demos()
+    class ContextInput(InputStep):
+        def render(self, step: ToolResult):
+            return render_contexts(step.content)
     return LLMFunctionTemplate(
         desc="Answer questions with short factoid answers.",
         inputs=[
-            InputStep(name="context", desc="may contain relevant facts", separator="\n"),
+            ContextInput(name="context", desc="may contain relevant facts", separator="\n"),
             InputStep(name="question"),
         ],
         outputs=[
@@ -69,7 +87,7 @@ def make_rag_function_template() -> LLMFunctionTemplate:
                 name="rationale", 
                 prefix="Reasoning: Let's think step by step in order to", 
                 desc="${produce the answer}. We ...",
-                _step_class=AssistantThought
+                step_class=AssistantThought
             ),
             OutputStep(name="answer", desc="often between 1 and 5 words")
         ],
@@ -87,17 +105,17 @@ def make_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
             tc = {
                 "function": {
                     "name": "retrieve",
-                    "arguments": json.dumps({"query": question.content})
+                    "arguments": {"query": question.content}
                 }
             }
             yield ToolCalls.from_dicts([tc])
     agent = Agent.create(
         llms=LiteLLM(model_name="gpt-3.5-turbo", parameters={"temperature": 0.}),        
         # TODO: change templates signature everywhere
-        templates={"rag": make_rag_function_template()},
+        templates={"rag": make_answer_template()},
         nodes=[
             RetrieveNode(),
-            LLMFunctionNode(template_name="rag", input_offsets=[-1, -3])
+            LLMFunctionNode(template_name="rag", input_refs=[-1, -3])
         ],
     )
     if not cfg.rag.partial_demos:
@@ -106,12 +124,102 @@ def make_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
         agent.templates["rag"].demos = []
     return agent, env
 
+ 
+def make_query_template() -> LLMFunctionTemplate:
+    class RetrieveOutputStep(OutputStep):
+        def parse(self, text: str):
+            tc = ToolCall(function=FunctionCall(name="retrieve", arguments={"query": text}))
+            return ToolCalls(tool_calls=[tc])
+    return LLMFunctionTemplate(
+        desc="Write a simple search query that will help answer a complex question.",
+        inputs=[
+            InputStep(name="context", desc="may contain relevant facts", separator="\n"),
+            InputStep(name="question"),
+        ],
+        outputs=[
+            RetrieveOutputStep(name="query", desc="a search query")
+        ]
+    )    
 
-def run_few_shot_rag_agent(cfg: DictConfig):
+
+def make_agentic_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
+    env = ToolEnvironment(tools=[retrieve])
+    
+    templates = {
+        "answer": make_answer_template(),
+    }
+    for i in range(cfg.agentic_rag.max_hops):
+        templates[f"query{i}"] = make_query_template()
+    
+    class Deduplicate(Node):
+        def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
+            contexts = []
+            for step in tape:
+                if isinstance(step, ToolResult):
+                    contexts.append(step.content)
+            yield AssistantThought(content=deduplicate(contexts))            
+            
+    nodes = []
+    for i in range(cfg.agentic_rag.max_hops):
+        context_ref = KindRef.to(ToolResult) if i > 0 else AssistantThought(content=[])
+        nodes.append(
+            LLMFunctionNode(
+                name=f"query{i}",
+                template_name=f"query{i}",
+                input_refs=[context_ref, KindRef.to(UserStep)],
+            )
+        )
+        nodes.append(Deduplicate(name=f"deduplicate{i}"))
+    nodes.append(
+        LLMFunctionNode(
+            template_name="answer", 
+            input_refs=[NodeRef(name=f"deduplicate{i}"), KindRef.to(UserStep)]
+        )
+    )
+    
+    agent = Agent.create(
+        llms=LiteLLM(model_name="gpt-3.5-turbo", parameters={"temperature": 0.}),
+        templates=templates,
+        nodes=nodes
+    )
+    return agent, env
+
+
+def studio_few_shot_rag(cfg: DictConfig):
     agent, env = make_rag_agent_and_env(cfg)
     start_tape = DialogTape(steps=[UserStep(content="At My Window was released by which American singer-songwriter?")])
-    final_tape = main_loop(agent, start_tape, env).get_final_tape()
-    print(final_tape.model_dump_json(indent=2))
+    Studio(agent, start_tape, PrettyRenderer(), env).launch()
+    
+    
+def studio_agentic_rag(cfg: DictConfig):
+    agent, env = make_agentic_rag_agent_and_env(cfg)
+    start_tape = DialogTape(steps=[UserStep(content="At My Window was released by which American singer-songwriter?")])
+    # main_loop(agent, start_tape, env).get_final_tape()
+    Studio(agent, start_tape, PrettyRenderer(), env).launch()
+    
+    
+def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
+    n_correct = 0
+    for example, tape in zip(examples, tapes):
+        gold_titles = set(map(dspy.evaluate.normalize_text, example['gold_titles']))
+        # TODO: just retrieve the last set of contexts by index, keep it simple
+        for step in tape:
+            if isinstance(step, ToolResult):
+                found_titles = [c.split(' | ')[0][5:] for c in step.content]
+                found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
+        ok = gold_titles.issubset(found_titles)
+        # print(gold_titles, found_titles, ok)
+        n_correct += int(ok)
+    return n_correct / len(examples)
+    
+    
+def compute_answer_exact_match(examples: list, tapes: list[Tape]):
+    n_correct = 0
+    for example, final_tape in zip(examples, tapes):
+        if isinstance(answer := final_tape.steps[-1], AssistantStep):
+            ok = dspy.evaluate.answer_exact_match(example, dspy.primitives.Example({'answer': answer.content}))
+            n_correct += int(ok)
+    return n_correct / len(examples)
     
     
 def evaluate_few_shot_rag(cfg: DictConfig):
@@ -122,18 +230,15 @@ def evaluate_few_shot_rag(cfg: DictConfig):
     
     start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.dev]
     final_tapes = []
-    with save_tapes(pathlib.Path("few_shot_rag_tapes.yaml")) as saver:
+    with save_tapes("few_shot_rag_tapes.yaml") as saver:
         for tape in tqdm.tqdm(batch_main_loop(agent, start_tapes, env)):
             final_tapes.append(tape)
             saver.save(tape)
         
-    n_correct = 0
-    for example, final_tape in zip(dataset.dev, final_tapes):
-        if isinstance(answer := final_tape.steps[-1], AssistantStep):
-            ok = answer_exact_match(example, dspy.primitives.Example({'answer': answer.content}))
-            # print(example.answer, answer.content, ok)
-            n_correct += int(ok)
-    print(f"Accuracy: {n_correct / len(dataset.dev):.2%}")
+    retrieval_accuracy = compute_retrieval_accuracy(dataset.dev, final_tapes)
+    answer_accuracy = compute_answer_exact_match(dataset.dev, final_tapes)
+    print(f"Retrieval accuracy: {retrieval_accuracy:.2f}")
+    print(f"Answer accuracy: {answer_accuracy:.2f}")
        
         
 def browse_tapes(): 
@@ -146,6 +251,10 @@ def browse_tapes():
 def main(cfg: DictConfig):
     print(f"Running in {os.getcwd()}")
     match cfg.target:
+        case "studio_few_shot_rag":
+            studio_few_shot_rag(cfg)
+        case "studio_agentic_rag":
+            studio_agentic_rag(cfg)
         case "evaluate_fewshot_rag":
             evaluate_few_shot_rag(cfg)
         case "browse_tapes":
