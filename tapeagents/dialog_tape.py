@@ -2,7 +2,6 @@ import json
 from typing import Any, Callable, Literal, TypeAlias
 
 from langchain_core.utils.function_calling import convert_to_openai_tool
-from litellm.utils import ChatCompletionMessageToolCall
 from pydantic import BaseModel
 
 from .agent import Annotator, ObservationMaker
@@ -32,7 +31,7 @@ class UserStep(Observation):
 
 
 class AssistantThought(Thought):
-    content: str
+    content: Any
     kind: Literal["assistant_thought"] = "assistant_thought"
 
 
@@ -41,8 +40,24 @@ class AssistantStep(Action):
     kind: Literal["assistant"] = "assistant"
 
 
+class FunctionCall(BaseModel):
+    name: str
+    arguments: Any
+
+
+class ToolCall(BaseModel):
+    function: FunctionCall
+    id: str = ""
+
+
 class ToolCalls(Action):
-    tool_calls: list[ChatCompletionMessageToolCall]
+    """Action that wraps one-or-many tool calls.
+    
+    We structure this class similar to OpenAI tool calls, but we let function arguments be Any, not just str
+    (see `FunctionCall` class)
+    
+    """
+    tool_calls: list[ToolCall]
     kind: Literal["assistant"] = "assistant"
     
     @staticmethod
@@ -52,7 +67,7 @@ class ToolCalls(Action):
 
 class ToolResult(Observation):
     content: Any
-    tool_call_id: str
+    tool_call_id: str = ""
     kind: Literal["tool"] = "tool"
 
 
