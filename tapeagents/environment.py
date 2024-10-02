@@ -13,7 +13,7 @@ from tapeagents.utils import FatalError
 
 from .agent import TapeType
 from .core import Action, Observation, Prompt, Tape
-from .dialog_tape import AssistantStep, DialogTape, ToolCalls, ToolResult, ToolSpec
+from .dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
 from .llms import LiteLLM
 
 logger = logging.getLogger(__name__)
@@ -133,10 +133,12 @@ class ToolEnvironment(Environment):
         for action in orphan_actions:
             if isinstance(action, ToolCalls):
                 for tc in action.tool_calls:
-                    if not isinstance(tc.function, Function) or not isinstance(tc.function.name, str):
+                    if not isinstance(tc.function, FunctionCall) or not isinstance(tc.function.name, str):
                         raise ValueError(f"Tool call must be Function and must have a name")
                     tool = self._name2tool[tc.function.name]
-                    args = json.loads(tc.function.arguments)
+                    args = tc.function.arguments
+                    if isinstance(args, str):
+                        args = json.loads(args)
                     try:
                         content = str(tool.run(tool_input=args))
                     except FatalError as e:
