@@ -66,7 +66,7 @@ def main(studio: bool):
 
         Studio(agent, start_tape, make_renderers(), env).launch()
     else:
-        final_tape = main_loop(org, start_tape, env).get_final_tape()
+        final_tape = main_loop(agent, start_tape, env).get_final_tape()
         with open("final_tape.json", "w") as f:
             f.write(final_tape.model_dump_json(indent=2))
 

@@ -10,7 +10,6 @@ The agentic system is built on top of the [TeamAgent](../../tapeagents/team.py) 
 ## Setup
 The `CodeExecutor` use `Podman` for container execution. You must install it on your machine (see [instructions](https://podman.io/getting-started/installation.html)).
 
-
 In some cases you will have to set `DOCKER_HOST` environment variable to make Podman accesible for TapeAgents code, e.g. `DOCKER_HOST=http+unix:///var/run/docker.sock`. See the output of `podman machine start` for the path to the socket.
 
 ## Quickstart

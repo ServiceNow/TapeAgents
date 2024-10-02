@@ -20,8 +20,8 @@ from tapeagents.rendering import PrettyRenderer
 from tapeagents.team import TeamTape
 from tapeagents.view import Call, Respond
 
-from .data_science.data_science import make_renderers
-from .data_science.data_science import make_world as data_science_make_world
+from ..data_science.data_science import make_renderers
+from ..data_science.data_science import make_world as data_science_make_world
 
 ### Prompts ###
 
@@ -238,7 +238,7 @@ def make_world(llm: LLM | None = None) -> tuple[Agent, Tape, Tape]:
     Returns:
         tuple[Agent, Tape, Tape]: A tuple containing the code improver agent, the bad tape, and the improver tape to run the agent on.
     """
-    res_dir = f"{pathlib.Path(__file__).parent.resolve()}/res"
+    res_dir = f"{pathlib.Path(__file__).parent.resolve()}/data"
     with open(f"{res_dir}/bad_tape.json", "r") as f:
         bad_tape = TeamTape.model_validate(json.load(f))
     improver_tape = CodeImproverTape(context=bad_tape, steps=[])

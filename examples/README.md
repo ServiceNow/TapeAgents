@@ -24,6 +24,6 @@ In the order of increasing complexity:
 - [delegate.py](delegate.py) - multi-agent setup where agent contains multiple sub-agents and delegates the tasks to them.
 - [delegate_stack.py](delegate_stack.py) - more complex multi-agent setup where agent uses stack of the tape views to track data for each sub-agent.
 - [studio.py](studio.py) - interactive Gradio demo of agent that could be edited in runtime.
-- [tape_improver.py](tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
+- [tape_improver](tape_improver) - the agent that revisit and improves the tapes produced by another agent.
 - [gsm8k_tuning](gsm8k_tuning) - custom agent that solves GSM-8k benchmark, collect tapes and finetune smaller LLaMA model on them.
 
