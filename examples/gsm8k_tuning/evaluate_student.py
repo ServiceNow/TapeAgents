@@ -7,7 +7,7 @@ from datasets import load_dataset
 from termcolor import colored
 from tqdm import tqdm
 
-from tapeagents.llms import LLAMA
+from tapeagents.llms import TrainableLLM
 
 from .math_agent import (
     MathAgent,
@@ -55,7 +55,7 @@ def main(student_path: str):
     # to run inference: vllm serve meta-llama/Meta-Llama-3.1-8B-Instruct
     untuned_agent = MathAgent(
         llms={
-            "default": LLAMA(
+            "default": TrainableLLM(
                 base_url="http://localhost:8000",
                 model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
                 tokenizer_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
@@ -71,7 +71,7 @@ def main(student_path: str):
     # to run inference: vllm serve <student_path>
     tuned_agent = MathAgent(
         llms={
-            "default": LLAMA(
+            "default": TrainableLLM(
                 base_url="http://localhost:8000",
                 model_name=student_path,
                 tokenizer_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
@@ -85,7 +85,7 @@ def main(student_path: str):
     logger.info(f"Tuned test accuracy: {tuned_acc:.3f}")
 
     # check teacher model
-    big_llm = LLAMA(
+    big_llm = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         tokenizer_name="meta-llama/Meta-Llama-3.1-70B-Instruct",

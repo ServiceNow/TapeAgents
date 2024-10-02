@@ -7,7 +7,7 @@ from datasets import load_dataset
 from termcolor import colored
 from tqdm import tqdm
 
-from tapeagents.llms import LLAMA
+from tapeagents.llms import TrainableLLM
 
 from .math_agent import (
     MathAgent,
@@ -28,7 +28,7 @@ def main(exp_path: str, attempts: int = 1):
     np.random.shuffle(samples)  # type: ignore
     logging.info(f"Loaded {len(samples)} samples")
 
-    llm = LLAMA(
+    llm = TrainableLLM(
         base_url="https://api.together.xyz",
         model_name="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         tokenizer_name="meta-llama/Meta-Llama-3.1-70B-Instruct",
@@ -38,6 +38,7 @@ def main(exp_path: str, attempts: int = 1):
     env = MathEnvironment()
 
     tapes_dir = os.path.join(exp_path, "tapes")
+    logger.info(f"Saving tapes to {tapes_dir}")
     os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "llm_calls.sqlite")
 
