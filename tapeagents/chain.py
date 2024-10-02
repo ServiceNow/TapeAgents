@@ -11,7 +11,7 @@ from tapeagents.llms import LLMStream
 from tapeagents.view import Call, Respond, TapeViewStack
 
 
-class Subagent(Node):
+class SubagentCall(Node):
     """
     Node that calls a subagent with inputs from the current tape view.
     """
