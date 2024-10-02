@@ -1,15 +1,13 @@
 import json
 
-from tapeagents.core import MakeObservation, Prompt
+from tapeagents.agent import ObservationMaker
+from tapeagents.core import AgentEvent, MakeObservation, Observation, Prompt, Tape
 from tapeagents.dialog_tape import (
     DialogTape,
     SystemStep,
-    UserModel,
-    UserModelInstruction,
-    UserModelTape,
     UserStep,
 )
-from tapeagents.llms import TrainableLLM, LLMStream
+from tapeagents.llms import LLMStream, TrainableLLM
 
 USER_MODEL_TEMPLATE = """You will generate the next user message in the following conversation.
 
@@ -27,10 +25,30 @@ Output the next message using this template:
 ONLY output this JSON and nothing else."""
 
 
+class UserModelFreeFormThought(Observation):
+    content: str
+
+
+class UserModelInstruction(Observation):
+    instruction: str
+
+
+UserModelTape = Tape[DialogTape, MakeObservation[UserStep] | UserModelFreeFormThought | UserModelInstruction]
+UserModelEvent = AgentEvent[UserModelTape]
+
+
+class UserModel(ObservationMaker[DialogTape, UserModelTape]):
+    instruction: str
+
+    def make_own_tape(self, tape: DialogTape) -> UserModelTape:
+        return UserModelTape(context=tape).append(UserModelInstruction(instruction=self.instruction))
+
+
 class LLAMAUserModel(UserModel):
     def make_prompt(self, tape: UserModelTape):
         (instruction_step,) = tape.steps
         assert isinstance(instruction_step, UserModelInstruction)
+        assert tape.context is not None
         conversation = json.dumps(tape.context.model_dump()["steps"], indent=2)
         user_message = USER_MODEL_TEMPLATE.format(
             conversation=conversation, user_model_prompt=instruction_step.instruction
@@ -39,10 +57,6 @@ class LLAMAUserModel(UserModel):
 
     def generate_steps(self, _, llm_stream: LLMStream):
         yield MakeObservation(new_observation=UserStep.model_validate_json(llm_stream.get_text()))
-
-    @property
-    def signature(self):
-        return json.dumps({"model": "llama", "prompt": self.instruction})
 
 
 def try_llama_user_model(llm: TrainableLLM):
