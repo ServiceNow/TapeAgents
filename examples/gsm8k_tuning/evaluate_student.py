@@ -68,11 +68,11 @@ def main(student_path: str):
     acc = eval(untuned_agent, test_set)
     logger.info(f"Untuned test accuracy: {acc:.3f}")
 
-    # to run inference: vllm serve <student_path>
+    # to run inference: vllm serve <student_path> --port 8001
     tuned_agent = MathAgent(
         llms={
             "default": TrainableLLM(
-                base_url="http://localhost:8000",
+                base_url="http://localhost:8001",
                 model_name=student_path,
                 tokenizer_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
                 parameters=dict(temperature=0.0),
