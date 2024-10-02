@@ -38,10 +38,6 @@ class NoActionsToReactTo(Exception):
 
 
 class Environment(ABC, Generic[TapeType]):
-    @property
-    def signature(self):
-        return "environment"
-
     @abstractmethod
     def react(self, tape: TapeType) -> TapeType:
         pass

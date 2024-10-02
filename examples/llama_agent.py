@@ -5,7 +5,7 @@ import tempfile
 from tapeagents.agent import Agent
 from tapeagents.core import LLMOutput, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
 from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
-from tapeagents.llms import TrainableLLM, LLM, LLMStream
+from tapeagents.llms import LLM, LLMStream, TrainableLLM
 from tapeagents.prompting import tape_to_messages
 
 
@@ -13,10 +13,6 @@ class LLAMAChatBot(Agent[DialogTape]):
     """
     Example of an agent that responds to user messages using the LLAMA model.
     """
-
-    @property
-    def signature(self):
-        return "llamachatbot"
 
     def make_prompt(self, tape: DialogTape):
         return Prompt(messages=tape_to_messages(tape))
@@ -41,7 +37,7 @@ class LLAMAChatBot(Agent[DialogTape]):
 
 
 def try_llama_chatbot(llm: LLM):
-    agent = LLAMAChatBot.create(llm)
+    agent = LLAMAChatBot.create(llm, name="llamachatbot")
     print("--- CHECK CHATTING ---")
     user_messages = [
         "Hello, how are you?",
