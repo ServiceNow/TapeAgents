@@ -67,7 +67,8 @@ StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | Parti
 class Node(BaseModel):
     """
     A node in the agent, atomic unit of the agent's behavior.
-    The node corresponds to some state of the tape (we can infer current node name from the tape), has a name and contains 2 main functions:
+    The agent chooses which node to run based on the current tape.
+    The node has a name and contains 2 main functions:
      - make a prompt out of the tape
      - generate steps out of the received llm output
     """
