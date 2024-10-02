@@ -1,0 +1,9 @@
+hydra:
+  job:
+    chdir: True
+target: ???
+rag:
+  partial_demos: true
+  demos: true
+dataset:
+  dev_size: 200
