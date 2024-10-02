@@ -16,7 +16,6 @@ from .math_agent import (
     solve_task,
 )
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 env = MathEnvironment()
@@ -53,46 +52,27 @@ def main(student_path: str):
     test_set = test_split[:200]
 
     # to run inference: vllm serve meta-llama/Meta-Llama-3.1-8B-Instruct
-    untuned_agent = MathAgent(
-        llms={
-            "default": TrainableLLM(
-                base_url="http://localhost:8000",
-                model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                tokenizer_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                parameters=dict(temperature=0.1),
-                use_cache=False,
-            )
-        }
+    untuned_agent = MathAgent.create(
+        TrainableLLM(base_url="http://localhost:8000", model_name="meta-llama/Meta-Llama-3.1-8B-Instruct")
     )
 
     acc = eval(untuned_agent, test_set)
     logger.info(f"Untuned test accuracy: {acc:.3f}")
 
     # to run inference: vllm serve <student_path> --port 8001
-    tuned_agent = MathAgent(
-        llms={
-            "default": TrainableLLM(
-                base_url="http://localhost:8001",
-                model_name=student_path,
-                tokenizer_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
-                parameters=dict(temperature=0.0),
-                use_cache=False,
-            )
-        }
-    )
+    tuned_agent = MathAgent.create(TrainableLLM(base_url="http://localhost:8001", model_name=student_path))
 
     tuned_acc = eval(tuned_agent, test_set, "tuned_acc")
     logger.info(f"Tuned test accuracy: {tuned_acc:.3f}")
 
     # check teacher model
-    big_llm = TrainableLLM(
-        base_url="https://api.together.xyz",
-        model_name="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-        tokenizer_name="meta-llama/Meta-Llama-3.1-70B-Instruct",
-        parameters=dict(temperature=0.2),
-        use_cache=False,
+    big_agent = MathAgent.create(
+        TrainableLLM(
+            base_url="https://api.together.xyz",
+            model_name="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+            tokenizer_name="meta-llama/Meta-Llama-3.1-70B-Instruct",
+        )
     )
-    big_agent = MathAgent(llms={"default": big_llm})
 
     big_acc = eval(big_agent, test_set, "big_acc")
     logger.info(f"Teacher test accuracy: {big_acc:.3f}")

@@ -9,4 +9,10 @@ First, we build a basic math agent that uses the LLama 3.1 70B model equipped wi
 
 <img width="526" alt="image" src="https://github.com/user-attachments/assets/a7aa2908-2a86-4b85-92d2-8c133e9ac0ff">
 
+| Model | Test accuracy |
+| ----- | ------------- |
+| 8B student before tuning | 0.662 |
+| 8B student after tuning | 0.775 |
+| 70B teacher | 0.931 |
+
 RL tuning on both successful and unsuccessful solutions is coming soon. Stay tuned!
