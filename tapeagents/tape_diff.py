@@ -69,7 +69,8 @@ class TapeDiffGUI:
                 step = ""
             else:
                 step = self.renderer.render_step(step_dict, folded=False)
-                prompt_id = step_dict.pop("prompt_id", None)
+                step_metadata = step_dict.get("metadata", {})
+                prompt_id = step_metadata.pop("prompt_id", None)
                 if prompt_id in prompts:
                     prompt_text = self.renderer.render_llm_call(prompts[prompt_id], metadata=prompts[prompt_id])
                     step = prompt_text + step
@@ -77,7 +78,8 @@ class TapeDiffGUI:
                 step2 = ""
             else:
                 step2 = self.renderer.render_step(step_dict2, folded=False)
-                prompt_id2 = step_dict2.pop("prompt_id", None)
+                step_metadata2 = step_dict.get("metadata", {})
+                prompt_id2 = step_metadata2.pop("prompt_id", None)
                 if step_dict and step_dict != step_dict2:
                     diff_class = "diff_highlight"
                     if step_dict["kind"] == step_dict2["kind"]:

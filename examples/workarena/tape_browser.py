@@ -80,7 +80,7 @@ class WorkarenaTapeBrowser(TapeBrowser):
 
     def get_tape_label(self, tape: dict) -> str:
         tape_dir = tape["metadata"]["tape_dir"]
-        tape_prompts = [s for s in tape["steps"] if s.get("prompt_id") in self.prompts]
+        tape_prompts = [s for s in tape["steps"] if s.get("metadata", {}).get("prompt_id") in self.prompts]
         failure_count = len([s for s in tape["steps"] if s["kind"].endswith("failure")])
         label = f"""<h3>Result</h3>
             <div class="result-label">Steps: {len(tape["steps"])}</div>
@@ -118,7 +118,8 @@ class WorkarenaTapeBrowser(TapeBrowser):
         last_prompt_id = None
         for s in steps:
             view = self.renderer.render_step(s, tape_dir=tape["metadata"]["tape_dir"])  # type: ignore
-            prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
+            step_metadata = s.get("metadata", {})
+            prompt_id = step_metadata.pop("prompt_id", None) if isinstance(s, dict) else getattr(step_metadata, "prompt_id", None)
             if prompt_id in self.prompts and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(self.prompts[prompt_id], metadata=self.prompts[prompt_id])
                 view = prompt_view + view

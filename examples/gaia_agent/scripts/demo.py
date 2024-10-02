@@ -39,7 +39,7 @@ class GaiaRender(TapeBrowserRenderer):
         if not step_dict:
             return ""
         title = get_step_title(step_dict)
-        text = get_step_text(step_dict, exclude_fields={"kind", "role", "prompt_id"})
+        text = get_step_text(step_dict, exclude_fields={"kind", "role", "metadata"})
         role = "Agent Action"
         color = "#ffffba"
         if step_dict["kind"] == "question":

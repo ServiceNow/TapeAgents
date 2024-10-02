@@ -146,7 +146,8 @@ class TapeBrowser:
         last_prompt_id = None
         for i, s in enumerate(steps):
             view = self.renderer.render_step(s, i)
-            prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
+            step_metadata = s.get("metadata", {})
+            prompt_id = step_metadata.pop("prompt_id", None) if isinstance(s, dict) else getattr(step_metadata, "prompt_id", None)
             if prompt_id in self.prompts and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(
                     self.prompts[prompt_id]["prompt"], metadata=self.prompts[prompt_id]

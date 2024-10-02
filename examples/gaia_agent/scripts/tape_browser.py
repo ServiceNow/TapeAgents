@@ -44,7 +44,7 @@ class GaiaTapeBrowser(TapeBrowser):
         return f'{mark}L{tape["metadata"]["task"]["Level"]}{i+1}: {tape["steps"][0]["content"][:32]}'
 
     def get_tape_label(self, tape: dict) -> str:
-        tape_prompts = [s for s in tape["steps"] if s.get("prompt_id") in self.prompts]
+        tape_prompts = [s for s in tape["steps"] if s.get("metadata", {}).get("prompt_id") in self.prompts]
         failure_count = len([s for s in tape["steps"] if s["kind"].endswith("failure")])
         label = f"""<h2>Tape Result</h2>
             <div class="result-label expected">Golden Answer: <b>{tape["metadata"]["task"]['Final answer']}</b></div>

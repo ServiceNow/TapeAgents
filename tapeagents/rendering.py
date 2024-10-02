@@ -380,7 +380,7 @@ def get_step_title(step: Step | dict) -> str:
     return title
 
 
-def get_step_text(step: Step | dict, trim: bool = False, exclude_fields={"kind", "role", "prompt_id"}) -> str:
+def get_step_text(step: Step | dict, trim: bool = False, exclude_fields={"kind", "role", "metadata"}) -> str:
     step_dict = step if isinstance(step, dict) else step.model_dump()
     if "error" in step_dict:
         return step_dict["error"]
