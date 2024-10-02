@@ -234,7 +234,9 @@ class Agent(BaseModel, Generic[TapeType]):
             llms = {DEFAULT: llms}
         if isinstance(templates, str):
             templates = {DEFAULT: templates}
-        return cls(llms=llms or {}, templates=templates or {}, **kwargs)
+        if templates:
+            kwargs["templates"] = templates
+        return cls(llms=llms or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
         """
