@@ -48,6 +48,10 @@ class Step(BaseModel):
 
     def llm_view(self, indent: int = 2) -> str:
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
+    
+    @classmethod
+    def get_kind(cls) -> str:
+        return cls.model_fields["kind"].default
 
 
 class PartialStep(BaseModel):
