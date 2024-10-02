@@ -88,12 +88,13 @@ def test_llama_agent_traces():
     tape = DialogTape.model_validate(load_tape_dict(run_dir))
     orig_traces = load_traces(run_dir)
 
-    with set_sqlite_db_dir(run_dir):
-        traces = agent.make_training_data(tape)
-        assert len(traces) == len(orig_traces), f"Expected {len(orig_traces)} traces, got {len(traces)}"
-        for trace, orig_trace in zip(traces, orig_traces):
-            assert trace.prompt_text == orig_trace.prompt_text
-            assert trace.output_text == orig_trace.output_text
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with set_sqlite_db_dir(tmp_dir):
+            traces = agent.make_training_data(tape)
+            assert len(traces) == len(orig_traces), f"Expected {len(orig_traces)} traces, got {len(traces)}"
+            for trace, orig_trace in zip(traces, orig_traces):
+                assert trace.prompt_text == orig_trace.prompt_text
+                assert trace.output_text == orig_trace.output_text
 
 
 def test_llama_agent_tape_reuse():

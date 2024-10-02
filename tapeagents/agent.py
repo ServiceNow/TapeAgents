@@ -34,6 +34,10 @@ DEFAULT = "default"
 
 
 class AgentStream(Generic[TapeType]):
+    """
+    The result of the agent run, wrapper around a generator that produces AgentEvents.
+    """
+
     def __init__(self, generator: Generator[AgentEvent[TapeType], None, None]):
         self.generator = generator
 
@@ -62,10 +66,11 @@ StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | Parti
 
 class Node(BaseModel):
     """
-    A node in the agent.
-    The node corresponds to some state of the tape, has a name and contains 2 main functions:
-     - one to make a prompt out of the tape
-     - one to generate steps out of the received llm output
+    A node in the agent, atomic unit of the agent's behavior.
+    The agent chooses which node to run based on the current tape.
+    The node has a name and contains 2 main functions:
+     - make a prompt out of the tape
+     - generate steps out of the received llm output
     """
 
     name: str = ""
@@ -76,6 +81,10 @@ class Node(BaseModel):
     make_llm_output_func: Callable[[Any, Tape, int], LLMOutput] = Field(
         default=lambda agent, tape, index: LLMOutput(role="assistant", content=tape.steps[index].content), exclude=True
     )
+
+    def model_post_init(self, __context: Any) -> None:
+        if not self.name:
+            self.name = self.__class__.__name__.split("[")[0]  # class name without type variables
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         return self.make_prompt_func(agent, tape)
@@ -113,15 +122,27 @@ class Node(BaseModel):
 
 
 class Agent(BaseModel, Generic[TapeType]):
+    """
+    The base class for agents.
+    Main methods are:
+        - run: run the agent on the tape until it produces a stop step
+        - make_prompt: make a prompt for the LLM
+        - generate_steps: generate steps from the LLM output
+        - select_node: select the node to run next based on the current state of the tape
+    """
+
     name: str = ""
     llms: dict[str, SerializeAsAny[LLM]] = {}
     # can't use list[Agent] because of pydantic bug
     # https://github.com/pydantic/pydantic/issues/9969
-    subagents: list[Any] = []
+    subagents: list[Any] = Field(
+        default_factory=lambda: [],
+        description="List of subagents, which are agents that are run by this agent. Subagents must have unique names.",
+    )
     templates: dict[str, str] = {}
     nodes: list[SerializeAsAny[Node]] = Field(
         default_factory=lambda: [],
-        description="List of nodes in the agent, order of the list used to determine the prioirty during activation",
+        description="List of nodes in the agent, order of the list used to determine the priority during activation. Nodes must have unique names.",
     )
     max_iterations: int = 100
 
@@ -135,7 +156,11 @@ class Agent(BaseModel, Generic[TapeType]):
             # e.g. "Agent" instea of "Agent[Tape[...]]""
             self.name = self.__class__.__name__.split("[")[0]
         names = set()
-        for agent in self.subagents:
+        for i, agent in enumerate(self.subagents):
+            if agent.name in names:
+                raise ValueError(
+                    f'Duplicate subagent name "{agent.name}" in subagent {i}, pass a unique name to the subagent during creation'
+                )
             names.add(agent.name)
             if isinstance(agent, Agent):
                 if agent._manager is not None:
@@ -143,8 +168,13 @@ class Agent(BaseModel, Generic[TapeType]):
                 agent._manager = self
             else:
                 raise ValueError("Subagents must be instances of Agent")
-        if len(names) < len(self.subagents):
-            raise ValueError("Subagents have duplicate names")
+        node_names = set()
+        for i, node in enumerate(self.nodes):
+            if node.name in node_names:
+                raise ValueError(
+                    f'Duplicate node name "{node.name}" in node {i}, pass a unique name to the node during creation'
+                )
+            node_names.add(node.name)
         return super().model_post_init(__context)
 
     @property
@@ -179,12 +209,15 @@ class Agent(BaseModel, Generic[TapeType]):
 
     def get_subagent_names(self) -> list[str]:
         return [agent.name for agent in self.subagents]
-    
+
     def clone(self) -> Self:
+        """
+        Make a deep copy of the agent without the manager.
+        """
         result = self.model_copy(deep=True)
         result._manager = None
         return result
-        
+
     @classmethod
     def create(
         cls,
@@ -201,7 +234,9 @@ class Agent(BaseModel, Generic[TapeType]):
             llms = {DEFAULT: llms}
         if isinstance(templates, str):
             templates = {DEFAULT: templates}
-        return cls(llms=llms or {}, templates=templates or {}, **kwargs)
+        if templates:
+            kwargs["templates"] = templates
+        return cls(llms=llms or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
         """
@@ -223,10 +258,6 @@ class Agent(BaseModel, Generic[TapeType]):
         config_copy["llms"] = llms
         config_copy["subagents"] = subagents
         return type(self).model_validate(config_copy)
-
-    @property
-    def signature(self):
-        return ""
 
     def compute_view(self, tape: TapeType) -> TapeViewStack:
         return TapeViewStack.compute(tape)
@@ -344,7 +375,7 @@ class Agent(BaseModel, Generic[TapeType]):
                 n_iterations += 1
             final_tape = tape
             final_tape.metadata = TapeMetadata(
-                n_added_steps=len(tape) - input_tape_length, parent_id=tape.metadata.id, author=self.signature
+                n_added_steps=len(tape) - input_tape_length, parent_id=tape.metadata.id, author=self.name
             )
             yield AgentEvent(final_tape=final_tape)
 
@@ -437,6 +468,7 @@ class Annotator(Agent[AnnotatorTapeType], Generic[TapeType, AnnotatorTapeType]):
     Annotator is the base class for agents that produce annotations for the tape of another agent.
     It annotates the tape by converting it into its own tape and then producing an annotation step appended to the converted tape.
     """
+
     @abstractmethod
     def make_own_tape(self, tape: TapeType) -> AnnotatorTapeType:
         pass
@@ -458,7 +490,7 @@ class ObservationMaker(Agent[ObservationMakerTapeType], Generic[TapeType, Observ
         if not isinstance(own_tape.steps[-1], MakeObservation):
             raise ValueError("Own tape must end with MakeObservation to add observation to the target tape")
         metadata = TapeMetadata(
-            parent_id=tape.metadata.id, author_tape_id=own_tape.metadata.id, author=self.signature, n_added_steps=1
+            parent_id=tape.metadata.id, author_tape_id=own_tape.metadata.id, author=self.name, n_added_steps=1
         )
         return tape.append(last_step.new_observation).model_copy(update=dict(metadata=metadata))
 

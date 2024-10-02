@@ -18,7 +18,7 @@ LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
 
 
-def init_sqlite_if_not_exists(only_once: bool = False):
+def init_sqlite_if_not_exists(only_once: bool = True):
     """
     Ensure that the tables exist in the sqlite database.
 
