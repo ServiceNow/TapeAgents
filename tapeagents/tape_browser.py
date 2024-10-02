@@ -8,6 +8,8 @@ import yaml
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from tapeagents.observe import retrieve_tape_llm_calls
+
 from .core import Tape
 from .rendering import BasicRenderer
 
@@ -46,9 +48,8 @@ class TapeBrowser:
         logger.info(f"{len(tapes)} tapes loaded from {fname}")
         return tapes
 
-    def load_prompts(self, fpath: str):
-        # TODO: support sqlite storage with the naming convention <fpath>.prompts.sqlite
-        pass
+    def load_prompts(self):
+        self.prompts = retrieve_tape_llm_calls(self.tapes)
 
     def get_steps(self, tape: Tape) -> list:
         return tape.steps
@@ -126,6 +127,7 @@ class TapeBrowser:
     def update_view(self, selected_file: str):
         logger.info(f"Loading tapes from {selected_file}")
         self.tapes = self.load_tapes(selected_file)
+        self.load_prompts()
         file_label = self.get_file_label(selected_file, self.tapes)
         tape_names = [(self.get_tape_name(i, tape), i) for i, tape in enumerate(self.tapes)]
         logger.info(f"Selected file: {selected_file}, selected tape: {self.selected_tape}")
@@ -146,10 +148,12 @@ class TapeBrowser:
         last_prompt_id = None
         for i, s in enumerate(steps):
             view = self.renderer.render_step(s, i)
-            prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
+            prompt_id = s.metadata.prompt_id
             if prompt_id in self.prompts and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(
-                    self.prompts[prompt_id]["prompt"], metadata=self.prompts[prompt_id]
+                    self.prompts[prompt_id].prompt,
+                    self.prompts[prompt_id].output,
+                    metadata=self.prompts[prompt_id].__dict__
                 )
                 view = prompt_view + view
             step_views.append(view)

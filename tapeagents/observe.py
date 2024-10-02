@@ -18,7 +18,7 @@ LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
 
 
-def init_sqlite_if_not_exists(only_once: bool = False):
+def init_sqlite_if_not_exists(only_once: bool = True):
     """
     Ensure that the tables exist in the sqlite database.
 
@@ -132,12 +132,15 @@ def observe_tape(tape: Tape):
         listener(tape)
 
 
-def retrieve_tape_llm_calls(tape: Tape) -> dict[str, LLMCall]:
+def retrieve_tape_llm_calls(tapes: Tape | list[Tape]) -> dict[str, LLMCall]:
+    if isinstance(tapes, Tape):
+        tapes = [tapes]
     result = {}
-    for step in tape:
-        if prompt_id := step.metadata.prompt_id:
-            if call := retrieve_llm_call(prompt_id):
-                result[prompt_id] = call
+    for tape in tapes:
+        for step in tape:
+            if prompt_id := step.metadata.prompt_id:
+                if call := retrieve_llm_call(prompt_id):
+                    result[prompt_id] = call
     return result
 
 
@@ -171,7 +174,9 @@ def get_latest_tape_id() -> str:
         return row[0]
 
 
-def retrieve_all_llm_calls(sqlite_fpath: str) -> list[LLMCall]:
+def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
+    sqlite_fpath = sqlite_fpath or sqlite_db_path()
+    init_sqlite_if_not_exists()
     conn = sqlite3.connect(sqlite_fpath)
     cursor = conn.cursor()
     cursor.execute("SELECT timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached FROM LLMCalls")

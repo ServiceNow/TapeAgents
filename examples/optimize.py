@@ -1,16 +1,31 @@
+import logging
+
+from tapeagents.io import load_tapes, save_tapes
+from tapeagents.observe import retrieve_all_llm_calls, retrieve_tape_llm_calls
+from tapeagents.rendering import PrettyRenderer
+from tapeagents.tape_browser import TapeBrowser
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 import json
 import pathlib
 import dspy
 from dspy.datasets import HotPotQA
+from dspy.evaluate.metrics import answer_exact_match
+import tqdm
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Tape
-from tapeagents.dialog_tape import AssistantThought, DialogTape, ToolCalls, UserStep
+from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, ToolCalls, UserStep
 from tapeagents.environment import ToolEnvironment
 from tapeagents.llm_function import InputStep, LLMFunctionNode, LLMFunctionTemplate, OutputStep
 from tapeagents.llms import LLMStream, LiteLLM
 from tapeagents.runtime import main_loop
+from tapeagents.batch import batch_main_loop
 
 
 res_dir = pathlib.Path(__file__).parent.resolve() / "res"
@@ -78,18 +93,46 @@ def make_rag_agent_and_env() -> tuple[Agent, ToolEnvironment]:
         templates={"rag": make_rag_function_template()},
         nodes=[
             RetrieveNode(),
-            LLMFunctionNode(template_name="rag", input_offsets=[-3, -1])
+            LLMFunctionNode(template_name="rag", input_offsets=[-1, -3])
         ],
     )
     return agent, env
 
 
-def run_ran_agent():
+def run_few_shot_rag_agent():
     agent, env = make_rag_agent_and_env()
     start_tape = DialogTape(steps=[UserStep(content="At My Window was released by which American singer-songwriter?")])
     final_tape = main_loop(agent, start_tape, env).get_final_tape()
     print(final_tape.model_dump_json(indent=2))
-
+    
+    
+def evaluate_few_shot_rag_agent():
+    agent, env = make_rag_agent_and_env()
+    logger.info("Loading data")
+    dataset = HotPotQA(train_seed=1, train_size=20, eval_seed=2023, dev_size=50, test_size=0)
+    logger.info("Data loaded")
+    
+    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.dev]
+    final_tapes = list(batch_main_loop(agent, start_tapes, env))
+    
+    n_correct = 0
+    for example, final_tape in tqdm.tqdm(zip(dataset.dev, final_tapes)):
+        if isinstance(answer := final_tape.steps[-1], AssistantStep):
+            ok = answer_exact_match(example, dspy.primitives.Example({'answer': answer.content}))
+            print(example.answer, answer.content, ok)
+            n_correct += int(ok)
+    print(f"Accuracy: {n_correct / len(dataset.dev):.2%}")
+    
+    with save_tapes(pathlib.Path("few_shot_rag_tapes.yaml")) as saver:
+        for tape in final_tapes:
+            saver.save(tape)
+       
+        
+def browse_few_shot_rag_tapes():
+    tape_loader = lambda path: load_tapes(DialogTape, path)    
+    browser = TapeBrowser(tape_loader, ".", PrettyRenderer())
+    browser.launch()
     
 if __name__ == "__main__":
-    run_ran_agent()
+    evaluate_few_shot_rag_agent()
+    browse_few_shot_rag_tapes()

@@ -155,8 +155,9 @@ class BasicRenderer:
         return "".join(chunks)
 
     def render_llm_call(self, prompt: Prompt | dict, completion: str = "", metadata: dict | None = None) -> str:
+        # TODO: accept LLMCall structure here
         metadata = metadata or {}
-        prompt_length = metadata.get("prompt_length")
+        prompt_length = metadata.get("prompt_length_tokens")
         cached = metadata.get("cached", False)
         if isinstance(prompt, dict):
             messages = prompt.get("messages", [])

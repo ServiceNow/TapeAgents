@@ -43,21 +43,14 @@ def batch_main_loop(
         last_tape = None
         start_tape, env = input
         try:
-            for event in main_loop(agent, start_tape, env):
-                if event.agent_event and event.agent_event.final_tape:
-                    last_tape = event.agent_event.final_tape
-        except ExternalObservationNeeded as e:
-            assert last_tape is not None
-            return last_tape
+            result = main_loop(agent, start_tape, env).get_final_tape()
         except Exception as e:
             if is_debug_mode() or strict:
                 return e
             return start_tape.model_copy(
                 update=dict(metadata=TapeMetadata(parent_id=start_tape.metadata.id, error=traceback.format_exc()))
             )
-        else:
-            # Currently main_loop can only finish with ExternalObservationNeeded
-            assert False
+        return result
 
     processor = _choose_processor(n_workers=n_workers)
     for smth in processor(zip(tapes, environments), worker_func):
