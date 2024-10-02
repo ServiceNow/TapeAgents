@@ -104,9 +104,12 @@ class BasicRenderer:
             if self.filter_steps and not isinstance(step, self.filter_steps):
                 continue
             if self.render_llm_calls:
-                if (prompt_id := getattr(step, "prompt_id", None)) and prompt_id != last_prompt_id:
+                step_metadata = getattr(step, "metadata", None)
+                if (prompt_id := getattr(step_metadata, "prompt_id", None)) and prompt_id != last_prompt_id:
                     if last_prompt_id:
-                        chunks.append("<hr style='margin: 2pt 0pt 2pt 0pt;'>")
+                        agent = getattr(step_metadata, "agent", "")
+                        node = getattr(step_metadata, "node", "")
+                        chunks.append(f"<hr style='margin: 2pt 0pt 2pt 0pt;'>Agent: {agent.split('/')[-1]}<br>Node: {node}")
                     llm_call = llm_calls.get(prompt_id)
                     if llm_call:
                         completion = llm_call.output.model_dump_json(indent=2)
