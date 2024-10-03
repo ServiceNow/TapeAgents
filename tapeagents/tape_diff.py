@@ -62,31 +62,31 @@ class TapeDiffGUI:
         html = f"""{self.renderer.style}{style}<table class="diff" cellspacing="0" cellpadding="0"><tr class="diff">
             <td class="diff"><h2 style="padding-left: 2em;">{header}</h2></td>
             <td class="diff"><h2 style="padding-left: 2em;">{header2}</h2></td></tr>"""
-        for step_dict, step_dict2 in zip_longest(tapes[n]["steps"], tapes2[n]["steps"]):
+        for i, (step_dict, step_dict2) in enumerate(zip_longest(tapes[n]["steps"], tapes2[n]["steps"])):
             prompt_text = ""
             diff_class = "diff"
             if step_dict is None:
                 step = ""
             else:
-                step = self.renderer.render_step(step_dict, folded=False)
+                step = self.renderer.render_step(step_dict, i, folded=False)
                 prompt_id = step_dict.pop("prompt_id", None)
                 if prompt_id in prompts:
-                    prompt_text = self.renderer.render_llm_call(prompts[prompt_id], metadata=prompts[prompt_id])
+                    prompt_text = self.renderer.render_llm_call(prompts[prompt_id])
                     step = prompt_text + step
             if step_dict2 is None:
                 step2 = ""
             else:
-                step2 = self.renderer.render_step(step_dict2, folded=False)
+                step2 = self.renderer.render_step(step_dict2, i, folded=False)
                 prompt_id2 = step_dict2.pop("prompt_id", None)
                 if step_dict and step_dict != step_dict2:
                     diff_class = "diff_highlight"
                     if step_dict["kind"] == step_dict2["kind"]:
                         # highlight differences in step B
                         step2 = diff_strings(
-                            self.renderer.render_step(step_dict, folded=False), step2, use_html=True, by_words=True
+                            self.renderer.render_step(step_dict, i, folded=False), step2, use_html=True, by_words=True
                         )
                 if prompt_id2 in prompts2:
-                    prompt_text2 = self.renderer.render_llm_call(prompts2[prompt_id2], metadata=prompts2[prompt_id2])
+                    prompt_text2 = self.renderer.render_llm_call(prompts2[prompt_id2])
                     if prompt_text and prompt_text != prompt_text2:
                         # highlight differences in prompt B
                         prompt_text2 = diff_strings(prompt_text, prompt_text2, use_html=True, by_words=True)

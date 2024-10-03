@@ -41,7 +41,7 @@ class TapeBrowser:
         self.request: gr.Request | None = None
         self.selected_tape: int = 0
         self.tapes: list[Tape] = []
-        self.prompts: dict = {}
+        self.llm_calls: dict = {}
 
     def load_tapes(self, fname: str) -> list[Tape]:
         fpath = os.path.join(self.tapes_folder, fname)
@@ -149,11 +149,9 @@ class TapeBrowser:
         last_prompt_id = None
         for i, step in enumerate(steps):
             view = self.renderer.render_step(step, i)
-            prompt_id = step.get("prompt_id", None) if isinstance(step, dict) else step.metadata.prompt_id
-            if prompt_id in self.prompts and prompt_id != last_prompt_id:
-                prompt_view = self.renderer.render_llm_call(
-                    self.prompts[prompt_id]["prompt"], metadata=self.prompts[prompt_id]
-                )
+            prompt_id = step.metadata.prompt_id
+            if prompt_id in self.llm_calls and prompt_id != last_prompt_id:
+                prompt_view = self.renderer.render_llm_call(self.llm_calls[prompt_id])
                 view = prompt_view + view
             step_views.append(view)
             last_prompt_id = prompt_id
