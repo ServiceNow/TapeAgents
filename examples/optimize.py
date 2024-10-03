@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 import json
+import random
 import pathlib
 import dspy
 import dsp.utils
@@ -29,7 +30,7 @@ from tapeagents.agent import Agent, Node
 from tapeagents.core import Tape
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, FunctionCall, ToolCall, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llm_function import InputStep, KindRef, LLMFunctionNode, LLMFunctionTemplate, NodeRef, OutputStep, RationaleStep
+from tapeagents.llm_function import InputStep, KindRef, LLMFunctionNode, LLMFunctionTemplate, NodeRef, OutputStep, RationaleStep, ToolCallOutput
 from tapeagents.llms import LLMStream, LiteLLM
 from tapeagents.runtime import main_loop
 from tapeagents.batch import batch_main_loop
@@ -93,10 +94,6 @@ def make_answer_template() -> LLMFunctionTemplate:
     
     
 def make_query_template() -> LLMFunctionTemplate:
-    class RetrieveOutputStep(OutputStep):
-        def parse(self, text: str):
-            tc = ToolCall(function=FunctionCall(name="retrieve", arguments={"query": text}))
-            return ToolCalls(tool_calls=[tc])
     return LLMFunctionTemplate(
         desc="Write a simple search query that will help answer a complex question.",
         inputs=[
@@ -105,7 +102,7 @@ def make_query_template() -> LLMFunctionTemplate:
         ],
         outputs=[
             RationaleStep.for_output("query"),
-            RetrieveOutputStep(name="query", desc="a search query")
+            ToolCallOutput(name="query", tool_name="retrieve", arg_name="query", desc="a search query")
         ]
     )       
 
@@ -114,19 +111,18 @@ def make_env() -> ToolEnvironment:
     return ToolEnvironment(tools=[retrieve])
 
 
+def make_llm(cfg: DictConfig) -> LiteLLM:
+    return LiteLLM(model_name="gpt-3.5-turbo", parameters={"temperature": 0.}, use_cache=cfg.llm_cache)
+
+
 def make_rag_agent(cfg: DictConfig) -> Agent:
     class RetrieveNode(Node):
         def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
-            assert isinstance(question := tape.steps[-1], UserStep)
-            tc = {
-                "function": {
-                    "name": "retrieve",
-                    "arguments": {"query": question.content}
-                }
-            }
-            yield ToolCalls.from_dicts([tc])
+            query = tape.steps[-1].content
+            tc = ToolCall(function=FunctionCall(name='retrieve', arguments={'query': query}))
+            yield ToolCalls(tool_calls=[tc])
     agent = Agent.create(
-        llms=LiteLLM(model_name="gpt-3.5-turbo", parameters={"temperature": 0.}),        
+        llms=make_llm(cfg),
         # TODO: change templates signature everywhere
         templates={"rag": make_answer_template()},
         nodes=[
@@ -175,15 +171,62 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
     )
     
     agent = Agent.create(
-        llms=LiteLLM(model_name="gpt-3.5-turbo", parameters={"temperature": 0.}),
+        llms=make_llm(cfg),
         templates=templates,
         nodes=nodes
     )
     return agent
 
 
+def optimize_agent(agent: Agent, cfg: DictConfig):
+    # Step 1: run agent on the training set
+    dataset = get_dataset(cfg)
+    env = make_env()
+    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.train]
+    final_tapes = list(tqdm.tqdm(batch_main_loop(agent, start_tapes, env)))
+    # Step 2: filter out good tapes
+    good_tapes = [t for example, t in zip(dataset.train, final_tapes) if is_good_tape(example, t)]
+    logger.info(f"{len(good_tapes)} good tapes out of {len(final_tapes)}")
+    # Step 3: extracting support examples from the good tapes
+    demos = {template_name: [] for template_name in agent.templates}
+    for tape in good_tapes:
+        for node, index in agent.parse(tape):
+            if isinstance(node, LLMFunctionNode):
+                demos[node.template_name].append(node.extract_demo(agent, tape, index))
+    rng = random.Random(cfg.optimize.seed)
+    # Step 4: add random good support examples to the agent
+    agent_copy = agent.model_copy(deep=True)
+    for template_name, template in agent_copy.templates.items():
+        # randomly sample k examples from the demos, seed 1
+        k = min(cfg.optimize.n_demos, len(demos[template_name]))
+        template.demos = rng.sample(demos[template_name], k)
+    return agent_copy
+
+
 def make_agent(cfg: DictConfig) -> Agent:
-    return make_rag_agent(cfg) if cfg.agent == "rag" else make_agentic_rag_agent(cfg)
+    agent = make_rag_agent(cfg) if cfg.agent == "rag" else make_agentic_rag_agent(cfg)
+    if cfg.optimize.do:
+        agent = optimize_agent(agent, cfg)
+    return agent
+
+
+def is_good_tape(example: dspy.primitives.Example, tape, trace=None):
+    pred = dspy.primitives.Example({
+        'answer': tape.steps[-1].content,
+        'context': tape.steps[-3].content
+    })
+    if not dspy.evaluate.answer_exact_match(example, pred): 
+        return False
+    if not dspy.evaluate.answer_passage_match(example, pred):
+        return False
+    queries = [example.question]
+    queries += [step.tool_calls[0].function.arguments['query'] for step in tape if isinstance(step, ToolCalls)]
+    if max([len(q) for q in queries]) > 100: 
+        return False
+    if any(dspy.evaluate.answer_exact_match_str(queries[idx], queries[:idx], frac=0.8) 
+            for idx in range(2, len(queries))): 
+        return False
+    return True
 
     
 def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
@@ -195,7 +238,6 @@ def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
         found_titles = [c.split(' | ')[0] for c in context_step.content]
         found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
         ok = gold_titles.issubset(found_titles)
-        # print(gold_titles, found_titles, ok)
         n_correct += int(ok)
     return n_correct / len(examples)
     
@@ -208,14 +250,18 @@ def compute_answer_exact_match(examples: list, tapes: list[Tape]):
             n_correct += int(ok)
     return n_correct / len(examples)
     
+_dataset = None    
+    
 def get_dataset(cfg: DictConfig):    
     logger.info("Loading data ...")
-    dataset = HotPotQA(
-        train_seed=1, train_size=20, eval_seed=2023, 
-        dev_size=cfg.dataset.dev_size, test_size=0
-    )    
+    global _dataset
+    if _dataset is None:
+        _dataset = HotPotQA(
+            train_seed=1, train_size=20, eval_seed=2023, 
+            dev_size=cfg.dataset.dev_size, test_size=0
+        )
     logger.info("Data loaded")
-    return dataset
+    return _dataset
 
 def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset, save_tapes_path: str):
     start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.dev]
@@ -238,16 +284,16 @@ def evaluate(cfg: DictConfig):
     agent = make_agent(cfg)
     env = make_env()
     dataset = get_dataset(cfg)
-    
-    final_tapes = batch_run_and_save(agent, env, dataset, "few_shot_rag_tapes.yaml")    
-        
+    final_tapes = batch_run_and_save(agent, env, dataset, "few_shot_rag_tapes.yaml")          
     retrieval_accuracy = compute_retrieval_accuracy(dataset.dev, final_tapes)
     answer_accuracy = compute_answer_exact_match(dataset.dev, final_tapes)
     print(f"Retrieval accuracy: {retrieval_accuracy:.2f}")
     print(f"Answer accuracy: {answer_accuracy:.2f}")
+    with open("metrics.json", "w") as f:
+        json.dump({"retrieval_accuracy": retrieval_accuracy, "answer_accuracy": answer_accuracy}, f, indent=2)
        
         
-def browse_tapes(): 
+def browse(): 
     tape_loader = lambda path: load_tapes(DialogTape, path)    
     browser = TapeBrowser(tape_loader, ".", PrettyRenderer())
     browser.launch()
@@ -261,8 +307,8 @@ def main(cfg: DictConfig):
             studio(cfg)
         case "evaluate":
             evaluate(cfg)
-        case "browse_tapes":
-            browse_tapes()
+        case "browse":
+            browse()
         case _:
             raise ValueError(f"Unknown target {cfg.target}")
     

@@ -3,10 +3,15 @@ hydra:
     chdir: True
 target: ???
 agent: agentic_rag
+llm_cache: true
+optimize:
+  do: false
+  seed: 1
+  n_demos: 2
 rag:
   partial_demos: true
   demos: true
 agentic_rag:
-  max_hops: 3
+  max_hops: 2
 dataset:
   dev_size: 50
