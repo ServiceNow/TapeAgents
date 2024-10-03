@@ -6,7 +6,7 @@ from browsergym.workarena import ALL_WORKARENA_TASKS
 from omegaconf import DictConfig
 from termcolor import colored
 
-from tapeagents.llms import CachedLLM
+from tapeagents.llms import LLM
 from tapeagents.runtime import main_loop
 
 from .agent import WorkArenaAgent, WorkArenaBaseline
@@ -24,16 +24,16 @@ logger = logging.getLogger(__name__)
     config_name="workarena_openai",
 )
 def main(cfg: DictConfig) -> None:
-    llm: CachedLLM = hydra.utils.instantiate(cfg.llm)
+    llm: LLM = hydra.utils.instantiate(cfg.llm)
     env = WorkArenaEnvironment(**cfg.env)
     if cfg.agent == "baseline":
-        agent = WorkArenaBaseline(llms={"default": llm})
+        agent = WorkArenaBaseline.create(llm)
     else:
         logger.info("Use guided agent")
-        agent = WorkArenaAgent(llms={"default": llm})
+        agent = WorkArenaAgent.create(llm)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     os.makedirs(tapes_dir, exist_ok=True)
-    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "llm_calls.sqlite")
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     last_action = None
     repeated_action_cnt = 0
     for i, task in enumerate(ALL_WORKARENA_TASKS):
