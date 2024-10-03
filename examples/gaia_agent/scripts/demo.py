@@ -34,7 +34,7 @@ class GaiaRender(TapeBrowserRenderer):
             "</style>"
         )
 
-    def render_step(self, step: Step | dict, folded: bool = True, **kwargs) -> str:
+    def render_step(self, step: Step | dict, index: int, folded: bool = True, **kwargs) -> str:
         step_dict = step.model_dump() if isinstance(step, Step) else step
         if not step_dict:
             return ""
@@ -47,6 +47,12 @@ class GaiaRender(TapeBrowserRenderer):
             color = "#bae1ff"
             text = step_dict.get("content", step_dict.get("question", ""))
             title = ""
+            folded = False
+        elif step_dict["kind"] == "task":
+            role = "Task"
+            color = "#bae1ff"
+            text = ""
+            title = step_dict["task"]
             folded = False
         elif step_dict["kind"] == "plan_thought":
             role = "Agent Thought"
@@ -73,7 +79,7 @@ class GaiaRender(TapeBrowserRenderer):
             color = "#ffffdb"
 
         # fold when too long or too many lines
-        fold = folded and (text.count("\n") > 15 or len(text) > 3000)
+        fold = folded and (text.count("\n") > 10 or len(text) > 1000)
         if not fold:
             max_len = 2000
             if len(text) > max_len + 100:
@@ -100,7 +106,7 @@ class GaiaRender(TapeBrowserRenderer):
 def main(cfg: DictConfig) -> None:
     llm = hydra.utils.instantiate(cfg.llm)
     env = GaiaEnvironment(vision_lm=llm)
-    agent = GaiaAgent(llms={"default": llm}, **cfg.agent)
+    agent = GaiaAgent.create(llm, **cfg.agent)
     demo = GaiaDemo(agent, GaiaTape(), env, GaiaRender())
     demo.launch(server_name="0.0.0.0")
 

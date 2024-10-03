@@ -3,11 +3,11 @@ import logging
 import os
 import sys
 
-from tapeagents.core import Step
+from tapeagents.core import LLMCall, Step, Tape
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.tape_browser import TapeBrowser
 
-from ..gaia_agent.eval import load_results
+from ..gaia_agent.eval import GaiaResults, load_results
 from ..gaia_agent.scripts.demo import GaiaRender
 
 logging.basicConfig(
@@ -38,7 +38,7 @@ class WorkarenaTapeBrowser(TapeBrowser):
         sqlite_fpath = os.path.join(base_path, "llm_calls.sqlite")
         if os.path.exists(sqlite_fpath):
             self.prompts = {
-                llm_call.prompt.id: llm_call.prompt.model_dump() for llm_call in retrieve_all_llm_calls(sqlite_fpath)
+                llm_call.prompt.id: llm_call.model_dump() for llm_call in retrieve_all_llm_calls(sqlite_fpath)
             }
         logger.info(f"Loaded {len(tapes)} tapes, {len(self.prompts)} prompts from {fpath}")
         try:
@@ -117,7 +117,7 @@ class WorkarenaTapeBrowser(TapeBrowser):
         step_views = []
         last_prompt_id = None
         for s in steps:
-            view = self.renderer.render_step(s, tape_dir=tape["metadata"]["tape_dir"])  # type: ignore
+            view = self.renderer.render_step(s)  # type: ignore
             prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
             if prompt_id in self.prompts and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(self.prompts[prompt_id], metadata=self.prompts[prompt_id])
@@ -131,11 +131,15 @@ class WorkarenaTapeBrowser(TapeBrowser):
 
 
 class WorkArenaRender(GaiaRender):
-    def __init__(self, root_folder: str) -> None:
+    def __init__(self, exp_dir: str) -> None:
+        self.exp_dir = exp_dir
         super().__init__()
-        self.root_folder = root_folder
 
-    def render_step(self, step: Step | dict, folded: bool = True, **kwargs) -> str:
+    def render_tape(self, tape: Tape, llm_calls: dict[str, LLMCall] = {}) -> str:
+        steps_html = self.render_steps(tape, llm_calls)
+        return f"{self.context_header}{self.steps_header}{steps_html}"
+
+    def render_step(self, step: Step | dict, index: int, folded: bool = True, **kwargs) -> str:
         step_dict = step.model_dump() if isinstance(step, Step) else step
         html = super().render_step(step, folded, **kwargs)
         screenshot_path = None
@@ -144,14 +148,14 @@ class WorkArenaRender(GaiaRender):
         if "screenshot_path" in step_dict.get("metadata", {}).get("other", {}):
             screenshot_path = step_dict["metadata"]["other"]["screenshot_path"]
         if screenshot_path:
-            screenshot_url = os.path.join("static", kwargs["tape_dir"], "screenshots", screenshot_path)
+            screenshot_url = os.path.join("static", self.exp_dir, "screenshots", screenshot_path)
             html = f"<div class='basic-renderer-box' style='background-color:#baffc9;'><div><img src='{screenshot_url}' style='max-width: 100%;'></div>{html}</div>"
         return html
 
 
 def main(dirname: str):
     renderer = WorkArenaRender(dirname)
-    browser = WorkarenaTapeBrowser(load_results, dirname, renderer, file_extension=".json")
+    browser = WorkarenaTapeBrowser(GaiaResults, dirname, renderer, file_extension=".json")
     browser.launch(static_dir=dirname, server_name="0.0.0.0", port=7860)
 
 

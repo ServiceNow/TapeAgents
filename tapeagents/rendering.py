@@ -5,12 +5,10 @@ from typing import Any, Type
 import yaml
 from pydantic import BaseModel
 
-from tapeagents.environment import CodeExecutionResult, ExecuteCode
-
-from .agent import Agent
-from .container_executor import CodeBlock
-from .core import Action, Episode, Observation, Prompt, Step, Tape, Thought
-from .dialog_tape import (
+from tapeagents.agent import Agent
+from tapeagents.container_executor import CodeBlock
+from tapeagents.core import Action, Episode, Observation, Prompt, Step, Tape, Thought
+from tapeagents.dialog_tape import (
     AssistantStep,
     DialogContext,
     DialogTape,
@@ -19,8 +17,9 @@ from .dialog_tape import (
     ToolResult,
     UserStep,
 )
-from .observe import LLMCall, retrieve_tape_llm_calls
-from .view import Call, Respond
+from tapeagents.environment import CodeExecutionResult, ExecuteCode
+from tapeagents.observe import LLMCall, retrieve_tape_llm_calls
+from tapeagents.view import Call, Respond
 
 
 def render_dialog_plain_text(tape: DialogTape | None) -> str:
@@ -104,14 +103,14 @@ class BasicRenderer:
             if self.filter_steps and not isinstance(step, self.filter_steps):
                 continue
             if self.render_llm_calls:
-                if (prompt_id := getattr(step, "prompt_id", None)) and prompt_id != last_prompt_id:
+                if step.metadata.prompt_id != last_prompt_id:
                     if last_prompt_id:
                         chunks.append("<hr style='margin: 2pt 0pt 2pt 0pt;'>")
-                    llm_call = llm_calls.get(prompt_id)
+                    llm_call = llm_calls.get(step.metadata.prompt_id)
                     if llm_call:
                         completion = llm_call.output.model_dump_json(indent=2)
                         chunks.append(self.render_llm_call(llm_call.prompt, completion))
-                    last_prompt_id = prompt_id
+                    last_prompt_id = step.metadata.prompt_id
             chunks.append(self.render_step(step, index))
         return "".join(chunks)
 
@@ -234,11 +233,7 @@ class PrettyRenderer(BasicRenderer):
         elif isinstance(step, Respond):
             role = ""
             parts = step.metadata.agent.split("/")
-            title = (
-                f"{parts[-1]} responds to {parts[-2]}" 
-                if len(parts) > 1 else
-                f"{step.metadata.agent} responds"
-            )
+            title = f"{parts[-1]} responds to {parts[-2]}" if len(parts) > 1 else f"{step.metadata.agent} responds"
             class_ = "respond"
         elif isinstance(step, Thought):
             role = "Thought"
@@ -261,8 +256,9 @@ class PrettyRenderer(BasicRenderer):
 
         def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
+
         def maybe_fold(content: str):
-            summary = f"{len(content)} characters ..." 
+            summary = f"{len(content)} characters ..."
             if len(content) > 1000:
                 return f"<details><summary>{summary}</summary>{content}</details>"
             return content
@@ -276,6 +272,7 @@ class PrettyRenderer(BasicRenderer):
 
             def format_code_block(block: CodeBlock) -> str:
                 return f"```{block.language}\n{block.code}\n```"
+
             code_blocks = "\n".join([format_code_block(block) for block in step.code])
             text = pretty_yaml(dump) + "\n" + maybe_fold(code_blocks)
         elif isinstance(step, CodeExecutionResult):

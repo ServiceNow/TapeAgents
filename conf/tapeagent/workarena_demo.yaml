@@ -1,0 +1,18 @@
+defaults:
+  - llm: gpt4o_mini
+  - _self_
+
+exp_name: demo1
+exp_path: ../workarena/runs/${exp_name}
+agent: baseline
+tools:
+  interactive_browser: True
+  interactive_browser_headless: True
+  exp_path: ${exp_path}
+env:
+  baseline_obs: True
+seeds: [0, 42, 1337]
+
+hydra:
+  run:
+    dir: ${exp_path}

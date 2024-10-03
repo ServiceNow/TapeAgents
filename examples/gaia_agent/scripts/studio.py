@@ -1,17 +1,17 @@
 import logging
+import os
 
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.studio import Studio
-from tapeagents.llms import CachedLLM
-from tapeagents.rendering import TapeBrowserRenderer
 
 from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
 from ..steps import GaiaQuestion
 from ..tape import GaiaTape
+from .demo import GaiaRender
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,18 +28,12 @@ logger = logging.getLogger(__name__)
     config_name="gaia_openai",
 )
 def main(cfg: DictConfig) -> None:
-    """
-    Solve Gaia tasks from the each level of the dataset, save the results to
-    the separate files per level. If needed continue solving the unsolved tasks in the
-    next run.
-    """
-    llm: CachedLLM = instantiate(cfg.llm)
-    vision_lm = llm
-    env = GaiaEnvironment(vision_lm=vision_lm)
-    agent = GaiaAgent.create(llm, config=instantiate(cfg.agent_config))
-    agent.max_iterations = 10
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+    llm = instantiate(cfg.llm)
+    env = GaiaEnvironment(vision_lm=llm)
+    agent = GaiaAgent.create(llm, **cfg.agent)
     tape = GaiaTape(steps=[GaiaQuestion(content="How many calories in 2 teaspoons of hummus")])
-    Studio(agent, tape, TapeBrowserRenderer(), env).launch()
+    Studio(agent, tape, GaiaRender(), env).launch(server_name="0.0.0.0")
 
 
 if __name__ == "__main__":

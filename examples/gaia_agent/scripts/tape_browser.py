@@ -72,7 +72,7 @@ class GaiaTapeBrowser(TapeBrowser):
 
 def main(dirname: str):
     renderer = GaiaRender()
-    browser = GaiaTapeBrowser(load_results, dirname, renderer, file_extension=".json")
+    browser = GaiaTapeBrowser(GaiaResults, dirname, renderer, file_extension=".json")
     browser.launch()
 
 

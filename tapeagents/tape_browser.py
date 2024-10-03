@@ -7,6 +7,9 @@ import uvicorn
 import yaml
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from tapeagents.io import load_tapes
 
 from .core import Tape
 from .rendering import BasicRenderer
@@ -23,12 +26,12 @@ class TapeBrowser:
 
     def __init__(
         self,
-        tape_loader: Callable[[str], Iterable[Tape]],
+        tape_cls: type[BaseModel],
         tapes_folder: str,
         renderer: BasicRenderer,
         file_extension: str = ".yaml",
     ):
-        self.tape_loader = tape_loader
+        self.tape_cls = tape_cls
         self.file_extension: str = file_extension
         self.tapes_folder: str = tapes_folder
         self.renderer: BasicRenderer = renderer
@@ -42,7 +45,7 @@ class TapeBrowser:
 
     def load_tapes(self, fname: str) -> list[Tape]:
         fpath = os.path.join(self.tapes_folder, fname)
-        tapes = list(self.tape_loader(fpath))
+        tapes = load_tapes(self.tape_cls, fpath)
         logger.info(f"{len(tapes)} tapes loaded from {fname}")
         return tapes
 
@@ -144,9 +147,9 @@ class TapeBrowser:
         steps = self.get_steps(tape)
         step_views = []
         last_prompt_id = None
-        for i, s in enumerate(steps):
-            view = self.renderer.render_step(s, i)
-            prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
+        for i, step in enumerate(steps):
+            view = self.renderer.render_step(step, i)
+            prompt_id = step.get("prompt_id", None) if isinstance(step, dict) else step.metadata.prompt_id
             if prompt_id in self.prompts and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(
                     self.prompts[prompt_id]["prompt"], metadata=self.prompts[prompt_id]

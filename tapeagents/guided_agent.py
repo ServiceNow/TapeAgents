@@ -15,7 +15,6 @@ from .core import (
     Tape,
     TapeType,
 )
-from .dialog_tape import AssistantStep, SystemStep, UserStep
 from .llms import LLMStream
 from .utils import FatalError, sanitize_json_completion
 
