@@ -3,7 +3,8 @@ from typing import Any
 
 from tapeagents.core import Prompt
 from tapeagents.dialog_tape import SystemStep, UserStep
-from tapeagents.guided_agent import GuidedAgent
+from tapeagents.guided_agent import GuidanceNode, GuidedAgent
+from tapeagents.llms import LLM
 from tapeagents.utils import get_step_schemas_from_union_type
 
 from .prompts import TEMPLATES, PromptRegistry
@@ -17,7 +18,7 @@ from .steps import (
 )
 
 
-class WorkArenaBaseline(GuidedAgent):
+class WorkArenaBaselineNode(GuidanceNode):
     """
     Agent that is close to the original workarena one.
     Implemented features (best feature set for gpt4o from workarena paper):
@@ -30,10 +31,7 @@ class WorkArenaBaseline(GuidedAgent):
     - long_description
     """
 
-    _start_step_cls: Any = PageObservation
-    _agent_step_cls: Any = WorkArenaAgentStep
-
-    def make_prompt(self, tape: WorkArenaTape) -> Prompt:
+    def make_prompt(self, agent: Any, tape: WorkArenaTape) -> Prompt:
         assert isinstance(tape.steps[1], WorkArenaTask)
         goal = PromptRegistry.goal_instructions.format(goal=tape.steps[1].task)
         obs = [s for s in tape if isinstance(s, PageObservation)][-1].text
@@ -42,10 +40,7 @@ class WorkArenaBaseline(GuidedAgent):
             allowed_steps=get_step_schemas_from_union_type(WorkArenaBaselineStep)
         )
         mac_hint = PromptRegistry.mac_hint if platform.system() == "Darwin" else ""
-        main_prompt = f"""\
-{goal}
-{obs}
-{history}
+        main_prompt = f"""{goal}\n{obs}\n{history}
 {PromptRegistry.baseline_steps_prompt}{allowed_steps}{mac_hint}
 {PromptRegistry.hints}
 {PromptRegistry.be_cautious}
@@ -75,17 +70,17 @@ class WorkArenaBaseline(GuidedAgent):
         return prompt
 
 
-class WorkArenaAgent(GuidedAgent):
-    _start_step_cls: Any = PageObservation
-    _agent_step_cls: Any = WorkArenaAgentStep
-    templates: dict[str, str] = TEMPLATES
+class WorkArenaBaseline(GuidedAgent):
+    @classmethod
+    def create(cls, llm: LLM):
+        return cls(llms={"default": llm}, nodes=[WorkArenaBaselineNode()])  # type: ignore
 
-    def get_steps_description(self, tape) -> str:
-        return self.templates["allowed_steps"].format(
-            allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep)
-        )
 
-    def prepare_tape(self, tape, max_chars: int = 100):
+class WorkArenaNode(GuidanceNode):
+    def get_steps_description(self, tape: WorkArenaTape) -> str:
+        return self.steps_prompt.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep))
+
+    def prepare_tape(self, tape: WorkArenaTape, max_chars: int = 100):
         """
         Trim all page observations except the last two.
         """
@@ -103,3 +98,21 @@ class WorkArenaAgent(GuidedAgent):
             steps.append(new_step)
         trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[prev_page_position:]))
         return trimmed_tape
+
+
+class WorkArenaAgent(GuidedAgent):
+    @classmethod
+    def create(cls, llm: LLM):
+        return super().create(
+            llm,
+            nodes=[
+                WorkArenaNode(name="task", guidance=PromptRegistry.start),
+                WorkArenaNode(name="reflection_thought", guidance=PromptRegistry.act),
+                WorkArenaNode(name="default", guidance=PromptRegistry.think),
+            ],
+            system_prompt=PromptRegistry.system_prompt,
+            steps_prompt=PromptRegistry.allowed_steps,
+            start_step_cls=PageObservation,
+            agent_step_cls=WorkArenaAgentStep,
+            max_iterations=2,
+        )

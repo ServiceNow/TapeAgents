@@ -126,10 +126,11 @@ class GuidedAgent(Agent, Generic[TapeType]):
     """
     Generic agent class which renders all tape steps into prompt and parses the llm completion into a sequence of steps.
     Main features:
-    - validates that the tape starts with a specific step class.
-    - attaches a guidance prompt text to the end of the prompt after rendering the tape.
-    - selects guidance based on the kind of the last step in the tape from the templates dictionary.
-    - trims the tape if the total token count exceeds the context size.
+    - selects guidance node based on the kind of the last step in the tape.
+    - selected node does the following:
+        - validates that the tape starts with a specific step class.
+        - attaches a guidance prompt text to the end of the prompt after rendering the tape.
+        - trims the tape if the total token count exceeds the context size.
     """
 
     nodes: list[GuidanceNode]  # type: ignore

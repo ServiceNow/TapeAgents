@@ -2,8 +2,6 @@ import logging
 from enum import Enum
 from typing import Any
 
-from numpy import short
-
 from tapeagents.core import Step
 from tapeagents.guided_agent import GuidanceNode, GuidedAgent
 from tapeagents.llms import LLM
