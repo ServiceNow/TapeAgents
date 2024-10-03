@@ -37,11 +37,14 @@ class InputStep(BaseModel):
 class OutputStep(BaseModel):
     name: str = ""
     prefix: str = ""
-    desc: str
+    desc: str = ""
     separator: str = " "
     
     def get_prefix(self):
         return self.prefix or f"{self.name.title()}:"
+    
+    def get_desc(self):
+        return self.desc or f"${{{self.name}}}"
     
     def render(self, value: Step):
         return value.content # type: ignore
@@ -106,7 +109,7 @@ class LLMFunctionTemplate(BaseModel):
         for input in self.inputs:
             lines.append(f"{input.get_prefix()} {input.get_desc()}")
         for output in self.outputs:
-            lines.append(f"{output.get_prefix()} {output.desc}")
+            lines.append(f"{output.get_prefix()} {output.get_desc()}")
         format_desc = "\n".join(lines)
         
         # DEMOS

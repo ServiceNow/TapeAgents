@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
-from examples.optimize import load_few_shot_demos, make_answer_template, render_contexts
+from examples.optimize import load_agentic_rag_demos, load_rag_demos, make_answer_template, make_query_template, render_contexts
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, ToolResult, UserStep
 from tapeagents.llm_function import InputStep, LLMFunctionTemplate, OutputStep
 from tapeagents.utils import diff_strings
@@ -12,6 +12,7 @@ from tapeagents.utils import diff_strings
 
 TEST_INPUT_STEP1 = UserStep(content="What is the nationality of the chef and restaurateur featured in Restaurant: Impossible?")    
 TEST_INPUT_STEP2 = UserStep(content="What castle did David Gregory inherit?")
+TEST_INPUT_STEP3 = UserStep(content="How many storeys are in the castle that David Gregory inherited?")
 TEST_CONTEXT_STEP2 = ToolResult(
     content=[
         """David Gregory (physician) | David Gregory (20 December 1625 – 1720) was a Scottish physician and inventor. His surname is sometimes spelt as Gregorie, the original Scottish spelling. He inherited Kinnairdy Castle in 1664. Three of his twenty-nine children became mathematics professors. He is credited with inventing a military cannon that Isaac Newton described as "being destructive to the human species". Copies and details of the model no longer exist. Gregory's use of a barometer to predict farming-related weather conditions led him to be accused of witchcraft by Presbyterian ministers from Aberdeen, although he was never convicted.""",
@@ -20,9 +21,19 @@ TEST_CONTEXT_STEP2 = ToolResult(
     ],
     tool_call_id=""
 )
+TEST_CONTEXT_STEP3 = ToolResult(
+    content=[
+        """David Gregory (physician) | David Gregory (20 December 1625 – 1720) was a Scottish physician and inventor. His surname is sometimes spelt as Gregorie, the original Scottish spelling. He inherited Kinnairdy Castle in 1664. Three of his twenty-nine children became mathematics professors. He is credited with inventing a military cannon that Isaac Newton described as "being destructive to the human species". Copies and details of the model no longer exist. Gregory's use of a barometer to predict farming-related weather conditions led him to be accused of witchcraft by Presbyterian ministers from Aberdeen, although he was never convicted.""",
+        """David Webster (architect) | David Webster (1885–1952) was a Scottish-Canadian architect best known for his designs of elementary schools in Saskatoon, Saskatchewan, Canada. His school designs were often in a Collegiate Gothic style emphasizing a central tower, locally referred to as a "castle style". Along with other local architects of his era, such as Walter LaChance and Storey and Van Egmond, Webster prospered during the province’s 1912 economic boom which sparked a frenzy of new construction.""",
+        """David S. Castle | David S. Castle (13 February 1884 – 28 October 1956) was an architect in Texas."""
+    ]
+)
     
 res_path = Path(__file__).parent.resolve() / ".." / "tests" / "res"
 examples_res_path = Path(__file__).parent.resolve() / ".." / "examples" / "res"
+    
+def remove_empty_lines(text: str) -> str:
+    return "\n".join(filter(lambda x: x.strip(), text.split("\n")))    
     
 def test_dspy_qa_prompt():
     func = LLMFunctionTemplate(
@@ -65,12 +76,30 @@ def test_dspy_cot_prompt():
     
 def test_fewshot_prompt():
     func = make_answer_template()
+    partial_demos, demos = load_rag_demos()
+    func.partial_demos = partial_demos
+    func.demos = demos
         
     render = func.make_prompt([TEST_CONTEXT_STEP2, TEST_INPUT_STEP2]).messages[0]["content"]
     with open(res_path / "llm_function" / "rag.txt", "r") as f:
         gold = f.read()    
-    def remove_empty_lines(text: str) -> str:
-        return "\n".join(filter(lambda x: x.strip(), text.split("\n")))
+
+    render = remove_empty_lines(render)
+    gold = remove_empty_lines(gold)
+    if render != gold:
+        print(diff_strings(render, gold))
+        assert False
+        
+
+def test_query_prompt():
+    func = make_query_template()
+    _, demos = load_agentic_rag_demos()["query1"]
+    func.demos = demos
+    
+    render = func.make_prompt([TEST_CONTEXT_STEP3, TEST_INPUT_STEP3]).messages[0]["content"]
+    with open(res_path / "llm_function" / "query.txt", "r") as f:
+        gold = f.read()
+    
     render = remove_empty_lines(render)
     gold = remove_empty_lines(gold)
     if render != gold:

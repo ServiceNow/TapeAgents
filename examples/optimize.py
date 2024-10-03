@@ -49,7 +49,7 @@ def retrieve(query: str) -> list[str]:
     return [r['text'] for r in results[:3]]
 
 
-def load_few_shot_demos() -> tuple[list, list]:
+def load_rag_demos() -> tuple[list, list]:
     with open(res_dir / "llm_function_rag_demos.json") as f:
         demos_json = json.load(f)
     partial_demos = []
@@ -71,13 +71,47 @@ def load_few_shot_demos() -> tuple[list, list]:
             partial_demos.append(demo)
     return partial_demos, demos
 
+
+def load_agentic_rag_demos() -> dict[str, tuple[list, list]]:
+    """Loads full demos only"""
+    with open(res_dir / "agentic_rag_demos.json") as f:
+        demos_json = json.load(f)
+    result = {}
+    for predictor, predictor_demos in demos_json.items():
+        predictor_demos = [d for d in predictor_demos if d.get("augmented")]
+        demos = [] 
+        if "query" in predictor:
+            for demo in predictor_demos:
+                tc = ToolCall(function=FunctionCall(name='retrieve', arguments={'query': demo["query"]}))
+                demo = {
+                    "question": UserStep(content=demo["question"]),
+                    "context": ToolResult(content=demo["context"]),
+                    "rationale": AssistantThought(content=demo["rationale"]),
+                    "query": ToolCalls(tool_calls=[tc]),
+                }            
+                demos.append(demo)
+            result[f"query{predictor[-2]}"] = ([], demos)
+        elif predictor == "generate_answer":
+            for demo in predictor_demos:
+                demo = {
+                    "question": UserStep(content=demo["question"]),
+                    "context": ToolResult(content=demo["context"], tool_call_id=""),
+                    "rationale": AssistantThought(content=demo["rationale"]),
+                    "answer": AssistantStep(content=demo["answer"]),
+                }            
+                demos.append(demo)
+            result["answer"] = ([], demos)
+        else: 
+            raise ValueError(f"Unknown predictor {predictor}")
+    return result    
+
+
 class ContextInput(InputStep):
     def render(self, step: ToolResult):
         return render_contexts(step.content)
 
 
 def make_answer_template() -> LLMFunctionTemplate:
-    partial_demos, demos = load_few_shot_demos()
     return LLMFunctionTemplate(
         desc="Answer questions with short factoid answers.",
         inputs=[
@@ -87,9 +121,7 @@ def make_answer_template() -> LLMFunctionTemplate:
         outputs=[
             RationaleStep.for_output("answer"),
             OutputStep(name="answer", desc="often between 1 and 5 words")
-        ],
-        demos=demos,
-        partial_demos=partial_demos
+        ]
     )        
     
     
@@ -102,7 +134,7 @@ def make_query_template() -> LLMFunctionTemplate:
         ],
         outputs=[
             RationaleStep.for_output("query"),
-            ToolCallOutput(name="query", tool_name="retrieve", arg_name="query", desc="a search query")
+            ToolCallOutput(name="query", tool_name="retrieve", arg_name="query")
         ]
     )       
 
@@ -175,6 +207,13 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
         templates=templates,
         nodes=nodes
     )
+    
+    if cfg.load_demos:
+        all_demos = load_agentic_rag_demos()
+        for template_name, (partial_demos, demos) in all_demos.items():
+            agent.templates[template_name].demos = demos
+            agent.templates[template_name].partial_demos = partial_demos
+        
     return agent
 
 
@@ -199,13 +238,16 @@ def optimize_agent(agent: Agent, cfg: DictConfig):
     for template_name, template in agent_copy.templates.items():
         k = min(cfg.optimize.n_demos, len(demos[template_name]))
         template.demos = rng.sample(demos[template_name], k)
-    return agent_copy
+    return agent_copy, good_tapes
 
 
 def make_agent(cfg: DictConfig) -> Agent:
     agent = make_rag_agent(cfg) if cfg.agent == "rag" else make_agentic_rag_agent(cfg)
     if cfg.optimize.do:
-        agent = optimize_agent(agent, cfg)
+        agent, good_tapes = optimize_agent(agent, cfg)
+        with save_tapes("good_tapes.yaml") as saver:
+            for tape in good_tapes:
+                saver.save(tape)
     return agent
 
 
