@@ -40,6 +40,8 @@ res_dir = pathlib.Path(__file__).parent.resolve() / "res"
 
 
 def render_contexts(contexts: list[str]) -> str:
+    if not contexts:
+        return "N/A"
     return "\n".join(f"[{i + 1}] «{t}»" for i, t in enumerate(contexts))
 
 
