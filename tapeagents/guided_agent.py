@@ -3,8 +3,9 @@ import logging
 from typing import Any, Generator, Generic
 
 from pydantic import TypeAdapter, ValidationError
+from typing_extensions import Self
 
-from .agent import Agent
+from .agent import Agent, Node
 from .core import (
     AgentResponseParsingFailureAction,
     AgentStep,
@@ -15,69 +16,61 @@ from .core import (
     Tape,
     TapeType,
 )
-from .dialog_tape import AssistantStep, SystemStep, UserStep
-from .llms import LLMStream
+from .llms import LLM, LLMStream
 from .utils import FatalError, sanitize_json_completion
 
 logger = logging.getLogger(__name__)
 
 
-class GuidedAgent(Agent, Generic[TapeType]):
+class GuidanceNode(Node):
     """
-    Generic agent class which renders all tape steps into prompt and parses the llm completion into a sequence of steps.
-    Main features:
-    - validates that the tape starts with a specific step class.
-    - attaches a guidance prompt text to the end of the prompt after rendering the tape.
-    - selects guidance based on the kind of the last step in the tape from the templates dictionary.
-    - trims the tape if the total token count exceeds the context size.
+    A node for the guided agent.
+    Validates that the tape starts with a specific step class.
+    Attaches a guidance text to the end of the prompt after rendering the tape.
+    Parses the llm output into provided step classes (class provided in a form of annotated union).
+    Trims the tape if needed.
     """
 
-    _start_step_cls: Any
-    _agent_step_cls: Any
-    templates: dict[str, str] = {}
-    max_iterations: int = 2
+    guidance: str
+    system_prompt: str = ""
+    steps_prompt: str = ""
+    agent_step_cls: Any = None
+    start_step_cls: Any = None
 
-    def delegate(self, tape: TapeType):
-        return self
-
-    def get_steps_description(self, tape) -> str:
-        return self.templates["allowed_steps"]
-
-    def make_prompt(self, tape: Tape) -> Prompt:
-        assert isinstance(tape.steps[0], self._start_step_cls)
-
+    def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
+        assert isinstance(tape.steps[0], self.start_step_cls)
         cleaned_tape = self.prepare_tape(tape)
-        messages = self.tape_to_messages(cleaned_tape)
-        if self.llm.count_tokens(messages) > (self.llm.context_size - 500):
-            cleaned_tape = self.trim_tape(cleaned_tape)
-        messages = self.tape_to_messages(cleaned_tape)
+        steps_description = self.get_steps_description(tape, agent)
+        messages = self.tape_to_messages(cleaned_tape, steps_description)
+        if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
+            cleaned_tape = agent.trim_tape(cleaned_tape)
+        messages = self.tape_to_messages(cleaned_tape, steps_description)
         return Prompt(messages=messages)
-
-    def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
-        return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
 
     def prepare_tape(self, tape: Tape) -> Tape:
         return tape
 
-    def trim_tape(self, tape: Tape) -> Tape:
-        return tape
+    def make_llm_output(self, tape: Tape, index: int) -> LLMOutput:
+        return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
 
-    def tape_to_messages(self, tape: Tape) -> list[dict]:
+    def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
         messages: list[dict] = [
-            {"role": "system", "content": self.templates["system_prompt"]},
-            {"role": "user", "content": self.get_steps_description(tape)},
+            {"role": "system", "content": self.system_prompt},
+            {"role": "user", "content": steps_description},
         ]
         for step in tape:
             role = "assistant" if isinstance(step, AgentStep) else "user"
             messages.append({"role": role, "content": step.llm_view()})
-        if tape.steps[-1].kind in self.templates:
-            guidance = self.templates[tape.steps[-1].kind]
-            messages.append({"role": "user", "content": guidance})
-        elif "_default" in self.templates:
-            messages.append({"role": "user", "content": self.templates["_default"]})
+        if self.guidance:
+            messages.append({"role": "user", "content": self.guidance})
         return messages
 
-    def generate_steps(self, tape: Tape, llm_stream: LLMStream) -> Generator[Step | PartialStep, None, None]:
+    def get_steps_description(self, tape: Tape, agent: Any) -> str:
+        return self.steps_prompt
+
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
         new_steps = []
         try:
             cnt = 0
@@ -107,7 +100,7 @@ class GuidedAgent(Agent, Generic[TapeType]):
             yield AgentResponseParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
             return
         try:
-            steps = [TypeAdapter(self._agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
+            steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
         except ValidationError as e:
             err_text = ""
             for err in e.errors():
@@ -127,3 +120,51 @@ class GuidedAgent(Agent, Generic[TapeType]):
         for step in steps:
             step.metadata.prompt_id = prompt_id
             yield step
+
+
+class GuidedAgent(Agent, Generic[TapeType]):
+    """
+    Generic agent class which renders all tape steps into prompt and parses the llm completion into a sequence of steps.
+    Main features:
+    - selects guidance node based on the kind of the last step in the tape.
+    - selected node does the following:
+        - validates that the tape starts with a specific step class.
+        - attaches a guidance prompt text to the end of the prompt after rendering the tape.
+        - trims the tape if the total token count exceeds the context size.
+    """
+
+    nodes: list[GuidanceNode]  # type: ignore
+
+    def select_node(self, tape: TapeType) -> Node:
+        last_kind = tape.steps[-1].kind
+        for node in self.nodes:
+            if last_kind == node.name:
+                return node
+        return self.nodes[-1]  # default to the last node
+
+    @classmethod
+    def create(
+        cls,
+        llm: LLM,
+        nodes: list[GuidanceNode],
+        system_prompt: str,
+        steps_prompt: str,
+        start_step_cls: Any,
+        agent_step_cls: Any,
+        **kwargs,
+    ) -> Self:
+        prepared_nodes = []
+        for node in nodes:
+            # set common default values
+            node.system_prompt = node.system_prompt or system_prompt
+            node.steps_prompt = node.steps_prompt or steps_prompt
+            node.start_step_cls = node.start_step_cls or start_step_cls
+            node.agent_step_cls = node.agent_step_cls or agent_step_cls
+            prepared_nodes.append(node)
+        return super().create(llm, nodes=prepared_nodes, **kwargs)
+
+    def delegate(self, tape: TapeType):
+        return self
+
+    def trim_tape(self, tape: Tape) -> Tape:
+        return tape

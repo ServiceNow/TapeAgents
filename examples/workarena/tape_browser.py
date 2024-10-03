@@ -3,23 +3,36 @@ import logging
 import os
 import sys
 
-from tapeagents.core import Step
+from pydantic import BaseModel, Field
+
+from tapeagents.core import LLMCall, Step, Tape
 from tapeagents.observe import retrieve_all_llm_calls
+from tapeagents.rendering import GuidedAgentRender
 from tapeagents.tape_browser import TapeBrowser
 
-from ..gaia_agent.eval import load_results
-from ..gaia_agent.scripts.demo import GaiaRender
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
 
+class WorkarenaResults(BaseModel):
+    run_id: str
+    dataset_path: str
+    datetime: str
+    commit: str
+    model: str
+    llm_config: dict = Field(default_factory=dict)
+    tapes: list[dict] = Field(default_factory=list)
+    web_cache: dict = Field(default_factory=dict)
+    prompts: list[dict] = Field(default_factory=list)
+
+
 class WorkarenaTapeBrowser(TapeBrowser):
+    def __init__(self, tapes_folder: str, renderer):
+        super().__init__(
+            tapes_folder=tapes_folder, renderer=renderer, tape_cls=WorkarenaResults, file_extension=".json"
+        )
+
     def load_tapes(self, fname: str) -> list:
         fpath = os.path.join(self.tapes_folder, fname, "tapes")
         assert os.path.exists(fpath), f"Path {fpath} does not exist"
@@ -32,15 +45,30 @@ class WorkarenaTapeBrowser(TapeBrowser):
             with open(tape_path) as f:
                 tape_dict = json.load(f)
                 tape_dict["metadata"]["tape_dir"] = fname
+                for i, step_dict in enumerate(tape_dict["steps"]):
+                    screenshot_path = ""
+                    if "screenshot_path" in step_dict:  # deprecated format
+                        screenshot_path = step_dict["screenshot_path"]
+                    if "screenshot_path" in step_dict.get("metadata", {}).get("other", {}):
+                        screenshot_path = step_dict["metadata"]["other"]["screenshot_path"]
+                    if screenshot_path:
+                        if "metadata" not in step_dict:
+                            step_dict["metadata"] = {"other": {}}
+                        full_path = os.path.join(fname, "screenshots", screenshot_path)
+                        step_dict["metadata"]["other"]["screenshot_path"] = full_path
+                    tape_dict["steps"][i] = step_dict
             tapes.append(tape_dict)
-        self.prompts = {}
+        self.llm_calls = {}
         base_path = os.path.dirname(fpath)
         sqlite_fpath = os.path.join(base_path, "llm_calls.sqlite")
+        try:
+            llm_calls = retrieve_all_llm_calls(sqlite_fpath)
+        except Exception as e:
+            logger.error(f"Failed to load LLM calls from {sqlite_fpath}: {e}")
+            llm_calls = []
         if os.path.exists(sqlite_fpath):
-            self.prompts = {
-                llm_call.prompt.id: llm_call.prompt.model_dump() for llm_call in retrieve_all_llm_calls(sqlite_fpath)
-            }
-        logger.info(f"Loaded {len(tapes)} tapes, {len(self.prompts)} prompts from {fpath}")
+            self.llm_calls = {llm_call.prompt.id: llm_call for llm_call in llm_calls}
+        logger.info(f"Loaded {len(tapes)} tapes, {len(self.llm_calls)} prompts from {fpath}")
         try:
             tapes.sort(key=lambda tape: tape["metadata"]["result"]["number"])
         except Exception:
@@ -80,7 +108,11 @@ class WorkarenaTapeBrowser(TapeBrowser):
 
     def get_tape_label(self, tape: dict) -> str:
         tape_dir = tape["metadata"]["tape_dir"]
-        tape_prompts = [s for s in tape["steps"] if s.get("prompt_id") in self.prompts]
+        llm_calls_num = 0
+        for step in tape["steps"]:
+            prompt_id = step.get("metadata", {}).get("prompt_id", step.get("prompt_id"))
+            if prompt_id:
+                llm_calls_num += 1
         failure_count = len([s for s in tape["steps"] if s["kind"].endswith("failure")])
         label = f"""<h3>Result</h3>
             <div class="result-label">Steps: {len(tape["steps"])}</div>
@@ -91,7 +123,7 @@ class WorkarenaTapeBrowser(TapeBrowser):
         success = str(result.pop("success")) if "success" in result else "UNFINISHED"
         label += f"""
             <div class="result-success"><b>Finished successfully: {success}</b></div>
-            <div>LLM Calls: {len(tape_prompts)}</div>
+            <div>LLM Calls: {llm_calls_num}</div>
             <h3>Info</h3>
             """
         for k, v in result.items():
@@ -116,11 +148,11 @@ class WorkarenaTapeBrowser(TapeBrowser):
         steps = self.get_steps(tape)
         step_views = []
         last_prompt_id = None
-        for s in steps:
-            view = self.renderer.render_step(s, tape_dir=tape["metadata"]["tape_dir"])  # type: ignore
+        for i, s in enumerate(steps):
             prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
-            if prompt_id in self.prompts and prompt_id != last_prompt_id:
-                prompt_view = self.renderer.render_llm_call(self.prompts[prompt_id], metadata=self.prompts[prompt_id])
+            view = self.renderer.render_step(s, i)  # type: ignore
+            if prompt_id in self.llm_calls and prompt_id != last_prompt_id:
+                prompt_view = self.renderer.render_llm_call(self.llm_calls[prompt_id])
                 view = prompt_view + view
             step_views.append(view)
             last_prompt_id = prompt_id
@@ -130,29 +162,29 @@ class WorkarenaTapeBrowser(TapeBrowser):
         return html, label
 
 
-class WorkArenaRender(GaiaRender):
-    def __init__(self, root_folder: str) -> None:
+class WorkArenaRender(GuidedAgentRender):
+    def __init__(self, exp_dir: str) -> None:
+        self.exp_dir = exp_dir
         super().__init__()
-        self.root_folder = root_folder
 
-    def render_step(self, step: Step | dict, folded: bool = True, **kwargs) -> str:
+    def render_tape(self, tape: Tape, llm_calls: dict[str, LLMCall] = {}) -> str:
+        steps_html = self.render_steps(tape, llm_calls)
+        return f"{self.context_header}{self.steps_header}{steps_html}"
+
+    def render_step(self, step: Step | dict, index: int, folded: bool = True, **kwargs) -> str:
         step_dict = step.model_dump() if isinstance(step, Step) else step
+        screenshot_path = step_dict.get("metadata", {}).get("other", {}).get("screenshot_path")
         html = super().render_step(step, folded, **kwargs)
-        screenshot_path = None
-        if "screenshot_path" in step_dict:
-            screenshot_path = step_dict["screenshot_path"]
-        if "screenshot_path" in step_dict.get("metadata", {}).get("other", {}):
-            screenshot_path = step_dict["metadata"]["other"]["screenshot_path"]
         if screenshot_path:
-            screenshot_url = os.path.join("static", kwargs["tape_dir"], "screenshots", screenshot_path)
+            screenshot_url = os.path.join("static", screenshot_path)
             html = f"<div class='basic-renderer-box' style='background-color:#baffc9;'><div><img src='{screenshot_url}' style='max-width: 100%;'></div>{html}</div>"
         return html
 
 
 def main(dirname: str):
     renderer = WorkArenaRender(dirname)
-    browser = WorkarenaTapeBrowser(load_results, dirname, renderer, file_extension=".json")
-    browser.launch(static_dir=dirname, server_name="0.0.0.0", port=7860)
+    browser = WorkarenaTapeBrowser(dirname, renderer)
+    browser.launch(static_dir=dirname)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,12 @@
-import os
+import json
 import logging
-
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator, Type
 
-from pydantic import TypeAdapter
 import yaml
+from pydantic import TypeAdapter
 
 from .core import Tape
 
@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class TapeSaver:
-
     def __init__(self, yaml_dumper: yaml.SafeDumper):
         self._dumper = yaml_dumper
 
@@ -47,9 +46,16 @@ def save_tapes(filename: Path, mode: str = "w") -> Generator[TapeSaver, None, No
     _file.close()
 
 
-def load_tapes(tape_class: Type | TypeAdapter, path: Path | str) -> list[Tape]:
+def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension: str = ".yaml") -> list[Tape]:
     if not os.path.exists(path):
         raise FileNotFoundError(f"File not found: {path}")
     loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
-    with open(path, "r") as file:
-        return [loader(data) for data in yaml.safe_load_all(file)]
+    with open(path) as f:
+        if file_extension == ".yaml":
+            data = yaml.safe_load_all(f)
+        elif file_extension == ".json":
+            data = json.load(f)
+        else:
+            raise ValueError(f"Unsupported file extension {file_extension}")
+    tapes = [loader(tape) for tape in data] if isinstance(data, list) else loader(data)
+    return tapes

@@ -4,7 +4,8 @@ from pathlib import Path
 
 import testbook
 
-from examples import delegate_stack, tape_improver
+from examples import delegate_stack
+from examples.tape_improver import tape_improver
 from tapeagents.utils import run_in_tmp_dir_to_make_test_data
 
 if __name__ == "__main__":

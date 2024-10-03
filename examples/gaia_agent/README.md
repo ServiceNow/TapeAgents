@@ -1,11 +1,13 @@
 # Gaia Agent
 The Gaia Agent is an agent that can answer knowledge-grounded questions using web search, calculations and reasoning. The agent can use OpenAI or big LLAMA models to solve these tasks. We demonstrate how it solves the tasks from the [GAIA Benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
 
-<img width="1232" alt="image" src="https://github.com/user-attachments/assets/f02d9dff-0cfb-4ad6-b061-9d7568d75baa">
+Tape example:  
+<img width="867" alt="gaia_perfect_demo_tape" src="https://github.com/user-attachments/assets/a81c22d8-9cf5-42c4-a390-933108753966">
+
 
 
 ## Structure
-The agent is built on top of the [GuidedAgent](tapeagents/guided_agent.py) class, which implements the following workflow:
+The agent is built on top of the [GuidedAgent](../../tapeagents/guided_agent.py) class, which implements the following workflow:
 - Expose the set of all available actions and thoughts to the model in each prompt
 - Render the whole tape into the prompt, trimming only in case when the tape does not fit into the context window
 - Based on the end of the current tape, select the short textual guidance prompt that briefly instructs the LLM what to do next

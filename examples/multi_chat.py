@@ -54,7 +54,9 @@ def try_chat(studio: bool):
         }
         Studio(org, start_tape, renderers, env).launch()
     else:
-        _ = list(main_loop(org, start_tape, env))
+        final_tape = main_loop(org, start_tape, env).get_final_tape()
+        with open("final_tape.json", "w") as f:
+            f.write(final_tape.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

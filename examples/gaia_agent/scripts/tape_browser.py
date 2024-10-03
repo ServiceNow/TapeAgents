@@ -2,35 +2,61 @@ import logging
 import os
 import sys
 
+from tapeagents.core import LLMCall
+from tapeagents.rendering import GuidedAgentRender
 from tapeagents.tape_browser import TapeBrowser
 
 from ..eval import GaiaResults, load_results, tape_correct
-from ..scripts.demo import GaiaRender
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
 
 class GaiaTapeBrowser(TapeBrowser):
+    def __init__(self, tapes_folder: str, renderer):
+        super().__init__(tapes_folder=tapes_folder, renderer=renderer, tape_cls=GaiaResults, file_extension=".json")
+
     def load_tapes(self, fname: str) -> list:
         fpath = os.path.join(self.tapes_folder, fname)
         assert os.path.exists(fpath), f"File {fpath} does not exist"
         try:
             self.results: GaiaResults = load_results(fpath)
-            self.prompts = {p["prompt"]["id"]: p for p in self.results.prompts}
-            logger.info(f"Loaded {len(self.results.tapes)} tapes, {len(self.prompts)} prompts from {fpath}")
+            for i, prompt in enumerate(self.results.prompts):
+                if "completion" in prompt:
+                    # legacy compatibility
+                    prompt["output"] = prompt.pop("completion")
+                    prompt["output_length_tokens"] = prompt.pop("completion_length_tokens")
+                self.results.prompts[i] = prompt
+            self.llm_calls = {p["prompt"]["id"]: LLMCall.model_validate(p) for p in self.results.prompts}
+            logger.info(f"Loaded {len(self.results.tapes)} tapes, {len(self.llm_calls)} prompts from {fpath}")
         except Exception as e:
             logger.error(f"Failed to load tapes from {fpath}: {e}")
             self.results = GaiaResults()
         return self.results.tapes
 
+    def update_tape_view(self, tape_id: int) -> tuple[str, str]:
+        logger.info(f"Loading tape {tape_id}")
+        tape = self.tapes[tape_id]
+        label = self.get_tape_label(tape)
+        steps = self.get_steps(tape)
+        step_views = []
+        last_prompt_id = None
+        for i, s in enumerate(steps):
+            prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
+            view = self.renderer.render_step(s, i)  # type: ignore
+            if prompt_id in self.llm_calls and prompt_id != last_prompt_id:
+                prompt_view = self.renderer.render_llm_call(self.llm_calls[prompt_id])
+                view = prompt_view + view
+            step_views.append(view)
+            last_prompt_id = prompt_id
+        steps_html = "".join(step_views)
+        html = f"{self.renderer.style}"
+        html += f"{self.renderer.steps_header}{steps_html}"
+        return html, label
+
     def get_steps(self, tape) -> list:
-        return tape["steps"]
+        return tape["steps"]  # type: ignore
 
     def get_context(self, tape) -> list:
         return []
@@ -44,7 +70,11 @@ class GaiaTapeBrowser(TapeBrowser):
         return f'{mark}L{tape["metadata"]["task"]["Level"]}{i+1}: {tape["steps"][0]["content"][:32]}'
 
     def get_tape_label(self, tape: dict) -> str:
-        tape_prompts = [s for s in tape["steps"] if s.get("prompt_id") in self.prompts]
+        llm_calls_num = 0
+        for step in tape["steps"]:
+            prompt_id = step.get("metadata", {}).get("prompt_id", step.get("prompt_id"))
+            if prompt_id:
+                llm_calls_num += 1
         failure_count = len([s for s in tape["steps"] if s["kind"].endswith("failure")])
         label = f"""<h2>Tape Result</h2>
             <div class="result-label expected">Golden Answer: <b>{tape["metadata"]["task"]['Final answer']}</b></div>
@@ -55,7 +85,7 @@ class GaiaTapeBrowser(TapeBrowser):
         overview = tape["steps"][-1].get("overview", "")
         label += f"""
             <div class="result-success">Finished successfully: {success}</div>
-            <div>LLM Calls: {len(tape_prompts)}</div>
+            <div>LLM Calls: {llm_calls_num}</div>
             <div class="result-overview">Overview:<br>{overview}</div>"""
         return label
 
@@ -71,8 +101,8 @@ class GaiaTapeBrowser(TapeBrowser):
 
 
 def main(dirname: str):
-    renderer = GaiaRender()
-    browser = GaiaTapeBrowser(load_results, dirname, renderer, file_extension=".json")
+    renderer = GuidedAgentRender()
+    browser = GaiaTapeBrowser(dirname, renderer)
     browser.launch()
 
 
