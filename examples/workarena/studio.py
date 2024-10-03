@@ -42,7 +42,7 @@ def main(cfg: DictConfig) -> None:
     else:
         logger.info("Use guided agent")
         agent = WorkArenaAgent.create(llm)
-    tape, _ = env.start_task(ALL_WORKARENA_TASKS[0], seed=42)
+    tape, _ = env.start_task(ALL_WORKARENA_TASKS[0], seed=cfg.seeds[0])
     blocks = Studio(agent, tape, WorkArenaRender(exp_dir=""), env).blocks
     logger.info(f"Starting FastAPI server with static dir {cfg.exp_path}")
     app = FastAPI()

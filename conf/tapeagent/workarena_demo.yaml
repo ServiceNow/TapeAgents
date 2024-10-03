@@ -5,13 +5,11 @@ defaults:
 exp_name: demo1
 exp_path: ../workarena/runs/${exp_name}
 agent: baseline
-tools:
-  interactive_browser: True
-  interactive_browser_headless: True
-  exp_path: ${exp_path}
 env:
+  exp_path: ${exp_path}
   baseline_obs: True
-seeds: [0, 42, 1337]
+  headless: False
+seeds: [42]
 
 hydra:
   run:
