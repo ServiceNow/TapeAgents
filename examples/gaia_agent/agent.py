@@ -2,8 +2,11 @@ import logging
 from enum import Enum
 from typing import Any
 
+from numpy import short
+
 from tapeagents.core import Step
-from tapeagents.guided_agent import GuidedAgent
+from tapeagents.guided_agent import GuidanceNode, GuidedAgent
+from tapeagents.llms import LLM
 
 from .prompts import TEMPLATES, PromptRegistry
 from .steps import (
@@ -32,58 +35,19 @@ class PlanningMode(str, Enum):
     replan_after_sources = "replan_after_sources"
 
 
-class GaiaAgent(GuidedAgent):
-    max_iterations: int = 2
-    planning_mode: str = PlanningMode.simple
-    short_steps: bool = False
-    subtasks: bool = False
-    _start_step_cls: Any = GaiaQuestion
-    _agent_step_cls: Any = GaiaAgentStep
-
-    def prepare_guidance_prompts(self):
-        guidance_prompts = {}
-        if self.planning_mode == PlanningMode.simple:
-            guidance_prompts = {
-                "question": PromptRegistry.plan,
-                "plan_thought": PromptRegistry.facts_survey,
-                "list_of_facts_thought": PromptRegistry.start_execution,
-            }
-        elif self.planning_mode == PlanningMode.facts_and_sources:
-            guidance_prompts = {
-                "question": PromptRegistry.plan,
-                "draft_plans_thought": PromptRegistry.facts_survey,
-                "list_of_facts_thought": PromptRegistry.sources_plan,
-                "sources_thought": PromptRegistry.start_execution,
-            }
-        elif self.planning_mode == PlanningMode.multiplan:
-            guidance_prompts = {
-                "question": PromptRegistry.plan3,
-                "draft_plans_thought": PromptRegistry.facts_survey,
-                "list_of_facts_thought": PromptRegistry.sources_plan,
-                "sources_thought": PromptRegistry.start_execution,
-            }
-        elif self.planning_mode == PlanningMode.replan_after_sources:
-            guidance_prompts = {
-                "question": PromptRegistry.plan3,
-                "draft_plans_thought": PromptRegistry.facts_survey,
-                "list_of_facts_thought": PromptRegistry.sources_plan,
-                "sources_thought": PromptRegistry.better_plan,
-                "plan_thought": PromptRegistry.start_execution,
-            }
-        if self.subtasks:
-            guidance_prompts["calculation_result_observation"] = PromptRegistry.is_subtask_finished
-        self.templates = TEMPLATES | guidance_prompts
-
-    def get_steps_description(self, tape: GaiaTape) -> str:
+class GaiaNode(GuidanceNode):
+    def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
+        """
+        Allow different subset of steps based on the agent's configuration
+        """
         add_plan_thoughts = not tape.has_fact_schemas()
-        allowed_steps = get_allowed_steps(self.short_steps, self.subtasks, add_plan_thoughts)
-        return self.templates["allowed_steps"].format(allowed_steps=allowed_steps)
+        allowed_steps = get_allowed_steps(agent.short_steps, agent.subtasks, add_plan_thoughts)
+        return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def prepare_tape(self, tape: GaiaTape, max_chars: int = 200) -> GaiaTape:
         """
-        Trim all read results except in the last 3 steps
+        Trim long observations except for the last 3 steps
         """
-        self.prepare_guidance_prompts()
         steps = []
         for step in tape.steps[:-3]:
             if isinstance(step, PageObservation):
@@ -97,6 +61,83 @@ class GaiaAgent(GuidedAgent):
             steps.append(new_step)
         trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[-3:]))
         return trimmed_tape
+
+    def postprocess_step(self, tape: GaiaTape, new_steps: list[Step], step: Step) -> Step:
+        if isinstance(step, ListOfFactsThought):
+            # remove empty facts produced by the model
+            step.given_facts = [fact for fact in step.given_facts if fact.value is not None and fact.value != ""]
+        elif isinstance(step, (UseCalculatorAction, PythonCodeAction)):
+            # if calculator or code action is used, add the facts to the action call
+            step.facts = tape.model_copy(update=dict(steps=tape.steps + new_steps)).facts()
+        return step
+
+
+class GaiaAgent(GuidedAgent):
+    short_steps: bool
+    subtasks: bool
+
+    @classmethod
+    def create(
+        cls,
+        llm: LLM,
+        planning_mode: PlanningMode = PlanningMode.simple,
+        subtasks: bool = False,
+        short_steps: bool = False,
+    ):
+        guidance_prompts = cls.prepare_guidance(planning_mode, subtasks)
+        return super().create(
+            llm,
+            nodes=[GaiaNode(name=kind, guidance=guidance) for kind, guidance in guidance_prompts.items()],
+            system_prompt=PromptRegistry.system_prompt,
+            steps_prompt=PromptRegistry.allowed_steps,
+            start_step_cls=GaiaQuestion,
+            agent_step_cls=GaiaAgentStep,
+            max_iterations=2,
+            templates=TEMPLATES,
+            subtasks=subtasks,
+            short_steps=short_steps,
+        )
+
+    @classmethod
+    def prepare_guidance(cls, planning_mode: PlanningMode, subtasks: bool) -> dict[str, str]:
+        """
+        Prepare guidance prompts based on the planning mode and subtasks flag
+        """
+        guidance_prompts = {}
+        if planning_mode == PlanningMode.simple:
+            guidance_prompts = {
+                "question": PromptRegistry.plan,
+                "plan_thought": PromptRegistry.facts_survey,
+                "list_of_facts_thought": PromptRegistry.start_execution,
+            }
+        elif planning_mode == PlanningMode.facts_and_sources:
+            guidance_prompts = {
+                "question": PromptRegistry.plan,
+                "draft_plans_thought": PromptRegistry.facts_survey,
+                "list_of_facts_thought": PromptRegistry.sources_plan,
+                "sources_thought": PromptRegistry.start_execution,
+            }
+        elif planning_mode == PlanningMode.multiplan:
+            guidance_prompts = {
+                "question": PromptRegistry.plan3,
+                "draft_plans_thought": PromptRegistry.facts_survey,
+                "list_of_facts_thought": PromptRegistry.sources_plan,
+                "sources_thought": PromptRegistry.start_execution,
+            }
+        elif planning_mode == PlanningMode.replan_after_sources:
+            guidance_prompts = {
+                "question": PromptRegistry.plan3,
+                "draft_plans_thought": PromptRegistry.facts_survey,
+                "list_of_facts_thought": PromptRegistry.sources_plan,
+                "sources_thought": PromptRegistry.better_plan,
+                "plan_thought": PromptRegistry.start_execution,
+            }
+        else:
+            raise ValueError(f"Unknown planning mode: {planning_mode}")
+        if subtasks:
+            guidance_prompts["calculation_result_observation"] = PromptRegistry.is_subtask_finished
+        guidance_prompts["_default"] = ""
+        return guidance_prompts
 
     def trim_tape(self, tape: GaiaTape) -> GaiaTape:
         """
@@ -117,12 +158,3 @@ class GaiaAgent(GuidedAgent):
             short_tape.steps.append(step)
         logger.info(f"Tape reduced from {len(tape)} to {len(short_tape)} steps")
         return short_tape
-
-    def postprocess_step(self, tape: GaiaTape, new_steps: list[Step], step: Step) -> Step:
-        if isinstance(step, ListOfFactsThought):
-            # remove empty facts produced by the model
-            step.given_facts = [fact for fact in step.given_facts if fact.value is not None and fact.value != ""]
-        elif isinstance(step, (UseCalculatorAction, PythonCodeAction)):
-            # if calculator or code action is used, add the facts to the action call
-            step.facts = tape.model_copy(update=dict(steps=tape.steps + new_steps)).facts()
-        return step

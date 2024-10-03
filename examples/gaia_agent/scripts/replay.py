@@ -27,8 +27,7 @@ def main(fname: str, dataset_path: str = ""):
 
     prompts = results.prompts
     llm_calls = [
-        LLMCall(prompt=Prompt.model_validate(prompt), output=LLMOutput(), cached=False)
-        for prompt in results.prompts
+        LLMCall(prompt=Prompt.model_validate(prompt), output=LLMOutput(), cached=False) for prompt in results.prompts
     ]
     model_name = results.model
     params = results.llm_config
@@ -43,7 +42,7 @@ def main(fname: str, dataset_path: str = ""):
     )
     env = GaiaEnvironment(only_cached_webpages=True)
     env.browser._cache = results.web_cache
-    agent = GaiaAgent(llms={"default": llm}, short_steps=True)
+    agent = GaiaAgent.create(llm, short_steps=True)
 
     logger.info(f"Web Cache {len(results.web_cache)}")
     logger.info(f"Prompts {len(prompts)}")
