@@ -181,9 +181,10 @@ class Studio:
         last_tape = start_tape
         for event in main_loop(agent, start_tape, self.environment):
             if ae := event.agent_event:
+                if ae.step:
+                    logger.info(f"added step {type(ae.step).__name__}")
                 if tape := ae.partial_tape or ae.final_tape:
                     observe_tape(tape)
-                    logger.info(f"added step {type(ae.step).__name__}")
                     last_tape = tape
                     yield (tape,) + self.render_tape(renderer_name, tape)
             elif event.observation:

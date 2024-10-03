@@ -29,7 +29,7 @@ from tapeagents.agent import Agent, Node
 from tapeagents.core import Tape
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, FunctionCall, ToolCall, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llm_function import InputStep, KindRef, LLMFunctionNode, LLMFunctionTemplate, NodeRef, OutputStep
+from tapeagents.llm_function import InputStep, KindRef, LLMFunctionNode, LLMFunctionTemplate, NodeRef, OutputStep, RationaleStep
 from tapeagents.llms import LLMStream, LiteLLM
 from tapeagents.runtime import main_loop
 from tapeagents.batch import batch_main_loop
@@ -70,12 +70,13 @@ def load_few_shot_demos() -> tuple[list, list]:
             partial_demos.append(demo)
     return partial_demos, demos
 
+class ContextInput(InputStep):
+    def render(self, step: ToolResult):
+        return render_contexts(step.content)
+
 
 def make_answer_template() -> LLMFunctionTemplate:
     partial_demos, demos = load_few_shot_demos()
-    class ContextInput(InputStep):
-        def render(self, step: ToolResult):
-            return render_contexts(step.content)
     return LLMFunctionTemplate(
         desc="Answer questions with short factoid answers.",
         inputs=[
@@ -83,17 +84,30 @@ def make_answer_template() -> LLMFunctionTemplate:
             InputStep(name="question"),
         ],
         outputs=[
-            OutputStep(
-                name="rationale", 
-                prefix="Reasoning: Let's think step by step in order to", 
-                desc="${produce the answer}. We ...",
-                step_class=AssistantThought
-            ),
+            RationaleStep.for_output("answer"),
             OutputStep(name="answer", desc="often between 1 and 5 words")
         ],
         demos=demos,
         partial_demos=partial_demos
     )        
+    
+    
+def make_query_template() -> LLMFunctionTemplate:
+    class RetrieveOutputStep(OutputStep):
+        def parse(self, text: str):
+            tc = ToolCall(function=FunctionCall(name="retrieve", arguments={"query": text}))
+            return ToolCalls(tool_calls=[tc])
+    return LLMFunctionTemplate(
+        desc="Write a simple search query that will help answer a complex question.",
+        inputs=[
+            ContextInput(name="context", desc="may contain relevant facts", separator="\n"),
+            InputStep(name="question"),
+        ],
+        outputs=[
+            RationaleStep.for_output("query"),
+            RetrieveOutputStep(name="query", desc="a search query")
+        ]
+    )       
 
 
 def make_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
@@ -124,23 +138,6 @@ def make_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
         agent.templates["rag"].demos = []
     return agent, env
 
- 
-def make_query_template() -> LLMFunctionTemplate:
-    class RetrieveOutputStep(OutputStep):
-        def parse(self, text: str):
-            tc = ToolCall(function=FunctionCall(name="retrieve", arguments={"query": text}))
-            return ToolCalls(tool_calls=[tc])
-    return LLMFunctionTemplate(
-        desc="Write a simple search query that will help answer a complex question.",
-        inputs=[
-            InputStep(name="context", desc="may contain relevant facts", separator="\n"),
-            InputStep(name="question"),
-        ],
-        outputs=[
-            RetrieveOutputStep(name="query", desc="a search query")
-        ]
-    )    
-
 
 def make_agentic_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
     env = ToolEnvironment(tools=[retrieve])
@@ -156,7 +153,7 @@ def make_agentic_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironm
             contexts = []
             for step in tape:
                 if isinstance(step, ToolResult):
-                    contexts.append(step.content)
+                    contexts.extend(step.content)
             yield AssistantThought(content=deduplicate(contexts))            
             
     nodes = []
@@ -193,7 +190,7 @@ def studio_few_shot_rag(cfg: DictConfig):
     
 def studio_agentic_rag(cfg: DictConfig):
     agent, env = make_agentic_rag_agent_and_env(cfg)
-    start_tape = DialogTape(steps=[UserStep(content="At My Window was released by which American singer-songwriter?")])
+    start_tape = DialogTape(steps=[UserStep(content="How many storeys are in the castle that David Gregory inherited?")])
     # main_loop(agent, start_tape, env).get_final_tape()
     Studio(agent, start_tape, PrettyRenderer(), env).launch()
     

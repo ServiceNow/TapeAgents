@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 from pathlib import Path
@@ -50,6 +52,18 @@ class OutputStep(BaseModel):
         return self.step_class.model_validate({"content": text})
     
 
+class RationaleStep(OutputStep):
+    
+    @classmethod
+    def for_output(cls, output_name: str):
+        return cls(
+            name="rationale", 
+            prefix="Reasoning: Let's think step by step in order to", 
+            desc=f"""${{produce the {output_name}}}. We ...""",
+            step_class=AssistantThought
+        )
+        
+    
 class LLMFunctionTemplate(BaseModel):
     desc: str
     inputs: list[InputStep]

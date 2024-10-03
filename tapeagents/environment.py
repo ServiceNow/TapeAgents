@@ -136,7 +136,7 @@ class ToolEnvironment(Environment):
                     if isinstance(args, str):
                         args = json.loads(args)
                     try:
-                        content = str(tool.run(tool_input=args))
+                        content = tool.run(tool_input=args)
                     except FatalError as e:
                         raise e
                     except Exception as e:
