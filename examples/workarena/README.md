@@ -18,7 +18,7 @@ The first agent attempts to replicate the structure of the [original WorkArena A
 The second agent attempts to solve the benchmark more similarly to the [Gaia Agent example](examples/gaia_agent), using minimal guidance but attempting to do reflection after performing each new action and observing the modified state of the webpage.
 
 ## Quickstart
-To run the agents, you need to install create the ServiceNow instance first! Please follow the setup instructions in the [Workarena repo](https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#getting-started).  
+To run the agents, you need to create the ServiceNow instance first! Please follow the setup instructions in the [Workarena repo](https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#getting-started).  
 
 When the setup is done and all environment variables are set, you can run the agents using the following commands:
 - `python -m examples.workarena.evaluate` - script to run agent evaluation on the validation set.
