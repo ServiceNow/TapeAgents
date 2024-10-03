@@ -3,11 +3,12 @@ import logging
 import os
 import sys
 
+from examples.gaia_agent import tape
 from tapeagents.core import LLMCall, Step, Tape
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.tape_browser import TapeBrowser
 
-from ..gaia_agent.eval import GaiaResults, load_results
+from ..gaia_agent.eval import GaiaResults
 from ..gaia_agent.scripts.demo import GaiaRender
 
 logging.basicConfig(
@@ -32,14 +33,29 @@ class WorkarenaTapeBrowser(TapeBrowser):
             with open(tape_path) as f:
                 tape_dict = json.load(f)
                 tape_dict["metadata"]["tape_dir"] = fname
+                for i, step_dict in enumerate(tape_dict["steps"]):
+                    screenshot_path = ""
+                    if "screenshot_path" in step_dict:  # deprecated format
+                        screenshot_path = step_dict["screenshot_path"]
+                    if "screenshot_path" in step_dict.get("metadata", {}).get("other", {}):
+                        screenshot_path = step_dict["metadata"]["other"]["screenshot_path"]
+                    if screenshot_path:
+                        if "metadata" not in step_dict:
+                            step_dict["metadata"] = {"other": {}}
+                        full_path = os.path.join(fname, "screenshots", screenshot_path)
+                        step_dict["metadata"]["other"]["screenshot_path"] = full_path
+                    tape_dict["steps"][i] = step_dict
             tapes.append(tape_dict)
         self.prompts = {}
         base_path = os.path.dirname(fpath)
         sqlite_fpath = os.path.join(base_path, "llm_calls.sqlite")
+        try:
+            llm_calls = retrieve_all_llm_calls(sqlite_fpath)
+        except Exception as e:
+            logger.error(f"Failed to load LLM calls from {sqlite_fpath}: {e}")
+            llm_calls = []
         if os.path.exists(sqlite_fpath):
-            self.prompts = {
-                llm_call.prompt.id: llm_call.model_dump() for llm_call in retrieve_all_llm_calls(sqlite_fpath)
-            }
+            self.prompts = {llm_call.prompt.id: llm_call.model_dump() for llm_call in llm_calls}
         logger.info(f"Loaded {len(tapes)} tapes, {len(self.prompts)} prompts from {fpath}")
         try:
             tapes.sort(key=lambda tape: tape["metadata"]["result"]["number"])
@@ -116,8 +132,8 @@ class WorkarenaTapeBrowser(TapeBrowser):
         steps = self.get_steps(tape)
         step_views = []
         last_prompt_id = None
-        for s in steps:
-            view = self.renderer.render_step(s)  # type: ignore
+        for i, s in enumerate(steps):
+            view = self.renderer.render_step(s, i)  # type: ignore
             prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
             if prompt_id in self.prompts and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(self.prompts[prompt_id], metadata=self.prompts[prompt_id])
@@ -141,14 +157,11 @@ class WorkArenaRender(GaiaRender):
 
     def render_step(self, step: Step | dict, index: int, folded: bool = True, **kwargs) -> str:
         step_dict = step.model_dump() if isinstance(step, Step) else step
+        print("step_dict meta", step_dict.get("metadata", {}))
+        screenshot_path = step_dict.get("metadata", {}).get("other", {}).get("screenshot_path")
         html = super().render_step(step, folded, **kwargs)
-        screenshot_path = None
-        if "screenshot_path" in step_dict:
-            screenshot_path = step_dict["screenshot_path"]
-        if "screenshot_path" in step_dict.get("metadata", {}).get("other", {}):
-            screenshot_path = step_dict["metadata"]["other"]["screenshot_path"]
         if screenshot_path:
-            screenshot_url = os.path.join("static", self.exp_dir, "screenshots", screenshot_path)
+            screenshot_url = os.path.join("static", screenshot_path)
             html = f"<div class='basic-renderer-box' style='background-color:#baffc9;'><div><img src='{screenshot_url}' style='max-width: 100%;'></div>{html}</div>"
         return html
 
