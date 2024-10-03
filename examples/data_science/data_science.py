@@ -66,10 +66,9 @@ def main(studio: bool):
 
         Studio(agent, start_tape, make_renderers(), env).launch()
     else:
-        events = list(main_loop(agent, start_tape, env))
-        assert (ae := events[-1].agent_event) and ae.final_tape
+        final_tape = main_loop(agent, start_tape, env).get_final_tape()
         with open("final_tape.json", "w") as f:
-            f.write(ae.final_tape.model_dump_json(indent=2))
+            f.write(final_tape.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":
@@ -82,5 +81,5 @@ if __name__ == "__main__":
             with run_in_tmp_dir_to_make_test_data("data_science"):
                 main(studio=False)
         case _:
-            print("Usage: python -m examples.data_science [studio]")
+            print("Usage: python -m examples.data_science.data_science [studio]")
             sys.exit(1)
