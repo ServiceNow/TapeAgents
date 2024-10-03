@@ -65,7 +65,7 @@ class ToolCallOutput(OutputStep):
         return ToolCalls(tool_calls=[tc])    
     
     def render(self, value: ToolCalls):
-        return value.tool_calls[0].function.arguments[self.tool_name]
+        return value.tool_calls[0].function.arguments[self.arg_name]
     
 
 class RationaleStep(ThoughtOutput):
