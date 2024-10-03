@@ -182,29 +182,18 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
     return agent
 
 
-def studio_few_shot_rag(cfg: DictConfig):
-    agent = make_rag_agent(cfg)
-    env = make_env()
-    start_tape = DialogTape(steps=[UserStep(content="At My Window was released by which American singer-songwriter?")])
-    Studio(agent, start_tape, PrettyRenderer(), env).launch()
-    
-    
-def studio_agentic_rag(cfg: DictConfig):
-    agent = make_agentic_rag_agent(cfg)
-    env = make_env()
-    start_tape = DialogTape(steps=[UserStep(content="How many storeys are in the castle that David Gregory inherited?")])
-    Studio(agent, start_tape, PrettyRenderer(), env).launch()
-    
+def make_agent(cfg: DictConfig) -> Agent:
+    return make_rag_agent(cfg) if cfg.agent == "rag" else make_agentic_rag_agent(cfg)
+
     
 def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
     n_correct = 0
     for example, tape in zip(examples, tapes):
         gold_titles = set(map(dspy.evaluate.normalize_text, example['gold_titles']))
         # TODO: just retrieve the last set of contexts by index, keep it simple
-        for step in tape:
-            if isinstance(step, ToolResult):
-                found_titles = [c.split(' | ')[0] for c in step.content]
-                found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
+        context_step = tape.steps[-3]
+        found_titles = [c.split(' | ')[0] for c in context_step.content]
+        found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
         ok = gold_titles.issubset(found_titles)
         # print(gold_titles, found_titles, ok)
         n_correct += int(ok)
@@ -227,18 +216,30 @@ def get_dataset(cfg: DictConfig):
     )    
     logger.info("Data loaded")
     return dataset
-    
-def evaluate_few_shot_rag(cfg: DictConfig):
-    agent = make_rag_agent(cfg)
-    env = make_env()
-    dataset = get_dataset(cfg)
-    
+
+def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset, save_tapes_path: str):
     start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.dev]
     final_tapes = []
     with save_tapes("few_shot_rag_tapes.yaml") as saver:
         for tape in tqdm.tqdm(batch_main_loop(agent, start_tapes, env)):
             final_tapes.append(tape)
-            saver.save(tape)
+            saver.save(tape)            
+    return final_tapes
+
+    
+def studio(cfg: DictConfig):
+    agent = make_agent(cfg)
+    env = make_env()
+    start_tape = DialogTape(steps=[UserStep(content="How many storeys are in the castle that David Gregory inherited?")])
+    Studio(agent, start_tape, PrettyRenderer(), env).launch()    
+    
+    
+def evaluate(cfg: DictConfig):
+    agent = make_agent(cfg)
+    env = make_env()
+    dataset = get_dataset(cfg)
+    
+    final_tapes = batch_run_and_save(agent, env, dataset, "few_shot_rag_tapes.yaml")    
         
     retrieval_accuracy = compute_retrieval_accuracy(dataset.dev, final_tapes)
     answer_accuracy = compute_answer_exact_match(dataset.dev, final_tapes)
@@ -256,12 +257,10 @@ def browse_tapes():
 def main(cfg: DictConfig):
     print(f"Running in {os.getcwd()}")
     match cfg.target:
-        case "studio_few_shot_rag":
-            studio_few_shot_rag(cfg)
-        case "studio_agentic_rag":
-            studio_agentic_rag(cfg)
-        case "evaluate_fewshot_rag":
-            evaluate_few_shot_rag(cfg)
+        case "studio":
+            studio(cfg)
+        case "evaluate":
+            evaluate(cfg)
         case "browse_tapes":
             browse_tapes()
         case _:

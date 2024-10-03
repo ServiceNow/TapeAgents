@@ -2,10 +2,11 @@ hydra:
   job:
     chdir: True
 target: ???
+agent: agentic_rag
 rag:
   partial_demos: true
   demos: true
 agentic_rag:
   max_hops: 3
 dataset:
-  dev_size: 10
+  dev_size: 50
