@@ -18,6 +18,10 @@ The first agent attempts to replicate the structure of the [original WorkArena A
 The second agent attempts to solve the benchmark more similarly to the [Gaia Agent example](examples/gaia_agent), using minimal guidance but attempting to do reflection after performing each new action and observing the modified state of the webpage.
 
 ## Quickstart
-- `python -m examples.workarena.evaluate` - script to run evaluation on the validation set.
+To run the agents, you need to create the ServiceNow instance first! Please follow the setup instructions in the [Workarena repo](https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#getting-started).  
+
+When the setup is done and all environment variables are set, you can run the agents using the following commands:
+- `python -m examples.workarena.evaluate` - script to run agent evaluation on the validation set.
 - `python -m examples.workarena.tape_browser` - Gradio UI for exploring the tapes with screenshots, videos and metrics produced during evaluation.
 
+Agents are configured using hydra configs from the `conf/tapeagent/` directory. You can change the agent configuration by modifying the `conf/tapeagent/workarena_openai.yaml` file.

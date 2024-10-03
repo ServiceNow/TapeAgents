@@ -1,7 +1,9 @@
 # Gaia Agent
 The Gaia Agent is an agent that can answer knowledge-grounded questions using web search, calculations and reasoning. The agent can use OpenAI or big LLAMA models to solve these tasks. We demonstrate how it solves the tasks from the [GAIA Benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
 
-<img width="1232" alt="image" src="https://github.com/user-attachments/assets/f02d9dff-0cfb-4ad6-b061-9d7568d75baa">
+Tape example:  
+<img width="867" alt="gaia_perfect_demo_tape" src="https://github.com/user-attachments/assets/a81c22d8-9cf5-42c4-a390-933108753966">
+
 
 
 ## Structure

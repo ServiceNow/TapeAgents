@@ -33,14 +33,13 @@ class PlanningMode(str, Enum):
 
 
 class GaiaAgent(GuidedAgent):
-    templates: dict[str, str] = TEMPLATES
     max_iterations: int = 2
     planning_mode: str = PlanningMode.simple
     short_steps: bool = False
     subtasks: bool = False
     _start_step_cls: Any = GaiaQuestion
     _agent_step_cls: Any = GaiaAgentStep
-    
+
     def prepare_guidance_prompts(self):
         guidance_prompts = {}
         if self.planning_mode == PlanningMode.simple:
@@ -73,7 +72,7 @@ class GaiaAgent(GuidedAgent):
             }
         if self.subtasks:
             guidance_prompts["calculation_result_observation"] = PromptRegistry.is_subtask_finished
-        self.templates |= guidance_prompts
+        self.templates = TEMPLATES | guidance_prompts
 
     def get_steps_description(self, tape: GaiaTape) -> str:
         add_plan_thoughts = not tape.has_fact_schemas()
