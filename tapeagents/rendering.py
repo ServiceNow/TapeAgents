@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from tapeagents.agent import Agent
 from tapeagents.container_executor import CodeBlock
-from tapeagents.core import Action, Episode, Observation, Prompt, Step, Tape, Thought
+from tapeagents.core import Action, Episode, Observation, Step, Tape, Thought
 from tapeagents.dialog_tape import (
     AssistantStep,
     DialogContext,
@@ -20,6 +20,13 @@ from tapeagents.dialog_tape import (
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall, retrieve_tape_llm_calls
 from tapeagents.view import Call, Respond
+
+YELLOW = "#ffffba"
+LIGHT_YELLOW = "#ffffdb"
+SAND = "#e5e5a7"
+RED = "#ffdfba"
+GREEN = "#baffc9"
+BLUE = "#bae1ff"
 
 
 def render_dialog_plain_text(tape: DialogTape | None) -> str:
@@ -108,8 +115,7 @@ class BasicRenderer:
                         chunks.append("<hr style='margin: 2pt 0pt 2pt 0pt;'>")
                     llm_call = llm_calls.get(step.metadata.prompt_id)
                     if llm_call:
-                        completion = llm_call.output.model_dump_json(indent=2)
-                        chunks.append(self.render_llm_call(llm_call.prompt, completion))
+                        chunks.append(self.render_llm_call(llm_call))
                     last_prompt_id = step.metadata.prompt_id
             chunks.append(self.render_step(step, index))
         return "".join(chunks)
@@ -153,35 +159,31 @@ class BasicRenderer:
             chunks.append(row(user_html, agent_html, annotations_html))
         return "".join(chunks)
 
-    def render_llm_call(self, prompt: Prompt | dict, completion: str = "", metadata: dict | None = None) -> str:
-        metadata = metadata or {}
-        prompt_length = metadata.get("prompt_length")
-        cached = metadata.get("cached", False)
-        if isinstance(prompt, dict):
-            messages = prompt.get("messages", [])
-            tools = prompt.get("tools", [])
-        else:
-            messages = prompt.messages
-            tools = prompt.tools
-        prompt_messages = [f"tool_schemas: {json.dumps(tools, indent=2)}"]
-        for m in messages:
+    def render_llm_call(self, llm_call: LLMCall | None) -> str:
+        if llm_call is None:
+            return ""
+        prompt_messages = [f"tool_schemas: {json.dumps(llm_call.prompt.tools, indent=2)}"]
+        for m in llm_call.prompt.messages:
             role = f"{m['role']} ({m['name']})" if "name" in m else m["role"]
             prompt_messages.append(f"{role}: {m['content'] if 'content' in m else m['tool_calls']}")
         prompt_text = "\n--\n".join(prompt_messages)
-        # prompt_text_escaped_html = html.htmlescape(prompt_text)
-        prompt_length_str = f"{prompt_length} tokens" if prompt_length else f"{len(prompt_text)} characters"
-        label = f"Prompt {prompt_length_str} {', cached' if cached else ''}"
+        prompt_length_str = (
+            f"{llm_call.prompt_length_tokens} tokens"
+            if llm_call.prompt_length_tokens
+            else f"{len(prompt_text)} characters"
+        )
+        label = f"Prompt {prompt_length_str} {', cached' if llm_call.cached else ''}"
         html = f"""<div class='basic-prompt-box' style='background-color:#ffffba; padding: 4px;'>
         <details>
             <summary><b> {label} </b></summary>
             <pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{prompt_text.strip()}</pre>
         </details>
         </div>"""
-        if completion:
+        if llm_call.output:
             html += f"""<div class='basic-prompt-box' style='background-color:#ffffba; margin-bottom:1em;'>
                 <details>
-                    <summary><b>Completion</b></summary>
-                    <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word;'>{completion}</pre>
+                    <summary><b>Completion {llm_call.output_length_tokens} tokens</b></summary>
+                    <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word;'>{llm_call.output}</pre>
                 </details>
                 </div>"""
         return html
@@ -352,6 +354,83 @@ class TapeBrowserRenderer(BasicRenderer):
             return f'<a target="_blank" href="{url}">{url}</a>'
 
         return url_pattern.sub(replace_url, text)
+
+
+class GuidedAgentRender(TapeBrowserRenderer):
+    @property
+    def style(self) -> str:
+        return (
+            "<style>"
+            ".basic-renderer-box { margin: 4px; padding: 10px; background: lavender; } "
+            ".episode-row { display: flex; align-items: end; } "
+            ".agent-column { width: 70%; } "
+            ".user-column { width: 15%; } "
+            ".annotator-column { width: 15%; } "
+            ".prompt { margin-top: 1em; padding: 0 10px 0 10px;} "
+            "table.diff { border: none !important; padding: 0 !important; } "
+            "tr.diff { border: none !important; padding: 0 !important; } "
+            "td.diff { border: none !important; padding: 0 !important; vertical-align: top !important;} "
+            "td.diff_highlight { border: 0 none red !important; border-left: 5px solid red !important; padding: 0 !important; vertical-align: top !important;} "
+            "</style>"
+        )
+
+    def render_step(self, step: Step | dict, index: int, folded: bool = True, **kwargs) -> str:
+        step_dict = step.model_dump() if isinstance(step, Step) else step
+        if not step_dict:
+            return ""
+        step_dict.pop("metadata", None)
+        title = get_step_title(step_dict)
+        text = get_step_text(step_dict, exclude_fields={"kind", "role", "metadata"})
+        role = "Agent Action"
+        color = YELLOW
+
+        if step_dict["kind"] == "question":
+            role = "Question"
+            color = BLUE
+            text = step_dict.get("content", step_dict.get("question", ""))
+            title = ""
+            folded = False
+        elif step_dict["kind"] == "task":
+            role = "Task"
+            color = BLUE
+            text = ""
+            title = step_dict["task"]
+            folded = False
+        elif step_dict["kind"].endswith("_subtask_thought"):
+            role = "Agent Thought"
+            color = SAND
+        elif step_dict["kind"].endswith("_answer_action"):
+            role = "Answer"
+            color = BLUE
+            title = ""
+        elif step_dict["kind"].endswith("_failure"):
+            role = "Failure"
+            color = RED
+        elif step_dict["kind"].endswith("_observation"):
+            role = "Observation"
+            color = GREEN
+        elif step_dict["kind"].endswith("_thought"):
+            role = "Agent Thought"
+            color = LIGHT_YELLOW
+
+        # fold when too long or too many lines
+        fold = folded and (text.count("\n") > 10 or len(text) > 1000)
+        if not fold:
+            max_len = 2000
+            if len(text) > max_len + 100:
+                text = text[:max_len] + "\n" + ("=" * 100) + f"\n ... and {len(text[max_len:])} more characters"
+        text = self.wrap_urls_in_anchor_tag(text)
+        if fold:
+            html = f"""<div class='basic-renderer-box' style='background-color:{color};'><details>
+                <summary><b>{role}: {title}</b></summary>
+                <pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{text}</pre>
+            </details></div>"""
+        else:
+            html = f"""<div class='basic-renderer-box' style='background-color:{color};'>
+                <h4 style='margin: 2pt 2pt 2pt 0 !important;font-size: 1em;'>{role}: {title}</h4>
+                <pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{text}</pre>
+            </div>"""
+        return html
 
 
 def step_view(step: Step, trim: bool = False) -> str:
