@@ -38,6 +38,7 @@ class GaiaRender(TapeBrowserRenderer):
         step_dict = step.model_dump() if isinstance(step, Step) else step
         if not step_dict:
             return ""
+        step_dict.pop("metadata", None)
         title = get_step_title(step_dict)
         text = get_step_text(step_dict, exclude_fields={"kind", "role", "prompt_id"})
         role = "Agent Action"
