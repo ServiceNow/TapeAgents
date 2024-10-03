@@ -110,9 +110,11 @@ def make_query_template() -> LLMFunctionTemplate:
     )       
 
 
-def make_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
-    env = ToolEnvironment(tools=[retrieve])
-    
+def make_env() -> ToolEnvironment:
+    return ToolEnvironment(tools=[retrieve])
+
+
+def make_rag_agent(cfg: DictConfig) -> Agent:
     class RetrieveNode(Node):
         def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
             assert isinstance(question := tape.steps[-1], UserStep)
@@ -136,12 +138,10 @@ def make_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
         agent.templates["rag"].partial_demos = []   
     if not cfg.rag.demos:
         agent.templates["rag"].demos = []
-    return agent, env
+    return agent
 
 
-def make_agentic_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironment]:
-    env = ToolEnvironment(tools=[retrieve])
-    
+def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
     templates = {
         "answer": make_answer_template(),
     }
@@ -179,19 +179,20 @@ def make_agentic_rag_agent_and_env(cfg: DictConfig) -> tuple[Agent, ToolEnvironm
         templates=templates,
         nodes=nodes
     )
-    return agent, env
+    return agent
 
 
 def studio_few_shot_rag(cfg: DictConfig):
-    agent, env = make_rag_agent_and_env(cfg)
+    agent = make_rag_agent(cfg)
+    env = make_env()
     start_tape = DialogTape(steps=[UserStep(content="At My Window was released by which American singer-songwriter?")])
     Studio(agent, start_tape, PrettyRenderer(), env).launch()
     
     
 def studio_agentic_rag(cfg: DictConfig):
-    agent, env = make_agentic_rag_agent_and_env(cfg)
+    agent = make_agentic_rag_agent(cfg)
+    env = make_env()
     start_tape = DialogTape(steps=[UserStep(content="How many storeys are in the castle that David Gregory inherited?")])
-    # main_loop(agent, start_tape, env).get_final_tape()
     Studio(agent, start_tape, PrettyRenderer(), env).launch()
     
     
@@ -202,7 +203,7 @@ def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
         # TODO: just retrieve the last set of contexts by index, keep it simple
         for step in tape:
             if isinstance(step, ToolResult):
-                found_titles = [c.split(' | ')[0][5:] for c in step.content]
+                found_titles = [c.split(' | ')[0] for c in step.content]
                 found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
         ok = gold_titles.issubset(found_titles)
         # print(gold_titles, found_titles, ok)
@@ -218,12 +219,19 @@ def compute_answer_exact_match(examples: list, tapes: list[Tape]):
             n_correct += int(ok)
     return n_correct / len(examples)
     
+def get_dataset(cfg: DictConfig):    
+    logger.info("Loading data ...")
+    dataset = HotPotQA(
+        train_seed=1, train_size=20, eval_seed=2023, 
+        dev_size=cfg.dataset.dev_size, test_size=0
+    )    
+    logger.info("Data loaded")
+    return dataset
     
 def evaluate_few_shot_rag(cfg: DictConfig):
-    agent, env = make_rag_agent_and_env(cfg)
-    logger.info("Loading data")
-    dataset = HotPotQA(train_seed=1, train_size=20, eval_seed=2023, dev_size=cfg.dataset.dev_size, test_size=0)
-    logger.info("Data loaded")
+    agent = make_rag_agent(cfg)
+    env = make_env()
+    dataset = get_dataset(cfg)
     
     start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.dev]
     final_tapes = []

@@ -8,4 +8,4 @@ rag:
 agentic_rag:
   max_hops: 3
 dataset:
-  dev_size: 50
+  dev_size: 10
