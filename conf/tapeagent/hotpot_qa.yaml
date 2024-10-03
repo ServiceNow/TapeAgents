@@ -1,12 +1,15 @@
 hydra:
   job:
     chdir: True
+  run:
+    dir: outputs/${exp_name}_${seed}    
 target: ???
+exp_name: ???
+seed: 2
 agent: agentic_rag
 llm_cache: true
 optimize:
   do: false
-  seed: 1
   n_demos: 2
 rag:
   partial_demos: true

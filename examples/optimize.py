@@ -193,11 +193,10 @@ def optimize_agent(agent: Agent, cfg: DictConfig):
         for node, index in agent.parse(tape):
             if isinstance(node, LLMFunctionNode):
                 demos[node.template_name].append(node.extract_demo(agent, tape, index))
-    rng = random.Random(cfg.optimize.seed)
+    rng = random.Random(cfg.seed)
     # Step 4: add random good support examples to the agent
     agent_copy = agent.model_copy(deep=True)
     for template_name, template in agent_copy.templates.items():
-        # randomly sample k examples from the demos, seed 1
         k = min(cfg.optimize.n_demos, len(demos[template_name]))
         template.demos = rng.sample(demos[template_name], k)
     return agent_copy
@@ -266,7 +265,7 @@ def get_dataset(cfg: DictConfig):
 def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset, save_tapes_path: str):
     start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.dev]
     final_tapes = []
-    with save_tapes("few_shot_rag_tapes.yaml") as saver:
+    with save_tapes(save_tapes_path) as saver:
         for tape in tqdm.tqdm(batch_main_loop(agent, start_tapes, env)):
             final_tapes.append(tape)
             saver.save(tape)            
@@ -284,12 +283,14 @@ def evaluate(cfg: DictConfig):
     agent = make_agent(cfg)
     env = make_env()
     dataset = get_dataset(cfg)
-    final_tapes = batch_run_and_save(agent, env, dataset, "few_shot_rag_tapes.yaml")          
+    tapes_save_path = f"few_shot_rag_tapes_{cfg.dataset.dev_size}.yaml"
+    final_tapes = batch_run_and_save(agent, env, dataset, tapes_save_path)
     retrieval_accuracy = compute_retrieval_accuracy(dataset.dev, final_tapes)
     answer_accuracy = compute_answer_exact_match(dataset.dev, final_tapes)
     print(f"Retrieval accuracy: {retrieval_accuracy:.2f}")
     print(f"Answer accuracy: {answer_accuracy:.2f}")
-    with open("metrics.json", "w") as f:
+    metrics_save_path = f"metrics_{cfg.dataset.dev_size}.json"
+    with open(metrics_save_path, "w") as f:
         json.dump({"retrieval_accuracy": retrieval_accuracy, "answer_accuracy": answer_accuracy}, f, indent=2)
        
         
