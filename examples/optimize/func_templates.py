@@ -1,5 +1,5 @@
 from tapeagents.dialog_tape import ToolResult
-from tapeagents.llm_function import InputVar, LLMFunctionTemplate, AssistantOutput, RationaleOutput, ToolCallOutput
+from tapeagents.llm_function import Input, LLMFunctionTemplate, AssistantOutput, RationaleOutput, ToolCallOutput
 
 
 def render_contexts(contexts: list[str]) -> str:
@@ -8,7 +8,7 @@ def render_contexts(contexts: list[str]) -> str:
     return "\n".join(f"[{i + 1}] «{t}»" for i, t in enumerate(contexts))
 
 
-class ContextInput(InputVar):
+class ContextInput(Input):
     def render(self, step: ToolResult):
         return render_contexts(step.content)
 
@@ -18,7 +18,7 @@ def make_answer_template() -> LLMFunctionTemplate:
         desc="Answer questions with short factoid answers.",
         inputs=[
             ContextInput(name="context", desc="may contain relevant facts", separator="\n"),
-            InputVar(name="question"),
+            Input(name="question"),
         ],
         outputs=[
             RationaleOutput.for_output("answer"),
@@ -32,7 +32,7 @@ def make_query_template() -> LLMFunctionTemplate:
         desc="Write a simple search query that will help answer a complex question.",
         inputs=[
             ContextInput(name="context", desc="may contain relevant facts", separator="\n"),
-            InputVar(name="question"),
+            Input(name="question"),
         ],
         outputs=[
             RationaleOutput.for_output("query"),

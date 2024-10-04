@@ -228,7 +228,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def create(
         cls,
         llms: dict[str, LLM] | LLM | None = None,
-        templates: dict[str, str] | str | None = None,
+        templates: dict[str, Any] | str | None = None,
         **kwargs,
     ) -> Self:
         """The user-friendly way to create an agent that flexible-typed inputs.

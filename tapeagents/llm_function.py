@@ -11,8 +11,8 @@ from tapeagents.llm_function_template import LLM_FUNCTION_TEMPLATE
 from tapeagents.llms import LLMStream
 
 
-class BaseVar(BaseModel):
-    """Base class for InputVar and OutputVar"""
+class Variable(BaseModel):
+    """Base class for all LLM function inputs and outputs"""
     name: str
     prefix: str = ""
     desc: str = ""
@@ -25,27 +25,33 @@ class BaseVar(BaseModel):
         return self.desc or f"${{{self.name}}}"
     
     def render(self, value: Step):
-        return value.content # type: ignore
+        return value.content # type: ignore    
    
     
-class InputVar(BaseVar):
+class Input(Variable):
     """Describes an input to an LLM-based function."""
     pass
+
+
+class Output(Variable):
+    """Describes an output of an LLM-based function."""
+    def parse(self, text: str) -> Step:
+        raise NotImplementedError()
     
     
-class AssistantOutput(BaseVar):
+class AssistantOutput(Output):
     """Describes an output of an LLM-based function."""
     def parse(self, text: str) -> Step:
         return AssistantStep(content=text)
     
     
-class ThoughtOutput(AssistantOutput):
+class ThoughtOutput(Output):
        
     def parse(self, text: str):
         return AssistantThought(content=text)
     
     
-class ToolCallOutput(AssistantOutput):
+class ToolCallOutput(Output):
     tool_name: str
     arg_name: str
     
@@ -70,8 +76,8 @@ class RationaleOutput(ThoughtOutput):
     
 class LLMFunctionTemplate(BaseModel):
     desc: str
-    inputs: list[InputVar]
-    outputs: list[AssistantOutput]
+    inputs: list[Input]
+    outputs: list[Output]
     partial_demos: list[dict] = []
     demos: list[dict] = []
     
