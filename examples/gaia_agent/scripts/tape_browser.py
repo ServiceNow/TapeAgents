@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from pathlib import Path
 
 from tapeagents.core import LLMCall
 from tapeagents.rendering import GuidedAgentRender
@@ -91,9 +92,8 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_tape_files(self) -> list[str]:
         files = sorted(
-            [
-                f for f in os.listdir(self.tapes_folder) if f.endswith(self.file_extension)
-            ]  # for recursive use: Path(self.tapes_folder).glob(f"**/*{self.file_extension}")
+            # for 1-level use: [f for f in os.listdir(self.tapes_folder) if f.endswith(self.file_extension)]
+            [str(p.relative_to(self.tapes_folder)) for p in Path(self.tapes_folder).glob(f"**/*{self.file_extension}")]
         )
         assert files, f"No files found in {self.tapes_folder}"
         logger.info(f"Found {len(files)} files")
