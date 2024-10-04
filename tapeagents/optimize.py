@@ -5,7 +5,7 @@ from tapeagents.llm_function import LLMFunctionNode
 
 
 def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
-    """Extract demos for function templates the given tapes.
+    """Extract demos for function templates from the given tapes.
     
     When there is too many demos, select random ones.
     
