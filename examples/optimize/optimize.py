@@ -36,7 +36,7 @@ from tapeagents.runtime import main_loop
 from tapeagents.batch import batch_main_loop
 
 
-res_dir = pathlib.Path(__file__).parent.resolve() / "res"
+res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
 
 
 def render_contexts(contexts: list[str]) -> str:

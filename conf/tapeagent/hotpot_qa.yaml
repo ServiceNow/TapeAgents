@@ -2,11 +2,11 @@ hydra:
   job:
     chdir: True
   run:
-    dir: outputs/${exp_name}_seed${seed}    
+    dir: outputs/${exp_name}_optimize=${optimize.do}_seed=${seed}
 target: evaluate
-exp_name: exp
+exp_name: ${agent}
 seed: 2
-agent: agentic_rag
+agent: ???
 llm_cache: true
 load_demos: false
 optimize:
