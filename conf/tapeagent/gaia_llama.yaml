@@ -9,4 +9,3 @@ n_attempts: 1
 agent:
   planning_mode: simple
   subtasks: false
-  short_steps: true

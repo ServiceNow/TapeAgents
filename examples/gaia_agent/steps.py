@@ -376,7 +376,7 @@ actions = [
 ]
 
 
-def get_allowed_steps(short_steps: bool, subtasks: bool, plan_thoughts: bool) -> str:
+def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
     if plan_thoughts:
         steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
     else:
@@ -407,8 +407,4 @@ def get_allowed_steps(short_steps: bool, subtasks: bool, plan_thoughts: bool) ->
                 GaiaAnswer,
             ]
     steps_alias = Annotated[steps, Field(discriminator="kind")]
-    if short_steps:
-        schema = get_step_schemas_from_union_type(steps_alias)
-    else:
-        schema = json.dumps(TypeAdapter(list[steps_alias]).json_schema(), ensure_ascii=False)
-    return schema
+    return get_step_schemas_from_union_type(steps_alias)

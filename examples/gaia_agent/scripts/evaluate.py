@@ -73,6 +73,7 @@ def main(cfg: DictConfig) -> None:
             save_results(results, outfile)
             logger.info(f"Saved {len(results.tapes)} tapes to {outfile}")
         logger.info(f"Level {i} done, {len(results.tapes)} tapes saved")
+        break
     logger.info("Done")
 
 
