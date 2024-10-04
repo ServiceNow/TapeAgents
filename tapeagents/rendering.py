@@ -1,3 +1,4 @@
+import os
 import json
 import re
 from typing import Any, Type
@@ -543,8 +544,13 @@ class CameraRenderer(BasicRenderer):
         elif isinstance(step, Respond):
             text = maybe_fold(dump["content"])
             if ".png" in dump["content"] and "exit code 0" in dump["content"]:
-                path = "outputs/data_science/res/stock_comparison.png"
-                text += f"""<img src='/file={path}' style="max-width: 100%; height: 250px; padding: 4px">"""
+                # TODO this is a hack to show images, need to find a generic data pattern in outputs and step to do this
+                pattern = r"(\S+\.png)"
+                match = re.search(pattern, dump["content"])
+                if match:
+                    filename = match.group(1)
+                    path = f"""outputs/data_science/res/{os.path.basename(filename.replace('`', '').replace("'", '').strip())}"""
+                    text += f"""<img src='/file={path}' style="max-width: 100%; height: 250px; padding: 4px">"""
         elif isinstance(step, ExecuteCode):
             del dump["code"]
 
