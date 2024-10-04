@@ -16,7 +16,6 @@ def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
             if isinstance(node, LLMFunctionNode):
                 demos[node.template_name].append(node.extract_demo(agent, tape, index))
     rng = random.Random(seed)
-    # Step 4: add random good support examples to the agent
     agent_copy = agent.model_copy(deep=True)
     for template_name, template in agent_copy.templates.items():
         k = min(max_n_demos, len(demos[template_name]))
