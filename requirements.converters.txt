@@ -2,6 +2,7 @@ easyocr==1.7.1
 lxml[html_clean]==5.2.2
 mammoth==1.8.0
 markdownify==0.13.1
+openpyxl==3.1.5
 pandas==2.2.2
 pdfminer.six==20240706
 pdfminer==20191125

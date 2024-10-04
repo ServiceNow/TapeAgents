@@ -354,12 +354,12 @@ class SimpleTextBrowser:
 
         except UnsupportedFormatException as e:
             print(colored(f"UnsupportedFormatException: {e}", "red"))
-            self.page_title = "Download complete."
-            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+            self.page_title = "Unsupported Format"
+            self._set_page_content(f"Unsupported Format File: {e}")
         except FileConversionException as e:
             print(colored(f"FileConversionException: {e}", "red"))
-            self.page_title = "Download complete."
-            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+            self.page_title = "Failed to read file"
+            self._set_page_content(f"Error: {e}")
         except FileNotFoundError:
             self.page_title = "Error 404"
             self._set_page_content(f"## Error 404\n\nFile not found: {download_path}")
@@ -407,10 +407,13 @@ class SimpleTextBrowser:
         """
         Load web page and return content of its first viewport (first screen), current page number and total number of pages.
         """
+        local_file = False
         if url.startswith("/"):
             # in case of a local file
             url = f"file://{url}"
-        if self.use_web_cache and url in self._cache:
+        if url.startswith("file://"):
+            local_file = True
+        if self.use_web_cache and url in self._cache and not local_file:
             logger.info(colored(f"Cache hit {url}", "green"))
             self._log[url] = self._cache[url]
             content, title = self._cache[url]
