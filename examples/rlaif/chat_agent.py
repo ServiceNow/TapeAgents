@@ -35,3 +35,10 @@ class ChatAgent(Agent[DialogTape]):
         if not isinstance(step := tape.steps[index], AssistantStep):
             raise ValueError(f"Can only make completion for AssistantStep, got {step}")
         return LLMOutput(content=step.content)
+    
+    def make_training_data(self, tape: Tape) -> list[TrainingText]:
+        """
+        We only train on the last completion
+        """
+        _, llm_calls = self.reuse(tape)
+        return [self.make_training_text(llm_calls[-1])]

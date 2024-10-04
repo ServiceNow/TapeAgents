@@ -38,7 +38,7 @@ from tapeagents.io import save_tapes
 from examples.rlaif.chat_agent import (
     ChatAgent,
 )
-
+from tapeagents.core import LLMOutput, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -184,21 +184,33 @@ def main(exp_path: Path):
     with save_tapes(exp_path / "tapes.yaml") as dumper:
         for i, sample in enumerate(tqdm(samples)):
             try:
-                steps = convert_conversation_to_steps(sample['conversation'])
-                tape = DialogTape(
-                            context=None,
-                            steps=steps[:-1], # drop the last assistant step
-                        )
-                tape_file = os.path.join(tapes_dir, f"task{i}.json")
-                for event in agent.run(tape):
-                    if event.partial_step:
-                        assert isinstance(step := event.partial_step.step, AssistantStep)
-                        print(step.content[n_printed:], end="", flush=True)
-                        n_printed = len(step.content)
-                    if event.final_tape:
-                        tape = event.final_tape
-                        print()
-                        print(f"Received new tape of length {len(tape)}")
+                for i, message in enumerate(sample['conversation']):
+                    if message['role'] != 'assistant':
+                        continue
+
+                    steps = convert_conversation_to_steps(sample['conversation'])
+                    tape = DialogTape(
+                                context=None,
+                                steps=steps[:i], # drop the last assistant step
+                            )
+                    tape_file = os.path.join(tapes_dir, f"task{i}.json")
+                    for event in agent.run(tape):
+                        if event.partial_step:
+                            assert isinstance(step := event.partial_step.step, AssistantStep)
+                            print(step.content[n_printed:], end="", flush=True)
+                            n_printed = len(step.content)
+                        if event.final_tape:
+                            tape = event.final_tape
+                            print()
+                            print(f"Received new tape of length {len(tape)}")
+                        print("--- CHECK TRACES ---")
+
+                traces: list[TrainingText] = []
+                for i, trace in enumerate(agent.make_training_data(tape)):
+                    print(f"TRACE {i}")
+                    print("CONTEXT", trace.prompt_text)
+                    print("COMPLETION", trace.output_text)
+                    traces.append(trace)
 
             except Exception as e:
                 logger.error(colored(f"Failed to solve task: {e}", "red"))
