@@ -125,7 +125,7 @@ class TapeMetadata(BaseModel):
     author_tape_id: str | None = None
     n_added_steps: int = 0
     error: Any | None = None
-    result: Any = None
+    result: Any = {}
 
 
 ContextType = TypeVar("ContextType")
