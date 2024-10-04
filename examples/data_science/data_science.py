@@ -32,13 +32,13 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
         execute_code=True,
     )
     team = TeamAgent.create_team_manager(
-        name="GroupChatManager",
+        name="Manager",
         subagents=[coder, code_executor],
         max_calls=15,
         llm=llm,
     )
     org = TeamAgent.create_chat_initiator(
-        name="UserProxy",
+        name="User",
         init_message=(
             "Make a plot comparing the stocks of ServiceNow and Salesforce"
             " since beginning of 2024. Save it to a PNG file."
