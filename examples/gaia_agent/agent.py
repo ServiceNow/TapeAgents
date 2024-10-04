@@ -43,8 +43,8 @@ class GaiaNode(GuidanceNode):
         """
         Allow different subset of steps based on the agent's configuration
         """
-        add_plan_thoughts = not tape.has_fact_schemas()
-        allowed_steps = get_allowed_steps(agent.short_steps, agent.subtasks, add_plan_thoughts)
+        plan_thoughts = not tape.has_fact_schemas()
+        allowed_steps = get_allowed_steps(agent.short_steps, agent.subtasks, plan_thoughts)
         return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def prepare_tape(self, tape: GaiaTape, max_chars: int = 200) -> GaiaTape:
@@ -76,8 +76,8 @@ class GaiaNode(GuidanceNode):
 
 
 class GaiaAgent(GuidedAgent):
-    short_steps: bool
     subtasks: bool
+    short_steps: bool
 
     @classmethod
     def create(

@@ -7,6 +7,7 @@ import jsonref
 from pydantic import BaseModel, Field, TypeAdapter
 
 from tapeagents.core import Action, AgentResponseParsingFailureAction, Observation, StopStep, Thought
+from tapeagents.utils import get_step_schemas_from_union_type
 
 
 ################### Base Step Classes ###################
@@ -370,40 +371,43 @@ actions = [
     NextPageAction,
     ConvertFactAction,
     UseCalculatorAction,
-    # PythonCodeAction,
     GaiaAnswer,
 ]
 
 
 def get_allowed_steps(short_steps: bool, subtasks: bool, plan_thoughts: bool) -> str:
-    def purge_key(d: dict, key: str) -> dict:
-        if isinstance(d, list):
-            return [purge_key(v, key) for v in d]  # type: ignore
-        elif not isinstance(d, dict):
-            return d
-        return {k: purge_key(v, key) for k, v in d.items() if k != key}
-
     if plan_thoughts:
-        steps = [PlanThought, ListOfFactsThought]  # , DraftPlansThought, SourcesThought
+        steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
     else:
-        steps = [ReadingResultThought, NewFactThought, ReasoningThought] + actions
         if subtasks:
-            steps += [StartSubtask, FinishSubtask]
+            steps = Union[
+                ReadingResultThought,
+                NewFactThought,
+                ReasoningThought,
+                SearchAction,
+                ReadDocumentAction,
+                NextPageAction,
+                ConvertFactAction,
+                UseCalculatorAction,
+                GaiaAnswer,
+                StartSubtask,
+                FinishSubtask,
+            ]
+        else:
+            steps = Union[
+                ReadingResultThought,
+                NewFactThought,
+                ReasoningThought,
+                SearchAction,
+                ReadDocumentAction,
+                NextPageAction,
+                ConvertFactAction,
+                UseCalculatorAction,
+                GaiaAnswer,
+            ]
+    steps_alias = Annotated[steps, Field(discriminator="kind")]
     if short_steps:
-        schemas: list[dict] = [dict(jsonref.replace_refs(s.model_json_schema(), proxies=False)) for s in steps]  # type: ignore
-        schema = [
-            {
-                "type": "object",
-                "description": s["description"],
-                "properties": {"kind": s["properties"]["kind"]["default"]}
-                | {
-                    k: purge_key(v, "title")
-                    for k, v in s["properties"].items()
-                    if k not in ["kind", "metadata", "facts", "role", "reason"]
-                },
-            }
-            for s in schemas
-        ]
+        schema = get_step_schemas_from_union_type(steps_alias)
     else:
-        schema = TypeAdapter(list[GaiaAgentStep]).json_schema()
-    return json.dumps(schema)
+        schema = json.dumps(TypeAdapter(list[steps_alias]).json_schema(), ensure_ascii=False)
+    return schema
