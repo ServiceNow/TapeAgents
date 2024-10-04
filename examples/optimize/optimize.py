@@ -366,8 +366,7 @@ def evaluate(cfg: DictConfig):
        
         
 def browse(): 
-    tape_loader = lambda path: load_tapes(DialogTape, path)    
-    browser = TapeBrowser(tape_loader, ".", PrettyRenderer())
+    browser = TapeBrowser(DialogTape, ".", PrettyRenderer())
     browser.launch()
     
     
