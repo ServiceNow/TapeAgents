@@ -8,7 +8,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
-from examples import data_science, tape_improver
+from examples.tape_improver import tape_improver
+from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
 from examples.delegate_stack import ExampleTape as ExampleTapeStack
 from examples.delegate_stack import Linguist, make_analyze_text_chain
@@ -128,7 +129,7 @@ def test_gaia_agent():
     llm = ReplayLLM(llm_calls=[LLMCall.model_validate(p) for p in results.prompts], model_name=results.model)
     env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
     env.browser.set_web_cache(results.web_cache)
-    agent = GaiaAgent(llms={"default": llm}, short_steps=True)
+    agent = GaiaAgent.create(llm, short_steps=True)
 
     tapes = [GaiaTape.model_validate(tape) for tape in results.tapes]
     logger.info(f"Validate {len(tapes)} tapes")

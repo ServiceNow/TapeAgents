@@ -178,20 +178,28 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
     sqlite_fpath = sqlite_fpath or sqlite_db_path()
     init_sqlite_if_not_exists()
     conn = sqlite3.connect(sqlite_fpath)
+
+    def dict_factory(cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+
+    conn.row_factory = dict_factory
     cursor = conn.cursor()
     cursor.execute("SELECT timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached FROM LLMCalls")
     rows = cursor.fetchall()
     cursor.close()
     calls: list[LLMCall] = []
-    for timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached in rows:
+    for row in rows:
         calls.append(
             LLMCall(
-                timestamp=timestamp,
-                prompt=Prompt(**json.loads(prompt)),
-                output=LLMOutput(**json.loads(output)),
-                prompt_length_tokens=prompt_length_tokens,
-                output_length_tokens=output_length_tokens,
-                cached=cached,
+                timestamp=row["timestamp"],
+                prompt=Prompt(**json.loads(row["prompt"])),
+                output=LLMOutput(**json.loads(row["output"])),
+                prompt_length_tokens=row["prompt_length_tokens"],
+                output_length_tokens=row["output_length_tokens"],
+                cached=row["cached"],
             )
         )
     return calls
