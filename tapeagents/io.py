@@ -49,13 +49,23 @@ def save_tapes(filename: Path, mode: str = "w") -> Generator[TapeSaver, None, No
 def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension: str = ".yaml") -> list[Tape]:
     if not os.path.exists(path):
         raise FileNotFoundError(f"File not found: {path}")
+    if file_extension not in (".yaml", ".json"):
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+    if os.path.isdir(path):
+        logger.info(f"Loading tapes from dir {path}")
+        paths = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(file_extension)]
+    else:
+        paths = [path]
     loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
-    with open(path) as f:
-        if file_extension == ".yaml":
-            data = yaml.safe_load_all(f)
-        elif file_extension == ".json":
-            data = json.load(f)
-        else:
-            raise ValueError(f"Unsupported file extension {file_extension}")
-    tapes = [loader(tape) for tape in data] if isinstance(data, list) else loader(data)
+    tapes = []
+    for path in paths:
+        with open(path) as f:
+            if file_extension == ".yaml":
+                data = yaml.safe_load_all(f)
+            elif file_extension == ".json":
+                data = json.load(f)
+        if not isinstance(data, list):
+            data = [data]
+        for tape in data:
+            tapes.append(loader(tape))
     return tapes
