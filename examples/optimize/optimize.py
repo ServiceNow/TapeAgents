@@ -4,6 +4,8 @@ import os
 import hydra
 from omegaconf import DictConfig
 
+from tapeagents.optimize import add_demos
+
 from .func_templates import make_answer_template, make_query_template
 from .load_demos import load_agentic_rag_demos, load_rag_demos
 from tapeagents.io import save_tapes
@@ -138,27 +140,16 @@ def optimize_agent(agent: Agent, cfg: DictConfig):
     # Step 2: filter out good tapes
     good_tapes = [t for example, t in zip(dataset.train, final_tapes) if is_good_tape(example, t)]
     logger.info(f"{len(good_tapes)} good tapes out of {len(final_tapes)}")
-    # Step 3: extracting support examples from the good tapes
-    demos = {template_name: [] for template_name in agent.templates}
-    for tape in good_tapes:
-        for node, index in agent.parse(tape):
-            if isinstance(node, LLMFunctionNode):
-                demos[node.template_name].append(node.extract_demo(agent, tape, index))
-    rng = random.Random(cfg.seed)
-    # Step 4: add random good support examples to the agent
-    agent_copy = agent.model_copy(deep=True)
-    for template_name, template in agent_copy.templates.items():
-        k = min(cfg.optimize.max_n_demos, len(demos[template_name]))
-        template.demos = rng.sample(demos[template_name], k)
-    # Finally, save some tapes
+    # Save all tapes for observability
     with save_tapes("good_training_tapes.yaml") as saver:
         for tape in good_tapes:
             saver.save(tape)
     with save_tapes("bad_training_tapes.yaml") as saver:
         for tape in final_tapes:
             if tape not in good_tapes:
-                saver.save(tape)                   
-    return agent_copy
+                saver.save(tape)      
+    better_agent = add_demos(agent, good_tapes, cfg.optimize.max_n_demos, seed=cfg.seed)             
+    return better_agent
 
 
 def make_agent(cfg: DictConfig) -> Agent:

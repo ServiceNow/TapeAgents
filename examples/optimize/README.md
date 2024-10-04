@@ -11,7 +11,15 @@ See our [agent optimization](examples/optimize) example we show how one can buil
 
 # How to run the example
 
-## Explore the setup
+## Setup
+
+First, install extra depedencies:
+
+```bash
+pip install -r examples/optimize/requirements.txt
+```
+
+## Explore the setting
 
 Go better understand the setup, you can launch a pre-optimized agent in TapeAgents Studio and run it by pressing `Run Loop` button.
 
