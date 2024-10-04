@@ -168,6 +168,12 @@ def replay_tape(
         for event in agent.run(new_tape):
             if event.step:
                 step_dict = event.step.llm_dict()
+                if i >= len(tape.steps):
+                    logger.error(f"Extra step {i} from agent, kind: {step_dict.get('kind')}")
+                    match = False
+                    if stop_on_mismatch:
+                        return False
+                    break
                 old_step_dict = tape.steps[i].llm_dict()
                 i += 1
                 kind = step_dict.get("kind")
