@@ -1,0 +1,18 @@
+target: run
+exp_name: make_test
+seed: 1
+agent: agentic_rag
+llm_cache: true
+load_demos: false
+optimize:
+  do: false
+  n_paragraphs: 2
+  max_n_demos: 4
+rag:
+  partial_demos: true
+  demos: true
+agentic_rag:
+  max_hops: 2
+dataset:
+  dev_size: 50
+question: How many storeys are in the castle that David Gregory inherited?

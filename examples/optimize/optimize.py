@@ -235,7 +235,11 @@ def run(cfg: DictConfig):
     agent = make_agent(cfg)
     env = make_env()
     start_tape = DialogTape(steps=[UserStep(content=cfg.question)])    
-    print(main_loop(agent, start_tape, env).get_final_tape().model_dump_json(indent=2))
+    final_tape = main_loop(agent, start_tape, env).get_final_tape()
+    final_tape_str = final_tape.model_dump_json(indent=2)
+    with open("tape.json", "w") as f:
+        print(final_tape_str, file=f)
+    print(final_tape_str)
     
     
 def studio(cfg: DictConfig):
