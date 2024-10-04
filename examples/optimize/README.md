@@ -66,5 +66,8 @@ Note:
 Change `target` to `browse` to launch the TapeBrowser app.
 
 ```bash
-$ python examples/optimize/optimize.py agent=agentic_rag optimize.do=true target=evaluate
+$ python examples/optimize/optimize.py agent=agentic_rag optimize.do=true target=browse
 ```
+
+You can now explore the agent tapes on the dev set, as well as the "good" and the "bad" training tapes. The good tapes that are the ones we used to mine demonstrations for the function templates. The bad tapes are the ones that we filtered out by various criteria (see `result` field in metadata in the tape browser for the reason for filtering). 
+
