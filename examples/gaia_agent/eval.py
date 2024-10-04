@@ -153,11 +153,11 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
     return best_tape
 
 
-def task_to_question_step(task, env):
+def task_to_question_step(task: dict, env: GaiaEnvironment):
     question = GaiaQuestion.from_task(task)
     if question.filename:
         ext = question.filename.split(".")[-1]
-        document_text = env.tools.get_whole_document(question.filename)
+        document_text = env.browser.get_whole_document(question.filename)
         if len(document_text) < 2000:
             question.content += f"\n{ext.upper()} document content:\n{document_text}"
         else:
