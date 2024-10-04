@@ -71,9 +71,9 @@ def main(cfg: DictConfig) -> None:
             results.prompts = llm._log
             results.web_cache |= env.browser._log
             save_results(results, outfile)
-            break
-
-        break  # remove this line to solve all tasks
+            logger.info(f"Saved {len(results.tapes)} tapes to {outfile}")
+        logger.info(f"Level {i} done, {len(results.tapes)} tapes saved")
+    logger.info("Done")
 
 
 if __name__ == "__main__":
