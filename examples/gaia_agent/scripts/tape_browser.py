@@ -79,7 +79,7 @@ class GaiaTapeBrowser(TapeBrowser):
                         page_errors += 1
                 if step.get("kind") == "agent_response_parsing_failure_action":
                     parsing_errors += 1
-        return f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}<br>Parsing errors: {parsing_errors}<br>Page loading errors: {page_errors}"
+        return f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}<br>Step parsing errors: {parsing_errors}<br>Page loading errors: {page_errors}"
 
     def get_tape_name(self, i: int, tape: dict) -> str:
         mark = ("+" if tape_correct(tape) else "") + ("[f]" if tape["metadata"]["task"]["file_name"] else "")
