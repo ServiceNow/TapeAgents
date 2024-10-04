@@ -6,7 +6,7 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 import jsonref
 from pydantic import BaseModel, Field, TypeAdapter
 
-from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep, Observation, Thought
+from tapeagents.core import Action, AgentResponseParsingFailureAction, Observation, StopStep, Thought
 
 
 ################### Base Step Classes ###################
@@ -289,7 +289,7 @@ class PreviousFactsObservation(GaiaObservation):
     facts: dict[str, Any]
 
 
-class GaiaAnswer(GaiaAction, FinalStep):
+class GaiaAnswer(GaiaAction, StopStep):
     """
     Action that indicates that the agent has finished the plan and contains answer or the decsription of failure.
     The answer should use already determined facts without any additional conversion!

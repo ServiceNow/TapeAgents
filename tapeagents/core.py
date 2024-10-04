@@ -85,7 +85,15 @@ class AgentResponseParsingFailureAction(Action):
     error: str
 
 
-class FinalStep(Action):
+class StopStep(Action):
+    """
+    Action that stops runtime loop
+    """
+
+    pass
+
+
+class FinalStep(StopStep):
     kind: Literal["final_step"] = "final_step"
     reason: str = ""
 

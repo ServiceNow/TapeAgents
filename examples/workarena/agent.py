@@ -31,6 +31,9 @@ class WorkArenaBaselineNode(GuidanceNode):
     - long_description
     """
 
+    guidance: str = ""
+    agent_step_cls: Any = WorkArenaAgentStep
+
     def make_prompt(self, agent: Any, tape: WorkArenaTape) -> Prompt:
         assert isinstance(tape.steps[1], WorkArenaTask)
         goal = PromptRegistry.goal_instructions.format(goal=tape.steps[1].task)
@@ -47,11 +50,12 @@ class WorkArenaBaselineNode(GuidanceNode):
 {PromptRegistry.abstract_example}
 {PromptRegistry.concrete_example}
         """.strip()
-        messages = [
-            SystemStep(content=PromptRegistry.baseline_system_prompt).model_dump(),
-            UserStep(content=main_prompt).model_dump(),
-        ]
-        return Prompt(messages=messages)
+        return Prompt(
+            messages=[
+                {"role": "system", "content": PromptRegistry.baseline_system_prompt},
+                {"role": "user", "content": main_prompt},
+            ]
+        )
 
     def history_prompt(self, tape: WorkArenaTape) -> str:
         prompts = []

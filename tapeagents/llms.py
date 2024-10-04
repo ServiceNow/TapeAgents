@@ -448,7 +448,7 @@ class ReplayLLM(LLM):
     @classmethod
     def from_llm(cls, llm: LLM, run_dir: str, prompts_file: str = DB_DEFAULT_FILENAME):
         sqlite_fpath = os.path.join(run_dir, prompts_file)
-        assert os.path.exists(sqlite_fpath)
+        assert os.path.exists(sqlite_fpath), f"Sqlite not found: {sqlite_fpath}"
         llm_calls = retrieve_all_llm_calls(sqlite_fpath)
         replay_llm = ReplayLLM(
             llm_calls=llm_calls,
@@ -466,10 +466,9 @@ class ReplayLLM(LLM):
             prompt_key = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
             output = llm_call.output.content or ""
             if prompt_key in self.outputs and output != self.outputs[prompt_key]:
-                logger.warning(f"Output duplicate!\n{diff_strings(output, self.outputs[prompt_key])}")
+                logger.warning(f"Output duplicate, using last value!\nOLD:{self.outputs[prompt_key]}\nNEW:{output}")
                 dups += 1
-            else:
-                self.outputs[prompt_key] = output
+            self.outputs[prompt_key] = output
         logger.info(f"Loaded {len(self.outputs)} outputs, {dups} duplicates")
         return super().model_post_init(__context)
 

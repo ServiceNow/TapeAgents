@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from termcolor import colored
 
 from .agent import Agent
-from .core import AgentEvent, FinalStep, Observation, Step, Tape, TapeType
+from .core import AgentEvent, Observation, Step, StopStep, Tape, TapeType
 from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
 from .rendering import step_view
 from .utils import FatalError, diff_dicts
@@ -105,7 +105,7 @@ def main_loop(
             yield MainLoopEvent(agent_tape=agent_tape)
 
             # --- RUN THE ENVIRONMENT ---
-            if isinstance(agent_tape.steps[-1], FinalStep):
+            if isinstance(agent_tape.steps[-1], StopStep):
                 logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
                 yield MainLoopEvent(status=MainLoopStatus.FINISHED)
                 return
@@ -191,7 +191,7 @@ def replay_tape(
                 break
         assert event and event.final_tape
         agent_tape = event.final_tape
-        if isinstance(agent_tape.steps[-1], FinalStep):
+        if isinstance(agent_tape.steps[-1], StopStep):
             logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
             break
 
@@ -223,7 +223,7 @@ def replay_tape(
                 else:
                     logger.info(f"Observation {i} ok")
 
-                if isinstance(observation, FinalStep):
+                if isinstance(observation, StopStep):
                     logger.info(f"Environment emitted final step {observation}")
                     break
     return match
