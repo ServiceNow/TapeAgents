@@ -356,10 +356,12 @@ class SimpleTextBrowser:
             print(colored(f"UnsupportedFormatException: {e}", "red"))
             self.page_title = "Unsupported Format"
             self._set_page_content(f"Unsupported Format File: {e}")
+            self._page_error = 1
         except FileConversionException as e:
             print(colored(f"FileConversionException: {e}", "red"))
             self.page_title = "Failed to read file"
             self._set_page_content(f"Error: {e}")
+            self._page_error = 2
         except FileNotFoundError:
             self.page_title = "Error 404"
             self._set_page_content(f"## Error 404\n\nFile not found: {download_path}")
@@ -367,6 +369,7 @@ class SimpleTextBrowser:
         except requests.exceptions.RequestException as e:
             if response is None:
                 self._set_page_content(f"## Error {e}")
+                self._page_error = 3
             else:
                 self.page_title = f"Error {response.status_code}"
                 self._page_error = response.status_code
@@ -389,7 +392,9 @@ class SimpleTextBrowser:
 
     def page_with_title(self) -> str:
         if self._page_error:
-            header = f"Failed to load page, HTTP Error {self._page_error}\n=======================\n"
+            header = (
+                f"Failed to load page, Error {self._page_error}\nTitle: {self.page_title}\n=======================\n"
+            )
         else:
             header = f"Title: {self.page_title}\n=======================\n" if self.page_title else ""
         return header + self.viewport.strip()

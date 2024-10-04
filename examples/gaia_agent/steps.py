@@ -268,6 +268,7 @@ class PageObservation(GaiaObservation):
     text: str
     current_page: int
     total_pages: int
+    error: int | None = None
 
 
 class CalculationResultObservation(GaiaObservation):

@@ -65,6 +65,7 @@ class GaiaTapeBrowser(TapeBrowser):
     def get_file_label(self, filename: str, tapes: list) -> str:
         acc, n_solved = self.results.accuracy
         parsing_errors = 0
+        page_errors = 0
         tokens_num = 0
         for tape in self.results.tapes:
             for step in tape["steps"]:
@@ -73,9 +74,12 @@ class GaiaTapeBrowser(TapeBrowser):
                     tokens_num += (
                         self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
                     )
+                if step.get("kind") == "page_observation":
+                    if step.get("error"):
+                        page_errors += 1
                 if step.get("kind") == "agent_response_parsing_failure_action":
                     parsing_errors += 1
-        return f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>Parsing errors: {parsing_errors}<br>LLM tokens spent: {tokens_num}"
+        return f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}<br>Parsing errors: {parsing_errors}<br>Page loading errors: {page_errors}"
 
     def get_tape_name(self, i: int, tape: dict) -> str:
         mark = ("+" if tape_correct(tape) else "") + ("[f]" if tape["metadata"]["task"]["file_name"] else "")

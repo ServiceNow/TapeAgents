@@ -424,8 +424,6 @@ def get_step_title(step: Step | dict) -> str:
 
 def get_step_text(step: Step | dict, trim: bool = False, exclude_fields={"kind", "role", "prompt_id"}) -> str:
     step_dict = step if isinstance(step, dict) else step.model_dump()
-    if "error" in step_dict:
-        return step_dict["error"]
     clean_dict = {
         k: (v[:300] if trim and isinstance(v, str) else v)
         for k, v in step_dict.items()

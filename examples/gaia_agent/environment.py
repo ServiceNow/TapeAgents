@@ -46,12 +46,22 @@ class GaiaEnvironment(Environment):
                     case ReadDocumentAction():
                         text, current_page, total_pages = self.browser.get_page(action.url)
                         tape = tape.append(
-                            PageObservation(text=text, current_page=current_page, total_pages=total_pages)
+                            PageObservation(
+                                text=text,
+                                current_page=current_page,
+                                total_pages=total_pages,
+                                error=self.browser._page_error if self.browser._page_error else None,
+                            )
                         )
                     case NextPageAction():
                         text, current_page, total_pages = self.browser.get_next_page()
                         tape = tape.append(
-                            PageObservation(text=text, current_page=current_page, total_pages=total_pages)
+                            PageObservation(
+                                text=text,
+                                current_page=current_page,
+                                total_pages=total_pages,
+                                error=self.browser._page_error if self.browser._page_error else None,
+                            )
                         )
                     case ConvertFactAction():
                         result = self.calculate(
