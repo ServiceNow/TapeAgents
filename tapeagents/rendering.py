@@ -162,7 +162,10 @@ class BasicRenderer:
     def render_llm_call(self, llm_call: LLMCall | None) -> str:
         if llm_call is None:
             return ""
-        prompt_messages = [f"tool_schemas: {json.dumps(llm_call.prompt.tools, indent=2)}"]
+        if llm_call.prompt.tools:
+            prompt_messages = [f"tool_schemas: {json.dumps(llm_call.prompt.tools, indent=2)}"]
+        else:
+            prompt_messages = []
         for m in llm_call.prompt.messages:
             role = f"{m['role']} ({m['name']})" if "name" in m else m["role"]
             prompt_messages.append(f"{role}: {m['content'] if 'content' in m else m['tool_calls']}")
@@ -173,16 +176,16 @@ class BasicRenderer:
             else f"{len(prompt_text)} characters"
         )
         label = f"Prompt {prompt_length_str} {', cached' if llm_call.cached else ''}"
-        html = f"""<div class='basic-prompt-box' style='background-color:#ffffba; padding: 4px;'>
+        html = f"""<div class='basic-prompt-box' style='background-color:#ffffba; margin: 0 4px;'>
         <details>
-            <summary><b> {label} </b></summary>
+            <summary>{label}</summary>
             <pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{prompt_text.strip()}</pre>
         </details>
         </div>"""
         if llm_call.output:
-            html += f"""<div class='basic-prompt-box' style='background-color:#ffffba; margin-bottom:1em;'>
+            html += f"""<div class='basic-prompt-box' style='background-color:#ffffba; margin: 0 4px;'>
                 <details>
-                    <summary><b>Completion {llm_call.output_length_tokens} tokens</b></summary>
+                    <summary>Completion {llm_call.output_length_tokens} tokens</summary>
                     <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word;'>{llm_call.output}</pre>
                 </details>
                 </div>"""
@@ -295,77 +298,20 @@ class PrettyRenderer(BasicRenderer):
         )
 
 
-class TapeBrowserRenderer(BasicRenderer):
+class GuidedAgentRender(BasicRenderer):
     @property
     def style(self) -> str:
         return (
             "<style>"
-            ".basic-renderer-box { margin: 4px; padding: 2px; background: lavender; }"
-            ".episode-row { display: flex; align-items: end; }"
-            ".agent-column { width: 50%; }"
-            ".user-column { width: 25%; }"
-            ".annotator-column { width: 25%; }"
-            ".inner-tape-container { display: flex }"
-            ".inner-tape-indent { width: 10%; }"
-            ".inner-tape { width: 90%; }"
-            "</style>"
-        )
-
-    def render_context(self, tape: Tape):
-        if isinstance(tape.context, Tape):
-            return (
-                "<div class=inner-tape-container>"
-                "<div class=inner-tape-indent> </div>"
-                f"<div class=inner-tape> {self.render_tape(tape.context)} </div>"
-                "</div>"
-            )
-        else:
-            context_str = tape.context.model_dump() if isinstance(tape.context, BaseModel) else tape.context
-            return self.render_as_box(context_str)
-
-    def render_step(self, step: Step, index: int, folded: bool = True, **kwargs) -> str:
-        step_dict = step.model_dump()
-        title = get_step_title(step)
-        text = get_step_text(step)
-        role = step_dict.get("role", "system").capitalize()
-        fold = False
-        if role == "User":
-            color = "#baffc9"
-        elif role == "Assistant":
-            color = "#ffffdb"
-        else:
-            fold = folded and (text.count("\n") > 5 or len(text) > 400)
-            color = "#ffffba"
-
-        text = self.wrap_urls_in_anchor_tag(text)
-        if fold:
-            head = f"<summary><b>{role}: {title}</b></summary>"
-            body = f"<details><pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{text}</pre></details>"
-        else:
-            head = f"<h4 style='margin: 2pt 2pt 2pt 0 !important;font-size: 1em;'>{role}: {title}</h4>"
-            body = f"<pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{text}</pre>"
-        return f"<div class='basic-renderer-box' style='background-color:{color};'>{head}{body}</div>"
-
-    def wrap_urls_in_anchor_tag(self, text: str) -> str:
-        url_pattern = re.compile(r"(https?://\S+)")
-
-        def replace_url(match):
-            url = match.group(0)
-            return f'<a target="_blank" href="{url}">{url}</a>'
-
-        return url_pattern.sub(replace_url, text)
-
-
-class GuidedAgentRender(TapeBrowserRenderer):
-    @property
-    def style(self) -> str:
-        return (
-            "<style>"
-            ".basic-renderer-box { margin: 4px; padding: 10px; background: lavender; } "
+            ".basic-renderer-box { margin: 0 4px 4px 4px; padding: 10px; background: lavender; } "
+            ".basic-prompt-box { margin: 4px; padding: 0 10px; background: lavender;}"
             ".episode-row { display: flex; align-items: end; } "
             ".agent-column { width: 70%; } "
             ".user-column { width: 15%; } "
             ".annotator-column { width: 15%; } "
+            ".inner-tape-container { display: flex }"
+            ".inner-tape-indent { width: 10%; }"
+            ".inner-tape { width: 90%; }"
             ".prompt { margin-top: 1em; padding: 0 10px 0 10px;} "
             "table.diff { border: none !important; padding: 0 !important; } "
             "tr.diff { border: none !important; padding: 0 !important; } "
@@ -374,7 +320,9 @@ class GuidedAgentRender(TapeBrowserRenderer):
             "</style>"
         )
 
-    def render_step(self, step: Step | dict, index: int, folded: bool = True, **kwargs) -> str:
+    def render_step(
+        self, step: Step | dict, index: int, folded: bool = True, min_fold_lines: int = 20, **kwargs
+    ) -> str:
         step_dict = step.model_dump() if isinstance(step, Step) else step
         if not step_dict:
             return ""
@@ -414,9 +362,9 @@ class GuidedAgentRender(TapeBrowserRenderer):
             color = LIGHT_YELLOW
 
         # fold when too long or too many lines
-        fold = folded and (text.count("\n") > 10 or len(text) > 1000)
+        max_len = min_fold_lines * 100
+        fold = folded and (text.count("\n") > min_fold_lines or len(text) > max_len)
         if not fold:
-            max_len = 2000
             if len(text) > max_len + 100:
                 text = text[:max_len] + "\n" + ("=" * 100) + f"\n ... and {len(text[max_len:])} more characters"
         text = self.wrap_urls_in_anchor_tag(text)
@@ -431,6 +379,27 @@ class GuidedAgentRender(TapeBrowserRenderer):
                 <pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{text}</pre>
             </div>"""
         return html
+
+    def render_context(self, tape: Tape):
+        if isinstance(tape.context, Tape):
+            return (
+                "<div class=inner-tape-container>"
+                "<div class=inner-tape-indent> </div>"
+                f"<div class=inner-tape> {self.render_tape(tape.context)} </div>"
+                "</div>"
+            )
+        else:
+            context_str = tape.context.model_dump() if isinstance(tape.context, BaseModel) else tape.context
+            return self.render_as_box(context_str)
+
+    def wrap_urls_in_anchor_tag(self, text: str) -> str:
+        url_pattern = re.compile(r"(https?://\S+)")
+
+        def replace_url(match):
+            url = match.group(0)
+            return f'<a target="_blank" href="{url}">{url}</a>'
+
+        return url_pattern.sub(replace_url, text)
 
 
 def step_view(step: Step, trim: bool = False) -> str:
