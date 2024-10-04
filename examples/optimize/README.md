@@ -34,7 +34,7 @@ That is what we will be learning below.
 Let's benchmark a basic RAG agent. In the basic RAG the user's question is used as the query.
 
 ```bash
-$ python examples/optimize/optimize.py agent=rag target=evaluate 
+$ python -m examples.optimize.optimize.py agent=rag target=evaluate 
 Retrieval accuracy: 0.26
 Answer accuracy: 0.54
 ```
@@ -42,7 +42,7 @@ Answer accuracy: 0.54
 The retrieval accuracy is not that high. Let's try 2-hop Agentic RAG. In our Agentic RAG example the agent makes two retrieval queries, and the second query is based on the paragraphs that were trieved for the first one.
 
 ```bash
-$ python examples/optimize/optimize.py agent=agentic_rag target=evaluate 
+$ python -m examples.optimize.optimize.py agent=agentic_rag target=evaluate 
 Retrieval accuracy: 0.50
 Answer accuracy: 0.62
 ```
@@ -50,7 +50,7 @@ Answer accuracy: 0.62
 The retrieval accuracy is higher, but we can do better. Let's optimize the agent's prompts using weak supervision.
 
 ```bash
-$ python examples/optimize/optimize.py agent=agentic_rag optimize.do=true target=evaluate
+$ python -m examples.optimize.optimize.py agent=agentic_rag optimize.do=true target=evaluate
 Retrieval accuracy: 0.56
 Answer accuracy: 0.52
 ```

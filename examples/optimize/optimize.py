@@ -4,8 +4,9 @@ import os
 import hydra
 from omegaconf import DictConfig
 
-from tapeagents.io import load_tapes, save_tapes
-from tapeagents.observe import retrieve_all_llm_calls, retrieve_tape_llm_calls
+from .func_templates import make_answer_template, make_query_template
+from .load_demos import load_agentic_rag_demos, load_rag_demos
+from tapeagents.io import save_tapes
 from tapeagents.rendering import PrettyRenderer
 from tapeagents.studio import Studio
 from tapeagents.tape_browser import TapeBrowser
@@ -20,7 +21,6 @@ import json
 import random
 import pathlib
 import dspy
-import dsp.utils
 import dspy.evaluate
 from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
@@ -30,109 +30,13 @@ from tapeagents.agent import Agent, Node
 from tapeagents.core import Tape
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, FunctionCall, ToolCall, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llm_function import InputStep, KindRef, LLMFunctionNode, LLMFunctionTemplate, NodeRef, OutputStep, RationaleStep, ToolCallOutput
+from tapeagents.llm_function import KindRef, LLMFunctionNode, NodeRef
 from tapeagents.llms import LLMStream, LiteLLM
 from tapeagents.runtime import main_loop
 from tapeagents.batch import batch_main_loop
 
 
 res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
-
-
-def render_contexts(contexts: list[str]) -> str:
-    if not contexts:
-        return "N/A"
-    return "\n".join(f"[{i + 1}] «{t}»" for i, t in enumerate(contexts))
-
-
-def load_rag_demos() -> tuple[list, list]:
-    with open(res_dir / "llm_function_rag_demos.json") as f:
-        demos_json = json.load(f)
-    partial_demos = []
-    demos = [] 
-    for demo in demos_json:
-        if demo.get("augmented"):
-            demo = {
-                "question": UserStep(content=demo["question"]),
-                "context": ToolResult(content=demo["context"], tool_call_id=""),
-                "rationale": AssistantThought(content=demo["rationale"]),
-                "answer": AssistantStep(content=demo["answer"]),
-            }            
-            demos.append(demo)
-        else:
-            demo = {
-                "question": UserStep(content=demo["question"]),
-                "answer": AssistantStep(content=demo["answer"]),
-            }
-            partial_demos.append(demo)
-    return partial_demos, demos
-
-
-def load_agentic_rag_demos() -> dict[str, tuple[list, list]]:
-    """Loads full demos only"""
-    with open(res_dir / "agentic_rag_demos.json") as f:
-        demos_json = json.load(f)
-    result = {}
-    for predictor, predictor_demos in demos_json.items():
-        predictor_demos = [d for d in predictor_demos if d.get("augmented")]
-        demos = [] 
-        if "query" in predictor:
-            for demo in predictor_demos:
-                tc = ToolCall(function=FunctionCall(name='retrieve', arguments={'query': demo["query"]}))
-                demo = {
-                    "question": UserStep(content=demo["question"]),
-                    "context": ToolResult(content=demo["context"]),
-                    "rationale": AssistantThought(content=demo["rationale"]),
-                    "query": ToolCalls(tool_calls=[tc]),
-                }            
-                demos.append(demo)
-            result[f"query{predictor[-2]}"] = ([], demos)
-        elif predictor == "generate_answer":
-            for demo in predictor_demos:
-                demo = {
-                    "question": UserStep(content=demo["question"]),
-                    "context": ToolResult(content=demo["context"], tool_call_id=""),
-                    "rationale": AssistantThought(content=demo["rationale"]),
-                    "answer": AssistantStep(content=demo["answer"]),
-                }            
-                demos.append(demo)
-            result["answer"] = ([], demos)
-        else: 
-            raise ValueError(f"Unknown predictor {predictor}")
-    return result    
-
-
-class ContextInput(InputStep):
-    def render(self, step: ToolResult):
-        return render_contexts(step.content)
-
-
-def make_answer_template() -> LLMFunctionTemplate:
-    return LLMFunctionTemplate(
-        desc="Answer questions with short factoid answers.",
-        inputs=[
-            ContextInput(name="context", desc="may contain relevant facts", separator="\n"),
-            InputStep(name="question"),
-        ],
-        outputs=[
-            RationaleStep.for_output("answer"),
-            OutputStep(name="answer", desc="often between 1 and 5 words")
-        ]
-    )        
-    
-    
-def make_query_template() -> LLMFunctionTemplate:
-    return LLMFunctionTemplate(
-        desc="Write a simple search query that will help answer a complex question.",
-        inputs=[
-            ContextInput(name="context", desc="may contain relevant facts", separator="\n"),
-            InputStep(name="question"),
-        ],
-        outputs=[
-            RationaleStep.for_output("query"),
-            ToolCallOutput(name="query", tool_name="retrieve", arg_name="query")
-        ]
-    )       
 
 
 def make_env(n_paragraphs: int = 3) -> ToolEnvironment:

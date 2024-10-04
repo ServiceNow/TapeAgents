@@ -4,7 +4,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
-from examples.optimize.optimize import load_agentic_rag_demos, load_rag_demos, make_answer_template, make_query_template, render_contexts
+from examples.optimize.load_demos import load_agentic_rag_demos, load_rag_demos
+from examples.optimize.func_templates import make_answer_template, make_query_template
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, ToolResult, UserStep
 from tapeagents.llm_function import InputStep, LLMFunctionTemplate, OutputStep
 from tapeagents.utils import diff_strings
