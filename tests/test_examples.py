@@ -6,9 +6,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent.parent.resolve()))
+from tapeagents.io import load_tapes
 
-from examples.tape_improver import tape_improver
+sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
+
 from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
 from examples.delegate_stack import ExampleTape as ExampleTapeStack
@@ -18,6 +19,9 @@ from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.eval import load_results
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
+from examples.tape_improver import tape_improver
+from examples.workarena.agent import WorkArenaBaseline
+from examples.workarena.steps import WorkArenaTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
@@ -139,6 +143,21 @@ def test_gaia_agent():
     assert fails == 2, f"{fails} failed tapes, expected 2"
 
 
+def test_workarena_baseline_agent():
+    # TODO add correct resources and uncomment
+    return
+    run_dir = str(res_path / "workarena" / "baseline")
+
+    llm = mock_llm(run_dir)
+    env = EmptyEnvironment()
+    agent = WorkArenaBaseline.create(llm)
+
+    tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
+    logger.info(f"Validate {len(tapes)} tapes")
+    fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+    assert fails == 0, f"{fails} failed tapes"
+
+
 def test_delegate():
     run_dir = str(res_path / "delegate")
     llm = mock_llm(run_dir)
@@ -188,3 +207,4 @@ if __name__ == "__main__":
     test_delegate_stack()
     test_data_science()
     test_tape_improver()
+    test_workarena_baseline_agent()
