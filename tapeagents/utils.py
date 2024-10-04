@@ -17,7 +17,7 @@ class FatalError(Exception):
     pass
 
 
-def _value_from_str(v: Any) -> Any:
+def json_value_from_str(v: Any) -> Any:
     if isinstance(v, str):
         try:
             v = json.loads(v)

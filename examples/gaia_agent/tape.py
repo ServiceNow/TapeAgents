@@ -4,7 +4,7 @@ from pydantic import Field
 
 from tapeagents.core import Tape, TapeMetadata
 from tapeagents.dialog_tape import DialogContext
-from tapeagents.utils import _value_from_str
+from tapeagents.utils import json_value_from_str
 
 from .steps import (
     CalculationResultObservation,
@@ -69,11 +69,11 @@ class GaiaTape(Tape[DialogContext, GaiaStep]):
             if isinstance(step, ListOfFactsThought):
                 for fact in step.given_facts:
                     if fact.value != "" and fact.value is not None:
-                        facts[fact.name] = _value_from_str(fact.value)
+                        facts[fact.name] = json_value_from_str(fact.value)
             elif isinstance(step, NewFactThought):
-                facts[step.fact_name] = _value_from_str(step.value)
+                facts[step.fact_name] = json_value_from_str(step.value)
             elif isinstance(step, CalculationResultObservation):
-                facts[step.name] = _value_from_str(step.result)
+                facts[step.name] = json_value_from_str(step.result)
             elif isinstance(step, CodeResultObservation):
-                facts[step.name] = _value_from_str(step.result)
+                facts[step.name] = json_value_from_str(step.result)
         return facts
