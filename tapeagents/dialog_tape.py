@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Callable, Literal, TypeAlias
 
 from langchain_core.utils.function_calling import convert_to_openai_tool
@@ -9,6 +11,7 @@ from .core import (
     AgentEvent,
     Call,
     FinalStep,
+    LLMOutput,
     Observation,
     Pass,
     Respond,
@@ -43,11 +46,13 @@ class FunctionCall(BaseModel):
     arguments: Any
 
 
+
 class ToolCall(BaseModel):
     function: FunctionCall
     id: str = ""
-
-
+    type: str = "function"
+    
+    
 class ToolCalls(Action):
     """Action that wraps one-or-many tool calls.
     
@@ -61,6 +66,19 @@ class ToolCalls(Action):
     @staticmethod
     def from_dicts(dicts: list):
         return ToolCalls.model_validate({"tool_calls": dicts})
+    
+    @staticmethod
+    def from_llm_output(llm_output: LLMOutput) -> ToolCalls:
+        if not llm_output.tool_calls:
+            raise ValueError()
+        tool_calls = [
+            ToolCall(
+                function=FunctionCall(name=tc.function.name, arguments=tc.function.arguments),
+                id=tc.id,
+            )
+            for tc in llm_output.tool_calls
+        ]
+        return ToolCalls(tool_calls=tool_calls)
         
 
 class ToolResult(Observation):
