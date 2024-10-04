@@ -32,7 +32,7 @@ from tapeagents.agent import Agent, Node
 from tapeagents.core import Tape
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogTape, FunctionCall, ToolCall, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llm_function import KindRef, LLMFunctionNode, NodeRef
+from tapeagents.llm_function import KindRef, LLMFunctionNode, NodeRef, by_node, by_step
 from tapeagents.llms import LLMStream, LiteLLM
 from tapeagents.runtime import main_loop
 from tapeagents.batch import batch_main_loop
@@ -69,7 +69,6 @@ def make_rag_agent(cfg: DictConfig) -> Agent:
             yield ToolCalls(tool_calls=[tc])
     agent = Agent.create(
         llms=make_llm(cfg),
-        # TODO: change templates signature everywhere
         templates={"rag": make_answer_template()},
         nodes=[
             RetrieveNode(),
@@ -100,19 +99,19 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
             
     nodes = []
     for i in range(cfg.agentic_rag.max_hops):
-        context_ref = KindRef.to(ToolResult) if i > 0 else AssistantThought(content=[])
+        context_ref = by_step(ToolResult) if i > 0 else AssistantThought(content=[])
         nodes.append(
             LLMFunctionNode(
                 name=f"query{i}",
                 template_name=f"query{i}",
-                input_refs=[context_ref, KindRef.to(UserStep)],
+                input_refs=[context_ref, by_step(UserStep)],
             )
         )
         nodes.append(Deduplicate(name=f"deduplicate{i}"))
     nodes.append(
         LLMFunctionNode(
             template_name="answer", 
-            input_refs=[NodeRef(name=f"deduplicate{i}"), KindRef.to(UserStep)]
+            input_refs=[by_node(nodes[-1]), by_step(UserStep)]
         )
     )
     

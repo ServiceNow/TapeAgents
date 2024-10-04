@@ -140,13 +140,17 @@ class KindRef(BaseModel):
     """Refer to the input by the step kind. Refers the last step with the given kind."""
     kind: str
     
-    @staticmethod
-    def to(step_class: Type) -> KindRef:
-        return KindRef(kind=step_class.get_kind())
+    
+def by_step(step_class: Type) -> KindRef:
+    return KindRef(kind=step_class.get_kind())
     
     
 class NodeRef(BaseModel):
     name: str
+    
+    
+def by_node(node: Node) -> NodeRef:
+    return NodeRef(name=node.name)    
     
         
 class LLMFunctionNode(Node):
