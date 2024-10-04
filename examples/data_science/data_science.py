@@ -9,7 +9,7 @@ from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import Action, FinalStep, Observation, Tape
 from tapeagents.environment import CodeExecutionEnvironment, Environment
 from tapeagents.llms import LLM, LiteLLM
-from tapeagents.rendering import BasicRenderer, PrettyRenderer
+from tapeagents.rendering import BasicRenderer, PrettyRenderer, CameraRenderer
 from tapeagents.runtime import main_loop
 from tapeagents.utils import run_in_tmp_dir_to_make_test_data
 from tapeagents.view import Call, Respond
@@ -53,6 +53,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
 
 def make_renderers() -> dict[str, BasicRenderer]:
     return {
+        "camera": CameraRenderer(),
         "full": PrettyRenderer(),
         "calls_and_responses": PrettyRenderer(filter_steps=(Call, Respond, FinalStep), render_llm_calls=False),
         "actions_and_observations": PrettyRenderer(filter_steps=(Action, Observation), render_llm_calls=False),
