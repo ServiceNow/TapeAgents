@@ -77,6 +77,11 @@ class WorkArenaBaseline(GuidedAgent):
 
 
 class WorkArenaNode(GuidanceNode):
+    system_prompt: str = PromptRegistry.system_prompt
+    steps_prompt: str = PromptRegistry.allowed_steps
+    start_step_cls: Any = PageObservation
+    agent_step_cls: Any = WorkArenaAgentStep
+
     def get_steps_description(self, tape: WorkArenaTape) -> str:
         return self.steps_prompt.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep))
 
@@ -110,9 +115,5 @@ class WorkArenaAgent(GuidedAgent):
                 WorkArenaNode(name="reflection_thought", guidance=PromptRegistry.act),
                 WorkArenaNode(name="default", guidance=PromptRegistry.think),
             ],
-            system_prompt=PromptRegistry.system_prompt,
-            steps_prompt=PromptRegistry.allowed_steps,
-            start_step_cls=PageObservation,
-            agent_step_cls=WorkArenaAgentStep,
             max_iterations=2,
         )

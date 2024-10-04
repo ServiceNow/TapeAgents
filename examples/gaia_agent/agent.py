@@ -34,6 +34,11 @@ class PlanningMode(str, Enum):
 
 
 class GaiaNode(GuidanceNode):
+    system_prompt: str = PromptRegistry.system_prompt
+    steps_prompt: str = PromptRegistry.allowed_steps
+    start_step_cls: Any = GaiaQuestion
+    agent_step_cls: Any = GaiaAgentStep
+
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
         """
         Allow different subset of steps based on the agent's configuration
@@ -82,60 +87,52 @@ class GaiaAgent(GuidedAgent):
         subtasks: bool = False,
         short_steps: bool = False,
     ):
-        guidance_prompts = cls.prepare_guidance(planning_mode, subtasks)
+        nodes = cls.prepare_guidance(planning_mode, subtasks)
         return super().create(
-            llm,
-            nodes=[GaiaNode(name=kind, guidance=guidance) for kind, guidance in guidance_prompts.items()],
-            system_prompt=PromptRegistry.system_prompt,
-            steps_prompt=PromptRegistry.allowed_steps,
-            start_step_cls=GaiaQuestion,
-            agent_step_cls=GaiaAgentStep,
-            max_iterations=2,
-            templates=TEMPLATES,
-            subtasks=subtasks,
-            short_steps=short_steps,
+            llm, nodes=nodes, max_iterations=2, templates=TEMPLATES, subtasks=subtasks, short_steps=short_steps
         )
 
     @classmethod
-    def prepare_guidance(cls, planning_mode: PlanningMode, subtasks: bool) -> dict[str, str]:
+    def prepare_guidance(cls, planning_mode: PlanningMode, subtasks: bool) -> list[GaiaNode]:
         """
-        Prepare guidance prompts based on the planning mode and subtasks flag
+        Prepare guidance nodes based on the planning mode and subtasks flag
         """
-        guidance_prompts = {}
+        guidance_nodes = []
         if planning_mode == PlanningMode.simple:
-            guidance_prompts = {
-                "question": PromptRegistry.plan,
-                "plan_thought": PromptRegistry.facts_survey,
-                "list_of_facts_thought": PromptRegistry.start_execution,
-            }
+            guidance_nodes = [
+                GaiaNode(name="question", guidance=PromptRegistry.plan),
+                GaiaNode(name="plan_thought", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="list_of_facts_thought", guidance=PromptRegistry.start_execution),
+            ]
         elif planning_mode == PlanningMode.facts_and_sources:
-            guidance_prompts = {
-                "question": PromptRegistry.plan,
-                "draft_plans_thought": PromptRegistry.facts_survey,
-                "list_of_facts_thought": PromptRegistry.sources_plan,
-                "sources_thought": PromptRegistry.start_execution,
-            }
+            guidance_nodes = [
+                GaiaNode(name="question", guidance=PromptRegistry.plan),
+                GaiaNode(name="draft_plans_thought", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="list_of_facts_thought", guidance=PromptRegistry.sources_plan),
+                GaiaNode(name="sources_thought", guidance=PromptRegistry.start_execution),
+            ]
         elif planning_mode == PlanningMode.multiplan:
-            guidance_prompts = {
-                "question": PromptRegistry.plan3,
-                "draft_plans_thought": PromptRegistry.facts_survey,
-                "list_of_facts_thought": PromptRegistry.sources_plan,
-                "sources_thought": PromptRegistry.start_execution,
-            }
+            guidance_nodes = [
+                GaiaNode(name="question", guidance=PromptRegistry.plan3),
+                GaiaNode(name="draft_plans_thought", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="list_of_facts_thought", guidance=PromptRegistry.sources_plan),
+                GaiaNode(name="sources_thought", guidance=PromptRegistry.start_execution),
+            ]
         elif planning_mode == PlanningMode.replan_after_sources:
-            guidance_prompts = {
-                "question": PromptRegistry.plan3,
-                "draft_plans_thought": PromptRegistry.facts_survey,
-                "list_of_facts_thought": PromptRegistry.sources_plan,
-                "sources_thought": PromptRegistry.better_plan,
-                "plan_thought": PromptRegistry.start_execution,
-            }
+            guidance_nodes = [
+                GaiaNode(name="question", guidance=PromptRegistry.plan),
+                GaiaNode(name="plan_thought", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="list_of_facts_thought", guidance=PromptRegistry.better_plan),
+                GaiaNode(name="sources_thought", guidance=PromptRegistry.start_execution),
+            ]
         else:
             raise ValueError(f"Unknown planning mode: {planning_mode}")
         if subtasks:
-            guidance_prompts["calculation_result_observation"] = PromptRegistry.is_subtask_finished
-        guidance_prompts["_default"] = ""
-        return guidance_prompts
+            guidance_nodes.append(
+                GaiaNode(name="calculation_result_observation", guidance=PromptRegistry.is_subtask_finished)
+            )
+        guidance_nodes.append(GaiaNode(name="_default", guidance=""))
+        return guidance_nodes
 
     def trim_tape(self, tape: GaiaTape) -> GaiaTape:
         """

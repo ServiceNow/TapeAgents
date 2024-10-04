@@ -142,27 +142,6 @@ class GuidedAgent(Agent, Generic[TapeType]):
                 return node
         return self.nodes[-1]  # default to the last node
 
-    @classmethod
-    def create(
-        cls,
-        llm: LLM,
-        nodes: list[GuidanceNode],
-        system_prompt: str,
-        steps_prompt: str,
-        start_step_cls: Any,
-        agent_step_cls: Any,
-        **kwargs,
-    ) -> Self:
-        prepared_nodes = []
-        for node in nodes:
-            # set common default values
-            node.system_prompt = node.system_prompt or system_prompt
-            node.steps_prompt = node.steps_prompt or steps_prompt
-            node.start_step_cls = node.start_step_cls or start_step_cls
-            node.agent_step_cls = node.agent_step_cls or agent_step_cls
-            prepared_nodes.append(node)
-        return super().create(llm, nodes=prepared_nodes, **kwargs)
-
     def delegate(self, tape: TapeType):
         return self
 
