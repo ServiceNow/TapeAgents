@@ -45,12 +45,6 @@ def render_contexts(contexts: list[str]) -> str:
     return "\n".join(f"[{i + 1}] «{t}»" for i, t in enumerate(contexts))
 
 
-def retrieve(query: str) -> list[str]:
-    """Retrieve Wikipedia abstracts"""
-    results = dspy.ColBERTv2(url='http://20.102.90.50:2017/wiki17_abstracts')(query)
-    return [r['text'] for r in results[:3]]
-
-
 def load_rag_demos() -> tuple[list, list]:
     with open(res_dir / "llm_function_rag_demos.json") as f:
         demos_json = json.load(f)
@@ -141,12 +135,24 @@ def make_query_template() -> LLMFunctionTemplate:
     )       
 
 
-def make_env() -> ToolEnvironment:
+def make_env(n_paragraphs: int = 3) -> ToolEnvironment:
+    def retrieve(query: str) -> list[str]:
+        """Retrieve Wikipedia abstracts"""
+        results = dspy.ColBERTv2(url='http://20.102.90.50:2017/wiki17_abstracts')(query)
+        return [r['text'] for r in results[:n_paragraphs]]
     return ToolEnvironment(tools=[retrieve])
 
 
 def make_llm(cfg: DictConfig) -> LiteLLM:
-    return LiteLLM(model_name="gpt-3.5-turbo", parameters={"temperature": 0.}, use_cache=cfg.llm_cache)
+    parameters = {
+        "temperature": 0.0,
+        "max_tokens": 150,
+        "top_p": 1,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "n": 1,
+    }
+    return LiteLLM(model_name="gpt-3.5-turbo", parameters=parameters, use_cache=cfg.llm_cache)
 
 
 def make_rag_agent(cfg: DictConfig) -> Agent:
@@ -222,7 +228,7 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
 def optimize_agent(agent: Agent, cfg: DictConfig):
     # Step 1: run agent on the training set
     dataset = get_dataset(cfg)
-    env = make_env()
+    env = make_env(cfg.optimize.n_paragraphs)
     start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.train]
     final_tapes = list(tqdm.tqdm(batch_main_loop(agent, start_tapes, env)))
     # Step 2: filter out good tapes
@@ -238,18 +244,23 @@ def optimize_agent(agent: Agent, cfg: DictConfig):
     # Step 4: add random good support examples to the agent
     agent_copy = agent.model_copy(deep=True)
     for template_name, template in agent_copy.templates.items():
-        k = min(cfg.optimize.n_demos, len(demos[template_name]))
+        k = min(cfg.optimize.max_n_demos, len(demos[template_name]))
         template.demos = rng.sample(demos[template_name], k)
-    return agent_copy, good_tapes
+    # Finally, save some tapes
+    with save_tapes("good_training_tapes.yaml") as saver:
+        for tape in good_tapes:
+            saver.save(tape)
+    with save_tapes("bad_training_tapes.yaml") as saver:
+        for tape in final_tapes:
+            if tape not in good_tapes:
+                saver.save(tape)                   
+    return agent_copy
 
 
 def make_agent(cfg: DictConfig) -> Agent:
     agent = make_rag_agent(cfg) if cfg.agent == "rag" else make_agentic_rag_agent(cfg)
     if cfg.optimize.do:
-        agent, good_tapes = optimize_agent(agent, cfg)
-        with save_tapes("good_tapes.yaml") as saver:
-            for tape in good_tapes:
-                saver.save(tape)
+        agent = optimize_agent(agent, cfg)
     return agent
 
 
@@ -258,17 +269,23 @@ def is_good_tape(example: dspy.primitives.Example, tape, trace=None):
         'answer': tape.steps[-1].content,
         'context': tape.steps[-3].content
     })
+    tape.metadata.result["groundruth_answer"] = example.answer
     if not dspy.evaluate.answer_exact_match(example, pred): 
+        tape.metadata.result["reason"] = "bad answer"
         return False
     if not dspy.evaluate.answer_passage_match(example, pred):
+        tape.metadata.result["reason"] = "answer not in context"
         return False
     queries = [example.question]
     queries += [step.tool_calls[0].function.arguments['query'] for step in tape if isinstance(step, ToolCalls)]
     if max([len(q) for q in queries]) > 100: 
+        tape.metadata.result["reason"] = "long query"
         return False
     if any(dspy.evaluate.answer_exact_match_str(queries[idx], queries[:idx], frac=0.8) 
             for idx in range(2, len(queries))): 
+        tape.metadata.result = "repeated query"
         return False
+    tape.metadata.result["reason"] = "good tape"
     return True
 
     
@@ -281,15 +298,18 @@ def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
         found_titles = [c.split(' | ')[0] for c in context_step.content]
         found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
         ok = gold_titles.issubset(found_titles)
+        tape.metadata.result["retrieval_accurate"] = ok
         n_correct += int(ok)
     return n_correct / len(examples)
     
     
 def compute_answer_exact_match(examples: list, tapes: list[Tape]):
     n_correct = 0
-    for example, final_tape in zip(examples, tapes):
-        if isinstance(answer := final_tape.steps[-1], AssistantStep):
+    for example, tape in zip(examples, tapes):
+        tape.metadata.result["groundruth_answer"] = example.answer
+        if isinstance(answer := tape.steps[-1], AssistantStep):
             ok = dspy.evaluate.answer_exact_match(example, dspy.primitives.Example({'answer': answer.content}))
+            tape.metadata.result["answer_accurate"] = ok
             n_correct += int(ok)
     return n_correct / len(examples)
     
@@ -316,10 +336,17 @@ def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset, save_tapes_p
     return final_tapes
 
     
+def run(cfg: DictConfig):
+    agent = make_agent(cfg)
+    env = make_env()
+    start_tape = DialogTape(steps=[UserStep(content=cfg.question)])    
+    print(main_loop(agent, start_tape, env).get_final_tape().model_dump_json(indent=2))
+    
+    
 def studio(cfg: DictConfig):
     agent = make_agent(cfg)
     env = make_env()
-    start_tape = DialogTape(steps=[UserStep(content="How many storeys are in the castle that David Gregory inherited?")])
+    start_tape = DialogTape(steps=[UserStep(content=cfg.question)])
     Studio(agent, start_tape, PrettyRenderer(), env).launch()    
     
     
@@ -327,7 +354,7 @@ def evaluate(cfg: DictConfig):
     agent = make_agent(cfg)
     env = make_env()
     dataset = get_dataset(cfg)
-    tapes_save_path = f"few_shot_rag_tapes_{cfg.dataset.dev_size}.yaml"
+    tapes_save_path = f"dev_tapes_{cfg.dataset.dev_size}.yaml"
     final_tapes = batch_run_and_save(agent, env, dataset, tapes_save_path)
     retrieval_accuracy = compute_retrieval_accuracy(dataset.dev, final_tapes)
     answer_accuracy = compute_answer_exact_match(dataset.dev, final_tapes)
@@ -344,10 +371,12 @@ def browse():
     browser.launch()
     
     
-@hydra.main(version_base=None, config_path="../conf/tapeagent", config_name="hotpot_qa")
+@hydra.main(version_base=None, config_path="../../conf/tapeagent", config_name="hotpot_qa")
 def main(cfg: DictConfig):
     print(f"Running in {os.getcwd()}")
     match cfg.target:
+        case "run":
+            run(cfg)
         case "studio":
             studio(cfg)
         case "evaluate":

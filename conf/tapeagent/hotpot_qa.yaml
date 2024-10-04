@@ -2,16 +2,17 @@ hydra:
   job:
     chdir: True
   run:
-    dir: outputs/${exp_name}_optimize=${optimize.do}_seed=${seed}
+    dir: outputs/${exp_name}_load=${load_demos}_optimize=${optimize.do}_seed=${seed}
 target: evaluate
 exp_name: ${agent}
-seed: 2
+seed: 1
 agent: ???
 llm_cache: true
 load_demos: false
 optimize:
   do: false
-  n_demos: 2
+  n_paragraphs: 2
+  max_n_demos: 4
 rag:
   partial_demos: true
   demos: true
@@ -19,3 +20,4 @@ agentic_rag:
   max_hops: 2
 dataset:
   dev_size: 50
+question: How many storeys are in the castle that David Gregory inherited?
