@@ -7,7 +7,7 @@ sys.path.append(str(Path(__file__).parent.parent.resolve()))
 from examples.optimize.load_demos import load_agentic_rag_demos, load_rag_demos
 from examples.optimize.func_templates import make_answer_template, make_query_template
 from tapeagents.dialog_tape import AssistantStep, AssistantThought, ToolResult, UserStep
-from tapeagents.llm_function import InputStep, LLMFunctionTemplate, OutputStep
+from tapeagents.llm_function import InputVar, LLMFunctionTemplate, AssistantOutput, RationaleOutput
 from tapeagents.utils import diff_strings
 
 
@@ -40,10 +40,10 @@ def test_dspy_qa_prompt():
     func = LLMFunctionTemplate(
         desc="Answer questions with short factoid answers.",
         inputs=[
-            InputStep(name="question")
+            InputVar(name="question")
         ],
         outputs=[
-            OutputStep(name="answer", desc="often between 1 and 5 words")
+            AssistantOutput(name="answer", desc="often between 1 and 5 words")
         ]
     )    
 
@@ -59,11 +59,11 @@ def test_dspy_cot_prompt():
     func = LLMFunctionTemplate(
         desc="Answer questions with short factoid answers.",
         inputs=[
-            InputStep(name="question")
+            InputVar(name="question")
         ],
         outputs=[
-            OutputStep(prefix="Reasoning: Let's think step by step in order to", desc="${produce the answer}. We ..."),
-            OutputStep(name="answer", desc="often between 1 and 5 words")
+            RationaleOutput.for_output("answer"),
+            AssistantOutput(name="answer", desc="often between 1 and 5 words")
         ]
     )
     

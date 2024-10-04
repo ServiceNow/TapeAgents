@@ -1,24 +1,18 @@
 from __future__ import annotations
 
-import json
 
-from pathlib import Path
-from typing import Any, Generator, Type, cast
-from typing_extensions import Self
-from pydantic import BaseModel, Field
+from typing import Any, Type
+from pydantic import BaseModel
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import PartialStep, Pass, Prompt, Step, Tape
-from tapeagents.dialog_tape import AssistantStep, AssistantThought, DialogStep, DialogTape, FunctionCall, ToolCall, ToolCalls, ToolResult, UserStep
-from tapeagents.environment import ToolEnvironment
+from tapeagents.core import Prompt, Step, Tape
+from tapeagents.dialog_tape import AssistantStep, AssistantThought, FunctionCall, ToolCall, ToolCalls
 from tapeagents.llm_function_template import LLM_FUNCTION_TEMPLATE
-from tapeagents.llms import LLMStream, LiteLLM
-from tapeagents.observe import retrieve_tape_llm_calls
-from tapeagents.runtime import main_loop
-from tapeagents.utils import diff_strings
+from tapeagents.llms import LLMStream
 
 
-class InputStep(BaseModel):
+class BaseVar(BaseModel):
+    """Base class for InputVar and OutputVar"""
     name: str
     prefix: str = ""
     desc: str = ""
@@ -34,32 +28,24 @@ class InputStep(BaseModel):
         return value.content # type: ignore
    
     
-class OutputStep(BaseModel):
-    name: str = ""
-    prefix: str = ""
-    desc: str = ""
-    separator: str = " "
+class InputVar(BaseVar):
+    """Describes an input to an LLM-based function."""
+    pass
     
-    def get_prefix(self):
-        return self.prefix or f"{self.name.title()}:"
     
-    def get_desc(self):
-        return self.desc or f"${{{self.name}}}"
-    
-    def render(self, value: Step):
-        return value.content # type: ignore
-    
+class AssistantOutput(BaseVar):
+    """Describes an output of an LLM-based function."""
     def parse(self, text: str) -> Step:
         return AssistantStep(content=text)
     
     
-class ThoughtOutput(OutputStep):
+class ThoughtOutput(AssistantOutput):
        
     def parse(self, text: str):
         return AssistantThought(content=text)
     
     
-class ToolCallOutput(OutputStep):
+class ToolCallOutput(AssistantOutput):
     tool_name: str
     arg_name: str
     
@@ -71,7 +57,7 @@ class ToolCallOutput(OutputStep):
         return value.tool_calls[0].function.arguments[self.arg_name]
     
 
-class RationaleStep(ThoughtOutput):
+class RationaleOutput(ThoughtOutput):
     
     @classmethod
     def for_output(cls, output_name: str):
@@ -84,8 +70,8 @@ class RationaleStep(ThoughtOutput):
     
 class LLMFunctionTemplate(BaseModel):
     desc: str
-    inputs: list[InputStep]
-    outputs: list[OutputStep]
+    inputs: list[InputVar]
+    outputs: list[AssistantOutput]
     partial_demos: list[dict] = []
     demos: list[dict] = []
     
@@ -135,7 +121,6 @@ class LLMFunctionTemplate(BaseModel):
     def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
         # TODO: streaming
         # TODO: more robust parsing that doesn't rely on ':' and '\n'
-        # TODO: configure output step class
         output_text = llm_stream.get_text()
         prompt_text = llm_stream.prompt.messages[0]["content"]
         text = prompt_text + "\n" + output_text
