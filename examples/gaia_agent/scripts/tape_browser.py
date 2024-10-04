@@ -30,7 +30,7 @@ class GaiaTapeBrowser(TapeBrowser):
                     prompt["output_length_tokens"] = prompt.pop("completion_length_tokens")
                 self.results.prompts[i] = prompt
             self.llm_calls = {p["prompt"]["id"]: LLMCall.model_validate(p) for p in self.results.prompts}
-            logger.info(f"Loaded {len(self.results.tapes)} tapes, {len(self.llm_calls)} prompts from {fpath}")
+            logger.info(f"Loaded {len(self.results.tapes)} tapes, {len(self.llm_calls)} LLM calls from {fpath}")
         except Exception as e:
             logger.error(f"Failed to load tapes from {fpath}: {e}")
             self.results = GaiaResults()
@@ -43,9 +43,9 @@ class GaiaTapeBrowser(TapeBrowser):
         steps = self.get_steps(tape)
         step_views = []
         last_prompt_id = None
-        for i, s in enumerate(steps):
-            prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
-            view = self.renderer.render_step(s, i)  # type: ignore
+        for i, step in enumerate(steps):
+            prompt_id = step.get("metadata", {}).get("prompt_id", step.pop("prompt_id", None))
+            view = self.renderer.render_step(step, i)  # type: ignore
             if prompt_id in self.llm_calls and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(self.llm_calls[prompt_id])
                 view = prompt_view + view
@@ -72,10 +72,14 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_tape_label(self, tape: dict) -> str:
         llm_calls_num = 0
+        tokens_num = 0
         for step in tape["steps"]:
             prompt_id = step.get("metadata", {}).get("prompt_id", step.get("prompt_id"))
             if prompt_id:
                 llm_calls_num += 1
+                tokens_num += (
+                    self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
+                )
         failure_count = len([s for s in tape["steps"] if s["kind"].endswith("failure")])
         label = f"""<h2>Tape Result</h2>
             <div class="result-label expected">Golden Answer: <b>{tape["metadata"]["task"]['Final answer']}</b></div>
@@ -86,7 +90,7 @@ class GaiaTapeBrowser(TapeBrowser):
         overview = tape["steps"][-1].get("overview", "")
         label += f"""
             <div class="result-success">Finished successfully: {success}</div>
-            <div>LLM Calls: {llm_calls_num}</div>
+            <div>LLM Calls: {llm_calls_num}, tokens: {tokens_num}</div>
             <div class="result-overview">Overview:<br>{overview}</div>"""
         return label
 

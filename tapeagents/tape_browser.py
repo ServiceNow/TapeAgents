@@ -49,10 +49,6 @@ class TapeBrowser:
         logger.info(f"{len(tapes)} tapes loaded from {fname}")
         return tapes
 
-    def load_prompts(self, fpath: str):
-        # TODO: support sqlite storage with the naming convention <fpath>.prompts.sqlite
-        pass
-
     def get_steps(self, tape: Tape) -> list:
         return tape.steps
 
