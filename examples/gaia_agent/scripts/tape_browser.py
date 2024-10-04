@@ -82,12 +82,28 @@ class GaiaTapeBrowser(TapeBrowser):
         return f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}<br>Step parsing errors: {parsing_errors}<br>Page loading errors: {page_errors}"
 
     def get_tape_name(self, i: int, tape: dict) -> str:
-        mark = ("+" if tape_correct(tape) else "") + ("[f]" if tape["metadata"]["task"]["file_name"] else "")
-        return f'{mark}L{tape["metadata"]["task"]["Level"]}{i+1}: {tape["steps"][0]["content"][:32]}'
+        page_error = False
+        parsing_error = False
+        for step in tape["steps"]:
+            if step.get("kind") == "page_observation" and step.get("error"):
+                page_error = True
+            if step.get("kind") == "agent_response_parsing_failure_action":
+                parsing_error = True
+        mark = "+" if tape_correct(tape) else ""
+        if tape["metadata"]["task"]["file_name"]:
+            mark += "f"
+        if parsing_error:
+            mark += "E"
+        if page_error:
+            mark += "e"
+        if mark:
+            mark += "|"
+        return f'{mark}{i+1}: {tape["steps"][0]["content"][:32]}'
 
     def get_tape_label(self, tape: dict) -> str:
         llm_calls_num = 0
         tokens_num = 0
+
         for step in tape["steps"]:
             prompt_id = step.get("metadata", {}).get("prompt_id", step.get("prompt_id"))
             if prompt_id:

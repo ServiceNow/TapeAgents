@@ -185,7 +185,7 @@ class BasicRenderer:
         if llm_call.output:
             html += f"""<div class='basic-prompt-box' style='background-color:#ffffba; margin: 0 4px;'>
                 <details>
-                    <summary>Completion {llm_call.output_length_tokens} tokens</summary>
+                    <summary>LLM Output {llm_call.output_length_tokens} tokens</summary>
                     <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word;'>{llm_call.output}</pre>
                 </details>
                 </div>"""
