@@ -65,6 +65,3 @@ class PromptRegistry:
     facts_survey = FACTS_SURVEY
     allowed_steps = ALLOWED_STEPS
     is_subtask_finished = IS_SUBTASK_FINISHED
-
-
-TEMPLATES = dict((name, getattr(PromptRegistry, name)) for name in dir(PromptRegistry) if not name.startswith("__"))

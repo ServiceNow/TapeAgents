@@ -6,7 +6,7 @@ from tapeagents.core import Step
 from tapeagents.guided_agent import GuidanceNode, GuidedAgent
 from tapeagents.llms import LLM
 
-from .prompts import TEMPLATES, PromptRegistry
+from .prompts import PromptRegistry
 from .steps import (
     ActionExecutionFailure,
     FinishSubtask,
@@ -88,9 +88,7 @@ class GaiaAgent(GuidedAgent):
         short_steps: bool = False,
     ):
         nodes = cls.prepare_guidance(planning_mode, subtasks)
-        return super().create(
-            llm, nodes=nodes, max_iterations=2, templates=TEMPLATES, subtasks=subtasks, short_steps=short_steps
-        )
+        return super().create(llm, nodes=nodes, max_iterations=2, subtasks=subtasks, short_steps=short_steps)
 
     @classmethod
     def prepare_guidance(cls, planning_mode: PlanningMode, subtasks: bool) -> list[GaiaNode]:

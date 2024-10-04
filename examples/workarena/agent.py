@@ -7,7 +7,7 @@ from tapeagents.guided_agent import GuidanceNode, GuidedAgent
 from tapeagents.llms import LLM
 from tapeagents.utils import get_step_schemas_from_union_type
 
-from .prompts import TEMPLATES, PromptRegistry
+from .prompts import PromptRegistry
 from .steps import (
     PageObservation,
     WorkArenaAction,
