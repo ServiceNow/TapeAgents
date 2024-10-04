@@ -29,11 +29,38 @@ from pprint import pformat
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
 from termcolor import cprint
 from tqdm import tqdm
-
+from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import TrainableLLM
+from tapeagents.environment import Environment
+from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
+from tapeagents.batch import batch_main_loop
+from tapeagents.io import save_tapes
+from examples.rlaif.chat_agent import (
+    ChatAgent,
+)
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def convert_conversation_to_steps(conversation):
+    steps = []
+    for message in conversation:
+        if message['role'] == 'user':
+            steps.append(UserStep(content=message['content']))
+        elif message['role'] == 'assistant':
+            steps.append(AssistantStep(content=message['content']))
+        elif message['role'] == 'system':
+            steps.append(SystemStep(content=message['content']))
+    return steps
+
+def create_dialog_tape_from_sample(sample):
+    steps = convert_conversation_to_steps(sample['conversation'])
+    return DialogTape(
+        context=None,
+        steps=steps
+    )
+
 
 def wait_for_service(process, url, headers=None, timeout=120):
     start_time = time.time()
@@ -129,48 +156,55 @@ def serve_vllm_local_model(
     return process, stdout_file, stderr_file
 
 
-def main(exp_path: str, attempts: int = 1):
-    dataset = load_dataset("openai/gsm8k", "main", split="train")
-    samples = [s for s in dataset]
+def main(exp_path: Path):
+    dataset = load_dataset("allenai/WildChat", split="train")
+    samples = []
+    for i, sample in enumerate(dataset):
+        if i == 10:
+            break
+        samples.append(sample)
+
     np.random.seed(42)
     np.random.shuffle(samples)  # type: ignore
     logging.info(f"Loaded {len(samples)} samples")
 
     llm = TrainableLLM(
-        base_url="https:/localhost:8080",
-        model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
-        tokenizer_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
+        base_url="http://127.0.0.1:8080",
+        model_name="/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct",
+        tokenizer_name="/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct",
         parameters=dict(temperature=0.7),
     )
-    agent = MathAgent.create(llm)
-    env = MathEnvironment()
+    agent = ChatAgent.create(llm)
 
     tapes_dir = os.path.join(exp_path, "tapes")
     logger.info(f"Saving tapes to {tapes_dir}")
     os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "llm_calls.sqlite")
 
-    solved = []
-    for i, sample in enumerate(tqdm(samples)):
-        sample = extract_result_value(sample)
-        for j in range(attempts):
-            tape_file = os.path.join(tapes_dir, f"task{i}_attempt{j+1}.json")
-            if os.path.exists(tape_file):
-                logger.info(f"Task {i} attempt {j+1} already solved, skipping")
-                continue
+    with save_tapes(exp_path / "tapes.yaml") as dumper:
+        for i, sample in enumerate(tqdm(samples)):
             try:
-                tape = solve_task(agent, env, sample, tape_file)
-                solved.append(int(tape.metadata.result["solved"]))
-                save_tape(tape_file, tape)
+                steps = convert_conversation_to_steps(sample['conversation'])
+                tape = DialogTape(
+                            context=None,
+                            steps=steps[:-1], # drop the last assistant step
+                        )
+                tape_file = os.path.join(tapes_dir, f"task{i}.json")
+                for event in agent.run(tape):
+                    if event.partial_step:
+                        assert isinstance(step := event.partial_step.step, AssistantStep)
+                        print(step.content[n_printed:], end="", flush=True)
+                        n_printed = len(step.content)
+                    if event.final_tape:
+                        tape = event.final_tape
+                        print()
+                        print(f"Received new tape of length {len(tape)}")
+
             except Exception as e:
-                logger.error(colored(f"Failed to solve task, attempt {j+1}: {e}", "red"))
-                solved.append(0)
-        if i % 10 == 0 and i > 0:
-            logger.info(f"{i}: Current accuracy: {np.mean(solved):.3f}, prompt tokens used: {agent.llm.token_count}")
-    logger.info(f"Accuracy: {np.mean(solved):.3f}, prompt tokens used: {agent.llm.token_count}")
-    logger.info(f"{len(solved)} tapes saved to {tapes_dir}")
+                logger.error(colored(f"Failed to solve task: {e}", "red"))
 
 
 if __name__ == "__main__":
-    exp_path = sys.argv[1] if len(sys.argv) > 1 else "gsm8k/tuning/llama31_70b_train"
+    exp_path = sys.argv[1] if len(sys.argv) > 1 else "wildchat/rl/llama31_8b_train"
+    exp_path = Path(exp_path)
     main(exp_path)
