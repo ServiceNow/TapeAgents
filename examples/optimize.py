@@ -164,10 +164,10 @@ def make_rag_agent(cfg: DictConfig) -> Agent:
             LLMFunctionNode(template_name="rag", input_refs=[-1, -3])
         ],
     )
-    if not cfg.rag.partial_demos:
-        agent.templates["rag"].partial_demos = []   
-    if not cfg.rag.demos:
-        agent.templates["rag"].demos = []
+    if cfg.load_demos:
+        partial_demos, demos = load_rag_demos()
+        agent.templates["rag"].demos = demos
+        agent.templates["rag"].partial_demos = partial_demos
     return agent
 
 
