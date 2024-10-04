@@ -114,9 +114,9 @@ class WorkArenaAgent(GuidedAgent):
         return super().create(
             llm,
             nodes=[
-                WorkArenaNode(name="task", guidance=PromptRegistry.start),
-                WorkArenaNode(name="reflection_thought", guidance=PromptRegistry.act),
-                WorkArenaNode(name="default", guidance=PromptRegistry.think),
+                WorkArenaNode(name="start", trigger_step="task", guidance=PromptRegistry.start),
+                WorkArenaNode(name="act", trigger_step="reflection_thought", guidance=PromptRegistry.act),
+                WorkArenaNode(name="think", trigger_step="default", guidance=PromptRegistry.think),
             ],
             max_iterations=2,
         )
