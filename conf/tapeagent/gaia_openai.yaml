@@ -1,9 +1,9 @@
 defaults:
   - gaia
-  - llm: gpt4o_mini
+  - llm: gpt4o
   - _self_
   
-exp_name: gpt4o_mini_2
+exp_name: gpt4o_1
 exp_path: ../gaia/runs/${exp_name}
 data_dir: ../gaia/dataset/validation/
 n_attempts: 1
