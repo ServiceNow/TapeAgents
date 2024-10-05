@@ -87,7 +87,7 @@ def get_step_schemas_from_union_type(cls) -> str:
     clean_schema = []
     for step in dereferenced_schema["oneOf"]:
         step = without(step, "title")
-        step["properties"] = without(step[p"properties"], "metadata")
+        step["properties"] = without(step["properties"], "metadata")
         for prop in step["properties"]:
             step["properties"][prop] = without(step["properties"][prop], "title")
         step["properties"]["kind"] = {"const": step["properties"]["kind"]["const"]}
