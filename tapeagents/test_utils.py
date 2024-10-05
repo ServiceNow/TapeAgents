@@ -10,6 +10,7 @@ import tapeagents.observe
 @contextlib.contextmanager
 def run_test_in_tmp_dir(test_name: str):
     """Copy test resources to a temporary directory and run the test there"""
+    cur_dir = os.getcwd()
     tmpdir = tempfile.mkdtemp()
     test_data_dir = Path(f"tests/res/{test_name}").resolve()
     os.chdir(tmpdir)
@@ -17,6 +18,7 @@ def run_test_in_tmp_dir(test_name: str):
     # force creation of SQLite tables
     tapeagents.observe._checked_sqlite = False
     yield
+    os.chdir(cur_dir)
 
 
 @contextlib.contextmanager
