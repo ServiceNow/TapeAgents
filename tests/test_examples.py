@@ -9,7 +9,7 @@ from pathlib import Path
 from omegaconf import DictConfig
 import yaml
 
-from tapeagents.utils import run_test_in_tmp_dir
+from tapeagents.test_utils import run_test_in_tmp_dir
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
