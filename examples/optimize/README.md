@@ -5,9 +5,10 @@ This example demostrates how one can optimize the agent's prompt templates in Ta
 There are two common ways to optimize prompts while keeping the overall structure of the agent the same:
 - add demonstrations to a prompt
 - change the instruction part of the prompt
-In TapeAgents we have a structured prompt template called [LLMFunctionTemplate](tapeagents/llm_function.py) that enables both of these prompt change approaches. If you are familiar with DSPy, you will recognize in this DSPy's signature `Signature` (pun intended). The equivalent of DSPy's modules are `LLMFunctionNode` nodes that apply the respective function template to the tape in order to make the prompt and to generate the next steps.
 
-See our [agent optimization](examples/optimize) example we show how one can build a 2-hop Retrieval-Augmented Generation agent (a.k.a. agentic RAG) and optimize its query generation prompts using weak supervision. This example is a reimplementation of DSPy intro in TapeAgents. It uses questions from the HotPotQA dataset and the generously provided by DSPy Wikipedia paragraph retrieval service.
+In TapeAgents we have a structured prompt template called [LLMFunctionTemplate](tapeagents/llm_function.py) that enables both of these prompt change approaches. If you are familiar with [DSPy](https://github.com/stanfordnlp/dspy), you will recognize in this DSPy's signature `Signature` (pun intended). The equivalent of DSPy's modules are [LLMFunctionNode](tapeagents/llm_function.py) nodes that apply the respective function template to the tape in order to make the prompt and to generate the next steps.
+
+In our [agent optimization](examples/optimize) example we show how one can build a 2-hop Retrieval-Augmented Generation agent (a.k.a. agentic RAG) and optimize its query generation prompts using weak supervision. This example is a reimplementation of [DSPy intro](https://github.com/stanfordnlp/dspy/blob/main/intro.ipynb) in TapeAgents. It uses questions from the [HotPotQA dataset](https://hotpotqa.github.io/) and the generously provided by DSPy Wikipedia paragraph retrieval service.
 
 # How to run the example
 
@@ -21,7 +22,7 @@ pip install -r examples/optimize/requirements.txt
 
 ## Explore the setting
 
-Go better understand the setup, you can launch a pre-optimized agent in TapeAgents Studio and run it by pressing `Run Loop` button.
+To better understand the setup, you can launch a pre-optimized agent in TapeAgents Studio and run it by pressing `Run Loop` button.
 
 ```bash
 python examples/optimize/optimize.py agent=agentic_rag target=studio load_demos=true  
