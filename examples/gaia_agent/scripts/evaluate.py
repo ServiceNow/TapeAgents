@@ -30,7 +30,7 @@ def main(cfg: DictConfig) -> None:
     next run.
     """
     llm: CachedLLM = instantiate(cfg.llm)
-    env = GaiaEnvironment(vision_lm=llm)
+    env = GaiaEnvironment(vision_lm=llm, **cfg.env)
     if cfg.load_webcache_from_run:
         with open(cfg.load_webcache_from_run) as f:
             old_results_dict = json.load(f)

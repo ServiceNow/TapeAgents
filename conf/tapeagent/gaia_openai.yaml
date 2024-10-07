@@ -11,6 +11,10 @@ agent:
   planning_mode: simple
   subtasks: false
 
+env:
+  use_web_cache: true
+  only_cached_webpages: false
+
 hydra:
   run:
     dir: ../gaia/runs/${exp_name}
