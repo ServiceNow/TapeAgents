@@ -552,8 +552,9 @@ class CameraRenderer(BasicRenderer):
         elif isinstance(step, CodeExecutionResult):
             del dump["result"]["output"]
             text = pretty_yaml(dump["result"])
-            if step.result.exit_code is 0:
+            if step.result.exit_code == 0:
                 if step.result.output_files:
+                    # TODO support more file type
                     for output_file in step.result.output_files:
                         for file in output_file.split(","):
                             text += f"""<img src='/file={file}' style="max-width: 100%; height: 250px; padding: 4px">"""
