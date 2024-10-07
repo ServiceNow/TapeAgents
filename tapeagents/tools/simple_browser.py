@@ -293,6 +293,7 @@ class SimpleTextBrowser:
     def _fetch_page(self, url: str) -> None:
         download_path = ""
         response = None
+        self._page_error = 0
         try:
             if url.startswith("file://"):
                 download_path = os.path.normcase(os.path.normpath(unquote(url[7:])))
