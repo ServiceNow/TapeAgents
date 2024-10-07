@@ -192,6 +192,7 @@ class ContainerExecutor:
             raise ValueError("No code blocks to execute.")
 
         outputs = []
+        output_files = []
         files: list[Path] = []
         last_exit_code = 0
         for code_block in code_blocks:
@@ -235,6 +236,8 @@ class ContainerExecutor:
             if exit_code == 124:
                 output += "\n" + "Timeout"
             outputs.append(output)
+            if file_output:=_get_file_name_from_output(output, self._work_dir):
+                output_files.append(file_output)
 
             last_exit_code = exit_code
             if exit_code != 0:
@@ -243,6 +246,7 @@ class ContainerExecutor:
         return CommandLineCodeResult(
             exit_code=last_exit_code, 
             output="".join(outputs),
+            output_files=output_files,
             code_files=[str(file) for file in files],
         )
 
@@ -294,7 +298,8 @@ class CodeBlock(BaseModel):
 class CodeResult(BaseModel):
     """A class that represents the result of a code execution."""
     exit_code: int = Field(description="The exit code of the code execution.")
-    output: str = Field(description="The output of the code execution.")    
+    output: str = Field(description="The output of the code execution.")
+    output_files: list[str] = Field(default=None, description="The output files of the code execution.")
     
 class CommandLineCodeResult(CodeResult):
     """(Experimental) A code result class for command line code executor."""
@@ -367,6 +372,18 @@ def _get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str
             return str(relative)
     return None
 
+def _get_file_name_from_output(output: str, workspace_path: Path) -> Optional[str]:
+    #TODO support more file types
+    pattern = r"\S+\.png|jpg|jpeg"
+    compiled_pattern = re.compile(pattern)
+    matches = compiled_pattern.findall(output)
+    filenames = []
+    for match in matches:
+        path = Path(match)
+        if not path.is_absolute():
+            path = workspace_path / path
+        filenames.append(str(path))
+    return ", ".join(filenames) if len(filenames) > 0 else None
 
 def silence_pip(code: str, lang: str) -> str:
     """Apply -qqq flag to pip install commands."""

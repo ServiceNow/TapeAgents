@@ -26,7 +26,7 @@ YELLOW = "#ffffba"
 LIGHT_YELLOW = "#ffffdb"
 SAND = "#e5e5a7"
 WHITE = "#ffffff"
-PURPLE = "#c9c9ed"
+PURPLE = "#E6E6FA"
 RED = "#ff7b65"
 GREEN = "#6edb8f"
 BLUE = "#bae1ff"
@@ -541,16 +541,6 @@ class CameraRenderer(BasicRenderer):
         if isinstance(step, Broadcast):
             to = f"to: {', '.join(dump['to'])}"
             text = maybe_fold(to)
-        elif isinstance(step, Respond):
-            text = maybe_fold(dump["content"])
-            if ".png" in dump["content"] and "exit code 0" in dump["content"]:
-                # TODO this is a hack to show images, need to find a generic data pattern in outputs and step to do this
-                pattern = r"(\S+\.png)"
-                match = re.search(pattern, dump["content"])
-                if match:
-                    filename = match.group(1)
-                    path = f"""outputs/data_science/res/{os.path.basename(filename.replace('`', '').replace("'", '').strip())}"""
-                    text += f"""<img src='/file={path}' style="max-width: 100%; height: 250px; padding: 4px">"""
         elif isinstance(step, ExecuteCode):
             del dump["code"]
 
@@ -562,8 +552,13 @@ class CameraRenderer(BasicRenderer):
         elif isinstance(step, CodeExecutionResult):
             del dump["result"]["output"]
             text = pretty_yaml(dump["result"])
-            if step.result.output:
-                text += f"\n {maybe_fold(step.result.output)}"
+            if step.result.exit_code is 0:
+                if step.result.output_files:
+                    for output_file in step.result.output_files:
+                        for file in output_file.split(","):
+                            text += f"""<img src='/file={file}' style="max-width: 100%; height: 250px; padding: 4px">"""
+                elif step.result.output:
+                    text += f"\n {maybe_fold(step.result.output)}"
         elif (content := getattr(step, "content", None)) is not None:
             del dump["content"]
             text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
