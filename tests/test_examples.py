@@ -129,7 +129,7 @@ def test_gaia_agent():
     llm = ReplayLLM(llm_calls=[LLMCall.model_validate(p) for p in results.prompts], model_name=results.model)
     env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
     env.browser.set_web_cache(results.web_cache)
-    agent = GaiaAgent(llms={"default": llm}, short_steps=True)
+    agent = GaiaAgent.create(llm, short_steps=True)
 
     tapes = [GaiaTape.model_validate(tape) for tape in results.tapes]
     logger.info(f"Validate {len(tapes)} tapes")

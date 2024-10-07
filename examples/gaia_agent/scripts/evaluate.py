@@ -46,7 +46,7 @@ def main(cfg: DictConfig) -> None:
                 "yellow",
             )
         )
-    agent = GaiaAgent(llms={"default": llm}, **cfg.agent)
+    agent = GaiaAgent.create(llm, **cfg.agent)
     tasks = load_dataset(cfg.data_dir)
 
     if cfg.task_id is not None:
