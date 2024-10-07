@@ -85,7 +85,7 @@ class WorkArenaNode(GuidanceNode):
     start_step_cls: Any = PageObservation
     agent_step_cls: Any = WorkArenaAgentStep
 
-    def get_steps_description(self, tape: WorkArenaTape) -> str:
+    def get_steps_description(self, tape: WorkArenaTape, agent: Any) -> str:
         return self.steps_prompt.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep))
 
     def prepare_tape(self, tape: WorkArenaTape, max_chars: int = 100):
