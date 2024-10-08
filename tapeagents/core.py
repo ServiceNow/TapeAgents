@@ -189,8 +189,7 @@ class Prompt(BaseModel):
         return bool(self.messages)
 
 
-LLMMessage: TypeAlias = litellm.utils.Message
-LLMOutput: TypeAlias = LLMMessage
+LLMOutput: TypeAlias = litellm.utils.Message
 
 
 class LLMCall(BaseModel):
