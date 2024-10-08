@@ -70,7 +70,7 @@ class PlainTextConverter(DocumentConverter):
         if content_type is None:
             return None
 
-        if "text/" not in content_type.lower() and extension.lower() not in [".txt", ".xml"]:
+        if "text/" not in content_type.lower() and extension.lower() not in [".txt", ".xml", ".jsonld", ".pdb"]:
             return None
 
         text_content = ""

@@ -112,7 +112,7 @@ class SimpleTextBrowser:
         return self.history[-1][0]
 
     def set_address(self, uri_or_path: str) -> None:
-        # TODO: Handle anchors
+        """Update the address, visit the page, and set the content of the viewport."""
         self.history.append((uri_or_path, time.time()))
 
         # Handle special URIs
@@ -231,17 +231,6 @@ class SimpleTextBrowser:
 
         return None
 
-    def visit_page(self, path_or_uri: str) -> str:
-        """Update the address, visit the page, and return the content of the viewport."""
-        self._page_error = 0
-        self.set_address(path_or_uri)
-        return self.viewport
-
-    def search(self, query: str) -> str:
-        """Search for the query and return the content of the viewport."""
-        self.set_address(f"search: {query}")
-        return self.viewport
-
     def _split_pages(self) -> None:
         # Do not split search results
         if self.address.startswith("search:"):
@@ -295,7 +284,6 @@ class SimpleTextBrowser:
     def _fetch_page(self, url: str) -> None:
         download_path = ""
         response = None
-        self._page_error = 0
         try:
             if url.startswith("file://"):
                 download_path = os.path.normcase(os.path.normpath(unquote(url[7:])))
@@ -331,7 +319,6 @@ class SimpleTextBrowser:
                             base, ext = os.path.splitext(fname)
                             new_fname = f"{base}__{suffix}{ext}"
                             download_path = os.path.abspath(os.path.join(self.downloads_folder, new_fname))
-
                     except NameError:
                         pass
 
@@ -417,6 +404,7 @@ class SimpleTextBrowser:
         """
         Load web page and return content of its first viewport (first screen), current page number and total number of pages.
         """
+        self._page_error = 0
         local_file = False
         if url.startswith("/"):
             # in case of a local file
@@ -441,7 +429,7 @@ class SimpleTextBrowser:
         else:
             logger.info(colored(f"Page {url} not in cache", "yellow"))
             self.page_title = ""
-            self.visit_page(url)
+            self.set_address(url)
             self._add_to_cache(url, (self.page_content, self.page_title))
         return (
             self.page_with_title(),
