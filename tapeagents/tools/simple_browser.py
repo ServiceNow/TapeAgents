@@ -274,7 +274,7 @@ class SimpleTextBrowser:
         if self.use_web_cache and key in self._cache:
             logger.info(colored(f"Cache hit for search {query}", "green"))
             self._log[query] = self._cache[key]
-            return self._cache[query][:max_results]
+            return self._cache[key][:max_results]
         if self.only_cached_webpages:
             ratios = [(k, ratio(key, k, score_cutoff=0.5)) for k in self._cache.keys()]
             if not len(ratios):
