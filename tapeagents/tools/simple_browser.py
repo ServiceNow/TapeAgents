@@ -269,12 +269,13 @@ class SimpleTextBrowser:
         Return list of dictionaries with keys 'title', 'url', and 'content'.
 
         """
-        if self.use_web_cache and query in self._cache:
+        key = query.lower().strip()
+        if self.use_web_cache and key in self._cache:
             logger.info(colored(f"Cache hit for search {query}", "green"))
-            self._log[query] = self._cache[query]
+            self._log[query] = self._cache[key]
             return self._cache[query][:max_results]
         if self.only_cached_webpages:
-            ratios = [(k, ratio(query, k, score_cutoff=0.5)) for k in self._cache.keys()]
+            ratios = [(k, ratio(key, k, score_cutoff=0.5)) for k in self._cache.keys()]
             if not len(ratios):
                 raise FatalError(f'No cache for "{query}"')
             closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
@@ -287,7 +288,7 @@ class SimpleTextBrowser:
                 {"title": r.title, "url": r.url, "content": r.description}
                 for r in search(query, advanced=True, num_results=max_results)
             ]
-        self._add_to_cache(query, results)
+        self._add_to_cache(key, results)
         return results[:max_results]
 
     def _fetch_page(self, url: str) -> None:
