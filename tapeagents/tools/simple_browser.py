@@ -400,7 +400,7 @@ class SimpleTextBrowser:
             with open(self._cache_filename, "w") as f:
                 json.dump(self._cache, f, indent=2, ensure_ascii=False)
 
-    def get_page(self, url: str) -> tuple[str, int, int]:
+    def get_page(self, url: str) -> tuple[str, int, int, int]:
         """
         Load web page and return content of its first viewport (first screen), current page number and total number of pages.
         """
@@ -431,11 +431,9 @@ class SimpleTextBrowser:
             self.page_title = ""
             self.set_address(url)
             self._add_to_cache(url, (self.page_content, self.page_title))
-        return (
-            self.page_with_title(),
-            self.viewport_current_page + 1,
-            len(self.viewport_pages),
-        )
+        error = self._page_error
+        self._page_error = 0
+        return (self.page_with_title(), self.viewport_current_page + 1, len(self.viewport_pages), error)
 
     def get_next_page(self) -> tuple[str, int, int]:
         """
