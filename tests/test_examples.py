@@ -132,15 +132,16 @@ def test_gaia_agent():
 
     llm = ReplayLLM(llm_calls=[LLMCall.model_validate(p) for p in results.prompts], model_name=results.model)
     env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
-    env.browser.set_web_cache(results.web_cache)
+    # add lowercased keys to the cache for legacy compatibility
+    cache = results.web_cache | {k.lower().strip(): v for k, v in results.web_cache.items() if len(v)}
+    env.browser.set_web_cache(cache)
     agent = GaiaAgent.create(llm)
 
     tapes = [GaiaTape.model_validate(tape) for tape in results.tapes]
     logger.info(f"Validate {len(tapes)} tapes")
 
     fails = replay_tapes(agent, tapes, env)
-    # two expected failures due to changed parsing exception format
-    assert fails == 2, f"{fails} failed tapes, expected 2"
+    assert fails == 0, f"{fails} failed tapes"
 
 
 def test_workarena_baseline_agent():
