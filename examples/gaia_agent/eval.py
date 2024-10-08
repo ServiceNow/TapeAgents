@@ -167,7 +167,7 @@ def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int 
             folder_name = name
             os.makedirs(folder_name, exist_ok=True)
             shutil.unpack_archive(question.filename, folder_name)
-            document_text = "\n\nZip archive with the following files:\n"
+            document_text = "\n\nArchive contains the following files:\n"
             for i, file in enumerate(os.listdir(folder_name)):
                 file_path = os.path.join(folder_name, file)
                 content = env.browser.get_whole_document(file_path)
@@ -177,11 +177,12 @@ def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int 
                 document_text += file_text
         else:
             content = env.browser.get_whole_document(question.filename)
-            document_text = f"\n{ext.upper()} document content:\n{content}"
+            document_text = f"\n\n{ext.upper()} document content:\n{content}"
             if len(document_text) > max_doc_length:
                 document_text = f"\nPath to the mentioned document: {question.filename}"
         question.content += document_text
-    logger.info(f"Question: {question}")
+    question.filename = None
+    logger.info(f"Question: {question.content}")
     return question
 
 

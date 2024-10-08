@@ -241,19 +241,18 @@ class PythonCodeAction(GaiaAction):
 class GaiaQuestion(GaiaObservation):
     kind: Literal["question"] = "question"
     content: str
-    filename: str = ""
+    filename: str | None = None
 
     @classmethod
     def from_task(cls, question: dict):
         question_prompt = question["Question"]
+        filename = None
         if question["file_name"]:
             basename = os.path.basename(question["file_name"])
             tmp_fname = f"/tmp/{basename}"
             shutil.copyfile(question["file_name"], tmp_fname)
             assert os.path.exists(tmp_fname)
             filename = tmp_fname
-        else:
-            filename = ""
         return cls(content=question_prompt, filename=filename)
 
 
