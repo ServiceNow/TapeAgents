@@ -1,9 +1,6 @@
-"""Tools for intro.ipynb"""
-
-import requests
 import datetime
 
-from tapeagents.tools.simple_browser import SimpleTextBrowser
+import requests
 
 
 def get_stock_ticker(company_name: str):
@@ -58,11 +55,3 @@ def get_stock_data(symbol: str, start_date: str, end_date: str):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
-
-
-def search_web(query: str) -> list[dict]:
-    return SimpleTextBrowser().get_search_results(query)
-
-
-def read_page(url: str) -> str:
-    return SimpleTextBrowser().get_whole_document(url)
