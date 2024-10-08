@@ -118,29 +118,34 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
     results: list[Any] = []
     previous_plans: list[str] = []
     while len(tapes) < n_attempts:
-        tape = GaiaTape(steps=[question])
-        logger.info(colored(f"Attempt {len(tapes)+1}", "green"))
-        discard_attempt = False
-        planned = False
-        step = None
-        for event in main_loop(agent, tape, env, max_loops=30):
-            if event.agent_event and event.agent_event.step:
-                step = event.agent_event.step
-                tape = tape.append(step)  # type: ignore
-                if isinstance(step, PlanThought) and not planned:
-                    plan_dump = "\n".join(step.plan)
-                    if plan_dump in previous_plans:
-                        logger.info("Plan already been used, discard attempt")
-                        discard_attempt = True
-                        break
-                    else:
-                        planned = True
-                        previous_plans.append(plan_dump)
-            if event.observation:
-                tape = tape.append(event.observation)  # type: ignore
-        if discard_attempt:
-            continue
-        predicted = str(step.answer if isinstance(step, GaiaAnswer) else None)
+        predicted = None
+        tries = 3
+        while not predicted and tries:
+            tape = GaiaTape(steps=[question])
+            logger.info(colored(f"Attempt {len(tapes)+1}", "green"))
+            discard_attempt = False
+            planned = False
+            step = None
+            for event in main_loop(agent, tape, env, max_loops=30):
+                if event.agent_event and event.agent_event.step:
+                    step = event.agent_event.step
+                    tape = tape.append(step)  # type: ignore
+                    if isinstance(step, PlanThought) and not planned:
+                        plan_dump = "\n".join(step.plan)
+                        if plan_dump in previous_plans:
+                            logger.info("Plan already been used, discard attempt")
+                            discard_attempt = True
+                            break
+                        else:
+                            planned = True
+                            previous_plans.append(plan_dump)
+                if event.observation:
+                    tape = tape.append(event.observation)  # type: ignore
+            if discard_attempt:
+                continue
+            predicted = step.answer if isinstance(step, GaiaAnswer) else None
+            tries -= 1
+        predicted = str(predicted)
         tapes.append(tape)
         results.append(predicted)
         logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
