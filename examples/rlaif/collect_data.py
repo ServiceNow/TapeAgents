@@ -1,6 +1,3 @@
-import logging
-import os
-import sys
 import contextlib
 import json
 import logging
@@ -8,58 +5,95 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 import threading
 import time
-import numpy as np
-from datasets import load_dataset
-from termcolor import colored
-from tqdm import tqdm
-import time
-import hydra
-import numpy as np
-import psutil
-import requests
-import torch
-import wandb
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
 from pprint import pformat
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
-from termcolor import cprint
-from tqdm import tqdm
-from tapeagents.environment import EmptyEnvironment
-from tapeagents.llms import TrainableLLM
-from tapeagents.environment import Environment
-from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
+
+import hydra
+import numpy as np
+import psutil
+import requests
+import torch
+import wandb
+from datasets import load_dataset
 from tapeagents.batch import batch_main_loop
+from tapeagents.core import (
+    LLMOutput,
+    PartialStep,
+    Prompt,
+    Tape,
+    TapeMetadata,
+    TrainingText,
+)
+from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
+from tapeagents.environment import EmptyEnvironment, Environment
 from tapeagents.io import save_tapes
+from tapeagents.llms import TrainableLLM
+from termcolor import colored, cprint
+from tqdm import tqdm
+from tapeagents.llms import LiteLLM, LLMStream, TrainableLLM
+from examples.rlaif.annotator import Annotator
 from examples.rlaif.chat_agent import (
     ChatAgent,
 )
-from tapeagents.core import LLMOutput, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
+import re
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def is_instruction_prompt(sample):
+    # Extract the 'conversation' field from the sample
+    conversation = sample["conversation"]
+
+    # Get the first human message (assuming it's the instruction)
+    first_human_message = next((turn["content"] for turn in conversation if turn["role"] == "human"), None)
+
+    if first_human_message is None:
+        return False
+
+    # Define regex patterns for common instruction indicators
+    patterns = [
+        r"\b(write|create|generate|make|develop|implement|code|program)\b",
+        r"\b(explain|describe|elaborate on|clarify|tell me about)\b",
+        r"\b(how (to|do|can|would|should))\b",
+        r"\b(what (is|are|if|would|should))\b",
+        r"\b(can you|could you|would you)\b.*\?",
+        r"^(please|kindly)\b",
+        r"\b(task|assignment|exercise|problem)\b",
+        r"\b(steps?|instructions?|guidelines?)\b",
+        r"\b(your (task|job|role) is to)\b",
+        r"\b(i (want|need) you to)\b",
+    ]
+
+    # Combine all patterns into a single regex
+    combined_pattern = "|".join(patterns)
+
+    # Check if the message matches any of the instruction patterns
+    return bool(re.search(combined_pattern, first_human_message, re.IGNORECASE))
+
+
 def convert_conversation_to_steps(conversation):
     steps = []
     for message in conversation:
-        if message['role'] == 'user':
-            steps.append(UserStep(content=message['content']))
-        elif message['role'] == 'assistant':
-            steps.append(AssistantStep(content=message['content']))
-        elif message['role'] == 'system':
-            steps.append(SystemStep(content=message['content']))
+        if message["role"] == "user":
+            steps.append(UserStep(content=message["content"]))
+        elif message["role"] == "assistant":
+            steps.append(AssistantStep(content=message["content"]))
+        elif message["role"] == "system":
+            steps.append(SystemStep(content=message["content"]))
     return steps
 
+
 def create_dialog_tape_from_sample(sample):
-    steps = convert_conversation_to_steps(sample['conversation'])
-    return DialogTape(
-        context=None,
-        steps=steps
-    )
+    steps = convert_conversation_to_steps(sample["conversation"])
+    return DialogTape(context=None, steps=steps)
 
 
 def wait_for_service(process, url, headers=None, timeout=120):
@@ -159,58 +193,63 @@ def serve_vllm_local_model(
 def main(exp_path: Path):
     dataset = load_dataset("allenai/WildChat", split="train")
     samples = []
-    for i, sample in enumerate(dataset):
-        if i == 10:
+    for sample in dataset:
+        if is_instruction_prompt(sample):
+            samples.append(sample)
+        if len(samples) == 2:
             break
-        samples.append(sample)
 
     np.random.seed(42)
     np.random.shuffle(samples)  # type: ignore
     logging.info(f"Loaded {len(samples)} samples")
 
-    llm = TrainableLLM(
+    agent_llm = TrainableLLM(
         base_url="http://127.0.0.1:8080",
         model_name="/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct",
         tokenizer_name="/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct",
         parameters=dict(temperature=0.7),
     )
-    agent = ChatAgent.create(llm)
+    agent = ChatAgent.create(agent_llm)
+
+    annotator_llm = LiteLLM(model_name="gpt-4o-mini-2024-07-18", use_cache=True)
+    annotator = Annotator.create(annotator_llm)
 
     tapes_dir = os.path.join(exp_path, "tapes")
     logger.info(f"Saving tapes to {tapes_dir}")
     os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "llm_calls.sqlite")
 
-    with save_tapes(exp_path / "tapes.yaml") as dumper:
+    with open(exp_path / "tapes.jsonl", "w") as f:
         for i, sample in enumerate(tqdm(samples)):
             try:
-                for i, message in enumerate(sample['conversation']):
-                    if message['role'] != 'assistant':
+                for i, message in enumerate(sample["conversation"]):
+                    if message["role"] != "assistant":
                         continue
 
-                    steps = convert_conversation_to_steps(sample['conversation'])
+                    steps = convert_conversation_to_steps(sample["conversation"])
                     tape = DialogTape(
-                                context=None,
-                                steps=steps[:i], # drop the last assistant step
-                            )
-                    tape_file = os.path.join(tapes_dir, f"task{i}.json")
+                        context=None,
+                        steps=steps[:i],  # drop the last assistant step
+                    )
                     for event in agent.run(tape):
-                        if event.partial_step:
-                            assert isinstance(step := event.partial_step.step, AssistantStep)
-                            print(step.content[n_printed:], end="", flush=True)
-                            n_printed = len(step.content)
-                        if event.final_tape:
-                            tape = event.final_tape
-                            print()
-                            print(f"Received new tape of length {len(tape)}")
-                        print("--- CHECK TRACES ---")
+                        tape = event.final_tape
 
+                annotator_tape = annotator.annotate(tape)
+                print(f"\n\nTape:\n{annotator_tape.model_dump_json(indent=2)}")
                 traces: list[TrainingText] = []
                 for i, trace in enumerate(agent.make_training_data(tape)):
                     print(f"TRACE {i}")
                     print("CONTEXT", trace.prompt_text)
                     print("COMPLETION", trace.output_text)
+
+                    annotation = annotator_tape.steps[1].annotation
+                    reward = sum(item["rating"] for item in annotation.values())
+
+                    trace.reward = reward
+                    trace.ref_log_probs = trace.log_probs
                     traces.append(trace)
+                    f.write(trace.model_dump_json() + "\n")
+                    f.flush()
 
             except Exception as e:
                 logger.error(colored(f"Failed to solve task: {e}", "red"))

@@ -41,4 +41,5 @@ class ChatAgent(Agent[DialogTape]):
         We only train on the last completion
         """
         _, llm_calls = self.reuse(tape)
-        return [self.make_training_text(llm_calls[-1])]
+        return [self.make_training_text(llm_calls[-1], compute_log_probs=True)]
+

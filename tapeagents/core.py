@@ -17,6 +17,9 @@ class TrainingText(BaseModel):
 
     text: str
     n_predicted: int
+    reward: float = 0.0
+    log_probs: list[float] = Field(default_factory=list)
+    ref_log_probs: list[float] = Field(default_factory=list)
 
     @property
     def prompt_text(self) -> str:

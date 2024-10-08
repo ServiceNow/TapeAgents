@@ -424,10 +424,10 @@ class Agent(BaseModel, Generic[TapeType]):
         reused_tape = tape.model_validate(dict(context=tape.context, metadata=TapeMetadata(), steps=reused_steps))
         return reused_tape, llm_calls
 
-    def make_training_text(self, llm_call: LLMCall) -> TrainingText:
+    def make_training_text(self, llm_call: LLMCall, compute_log_probs=False) -> TrainingText:
         """Routes the request to make trace to the appropriate agent's LLM."""
         # TODO: support more than 1 LLM
-        return self.llm.make_training_text(llm_call.prompt, llm_call.output)
+        return self.llm.make_training_text(llm_call.prompt, llm_call.output, compute_log_probs)
 
     def make_training_data(self, tape: TapeType) -> list[TrainingText]:
         _, llm_calls = self.reuse(tape)
