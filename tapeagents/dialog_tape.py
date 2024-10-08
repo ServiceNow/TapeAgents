@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 from typing import Any, Callable, Literal, TypeAlias
 
 from langchain_core.utils.function_calling import convert_to_openai_tool
-from litellm.utils import ChatCompletionMessageToolCall
 from pydantic import BaseModel
 
 from .agent import Annotator
@@ -10,6 +11,7 @@ from .core import (
     AgentEvent,
     Call,
     FinalStep,
+    LLMOutput,
     Observation,
     Pass,
     Respond,
@@ -30,7 +32,7 @@ class UserStep(Observation):
 
 
 class AssistantThought(Thought):
-    content: str
+    content: Any
     kind: Literal["assistant_thought"] = "assistant_thought"
 
 
@@ -39,14 +41,49 @@ class AssistantStep(Action):
     kind: Literal["assistant"] = "assistant"
 
 
-class ToolCalls(Action):
-    tool_calls: list[ChatCompletionMessageToolCall]
-    kind: Literal["assistant"] = "assistant"
+class FunctionCall(BaseModel):
+    name: str
+    arguments: Any
 
+
+
+class ToolCall(BaseModel):
+    function: FunctionCall
+    id: str = ""
+    type: str = "function"
+    
+    
+class ToolCalls(Action):
+    """Action that wraps one-or-many tool calls.
+    
+    We structure this class similar to OpenAI tool calls, but we let function arguments be Any, not just str
+    (see `FunctionCall` class)
+    
+    """
+    tool_calls: list[ToolCall]
+    kind: Literal["assistant"] = "assistant"
+    
+    @staticmethod
+    def from_dicts(dicts: list):
+        return ToolCalls.model_validate({"tool_calls": dicts})
+    
+    @staticmethod
+    def from_llm_output(llm_output: LLMOutput) -> ToolCalls:
+        if not llm_output.tool_calls:
+            raise ValueError()
+        tool_calls = [
+            ToolCall(
+                function=FunctionCall(name=tc.function.name, arguments=tc.function.arguments),
+                id=tc.id,
+            )
+            for tc in llm_output.tool_calls
+        ]
+        return ToolCalls(tool_calls=tool_calls)
+        
 
 class ToolResult(Observation):
     content: Any
-    tool_call_id: str
+    tool_call_id: str = ""
     kind: Literal["tool"] = "tool"
 
 

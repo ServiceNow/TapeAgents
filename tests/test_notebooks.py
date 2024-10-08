@@ -4,7 +4,7 @@ from pathlib import Path
 
 import testbook
 
-from tapeagents.utils import run_test_in_tmp_dir
+from tapeagents.test_utils import run_test_in_tmp_dir
 
 res_dir = f"{pathlib.Path(__file__).parent.resolve()}/res"
 
