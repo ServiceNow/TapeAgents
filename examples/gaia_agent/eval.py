@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import shutil
 import subprocess
 from functools import cached_property
 from typing import Any, Counter, Iterable
@@ -153,15 +154,28 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
     return best_tape
 
 
-def task_to_question_step(task: dict, env: GaiaEnvironment):
+def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int = 8000) -> GaiaQuestion:
     question = GaiaQuestion.from_task(task)
     if question.filename:
-        ext = question.filename.split(".")[-1]
-        document_text = env.browser.get_whole_document(question.filename)
-        if len(document_text) < 2000:
-            question.content += f"\n{ext.upper()} document content:\n{document_text}"
+        name, ext = question.filename.rsplit(".", maxsplit=1)
+        if ext == "zip":
+            folder_name = name
+            os.makedirs(folder_name, exist_ok=True)
+            shutil.unpack_archive(question.filename, folder_name)
+            document_text = "\n\nZip archive with the following files:\n"
+            for i, file in enumerate(os.listdir(folder_name)):
+                file_path = os.path.join(folder_name, file)
+                content = env.browser.get_whole_document(file_path)
+                file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
+                if len(file_text) > max_doc_length:
+                    file_text = f"{i+1}. Path to the '{file}': {file_path}"
+                document_text += file_text
         else:
-            question.content += f"\nPath to the mentioned document: {question.filename}"
+            content = env.browser.get_whole_document(question.filename)
+            document_text = f"\n{ext.upper()} document content:\n{content}"
+            if len(document_text) > max_doc_length:
+                document_text = f"\nPath to the mentioned document: {question.filename}"
+        question.content += document_text
     logger.info(f"Question: {question}")
     return question
 

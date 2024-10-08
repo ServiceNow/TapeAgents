@@ -95,6 +95,7 @@ class SimpleTextBrowser:
         self.only_cached_webpages = only_cached_webpages
         self._cache = {}
         self._log = {}
+        self._cache_writes = 0
         self._cache_filename = "web_cache.json"
         if _FORCE_CACHE_PATH:
             self._cache_filename = _FORCE_CACHE_PATH
@@ -407,8 +408,10 @@ class SimpleTextBrowser:
     def _add_to_cache(self, k: str, value: Any) -> None:
         self._cache[k] = value
         self._log[k] = value
-        with open(self._cache_filename, "w") as f:
-            json.dump(self._cache, f)
+        self._cache_writes += 1
+        if self._cache_writes % 10 == 0:
+            with open(self._cache_filename, "w") as f:
+                json.dump(self._cache, f, indent=2, ensure_ascii=False)
 
     def get_page(self, url: str) -> tuple[str, int, int]:
         """

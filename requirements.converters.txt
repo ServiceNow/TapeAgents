@@ -12,4 +12,5 @@ pyparsing==3.1.2
 python-pptx==0.6.23
 readability-lxml
 SpeechRecognition[whisper-local]==3.10.4
+xlrd==2.0.1
 youtube-transcript-api==0.6.2
