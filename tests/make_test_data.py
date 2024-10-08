@@ -29,7 +29,8 @@ if __name__ == "__main__":
                     tb.execute()
         case ["tape_improver"]:
             with run_in_tmp_dir_to_make_test_data("tape_improver"):
-                tape_improver.main("run improver")                    
+                tape_improver.main("run improver")
         case _:
-            print("Usage: python -m examples.make_test_data [delegate_stack]")
-            sys.exit(1)
+            raise Exception(
+                "Usage: python -m examples.make_test_data [delegate_stack | intro_notebook | tape_improver]"
+            )
