@@ -51,6 +51,10 @@ class Step(BaseModel):
 
     def llm_view(self, indent: int = 2) -> str:
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
+    
+    @classmethod
+    def get_kind(cls) -> str:
+        return cls.model_fields["kind"].default
 
 
 class PartialStep(BaseModel):
@@ -124,7 +128,7 @@ class TapeMetadata(BaseModel):
     author_tape_id: str | None = None
     n_added_steps: int = 0
     error: Any | None = None
-    result: Any = None
+    result: Any = {}
 
 
 ContextType = TypeVar("ContextType")
@@ -188,8 +192,7 @@ class Prompt(BaseModel):
         return bool(self.messages)
 
 
-LLMMessage: TypeAlias = litellm.utils.Message
-LLMOutput: TypeAlias = LLMMessage
+LLMOutput: TypeAlias = litellm.utils.Message
 
 
 class LLMCall(BaseModel):

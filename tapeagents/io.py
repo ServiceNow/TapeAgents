@@ -3,6 +3,7 @@ import logging
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from types import GeneratorType
 from typing import Generator, Type
 
 import yaml
@@ -22,7 +23,9 @@ class TapeSaver:
 
 
 @contextmanager
-def save_tapes(filename: Path, mode: str = "w") -> Generator[TapeSaver, None, None]:
+def save_tapes(filename: Path | str, mode: str = "w") -> Generator[TapeSaver, None, None]:
+    if isinstance(filename, str):
+        filename = Path(filename)
     logger.info(f"Writing to {filename} in mode {mode}")
 
     # Create directory path if it does not exist
@@ -52,7 +55,7 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
     loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
     with open(path) as f:
         if file_extension == ".yaml":
-            data = yaml.safe_load_all(f)
+            data = list(yaml.safe_load_all(f))
         elif file_extension == ".json":
             data = json.load(f)
         else:

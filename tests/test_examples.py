@@ -6,8 +6,14 @@ import sys
 import tempfile
 from pathlib import Path
 
+from omegaconf import DictConfig
+import yaml
+
+from tapeagents.test_utils import run_test_in_tmp_dir
+
 sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
+from examples.optimize.optimize import make_agentic_rag_agent, make_env
 from examples.tape_improver import tape_improver
 from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
@@ -178,6 +184,16 @@ def test_tape_improver():
     agent, _, improver_tape = tape_improver.make_world(llm)
     final_tape = tape_improver.CodeImproverTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=improver_tape, reuse_observations=True)
+    
+
+def test_optimize():
+    with run_test_in_tmp_dir("optimize"):
+        with open(f"config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent = make_agentic_rag_agent(cfg)
+        env = make_env()
+        tape = DialogTape.model_validate(load_tape_dict(""))
+        assert replay_tape(agent, tape, env=env, reuse_observations=True)     
 
 
 if __name__ == "__main__":

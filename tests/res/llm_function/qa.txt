@@ -1,0 +1,13 @@
+Answer questions with short factoid answers.
+
+---
+
+Follow the following format.
+
+Question: ${question}
+Answer: often between 1 and 5 words
+
+---
+
+Question: What is the nationality of the chef and restaurateur featured in Restaurant: Impossible?
+Answer:

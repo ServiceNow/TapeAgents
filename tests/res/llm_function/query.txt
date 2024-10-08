@@ -1,0 +1,48 @@
+Write a simple search query that will help answer a complex question.
+
+---
+
+Follow the following format.
+
+Context: may contain relevant facts
+
+Question: ${question}
+
+Reasoning: Let's think step by step in order to ${produce the query}. We ...
+
+Query: ${query}
+
+---
+
+Context:
+[1] «Who Put the Bomp | Who Put The Bomp was a rock music fanzine edited and published by Greg Shaw from 1970 to 1979. Its name came from the hit 1961 doo-wop song by Barry Mann, "Who Put the Bomp". Later, the name was shortened to "Bomp!"»
+[2] «Monthly Magazine | The Monthly Magazine (1796–1843) of London began publication in February 1796. Richard Phillips was the publisher and a contributor on political issues. The editor for the first ten years was the literary jack-of-all-trades, Dr John Aikin. Other contributors included William Blake, Samuel Taylor Coleridge, George Dyer, Henry Neele and Charles Lamb. The magazine also published the earliest fiction of Charles Dickens, the first of what would become "Sketches by Boz".»
+
+Question: Which of these publications was most recently published, Who Put the Bomp or Self?
+
+Reasoning: Let's think step by step in order to produce the query. We know that "Who Put the Bomp" was published from 1970 to 1979, so we need to find out when "Self" was last published in order to determine which publication is more recent.
+
+Query: Last publication date of "Self" magazine
+
+---
+
+Context:
+[1] «Aleksandr Danilovich Aleksandrov | Aleksandr Danilovich Aleksandrov (Russian: Алекса́ндр Дани́лович Алекса́ндров , alternative transliterations: "Alexandr" or "Alexander" (first name), and "Alexandrov" (last name)) (August 4, 1912 – July 27, 1999), was a Soviet/Russian mathematician, physicist, philosopher and mountaineer.»
+[2] «Aleksandr Pavlovich Aleksandrov | Aleksandr Pavlovich Aleksandrov (Russian: Александр Павлович Александров ; born February 20, 1943) is a former Soviet cosmonaut and twice Hero of the Soviet Union (November 23, 1983 and December 29, 1987).»
+
+Question: Who is older, Aleksandr Danilovich Aleksandrov or Anatoly Fomenko?
+
+Reasoning: Let's think step by step in order to produce the query. We know the birthdate of Aleksandr Danilovich Aleksandrov is August 4, 1912, and the birthdate of Aleksandr Pavlovich Aleksandrov is February 20, 1943. Now we need to find the birthdate of Anatoly Fomenko to compare.
+
+Query: Birthdate of Anatoly Fomenko
+
+---
+
+Context:
+[1] «David Gregory (physician) | David Gregory (20 December 1625 – 1720) was a Scottish physician and inventor. His surname is sometimes spelt as Gregorie, the original Scottish spelling. He inherited Kinnairdy Castle in 1664. Three of his twenty-nine children became mathematics professors. He is credited with inventing a military cannon that Isaac Newton described as "being destructive to the human species". Copies and details of the model no longer exist. Gregory's use of a barometer to predict farming-related weather conditions led him to be accused of witchcraft by Presbyterian ministers from Aberdeen, although he was never convicted.»
+[2] «David Webster (architect) | David Webster (1885–1952) was a Scottish-Canadian architect best known for his designs of elementary schools in Saskatoon, Saskatchewan, Canada. His school designs were often in a Collegiate Gothic style emphasizing a central tower, locally referred to as a "castle style". Along with other local architects of his era, such as Walter LaChance and Storey and Van Egmond, Webster prospered during the province’s 1912 economic boom which sparked a frenzy of new construction.»
+[3] «David S. Castle | David S. Castle (13 February 1884 – 28 October 1956) was an architect in Texas.»
+
+Question: How many storeys are in the castle that David Gregory inherited?
+
+Reasoning: Let's think step by step in order to
