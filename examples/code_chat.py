@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 
 def try_chat(llm: LLM, studio: bool):
     # equilavent of https://microsoft.github.io/autogen/docs/tutorial/introduction
-    org = TeamAgent.create_chat_initiator(
+    org = TeamAgent.create_initiator(
         name="UserProxy",
         llm=llm,
         system_prompt="",

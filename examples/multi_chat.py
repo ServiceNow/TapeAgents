@@ -39,7 +39,7 @@ def try_chat(studio: bool):
         max_calls=15,
         llm=llm,
     )
-    org = TeamAgent.create_chat_initiator(
+    org = TeamAgent.create_initiator(
         name="UserProxy",
         init_message="Find a latest paper about gpt-4 on arxiv and find its potential applications in software.",
         teammate=team,

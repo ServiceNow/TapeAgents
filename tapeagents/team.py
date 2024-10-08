@@ -101,7 +101,7 @@ class TeamAgent(Agent[TeamTape]):
         )
 
     @classmethod
-    def create_chat_initiator(
+    def create_initiator(
         cls,
         name: str,
         teammate: Agent[TeamTape],
@@ -280,9 +280,9 @@ def _exec_result_message(agent: TeamAgent, tape: TeamTape) -> str:
     exec_result_message = ""
     if view.exec_result:
         if output := view.exec_result.result.output.strip():
-            exec_result_message = f"I ran the code and got the following output:\n\n{output}"
+            exec_result_message = f"I ran the code `{'`, `'.join(view.exec_result.result.code_files)}` and got the following output:\n\n{output}"
         else:
-            exec_result_message = f"I ran the code, the exit code was {view.exec_result.result.exit_code}."
+            exec_result_message = f"I ran the code `{'`, `'.join(view.exec_result.result.code_files)}`, the exit code was {view.exec_result.result.exit_code}."
     return exec_result_message
 
 
