@@ -49,7 +49,7 @@ class Step(BaseModel):
         """Dump step data only, drop the metadata"""
         return self.model_dump(exclude_none=True, exclude={"metadata"})
 
-    def llm_view(self, indent: int = 2) -> str:
+    def llm_view(self, indent: int | None = 2) -> str:
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
     
     @classmethod
@@ -92,7 +92,15 @@ class AgentResponseParsingFailureAction(Action):
     error: str
 
 
-class FinalStep(Action):
+class StopStep(Action):
+    """
+    Action that stops runtime loop
+    """
+
+    pass
+
+
+class FinalStep(StopStep):
     kind: Literal["final_step"] = "final_step"
     reason: str = ""
 

@@ -3,7 +3,6 @@ import logging
 from typing import Any, Generator, Generic
 
 from pydantic import TypeAdapter, ValidationError
-from typing_extensions import Self
 
 from .agent import Agent, Node
 from .core import (
@@ -16,7 +15,7 @@ from .core import (
     Tape,
     TapeType,
 )
-from .llms import LLM, LLMStream
+from .llms import LLMStream
 from .utils import FatalError, sanitize_json_completion
 
 logger = logging.getLogger(__name__)
@@ -31,6 +30,7 @@ class GuidanceNode(Node):
     Trims the tape if needed.
     """
 
+    trigger_step: str
     guidance: str
     system_prompt: str = ""
     steps_prompt: str = ""
@@ -138,30 +138,9 @@ class GuidedAgent(Agent, Generic[TapeType]):
     def select_node(self, tape: TapeType) -> Node:
         last_kind = tape.steps[-1].kind
         for node in self.nodes:
-            if last_kind == node.name:
+            if last_kind == node.trigger_step:
                 return node
         return self.nodes[-1]  # default to the last node
-
-    @classmethod
-    def create(
-        cls,
-        llm: LLM,
-        nodes: list[GuidanceNode],
-        system_prompt: str,
-        steps_prompt: str,
-        start_step_cls: Any,
-        agent_step_cls: Any,
-        **kwargs,
-    ) -> Self:
-        prepared_nodes = []
-        for node in nodes:
-            # set common default values
-            node.system_prompt = node.system_prompt or system_prompt
-            node.steps_prompt = node.steps_prompt or steps_prompt
-            node.start_step_cls = node.start_step_cls or start_step_cls
-            node.agent_step_cls = node.agent_step_cls or agent_step_cls
-            prepared_nodes.append(node)
-        return super().create(llm, nodes=prepared_nodes, **kwargs)
 
     def delegate(self, tape: TapeType):
         return self

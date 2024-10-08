@@ -9,13 +9,19 @@ from tqdm import tqdm
 
 from tapeagents.llms import TrainableLLM
 
-from .math_agent import (
+from examples.rl_gsm8k.math_agent import (
     MathAgent,
     MathEnvironment,
     extract_result_value,
     save_tape,
     solve_task,
-
+    MathAgentStep,
+    Task,
+    MathNodes,
+    ALLOWED_STEPS,
+    HINTS,
+    START_TASK_GUIDANCE,
+    SYSTEM_PROMPT,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -30,12 +36,19 @@ def main(exp_path: str, attempts: int = 1):
     logging.info(f"Loaded {len(samples)} samples")
 
     llm = TrainableLLM(
-        base_url="https://api.together.xyz",
-        model_name="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-        tokenizer_name="meta-llama/Meta-Llama-3.1-70B-Instruct",
-        parameters=dict(temperature=0.2),
+        base_url="http://127.0.0.1:8080",
+        model_name="/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct",
+        tokenizer_name="/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct",
+        parameters=dict(temperature=0.7),
     )
-    agent = MathAgent.create(llm)
+
+    agent = MathAgent.create(llm=llm,
+                             nodes=MathNodes,
+                             system_prompt=SYSTEM_PROMPT,
+                             steps_prompt=ALLOWED_STEPS,
+                             start_step_cls=Task,
+                             agent_step_cls=MathAgentStep,
+                             )
     env = MathEnvironment()
 
     tapes_dir = os.path.join(exp_path, "tapes")
@@ -48,16 +61,9 @@ def main(exp_path: str, attempts: int = 1):
         sample = extract_result_value(sample)
         for j in range(attempts):
             tape_file = os.path.join(tapes_dir, f"task{i}_attempt{j+1}.json")
-            if os.path.exists(tape_file):
-                logger.info(f"Task {i} attempt {j+1} already solved, skipping")
-                continue
-            try:
-                tape = solve_task(agent, env, sample, tape_file)
-                solved.append(int(tape.metadata.result["solved"]))
-                save_tape(tape_file, tape)
-            except Exception as e:
-                logger.error(colored(f"Failed to solve task, attempt {j+1}: {e}", "red"))
-                solved.append(0)
+            tape = solve_task(agent, env, sample, tape_file)
+            solved.append(int(tape.metadata.result["solved"]))
+            save_tape(tape_file, tape)
         if i % 10 == 0 and i > 0:
             logger.info(f"{i}: Current accuracy: {np.mean(solved):.3f}, prompt tokens used: {agent.llm.token_count}")
     logger.info(f"Accuracy: {np.mean(solved):.3f}, prompt tokens used: {agent.llm.token_count}")
@@ -65,5 +71,5 @@ def main(exp_path: str, attempts: int = 1):
 
 
 if __name__ == "__main__":
-    exp_path = sys.argv[1] if len(sys.argv) > 1 else "gsm8k/tuning/llama31_70b_train"
+    exp_path = sys.argv[1] if len(sys.argv) > 1 else "gsm8k/tuning/llama31_8b_train"
     main(exp_path)

@@ -6,7 +6,8 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 import jsonref
 from pydantic import BaseModel, Field, TypeAdapter
 
-from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep, Observation, Thought
+from tapeagents.core import Action, AgentResponseParsingFailureAction, Observation, StopStep, Thought
+from tapeagents.utils import get_step_schemas_from_union_type
 
 
 ################### Base Step Classes ###################
@@ -240,19 +241,18 @@ class PythonCodeAction(GaiaAction):
 class GaiaQuestion(GaiaObservation):
     kind: Literal["question"] = "question"
     content: str
-    filename: str = ""
+    filename: str | None = None
 
     @classmethod
     def from_task(cls, question: dict):
         question_prompt = question["Question"]
+        filename = None
         if question["file_name"]:
             basename = os.path.basename(question["file_name"])
             tmp_fname = f"/tmp/{basename}"
             shutil.copyfile(question["file_name"], tmp_fname)
             assert os.path.exists(tmp_fname)
             filename = tmp_fname
-        else:
-            filename = ""
         return cls(content=question_prompt, filename=filename)
 
 
@@ -267,6 +267,7 @@ class PageObservation(GaiaObservation):
     text: str
     current_page: int
     total_pages: int
+    error: int | None = None
 
 
 class CalculationResultObservation(GaiaObservation):
@@ -289,7 +290,7 @@ class PreviousFactsObservation(GaiaObservation):
     facts: dict[str, Any]
 
 
-class GaiaAnswer(GaiaAction, FinalStep):
+class GaiaAnswer(GaiaAction, StopStep):
     """
     Action that indicates that the agent has finished the plan and contains answer or the decsription of failure.
     The answer should use already determined facts without any additional conversion!
@@ -370,40 +371,39 @@ actions = [
     NextPageAction,
     ConvertFactAction,
     UseCalculatorAction,
-    # PythonCodeAction,
     GaiaAnswer,
 ]
 
 
-def get_allowed_steps(short_steps: bool, subtasks: bool, plan_thoughts: bool) -> str:
-    def purge_key(d: dict, key: str) -> dict:
-        if isinstance(d, list):
-            return [purge_key(v, key) for v in d]  # type: ignore
-        elif not isinstance(d, dict):
-            return d
-        return {k: purge_key(v, key) for k, v in d.items() if k != key}
-
+def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
     if plan_thoughts:
-        steps = [PlanThought, ListOfFactsThought]  # , DraftPlansThought, SourcesThought
+        steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
     else:
-        steps = [ReadingResultThought, NewFactThought, ReasoningThought] + actions
         if subtasks:
-            steps += [StartSubtask, FinishSubtask]
-    if short_steps:
-        schemas: list[dict] = [dict(jsonref.replace_refs(s.model_json_schema(), proxies=False)) for s in steps]  # type: ignore
-        schema = [
-            {
-                "type": "object",
-                "description": s["description"],
-                "properties": {"kind": s["properties"]["kind"]["default"]}
-                | {
-                    k: purge_key(v, "title")
-                    for k, v in s["properties"].items()
-                    if k not in ["kind", "metadata", "facts", "role", "reason"]
-                },
-            }
-            for s in schemas
-        ]
-    else:
-        schema = TypeAdapter(list[GaiaAgentStep]).json_schema()
-    return json.dumps(schema)
+            steps = Union[
+                ReadingResultThought,
+                NewFactThought,
+                ReasoningThought,
+                SearchAction,
+                ReadDocumentAction,
+                NextPageAction,
+                ConvertFactAction,
+                UseCalculatorAction,
+                GaiaAnswer,
+                StartSubtask,
+                FinishSubtask,
+            ]
+        else:
+            steps = Union[
+                ReadingResultThought,
+                NewFactThought,
+                ReasoningThought,
+                SearchAction,
+                ReadDocumentAction,
+                NextPageAction,
+                ConvertFactAction,
+                UseCalculatorAction,
+                GaiaAnswer,
+            ]
+    steps_alias = Annotated[steps, Field(discriminator="kind")]
+    return get_step_schemas_from_union_type(steps_alias)

@@ -2,12 +2,11 @@ import platform
 from typing import Any
 
 from tapeagents.core import Prompt
-from tapeagents.dialog_tape import SystemStep, UserStep
 from tapeagents.guided_agent import GuidanceNode, GuidedAgent
 from tapeagents.llms import LLM
 from tapeagents.utils import get_step_schemas_from_union_type
 
-from .prompts import TEMPLATES, PromptRegistry
+from .prompts import PromptRegistry
 from .steps import (
     PageObservation,
     WorkArenaAction,
@@ -31,6 +30,9 @@ class WorkArenaBaselineNode(GuidanceNode):
     - long_description
     """
 
+    guidance: str = ""
+    agent_step_cls: Any = WorkArenaAgentStep
+
     def make_prompt(self, agent: Any, tape: WorkArenaTape) -> Prompt:
         assert isinstance(tape.steps[1], WorkArenaTask)
         goal = PromptRegistry.goal_instructions.format(goal=tape.steps[1].task)
@@ -47,11 +49,12 @@ class WorkArenaBaselineNode(GuidanceNode):
 {PromptRegistry.abstract_example}
 {PromptRegistry.concrete_example}
         """.strip()
-        messages = [
-            SystemStep(content=PromptRegistry.baseline_system_prompt).model_dump(),
-            UserStep(content=main_prompt).model_dump(),
-        ]
-        return Prompt(messages=messages)
+        return Prompt(
+            messages=[
+                {"role": "system", "content": PromptRegistry.baseline_system_prompt},
+                {"role": "user", "content": main_prompt},
+            ]
+        )
 
     def history_prompt(self, tape: WorkArenaTape) -> str:
         prompts = []
@@ -77,7 +80,12 @@ class WorkArenaBaseline(GuidedAgent):
 
 
 class WorkArenaNode(GuidanceNode):
-    def get_steps_description(self, tape: WorkArenaTape) -> str:
+    system_prompt: str = PromptRegistry.system_prompt
+    steps_prompt: str = PromptRegistry.allowed_steps
+    start_step_cls: Any = PageObservation
+    agent_step_cls: Any = WorkArenaAgentStep
+
+    def get_steps_description(self, tape: WorkArenaTape, agent: Any) -> str:
         return self.steps_prompt.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep))
 
     def prepare_tape(self, tape: WorkArenaTape, max_chars: int = 100):
@@ -106,13 +114,9 @@ class WorkArenaAgent(GuidedAgent):
         return super().create(
             llm,
             nodes=[
-                WorkArenaNode(name="task", guidance=PromptRegistry.start),
-                WorkArenaNode(name="reflection_thought", guidance=PromptRegistry.act),
-                WorkArenaNode(name="default", guidance=PromptRegistry.think),
+                WorkArenaNode(name="start", trigger_step="task", guidance=PromptRegistry.start),
+                WorkArenaNode(name="act", trigger_step="reflection_thought", guidance=PromptRegistry.act),
+                WorkArenaNode(name="think", trigger_step="default", guidance=PromptRegistry.think),
             ],
-            system_prompt=PromptRegistry.system_prompt,
-            steps_prompt=PromptRegistry.allowed_steps,
-            start_step_cls=PageObservation,
-            agent_step_cls=WorkArenaAgentStep,
             max_iterations=2,
         )

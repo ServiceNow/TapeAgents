@@ -36,8 +36,8 @@ def main(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     last_action = None
     repeated_action_cnt = 0
-    for i, task in enumerate(ALL_WORKARENA_TASKS):
-        for seed in cfg.seeds:
+    for seed in cfg.seeds:
+        for i, task in enumerate(ALL_WORKARENA_TASKS):
             task_name = f"task{i}_seed{seed}_{task.get_task_id()}"
             fname = f"{task_name}.json"
             if os.path.exists(os.path.join(tapes_dir, fname)):

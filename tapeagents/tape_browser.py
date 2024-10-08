@@ -55,9 +55,6 @@ class TapeBrowser:
             raise
         return tapes
 
-    def load_prompts(self):
-        self.prompts = retrieve_tape_llm_calls(self.tapes)
-
     def get_steps(self, tape: Tape) -> list:
         return tape.steps
 

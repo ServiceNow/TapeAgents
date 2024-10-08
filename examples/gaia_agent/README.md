@@ -21,3 +21,10 @@ Additionally, the Gaia agent implements the initial planning step, which produce
 - `python -m examples.gaia_agent.scripts.demo` - Interactive Gradio Demo that allows you to set the task for the agent and observe how it solves it step by step.
 - `python -m examples.gaia_agent.scripts.evaluate` - script to run evaluation on the GAIA validation set.
 - `python -m examples.gaia_agent.scripts.tape_browser` - Gradio UI for exploring the tapes and metrics produced during evaluation.
+
+## Results
+| Model | Avg. Val Accuracy | Val Level 1 Accuracy|  Val Level 2 Accuracy |  Val Level 3 Accuracy |
+| --- | --- |  --- | --- | --- |
+| chatgpt-4o-latest | 27.88 | 39.62 | 26.74 | 7.69 |
+| gpt-4o-2024-08-06 | 28.48 | 37.74 | 31.4 | 0.0 |
+| gpt-4o-mini | 18.79 | 32.08 | 16.28 | 0.0 |

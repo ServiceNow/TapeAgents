@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import shutil
 import subprocess
 from functools import cached_property
 from typing import Any, Counter, Iterable
@@ -117,29 +118,34 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
     results: list[Any] = []
     previous_plans: list[str] = []
     while len(tapes) < n_attempts:
-        tape = GaiaTape(steps=[question])
-        logger.info(colored(f"Attempt {len(tapes)+1}", "green"))
-        discard_attempt = False
-        planned = False
-        step = None
-        for event in main_loop(agent, tape, env, max_loops=30):
-            if event.agent_event and event.agent_event.step:
-                step = event.agent_event.step
-                tape = tape.append(step)  # type: ignore
-                if isinstance(step, PlanThought) and not planned:
-                    plan_dump = "\n".join(step.plan)
-                    if plan_dump in previous_plans:
-                        logger.info("Plan already been used, discard attempt")
-                        discard_attempt = True
-                        break
-                    else:
-                        planned = True
-                        previous_plans.append(plan_dump)
-            if event.observation:
-                tape = tape.append(event.observation)  # type: ignore
-        if discard_attempt:
-            continue
-        predicted = str(step.answer if isinstance(step, GaiaAnswer) else None)
+        predicted = None
+        tries = 3
+        while not predicted and tries:
+            tape = GaiaTape(steps=[question])
+            logger.info(colored(f"Attempt {len(tapes)+1}", "green"))
+            discard_attempt = False
+            planned = False
+            step = None
+            for event in main_loop(agent, tape, env, max_loops=30):
+                if event.agent_event and event.agent_event.step:
+                    step = event.agent_event.step
+                    tape = tape.append(step)  # type: ignore
+                    if isinstance(step, PlanThought) and not planned:
+                        plan_dump = "\n".join(step.plan)
+                        if plan_dump in previous_plans:
+                            logger.info("Plan already been used, discard attempt")
+                            discard_attempt = True
+                            break
+                        else:
+                            planned = True
+                            previous_plans.append(plan_dump)
+                if event.observation:
+                    tape = tape.append(event.observation)  # type: ignore
+            if discard_attempt:
+                continue
+            predicted = step.answer if isinstance(step, GaiaAnswer) else None
+            tries -= 1
+        predicted = str(predicted)
         tapes.append(tape)
         results.append(predicted)
         logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
@@ -153,16 +159,30 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
     return best_tape
 
 
-def task_to_question_step(task, env):
+def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int = 8000) -> GaiaQuestion:
     question = GaiaQuestion.from_task(task)
     if question.filename:
-        ext = question.filename.split(".")[-1]
-        document_text = env.tools.get_whole_document(question.filename)
-        if len(document_text) < 2000:
-            question.content += f"\n{ext.upper()} document content:\n{document_text}"
+        name, ext = question.filename.rsplit(".", maxsplit=1)
+        if ext == "zip":
+            folder_name = name
+            os.makedirs(folder_name, exist_ok=True)
+            shutil.unpack_archive(question.filename, folder_name)
+            document_text = "\n\nArchive contains the following files:\n"
+            for i, file in enumerate(os.listdir(folder_name)):
+                file_path = os.path.join(folder_name, file)
+                content = env.browser.get_whole_document(file_path)
+                file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
+                if len(file_text) > max_doc_length:
+                    file_text = f"{i+1}. Path to the '{file}': {file_path}"
+                document_text += file_text
         else:
-            question.content += f"\nPath to the mentioned document: {question.filename}"
-    logger.info(f"Question: {question}")
+            content = env.browser.get_whole_document(question.filename)
+            document_text = f"\n\n{ext.upper()} document content:\n{content}"
+            if len(document_text) > max_doc_length:
+                document_text = f"\nPath to the mentioned document: {question.filename}"
+        question.content += document_text
+    question.filename = None
+    logger.info(f"Question: {question.content}")
     return question
 
 

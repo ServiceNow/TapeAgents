@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from termcolor import colored
 
 from .agent import Agent
-from .core import AgentEvent, FinalStep, Observation, Step, Tape, TapeType
+from .core import AgentEvent, Observation, Step, StopStep, Tape, TapeType
 from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
 from .rendering import step_view
 from .utils import FatalError, diff_dicts
@@ -105,8 +105,8 @@ def main_loop(
             yield MainLoopEvent(agent_tape=agent_tape)
 
             # --- RUN THE ENVIRONMENT ---
-            if isinstance(agent_tape.steps[-1], FinalStep):
-                logger.debug(f"Agent emitted final step {agent_tape.steps[-1]}")
+            if isinstance(agent_tape.steps[-1], StopStep):
+                logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
                 yield MainLoopEvent(status=MainLoopStatus.FINISHED)
                 return
             try:
@@ -168,6 +168,12 @@ def replay_tape(
         for event in agent.run(new_tape):
             if event.step:
                 step_dict = event.step.llm_dict()
+                if i >= len(tape.steps):
+                    logger.error(f"Extra step {i} from agent, kind: {step_dict.get('kind')}")
+                    match = False
+                    if stop_on_mismatch:
+                        return False
+                    break
                 old_step_dict = tape.steps[i].llm_dict()
                 i += 1
                 kind = step_dict.get("kind")
@@ -191,8 +197,8 @@ def replay_tape(
                 break
         assert event and event.final_tape
         agent_tape = event.final_tape
-        if isinstance(agent_tape.steps[-1], FinalStep):
-            logger.debug(f"Agent emitted final step {agent_tape.steps[-1]}")
+        if isinstance(agent_tape.steps[-1], StopStep):
+            logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
             break
 
         if reuse_observations:
@@ -223,8 +229,8 @@ def replay_tape(
                 else:
                     logger.debug(f"Observation {i} ok")
 
-                if isinstance(observation, FinalStep):
-                    logger.debug(f"Environment emitted final step {observation}")
+                if isinstance(observation, StopStep):
+                    logger.info(f"Environment emitted final step {observation}")
                     break
     return match
 

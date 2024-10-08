@@ -95,6 +95,7 @@ class SimpleTextBrowser:
         self.only_cached_webpages = only_cached_webpages
         self._cache = {}
         self._log = {}
+        self._cache_writes = 0
         self._cache_filename = "web_cache.json"
         if _FORCE_CACHE_PATH:
             self._cache_filename = _FORCE_CACHE_PATH
@@ -111,7 +112,7 @@ class SimpleTextBrowser:
         return self.history[-1][0]
 
     def set_address(self, uri_or_path: str) -> None:
-        # TODO: Handle anchors
+        """Update the address, visit the page, and set the content of the viewport."""
         self.history.append((uri_or_path, time.time()))
 
         # Handle special URIs
@@ -230,17 +231,6 @@ class SimpleTextBrowser:
 
         return None
 
-    def visit_page(self, path_or_uri: str) -> str:
-        """Update the address, visit the page, and return the content of the viewport."""
-        self._page_error = 0
-        self.set_address(path_or_uri)
-        return self.viewport
-
-    def search(self, query: str) -> str:
-        """Search for the query and return the content of the viewport."""
-        self.set_address(f"search: {query}")
-        return self.viewport
-
     def _split_pages(self) -> None:
         # Do not split search results
         if self.address.startswith("search:"):
@@ -269,12 +259,13 @@ class SimpleTextBrowser:
         Return list of dictionaries with keys 'title', 'url', and 'content'.
 
         """
-        if self.use_web_cache and query in self._cache:
+        key = query.lower().strip()
+        if self.use_web_cache and key in self._cache:
             logger.info(colored(f"Cache hit for search {query}", "green"))
-            self._log[query] = self._cache[query]
-            return self._cache[query][:max_results]
+            self._log[query] = self._cache[key]
+            return self._cache[key][:max_results]
         if self.only_cached_webpages:
-            ratios = [(k, ratio(query, k, score_cutoff=0.5)) for k in self._cache.keys()]
+            ratios = [(k, ratio(key, k, score_cutoff=0.5)) for k in self._cache.keys()]
             if not len(ratios):
                 raise FatalError(f'No cache for "{query}"')
             closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
@@ -287,7 +278,7 @@ class SimpleTextBrowser:
                 {"title": r.title, "url": r.url, "content": r.description}
                 for r in search(query, advanced=True, num_results=max_results)
             ]
-        self._add_to_cache(query, results)
+        self._add_to_cache(key, results)
         return results[:max_results]
 
     def _fetch_page(self, url: str) -> None:
@@ -328,7 +319,6 @@ class SimpleTextBrowser:
                             base, ext = os.path.splitext(fname)
                             new_fname = f"{base}__{suffix}{ext}"
                             download_path = os.path.abspath(os.path.join(self.downloads_folder, new_fname))
-
                     except NameError:
                         pass
 
@@ -354,12 +344,14 @@ class SimpleTextBrowser:
 
         except UnsupportedFormatException as e:
             print(colored(f"UnsupportedFormatException: {e}", "red"))
-            self.page_title = "Download complete."
-            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+            self.page_title = "Unsupported Format"
+            self._set_page_content(f"Unsupported Format File: {e}")
+            self._page_error = 1
         except FileConversionException as e:
             print(colored(f"FileConversionException: {e}", "red"))
-            self.page_title = "Download complete."
-            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+            self.page_title = "Failed to read file"
+            self._set_page_content(f"Error: {e}")
+            self._page_error = 2
         except FileNotFoundError:
             self.page_title = "Error 404"
             self._set_page_content(f"## Error 404\n\nFile not found: {download_path}")
@@ -367,6 +359,7 @@ class SimpleTextBrowser:
         except requests.exceptions.RequestException as e:
             if response is None:
                 self._set_page_content(f"## Error {e}")
+                self._page_error = 3
             else:
                 self.page_title = f"Error {response.status_code}"
                 self._page_error = response.status_code
@@ -389,7 +382,9 @@ class SimpleTextBrowser:
 
     def page_with_title(self) -> str:
         if self._page_error:
-            header = f"Failed to load page, HTTP Error {self._page_error}\n=======================\n"
+            header = (
+                f"Failed to load page, Error {self._page_error}\nTitle: {self.page_title}\n=======================\n"
+            )
         else:
             header = f"Title: {self.page_title}\n=======================\n" if self.page_title else ""
         return header + self.viewport.strip()
@@ -400,17 +395,23 @@ class SimpleTextBrowser:
     def _add_to_cache(self, k: str, value: Any) -> None:
         self._cache[k] = value
         self._log[k] = value
-        with open(self._cache_filename, "w") as f:
-            json.dump(self._cache, f)
+        self._cache_writes += 1
+        if self._cache_writes % 10 == 0:
+            with open(self._cache_filename, "w") as f:
+                json.dump(self._cache, f, indent=2, ensure_ascii=False)
 
-    def get_page(self, url: str) -> tuple[str, int, int]:
+    def get_page(self, url: str) -> tuple[str, int, int, int]:
         """
         Load web page and return content of its first viewport (first screen), current page number and total number of pages.
         """
+        self._page_error = 0
+        local_file = False
         if url.startswith("/"):
             # in case of a local file
             url = f"file://{url}"
-        if self.use_web_cache and url in self._cache:
+        if url.startswith("file://"):
+            local_file = True
+        if self.use_web_cache and url in self._cache and not local_file:
             logger.info(colored(f"Cache hit {url}", "green"))
             self._log[url] = self._cache[url]
             content, title = self._cache[url]
@@ -428,13 +429,11 @@ class SimpleTextBrowser:
         else:
             logger.info(colored(f"Page {url} not in cache", "yellow"))
             self.page_title = ""
-            self.visit_page(url)
+            self.set_address(url)
             self._add_to_cache(url, (self.page_content, self.page_title))
-        return (
-            self.page_with_title(),
-            self.viewport_current_page + 1,
-            len(self.viewport_pages),
-        )
+        error = self._page_error
+        self._page_error = 0
+        return (self.page_with_title(), self.viewport_current_page + 1, len(self.viewport_pages), error)
 
     def get_next_page(self) -> tuple[str, int, int]:
         """
