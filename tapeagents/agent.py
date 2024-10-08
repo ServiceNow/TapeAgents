@@ -432,7 +432,7 @@ class Agent(BaseModel, Generic[TapeType]):
         reused_tape = tape.model_validate(dict(context=tape.context, metadata=TapeMetadata(), steps=reused_steps))
         return reused_tape, llm_calls
     
-    def parse(self, tape: TapeType) -> list[tuple[Node, int]]:
+    def get_node_runs(self, tape: TapeType) -> list[tuple[Node, int]]:
         """Parse the tape into fragments produced by the agent's nodes"""
         last_prompt_id = None
         result = []

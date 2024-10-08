@@ -12,7 +12,7 @@ def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
     """
     demos = {template_name: [] for template_name in agent.templates}
     for tape in tapes:
-        for node, index in agent.parse(tape):
+        for node, index in agent.get_node_runs(tape):
             if isinstance(node, LLMFunctionNode):
                 demos[node.template_name].append(node.extract_demo(agent, tape, index))
     rng = random.Random(seed)
