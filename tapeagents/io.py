@@ -46,6 +46,12 @@ def save_tapes(filename: Path, mode: str = "w") -> Generator[TapeSaver, None, No
     _file.close()
 
 
+def save_tape(tapes_dir: str, name: str, tape: Tape):
+    fpath = os.path.join(tapes_dir, f"{name}.json")
+    with open(fpath, "w") as f:
+        f.write(tape.model_dump_json(indent=4))
+
+
 def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension: str = ".yaml") -> list[Tape]:
     if not os.path.exists(path):
         raise FileNotFoundError(f"File not found: {path}")
