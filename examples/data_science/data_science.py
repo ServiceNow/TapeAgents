@@ -38,7 +38,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
         max_calls=15,
         llm=llm,
     )
-    org = TeamAgent.create_chat_initiator(
+    org = TeamAgent.create_initiator(
         name="Initiator",
         init_message=(
             "Make a plot comparing the stocks of ServiceNow and Salesforce"

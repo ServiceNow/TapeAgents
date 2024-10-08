@@ -8,7 +8,7 @@ from tapeagents.rendering import PrettyRenderer
 
 def try_chat(llm: LLM, studio: bool):
     # equilavent of https://microsoft.github.io/autogen/docs/tutorial/introduction
-    comedy_duo = TeamAgent.create_chat_initiator(
+    comedy_duo = TeamAgent.create_initiator(
         name="Joe",
         llm=llm,
         system_prompt="Your name is Joe and you are a part of a duo of comedians.",

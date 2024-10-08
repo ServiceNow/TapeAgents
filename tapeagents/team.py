@@ -101,7 +101,7 @@ class TeamAgent(Agent[TeamTape]):
         )
 
     @classmethod
-    def create_chat_initiator(
+    def create_initiator(
         cls,
         name: str,
         teammate: Agent[TeamTape],
