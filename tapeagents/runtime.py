@@ -55,7 +55,7 @@ class MainLoopStream(Generic[TapeType]):
             if event.agent_event:
                 yield event.agent_event
 
-    def get_final_tape(self) -> Tape:
+    def get_final_tape(self) -> TapeType:
         """Return the last tape by either the agent or the environment."""
         last_final_tape = None
         for event in self:
@@ -73,7 +73,7 @@ def main_loop(
     start_tape: TapeType,
     environment: Environment,
     max_loops: int = -1,
-) -> MainLoopStream:
+) -> MainLoopStream[TapeType]:
     """
     Main loop of the agent-environment interaction. The agent is run on the tape, then the environment reacts to the
     agent's tape, then the agent is run on the environment's tape, and so on.
@@ -97,7 +97,7 @@ def main_loop(
             for event in agent.run(tape):
                 yield MainLoopEvent(agent_event=event)
                 if event.step:
-                    logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+                    logger.debug(colored(f"AGENT: {step_view(event.step)}", "green"))
                 if event.final_tape:
                     break
             assert event and event.final_tape
@@ -106,7 +106,7 @@ def main_loop(
 
             # --- RUN THE ENVIRONMENT ---
             if isinstance(agent_tape.steps[-1], FinalStep):
-                logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
+                logger.debug(f"Agent emitted final step {agent_tape.steps[-1]}")
                 yield MainLoopEvent(status=MainLoopStatus.FINISHED)
                 return
             try:
@@ -118,7 +118,7 @@ def main_loop(
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:
-                logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+                logger.debug(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
                 yield MainLoopEvent(observation=observation)
             yield MainLoopEvent[TapeType](env_tape=tape)
 
@@ -186,13 +186,13 @@ def replay_tape(
                     if stop_on_mismatch:
                         return False
                 else:
-                    logger.info(f"Step {i} ok")
+                    logger.debug(f"Step {i} ok")
             if event.final_tape:
                 break
         assert event and event.final_tape
         agent_tape = event.final_tape
         if isinstance(agent_tape.steps[-1], FinalStep):
-            logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
+            logger.debug(f"Agent emitted final step {agent_tape.steps[-1]}")
             break
 
         if reuse_observations:
@@ -203,7 +203,7 @@ def replay_tape(
                 else:
                     break
             if len(observations):
-                logger.info(f"Reusing {len(observations)} observations from tape")
+                logger.debug(f"Reusing {len(observations)} observations from tape")
             new_tape = agent_tape + observations
             i += len(observations)
         else:
@@ -221,10 +221,10 @@ def replay_tape(
                     if stop_on_mismatch:
                         return False
                 else:
-                    logger.info(f"Observation {i} ok")
+                    logger.debug(f"Observation {i} ok")
 
                 if isinstance(observation, FinalStep):
-                    logger.info(f"Environment emitted final step {observation}")
+                    logger.debug(f"Environment emitted final step {observation}")
                     break
     return match
 
@@ -244,7 +244,7 @@ def replay_tapes(
     ok = 0
     fails = 0
     for i, tape in enumerate(tapes):
-        logger.info(f"Tape {i}")
+        logger.debug(f"Tape {i}")
         try:
             if not replay_tape(agent, tape, env, reuse_observations=reuse_observations):
                 raise FatalError("Tape mismatch")
@@ -255,5 +255,5 @@ def replay_tapes(
             if pause_on_error:
                 input("Press Enter to continue...")
 
-        logger.info(colored(f"Ok: {ok}, Fails: {fails}", "green"))
+        logger.debug(colored(f"Ok: {ok}, Fails: {fails}", "green"))
     return fails

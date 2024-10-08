@@ -29,7 +29,7 @@ class ActiveTeamAgentView:
         view = TapeViewStack.compute(tape)
         self.messages = view.messages_by_agent[agent.full_name]
         self.last_non_empty_message = next((m for m in reversed(self.messages) if m.content), None)
-        self.node = agent.get_node(view)
+        self.node = agent.select_node(tape)
         self.steps = view.top.steps
         self.steps_by_kind = view.top.steps_by_kind
         self.exec_result = self.steps[-1] if self.steps and isinstance(self.steps[-1], CodeExecutionResult) else None
@@ -53,9 +53,6 @@ class TeamAgent(Agent[TeamTape]):
     init_message: str | None = None
 
     model_config = ConfigDict(use_enum_values=True)
-
-    def get_node(self, view: TapeViewStack) -> Node:
-        return self.nodes[view.top.next_node]
 
     @classmethod
     def create(

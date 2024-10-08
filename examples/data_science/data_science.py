@@ -12,7 +12,7 @@ from tapeagents.environment import CodeExecutionEnvironment, Environment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
 from tapeagents.runtime import main_loop
-from tapeagents.utils import run_in_tmp_dir_to_make_test_data
+from tapeagents.test_utils import run_in_tmp_dir_to_make_test_data
 from tapeagents.view import Call, Respond
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

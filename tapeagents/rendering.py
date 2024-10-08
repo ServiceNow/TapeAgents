@@ -273,9 +273,9 @@ class PrettyRenderer(BasicRenderer):
 
         def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
-
-        def maybe_fold(content: str):
-            summary = f"{len(content)} characters ..."
+        def maybe_fold(content: Any):
+            content = str(content)
+            summary = f"{len(content)} characters ..." 
             if len(content) > 1000:
                 return f"<details><summary>{summary}</summary>{content}</details>"
             return content
