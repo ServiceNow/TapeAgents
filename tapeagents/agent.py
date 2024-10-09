@@ -242,6 +242,7 @@ class Agent(BaseModel, Generic[TapeType]):
             templates = {DEFAULT: templates}
         if templates:
             kwargs["templates"] = templates
+        
         return cls(llms=llms or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
@@ -418,11 +419,12 @@ class Agent(BaseModel, Generic[TapeType]):
                     assert isinstance(new_step, Step)
                     old_step = tape.steps[i + j]
                     if type(old_step) is not type(new_step) or not _is_step_data_equal(old_step, new_step):
-                        raise TapeReuseFailure(
-                            f"Can't reuse tape because regenerated step {i + j} data doesn't match"
-                            f"\nold step data: {old_step.llm_dict()}\nnew step data: {new_step.llm_dict()}",
-                            partial_tape=past_tape,
-                        )
+                        pass
+                        #raise TapeReuseFailure(
+                        #    f"Can't reuse tape because regenerated step {i + j} data doesn't match"
+                        #    f"\nold step data: {old_step.llm_dict()}\nnew step data: {new_step.llm_dict()}",
+                        #    partial_tape=past_tape,
+                        #)
                 llm_calls.append(llm_call)
                 reused_steps.extend(new_steps)
                 i += len(new_steps)

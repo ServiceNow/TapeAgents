@@ -137,6 +137,7 @@ class TapeMetadata(BaseModel):
     n_added_steps: int = 0
     error: Any | None = None
     result: Any = {}
+    
 
 
 ContextType = TypeVar("ContextType")

@@ -8,6 +8,7 @@ from .agent import Agent, Node
 from .core import (
     AgentResponseParsingFailureAction,
     AgentStep,
+    StepMetadata,
     LLMOutput,
     PartialStep,
     Prompt,
@@ -48,6 +49,9 @@ class MonoNode(Node):
         return tape
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
+        if isinstance(tape.steps[index], AgentResponseParsingFailureAction):
+            # FIXME: this is a hack to log the completion to train the agent
+            return LLMOutput(role="assistant", content=tape.steps[index].metadata.other["completion"])
         return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
 
     def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
@@ -94,7 +98,10 @@ class MonoNode(Node):
                 step_dicts = [step_dicts]
         except Exception as e:
             logger.exception(f"Failed to parse agent output: {completion}\n\nError: {e}")
-            yield AgentResponseParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
+            yield AgentResponseParsingFailureAction(
+                error=f"Failed to parse agent output: {completion}\n\nError: {e}",
+                metadata=StepMetadata(other={"completion": completion}),
+            )
             return
         try:
             steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
@@ -105,13 +112,15 @@ class MonoNode(Node):
                 err_text += f"{loc}: {err['msg']}\n"
             logger.exception(f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}")
             yield AgentResponseParsingFailureAction(
-                error=f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}"
+                error=f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}",
+                metadata=StepMetadata(other={"completion": completion}),
             )
             return
         except Exception as e:
             logger.exception(f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}")
             yield AgentResponseParsingFailureAction(
-                error=f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}"
+                error=f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}",
+                metadata=StepMetadata(other={"completion": completion}),
             )
             return
         for step in steps:

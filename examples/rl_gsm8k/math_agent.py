@@ -1,60 +1,158 @@
 import logging
 import os
-from typing import Annotated, Any, Literal, TypeAlias, Union
+from typing import Annotated, Literal, TypeAlias, Union
 
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep, Observation, Tape, Thought
+from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep, Observation, Tape, Thought, TrainingText
 from tapeagents.environment import Environment
-from tapeagents.guided_agent import GuidanceNode, GuidedAgent
 from tapeagents.llms import LLM
+from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.runtime import main_loop
 from tapeagents.tools.calculator import calculate
 from tapeagents.utils import get_step_schemas_from_union_type
 
-from .prompts import (
-    ActionExecutionFailure,
-    AnswerAction,
-    CalculationResultObservation,
-    MathAgentStep,
-    MathTape,
-    PromptRegistry,
-    Task,
-    UseCalculatorAction,
-)
-
 logger = logging.getLogger(__name__)
 
 
-class MathNode(GuidanceNode):
-    system_prompt: str = PromptRegistry.system_prompt
-    allowed_steps: str = PromptRegistry.allowed_steps
-    start_step_cls: Any = Task
-    agent_step_cls: Any = MathAgentStep
+#### Steps ####
+class Task(Observation):
+    kind: Literal["task"] = "task"
+    task: str
+
+
+class ReasoningThought(Thought):
+    """
+    Thoughts produced by the agent during the reasoning process.
+    """
+
+    kind: Literal["reasoning_thought"] = "reasoning_thought"
+    reasoning: str = Field(description="chain of thoughts")
+
+
+class UseCalculatorAction(Action):
+    """
+    Action to use calculator to find the new value. This math expression should be a single line. You can use exp, cos, sin, tan, abs, trunc, sgn, round
+    """
+
+    kind: Literal["use_calculator_action"] = "use_calculator_action"
+    expression: str = Field(description="math expression to calculate")
+
+
+class CalculationResultObservation(Observation):
+    kind: Literal["calculation_result_observation"] = "calculation_result_observation"
+    result: str
+
+
+class ActionExecutionFailure(Observation):
+    kind: Literal["action_execution_failure"] = "action_execution_failure"
+    error: str
+
+
+class AnswerAction(FinalStep):
+    """
+    Action that provides the final answer to the user after completing the task. Should be produced when the agent has finished the task.
+    """
+
+    kind: Literal["final_answer_action"] = "final_answer_action"
+    text: str = Field(description="final answer to the user")
+    value: int | float | None = Field(description="numerical value of the answer or null if solution is not found")
+
+
+# FIXME: should not agent AgentResponseParsingFailureAction in steps
+# But otherwise, it crashes _, llm_calls = self.reuse(tape)
+MathAgentStep: TypeAlias = Annotated[
+    Union[
+        UseCalculatorAction,
+        ReasoningThought,
+        AnswerAction,
+        AgentResponseParsingFailureAction
+    ],
+    Field(discriminator="kind"),
+]
+
+MathAgentStep2: TypeAlias = Annotated[
+    Union[
+        UseCalculatorAction,
+        ReasoningThought,
+        AnswerAction,
+    ],
+    Field(discriminator="kind"),
+]
+
+MathTape = Tape[
+    None,
+    Union[
+        Task,
+        ReasoningThought,
+        UseCalculatorAction,
+        CalculationResultObservation,
+        ActionExecutionFailure,
+        AgentResponseParsingFailureAction,
+        AnswerAction,
+    ],
+]
+
+#### Prompts ####
+
+SYSTEM_PROMPT = """You are the genius math agent. Help user solve math problems.
+Your role is to understand user queries and respond in a helpful and accurate manner.
+Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
+"""
+
+
+
+
+ALLOWED_STEPS = f"""
+You are allowed to produce ONLY steps with the following json schemas:
+{get_step_schemas_from_union_type(MathAgentStep2)}
+Do not reproduce schema when producing the steps, use it as a reference.
+"""
+
+HINTS = """
+Important considerations:
+- Always produce only one step at a time.
+- Step kind is always lowercase and underscore separated.
+- DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
+"""
+
+START_TASK_GUIDANCE = f"Let's think step by step using reasoning and calculations.\n{HINTS}"
 
 
 #### Agent and Environment ####
-class MathAgent(GuidedAgent):
+class MathAgent(MonoAgent):
     @classmethod
     def create(cls, llm: LLM):
         return super().create(
             llm,
             nodes=[
-                MathNode(
-                    name="Task",
-                    trigger_step="Task",
-                    guidance=PromptRegistry.task_guidance,
+                MonoNode(
+                    name="start",
+                    trigger_step="task",
+                    system_prompt=SYSTEM_PROMPT,
+                    steps_prompt=ALLOWED_STEPS,
+                    agent_step_cls=MathAgentStep,
+                    guidance=START_TASK_GUIDANCE,
                 ),
-                MathNode(
-                    name="Thought",
-                    trigger_step=["Thought", "CalculationResultObservation", "ActionExecutionFailure"],
-                    guidance=PromptRegistry.hints,
-                    steps_prompt=PromptRegistry.allowed_steps,
+                MonoNode(
+                    name="default",
+                    trigger_step="default",
+                    system_prompt=SYSTEM_PROMPT,
+                    steps_prompt=ALLOWED_STEPS,
+                    agent_step_cls=MathAgentStep,
+                    guidance=HINTS,
                 ),
             ],
             max_iterations=2,
         )
+
+    def make_training_data(self, tape: Tape) -> list[TrainingText]:
+        """
+        We only train on the last completion
+        """
+        _, llm_calls = self.reuse(tape)
+        return [self.make_training_text(llm_call, compute_log_probs=True) for llm_call in llm_calls]
 
 
 class MathEnvironment(Environment):
@@ -111,7 +209,7 @@ def solve_task(agent: Agent, env: Environment, task: dict, tape_file: str = "") 
 
 def extract_result_value(sample) -> dict:
     sample = dict(sample)
-    expected_result = str(sample["answer"]).rsplit("####", maxsplit=1)[-1].strip().replace(",", "")
+    expected_result = str(sample["answer"]).rsplit("####", maxsplit=1)[-1].strip().replace(",", ".")
     if expected_result.isdigit():
         expected_result = int(expected_result)
     else:
