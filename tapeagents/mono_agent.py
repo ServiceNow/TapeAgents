@@ -47,7 +47,7 @@ class MonoNode(Node):
     def prepare_tape(self, tape: Tape) -> Tape:
         return tape
 
-    def make_llm_output(self, tape: Tape, index: int) -> LLMOutput:
+    def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
 
     def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
