@@ -108,7 +108,7 @@ class CameraReadyRenderer(BasicRenderer):
         if isinstance(step, Broadcast):
             to = f"to: {', '.join(dump['to'])}"
             text = maybe_fold(to)
-        if isinstance(step, ToolCalls):
+        elif isinstance(step, ToolCalls):
             function_calls = []
             for tool_call in dump["tool_calls"]:
                 function_calls.append(f"{tool_call['function']['name']}({dict_to_params(tool_call['function']['arguments'])})")
