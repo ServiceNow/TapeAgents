@@ -80,7 +80,7 @@ class BasicRenderer:
             ".inner-tape-indent { width: 10%; }"
             ".inner-tape { width: 90%; }"
             ".agent_node { text-align: center; position: relative; margin: 12px 0; }"
-            ".agent_node hr { border: none; border-top: 2px solid #000; margin: 0 !important;  }"
+            ".agent_node hr { border: 1px solid #e1e1e1; margin: 0 !important;}"
             ".agent_node span { position: absolute; right: 0; top: -0.6em; background: white; color: grey !important; padding: 0 10px; }"
             "</style>"
         )
@@ -117,15 +117,21 @@ class BasicRenderer:
     def render_steps(self, tape: Tape, llm_calls: dict[str, LLMCall] = {}) -> str:
         chunks = []
         last_prompt_id = None
+        last_agent_node = None
         for index, step in enumerate(tape):
             if self.filter_steps and not isinstance(step, self.filter_steps):
                 continue
             if self.render_agent_node:
-                agent = step.metadata.agent.split("/")[-1]
-                node = step.metadata.node
-                if agent and node:
-                    agent_node = f"{step.metadata.agent.split('/')[-1]}.{step.metadata.node}"
+                if isinstance(step, UserStep) or isinstance(step, Observation):
+                    agent = "Environment"
+                    node = step.kind
+                else:
+                    agent = step.metadata.agent.split("/")[-1]
+                    node = step.metadata.node
+                agent_node = agent + (f".{node}" if node else "")
+                if agent_node != last_agent_node:
                     chunks.append(f"""<div class="agent_node"><hr><span>{agent_node}</span></div>""")
+                    last_agent_node = agent_node
             if self.render_llm_calls:
                 if step.metadata.prompt_id != last_prompt_id:
                     llm_call = llm_calls.get(step.metadata.prompt_id)

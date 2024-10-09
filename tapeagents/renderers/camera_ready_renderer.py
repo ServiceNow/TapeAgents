@@ -94,6 +94,7 @@ class CameraReadyRenderer(BasicRenderer):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
 
         def maybe_fold(content: str, len_max: int = 125):
+            content = str(content)
             if len(content) > len_max:
                 summary = f"{content[:len_max]} ..."
                 return f"<details><summary>{summary}</summary>---<br>{content}</details>"
