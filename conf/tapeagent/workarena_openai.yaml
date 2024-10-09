@@ -2,14 +2,14 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_t02
+exp_name: gpt4o_mini_t02_1
 exp_path: ../workarena/runs/${exp_name}
 agent: guided
 env:
   exp_path: ${exp_path}
   baseline_obs: True
   headless: True
-seeds: [0, 42, 1337, 9001, 12345]
+seeds: [1, 42, 1337, 17, 99]
   
 hydra:
   run:
