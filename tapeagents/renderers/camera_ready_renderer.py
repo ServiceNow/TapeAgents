@@ -1,9 +1,10 @@
+import ast
 import json
 import yaml
 
 from tapeagents.container_executor import CodeBlock
 from tapeagents.core import Action, Observation, Step, Thought
-from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, UserStep
+from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, UserStep, ToolResult, ToolCalls
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
 from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer
@@ -86,6 +87,10 @@ class CameraReadyRenderer(BasicRenderer):
         dump.pop("agent_name", None)
         dump.pop("copy_output", None)
 
+        if isinstance(step, ToolResult):
+            del dump["tool_call_id"]
+
+
         if not self.show_metadata:
             dump.pop("metadata", None)
 
@@ -103,6 +108,11 @@ class CameraReadyRenderer(BasicRenderer):
         if isinstance(step, Broadcast):
             to = f"to: {', '.join(dump['to'])}"
             text = maybe_fold(to)
+        if isinstance(step, ToolCalls):
+            function_calls = []
+            for tool_call in dump["tool_calls"]:
+                function_calls.append(f"{tool_call['function']['name']}({dict_to_params(tool_call['function']['arguments'])})")
+            text = maybe_fold("\n").join(function_calls)
         elif isinstance(step, ExecuteCode):
             del dump["code"]
 
@@ -176,3 +186,22 @@ class CameraReadyRenderer(BasicRenderer):
             </details>
         </div>"""
         return html
+    
+def dict_to_params(arguments: str) -> str:
+    """
+    Transform a dictionary into a function parameters string.
+    Example: {'a': 1, 'b': 2} -> 'a=1, b=2'
+    """
+    if type(arguments) is str:
+        arguments = str_to_dict(arguments)
+    return ", ".join(f"{key}={value!r}" for key, value in arguments.items())
+
+def str_to_dict(s: str) -> dict:
+    """
+    Convert a string representation of a dictionary into an actual dictionary.
+    Example: "{'a': 1, 'b': 2}" -> {'a': 1, 'b': 2}
+    """
+    try:
+        return ast.literal_eval(s)
+    except (ValueError, SyntaxError):
+        raise ValueError("Invalid string representation of a dictionary")
