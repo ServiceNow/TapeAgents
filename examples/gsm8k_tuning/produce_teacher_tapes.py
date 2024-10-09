@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from tapeagents.llms import TrainableLLM
 
-from .math_agent import (
+from examples.gsm8k_tuning.math_agent import (
     MathAgent,
     MathEnvironment,
     extract_result_value,

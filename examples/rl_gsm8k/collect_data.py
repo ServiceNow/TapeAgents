@@ -15,13 +15,6 @@ from examples.rl_gsm8k.math_agent import (
     extract_result_value,
     save_tape,
     solve_task,
-    MathAgentStep,
-    Task,
-    MathNodes,
-    ALLOWED_STEPS,
-    HINTS,
-    START_TASK_GUIDANCE,
-    SYSTEM_PROMPT,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -42,13 +35,7 @@ def main(exp_path: str, attempts: int = 1):
         parameters=dict(temperature=0.7),
     )
 
-    agent = MathAgent.create(llm=llm,
-                             nodes=MathNodes,
-                             system_prompt=SYSTEM_PROMPT,
-                             steps_prompt=ALLOWED_STEPS,
-                             start_step_cls=Task,
-                             agent_step_cls=MathAgentStep,
-                             )
+    agent = MathAgent.create(llm=llm)
     env = MathEnvironment()
 
     tapes_dir = os.path.join(exp_path, "tapes")
