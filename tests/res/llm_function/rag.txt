@@ -1,0 +1,114 @@
+Answer questions with short factoid answers.
+
+---
+
+Question: At My Window was released by which American singer-songwriter?
+Answer: John Townes Van Zandt
+
+Question: "Everything Has Changed" is a song from an album released under which record label ?
+Answer: Big Machine Records
+
+Question: In what year was the club founded that played Manchester City in the 1972 FA Charity Shield
+Answer: 1874
+
+Question: Which Pakistani cricket umpire who won 3 consecutive ICC umpire of the year awards in 2009, 2010, and 2011 will be in the ICC World Twenty20?
+Answer: Aleem Sarwar Dar
+
+Question: Having the combination of excellent foot speed and bat speed helped Eric Davis, create what kind of outfield for the Los Angeles Dodgers?
+Answer: "Outfield of Dreams"
+
+Question: Who is older, Aleksandr Danilovich Aleksandrov or Anatoly Fomenko?
+Answer: Aleksandr Danilovich Aleksandrov
+
+Question: The Organisation that allows a community to influence their operation or use and to enjoy the benefits arisingwas founded in what year?
+Answer: 2010
+
+Question: Who acted in the shot film The Shore and is also the youngest actress ever to play Ophelia in a Royal Shakespeare Company production of "Hamlet." ?
+Answer: Kerry Condon
+
+Question: Which is taller, the Empire State Building or the Bank of America Tower?
+Answer: The Empire State Building
+
+Question: Which of these publications was most recently published, Who Put the Bomp or Self?
+Answer: Self
+
+Question: Tombstone stared an actor born May 17, 1955 known as who?
+Answer: Bill Paxton
+
+Question: Which company distributed this 1977 American animated film produced by Walt Disney Productions for which Sherman Brothers wrote songs?
+Answer: Buena Vista Distribution
+
+---
+
+Follow the following format.
+
+Context: may contain relevant facts
+
+Question: ${question}
+
+Reasoning: Let's think step by step in order to ${produce the answer}. We ...
+
+Answer: often between 1 and 5 words
+
+---
+
+Context:
+[1] «Candace Kita | Kita's first role was as a news anchor in the 1991 movie "Stealth Hunters". Kita's first recurring television role was in Fox's "Masked Rider", from 1995 to 1996. She appeared as a series regular lead in all 40 episodes. Kita also portrayed a frantic stewardess in a music video directed by Mark Pellington for the British group, Catherine Wheel, titled, "Waydown" in 1995. In 1996, Kita also appeared in the film "Barb Wire" (1996) and guest starred on "The Wayans Bros.". She also guest starred in "Miriam Teitelbaum: Homicide" with "Saturday Night Live" alumni Nora Dunn, "Wall To Wall Records" with Jordan Bridges, "Even Stevens", "Felicity" with Keri Russell, "V.I.P." with Pamela Anderson, "Girlfriends", "The Sweet Spot" with Bill Murray, and "Movies at Our House". She also had recurring roles on the FX spoof, "Son of the Beach" from 2001 to 2002, ABC-Family's "Dance Fever" and Oxygen Network's "Running with Scissors". Kita also appeared in the films "Little Heroes" (2002) and "Rennie's Landing" (2001).»
+[2] «Jilly Kitzinger | Jilly Kitzinger is a fictional character in the science fiction series "Torchwood", portrayed by American actress Lauren Ambrose. The character was promoted as one of five new main characters to join "Torchwood" in its fourth series, "" (2011), as part of a new co-production between "Torchwood"' s British network, BBC One, and its American financiers on US premium television network Starz. Ambrose appears in seven of the ten episodes, and is credited as a "special guest star" throughout. Whilst reaction to the serial was mixed, Ambrose' portrayal was often singled out by critics for particular praise and in 2012 she received a Saturn Award nomination for Best Supporting Actress on Television.»
+[3] «Candace Brown | Candace June Brown (born June 15, 1980) is an American actress and comedian best known for her work on shows such as "Grey's Anatomy", "Desperate Housewives", "Head Case", The "Wizards Of Waverly Place". In 2011, she joined the guest cast for "Torchwood"' s fourth series' "", airing on BBC One in the United Kingdom and premium television network Starz.»
+
+Question: which American actor was Candace Kita guest starred with
+
+Reasoning: Let's think step by step in order to produce the answer. We know that Candace Kita guest starred with various actors in different TV shows and movies.
+
+Answer: Bill Murray
+
+---
+
+Context:
+[1] «Tae Kwon Do Times | Tae Kwon Do Times is a magazine devoted to the martial art of taekwondo, and is published in the United States of America. While the title suggests that it focuses on taekwondo exclusively, the magazine also covers other Korean martial arts. "Tae Kwon Do Times" has published articles by a wide range of authors, including He-Young Kimm, Thomas Kurz, Scott Shaw, and Mark Van Schuyver.»
+[2] «Kwon Tae-man | Kwon Tae-man (born 1941) was an early Korean hapkido practitioner and a pioneer of the art, first in Korea and then in the United States. He formed one of the earliest dojang's for hapkido in the United States in Torrance, California, and has been featured in many magazine articles promoting the art.»
+[3] «Hee Il Cho | Cho Hee Il (born October 13, 1940) is a prominent Korean-American master of taekwondo, holding the rank of 9th "dan" in the martial art. He has written 11 martial art books, produced 70 martial art training videos, and has appeared on more than 70 martial arts magazine covers. Cho won several national and international competitions as a taekwondo competitor, and has appeared in several films, including "Fight to Win", "Best of the Best", "Bloodsport II", and "Bloodsport III". He founded the Action International Martial Arts Association (AIMAA) in 1980, and is its President. Cho is a member of both "Black Belt" magazine's Hall of Fame and "Tae Kwon Do Times" magazine's Hall of Fame.»
+
+Question: Which magazine has published articles by Scott Shaw, Tae Kwon Do Times or Southwest Art?
+
+Reasoning: Let's think step by step in order to produce the answer. We know that "Tae Kwon Do Times" has published articles by Scott Shaw, as mentioned in the context.
+
+Answer: Tae Kwon Do Times
+
+---
+
+Context:
+[1] «Rosario Dawson | Rosario Isabel Dawson (born May 9, 1979) is an American actress, producer, singer, comic book writer, and political activist. She made her film debut in the 1995 teen drama "Kids". Her subsequent film roles include "He Got Game", "Men in Black II", "25th Hour", "Rent", "Sin City", "Death Proof", "Seven Pounds", "", and "Top Five". Dawson has also provided voice-over work for Disney and DC.»
+[2] «Sarai Gonzalez | Sarai Isaura Gonzalez (born 2005) is an American Latina child actress who made her professional debut at the age of 11 on the Spanish-language ""Soy Yo"" ("That's Me") music video by Bomba Estéreo. Cast as a "nerdy" tween with a "sassy" and "confident" attitude, her performance turned her into a "Latina icon" for "female empowerment, identity and self-worth". She subsequently appeared in two get out the vote videos for Latinos in advance of the 2016 United States elections.»
+[3] «Gabriela (2001 film) | Gabriela is a 2001 American romance film, starring Seidy Lopez in the title role alongside Jaime Gomez as her admirer Mike. The film has been cited as an inspiration behind the Premiere Weekend Club, which supports Latino film-making.»
+
+Question: Which American actress who made their film debut in the 1995 teen drama "Kids" was the co-founder of Voto Latino?
+
+Reasoning: Let's think step by step in order to produce the answer. We know that the actress who made her film debut in "Kids" is Rosario Dawson, and she is also known for her political activism, including co-founding Voto Latino.
+
+Answer: Rosario Dawson
+
+---
+
+Context:
+[1] «Battle of Kursk | The Battle of Kursk was a Second World War engagement between German and Soviet forces on the Eastern Front near Kursk (450 km south-west of Moscow) in the Soviet Union during July and August 1943. The battle began with the launch of the German offensive, Operation Citadel (German: "Unternehmen Zitadelle" ), on 5 July, which had the objective of pinching off the Kursk salient with attacks on the base of the salient from north and south simultaneously. After the German offensive stalled on the northern side of the salient, on 12 July the Soviets commenced their Kursk Strategic Offensive Operation with the launch of Operation Kutuzov (Russian: Кутузов ) against the rear of the German forces in the northern side. On the southern side, the Soviets also launched powerful counterattacks the same day, one of which led to a large armoured clash, the Battle of Prokhorovka. On 3 August, the Soviets began the second phase of the Kursk Strategic Offensive Operation with the launch of Operation Polkovodets Rumyantsev (Russian: Полководец Румянцев ) against the German forces in the southern side of the Kursk salient.»
+[2] «Operation Mars | Operation Mars, also known as the Second Rzhev-Sychevka Offensive Operation (Russian: Вторая Ржевско-Сычёвская наступательная операция), was the codename for an offensive launched by Soviet forces against German forces during World War II. It took place between 25 November and 20 December 1942 around the Rzhev salient in the vicinity of Moscow.»
+[3] «Kholm Pocket | The Kholm Pocket (German: "Kessel von Cholm" ; Russian: Холмский котёл ) was the name given for the encirclement of German troops by the Red Army around Kholm south of Leningrad, during World War II on the Eastern Front, from 23 January 1942 until 5 May 1942. A much larger pocket was simultaneously surrounded in Demyansk, about 100 km to the northeast. These were the results of German retreat following their defeat during the Battle of Moscow.»
+
+Question: What is the code name for the German offensive that started this Second World War engagement on the Eastern Front (a few hundred kilometers from Moscow) between Soviet and German forces, which included 102nd Infantry Division?
+
+Reasoning: Let's think step by step in order to produce the answer. We know that the German offensive that started the Battle of Kursk was called Operation Citadel.
+
+Answer: Operation Citadel
+
+---
+
+Context:
+[1] «David Gregory (physician) | David Gregory (20 December 1625 – 1720) was a Scottish physician and inventor. His surname is sometimes spelt as Gregorie, the original Scottish spelling. He inherited Kinnairdy Castle in 1664. Three of his twenty-nine children became mathematics professors. He is credited with inventing a military cannon that Isaac Newton described as "being destructive to the human species". Copies and details of the model no longer exist. Gregory's use of a barometer to predict farming-related weather conditions led him to be accused of witchcraft by Presbyterian ministers from Aberdeen, although he was never convicted.»
+[2] «Gregory Tarchaneiotes | Gregory Tarchaneiotes (Greek: Γρηγόριος Ταρχανειώτης , Italian: "Gregorio Tracanioto" or "Tracamoto" ) was a "protospatharius" and the long-reigning catepan of Italy from 998 to 1006. In December 999, and again on February 2, 1002, he reinstituted and confirmed the possessions of the abbey and monks of Monte Cassino in Ascoli. In 1004, he fortified and expanded the castle of Dragonara on the Fortore. He gave it three circular towers and one square one. He also strengthened Lucera.»
+[3] «David Gregory (mathematician) | David Gregory (originally spelt Gregorie) FRS (? 1659 – 10 October 1708) was a Scottish mathematician and astronomer. He was professor of mathematics at the University of Edinburgh, Savilian Professor of Astronomy at the University of Oxford, and a commentator on Isaac Newton's "Principia".»
+
+Question: What castle did David Gregory inherit?
+
+Reasoning: Let's think step by step in order to

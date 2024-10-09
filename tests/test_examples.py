@@ -6,7 +6,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+import yaml
+from omegaconf import DictConfig
+
 from tapeagents.io import load_tapes
+from tapeagents.test_utils import run_test_in_tmp_dir
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
 
@@ -19,6 +23,7 @@ from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.eval import load_results
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
+from examples.optimize.optimize import make_agentic_rag_agent, make_env
 from examples.tape_improver import tape_improver
 from examples.workarena.agent import WorkArenaBaseline
 from examples.workarena.steps import WorkArenaTape
@@ -198,6 +203,16 @@ def test_tape_improver():
     agent, _, improver_tape = tape_improver.make_world(llm)
     final_tape = tape_improver.CodeImproverTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=improver_tape, reuse_observations=True)
+
+
+def test_optimize():
+    with run_test_in_tmp_dir("optimize"):
+        with open("config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent = make_agentic_rag_agent(cfg)
+        env = make_env()
+        tape = DialogTape.model_validate(load_tape_dict(""))
+        assert replay_tape(agent, tape, env=env, reuse_observations=True)
 
 
 if __name__ == "__main__":

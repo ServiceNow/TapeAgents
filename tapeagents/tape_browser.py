@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Callable, Iterable
 
 import gradio as gr
 import uvicorn
@@ -10,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from tapeagents.io import load_tapes
+from tapeagents.observe import retrieve_tape_llm_calls
 
 from .core import Tape
 from .rendering import BasicRenderer
@@ -45,9 +45,16 @@ class TapeBrowser:
 
     def load_tapes(self, fname: str) -> list[Tape]:
         fpath = os.path.join(self.tapes_folder, fname)
-        tapes = load_tapes(self.tape_cls, fpath)
-        logger.info(f"{len(tapes)} tapes loaded from {fname}")
+        try:
+            tapes = load_tapes(self.tape_cls, fpath)
+            logger.info(f"{len(tapes)} tapes loaded from {fname}")
+        except:
+            logger.error(f"Could not load tapes from {fpath}")
+            raise
         return tapes
+
+    def load_prompts(self):
+        self.prompts = retrieve_tape_llm_calls(self.tapes)
 
     def get_steps(self, tape: Tape) -> list:
         return tape.steps
@@ -125,6 +132,7 @@ class TapeBrowser:
     def update_view(self, selected_file: str):
         logger.info(f"Loading tapes from {selected_file}")
         self.tapes = self.load_tapes(selected_file)
+        self.load_prompts()
         file_label = self.get_file_label(selected_file, self.tapes)
         tape_names = [(self.get_tape_name(i, tape), i) for i, tape in enumerate(self.tapes)]
         logger.info(f"Selected file: {selected_file}, selected tape: {self.selected_tape}")

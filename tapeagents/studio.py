@@ -27,6 +27,7 @@ class Studio:
         self.environment = environment
         self.transforms = transforms or {}
 
+        gr.set_static_paths(paths=["outputs/"]) # Allow HTML to load files (img) from this directory
         with gr.Blocks(title="TapeAgent Studio") as blocks:
             tape_state = gr.State(tape)
             agent_state = gr.State(agent)
@@ -45,11 +46,11 @@ class Studio:
                 with gr.Column(scale=3):
                     tape_render = gr.HTML("")
                 with gr.Column(scale=1):
-                    org_chart = gr.TextArea(render_agent_tree(agent), label="Agents Hierarchy", max_lines=8)
+                    org_chart = gr.TextArea(render_agent_tree(agent), label="Agents Hierarchy", max_lines=20)
                     agent_config = gr.Textbox(
                         "",
                         max_lines=15,
-                        label="Agent configuration",
+                        label="Agents configuration",
                         info="Press Enter to update the agent",
                     )
                     run_agent = gr.Button("Run Agent")
@@ -148,9 +149,10 @@ class Studio:
         last_tape = start_tape
         for event in main_loop(agent, start_tape, self.environment):
             if ae := event.agent_event:
+                if ae.step:
+                    logger.info(f"added step {type(ae.step).__name__}")
                 if tape := ae.partial_tape or ae.final_tape:
                     observe_tape(tape)
-                    logger.info(f"added step {type(ae.step).__name__}")
                     last_tape = tape
                     yield (tape,) + self.render_tape(renderer_name, tape)
             elif event.observation:

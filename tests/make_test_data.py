@@ -6,7 +6,7 @@ import testbook
 
 from examples import delegate_stack
 from examples.tape_improver import tape_improver
-from tapeagents.utils import run_in_tmp_dir_to_make_test_data
+from tapeagents.test_utils import run_in_tmp_dir_to_make_test_data
 
 if __name__ == "__main__":
     match sys.argv[1:]:

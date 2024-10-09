@@ -139,7 +139,7 @@ class Agent(BaseModel, Generic[TapeType]):
         default_factory=lambda: [],
         description="List of subagents, which are agents that are run by this agent. Subagents must have unique names.",
     )
-    templates: dict[str, str] = {}
+    templates: dict[str, Any] = {}
     nodes: list[SerializeAsAny[Node]] = Field(
         default_factory=lambda: [],
         description="List of nodes in the agent, order of the list used to determine the priority during activation. Nodes must have unique names.",
@@ -206,6 +206,12 @@ class Agent(BaseModel, Generic[TapeType]):
             if agent.name == name:
                 return agent
         raise ValueError(f"Agent {name} not found")
+    
+    def find_node(self, name: str):
+        for node in self.nodes:
+            if node.name == name:
+                return node
+        raise ValueError(f"Node {name} not found")
 
     def get_subagent_names(self) -> list[str]:
         return [agent.name for agent in self.subagents]
@@ -222,7 +228,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def create(
         cls,
         llms: dict[str, LLM] | LLM | None = None,
-        templates: dict[str, str] | str | None = None,
+        templates: dict[str, Any] | str | None = None,
         **kwargs,
     ) -> Self:
         """The user-friendly way to create an agent that flexible-typed inputs.
@@ -349,17 +355,19 @@ class Agent(BaseModel, Generic[TapeType]):
             else:
                 yield step
 
-    def run(self, tape: TapeType) -> AgentStream[TapeType]:
+    def run(self, tape: TapeType, max_iterations: int | None = None) -> AgentStream[TapeType]:
         """
         Run the agent on the tape until it produces a stop step, but no more than max_iterations.
         """
+        if max_iterations is None:
+            max_iterations = self.max_iterations
 
         def _run_implementation():
             nonlocal tape
             n_iterations = 0
             input_tape_length = len(tape)
             stop = False
-            while n_iterations < self.max_iterations and not stop:
+            while n_iterations < max_iterations and not stop:
                 current_subagent = self.delegate(tape)
                 for step in current_subagent.run_iteration(tape):
                     if isinstance(step, PartialStep):
@@ -423,6 +431,18 @@ class Agent(BaseModel, Generic[TapeType]):
                 i += 1
         reused_tape = tape.model_validate(dict(context=tape.context, metadata=TapeMetadata(), steps=reused_steps))
         return reused_tape, llm_calls
+    
+    def get_node_runs(self, tape: TapeType) -> list[tuple[Node, int]]:
+        """Parse the tape into fragments produced by the agent's nodes"""
+        last_prompt_id = None
+        result = []
+        for index, step in enumerate(tape):
+            if (prompt_id := step.metadata.prompt_id) and prompt_id != last_prompt_id:
+                node = self.find_node(step.metadata.node)
+                result.append((node, index))
+            last_prompt_id = prompt_id
+        return result
+            
 
     def make_training_text(self, llm_call: LLMCall) -> TrainingText:
         """Routes the request to make trace to the appropriate agent's LLM."""
