@@ -6,10 +6,11 @@ config_name: meta-llama/Meta-Llama-3.1-8B-Instruct
 learning_rate: 2e-5
 train_batch_size: 4
 gradient_accumulation_passes: 4
-seq_length: 2048
+seq_length: 4096
 load_as_bf16: True
 max_train_steps: 1000
 save_checkpoint_steps: 100
+objective: grpo
 grpo:
   kl_coef: 0.05
   use_advantages: false

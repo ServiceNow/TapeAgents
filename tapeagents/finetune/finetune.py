@@ -5,7 +5,6 @@ import time
 from collections import defaultdict
 from dataclasses import asdict
 from pathlib import Path
-
 import numpy as np
 import torch
 from hydra import compose, initialize
@@ -18,6 +17,7 @@ from transformers import (
 
 from tapeagents.core import TrainingText
 
+from .tokenizer import CustomLlama3Tokenizer
 from .checkpoints import (
     load_model,
     load_tokenizer,
@@ -97,9 +97,18 @@ def run_finetuning_loop(
     logger.info(accelerator.state)
     logger.info(f"Saving experiment to {output_dir}")
     dt = log_time(dt, "finetune/startup")
-
-    tokenizer = load_tokenizer(args.config_name)
     model = load_model(args, model_class, current_dir, is_rl)
+    if (
+        hasattr(model, "config")
+        and hasattr(model.config, "rope_scaling")
+        and model.config.rope_scaling["rope_type"] == "llama3"  # type: ignore
+    ):
+        # HF Llama3 is known to have a bug to compute_offsets
+        # https://github.com/huggingface/tokenizers/issues/1553
+        logger.info("Using custom Llama3 tokenizer instead of HF's to avoid offset bug")
+        tokenizer = CustomLlama3Tokenizer(args.config_name)
+    else:
+        tokenizer = load_tokenizer(args.config_name)
 
     dt = log_time(dt, "finetune/model_load")
 
@@ -120,6 +129,8 @@ def run_finetuning_loop(
             tokenizer=tokenizer,
             seq_length=args.seq_length,
             batch_size=args.train_batch_size,
+            rl_data_callback=rl_data_callback,
+            is_rl=is_rl,
         )
     else:
         train_dataloader, eval_dataloader, dev_dataloader = prepare_dataloaders(

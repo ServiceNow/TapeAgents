@@ -12,6 +12,7 @@ import psutil
 import requests
 from datasets import load_dataset
 from termcolor import colored, cprint
+import random
 from tqdm import tqdm
 
 from examples.rl_gsm8k.math_agent import (
@@ -149,7 +150,7 @@ def main(cfg: DictConfig):
     exp_path = Path("outputs/gsm8k/tuning/llama31_8b_train")
     attempts=2
     # Serve the vLLM model
-    model_path = "/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct"
+    model_path = cfg.model_path
     stdout_path = exp_path / "vllm_stdout.log"
     stderr_path = exp_path / "vllm_stderr.log"
     port = 8080
@@ -158,16 +159,18 @@ def main(cfg: DictConfig):
     samples = [s for s in dataset]
     np.random.seed(42)
     np.random.shuffle(samples)  # type: ignore
+    sub_samples = random.sample(samples, 10)
     # for sample in dataset:
     #    samples.append(sample)
     #    if len(samples) == 2:
     #        break
     logging.info(f"Loaded {len(samples)} samples")
 
+
     llm = TrainableLLM(
         base_url="http://127.0.0.1:8080",
-        model_name="/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct",
-        tokenizer_name="/mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct",
+        model_name=model_path,
+        tokenizer_name=model_path,
         parameters=dict(temperature=0.7),
     )
 
@@ -190,9 +193,9 @@ def main(cfg: DictConfig):
     training_samples = []
     rewards = []
     try:
-        # batch_main_loop
+        # use batch_main_loop
         with open(exp_path / "tapes.jsonl", "w") as f:
-            for i, sample in enumerate(tqdm(samples[:10])):
+            for i, sample in enumerate(tqdm(sub_samples)):
                 sample = extract_result_value(sample)
                 for j in range(attempts):
                     tape = solve_task(agent, env, sample)
@@ -203,27 +206,27 @@ def main(cfg: DictConfig):
                         print("CONTEXT", trace.prompt_text)
                         print("COMPLETION", trace.output_text)
 
-                        trace.reward = reward
-                        trace.ref_log_probs = trace.log_probs
+                        trace.fork_id = i
+                        trace.rewards = [reward]
+                        trace.ref_logprobs = trace.old_logprobs
                         training_samples.append(trace)
                         f.write(trace.model_dump_json() + "\n")
                         f.flush()
     except Exception as e:
         logger.error(colored(f"Failed to solve task: {e}", "red"))
     finally:
+        # Make sure the weights of the model to be trained are not loaded on the GPU
+        terminate_with_children(assistant_process.pid)
+        assistant_process.wait()  # type: ignore
         if stdout_file:
             stdout_file.close()
         if stderr_file:
             stderr_file.close()
-        # Kill the vLLM process
-        if assistant_process:
-            assistant_process.terminate()
-            assistant_process.wait()
 
         if i % 10 == 0 and i > 0:
             logger.info(f"{i}: Current accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
-    cfg_finetune = cfg.finetune.copy()
-    cfg_finetune.output_dir = str(exp_path / "finetune")
+    cfg_finetune = cfg.copy()
+    cfg_finetune.finetune.output_dir = str(exp_path / "finetune")
     run_finetuning_loop(cfg=cfg_finetune, training_samples=training_samples)
     logger.info(f"Accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
     logger.info(f"{len(rewards)} tapes saved to {tapes_dir}")
