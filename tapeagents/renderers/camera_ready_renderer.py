@@ -98,7 +98,7 @@ class CameraReadyRenderer(BasicRenderer):
         def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
 
-        def maybe_fold(content: str, len_max: int = 125):
+        def maybe_fold(content: str, len_max: int = 80):
             content = str(content)
             if len(content) > len_max:
                 summary = f"{content[:len_max]} ..."
