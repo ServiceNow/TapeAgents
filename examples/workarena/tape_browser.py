@@ -81,6 +81,9 @@ class WorkarenaTapeBrowser(TapeBrowser):
     def get_context(self, tape) -> list:
         return []
 
+    def load_prompts(self):
+        pass
+
     def get_file_label(self, filename: str, tapes: list) -> str:
         acc = []
         for tape in tapes:
