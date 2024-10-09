@@ -6,7 +6,7 @@ The agents could use OpenAI or big LLAMA models to solve these tasks.
 <img width="1233" alt="image" src="https://github.com/user-attachments/assets/9e4bc7e5-5547-41cb-aa5f-374c72669da2">
 
 ## Structure
-Both agents are built on top of the [GuidedAgent](../../tapeagents/guided_agent.py) class, which implements the following workflow:
+Both agents are built on top of the [MonoAgent](../../tapeagents/mono_agent.py) class, which implements the following workflow:
 - Expose the set of all available actions and thoughts to the model in each prompt
 - Render the whole tape into the prompt, trimming only in case when the tape does not fit into the context window
 - Based on the end of the current tape, select the short textual guidance prompt that briefly instructs the LLM what to do next

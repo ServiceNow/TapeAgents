@@ -3,7 +3,9 @@
 ENV_NAME=tapeagents
 PYTHON_VERSION=3.10
 CONDA := $(shell which conda)
-
+ifeq ($(CONDA),)
+CONDA := $(CONDA_EXE)
+endif
 ifeq ($(CONDA),)
 $(error "Conda not found. Please install Conda and try again.")
 endif

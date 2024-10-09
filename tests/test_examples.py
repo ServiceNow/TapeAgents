@@ -7,10 +7,10 @@ import tempfile
 from pathlib import Path
 
 import yaml
+from make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
 from tapeagents.io import load_tapes
-from tapeagents.test_utils import run_test_in_tmp_dir
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
 

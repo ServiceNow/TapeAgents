@@ -2,7 +2,7 @@ import platform
 from typing import Any
 
 from tapeagents.core import Prompt
-from tapeagents.guided_agent import GuidanceNode, GuidedAgent
+from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.llms import LLM
 from tapeagents.utils import get_step_schemas_from_union_type
 
@@ -17,7 +17,7 @@ from .steps import (
 )
 
 
-class WorkArenaBaselineNode(GuidanceNode):
+class WorkArenaBaselineNode(MonoNode):
     """
     Agent that is close to the original workarena one.
     Implemented features (best feature set for gpt4o from workarena paper):
@@ -73,16 +73,15 @@ class WorkArenaBaselineNode(GuidanceNode):
         return prompt
 
 
-class WorkArenaBaseline(GuidedAgent):
+class WorkArenaBaseline(MonoAgent):
     @classmethod
     def create(cls, llm: LLM):
         return cls(llms={"default": llm}, nodes=[WorkArenaBaselineNode()])  # type: ignore
 
 
-class WorkArenaNode(GuidanceNode):
+class WorkArenaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    start_step_cls: Any = PageObservation
     agent_step_cls: Any = WorkArenaAgentStep
 
     def get_steps_description(self, tape: WorkArenaTape, agent: Any) -> str:
@@ -108,7 +107,7 @@ class WorkArenaNode(GuidanceNode):
         return trimmed_tape
 
 
-class WorkArenaAgent(GuidedAgent):
+class WorkArenaAgent(MonoAgent):
     @classmethod
     def create(cls, llm: LLM):
         return super().create(

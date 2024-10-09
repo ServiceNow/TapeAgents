@@ -1,13 +1,14 @@
 import logging
 import os
-from typing import Annotated, Any, Literal, TypeAlias, Union
+from typing import Annotated, Literal, TypeAlias, Union
 
 from pydantic import Field
 
 from tapeagents.agent import Agent
 from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep, Observation, Tape, Thought
 from tapeagents.environment import Environment
-from tapeagents.guided_agent import GuidedAgent
+from tapeagents.llms import LLM
+from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.runtime import main_loop
 from tapeagents.tools.calculator import calculate
 from tapeagents.utils import get_step_schemas_from_union_type
@@ -104,15 +105,31 @@ START_TASK_GUIDANCE = f"Let's think step by step using reasoning and calculation
 
 
 #### Agent and Environment ####
-class MathAgent(GuidedAgent):
-    _start_step_cls: Any = Task
-    _agent_step_cls: Any = MathAgentStep
-    templates: dict[str, str] = {
-        "system_prompt": SYSTEM_PROMPT,
-        "allowed_steps": ALLOWED_STEPS,
-        "task": START_TASK_GUIDANCE,
-        "_default": HINTS,
-    }
+class MathAgent(MonoAgent):
+    @classmethod
+    def create(cls, llm: LLM):
+        return super().create(
+            llm,
+            nodes=[
+                MonoNode(
+                    name="start",
+                    trigger_step="task",
+                    system_prompt=SYSTEM_PROMPT,
+                    steps_prompt=ALLOWED_STEPS,
+                    agent_step_cls=MathAgentStep,
+                    guidance=START_TASK_GUIDANCE,
+                ),
+                MonoNode(
+                    name="default",
+                    trigger_step="default",
+                    system_prompt=SYSTEM_PROMPT,
+                    steps_prompt=ALLOWED_STEPS,
+                    agent_step_cls=MathAgentStep,
+                    guidance=HINTS,
+                ),
+            ],
+            max_iterations=2,
+        )
 
 
 class MathEnvironment(Environment):
