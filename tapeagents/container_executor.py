@@ -387,7 +387,7 @@ def _get_file_name_from_output(output: str, workspace_path: Path) -> Optional[st
     matches = compiled_pattern.findall(output)
     filenames = []
     for match in matches:
-        path = Path(match)
+        path = Path(match.strip("'").strip("`").strip('"'))
         if not path.is_absolute():
             path = workspace_path / path
         filenames.append(str(path))

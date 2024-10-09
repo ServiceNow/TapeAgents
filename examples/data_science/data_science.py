@@ -23,7 +23,9 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
     coder = TeamAgent.create(
         name="SoftwareEngineer",
         system_prompt=(
-            AUTOGEN_ASSISTANT_SYSTEM_MESSAGE + "Only say TERMINATE when your code was successfully executed."
+            AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
+            + " Always start by installing packages your code need in a `install.sh` file. ."
+            + " Always print in the code the filename of the generated files."
         ),
         llm=llm,
     )
@@ -32,17 +34,30 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
         llm=llm,
         execute_code=True,
     )
+    analyst = TeamAgent.create(
+        name="AssetReviewer",
+        system_prompt=(
+            """As an asset reviewer, your role is to provide one-time feedback to enhance the generated assets. Only communicate your feedback, not a solution.
+            Here is a list of best practices:
+            - Compare stocks based on percentage changes, using a baseline at 0%.
+            - Show the baseline in the plot.
+            - Annotate the latest data points in the plot.
+            Once your feedback has been implemented and the code runs successfully, simply respond with "TERMINATE".
+            """
+        ),
+        llm=llm,
+    )
     team = TeamAgent.create_team_manager(
         name="Manager",
-        subagents=[coder, code_executor],
+        subagents=[coder, code_executor, analyst],
         max_calls=15,
         llm=llm,
     )
     org = TeamAgent.create_initiator(
         name="Initiator",
         init_message=(
-            "Make a plot comparing the stocks of ServiceNow and Salesforce"
-            " since beginning of 2024. Save it to a PNG file."
+            "Make a plot comparing the stocks of ServiceNow and Nvidia"
+            " since beginning of 2024."
         ),
         teammate=team,
     )
