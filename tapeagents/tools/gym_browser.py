@@ -32,7 +32,7 @@ class GymBrowser:
 
     def __init__(
         self,
-        viewport_size: int = 32000,
+        viewport_size: int = 64000,
         headless: bool = True,
         log_path: str | None = None,
     ) -> None:
@@ -59,6 +59,7 @@ class GymBrowser:
             headless=self.headless,
             record_video_dir=self.record_video_dir,
             action_mapping=self.action_mapping,
+            timeout=60000,
         )  # type: ignore
         start_obs, info = self.env.reset(seed=seed)
         self.env.context.tracing.start(screenshots=True, snapshots=True)
@@ -90,6 +91,7 @@ class GymBrowser:
         return os.path.relpath(img_path, self.screenshots_dir)
 
     def perform_action(self, action_text: str, baseline_obs: bool = False) -> tuple[str, str, str, bool]:
+        self.env.page.set_default_timeout(60000)
         obs, reward, terminated, truncated, info = self.env.step(action_text)
         last_action_error = self.format_error(obs["last_action_error"])
         accessibility_tree = obs["axtree_object"]
