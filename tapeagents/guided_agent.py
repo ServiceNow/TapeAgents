@@ -30,7 +30,7 @@ class GuidanceNode(Node):
     Trims the tape if needed.
     """
 
-    trigger_step: str
+    trigger_step: str | list[str]
     guidance: str
     system_prompt: str = ""
     steps_prompt: str = ""
@@ -138,7 +138,9 @@ class GuidedAgent(Agent, Generic[TapeType]):
     def select_node(self, tape: TapeType) -> Node:
         last_kind = tape.steps[-1].kind
         for node in self.nodes:
-            if last_kind == node.trigger_step:
+            if (isinstance(node.trigger_step, str) and last_kind == node.trigger_step) or (
+                isinstance(node.trigger_step, list) and last_kind in node.trigger_step
+            ):
                 return node
         return self.nodes[-1]  # default to the last node
 

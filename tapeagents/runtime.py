@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from termcolor import colored
 
 from .agent import Agent
-from .core import AgentEvent, Observation, Step, StopStep, Tape, TapeType
+from .core import AgentEvent, Observation, Step, StopStep, TapeType
 from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
 from .rendering import step_view
 from .utils import FatalError, diff_dicts

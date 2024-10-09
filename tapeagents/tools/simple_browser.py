@@ -260,7 +260,9 @@ class SimpleTextBrowser:
 
         """
         key = query.lower().strip()
-        if self.use_web_cache and key in self._cache:
+        if self.use_web_cache and (key in self._cache or query in self._cache):
+            if query in self._cache:
+                key = query
             logger.info(colored(f"Cache hit for search {query}", "green"))
             self._log[query] = self._cache[key]
             return self._cache[key][:max_results]
@@ -400,18 +402,15 @@ class SimpleTextBrowser:
             with open(self._cache_filename, "w") as f:
                 json.dump(self._cache, f, indent=2, ensure_ascii=False)
 
-    def get_page(self, url: str) -> tuple[str, int, int, int]:
+    def get_page(self, url: str) -> tuple[str, int, int]:
         """
         Load web page and return content of its first viewport (first screen), current page number and total number of pages.
         """
         self._page_error = 0
-        local_file = False
         if url.startswith("/"):
             # in case of a local file
             url = f"file://{url}"
-        if url.startswith("file://"):
-            local_file = True
-        if self.use_web_cache and url in self._cache and not local_file:
+        if self.use_web_cache and url in self._cache:
             logger.info(colored(f"Cache hit {url}", "green"))
             self._log[url] = self._cache[url]
             content, title = self._cache[url]
@@ -433,7 +432,7 @@ class SimpleTextBrowser:
             self._add_to_cache(url, (self.page_content, self.page_title))
         error = self._page_error
         self._page_error = 0
-        return (self.page_with_title(), self.viewport_current_page + 1, len(self.viewport_pages), error)
+        return (self.page_with_title(), len(self.viewport_pages), error)
 
     def get_next_page(self) -> tuple[str, int, int]:
         """

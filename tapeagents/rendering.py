@@ -24,8 +24,10 @@ from tapeagents.view import Call, Respond
 YELLOW = "#ffffba"
 LIGHT_YELLOW = "#ffffdb"
 SAND = "#e5e5a7"
-RED = "#ffdfba"
-GREEN = "#baffc9"
+WHITE = "#ffffff"
+PURPLE = "#E6E6FA"
+RED = "#ff7b65"
+GREEN = "#6edb8f"
 BLUE = "#bae1ff"
 
 
@@ -47,23 +49,29 @@ def render_dialog_plain_text(tape: DialogTape | None) -> str:
 
 
 class BasicRenderer:
-    metadata_header = "<h3>Metadata</h3>"
-    context_header = "<h3>Context</h3>"
-    steps_header = "<h3>Steps</h3>"
+    metadata_header = "<h3 style='margin: 2px'>Metadata</h3>"
+    context_header = "<h3 style='margin: 2px'>Context</h3>"
+    steps_header = "<h3 style='margin: 2px'>Steps</h3>"
     agent_tape_header = "<h1> Agent Tape </h1>"
     user_tape_header = "<h1> User Tapes </h1>"
     annotator_tape_header = "<h1> Annotator Tapes </h1>"
 
-    def __init__(self, filter_steps: tuple[Type, ...] | None = None, render_llm_calls: bool = True):
+    def __init__(
+        self,
+        filter_steps: tuple[Type, ...] | None = None,
+        render_llm_calls: bool = True,
+        render_agent_node: bool = False,
+    ):
         self.filter_steps = filter_steps
         self.render_llm_calls = render_llm_calls
+        self.render_agent_node = render_agent_node
 
     @property
     def style(self) -> str:
         return (
             "<style>"
-            ".basic-renderer-box { margin: 4px; padding: 2px; background: lavender; white-space: pre-wrap; color: black;}"
-            ".basic-prompt-box { margin: 4px; padding: 2px; background: lavender; color: black;}"
+            ".basic-renderer-box { margin: 4px; padding: 2px; padding-left: 6px; background: lavender; white-space: pre-wrap; color: black;}"
+            ".basic-prompt-box { margin: 4px; padding: 2px; padding-left: 6px; background: lavender; color: black;}"
             ".episode-row { display: flex; align-items: end; }"
             ".agent-column { width: 50%; }"
             ".user-column { width: 25%; }"
@@ -71,6 +79,9 @@ class BasicRenderer:
             ".inner-tape-container { display: flex }"
             ".inner-tape-indent { width: 10%; }"
             ".inner-tape { width: 90%; }"
+            ".agent_node { text-align: center; position: relative; margin: 12px 0; }"
+            ".agent_node hr { border: none; border-top: 2px solid #000; margin: 0 !important;  }"
+            ".agent_node span { position: absolute; right: 0; top: -0.6em; background: white; color: grey !important; padding: 0 10px; }"
             "</style>"
         )
 
@@ -82,7 +93,7 @@ class BasicRenderer:
         return f"<div class='basic-renderer-box'>{str_}</div>"
 
     def render_metadata(self, tape: Tape):
-        return f"<details> <summary> Show / Hide </summary> {self.render_as_box(tape.metadata.model_dump())} </details>"
+        return f"<details> <summary> id: {tape.metadata.id} </summary> {self.render_as_box(tape.metadata.model_dump())} </details>"
 
     def render_context(self, tape: Tape):
         if isinstance(tape.context, Tape):
@@ -109,10 +120,14 @@ class BasicRenderer:
         for index, step in enumerate(tape):
             if self.filter_steps and not isinstance(step, self.filter_steps):
                 continue
+            if self.render_agent_node:
+                agent = step.metadata.agent.split("/")[-1]
+                node = step.metadata.node
+                if agent and node:
+                    agent_node = f"{step.metadata.agent.split('/')[-1]}.{step.metadata.node}"
+                    chunks.append(f"""<div class="agent_node"><hr><span>{agent_node}</span></div>""")
             if self.render_llm_calls:
                 if step.metadata.prompt_id != last_prompt_id:
-                    if last_prompt_id:
-                        chunks.append("<hr style='margin: 2pt 0pt 2pt 0pt;'>")
                     llm_call = llm_calls.get(step.metadata.prompt_id)
                     if llm_call:
                         chunks.append(self.render_llm_call(llm_call))
@@ -422,7 +437,7 @@ def get_step_title(step: Step | dict) -> str:
     return title
 
 
-def get_step_text(step: Step | dict, trim: bool = False, exclude_fields={"kind", "role", "prompt_id"}) -> str:
+def get_step_text(step: Step | dict, trim: bool = False, exclude_fields={"kind", "role"}) -> str:
     step_dict = step if isinstance(step, dict) else step.model_dump()
     clean_dict = {
         k: (v[:300] if trim and isinstance(v, str) else v)
@@ -460,25 +475,30 @@ def to_pretty_str(a: Any, prefix: str = "", indent: int = 2) -> str:
     return view
 
 
-def render_agent_tree(agent: Agent):
+def render_agent_tree(agent: Agent, show_nodes: bool = True, indent_increment: int = 4) -> str:
     """Draw an ASCII tree of the agent's structure.
 
-    Like this:
-
-    - The Manager
-      - His Assistant 1
-      - His Helper 2
-
+    Example:
+    > The Manager
+        .node1
+        .node2
+        > His Assistant 1
+            .node1
+            .node2
+        > His Helper 2
+            .node1
+            .node2
     """
 
-    def render_subagents(agent, indent=4):
-        lines = []
+    def render(agent: Agent, indent: int = 0) -> str:
+        lines = [f"{' ' * indent}> {agent.name}"]
+        if show_nodes:
+            lines.extend([f"{' ' * (indent + indent_increment)}.{node.name}" for node in agent.nodes])
         for subagent in agent.subagents:
-            lines.append("  " * indent + f"- {subagent.name}")
-            lines.extend(render_subagents(subagent, indent + 4))
-        return lines
+            lines.append(render(subagent, indent + indent_increment))
+        return "\n".join(lines)
 
-    return agent.name + "\n" + "\n".join(render_subagents(agent))
+    return render(agent)
 
 
 def render_tape_with_prompts(tape: Tape, renderer: BasicRenderer):

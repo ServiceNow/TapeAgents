@@ -82,3 +82,25 @@ if __name__ == "__main__":
 # Avg. gpt4o_mini_t02_3: 0.255 (42 of 165)
 # Avg. gpt4o_mini_t05: 0.206 (34 of 165)
 # Avg. maj@3: 0.291 (48 of 165)
+
+
+# gpt4o, 3 runs
+# L1 gpt4o_1: 0.377 (20 of 53)
+# L1 gpt4o_latest_1: 0.396 (21 of 53)
+# L1 gpt4o_t02_1: 0.472 (25 of 53)
+# L1 maj@3: 0.491 (26 of 53)
+
+# L2 gpt4o_1: 0.314 (27 of 86)
+# L2 gpt4o_latest_1: 0.267 (23 of 86)
+# L2 gpt4o_t02_1: 0.349 (30 of 86)
+# L2 maj@3: 0.360 (31 of 86)
+
+# L3 gpt4o_1: 0.000 (0 of 26)
+# L3 gpt4o_latest_1: 0.077 (2 of 26)
+# L3 gpt4o_t02_1: 0.038 (1 of 26)
+# L3 maj@3: 0.000 (0 of 26)
+
+# Avg. gpt4o_1: 0.285 (47 of 165)
+# Avg. gpt4o_latest_1: 0.279 (46 of 165)
+# Avg. gpt4o_t02_1: 0.339 (56 of 165)
+# Avg. maj@3: 0.345 (57 of 165)

@@ -31,6 +31,7 @@ class PlanningMode(str, Enum):
     facts_and_sources = "facts_and_sources"
     multiplan = "multiplan"
     replan_after_sources = "replan_after_sources"
+    reflect = "reflect"
 
 
 class GaiaNode(GuidanceNode):
@@ -102,6 +103,26 @@ class GaiaAgent(GuidedAgent):
                     name="start_execution",
                     trigger_step="list_of_facts_thought",
                     guidance=PromptRegistry.start_execution,
+                ),
+            ]
+        elif planning_mode == PlanningMode.reflect:
+            guidance_nodes = [
+                GaiaNode(name="plan", trigger_step="question", guidance=PromptRegistry.plan),
+                GaiaNode(name="facts_survey", trigger_step="plan_thought", guidance=PromptRegistry.facts_survey),
+                GaiaNode(
+                    name="start_execution",
+                    trigger_step="list_of_facts_thought",
+                    guidance=PromptRegistry.start_execution,
+                ),
+                GaiaNode(
+                    name="think_after_observation",
+                    trigger_step=["page_observation", "search_results_observation"],
+                    guidance=PromptRegistry.think_after_observation,
+                ),
+                GaiaNode(
+                    name="think_after_calculation",
+                    trigger_step=["calculation_result_observation"],
+                    guidance=PromptRegistry.think_after_calculation,
                 ),
             ]
         elif planning_mode == PlanningMode.facts_and_sources:
