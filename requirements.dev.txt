@@ -3,3 +3,5 @@ testbook==0.4.2
 flake8==6.0.0
 ruff==0.6.6
 nbconvert==7.16.4
+# for testing examples/optimize
+dspy-ai==2.4.10

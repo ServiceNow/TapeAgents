@@ -1,0 +1,14 @@
+Answer questions with short factoid answers.
+
+---
+
+Follow the following format.
+
+Question: ${question}
+Reasoning: Let's think step by step in order to ${produce the answer}. We ...
+Answer: often between 1 and 5 words
+
+---
+
+Question: What is the nationality of the chef and restaurateur featured in Restaurant: Impossible?
+Reasoning: Let's think step by step in order to

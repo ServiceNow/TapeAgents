@@ -2,14 +2,17 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_t02
+llm:
+  parameters:
+    temperature: 0.0
+exp_name: gpt4o_mini_guided_t0
 exp_path: ../workarena/runs/${exp_name}
 agent: guided
 env:
   exp_path: ${exp_path}
   baseline_obs: True
   headless: True
-seeds: [0, 42, 1337, 9001, 12345]
+seeds: [0, 42, 1337, 90210, 2128506]
   
 hydra:
   run:

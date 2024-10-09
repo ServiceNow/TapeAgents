@@ -16,6 +16,7 @@ def step_to_message(step: Step, agent: Agent | None = None) -> dict[str, str]:
             role = "system"
         case ToolResult():
             role = "tool"
+            content["content"] = str(step.content)
         case Call() if step.metadata.agent == agent.full_name:  # type: ignore
             role = "assistant"
             content["content"] = f"Call {step.agent_name} with the message '{step.content}'"

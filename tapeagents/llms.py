@@ -171,7 +171,7 @@ class CachedLLM(LLM):
         def _implementation():
             key = self.get_prompt_key(prompt)
             if self.use_cache and key in self._cache:
-                logger.info(colored(f"llm cache hit, {len(self._cache[key])} events", "green"))
+                logger.debug(colored(f"llm cache hit, {len(self._cache[key])} events", "green"))
                 for event_dict in self._cache[key]:
                     event = LLMEvent.model_validate(event_dict)
                     if event.output is not None:
@@ -186,7 +186,7 @@ class CachedLLM(LLM):
                     raise ValueError(f"llm cache miss not allowed, prompt: {key}")
                 toks = self.count_tokens(prompt.messages)
                 self.token_count += toks
-                logger.info(f"{toks} prompt tokens, total: {self.token_count}")
+                logger.debug(f"{toks} prompt tokens, total: {self.token_count}")
                 for event in self._generate(prompt, **kwargs):
                     self._add_to_cache(key, event.model_dump())
                     # note: the underlying LLM will log the output

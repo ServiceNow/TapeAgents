@@ -29,7 +29,7 @@ class MonoNode(Node):
     - Parses the llm output into provided step classes (class provided in a form of annotated union).
     """
 
-    trigger_step: str  # which step kind in the end of the tape triggers this node
+    trigger_step: str | list[str]  # which step kind in the end of the tape triggers this node
     guidance: str  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
@@ -132,7 +132,9 @@ class MonoAgent(Agent, Generic[TapeType]):
     def select_node(self, tape: TapeType) -> Node:
         last_kind = tape.steps[-1].kind
         for node in self.nodes:
-            if last_kind == node.trigger_step:
+            if (isinstance(node.trigger_step, str) and last_kind == node.trigger_step) or (
+                isinstance(node.trigger_step, list) and last_kind in node.trigger_step
+            ):
                 return node
         return self.nodes[-1]  # default to the last node
 

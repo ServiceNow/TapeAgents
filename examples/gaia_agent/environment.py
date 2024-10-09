@@ -44,11 +44,11 @@ class GaiaEnvironment(Environment):
                         serp = self.browser.get_search_results(query)
                         tape = tape.append(SearchResultsObservation(query=action.query, serp=serp))
                     case ReadDocumentAction():
-                        text, current_page, total_pages, error = self.browser.get_page(action.url)
+                        text, total_pages, error = self.browser.get_page(action.url)
                         tape = tape.append(
                             PageObservation(
                                 text=text,
-                                current_page=current_page,
+                                current_page=1,
                                 total_pages=total_pages,
                                 error=error or None,
                             )

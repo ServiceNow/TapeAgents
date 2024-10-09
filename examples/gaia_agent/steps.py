@@ -1,10 +1,8 @@
-import json
 import os
 import shutil
 from typing import Annotated, Any, Literal, TypeAlias, Union
 
-import jsonref
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, Field
 
 from tapeagents.core import Action, AgentResponseParsingFailureAction, Observation, StopStep, Thought
 from tapeagents.utils import get_step_schemas_from_union_type

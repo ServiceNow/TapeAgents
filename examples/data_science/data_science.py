@@ -4,14 +4,14 @@ import sys
 
 from tapeagents.agent import Agent
 from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
-from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import Action, FinalStep, Observation, Tape
 from tapeagents.environment import CodeExecutionEnvironment, Environment
 from tapeagents.llms import LLM, LiteLLM
+from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
 from tapeagents.runtime import main_loop
-from tapeagents.utils import run_in_tmp_dir_to_make_test_data
+from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.view import Call, Respond
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -32,13 +32,13 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
         execute_code=True,
     )
     team = TeamAgent.create_team_manager(
-        name="GroupChatManager",
+        name="Manager",
         subagents=[coder, code_executor],
         max_calls=15,
         llm=llm,
     )
-    org = TeamAgent.create_chat_initiator(
-        name="UserProxy",
+    org = TeamAgent.create_initiator(
+        name="Initiator",
         init_message=(
             "Make a plot comparing the stocks of ServiceNow and Salesforce"
             " since beginning of 2024. Save it to a PNG file."
@@ -53,6 +53,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
 
 def make_renderers() -> dict[str, BasicRenderer]:
     return {
+        "camera-ready": CameraReadyRenderer(),
         "full": PrettyRenderer(),
         "calls_and_responses": PrettyRenderer(filter_steps=(Call, Respond, FinalStep), render_llm_calls=False),
         "actions_and_observations": PrettyRenderer(filter_steps=(Action, Observation), render_llm_calls=False),
@@ -77,9 +78,6 @@ if __name__ == "__main__":
             main(studio=False)
         case ["studio"]:
             main(studio=True)
-        case ["make_test_data"]:
-            with run_in_tmp_dir_to_make_test_data("data_science"):
-                main(studio=False)
         case _:
             print("Usage: python -m examples.data_science.data_science [studio]")
             sys.exit(1)

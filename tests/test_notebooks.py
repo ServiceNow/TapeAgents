@@ -3,8 +3,7 @@ import shutil
 from pathlib import Path
 
 import testbook
-
-from tapeagents.utils import run_test_in_tmp_dir
+from make_test_data import run_test_in_tmp_dir
 
 res_dir = f"{pathlib.Path(__file__).parent.resolve()}/res"
 
