@@ -1,11 +1,20 @@
 defaults:
   - gaia
-  - llm: local_llama3_70b
+  - llm: llama3_405b
   - _self_
-
-exp_name: code2
-data_dir: agent_benchmarks/gaia-benchmark--GAIA/2023/validation/
+  
+exp_name: llama3_405b_1
+data_dir: ../gaia/dataset/validation/
 n_attempts: 1
 agent:
   planning_mode: simple
   subtasks: false
+
+env:
+  safe_calculator: false
+  use_web_cache: true
+  only_cached_webpages: false
+
+hydra:
+  run:
+    dir: ../gaia/runs/${exp_name}

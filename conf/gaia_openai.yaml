@@ -3,12 +3,12 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_reflect
+exp_name: gpt4o_mini_3
 exp_path: ../gaia/runs/${exp_name}
 data_dir: ../gaia/dataset/validation/
 n_attempts: 1
 agent:
-  planning_mode: reflect
+  planning_mode: simple
   subtasks: false
 
 env:
