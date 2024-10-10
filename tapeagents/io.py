@@ -49,7 +49,8 @@ def stream_yaml_tapes(filename: Path | str, mode: str = "w") -> Generator[TapeSa
 
 
 def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
-    fpath = os.path.join(tapes_dir, f"{name}.json") if name else tapes_dir
+    fname = name if name.endswith(".json") else f"{name}.json"
+    fpath = os.path.join(tapes_dir, fname) if name else tapes_dir
     with open(fpath, "w") as f:
         f.write(tape.model_dump_json(indent=4))
 
