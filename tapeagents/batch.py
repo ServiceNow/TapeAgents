@@ -11,7 +11,7 @@ from .agent import Agent, Annotator, ObservationMaker
 from .config import is_debug_mode
 from .core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadata, TapeType
 from .environment import Environment, ExternalObservationNeeded
-from .io import save_tapes
+from .io import stream_yaml_tapes
 from .parallel_processing import lazy_thread_pool_processor, sequential_processor
 from .runtime import main_loop
 
@@ -158,7 +158,10 @@ def generate_tapes(
 
         # make observations
         new_layer_begin = []
-        with save_tapes(begin_tapes_path) as tapes_dumper, save_tapes(obs_maker_tapes_path) as obs_maker_tapes_dumper:
+        with (
+            stream_yaml_tapes(begin_tapes_path) as tapes_dumper,
+            stream_yaml_tapes(obs_maker_tapes_path) as obs_maker_tapes_dumper,
+        ):
             for tape, obs_maker_tape in batch_add_observations(
                 tapes, layer_conf, n_workers=n_workers, seed=seed, strict=strict, shuffle=shuffle
             ):
@@ -170,14 +173,14 @@ def generate_tapes(
 
         # run the agent
         new_layer_end = []
-        with save_tapes(end_tapes_path) as dumper:
+        with stream_yaml_tapes(end_tapes_path) as dumper:
             for tape in batch_main_loop(agent, new_layer_begin, environments, n_workers=n_workers, strict=strict):
                 dumper.save(tape)
                 if tape.metadata.error is None:
                     new_layer_end.append(tape)
 
         # run the annotator
-        with save_tapes(annotator_tapes_path) as dumper:
+        with stream_yaml_tapes(annotator_tapes_path) as dumper:
             if annotator is not None:
                 for tape in batch_annotate(new_layer_end, annotator, n_workers=n_workers, strict=strict):
                     dumper.save(tape)
