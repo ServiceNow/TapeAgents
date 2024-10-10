@@ -36,6 +36,9 @@ class GaiaTapeBrowser(TapeBrowser):
             self.results = GaiaResults()
         return self.results.tapes
 
+    def load_llm_calls(self):
+        pass
+
     def update_tape_view(self, tape_id: int) -> tuple[str, str]:
         logger.info(f"Loading tape {tape_id}")
         tape = self.tapes[tape_id]
@@ -138,7 +141,7 @@ class GaiaTapeBrowser(TapeBrowser):
 def main(dirname: str):
     renderer = GuidedAgentRender()
     browser = GaiaTapeBrowser(dirname, renderer)
-    browser.launch()
+    browser.launch(port=7861)
 
 
 if __name__ == "__main__":
