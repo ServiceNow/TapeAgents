@@ -1,9 +1,10 @@
+import ast
 import json
 import yaml
 
 from tapeagents.container_executor import CodeBlock
 from tapeagents.core import Action, Observation, Step, Thought
-from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, UserStep
+from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, UserStep, ToolResult, ToolCalls
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
 from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer
@@ -32,7 +33,11 @@ class CameraReadyRenderer(BasicRenderer):
         )
 
     def render_step(self, step: Step, index: int, **kwargs):
-        ### Set Default Values ####
+        ### Set Default Values and Remove Fields ####
+        dump = step.model_dump()
+        dump.pop("kind", None)
+        if not self.show_metadata:
+            dump.pop("metadata", None)
 
         title = type(step).__name__
         if isinstance(step, UserStep):
@@ -54,11 +59,13 @@ class CameraReadyRenderer(BasicRenderer):
             role = ""
             title = f"{step.metadata.agent.split('/')[-1]} calls {step.agent_name}"
             class_ = "call"
+            dump.pop("agent_name", None)
         elif isinstance(step, Respond):
             role = ""
             parts = step.metadata.agent.split("/")
             title = f"{parts[-1]} responds to {parts[-2]}" if len(parts) > 1 else f"{step.metadata.agent} responds"
             class_ = "respond"
+            dump.pop("copy_output", None)
         elif isinstance(step, Broadcast):
             role = ""
             parts = step.metadata.agent.split("/")
@@ -73,27 +80,22 @@ class CameraReadyRenderer(BasicRenderer):
         elif isinstance(step, CodeExecutionResult):
             role = "Observation"
             class_ = "error_observation" if step.result.exit_code != 0 else "observation"
+        elif isinstance(step, ToolResult):
+            role = "Observation"
+            class_ = "observation"
+            dump.pop("tool_call_id", None)
         elif isinstance(step, Observation):
             role = "Observation"
             class_ = "observation"
         else:
             raise ValueError(f"Unknown object type: {type(step)}")
 
-        ##### Remove vars #####
-
-        dump = step.model_dump()
-        dump.pop("kind", None)
-        dump.pop("agent_name", None)
-        dump.pop("copy_output", None)
-
-        if not self.show_metadata:
-            dump.pop("metadata", None)
-
         ##### Render text #####
         def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
 
-        def maybe_fold(content: str, len_max: int = 125):
+        def maybe_fold(content: str, len_max: int = 80):
+            content = str(content)
             if len(content) > len_max:
                 summary = f"{content[:len_max]} ..."
                 return f"<details><summary>{summary}</summary>---<br>{content}</details>"
@@ -102,6 +104,11 @@ class CameraReadyRenderer(BasicRenderer):
         if isinstance(step, Broadcast):
             to = f"to: {', '.join(dump['to'])}"
             text = maybe_fold(to)
+        elif isinstance(step, ToolCalls):
+            function_calls = []
+            for tool_call in dump["tool_calls"]:
+                function_calls.append(f"{tool_call['function']['name']}({dict_to_params(tool_call['function']['arguments'])})")
+            text = maybe_fold("\n").join(function_calls)
         elif isinstance(step, ExecuteCode):
             del dump["code"]
 
@@ -175,3 +182,22 @@ class CameraReadyRenderer(BasicRenderer):
             </details>
         </div>"""
         return html
+    
+def dict_to_params(arguments: str) -> str:
+    """
+    Transform a dictionary into a function parameters string.
+    Example: {'a': 1, 'b': 2} -> 'a=1, b=2'
+    """
+    if type(arguments) is str:
+        arguments = str_to_dict(arguments)
+    return ", ".join(f"{key}={value!r}" for key, value in arguments.items())
+
+def str_to_dict(s: str) -> dict:
+    """
+    Convert a string representation of a dictionary into an actual dictionary.
+    Example: "{'a': 1, 'b': 2}" -> {'a': 1, 'b': 2}
+    """
+    try:
+        return ast.literal_eval(s)
+    except (ValueError, SyntaxError):
+        raise ValueError("Invalid string representation of a dictionary")
