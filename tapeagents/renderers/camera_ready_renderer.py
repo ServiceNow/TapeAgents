@@ -33,7 +33,11 @@ class CameraReadyRenderer(BasicRenderer):
         )
 
     def render_step(self, step: Step, index: int, **kwargs):
-        ### Set Default Values ####
+        ### Set Default Values and Remove Fields ####
+        dump = step.model_dump()
+        dump.pop("kind", None)
+        if not self.show_metadata:
+            dump.pop("metadata", None)
 
         title = type(step).__name__
         if isinstance(step, UserStep):
@@ -55,11 +59,13 @@ class CameraReadyRenderer(BasicRenderer):
             role = ""
             title = f"{step.metadata.agent.split('/')[-1]} calls {step.agent_name}"
             class_ = "call"
+            dump.pop("agent_name", None)
         elif isinstance(step, Respond):
             role = ""
             parts = step.metadata.agent.split("/")
             title = f"{parts[-1]} responds to {parts[-2]}" if len(parts) > 1 else f"{step.metadata.agent} responds"
             class_ = "respond"
+            dump.pop("copy_output", None)
         elif isinstance(step, Broadcast):
             role = ""
             parts = step.metadata.agent.split("/")
@@ -74,25 +80,15 @@ class CameraReadyRenderer(BasicRenderer):
         elif isinstance(step, CodeExecutionResult):
             role = "Observation"
             class_ = "error_observation" if step.result.exit_code != 0 else "observation"
+        elif isinstance(step, ToolResult):
+            role = "Observation"
+            class_ = "observation"
+            dump.pop("tool_call_id", None)
         elif isinstance(step, Observation):
             role = "Observation"
             class_ = "observation"
         else:
             raise ValueError(f"Unknown object type: {type(step)}")
-
-        ##### Remove vars #####
-
-        dump = step.model_dump()
-        dump.pop("kind", None)
-        dump.pop("agent_name", None)
-        dump.pop("copy_output", None)
-
-        if isinstance(step, ToolResult):
-            del dump["tool_call_id"]
-
-
-        if not self.show_metadata:
-            dump.pop("metadata", None)
 
         ##### Render text #####
         def pretty_yaml(d: dict):
