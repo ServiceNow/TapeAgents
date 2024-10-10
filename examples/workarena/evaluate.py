@@ -44,6 +44,7 @@ def main(cfg: DictConfig) -> None:
             if os.path.exists(os.path.join(tapes_dir, fname)):
                 logger.info(f"Skipping task {i+1}, already solved")
                 continue
+            tmp_fpath = os.path.join(tapes_dir, f"{fname}.tmp")
             tape, metadata = env.start_task(task, seed)
             metadata["seed"] = seed
             metadata["number"] = i
@@ -69,12 +70,12 @@ def main(cfg: DictConfig) -> None:
                     tape = tape.append(event.observation)  # type: ignore
                     loop += 1
                     logger.info(colored(f"Loop {loop+1}", "cyan"))
-                save_json_tape(tape, tapes_dir, f"{fname}.tmp")
+                save_json_tape(tape, tmp_fpath)
             success, result = env.validate_task(tape)
             metadata["success"] = success
             metadata.update(result)
             env.finish_task(task_name)
-            os.unlink(os.path.join(tapes_dir, f"{fname}.tmp"))  # remove temporary file
+            os.unlink(tmp_fpath)  # remove temporary file
             tape.metadata.result = metadata
             save_json_tape(tape, tapes_dir, fname)
             logger.info(f"Saved tape to {fname}")
