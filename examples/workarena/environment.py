@@ -75,7 +75,10 @@ class WorkArenaEnvironment(Environment):
         return tape, info
 
     def finish_task(self, task_name: str) -> None:
-        self.browser.close(task_name)
+        try:
+            self.browser.close(task_name)
+        except Exception as e:
+            logger.error(f"Failed to properly close task: {e}")
 
     def validate_task(self, tape: WorkArenaTape) -> tuple[bool, dict]:
         answer = tape.steps[-1].text if isinstance(tape.steps[-1], FinalAnswerAction) else "Task finished"
