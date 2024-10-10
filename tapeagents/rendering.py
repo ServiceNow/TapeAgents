@@ -124,7 +124,7 @@ class BasicRenderer:
             if self.render_agent_node:
                 if isinstance(step, UserStep) or isinstance(step, Observation):
                     agent = "Environment"
-                    node = step.kind
+                    node = ""
                 else:
                     agent = step.metadata.agent.split("/")[-1]
                     node = step.metadata.node
