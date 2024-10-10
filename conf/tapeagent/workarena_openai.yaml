@@ -12,7 +12,7 @@ env:
   exp_path: ${exp_path}
   baseline_obs: False
   headless: True
-seeds: [0, 42, 1337, 90210, 2128506]
+seeds: [0, 42, 1337, 900, 103]
   
 hydra:
   run:
