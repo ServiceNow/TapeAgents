@@ -3,7 +3,7 @@ import json
 import yaml
 
 from tapeagents.container_executor import CodeBlock
-from tapeagents.core import Action, Observation, Step, Thought
+from tapeagents.core import Action, Observation, Step, Thought, SetNextNode
 from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, UserStep, ToolResult, ToolCalls
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
@@ -12,8 +12,9 @@ from tapeagents.view import Broadcast, Call, Respond
 
 
 class CameraReadyRenderer(BasicRenderer):
-    def __init__(self, show_metadata=False, render_agent_node=True, **kwargs):
+    def __init__(self, show_metadata=False, render_agent_node=True, show_content=True, **kwargs):
         self.show_metadata = show_metadata
+        self.show_content = show_content
         super().__init__(render_agent_node=render_agent_node, **kwargs)
 
     @property
@@ -71,6 +72,10 @@ class CameraReadyRenderer(BasicRenderer):
             parts = step.metadata.agent.split("/")
             title = f"{step.metadata.agent.split('/')[-1]} broadcasts"
             class_ = "broadcast"
+        elif isinstance(step, SetNextNode):
+            role = ""
+            title = f"Thought: SetNextNode(next_node={step.next_node})"
+            class_ = "thought"
         elif isinstance(step, Thought):
             role = "Thought"
             class_ = "thought"
@@ -97,7 +102,7 @@ class CameraReadyRenderer(BasicRenderer):
         def maybe_fold(content: str, len_max: int = 80):
             content = str(content)
             if len(content) > len_max:
-                summary = f"{content[:len_max]} ..."
+                summary = f"{content[:len_max]} ...".replace("\n", "\\n")
                 return f"<details><summary>{summary}</summary>---<br>{content}</details>"
             return content
 
@@ -119,7 +124,7 @@ class CameraReadyRenderer(BasicRenderer):
             text = pretty_yaml(dump) + "\n" + maybe_fold(code_blocks)
         elif isinstance(step, CodeExecutionResult):
             del dump["result"]["output"]
-            text = pretty_yaml(dump["result"])
+            text = maybe_fold(pretty_yaml(dump["result"]))
             if step.result.exit_code == 0:
                 if step.result.output_files:
                     # TODO support more file type
@@ -134,6 +139,9 @@ class CameraReadyRenderer(BasicRenderer):
         else:
             text = pretty_yaml(dump)
 
+        if not self.show_content:
+            text = ""
+
         index_str = f"[{index}]"
         header_text = title if not role else (role if not title else f"{role}: {title}")
         header = f"{index_str} {header_text}"
@@ -146,6 +154,8 @@ class CameraReadyRenderer(BasicRenderer):
         )
 
     def render_llm_call(self, llm_call: LLMCall | None) -> str:
+        if self.render_llm_calls is False:
+            return ""
         if llm_call is None:
             return ""
         prompt_messages = [f"tool_schemas: {json.dumps(llm_call.prompt.tools, indent=2)}"]

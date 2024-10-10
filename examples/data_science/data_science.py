@@ -70,6 +70,8 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
 def make_renderers() -> dict[str, BasicRenderer]:
     return {
         "camera-ready": CameraReadyRenderer(),
+        "camera-ready_nocontent": CameraReadyRenderer(show_content=False),
+        "camera-ready_nocontent-nollmcalls": CameraReadyRenderer(show_content=False, render_llm_calls=False),
         "full": PrettyRenderer(),
         "calls_and_responses": PrettyRenderer(filter_steps=(Call, Respond, FinalStep), render_llm_calls=False),
         "actions_and_observations": PrettyRenderer(filter_steps=(Action, Observation), render_llm_calls=False),
