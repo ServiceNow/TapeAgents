@@ -10,7 +10,7 @@ from tapeagents.environment import Environment
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
 from tapeagents.mono_agent import MonoAgent, MonoNode
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 from tapeagents.tools.calculator import calculate
 from tapeagents.utils import get_step_schemas_from_union_type
 

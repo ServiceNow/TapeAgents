@@ -43,7 +43,7 @@ from tapeagents.dialog_tape import (
 from tapeagents.environment import ToolEnvironment
 from tapeagents.llm_function import KindRef, LLMFunctionNode, NodeRef, by_node, by_step
 from tapeagents.llms import LiteLLM, LLMStream
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 
 res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
 

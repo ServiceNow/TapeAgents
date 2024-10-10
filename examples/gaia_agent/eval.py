@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from termcolor import colored
 
 from tapeagents.rendering import step_view
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment

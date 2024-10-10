@@ -9,7 +9,7 @@ from .core import Episode, Tape
 from .dialog_tape import AssistantStep, UserStep
 from .environment import Environment, ExternalObservationNeeded
 from .rendering import BasicRenderer
-from .runtime import main_loop
+from .orchestrator import main_loop
 
 logger = logging.getLogger(__name__)
 

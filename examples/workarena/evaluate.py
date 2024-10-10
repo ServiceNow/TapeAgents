@@ -8,7 +8,7 @@ from termcolor import colored
 
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 
 from .agent import WorkArenaAgent, WorkArenaBaseline
 from .environment import WorkArenaEnvironment

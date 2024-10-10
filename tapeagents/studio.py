@@ -9,7 +9,7 @@ from tapeagents.core import Tape
 from tapeagents.environment import Environment
 from tapeagents.observe import get_latest_tape_id, observe_tape, retrieve_tape, retrieve_tape_llm_calls
 from tapeagents.rendering import BasicRenderer, render_agent_tree
-from tapeagents.runtime import MainLoopEvent, main_loop
+from tapeagents.orchestrator import MainLoopEvent, main_loop
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class Studio:
         self.environment = environment
         self.transforms = transforms or {}
 
-        gr.set_static_paths(paths=["outputs/"]) # Allow HTML to load files (img) from this directory
+        gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
         with gr.Blocks(title="TapeAgent Studio") as blocks:
             tape_state = gr.State(tape)
             agent_state = gr.State(agent)
