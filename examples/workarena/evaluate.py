@@ -6,6 +6,7 @@ from browsergym.workarena import ALL_WORKARENA_TASKS
 from omegaconf import DictConfig
 from termcolor import colored
 
+from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
 from tapeagents.runtime import main_loop
 
@@ -46,6 +47,7 @@ def main(cfg: DictConfig) -> None:
             tape, metadata = env.start_task(task, seed)
             metadata["seed"] = seed
             metadata["number"] = i
+            tape.metadata.result = metadata
             logger.info(colored(f"Start task {i+1} seed {seed}: {metadata['goal']}", "cyan"))
             loop = 0
             logger.info(colored(f"Loop {loop+1}", "cyan"))
@@ -67,21 +69,15 @@ def main(cfg: DictConfig) -> None:
                     tape = tape.append(event.observation)  # type: ignore
                     loop += 1
                     logger.info(colored(f"Loop {loop+1}", "cyan"))
-                save_tape(tapes_dir, f"{fname}.tmp", tape, metadata)
+                save_json_tape(tape, tapes_dir, f"{fname}.tmp")
             success, result = env.validate_task(tape)
             metadata["success"] = success
             metadata.update(result)
             env.finish_task(task_name)
             os.unlink(os.path.join(tapes_dir, f"{fname}.tmp"))  # remove temporary file
-            save_tape(tapes_dir, fname, tape, metadata)
+            tape.metadata.result = metadata
+            save_json_tape(tape, tapes_dir, fname)
             logger.info(f"Saved tape to {fname}")
-
-
-def save_tape(tapes_dir, fname, tape, metadata: dict):
-    tape.metadata.result = metadata
-    fpath = os.path.join(tapes_dir, fname)
-    with open(fpath, "w") as f:
-        f.write(tape.model_dump_json(indent=4))
 
 
 if __name__ == "__main__":

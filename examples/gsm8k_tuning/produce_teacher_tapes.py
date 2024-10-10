@@ -7,13 +7,13 @@ from datasets import load_dataset
 from termcolor import colored
 from tqdm import tqdm
 
+from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
 
 from .math_agent import (
     MathAgent,
     MathEnvironment,
     extract_result_value,
-    save_tape,
     solve_task,
 )
 
@@ -53,7 +53,7 @@ def main(exp_path: str, attempts: int = 1):
             try:
                 tape = solve_task(agent, env, sample, tape_file)
                 solved.append(int(tape.metadata.result["solved"]))
-                save_tape(tape_file, tape)
+                save_json_tape(tape, tape_file)
             except Exception as e:
                 logger.error(colored(f"Failed to solve task, attempt {j+1}: {e}", "red"))
                 solved.append(0)

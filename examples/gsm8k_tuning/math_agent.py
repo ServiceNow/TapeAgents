@@ -8,6 +8,7 @@ from tapeagents.agent import Agent
 from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep, Observation, Tape, Thought
 from tapeagents.environment import Environment
 from tapeagents.guided_agent import GuidedAgent
+from tapeagents.io import save_json_tape
 from tapeagents.runtime import main_loop
 from tapeagents.tools.calculator import calculate
 from tapeagents.utils import get_step_schemas_from_union_type
@@ -157,7 +158,7 @@ def solve_task(agent: Agent, env: Environment, task: dict, tape_file: str = "") 
         if step:
             tape = tape.append(step)  # type: ignore
             if tmp_tape_file:
-                save_tape(tmp_tape_file, tape)
+                save_json_tape(tape, tmp_tape_file)
     if tmp_tape_file:
         os.unlink(tmp_tape_file)  # remove temporary file
     metadata["solved"] = False

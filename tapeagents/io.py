@@ -22,7 +22,7 @@ class TapeSaver:
 
 
 @contextmanager
-def save_tapes(filename: Path | str, mode: str = "w") -> Generator[TapeSaver, None, None]:
+def stream_yaml_tapes(filename: Path | str, mode: str = "w") -> Generator[TapeSaver, None, None]:
     if isinstance(filename, str):
         filename = Path(filename)
     logger.info(f"Writing to {filename} in mode {mode}")
@@ -48,8 +48,8 @@ def save_tapes(filename: Path | str, mode: str = "w") -> Generator[TapeSaver, No
     _file.close()
 
 
-def save_tape(tapes_dir: str, name: str, tape: Tape):
-    fpath = os.path.join(tapes_dir, f"{name}.json")
+def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
+    fpath = os.path.join(tapes_dir, f"{name}.json") if name else tapes_dir
     with open(fpath, "w") as f:
         f.write(tape.model_dump_json(indent=4))
 
