@@ -42,7 +42,7 @@ def main(fname: str, dataset_path: str = ""):
     )
     env = GaiaEnvironment(only_cached_webpages=True)
     env.browser._cache = results.web_cache
-    agent = GaiaAgent.create(llm, short_steps=True)
+    agent = GaiaAgent.create(llm)
 
     logger.info(f"Web Cache {len(results.web_cache)}")
     logger.info(f"Prompts {len(prompts)}")

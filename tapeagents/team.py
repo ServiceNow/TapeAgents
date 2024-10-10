@@ -8,7 +8,7 @@ from pydantic import ConfigDict
 from tapeagents.agent import DEFAULT, Agent, AgentStep, Node
 from tapeagents.autogen_prompts import SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE, SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE
 from tapeagents.container_executor import extract_code_blocks
-from tapeagents.core import FinalStep, SetNextNode, Pass, Prompt, StepMetadata, Tape
+from tapeagents.core import FinalStep, Pass, Prompt, SetNextNode, StepMetadata, Tape
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.view import Broadcast, Call, Respond, TapeViewStack

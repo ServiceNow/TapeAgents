@@ -4,8 +4,8 @@ from pathlib import Path
 from tapeagents.batch import batch_main_loop
 from tapeagents.dialog_tape import DialogTape, SystemStep, UserStep
 from tapeagents.environment import EmptyEnvironment
-from tapeagents.io import save_tapes
-from tapeagents.llms import TrainableLLM, LLM
+from tapeagents.io import stream_yaml_tapes
+from tapeagents.llms import LLM, TrainableLLM
 
 from .llama_agent import LLAMAChatBot
 
@@ -23,7 +23,7 @@ def try_batch_main_loop(llm: LLM):
     )
 
     path = Path(tempfile.mktemp())
-    with save_tapes(path) as dumper:
+    with stream_yaml_tapes(path) as dumper:
         for new_tape in batch_main_loop(agent, [tape] * 10, EmptyEnvironment()):
             dumper.save(new_tape)
 
