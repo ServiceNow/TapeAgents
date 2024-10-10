@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from tapeagents.core import LLMCall, Step, Tape
 from tapeagents.observe import retrieve_all_llm_calls
@@ -15,23 +15,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class WorkarenaResults(BaseModel):
-    run_id: str
-    dataset_path: str
-    datetime: str
-    commit: str
-    model: str
-    llm_config: dict = Field(default_factory=dict)
-    tapes: list[dict] = Field(default_factory=list)
-    web_cache: dict = Field(default_factory=dict)
-    prompts: list[dict] = Field(default_factory=list)
-
-
 class WorkarenaTapeBrowser(TapeBrowser):
     def __init__(self, tapes_folder: str, renderer):
-        super().__init__(
-            tapes_folder=tapes_folder, renderer=renderer, tape_cls=WorkarenaResults, file_extension=".json"
-        )
+        super().__init__(tapes_folder=tapes_folder, renderer=renderer, tape_cls=BaseModel, file_extension=".json")
 
     def load_tapes(self, fname: str) -> list:
         fpath = os.path.join(self.tapes_folder, fname, "tapes")
@@ -60,7 +46,9 @@ class WorkarenaTapeBrowser(TapeBrowser):
             tapes.append(tape_dict)
         self.llm_calls = {}
         base_path = os.path.dirname(fpath)
-        sqlite_fpath = os.path.join(base_path, "llm_calls.sqlite")
+        sqlite_fpath = os.path.join(base_path, "tapedata.sqlite")
+        if not os.path.exists(sqlite_fpath):
+            sqlite_fpath = os.path.join(base_path, "llm_calls.sqlite")
         try:
             llm_calls = retrieve_all_llm_calls(sqlite_fpath)
         except Exception as e:
@@ -81,11 +69,13 @@ class WorkarenaTapeBrowser(TapeBrowser):
     def get_context(self, tape) -> list:
         return []
 
-    def load_prompts(self):
+    def load_llm_calls(self):
         pass
 
     def get_file_label(self, filename: str, tapes: list) -> str:
         acc = []
+        tokens_num = 0
+        failure_count = 0
         for tape in tapes:
             if "result" not in tape["metadata"]:
                 return "<h2>{filename}</h2"
@@ -96,8 +86,15 @@ class WorkarenaTapeBrowser(TapeBrowser):
                 if "success" not in result:
                     continue
                 acc.append(int(result["success"]))
+            for step in tape["steps"]:
+                prompt_id = step.get("metadata", {}).get("prompt_id", step.pop("prompt_id", None))
+                if prompt_id and prompt_id in self.llm_calls:
+                    tokens_num += (
+                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
+                    )
+            failure_count += len([s for s in tape["steps"] if s["kind"].endswith("failure")])
         success_rate = (sum(acc) / len(acc) if acc else 0) * 100
-        return f"<h2>{filename}<br>Success {success_rate:.2f}% ({sum(acc)} out of {len(acc)})</h2>"
+        return f"<h2>{filename}<br>Success {success_rate:.2f}% ({sum(acc)} out of {len(acc)})</h2><h3>Tokens spent: {tokens_num}</h3><h3>Failures: {failure_count}</h3>"
 
     def get_tape_name(self, i: int, tape: dict) -> str:
         result = tape["metadata"].get("result")
@@ -112,10 +109,15 @@ class WorkarenaTapeBrowser(TapeBrowser):
     def get_tape_label(self, tape: dict) -> str:
         tape_dir = tape["metadata"]["tape_dir"]
         llm_calls_num = 0
+        tokens_num = 0
         for step in tape["steps"]:
-            prompt_id = step.get("metadata", {}).get("prompt_id", step.get("prompt_id"))
+            prompt_id = step.get("metadata", {}).get("prompt_id", step.pop("prompt_id", None))
             if prompt_id:
                 llm_calls_num += 1
+                if prompt_id in self.llm_calls:
+                    tokens_num += (
+                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
+                    )
         failure_count = len([s for s in tape["steps"] if s["kind"].endswith("failure")])
         label = f"""<h3>Result</h3>
             <div class="result-label">Steps: {len(tape["steps"])}</div>
@@ -126,7 +128,8 @@ class WorkarenaTapeBrowser(TapeBrowser):
         success = str(result.pop("success")) if "success" in result else "UNFINISHED"
         label += f"""
             <div class="result-success"><b>Finished successfully: {success}</b></div>
-            <div>LLM Calls: {llm_calls_num}</div>
+            <div class="result-label">LLM Calls: {llm_calls_num}</div>
+            <div class="result-label">Tokens spent: {tokens_num}</div>
             <h3>Info</h3>
             """
         for k, v in result.items():
@@ -151,9 +154,9 @@ class WorkarenaTapeBrowser(TapeBrowser):
         steps = self.get_steps(tape)
         step_views = []
         last_prompt_id = None
-        for i, s in enumerate(steps):
-            prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
-            view = self.renderer.render_step(s, i)  # type: ignore
+        for i, step in enumerate(steps):
+            prompt_id = step.get("metadata", {}).get("prompt_id", step.pop("prompt_id", None))
+            view = self.renderer.render_step(step, i)  # type: ignore
             if prompt_id in self.llm_calls and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(self.llm_calls[prompt_id])
                 view = prompt_view + view
