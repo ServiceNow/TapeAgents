@@ -48,7 +48,6 @@ def main(cfg: DictConfig) -> None:
             tape, metadata = env.start_task(task, seed)
             metadata["seed"] = seed
             metadata["number"] = i
-            tape.metadata.result = metadata
             logger.info(colored(f"Start task {i+1} seed {seed}: {metadata['goal']}", "cyan"))
             loop = 0
             logger.info(colored(f"Loop {loop+1}", "cyan"))
@@ -70,6 +69,7 @@ def main(cfg: DictConfig) -> None:
                     tape = tape.append(event.observation)  # type: ignore
                     loop += 1
                     logger.info(colored(f"Loop {loop+1}", "cyan"))
+                tape.metadata.result = metadata
                 save_json_tape(tape, tmp_fpath)
             success, result = env.validate_task(tape)
             metadata["success"] = success

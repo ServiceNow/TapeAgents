@@ -98,7 +98,7 @@ class WorkarenaTapeBrowser(TapeBrowser):
 
     def get_tape_name(self, i: int, tape: dict) -> str:
         result = tape["metadata"].get("result")
-        if result is None or not isinstance(result, dict):
+        if not result or not isinstance(result, dict):
             return f"tape_{i}"
         name = result["name"].split(".")[-1]
         n = result["number"]
