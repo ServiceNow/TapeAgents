@@ -74,8 +74,9 @@ class CameraReadyRenderer(BasicRenderer):
             class_ = "broadcast"
         elif isinstance(step, SetNextNode):
             role = ""
-            title = f"Thought: SetNextNode(next_node={step.next_node})"
+            title = f"Thought: SetNextNode({step.next_node})"
             class_ = "thought"
+            dump.pop("next_node", None)
         elif isinstance(step, Thought):
             role = "Thought"
             class_ = "thought"
@@ -99,10 +100,10 @@ class CameraReadyRenderer(BasicRenderer):
         def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
 
-        def maybe_fold(content: str, len_max: int = 80):
+        def maybe_fold(content: str, len_max: int = 60):
             content = str(content)
             if len(content) > len_max:
-                summary = f"{content[:len_max]} ...".replace("\n", "\\n")
+                summary = f"{content[:len_max]}...".replace("\n", "\\n")
                 return f"<details><summary>{summary}</summary>---<br>{content}</details>"
             return content
 
@@ -113,7 +114,7 @@ class CameraReadyRenderer(BasicRenderer):
             function_calls = []
             for tool_call in dump["tool_calls"]:
                 function_calls.append(f"{tool_call['function']['name']}({dict_to_params(tool_call['function']['arguments'])})")
-            text = maybe_fold("\n").join(function_calls)
+            text = maybe_fold(", ".join(function_calls))
         elif isinstance(step, ExecuteCode):
             del dump["code"]
 
