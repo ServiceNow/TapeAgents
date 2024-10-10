@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(
     version_base=None,
-    config_path="../../conf/tapeagent",
+    config_path="../../conf",
     config_name="workarena_openai",
 )
 def main(cfg: DictConfig) -> None:

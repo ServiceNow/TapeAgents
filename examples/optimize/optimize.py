@@ -263,7 +263,7 @@ def browse():
     browser.launch()
 
 
-@hydra.main(version_base=None, config_path="../../conf/tapeagent", config_name="hotpot_qa")
+@hydra.main(version_base=None, config_path="../../conf", config_name="hotpot_qa")
 def main(cfg: DictConfig):
     print(f"Running in {os.getcwd()}")
     match cfg.target:
