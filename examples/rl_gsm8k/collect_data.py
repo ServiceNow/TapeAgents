@@ -31,7 +31,6 @@ from examples.rl_gsm8k.math_agent import (
     save_tape,
     solve_task,
 )
-from examples.rl_gsm8k.utils import JobConfig, make_job
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -253,6 +252,7 @@ def main(cfg: DictConfig):
 
         training_samples = []
         rewards = []
+        tapes = []
         try:
             # use batch_main_loop
             sub_samples = random.sample(samples, cfg.max_agent_forks)
@@ -260,6 +260,7 @@ def main(cfg: DictConfig):
                 sample = extract_result_value(sample)
                 for j in range(attempts):
                     tape = solve_task(agent, env, sample)
+                    tapes.append(tape)
                     reward = 1 if tape.metadata.result["solved"] else 0
                     rewards.append(reward)
                     # TODO: Oleh discussion
@@ -308,8 +309,13 @@ def main(cfg: DictConfig):
                 )
 
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
-                for trace in training_samples:
-                    trace.ref_logprobs = basemodel_agent.make_training_text(trace, compute_log_probs=True).old_logprobs
+                base_model_traces = []
+                for tape in tapes:
+                    for i, trace in enumerate(basemodel_agent.make_training_data(tape)):
+                        trace.fork_id = i
+                        base_model_traces.append(trace)
+                for trace, base_model_trace in zip(training_samples, base_model_traces):
+                    trace.ref_logprobs = base_model_trace.old_logprobs
 
             except Exception as e:
                 logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -342,19 +348,31 @@ def main(cfg: DictConfig):
         config_path = conf_dir / f"{state['iteration']}.yaml"
         OmegaConf.save(finetune_cfg, config_path)
 
-        finetune_command = [
-            "bash", "-c",
+        #finetune_command = [
+        #    "bash", "-c",
+        #    "cd /home/toolkit/TapeAgents/tapeagents && "
+        #    "PYTHONPATH=/home/toolkit/TapeAgents:/home/toolkit/TapeAgents/tapeagents/src "
+        #    "conda run -n tapeagents --no-capture-output "
+        #    "accelerate launch --mixed_precision=bf16 --num_processes 1 "
+        #    "--config_file /home/toolkit/TapeAgents/conf/deepspeed/accelerate_local.yaml "
+        #    "run_finetune.py --config-dir /home/toolkit/TapeAgents/outputs/rl_gsm8k/conf "
+        #    "--config-name 0 hydra.run.dir=/home/toolkit/TapeAgents/outputs/rl_gsm8k/finetunew"
+        #]
+        #logger.info(f"Executing finetune command: {' '.join(finetune_command)}")
+
+        #error_code = subprocess.run(finetune_command)
+        finetune_command = (
             "cd /home/toolkit/TapeAgents/tapeagents && "
             "PYTHONPATH=/home/toolkit/TapeAgents:/home/toolkit/TapeAgents/tapeagents/src "
             "conda run -n tapeagents --no-capture-output "
             "accelerate launch --mixed_precision=bf16 --num_processes 1 "
             "--config_file /home/toolkit/TapeAgents/conf/deepspeed/accelerate_local.yaml "
-            "run_finetune.py --config-dir /home/toolkit/TapeAgents/outputs/rl_gsm8k/conf "
-            "--config-name 0 hydra.run.dir=/home/toolkit/TapeAgents/outputs/rl_gsm8k/finetunew"
-        ]
-        logger.info(f"Executing finetune command: {' '.join(finetune_command)}")
+            f"run_finetune.py --config-dir {str(conf_dir)} "
+            f"--config-name {str(state['iteration'])} hydra.run.dir={str(finetune_path)}"
+        )
+        logger.info(f"Executing finetune command: {finetune_command}")
 
-        error_code = subprocess.run(finetune_command)
+        error_code = subprocess.call(finetune_command, shell=True)
 
         if error_code != 0:
             logger.error(f"Finetuning failed with error code {error_code}")
