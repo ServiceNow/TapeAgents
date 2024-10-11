@@ -2,17 +2,16 @@ import datetime
 import logging
 import sys
 
-from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.agent import Agent
-from tapeagents.autogen_prompts import DEFAULT_TEAM_AGENT_SYSTEM_MESSAGE
 from tapeagents.team import TeamAgent, TeamTape
+from tapeagents.autogen_prompts import DEFAULT_TEAM_AGENT_SYSTEM_MESSAGE
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import Action, FinalStep, Observation, Tape
 from tapeagents.environment import CodeExecutionEnvironment, Environment
 from tapeagents.llms import LLM, LiteLLM
+from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
 from tapeagents.runtime import main_loop
-from tapeagents.test_utils import run_in_tmp_dir_to_make_test_data
 from tapeagents.view import Call, Respond
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -96,9 +95,6 @@ if __name__ == "__main__":
             main(studio=False)
         case ["studio"]:
             main(studio=True)
-        case ["make_test_data"]:
-            with run_in_tmp_dir_to_make_test_data("data_science"):
-                main(studio=False)
         case _:
             print("Usage: python -m examples.data_science.data_science [studio]")
             sys.exit(1)

@@ -70,7 +70,7 @@ class PlainTextConverter(DocumentConverter):
         if content_type is None:
             return None
 
-        if "text/" not in content_type.lower():
+        if "text/" not in content_type.lower() and extension.lower() not in [".txt", ".xml", ".jsonld", ".pdb"]:
             return None
 
         text_content = ""
@@ -328,7 +328,7 @@ class XlsxConverter(HtmlConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
-        if extension.lower() != ".xlsx":
+        if extension.lower() not in [".xlsx", ".xls"]:
             return None
         import pandas as pd
 
@@ -747,8 +747,7 @@ class FileConverter:
         ext = ext.strip()
         if ext == "":
             return
-        # if ext not in extensions:
-        if True:
+        if ext not in extensions:
             extensions.append(ext)
 
     def _guess_ext_magic(self, path):

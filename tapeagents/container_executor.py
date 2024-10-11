@@ -12,11 +12,9 @@ from pathlib import Path
 from time import sleep
 from types import TracebackType
 from typing import Any, ClassVar, Dict, List, Optional, Type, Union
-from typing_extensions import Self
 
-import podman as docker
-from podman.errors import ImageNotFound
 from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +102,13 @@ class ContainerExecutor:
         elif isinstance(bind_dir, str):
             bind_dir = Path(bind_dir)
 
+        import podman as docker
+
         client = docker.from_env()
         # Check if the image exists
         try:
             client.images.get(image)
-        except ImageNotFound:
+        except docker.errors.ImageNotFound:
             logging.info(f"Pulling image {image}...")
             # Let the docker exception escape if this fails.
             client.images.pull(image)

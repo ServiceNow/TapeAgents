@@ -142,11 +142,3 @@ class PromptRegistry:
     think = THINK
     act = ACT
     start = START
-
-    # key is a kind of step, value is a guidance prompt
-    task = START
-    reflection_thought = ACT
-    _default = THINK
-
-
-TEMPLATES = dict((name, getattr(PromptRegistry, name)) for name in dir(PromptRegistry) if not name.startswith("__"))

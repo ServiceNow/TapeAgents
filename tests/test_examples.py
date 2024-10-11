@@ -6,15 +6,14 @@ import sys
 import tempfile
 from pathlib import Path
 
-from omegaconf import DictConfig
 import yaml
+from make_test_data import run_test_in_tmp_dir
+from omegaconf import DictConfig
 
-from tapeagents.test_utils import run_test_in_tmp_dir
+from tapeagents.io import load_tapes
 
-sys.path.append(str(Path(__file__).parent.parent.resolve()))
+sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
 
-from examples.optimize.optimize import make_agentic_rag_agent, make_env
-from examples.tape_improver import tape_improver
 from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
 from examples.delegate_stack import ExampleTape as ExampleTapeStack
@@ -24,6 +23,10 @@ from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.eval import load_results
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
+from examples.optimize.optimize import make_agentic_rag_agent, make_env
+from examples.tape_improver import tape_improver
+from examples.workarena.agent import WorkArenaBaseline
+from examples.workarena.steps import WorkArenaTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
@@ -134,15 +137,31 @@ def test_gaia_agent():
 
     llm = ReplayLLM(llm_calls=[LLMCall.model_validate(p) for p in results.prompts], model_name=results.model)
     env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
-    env.browser.set_web_cache(results.web_cache)
-    agent = GaiaAgent.create(llm, short_steps=True)
+    # add lowercased keys to the cache for legacy compatibility
+    cache = results.web_cache | {k.lower().strip(): v for k, v in results.web_cache.items() if len(v)}
+    env.browser.set_web_cache(cache)
+    agent = GaiaAgent.create(llm)
 
     tapes = [GaiaTape.model_validate(tape) for tape in results.tapes]
     logger.info(f"Validate {len(tapes)} tapes")
 
     fails = replay_tapes(agent, tapes, env)
-    # two expected failures due to changed parsing exception format
-    assert fails == 2, f"{fails} failed tapes, expected 2"
+    assert fails == 0, f"{fails} failed tapes"
+
+
+def test_workarena_baseline_agent():
+    # TODO add correct resources and uncomment
+    return
+    run_dir = str(res_path / "workarena" / "baseline")
+
+    llm = mock_llm(run_dir)
+    env = EmptyEnvironment()
+    agent = WorkArenaBaseline.create(llm)
+
+    tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
+    logger.info(f"Validate {len(tapes)} tapes")
+    fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+    assert fails == 0, f"{fails} failed tapes"
 
 
 def test_delegate():
@@ -184,16 +203,16 @@ def test_tape_improver():
     agent, _, improver_tape = tape_improver.make_world(llm)
     final_tape = tape_improver.CodeImproverTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
     assert replay_tape(agent, final_tape, start_tape=improver_tape, reuse_observations=True)
-    
+
 
 def test_optimize():
     with run_test_in_tmp_dir("optimize"):
-        with open(f"config.yaml") as f:
+        with open("config.yaml") as f:
             cfg = DictConfig(yaml.safe_load(f))
         agent = make_agentic_rag_agent(cfg)
         env = make_env()
         tape = DialogTape.model_validate(load_tape_dict(""))
-        assert replay_tape(agent, tape, env=env, reuse_observations=True)     
+        assert replay_tape(agent, tape, env=env, reuse_observations=True)
 
 
 if __name__ == "__main__":
@@ -204,3 +223,4 @@ if __name__ == "__main__":
     test_delegate_stack()
     test_data_science()
     test_tape_improver()
+    test_workarena_baseline_agent()

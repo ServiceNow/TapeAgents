@@ -3,8 +3,8 @@ from pathlib import Path
 
 from tapeagents.batch import ObsLayerConfig, batch_add_observations
 from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
-from tapeagents.io import save_tapes
-from tapeagents.llms import TrainableLLM, LLM
+from tapeagents.io import stream_yaml_tapes
+from tapeagents.llms import LLM, TrainableLLM
 
 from .llama_user import LLAMAUserModel
 
@@ -25,8 +25,8 @@ def try_batch_add_observations(llm: LLM):
 
     path = Path(tempfile.mktemp())
     path_user_tapes = Path(tempfile.mktemp())
-    with save_tapes(path) as dumper:
-        with save_tapes(path_user_tapes) as dumper_user:
+    with stream_yaml_tapes(path) as dumper:
+        with stream_yaml_tapes(path_user_tapes) as dumper_user:
             layer_conf = ObsLayerConfig(obs_makers=[(user_model, 3)])
             for new_tape, obs_maker_tape in batch_add_observations([tape], layer_conf):
                 dumper.save(new_tape)

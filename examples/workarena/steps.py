@@ -1,8 +1,8 @@
-from typing import Annotated, Any, Literal, TypeAlias, Union
+from typing import Annotated, Literal, TypeAlias, Union
 
 from pydantic import Field
 
-from tapeagents.core import Action, FinalStep, Observation, Tape, Thought
+from tapeagents.core import Action, AgentResponseParsingFailureAction, Observation, StopStep, Tape, Thought
 from tapeagents.dialog_tape import DialogContext
 
 from ..gaia_agent.steps import ActionExecutionFailure
@@ -196,7 +196,7 @@ class GotoPageAction(WorkArenaAction):
     url: str = Field(description="url to go to")
 
 
-class FinalAnswerAction(WorkArenaAction, FinalStep):
+class FinalAnswerAction(WorkArenaAction, StopStep):
     """
     Action that provides the final answer to the user after completing the task. Should be produced when the agent has finished the task.
     """
@@ -209,6 +209,7 @@ WorkArenaStep = Union[
     WorkArenaTask,
     PageObservation,
     ActionExecutionFailure,
+    AgentResponseParsingFailureAction,
     # thoughts
     ReasoningThought,
     ReflectionThought,

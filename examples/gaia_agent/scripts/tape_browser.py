@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from pathlib import Path
 
 from tapeagents.core import LLMCall
 from tapeagents.rendering import GuidedAgentRender
@@ -29,7 +30,7 @@ class GaiaTapeBrowser(TapeBrowser):
                     prompt["output_length_tokens"] = prompt.pop("completion_length_tokens")
                 self.results.prompts[i] = prompt
             self.llm_calls = {p["prompt"]["id"]: LLMCall.model_validate(p) for p in self.results.prompts}
-            logger.info(f"Loaded {len(self.results.tapes)} tapes, {len(self.llm_calls)} prompts from {fpath}")
+            logger.info(f"Loaded {len(self.results.tapes)} tapes, {len(self.llm_calls)} LLM calls from {fpath}")
         except Exception as e:
             logger.error(f"Failed to load tapes from {fpath}: {e}")
             self.results = GaiaResults()
@@ -42,9 +43,9 @@ class GaiaTapeBrowser(TapeBrowser):
         steps = self.get_steps(tape)
         step_views = []
         last_prompt_id = None
-        for i, s in enumerate(steps):
-            prompt_id = s.pop("prompt_id", None) if isinstance(s, dict) else getattr(s, "prompt_id", None)
-            view = self.renderer.render_step(s, i)  # type: ignore
+        for i, step in enumerate(steps):
+            prompt_id = step.get("metadata", {}).get("prompt_id", step.pop("prompt_id", None))
+            view = self.renderer.render_step(step, i)  # type: ignore
             if prompt_id in self.llm_calls and prompt_id != last_prompt_id:
                 prompt_view = self.renderer.render_llm_call(self.llm_calls[prompt_id])
                 view = prompt_view + view
@@ -63,18 +64,53 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_file_label(self, filename: str, tapes: list) -> str:
         acc, n_solved = self.results.accuracy
-        return f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
+        parsing_errors = 0
+        page_errors = 0
+        tokens_num = 0
+        for tape in self.results.tapes:
+            for step in tape["steps"]:
+                prompt_id = step.get("metadata", {}).get("prompt_id", step.get("prompt_id"))
+                if prompt_id and prompt_id in self.llm_calls:
+                    tokens_num += (
+                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
+                    )
+                if step.get("kind") == "page_observation":
+                    if step.get("error"):
+                        page_errors += 1
+                if step.get("kind") == "agent_response_parsing_failure_action":
+                    parsing_errors += 1
+        return f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}<br>Step parsing errors: {parsing_errors}<br>Page loading errors: {page_errors}"
 
     def get_tape_name(self, i: int, tape: dict) -> str:
-        mark = ("+" if tape_correct(tape) else "") + ("[f]" if tape["metadata"]["task"]["file_name"] else "")
-        return f'{mark}L{tape["metadata"]["task"]["Level"]}{i+1}: {tape["steps"][0]["content"][:32]}'
+        page_error = False
+        parsing_error = False
+        for step in tape["steps"]:
+            if step.get("kind") == "page_observation" and step.get("error"):
+                page_error = True
+            if step.get("kind") == "agent_response_parsing_failure_action":
+                parsing_error = True
+        mark = "+" if tape_correct(tape) else ""
+        if tape["metadata"]["task"]["file_name"]:
+            mark += "f"
+        if parsing_error:
+            mark += "E"
+        if page_error:
+            mark += "e"
+        if mark:
+            mark += "|"
+        return f'{mark}{i+1}: {tape["steps"][0]["content"][:32]}'
 
     def get_tape_label(self, tape: dict) -> str:
         llm_calls_num = 0
+        tokens_num = 0
+
         for step in tape["steps"]:
             prompt_id = step.get("metadata", {}).get("prompt_id", step.get("prompt_id"))
             if prompt_id:
                 llm_calls_num += 1
+                tokens_num += (
+                    self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
+                )
         failure_count = len([s for s in tape["steps"] if s["kind"].endswith("failure")])
         label = f"""<h2>Tape Result</h2>
             <div class="result-label expected">Golden Answer: <b>{tape["metadata"]["task"]['Final answer']}</b></div>
@@ -85,15 +121,14 @@ class GaiaTapeBrowser(TapeBrowser):
         overview = tape["steps"][-1].get("overview", "")
         label += f"""
             <div class="result-success">Finished successfully: {success}</div>
-            <div>LLM Calls: {llm_calls_num}</div>
+            <div>LLM Calls: {llm_calls_num}, tokens: {tokens_num}</div>
             <div class="result-overview">Overview:<br>{overview}</div>"""
         return label
 
     def get_tape_files(self) -> list[str]:
         files = sorted(
-            [
-                f for f in os.listdir(self.tapes_folder) if f.endswith(self.file_extension)
-            ]  # for recursive use: Path(self.tapes_folder).glob(f"**/*{self.file_extension}")
+            # for 1-level use: [f for f in os.listdir(self.tapes_folder) if f.endswith(self.file_extension)]
+            [str(p.relative_to(self.tapes_folder)) for p in Path(self.tapes_folder).glob(f"**/*{self.file_extension}")]
         )
         assert files, f"No files found in {self.tapes_folder}"
         logger.info(f"Found {len(files)} files")
