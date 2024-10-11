@@ -20,10 +20,6 @@ from omegaconf import DictConfig, OmegaConf
 from termcolor import colored, cprint
 from tqdm import tqdm
 
-from tapeagents.core import TrainingText
-from tapeagents.finetune.finetune import load_config, run_finetuning_loop
-from tapeagents.llms import TrainableLLM
-
 from examples.rl_gsm8k.math_agent import (
     MathAgent,
     MathEnvironment,
@@ -31,6 +27,9 @@ from examples.rl_gsm8k.math_agent import (
     save_tape,
     solve_task,
 )
+from tapeagents.core import TrainingText
+from tapeagents.finetune.finetune import load_config, run_finetuning_loop
+from tapeagents.llms import TrainableLLM
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -258,13 +257,12 @@ def main(cfg: DictConfig):
             sub_samples = random.sample(samples, cfg.max_agent_forks)
             for i, sample in enumerate(tqdm(sub_samples)):
                 sample = extract_result_value(sample)
-                for j in range(attempts):
+                for _ in range(attempts):
                     tape = solve_task(agent, env, sample)
                     tapes.append(tape)
                     reward = 1 if tape.metadata.result["solved"] else 0
                     rewards.append(reward)
-                    # TODO: Oleh discussion
-                    for i, trace in enumerate(agent.make_training_data(tape)):
+                    for trace in agent.make_training_data(tape):
                         print(f"TRACE {i}")
                         print("CONTEXT", trace.prompt_text)
                         print("COMPLETION", trace.output_text)
@@ -272,6 +270,12 @@ def main(cfg: DictConfig):
                         trace.fork_id = i
                         trace.rewards = [reward]
                         training_samples.append(trace)
+
+                if i % 10 == 0 and i > 0:
+                    logger.info(
+                        f"{i}: Current accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}"
+                    )
+            logger.info(f"Accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
         finally:
@@ -282,11 +286,6 @@ def main(cfg: DictConfig):
                 stdout_file.close()
             if stderr_file:
                 stderr_file.close()
-
-            if i % 10 == 0 and i > 0:
-                logger.info(
-                    f"{i}: Current accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}"
-                )
 
         # do we need to launch the base_model?
         if assistant_model_path == cfg.model_path:
@@ -330,7 +329,7 @@ def main(cfg: DictConfig):
 
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
-        with open(rollout_dir / "tapes.jsonl", "w") as f:
+        with open(rollout_dir / "data.jsonl", "w") as f:
             for trace in training_samples:
                 f.write(trace.model_dump_json() + "\n")
                 f.flush()
@@ -348,19 +347,6 @@ def main(cfg: DictConfig):
         config_path = conf_dir / f"{state['iteration']}.yaml"
         OmegaConf.save(finetune_cfg, config_path)
 
-        #finetune_command = [
-        #    "bash", "-c",
-        #    "cd /home/toolkit/TapeAgents/tapeagents && "
-        #    "PYTHONPATH=/home/toolkit/TapeAgents:/home/toolkit/TapeAgents/tapeagents/src "
-        #    "conda run -n tapeagents --no-capture-output "
-        #    "accelerate launch --mixed_precision=bf16 --num_processes 1 "
-        #    "--config_file /home/toolkit/TapeAgents/conf/deepspeed/accelerate_local.yaml "
-        #    "run_finetune.py --config-dir /home/toolkit/TapeAgents/outputs/rl_gsm8k/conf "
-        #    "--config-name 0 hydra.run.dir=/home/toolkit/TapeAgents/outputs/rl_gsm8k/finetunew"
-        #]
-        #logger.info(f"Executing finetune command: {' '.join(finetune_command)}")
-
-        #error_code = subprocess.run(finetune_command)
         finetune_command = (
             "cd /home/toolkit/TapeAgents/tapeagents && "
             "PYTHONPATH=/home/toolkit/TapeAgents:/home/toolkit/TapeAgents/tapeagents/src "
@@ -378,8 +364,6 @@ def main(cfg: DictConfig):
             logger.error(f"Finetuning failed with error code {error_code}")
             sys.exit(1)
 
-        logger.info(f"Accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
-        logger.info(f"{len(rewards)} tapes saved to {tapes_dir}")
         state["iteration"] += 1
         save_state(state, state_path)
 
