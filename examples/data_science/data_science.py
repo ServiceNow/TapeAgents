@@ -4,7 +4,7 @@ import sys
 
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.agent import Agent
-from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
+from tapeagents.autogen_prompts import DEFAULT_TEAM_AGENT_SYSTEM_MESSAGE
 from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import Action, FinalStep, Observation, Tape
@@ -23,7 +23,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
     coder = TeamAgent.create(
         name="SoftwareEngineer",
         system_prompt=(
-            AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
+            DEFAULT_TEAM_AGENT_SYSTEM_MESSAGE
             + " Always start by installing packages your code need in a `install.sh` file. ."
             + " Always print in the code the filename of the generated files."
         ),
@@ -56,7 +56,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
     org = TeamAgent.create_initiator(
         name="Initiator",
         init_message=(
-            "Make a plot comparing the stocks of ServiceNow and Nvidia"
+            "Make a plot comparing the stocks of ServiceNow and Salesforce"
             " since beginning of 2024."
         ),
         teammate=team,

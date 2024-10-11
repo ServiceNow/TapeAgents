@@ -2,7 +2,7 @@
 
 # This agent is not in charge of the TERMINATE, another agent is in charge to be more robust.
 # this is the only change to the original Autogen assistant message that we make here
-AUTOGEN_ASSISTANT_SYSTEM_MESSAGE = (
+DEFAULT_TEAM_AGENT_SYSTEM_MESSAGE = (
 """You are a helpful AI assistant.
 Solve tasks using your coding and language skills.
 In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
