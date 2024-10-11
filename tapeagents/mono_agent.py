@@ -50,6 +50,7 @@ class MonoNode(Node):
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         if isinstance(tape.steps[index], AgentResponseParsingFailureAction):
+            #TODO: Oleh discussion
             # FIXME: this is a hack to log the completion to train the agent
             return LLMOutput(role="assistant", content=tape.steps[index].metadata.other["completion"])
         return LLMOutput(role="assistant", content=tape.steps[index].llm_view())

@@ -151,6 +151,7 @@ class MathAgent(MonoAgent):
         """
         We only train on the last completion
         """
+        #TODO: Oleh discussion
         _, llm_calls = self.reuse(tape)
         return [self.make_training_text(llm_call, compute_log_probs=True) for llm_call in llm_calls]
 

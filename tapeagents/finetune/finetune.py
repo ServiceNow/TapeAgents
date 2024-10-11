@@ -17,7 +17,6 @@ from transformers import (
 
 from tapeagents.core import TrainingText
 
-from .tokenizer import CustomLlama3Tokenizer
 from .checkpoints import (
     load_model,
     load_tokenizer,
@@ -98,17 +97,7 @@ def run_finetuning_loop(
     logger.info(f"Saving experiment to {output_dir}")
     dt = log_time(dt, "finetune/startup")
     model = load_model(args, model_class, current_dir, is_rl)
-    if (
-        hasattr(model, "config")
-        and hasattr(model.config, "rope_scaling")
-        and model.config.rope_scaling["rope_type"] == "llama3"  # type: ignore
-    ):
-        # HF Llama3 is known to have a bug to compute_offsets
-        # https://github.com/huggingface/tokenizers/issues/1553
-        logger.info("Using custom Llama3 tokenizer instead of HF's to avoid offset bug")
-        tokenizer = CustomLlama3Tokenizer(args.config_name)
-    else:
-        tokenizer = load_tokenizer(args.config_name)
+    tokenizer = load_tokenizer(args.config_name)
 
     dt = log_time(dt, "finetune/model_load")
 
@@ -116,7 +105,6 @@ def run_finetuning_loop(
     rl_data_callback = None
     if is_rl:
         rl_config = GRPOConfig(**args.grpo)
-        # rl_config.padding_side = tokenizer.padding_side
         forward = lambda model, batch: grpo_step(model, batch, rl_config)  # noqa: E731
         rl_data_callback = make_rl_data_callback(args, current_dir, rl_config, model)
 

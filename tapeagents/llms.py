@@ -604,6 +604,7 @@ class MockLLM(LLM):
 
 
 def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer, log_probs: list[float] = []) -> TrainingText:
+    #TODO: Oleh discussion
     prompt_text = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=False, add_generation_prompt=True)
     text = tokenizer.apply_chat_template(prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=False)
     output_text = text[len(prompt_text) :]

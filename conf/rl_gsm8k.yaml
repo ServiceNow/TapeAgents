@@ -4,7 +4,13 @@ defaults:
 
 
 model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
-output_dir: ${hydra:run.dir}
+max_agent_forks: 10
+force_restart: true
+finetune_job:
+  accelerate: 1
+  local: 1
+  snapshot: 0
+  conda: 1
 
 finetune:
   config_name: ${..model_path}
@@ -15,3 +21,5 @@ vllm_config:
     - "--download-dir": "/mnt/llmd/base_models/" 
     - "--gpu-memory-utilization": 0.8   
     - "--max-model-len": 8000
+
+output_dir: /home/toolkit/TapeAgents/outputs/rl_gsm8k

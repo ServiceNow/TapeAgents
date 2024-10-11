@@ -1,19 +1,28 @@
+import json
 import logging
 import os
+import random
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
+
 import hydra
-from omegaconf import DictConfig, OmegaConf
 import numpy as np
 import psutil
 import requests
+import torch
 from datasets import load_dataset
+from hydra.core.hydra_config import HydraConfig
+from omegaconf import DictConfig, OmegaConf
 from termcolor import colored, cprint
-import random
 from tqdm import tqdm
+
+from tapeagents.core import TrainingText
+from tapeagents.finetune.finetune import load_config, run_finetuning_loop
+from tapeagents.llms import TrainableLLM
 
 from examples.rl_gsm8k.math_agent import (
     MathAgent,
@@ -22,9 +31,7 @@ from examples.rl_gsm8k.math_agent import (
     save_tape,
     solve_task,
 )
-from tapeagents.core import TrainingText
-from tapeagents.finetune.finetune import load_config, run_finetuning_loop
-from tapeagents.llms import TrainableLLM
+from examples.rl_gsm8k.utils import JobConfig, make_job
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -145,62 +152,117 @@ def serve_vllm_local_model(
     return process, stdout_file, stderr_file
 
 
+def load_state(state_path):
+    if state_path.exists():
+        with open(state_path, "r") as f:
+            return json.load(f)
+    else:
+        return {"iteration": 0}
+
+
+def save_state(state, state_path):
+    with open(state_path, "w") as f:
+        json.dump(state, f)
+
+
+def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
+    os.makedirs(target_path, exist_ok=True)
+
+    def remove_dir(directory: Path):
+        if directory.exists() and directory.is_dir():
+            shutil.rmtree(directory)
+
+    # Reset the state iteration steps
+    state["iteration"] = 0
+    save_state(state, state_path)
+
+    logger.info("Cleaning up checkpoints and training state")
+
+    # List of directories to remove
+    directories = [
+        target_path / "debug.log",
+        target_path / "error.log",
+        target_path / "info.log",
+        target_path / "dialogue_trace.log",
+        target_path / "rl_forks_train",
+        target_path / "train",
+        target_path / "rl_forks_eval",
+        target_path / "eval",
+        target_path / "finetune" / "current",
+        target_path / "finetune" / "logs",
+        target_path / "finetune" / "intermediate",
+        target_path / "finetune" / "training_state",
+    ]
+
+    for directory in directories:
+        remove_dir(directory)
+        logger.info(f"{directory} removed.")
+
+
 @hydra.main(config_path="../../conf/", config_name="rl_gsm8k")
-def main(cfg: DictConfig): 
-    exp_path = Path("outputs/gsm8k/tuning/llama31_8b_train")
-    attempts=2
+def main(cfg: DictConfig):
+    random.seed(42)
+    exp_path = Path(cfg.output_dir)
+    state_path = exp_path / "rl_state.json"
+    state = load_state(state_path)
+    # optionally clean all data at start time
+    if cfg.force_restart:
+        clean_up(exp_path, state, state_path)
+    attempts = 2
     # Serve the vLLM model
-    model_path = cfg.model_path
+
     stdout_path = exp_path / "vllm_stdout.log"
     stderr_path = exp_path / "vllm_stderr.log"
     port = 8080
 
     dataset = load_dataset("openai/gsm8k", "main", split="train")
     samples = [s for s in dataset]
-    np.random.seed(42)
-    np.random.shuffle(samples)  # type: ignore
-    sub_samples = random.sample(samples, 10)
-    # for sample in dataset:
-    #    samples.append(sample)
-    #    if len(samples) == 2:
-    #        break
     logging.info(f"Loaded {len(samples)} samples")
 
-
-    llm = TrainableLLM(
-        base_url="http://127.0.0.1:8080",
-        model_name=model_path,
-        tokenizer_name=model_path,
-        parameters=dict(temperature=0.7),
-    )
-
-    agent = MathAgent.create(llm=llm)
     env = MathEnvironment()
 
     tapes_dir = os.path.join(exp_path, "tapes")
     logger.info(f"Saving tapes to {tapes_dir}")
     os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "llm_calls.sqlite")
+    conf_dir = exp_path / "conf"
+    os.makedirs(conf_dir, exist_ok=True)
+    finetune_path = exp_path / "finetune"
+    for _ in range(10):
+        if os.path.exists(finetune_path / "current"):
+            assistant_model_path = str(finetune_path / "current")
+        else:
+            assistant_model_path = cfg.model_path
 
-    assistant_process, stdout_file, stderr_file = serve_vllm_local_model(
-        model_name_or_path=model_path,
-        stdout_file_path=stdout_path,
-        stderr_file_path=stderr_path,
-        port=port,
-        verbose=True,
-    )
+        assistant_process, stdout_file, stderr_file = serve_vllm_local_model(
+            model_name_or_path=assistant_model_path,
+            stdout_file_path=stdout_path,
+            stderr_file_path=stderr_path,
+            port=port,
+            verbose=True,
+        )
 
-    training_samples = []
-    rewards = []
-    try:
-        # use batch_main_loop
-        with open(exp_path / "tapes.jsonl", "w") as f:
+        llm = TrainableLLM(
+            base_url="http://127.0.0.1:8080",
+            model_name=str(assistant_model_path),
+            tokenizer_name=str(assistant_model_path),
+            parameters=dict(temperature=0.7),
+        )
+
+        agent = MathAgent.create(llm=llm)
+
+        training_samples = []
+        rewards = []
+        try:
+            # use batch_main_loop
+            sub_samples = random.sample(samples, cfg.max_agent_forks)
             for i, sample in enumerate(tqdm(sub_samples)):
                 sample = extract_result_value(sample)
                 for j in range(attempts):
                     tape = solve_task(agent, env, sample)
                     reward = 1 if tape.metadata.result["solved"] else 0
                     rewards.append(reward)
+                    # TODO: Oleh discussion
                     for i, trace in enumerate(agent.make_training_data(tape)):
                         print(f"TRACE {i}")
                         print("CONTEXT", trace.prompt_text)
@@ -208,28 +270,100 @@ def main(cfg: DictConfig):
 
                         trace.fork_id = i
                         trace.rewards = [reward]
-                        trace.ref_logprobs = trace.old_logprobs
                         training_samples.append(trace)
-                        f.write(trace.model_dump_json() + "\n")
-                        f.flush()
-    except Exception as e:
-        logger.error(colored(f"Failed to solve task: {e}", "red"))
-    finally:
-        # Make sure the weights of the model to be trained are not loaded on the GPU
-        terminate_with_children(assistant_process.pid)
-        assistant_process.wait()  # type: ignore
-        if stdout_file:
-            stdout_file.close()
-        if stderr_file:
-            stderr_file.close()
+        except Exception as e:
+            logger.error(colored(f"Failed to solve task: {e}", "red"))
+        finally:
+            # Make sure the weights of the model to be trained are not loaded on the GPU
+            terminate_with_children(assistant_process.pid)
+            assistant_process.wait()  # type: ignore
+            if stdout_file:
+                stdout_file.close()
+            if stderr_file:
+                stderr_file.close()
 
-        if i % 10 == 0 and i > 0:
-            logger.info(f"{i}: Current accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
-    cfg_finetune = cfg.copy()
-    cfg_finetune.finetune.output_dir = str(exp_path / "finetune")
-    run_finetuning_loop(cfg=cfg_finetune, training_samples=training_samples)
-    logger.info(f"Accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
-    logger.info(f"{len(rewards)} tapes saved to {tapes_dir}")
+            if i % 10 == 0 and i > 0:
+                logger.info(
+                    f"{i}: Current accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}"
+                )
+
+        # do we need to launch the base_model?
+        if assistant_model_path == cfg.model_path:
+            for trace in training_samples:
+                trace.ref_logprobs = trace.old_logprobs
+        else:
+            base_model_process, basemodel_stdout_file, basemodel_stderr_file = serve_vllm_local_model(
+                model_name_or_path=cfg.model_path,
+                stdout_file_path=stdout_path,
+                stderr_file_path=stderr_path,
+                port=port,
+                verbose=True,
+            )
+            try:
+                basemodel_llm = TrainableLLM(
+                    base_url="http://127.0.0.1:8080",
+                    model_name=cfg.model_path,
+                    tokenizer_name=cfg.model_path,
+                    parameters=dict(temperature=0.7),
+                )
+
+                basemodel_agent = MathAgent.create(llm=basemodel_llm)
+                for trace in training_samples:
+                    trace.ref_logprobs = basemodel_agent.make_training_text(trace, compute_log_probs=True).old_logprobs
+
+            except Exception as e:
+                logger.error(colored(f"Failed to solve task: {e}", "red"))
+            finally:
+                # Make sure the weights of the model to be trained are not loaded on the GPU
+                terminate_with_children(base_model_process.pid)
+                base_model_process.wait()
+                if basemodel_stdout_file:
+                    basemodel_stdout_file.close()
+                if basemodel_stderr_file:
+                    basemodel_stderr_file.close()
+
+        rollout_dir = exp_path / "rollouts" / str(state["iteration"])
+        os.makedirs(rollout_dir, exist_ok=True)
+        with open(rollout_dir / "tapes.jsonl", "w") as f:
+            for trace in training_samples:
+                f.write(trace.model_dump_json() + "\n")
+                f.flush()
+
+        finetune_cfg = cfg.copy()
+
+        finetune_cfg.finetune.save_checkpoint_steps = max(
+            cfg.max_agent_forks // (cfg.finetune.train_batch_size * cfg.finetune.gradient_accumulation_passes),
+            1,
+        )
+        interrupt_train_steps = int((state["iteration"] + 1) * finetune_cfg.finetune.save_checkpoint_steps)
+        finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
+        finetune_cfg.output_dir = str(finetune_path)
+        finetune_cfg.finetune.data = {"data_parts_train": [{"path": str(rollout_dir)}]}
+        config_path = conf_dir / f"{state['iteration']}.yaml"
+        OmegaConf.save(finetune_cfg, config_path)
+
+        finetune_command = [
+            "bash", "-c",
+            "cd /home/toolkit/TapeAgents/tapeagents && "
+            "PYTHONPATH=/home/toolkit/TapeAgents:/home/toolkit/TapeAgents/tapeagents/src "
+            "conda run -n tapeagents --no-capture-output "
+            "accelerate launch --mixed_precision=bf16 --num_processes 1 "
+            "--config_file /home/toolkit/TapeAgents/conf/deepspeed/accelerate_local.yaml "
+            "run_finetune.py --config-dir /home/toolkit/TapeAgents/outputs/rl_gsm8k/conf "
+            "--config-name 0 hydra.run.dir=/home/toolkit/TapeAgents/outputs/rl_gsm8k/finetunew"
+        ]
+        logger.info(f"Executing finetune command: {' '.join(finetune_command)}")
+
+        error_code = subprocess.run(finetune_command)
+
+        if error_code != 0:
+            logger.error(f"Finetuning failed with error code {error_code}")
+            sys.exit(1)
+
+        logger.info(f"Accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
+        logger.info(f"{len(rewards)} tapes saved to {tapes_dir}")
+        state["iteration"] += 1
+        save_state(state, state_path)
 
 
 if __name__ == "__main__":

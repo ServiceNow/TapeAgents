@@ -9,6 +9,7 @@ from typing_extensions import Self
 
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
+from tapeagents.core import AgentResponseParsingFailureAction
 
 from .core import (
     Action,
@@ -419,6 +420,7 @@ class Agent(BaseModel, Generic[TapeType]):
                     assert isinstance(new_step, Step)
                     old_step = tape.steps[i + j]
                     if type(old_step) is not type(new_step) or not _is_step_data_equal(old_step, new_step):
+                        #TODO: Oleh discussion
                         pass
                         #raise TapeReuseFailure(
                         #    f"Can't reuse tape because regenerated step {i + j} data doesn't match"
@@ -473,7 +475,11 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
 
     """
 
+
     def just_data(step: Step) -> dict:
+        if isinstance(step, AgentResponseParsingFailureAction):
+            return {}
+
         data = step.llm_dict()
         for tc in data.get("tool_calls", []):
             tc.pop("id", None)
