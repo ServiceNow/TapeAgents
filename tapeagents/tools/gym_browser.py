@@ -24,6 +24,7 @@ NODES_WITH_BID = [
     "menuitemcheckbox",
     "menuitemradio",
     "LabelText",
+    "tab",
 ]
 
 
