@@ -6,9 +6,9 @@ import shutil
 import subprocess
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, TextIO, Tuple
-import wandb
 
 import hydra
 import numpy as np
@@ -19,8 +19,8 @@ from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored, cprint
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
+import wandb
 from examples.rl_gsm8k.math_agent import (
     MathAgent,
     MathEnvironment,
@@ -28,11 +28,12 @@ from examples.rl_gsm8k.math_agent import (
     solve_task,
 )
 from tapeagents.core import TrainingText
+from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
-from tapeagents.finetune.logging_ import init_wandb, flatten_dict_config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def terminate_with_children(process_id: int) -> None:
     try:
@@ -54,6 +55,7 @@ def terminate_with_children(process_id: int) -> None:
         print(f"Insufficient privileges to terminate process with PID: {process_id}")
     except Exception as e:
         print(f"An error occurred: {e}")
+
 
 def wait_for_service(process, url, headers=None, timeout=120):
     start_time = time.time()
@@ -77,6 +79,7 @@ def wait_for_service(process, url, headers=None, timeout=120):
         logger.info(f"-> Waiting for service at {url}")
         time.sleep(5)
 
+
 def serve_vllm_local_model(
     model_name_or_path: str | Path,
     stdout_file_path: str | Path,
@@ -92,7 +95,7 @@ def serve_vllm_local_model(
     if kwargs:
         kwargs_str = " ".join([f"{k} {v} " for k, v in kwargs.items()])
     cmd = (
-        f"OUTLINES_CACHE_DIR=/tmp/.outlines_{cuda_device}_{int(time.time())} "
+        f"OUTLINES_CACHE_DIR=/tmp/.outlines_{cuda_device}_{int(time.time())} "  # outlines cache is a source of constant problem, see https://github.com/vllm-project/vllm/issues/4193
         f"CUDA_VISIBLE_DEVICES={cuda_device} "
         f"python -m vllm.entrypoints.openai.api_server "
         f"--model {model_name_or_path} "
@@ -136,8 +139,8 @@ def serve_vllm_local_model(
             f"execution_timeout while waiting for {model_name_or_path} service to start on port {port}",
             "magenta",
         )
-        terminate_with_children(process.pid)
-        process.wait()
+        terminate_with_children(process.pid)  # type: ignore
+        process.wait()  # type: ignore
         if stdout_file:
             stdout_file.close()
         if stderr_file:
@@ -146,6 +149,7 @@ def serve_vllm_local_model(
 
     return process, stdout_file, stderr_file
 
+
 def load_state(state_path):
     if state_path.exists():
         with open(state_path, "r") as f:
@@ -153,9 +157,11 @@ def load_state(state_path):
     else:
         return {"iteration": 0}
 
+
 def save_state(state, state_path):
     with open(state_path, "w") as f:
         json.dump(state, f)
+
 
 def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
     os.makedirs(target_path, exist_ok=True)
@@ -190,6 +196,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
         remove_dir(directory)
         logger.info(f"{directory} removed.")
 
+
 def solve_sample(args):
     sample, agent, env, attempts = args
     sample = extract_result_value(sample)
@@ -202,6 +209,7 @@ def solve_sample(args):
         rewards.append(reward)
     return tapes, rewards
 
+
 def process_base_model(args):
     tape, agent = args
     traces = []
@@ -209,6 +217,7 @@ def process_base_model(args):
         trace.fork_id = i
         traces.append(trace)
     return traces
+
 
 @hydra.main(config_path="../../conf/", config_name="rl_gsm8k")
 def main(cfg: DictConfig):
@@ -222,7 +231,7 @@ def main(cfg: DictConfig):
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
     attempts = 10
-    
+
     stdout_path = exp_path / "vllm_stdout.log"
     stderr_path = exp_path / "vllm_stderr.log"
     port = 8080
@@ -270,14 +279,12 @@ def main(cfg: DictConfig):
         all_tapes = []
 
         try:
-            sub_samples = random.sample(samples, cfg.max_agent_forks//attempts)
-            
-            # Parallel data collection
-            with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-                futures = [executor.submit(solve_sample, (sample, agent, env, attempts)) for sample in sub_samples]
-                
-                for i, future in enumerate(tqdm(as_completed(futures), total=len(sub_samples))):
-                    tapes, rewards = future.result()
+            sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
+
+            # Sequential data collection (as a fallback)
+            for i, sample in enumerate(tqdm(sub_samples)):
+                try:
+                    tapes, rewards = solve_sample((sample, agent, env, attempts))
                     all_tapes.extend([(i, tape) for tape in tapes])
                     all_rewards.extend(rewards)
 
@@ -285,15 +292,19 @@ def main(cfg: DictConfig):
                         logger.info(
                             f"{i}: Current accuracy: {np.mean(all_rewards):.3f}, prompt tokens used: {agent.llm.token_count}"
                         )
+                except Exception as e:
+                    logger.error(f"Error processing sample {i}: {str(e)}")
 
             logger.info(f"Accuracy: {np.mean(all_rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
-            wandb.log({"accuracy": np.mean(all_rewards), "prompt_tokens_used": agent.llm.token_count}, step=state["iteration"])
+            wandb.log(
+                {"accuracy": np.mean(all_rewards), "prompt_tokens_used": agent.llm.token_count}, step=state["iteration"]
+            )
 
             for i, tape in all_tapes:
                 for trace in agent.make_training_data(tape):
-                    print(f"TRACE {i}")
-                    print("CONTEXT", trace.prompt_text)
-                    print("COMPLETION", trace.output_text)
+                    logger.debug(f"TRACE {i}")
+                    logger.debug(f"CONTEXT: {trace.prompt_text}")
+                    logger.debug(f"COMPLETION: {trace.output_text}")
 
                     trace.fork_id = i
                     trace.rewards = [all_rewards[i]]
@@ -309,7 +320,7 @@ def main(cfg: DictConfig):
             if stderr_file:
                 stderr_file.close()
 
-        # Process base model logprobs in parallel
+        # Process base model logprobs sequentially (as a fallback)
         if assistant_model_path == cfg.model_path:
             for trace in training_samples:
                 trace.ref_logprobs = trace.old_logprobs
@@ -330,14 +341,10 @@ def main(cfg: DictConfig):
                 )
 
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
-                
-                # Parallel base model processing
-                with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-                    futures = [executor.submit(process_base_model, (tape, basemodel_agent)) for _, tape in all_tapes]
-                    
-                    base_model_traces = []
-                    for future in tqdm(as_completed(futures), total=len(all_tapes)):
-                        base_model_traces.extend(future.result())
+
+                base_model_traces = []
+                for _, tape in tqdm(all_tapes, desc="Processing base model"):
+                    base_model_traces.extend(process_base_model((tape, basemodel_agent)))
 
                 for trace, base_model_trace in zip(training_samples, base_model_traces):
                     trace.ref_logprobs = base_model_trace.old_logprobs
@@ -363,7 +370,9 @@ def main(cfg: DictConfig):
         # Prepare and run finetuning
         finetune_cfg = cfg.copy()
         finetune_cfg.finetune.save_checkpoint_steps = max(
-            cfg.max_agent_forks // attempts // (cfg.finetune.train_batch_size * cfg.finetune.gradient_accumulation_passes),
+            cfg.max_agent_forks
+            // attempts
+            // (cfg.finetune.train_batch_size * cfg.finetune.gradient_accumulation_passes),
             1,
         )
         interrupt_train_steps = int((state["iteration"] + 1) * finetune_cfg.finetune.save_checkpoint_steps)
@@ -384,7 +393,17 @@ def main(cfg: DictConfig):
         )
         logger.info(f"Executing finetune command: {finetune_command}")
 
-        error_code = subprocess.call(finetune_command, shell=True)
+        process = subprocess.Popen(
+            finetune_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+
+        # Capture and log the output in real-time
+        for line in process.stdout:
+            logger.info(line.strip())
+        for line in process.stderr:
+            logger.error(line.strip())
+
+        error_code = process.wait()
 
         if error_code != 0:
             logger.error(f"Finetuning failed with error code {error_code}")
