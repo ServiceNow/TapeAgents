@@ -1,7 +1,17 @@
 defaults:
   - base
   - _self_
-  
+
+#Use W&B experiment logging
+use_wandb: True
+# W&B id; if given, will resume this run
+wandb_id: null
+# W&B name; if not given will use run dir
+wandb_name: null
+# W&B entity name
+wandb_entity_name: null
+# W&B project name
+wandb_project_name: tapeagents
 config_name: meta-llama/Meta-Llama-3.1-8B-Instruct
 learning_rate: 2e-5
 train_batch_size: 4
