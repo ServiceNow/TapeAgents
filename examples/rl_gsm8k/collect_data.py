@@ -8,6 +8,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
+import wandb
 
 import hydra
 import numpy as np
@@ -30,6 +31,7 @@ from examples.rl_gsm8k.math_agent import (
 from tapeagents.core import TrainingText
 from tapeagents.finetune.finetune import load_config, run_finetuning_loop
 from tapeagents.llms import TrainableLLM
+from tapeagents.finetune.logging_ import init_wandb, flatten_dict_config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -201,12 +203,15 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
 def main(cfg: DictConfig):
     random.seed(42)
     exp_path = Path(cfg.output_dir)
+    run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
+    if run is None:
+        raise ValueError("Failed to initialize wandb run")
     state_path = exp_path / "rl_state.json"
     state = load_state(state_path)
     # optionally clean all data at start time
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
-    attempts = 2
+    attempts = 10
     # Serve the vLLM model
 
     stdout_path = exp_path / "vllm_stdout.log"
@@ -245,6 +250,7 @@ def main(cfg: DictConfig):
             model_name=str(assistant_model_path),
             tokenizer_name=str(assistant_model_path),
             parameters=dict(temperature=0.7),
+            use_cache=False,
         )
 
         agent = MathAgent.create(llm=llm)
@@ -254,28 +260,30 @@ def main(cfg: DictConfig):
         tapes = []
         try:
             # use batch_main_loop
-            sub_samples = random.sample(samples, cfg.max_agent_forks)
+            sub_samples = random.sample(samples, cfg.max_agent_forks//attempts)
             for i, sample in enumerate(tqdm(sub_samples)):
                 sample = extract_result_value(sample)
                 for _ in range(attempts):
                     tape = solve_task(agent, env, sample)
-                    tapes.append(tape)
+                    tapes.append((i, tape))
                     reward = 1 if tape.metadata.result["solved"] else 0
                     rewards.append(reward)
-                    for trace in agent.make_training_data(tape):
-                        print(f"TRACE {i}")
-                        print("CONTEXT", trace.prompt_text)
-                        print("COMPLETION", trace.output_text)
-
-                        trace.fork_id = i
-                        trace.rewards = [reward]
-                        training_samples.append(trace)
 
                 if i % 10 == 0 and i > 0:
                     logger.info(
                         f"{i}: Current accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}"
                     )
             logger.info(f"Accuracy: {np.mean(rewards):.3f}, prompt tokens used: {agent.llm.token_count}")
+            wandb.log({"accuracy": np.mean(rewards), "prompt_tokens_used": agent.llm.token_count}, step=state["iteration"])
+            for i, tape in tapes:
+                for trace in agent.make_training_data(tape):
+                    print(f"TRACE {i}")
+                    print("CONTEXT", trace.prompt_text)
+                    print("COMPLETION", trace.output_text)
+
+                    trace.fork_id = i
+                    trace.rewards = [reward]
+                    training_samples.append(trace)
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
         finally:
@@ -337,7 +345,7 @@ def main(cfg: DictConfig):
         finetune_cfg = cfg.copy()
 
         finetune_cfg.finetune.save_checkpoint_steps = max(
-            cfg.max_agent_forks // (cfg.finetune.train_batch_size * cfg.finetune.gradient_accumulation_passes),
+            cfg.max_agent_forks // attempts // (cfg.finetune.train_batch_size * cfg.finetune.gradient_accumulation_passes),
             1,
         )
         interrupt_train_steps = int((state["iteration"] + 1) * finetune_cfg.finetune.save_checkpoint_steps)
