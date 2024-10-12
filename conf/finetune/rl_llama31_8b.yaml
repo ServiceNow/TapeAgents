@@ -12,14 +12,19 @@ wandb_name: null
 wandb_entity_name: null
 # W&B project name
 wandb_project_name: tapeagents
+# W&B resume policy
+wandb_resume: if_not_interactive
+# Whether to use only the basename or the full path as the run name
+wandb_use_basename: false
 config_name: meta-llama/Meta-Llama-3.1-8B-Instruct
 learning_rate: 2e-5
-train_batch_size: 4
+train_batch_size: 1
 gradient_accumulation_passes: 256
 seq_length: 4096
 load_as_bf16: True
 max_train_steps: 100000
 save_checkpoint_steps: 100
+optim: adagrad
 objective: grpo
 grpo:
   kl_coef: 0.05
