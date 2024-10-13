@@ -1,0 +1,259 @@
+wandb_version: 1
+
+_cpu:
+  desc: null
+  value: 'False'
+backend:
+  desc: null
+  value: None
+device:
+  desc: null
+  value: cuda
+debug:
+  desc: null
+  value: 'False'
+distributed_type:
+  desc: null
+  value: DistributedType.NO
+num_processes:
+  desc: null
+  value: '1'
+process_index:
+  desc: null
+  value: '0'
+local_process_index:
+  desc: null
+  value: '0'
+fork_launched:
+  desc: null
+  value: 'False'
+deepspeed_plugin:
+  desc: null
+  value: None
+use_ipex:
+  desc: null
+  value: 'False'
+dynamo_plugin:
+  desc: null
+  value: 'TorchDynamoPlugin(backend=<DynamoBackend.NO: ''NO''>, mode=''default'',
+    fullgraph=False, dynamic=False, options=None, disable=False)'
+_mixed_precision:
+  desc: null
+  value: 'no'
+data.data_parts_train:
+  desc: null
+  value:
+  - '{''path'': ''/home/toolkit/TapeAgents/outputs/fast_rl_gsm8k/rollouts/0''}'
+model_class:
+  desc: null
+  value: causal-language-modeling
+config_name:
+  desc: null
+  value: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
+optim:
+  desc: null
+  value: adafactor
+load_as_bf16:
+  desc: null
+  value: true
+auto_device_map:
+  desc: null
+  value: false
+lora.enabled:
+  desc: null
+  value: false
+lora.task_type:
+  desc: null
+  value: CAUSAL_LM
+lora.base_model_8bit:
+  desc: null
+  value: false
+lora.base_model_4bit:
+  desc: null
+  value: false
+lora.r:
+  desc: null
+  value: 16
+lora.alpha:
+  desc: null
+  value: 16
+lora.dropout:
+  desc: null
+  value: 0.05
+lora.bias:
+  desc: null
+  value: none
+lora.target_modules:
+  desc: null
+  value: []
+tags:
+  desc: null
+  value: []
+use_wandb:
+  desc: null
+  value: true
+wandb_id:
+  desc: null
+  value: 9m7ndmvx_finetune
+wandb_entity_name:
+  desc: null
+  value: null
+wandb_project_name:
+  desc: null
+  value: tapeagents
+wandb_resume:
+  desc: null
+  value: always
+wandb_use_basename:
+  desc: null
+  value: false
+force_restart:
+  desc: null
+  value: false
+resume_dataloader:
+  desc: null
+  value: false
+train_batch_size:
+  desc: null
+  value: 1
+valid_batch_size:
+  desc: null
+  value: 4
+weight_decay:
+  desc: null
+  value: 0.01
+learning_rate:
+  desc: null
+  value: 1.0e-06
+gradient_clipping_threshold:
+  desc: null
+  value: 1.0
+lr_scheduler_type:
+  desc: null
+  value: cosine
+num_warmup_steps:
+  desc: null
+  value: 50
+gradient_accumulation_passes:
+  desc: null
+  value: 256
+gradient_checkpointing:
+  desc: null
+  value: true
+max_train_steps:
+  desc: null
+  value: 100000
+interrupt_train_steps:
+  desc: null
+  value: 19
+max_eval_steps:
+  desc: null
+  value: -1
+seq_length:
+  desc: null
+  value: 4096
+seed:
+  desc: null
+  value: 1
+save_checkpoint_steps:
+  desc: null
+  value: 19
+keep_intermediate_checkpoints:
+  desc: null
+  value: true
+trust_remote_code:
+  desc: null
+  value: false
+cuda_empty_cache:
+  desc: null
+  value: true
+sft_config_name:
+  desc: null
+  value: null
+n_examples:
+  desc: null
+  value: 0
+log_each_n_steps:
+  desc: null
+  value: 1
+also_save_steps:
+  desc: null
+  value: []
+use_safetensors:
+  desc: null
+  value: true
+save_final_training_state:
+  desc: null
+  value: true
+eval_callback._target_:
+  desc: null
+  value: tapeagents.finetune.eval.dummy_eval_callback
+eval_callback.config_name:
+  desc: null
+  value: ''
+wandb_name:
+  desc: null
+  value: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k_finetune
+objective:
+  desc: null
+  value: grpo
+grpo.kl_coef:
+  desc: null
+  value: 0.05
+grpo.use_advantages:
+  desc: null
+  value: true
+output_dir:
+  desc: null
+  value: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k/finetune/finetune
+effective_batch_size:
+  desc: null
+  value: 256
+_wandb:
+  desc: null
+  value:
+    code_path: code/tapeagents/run_finetune.py
+    python_version: 3.10.14
+    cli_version: 0.17.8
+    framework: huggingface
+    huggingface_version: 4.45.2
+    is_jupyter_run: false
+    is_kaggle_kernel: true
+    start_time: 1728839305
+    t:
+      1:
+      - 1
+      - 11
+      - 49
+      - 50
+      - 51
+      - 55
+      - 71
+      - 95
+      - 98
+      - 105
+      2:
+      - 1
+      - 11
+      - 49
+      - 50
+      - 51
+      - 55
+      - 71
+      - 95
+      - 98
+      - 105
+      3:
+      - 5
+      - 13
+      - 14
+      - 16
+      - 23
+      - 62
+      4: 3.10.14
+      5: 0.17.8
+      6: 4.45.2
+      8:
+      - 2
+      - 5
+      13: linux-x86_64

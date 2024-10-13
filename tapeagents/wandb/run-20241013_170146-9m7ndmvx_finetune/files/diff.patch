@@ -1,0 +1,24 @@
+diff --git a/examples/rl_gsm8k/collect_data.py b/examples/rl_gsm8k/collect_data.py
+index aaaad7b..4631eee 100644
+--- a/examples/rl_gsm8k/collect_data.py
++++ b/examples/rl_gsm8k/collect_data.py
+@@ -282,6 +282,7 @@ def main(cfg: DictConfig):
+                     print("COMPLETION", trace.output_text)
+ 
+                     trace.fork_id = i
++                    #FIXME: this is the last reward experienced
+                     trace.rewards = [reward]
+                     training_samples.append(trace)
+         except Exception as e:
+diff --git a/examples/rl_gsm8k/math_agent.py b/examples/rl_gsm8k/math_agent.py
+index 66815d0..dee7293 100644
+--- a/examples/rl_gsm8k/math_agent.py
++++ b/examples/rl_gsm8k/math_agent.py
+@@ -151,7 +151,6 @@ class MathAgent(MonoAgent):
+         """
+         We only train on the last completion
+         """
+-        #TODO: Oleh discussion
+         _, llm_calls = self.reuse(tape)
+         return [self.make_training_text(llm_call, compute_log_probs=True) for llm_call in llm_calls]
+ 

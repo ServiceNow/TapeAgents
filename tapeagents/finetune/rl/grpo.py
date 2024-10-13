@@ -311,9 +311,7 @@ def prepare_rl_fields(
         old_logprobs
     ), f"Target tokens: {len(target_tokens)}, old logprobs: {len(old_logprobs)}"
 
-    encoding["rewards"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + rewards_per_line[:1] * len(
-        old_logprobs
-    )
+    encoding["rewards"] = rewards_per_line[:1] * len(encoding["labels"])
     encoding["advantages"] = [0.0] * len(encoding["labels"])  # place holder
     encoding["old_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
     encoding["ref_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + ref_logprobs

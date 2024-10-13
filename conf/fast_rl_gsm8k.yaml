@@ -1,0 +1,25 @@
+defaults:
+  - finetune: rl_llama31_8b
+  - _self_
+
+
+model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
+max_agent_forks: 5000
+force_restart: false
+finetune_job:
+  accelerate: 1
+  local: 1
+  snapshot: 0
+  conda: 1
+
+finetune:
+  config_name: ${..model_path}
+  output_dir: ${..output_dir}/finetune
+
+vllm_config:
+  vllm_kwargs:
+    - "--download-dir": "/mnt/llmd/base_models/" 
+    - "--gpu-memory-utilization": 0.8   
+    - "--max-model-len": 8000
+
+output_dir: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k

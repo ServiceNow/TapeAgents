@@ -282,6 +282,7 @@ def main(cfg: DictConfig):
                     print("COMPLETION", trace.output_text)
 
                     trace.fork_id = i
+                    #FIXME: this is the last reward experienced
                     trace.rewards = [reward]
                     training_samples.append(trace)
         except Exception as e:
