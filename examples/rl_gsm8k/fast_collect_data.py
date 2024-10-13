@@ -293,7 +293,6 @@ def main(cfg: DictConfig):
                     trace.fork_id = new_tape.metadata.id
                     training_samples.append(trace)
 
-
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
         finally:
@@ -328,12 +327,9 @@ def main(cfg: DictConfig):
 
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
                 for trace in training_samples:
-                    basemodel_trace = basemodel_agent.llm.make_training_text(
-                        trace.prompt_text(), trace.output_text(), compute_log_probs=True
-                    )
-                    trace.ref_logprobs = basemodel_trace.old_logprobs
+                    trace.ref_logprobs = basemodel_agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
+                
 
-                    
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
             finally:
@@ -387,17 +383,18 @@ def main(cfg: DictConfig):
             logger.error(f"Finetuning failed with error code {error_code}")
             sys.exit(1)
 
-        state["iteration"] += 1
-        save_state(state, state_path)
         wandb.log(
             {
                 "rewards": np.mean(rewards),
                 "make_training_data_time": end_make_training_data - start_make_training_data,
-                "basemodel_logprobs_time": end_basemodel_logprobs - start_basemodel_logprobs, 
+                "basemodel_logprobs_time": end_basemodel_logprobs - start_basemodel_logprobs,
                 "finetune_time": end_finetune - start_finetune,
             },
-            step=state["iteration"]
+            step=state["iteration"],
         )
+        state["iteration"] += 1
+        save_state(state, state_path)
+
 
 if __name__ == "__main__":
     main()
