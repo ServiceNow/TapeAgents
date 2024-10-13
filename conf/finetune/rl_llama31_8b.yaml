@@ -17,7 +17,7 @@ wandb_resume: if_not_interactive
 # Whether to use only the basename or the full path as the run name
 wandb_use_basename: false
 config_name: meta-llama/Meta-Llama-3.1-8B-Instruct
-learning_rate: 2e-5
+learning_rate: 1e-6
 train_batch_size: 1
 gradient_accumulation_passes: 256
 seq_length: 4096
@@ -26,6 +26,10 @@ max_train_steps: 100000
 save_checkpoint_steps: 100
 optim: adafactor
 objective: grpo
+log_each_n_steps: 1
+resume_dataloader: false
+cuda_empty_cache: true
+use_safetensors: true
 grpo:
   kl_coef: 0.05
-  use_advantages: false
+  use_advantages: true
