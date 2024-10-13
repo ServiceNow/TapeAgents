@@ -265,13 +265,16 @@ def main(cfg: DictConfig):
         try:
             sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
             tapes = []
+            start_make_tasks = time.time()
             for sample in sub_samples:
                 start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))  # type: ignore
                 tape = MathTape(steps=[start_step], context=None)
                 tapes.append(tape)
+            end_make_tasks = time.time()
 
             tapes = tapes * attempts
             new_tapes = []
+            start_make_training_data = time.time()
             for new_tape in batch_main_loop(agent, tapes, env):
                 if new_tape.metadata.error:
                     reward = -1
@@ -291,6 +294,8 @@ def main(cfg: DictConfig):
                     trace.rewards = [reward]
                     trace.fork_id = new_tape.metadata.id
                     training_samples.append(trace)
+
+            end_make_training_data = time.time()
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -321,12 +326,16 @@ def main(cfg: DictConfig):
                     parameters=dict(temperature=0.7),
                 )
 
+                start_basemodel_logprobs = time.time()
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
                 for trace in training_samples:
                     basemodel_trace = basemodel_agent.llm.make_training_text(
                         trace.prompt_text(), trace.output_text(), compute_log_probs=True
                     )
                     trace.ref_logprobs = basemodel_trace.old_logprobs
+                end_basemodel_logprobs = time.time()
+
+                    
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
             finally:
@@ -371,7 +380,9 @@ def main(cfg: DictConfig):
         )
         logger.info(f"Executing finetune command: {finetune_command}")
 
+        start_finetune = time.time()
         error_code = subprocess.call(finetune_command, shell=True)
+        end_finetune = time.time()
 
         if error_code != 0:
             logger.error(f"Finetuning failed with error code {error_code}")
@@ -379,6 +390,16 @@ def main(cfg: DictConfig):
 
         state["iteration"] += 1
         save_state(state, state_path)
+        wandb.log(
+            {
+                "rewards": np.mean(rewards),
+                "make_tasks_time": end_make_tasks - start_make_tasks,
+                "make_training_data_time": end_make_training_data - start_make_training_data,
+                "basemodel_logprobs_time": end_basemodel_logprobs - start_basemodel_logprobs,
+                "finetune_time": end_finetune - start_finetune,
+            }
+            step=state["iteration"]
+        )
 
 if __name__ == "__main__":
     main()
