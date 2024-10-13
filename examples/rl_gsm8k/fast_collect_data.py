@@ -386,9 +386,9 @@ def main(cfg: DictConfig):
         wandb.log(
             {
                 "rewards": np.mean(rewards),
-                "make_training_data_time": end_make_training_data - start_make_training_data,
-                "basemodel_logprobs_time": end_basemodel_logprobs - start_basemodel_logprobs,
-                "finetune_time": end_finetune - start_finetune,
+                "execution_time/make_training_data": end_make_training_data - start_make_training_data,
+                "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
+                "execution_time/finetune": end_finetune - start_finetune,
             },
             step=state["iteration"],
         )
