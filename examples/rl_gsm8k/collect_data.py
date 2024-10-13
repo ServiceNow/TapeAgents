@@ -317,9 +317,8 @@ def main(cfg: DictConfig):
 
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
                 base_model_traces = []
-                for tape in tapes:
-                    for i, trace in enumerate(basemodel_agent.make_training_data(tape)):
-                        trace.fork_id = i
+                for _, tape in tapes:
+                    for _, trace in enumerate(basemodel_agent.make_training_data(tape)):
                         base_model_traces.append(trace)
                 for trace, base_model_trace in zip(training_samples, base_model_traces):
                     trace.ref_logprobs = base_model_trace.old_logprobs
@@ -352,6 +351,9 @@ def main(cfg: DictConfig):
         finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
         finetune_cfg.output_dir = str(finetune_path)
         finetune_cfg.finetune.data = {"data_parts_train": [{"path": str(rollout_dir)}]}
+        finetune_cfg.finetune.wandb_id = run.id + "_finetune"
+        finetune_cfg.finetune.wandb_name = run.name + "_finetune"
+        finetune_cfg.finetune.wandb_resume = "always"
         config_path = conf_dir / f"{state['iteration']}.yaml"
         OmegaConf.save(finetune_cfg, config_path)
 
