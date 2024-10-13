@@ -263,7 +263,7 @@ def main(cfg: DictConfig):
         tapes = []
         training_samples = []
         try:
-            sub_samples = random.sample(samples, 2)  # cfg.max_agent_forks // attempts)
+            sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
             tapes = []
             for sample in sub_samples:
                 start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))  # type: ignore
