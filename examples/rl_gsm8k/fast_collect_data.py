@@ -262,19 +262,17 @@ def main(cfg: DictConfig):
         rewards = []
         tapes = []
         training_samples = []
+        start_make_training_data = time.time()
         try:
             sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
             tapes = []
-            start_make_tasks = time.time()
             for sample in sub_samples:
                 start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))  # type: ignore
                 tape = MathTape(steps=[start_step], context=None)
                 tapes.append(tape)
-            end_make_tasks = time.time()
 
             tapes = tapes * attempts
             new_tapes = []
-            start_make_training_data = time.time()
             for new_tape in batch_main_loop(agent, tapes, env):
                 if new_tape.metadata.error:
                     reward = -1
@@ -295,7 +293,6 @@ def main(cfg: DictConfig):
                     trace.fork_id = new_tape.metadata.id
                     training_samples.append(trace)
 
-            end_make_training_data = time.time()
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -307,6 +304,9 @@ def main(cfg: DictConfig):
             if stderr_file:
                 stderr_file.close()
 
+        end_make_training_data = time.time()
+
+        start_basemodel_logprobs = time.time()
         if assistant_model_path == cfg.model_path:
             for trace in training_samples:
                 trace.ref_logprobs = trace.old_logprobs
@@ -326,14 +326,12 @@ def main(cfg: DictConfig):
                     parameters=dict(temperature=0.7),
                 )
 
-                start_basemodel_logprobs = time.time()
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
                 for trace in training_samples:
                     basemodel_trace = basemodel_agent.llm.make_training_text(
                         trace.prompt_text(), trace.output_text(), compute_log_probs=True
                     )
                     trace.ref_logprobs = basemodel_trace.old_logprobs
-                end_basemodel_logprobs = time.time()
 
                     
             except Exception as e:
@@ -346,6 +344,7 @@ def main(cfg: DictConfig):
                     basemodel_stdout_file.close()
                 if basemodel_stderr_file:
                     basemodel_stderr_file.close()
+        end_basemodel_logprobs = time.time()
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
         with open(rollout_dir / "data.jsonl", "w") as f:
@@ -393,9 +392,8 @@ def main(cfg: DictConfig):
         wandb.log(
             {
                 "rewards": np.mean(rewards),
-                "make_tasks_time": end_make_tasks - start_make_tasks,
                 "make_training_data_time": end_make_training_data - start_make_training_data,
-                "basemodel_logprobs_time": end_basemodel_logprobs - start_basemodel_logprobs,
+                "basemodel_logprobs_time": end_basemodel_logprobs - start_basemodel_logprobs, 
                 "finetune_time": end_finetune - start_finetune,
             },
             step=state["iteration"]
