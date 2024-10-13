@@ -272,7 +272,7 @@ def main(cfg: DictConfig):
 
             tapes = tapes * attempts
             new_tapes = []
-            for new_tape in batch_main_loop(agent, tapes, env, n_workers=1):
+            for new_tape in batch_main_loop(agent, tapes, env):
                 if new_tape.metadata.error:
                     reward = -1
                 else:
