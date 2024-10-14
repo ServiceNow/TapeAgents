@@ -1,5 +1,4 @@
 defaults:
-  - gaia
   - llm: gpt4o
   
 exp_name: gpt4o_test_1

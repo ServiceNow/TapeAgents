@@ -1,5 +1,4 @@
 defaults:
-  - gaia
   - llm: llama3_405b
   - _self_
   

@@ -233,3 +233,11 @@ def ensemble_files(files: list[str], outfile: str = ""):
         with open(outfile, "w") as f:
             json.dump(ensemble_result.model_dump(), f, indent=4, ensure_ascii=False)
         logger.info(f"Saved to {outfile}")
+
+
+def get_exp_config_dict(exp_path):
+    config_path = os.path.join(exp_path, ".hydra", "config.yaml")
+    assert os.path.exists(config_path), f"Config file {config_path} not found"
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    return cfg
