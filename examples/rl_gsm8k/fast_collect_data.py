@@ -263,10 +263,13 @@ def main(cfg: DictConfig):
 
         rewards = []
         no_errors = []
-        successes = []
         tapes = []
         training_samples = []
         start_make_training_data = time.time()
+        fork_stats = defaultdict(lambda: {"reward": 0,
+                                          "count": 0,
+                                          "no_error": 0,})
+
         try:
             sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
             tapes = []
@@ -279,27 +282,32 @@ def main(cfg: DictConfig):
             new_tapes = []
             for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
-                    no_errors.append(0)
+                    no_error = 0
                 else:
-                    no_errors.append(1)
+                    no_error = 1
 
                 if (
                     isinstance(new_tape.steps[-1], AnswerAction)
                     and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
                 ):
                     reward = 1
-                    successes.append(1)
                 else:
-                    successes.append(0)
                     reward = 0
 
+                fork_stats[new_tape.metadata.parent_id]["reward"] += reward
+                fork_stats[new_tape.metadata.parent_id]["count"] += 1
+                fork_stats[new_tape.metadata.parent_id]["no_error"] += no_error
                 new_tapes.append(new_tape)
                 rewards.append(reward)
+                no_errors.append(no_error)
 
                 for trace in agent.make_training_data(new_tape):
                     trace.rewards = [reward]
                     trace.fork_id = new_tape.metadata.parent_id
                     training_samples.append(trace)
+
+            for fork_id, stats in fork_stats.items():
+                logger.info(f"Fork {fork_id}: {stats['reward']}/{stats['count']} rewards, {stats['no_error']} no errors")
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -375,9 +383,8 @@ def main(cfg: DictConfig):
             "cd /home/toolkit/TapeAgents/tapeagents && "
             "PYTHONPATH=/home/toolkit/TapeAgents:/home/toolkit/TapeAgents/tapeagents/src "
             "conda run -n tapeagents --no-capture-output "
-            f"accelerate launch --use_deepspeed --mixed_precision=bf16 --num_processes {str(torch.cuda.device_count())} "
+            f"accelerate launch --mixed_precision=bf16 --num_processes {str(torch.cuda.device_count())} "
             "--config_file /home/toolkit/TapeAgents/conf/deepspeed/accelerate_local.yaml "
-            "--deepspeed_config_file /home/toolkit/TapeAgents/conf/deepspeed/deepspeed_stage3_bf16.json "
             f"run_finetune.py --config-dir {str(conf_dir)} "
             f"--config-name {str(state['iteration'])} hydra.run.dir={str(finetune_path)}"
         )
@@ -394,7 +401,6 @@ def main(cfg: DictConfig):
         wandb.log(
             {
                 "rewards": np.mean(rewards),
-                "success": np.mean(successes),
                 "no_error": np.mean(no_errors),
                 "execution_time/make_training_data": end_make_training_data - start_make_training_data,
                 "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
