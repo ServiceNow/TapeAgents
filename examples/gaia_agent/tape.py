@@ -22,6 +22,7 @@ class GaiaMetadata(TapeMetadata):
     task: dict = Field(default_factory=dict)
     result: Any = None
     attempt_number: int = 0
+    level: int = 0
 
 
 class GaiaTape(Tape[DialogContext, GaiaStep]):

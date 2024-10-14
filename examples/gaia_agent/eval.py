@@ -4,10 +4,10 @@ import logging
 import os
 import shutil
 import subprocess
-from functools import cached_property
 from typing import Any, Counter, Iterable
 from uuid import uuid4
 
+import yaml
 from pydantic import BaseModel, Field
 from termcolor import colored
 
@@ -38,10 +38,6 @@ class GaiaResults(BaseModel, Iterable[GaiaTape]):
     web_cache: dict = Field(default_factory=dict)
     prompts: list[dict] = Field(default_factory=list)
 
-    @cached_property
-    def accuracy(self) -> tuple[float, int]:
-        return calculate_accuracy(self.tapes, show_intermediate=False, show_wrong=False)
-
     def __iter__(self):
         return iter(self.tapes)
 
@@ -58,21 +54,19 @@ def load_results(path: str) -> GaiaResults:
         return GaiaResults.model_validate(data)
 
 
-def tape_correct(tape_dict: dict) -> bool:
-    return question_scorer(str(tape_dict["metadata"]["result"]), tape_dict["metadata"]["task"]["Final answer"])
+def tape_correct(tape: GaiaTape) -> bool:
+    predicted = str(tape.metadata.result)
+    golden = tape.metadata.task["Final answer"]
+    return question_scorer(predicted, golden)
 
 
-def calculate_accuracy(tapes: str | list[dict], show_intermediate=True, show_wrong=False):
-    if isinstance(tapes, str):
-        assert os.path.exists(tapes) and tapes.endswith(".json")
-        tapes = load_results(tapes).tapes
-
+def calculate_accuracy(tapes: list[GaiaTape], show_intermediate=False, show_wrong=False):
     accs = []
     accuracy = 0.0
     for tape in tapes:
         correct = tape_correct(tape)
         if show_wrong and not correct:
-            for step in tape["steps"]:
+            for step in tape:
                 print("-" * 80)
                 print(step_view(step))
             print("=" * 120)
@@ -81,9 +75,9 @@ def calculate_accuracy(tapes: str | list[dict], show_intermediate=True, show_wro
         accuracy = sum(accs) * 100 / len(accs)
         if show_intermediate:
             print(
-                tape["metadata"]["task"]["Final answer"],
+                tape.metadata.task["Final answer"],
                 "|",
-                colored(str(tape["metadata"]["result"]), "green" if correct else "red"),
+                colored(str(tape.metadata.result), "green" if correct else "red"),
             )
             print(f"{len(accs)}: Accuracy {accuracy:.2f}")
     return accuracy, sum(accs)
