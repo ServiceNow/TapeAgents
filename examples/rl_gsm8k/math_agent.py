@@ -209,7 +209,7 @@ def solve_task(agent: Agent, env: Environment, task: dict, tape_file: str = "") 
 
 def extract_result_value(sample) -> dict:
     sample = dict(sample)
-    expected_result = str(sample["answer"]).rsplit("####", maxsplit=1)[-1].strip().replace(",", ".")
+    expected_result = str(sample["answer"]).rsplit("####", maxsplit=1)[-1].strip().replace(",", "")
     if expected_result.isdigit():
         expected_result = int(expected_result)
     else:
