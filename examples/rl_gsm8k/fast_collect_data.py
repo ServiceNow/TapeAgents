@@ -248,7 +248,7 @@ def main(cfg: DictConfig):
             stderr_file_path=stderr_path,
             port=port,
             verbose=True,
-            cuda_device=','.join([str(i) for i in range(torch.cuda.device_count())])
+            cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
         )
 
         llm = TrainableLLM(
@@ -375,8 +375,9 @@ def main(cfg: DictConfig):
             "cd /home/toolkit/TapeAgents/tapeagents && "
             "PYTHONPATH=/home/toolkit/TapeAgents:/home/toolkit/TapeAgents/tapeagents/src "
             "conda run -n tapeagents --no-capture-output "
-            "accelerate launch --mixed_precision=bf16 --num_processes 1 "
+            f"accelerate launch --use_deepspeed --mixed_precision=bf16 --num_processes {str(torch.cuda.device_count())} "
             "--config_file /home/toolkit/TapeAgents/conf/deepspeed/accelerate_local.yaml "
+            "--deepspeed_config_file /home/toolkit/TapeAgents/conf/deepspeed/deepspeed_stage3_bf16.json "
             f"run_finetune.py --config-dir {str(conf_dir)} "
             f"--config-name {str(state['iteration'])} hydra.run.dir={str(finetune_path)}"
         )
