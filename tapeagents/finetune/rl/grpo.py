@@ -119,12 +119,6 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
     masks_ = masks[:, 1:]
     ref_logprobs = batch["ref_logprobs"][:, 1:]
     old_logprobs = batch["old_logprobs"][:, 1:]
-    # assert torch.isfinite(rewards).all(), "rewards contains NaN or inf"
-    # assert torch.isfinite(advantages).all(), "advantages contains NaN or inf"
-    # assert torch.isfinite(ref_logprobs).all(), "ref_logprobs contains NaN or inf"
-    # assert torch.isfinite(old_logprobs).all(), "old_logprobs contains NaN or inf"
-    # assert torch.isfinite(new_log_probs).all(), "new_log_probs contains NaN or inf"
-
     assert new_log_probs.shape == ref_logprobs.shape
 
     # First compute the PPO surrogate loss, see https://arxiv.org/pdf/2402.03300 eq 3
@@ -132,33 +126,21 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
     log_ratio_new_old = new_log_probs - old_logprobs
     ratio_new_old = torch.exp(log_ratio_new_old)
     weights = advantages if config.use_advantages else rewards
-    # assert torch.isfinite(log_ratio_new_old).all(), "log_ratio_new_old contains NaN or inf"
-    # assert torch.isfinite(ratio_new_old).all(), "ratio_new_old contains NaN or inf"
-    # assert torch.isfinite(weights).all(), "weights contains NaN or inf"
-    # assert ratio_new_old.shape == weights.shape
     surr1 = ratio_new_old * weights
-    # assert torch.isfinite(surr1).all(), "surr1 contains NaN or inf"
 
     clamped_ratio = torch.clamp(ratio_new_old, 1 - config.epsilon, 1 + config.epsilon)
-    # assert torch.isfinite(clamped_ratio).all(), "clamped_ratio contains NaN or inf"
 
     surr2 = clamped_ratio * weights
-    # assert torch.isfinite(surr2).all(), "surr2 contains NaN or inf"
 
     surrogate_loss = torch.min(surr1, surr2)
-    # assert torch.isfinite(surrogate_loss).all(), "surrogate_loss contains NaN or inf"
 
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
     approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
     assert approx_kl.shape == masks_.shape
     assert approx_kl.shape == surrogate_loss.shape
-    # assert torch.isfinite(surrogate_loss).all(), "surrogate_loss contains NaN or inf"
-    # assert torch.isfinite(approx_kl).all(), "approx_kl contains NaN or inf"
     loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
-    # if not torch.isfinite(loss):
-    #    loss = torch.nan_to_num(loss, nan=0.0, posinf=0.0, neginf=0.0)
 
     if (
         masked_mean(ratio_new_old, masks_) > config.ratio_threshold

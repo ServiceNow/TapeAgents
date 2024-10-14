@@ -32,7 +32,7 @@ from examples.rl_gsm8k.math_agent import (
     solve_task,
 )
 from tapeagents.batch import batch_main_loop
-from tapeagents.core import StepMetadata, TapeMetadata, TrainingText
+from tapeagents.core import StepMetadata, TapeMetadata, TrainingText, AgentResponseParsingFailureAction
 from tapeagents.finetune.finetune import load_config, run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
@@ -260,6 +260,8 @@ def main(cfg: DictConfig):
         agent = MathAgent.create(llm=llm)
 
         rewards = []
+        no_errors = []
+        successes = []
         tapes = []
         training_samples = []
         start_make_training_data = time.time()
@@ -273,17 +275,21 @@ def main(cfg: DictConfig):
 
             tapes = tapes * attempts
             new_tapes = []
-            for new_tape in batch_main_loop(agent, tapes, env):
-                if new_tape.metadata.error:
-                    reward = -1
+            for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
+                if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
+                    no_errors.append(0)
                 else:
-                    if (
-                        isinstance(new_tape.steps[-1], AnswerAction)
-                        and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
-                    ):
-                        reward = 1
-                    else:
-                        reward = 0
+                    no_errors.append(1)
+
+                if (
+                    isinstance(new_tape.steps[-1], AnswerAction)
+                    and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
+                ):
+                    reward = 1
+                    successes.append(1)
+                else:
+                    successes.append(0)
+                    reward = 0
 
                 new_tapes.append(new_tape)
                 rewards.append(reward)
@@ -386,6 +392,8 @@ def main(cfg: DictConfig):
         wandb.log(
             {
                 "rewards": np.mean(rewards),
+                "success": np.mean(successes),
+                "no_error": np.mean(no_errors),
                 "execution_time/make_training_data": end_make_training_data - start_make_training_data,
                 "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
                 "execution_time/finetune": end_finetune - start_finetune,
