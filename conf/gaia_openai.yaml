@@ -1,9 +1,10 @@
 defaults:
   - llm: gpt4o
+  - _self_
   
-exp_name: gpt4o_test_1
+exp_name: gpt4o_t02_2
 exp_path: ../gaia/runs/${exp_name}
-data_dir: ../gaia/dataset/test/
+data_dir: ../gaia/dataset/validation/
 n_attempts: 1
 agent:
   planning_mode: simple

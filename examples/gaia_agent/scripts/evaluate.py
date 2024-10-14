@@ -37,11 +37,13 @@ def main(cfg: DictConfig) -> None:
     tasks = load_dataset(cfg.data_dir)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     if os.path.exists(tapes_dir):
-        cfg = get_exp_config_dict(cfg.exp_path)
+        old_exp_cfg = get_exp_config_dict(cfg.exp_path)
         assert (
-            cfg["llm"]["model_name"] == llm.model_name
-        ), f"Exp dir model name mismatch: old {cfg['llm']['model_name']}, new {llm.model_name}"
-        assert cfg["data_dir"] == cfg.data_dir, f"Exp dir data: old {cfg['data_dir']}, new {cfg.data_dir}"
+            old_exp_cfg["llm"]["model_name"] == llm.model_name
+        ), f"Exp dir model name mismatch: old {old_exp_cfg['llm']['model_name']}, new {llm.model_name}"
+        assert (
+            old_exp_cfg["data_dir"] == cfg.data_dir
+        ), f"Exp dir data: old {old_exp_cfg['data_dir']}, new {cfg.data_dir}"
     os.makedirs(tapes_dir, exist_ok=True)
 
     browser_log_path = os.path.join(cfg.exp_path, "browser_log.jsonl")
@@ -64,11 +66,12 @@ def main(cfg: DictConfig) -> None:
                 last_step = tape.steps[-1]
                 model_answer = last_step.answer if last_step.kind == "gaia_answer_action" else None
                 if model_answer:
-                    logger.info(f"Skipping task {tape_name}, already solved")
+                    logger.info(f"Skip task {tape_name}, already solved")
                     continue
             tape = solve_task(task, agent, env, cfg.n_attempts)
             new_tapes.append(tape)
             save_json_tape(tape, tapes_dir, tape_name)
+            logger.info(f"Task {tape_name} solved, saved to {tape_path}")
             flush_browser_log(browser_log_path, env)
         logger.info(f"Level {level} done, {len(new_tapes)} tapes saved")
 
