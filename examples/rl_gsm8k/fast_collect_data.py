@@ -267,7 +267,6 @@ def main(cfg: DictConfig):
         tapes = []
         training_samples = []
         start_make_training_data = time.time()
-        new_tape_id_count = defaultdict(int)
         try:
             sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
             tapes = []
@@ -302,10 +301,6 @@ def main(cfg: DictConfig):
                     trace.rewards = [reward]
                     trace.fork_id = new_tape.metadata.parent_id
                     training_samples.append(trace)
-
-            print("hello")
-            for k, v in new_tape_id_count.items():
-                logger.error(f"New tape {k} was forked {v} times, expected {attempts}")
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
