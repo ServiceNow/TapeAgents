@@ -278,7 +278,6 @@ def main(cfg: DictConfig):
             tapes = tapes * attempts
             new_tapes = []
             for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
-                new_tape_id_count[new_tape.metadata.parent_id] += 1
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
                     no_errors.append(0)
                 else:
