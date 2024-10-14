@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar
+from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar, List
 from uuid import uuid4
 
 import litellm
 from pydantic import BaseModel, Field, SerializeAsAny
 from typing_extensions import Self
 
+class UUIDGenerator:
+    def __call__(self):
+        return str(uuid4())
 
 class TrainingText(BaseModel):
     """
@@ -36,7 +39,7 @@ class StepMetadata(BaseModel):
     Metadata for the step
     """
 
-    id: str = Field(default_factory=lambda: str(uuid4()))
+    id: str = Field(default_factory=UUIDGenerator())
     prompt_id: str = ""
     node: str = ""
     agent: str = ""
@@ -130,8 +133,9 @@ class Respond(Thought):
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
 
+
 class TapeMetadata(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid4()))
+    id: str = Field(default_factory=UUIDGenerator())
     parent_id: str | None = None
     author: str | None = None
     author_tape_id: str | None = None
@@ -149,9 +153,9 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
     A sequence of steps produced by agents and environments
     """
 
-    metadata: TapeMetadata = TapeMetadata()
+    metadata: TapeMetadata = Field(default_factory=TapeMetadata)
     context: ContextType | None = None
-    steps: list[StepType] = []
+    steps: List[StepType] = Field(default_factory=list)
 
     def __iter__(self) -> Iterator[StepType]:  # type: ignore
         return iter(self.steps)
@@ -190,7 +194,7 @@ TapeType = TypeVar("TapeType", bound=Tape)
 
 
 class Prompt(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid4()))
+    id: str = Field(default_factory=UUIDGenerator())
     tools: list[dict] | None = None
     messages: list[dict] = []
 

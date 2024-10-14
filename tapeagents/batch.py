@@ -51,6 +51,7 @@ def batch_main_loop(
             return start_tape.model_copy(
                 update=dict(metadata=TapeMetadata(parent_id=start_tape.metadata.id, error=traceback.format_exc()))
             )
+        result.metadata.parent_id = start_tape.metadata.id
         return result
 
     processor = _choose_processor(n_workers=n_workers)

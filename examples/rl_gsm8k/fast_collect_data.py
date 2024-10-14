@@ -8,6 +8,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
+from collections import defaultdict
 
 import hydra
 import numpy as np
@@ -32,7 +33,7 @@ from examples.rl_gsm8k.math_agent import (
     solve_task,
 )
 from tapeagents.batch import batch_main_loop
-from tapeagents.core import StepMetadata, TapeMetadata, TrainingText, AgentResponseParsingFailureAction
+from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TapeMetadata, TrainingText
 from tapeagents.finetune.finetune import load_config, run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
@@ -247,6 +248,7 @@ def main(cfg: DictConfig):
             stderr_file_path=stderr_path,
             port=port,
             verbose=True,
+            cuda_device=','.join([str(i) for i in range(torch.cuda.device_count())])
         )
 
         llm = TrainableLLM(
@@ -265,6 +267,7 @@ def main(cfg: DictConfig):
         tapes = []
         training_samples = []
         start_make_training_data = time.time()
+        new_tape_id_count = defaultdict(int)
         try:
             sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
             tapes = []
@@ -276,6 +279,7 @@ def main(cfg: DictConfig):
             tapes = tapes * attempts
             new_tapes = []
             for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
+                new_tape_id_count[new_tape.metadata.parent_id] += 1
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
                     no_errors.append(0)
                 else:
@@ -296,8 +300,12 @@ def main(cfg: DictConfig):
 
                 for trace in agent.make_training_data(new_tape):
                     trace.rewards = [reward]
-                    trace.fork_id = new_tape.metadata.id
+                    trace.fork_id = new_tape.metadata.parent_id
                     training_samples.append(trace)
+
+            print("hello")
+            for k, v in new_tape_id_count.items():
+                logger.error(f"New tape {k} was forked {v} times, expected {attempts}")
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -334,7 +342,6 @@ def main(cfg: DictConfig):
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
                 for trace in training_samples:
                     trace.ref_logprobs = basemodel_agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
