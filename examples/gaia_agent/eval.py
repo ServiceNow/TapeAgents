@@ -11,8 +11,8 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 from termcolor import colored
 
-from tapeagents.rendering import step_view
 from tapeagents.orchestrator import main_loop
+from tapeagents.rendering import step_view
 
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment
@@ -126,22 +126,26 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
             discard_attempt = False
             planned = False
             step = None
-            for event in main_loop(agent, tape, env, max_loops=30):
-                if event.agent_event and event.agent_event.step:
-                    step = event.agent_event.step
-                    tape = tape.append(step)  # type: ignore
-                    if isinstance(step, PlanThought) and not planned:
-                        plan_dump = "\n".join(step.plan)
-                        if plan_dump in previous_plans:
-                            logger.info("Plan already been used, discard attempt")
-                            discard_attempt = True
-                            break
-                        else:
-                            planned = True
-                            previous_plans.append(plan_dump)
-                if event.observation:
-                    tape = tape.append(event.observation)  # type: ignore
-            if discard_attempt:
+            try:
+                for event in main_loop(agent, tape, env, max_loops=30):
+                    if event.agent_event and event.agent_event.step:
+                        step = event.agent_event.step
+                        tape = tape.append(step)  # type: ignore
+                        if isinstance(step, PlanThought) and not planned:
+                            plan_dump = "\n".join(step.plan)
+                            if plan_dump in previous_plans:
+                                logger.info("Plan already been used, discard attempt")
+                                discard_attempt = True
+                                break
+                            else:
+                                planned = True
+                                previous_plans.append(plan_dump)
+                    if event.observation:
+                        tape = tape.append(event.observation)  # type: ignore
+                if discard_attempt:
+                    continue
+            except Exception as e:
+                logger.exception(f"Failed to solve task: {e}")
                 continue
             predicted = step.answer if isinstance(step, GaiaAnswer) else None
             tries -= 1
