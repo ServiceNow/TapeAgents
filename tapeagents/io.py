@@ -65,6 +65,7 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
         paths = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(file_extension)]
     else:
         paths = [path]
+        file_extension = os.path.splitext(path)[-1]
     loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
     tapes = []
     for path in paths:
