@@ -55,8 +55,12 @@ def load_results(path: str) -> GaiaResults:
 
 
 def tape_correct(tape: GaiaTape) -> bool:
+    if not tape.metadata.result:
+        return False
     predicted = str(tape.metadata.result)
     golden = tape.metadata.task["Final answer"]
+    if golden == "?":  # placeholder for hidden answer in test set
+        return False
     return question_scorer(predicted, golden)
 
 
