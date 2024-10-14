@@ -69,6 +69,7 @@ def main(cfg: DictConfig) -> None:
                     logger.info(f"Skip task {tape_name}, already solved")
                     continue
             tape = solve_task(task, agent, env, cfg.n_attempts)
+            tape.metadata.level = level
             new_tapes.append(tape)
             save_json_tape(tape, tapes_dir, tape_name)
             logger.info(f"Task {tape_name} solved, saved to {tape_path}")
