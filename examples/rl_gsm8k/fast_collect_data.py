@@ -266,9 +266,7 @@ def main(cfg: DictConfig):
         tapes = []
         training_samples = []
         start_make_training_data = time.time()
-        fork_stats = defaultdict(lambda: {"reward": 0,
-                                          "count": 0,
-                                          "no_error": 0,})
+        fork_stats = defaultdict(list)
 
         try:
             sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
@@ -294,9 +292,7 @@ def main(cfg: DictConfig):
                 else:
                     reward = 0
 
-                fork_stats[new_tape.metadata.parent_id]["reward"] += reward
-                fork_stats[new_tape.metadata.parent_id]["count"] += 1
-                fork_stats[new_tape.metadata.parent_id]["no_error"] += no_error
+                fork_stats[new_tape.metadata.parent_id].append(reward)
                 new_tapes.append(new_tape)
                 rewards.append(reward)
                 no_errors.append(no_error)
@@ -306,8 +302,9 @@ def main(cfg: DictConfig):
                     trace.fork_id = new_tape.metadata.parent_id
                     training_samples.append(trace)
 
-            for fork_id, stats in fork_stats.items():
-                logger.info(f"Fork {fork_id}: {stats['reward']}/{stats['count']} rewards, {stats['no_error']} no errors")
+            max_rewards = np.mean([max(stats) for stats in fork_stats.values() if stats])
+            min_rewards = np.mean([min(stats) for stats in fork_stats.values() if stats])
+            var_rewards = np.mean([np.var(stats) for stats in fork_stats.values() if stats])
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -401,6 +398,9 @@ def main(cfg: DictConfig):
         wandb.log(
             {
                 "rewards": np.mean(rewards),
+                "max_rewards": max_rewards,
+                "min_rewards": min_rewards,
+                "var_rewards": var_rewards,
                 "no_error": np.mean(no_errors),
                 "execution_time/make_training_data": end_make_training_data - start_make_training_data,
                 "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
