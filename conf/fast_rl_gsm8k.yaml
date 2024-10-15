@@ -6,6 +6,13 @@ defaults:
 model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
 max_agent_forks: 5000
 force_restart: false
+
+llm:
+  parameters:
+    max_tokens: 1024
+    temperature: 0.7
+
+
 finetune_job:
   accelerate: 1
   local: 1

@@ -255,7 +255,7 @@ def main(cfg: DictConfig):
             base_url="http://127.0.0.1:8080",
             model_name=str(assistant_model_path),
             tokenizer_name=str(assistant_model_path),
-            parameters=dict(temperature=0.7),
+            parameters=cfg.llm.parameters,
             use_cache=False,
         )
 
