@@ -88,10 +88,6 @@ class LLM(BaseModel, ABC):
     def make_training_text(self, prompt: Prompt, output: LLMOutput, compute_log_probs: bool = False) -> TrainingText:
         pass
 
-    @abstractmethod
-    def get_log_probs(self, prompt: str | Prompt, output: str | LLMOutput) -> list[float]:
-        pass
-
     def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
