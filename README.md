@@ -8,7 +8,8 @@
 
 </div>
 
-*TapeAgents* is an experimental framework to build, debug, serve and optimize AI agents. The key concept of the framework is *Tape*: a complete semantic-level log of the agent's session. All Agent-Environment interactions are mediated by the orchestrator and must go through the tape
+**TapeAgents** is a framework to build, debug, serve and optimize your AI agent. It takes a holistic view of the agent lifecycle and aims to support you at all stages. The main distinguishing feature of the framework is that by design a TapeAgent creates its  
+**Tape**: a comprehensive semantic log of the agent's session that greatly facilitates audit, debugging, finetuning, agent optimization, etc. A Tape contains a context and a sequence of `Step` objects. A step can represent an agent’s action, thought, environment observation, or control flow.
 
 ![image](/assets/overview.png)
 
@@ -79,7 +80,7 @@ The [examples/](examples/) directory contains examples of how to use the TapeAge
 
 
 Other notable examples that demonstrate the main aspects of the framework:
-- [workarena](examples/workarena) - custom agent that solves WorkArena benchmark using BrowserGym environment.
+- [workarena](examples/workarena) - custom agent that solves [WorkArena](https://github.com/ServiceNow/WorkArena) benchmark using [BrowserGym](https://github.com/ServiceNow/BrowserGym) environment.
 - [annotator.py](annotator.py) - example of the agent that annotates the existing tape with some score or label.
 - [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
 - [studio.py](examples/studio.py) - interactive Gradio demo of agent that could be changed in runtime.
