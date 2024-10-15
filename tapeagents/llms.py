@@ -369,7 +369,7 @@ class ReplayLLM(LLM):
         def _implementation():
             prompt_key = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
             if prompt_key in self.outputs:
-                logger.info(colored("prompt cache hit", "green"))
+                logger.debug(colored("prompt cache hit", "green"))
                 output = self.outputs[prompt_key]
             else:
                 logger.warning(
