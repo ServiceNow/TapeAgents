@@ -237,7 +237,7 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
-    for _ in range(cfg.max_iterations):
+    while state["iteration"] < cfg.max_iterations:
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
         else:
@@ -264,6 +264,7 @@ def main(cfg: DictConfig):
 
         rewards = []
         no_errors = []
+        successes = []
         tapes = []
         training_samples = []
         start_make_training_data = time.time()
@@ -283,23 +284,34 @@ def main(cfg: DictConfig):
             new_tapes = []
             for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
+                    new_tape_filtered = copy.deepcopy(new_tape)
+                    new_tape_filtered.steps = []
+                    for step in new_tape.steps:
+                        new_tape_filtered.steps.append(step)
+                        if isinstance(step, AgentResponseParsingFailureAction):
+                            break
                     no_error = 0
+                    new_tape = new_tape_filtered
+                    reward = -1
+                    success = 0
                 else:
                     no_error = 1
-
-                if (
-                    isinstance(new_tape.steps[-1], AnswerAction)
-                    and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
-                ):
-                    reward = 1
-                else:
-                    reward = 0
+                    if (
+                        isinstance(new_tape.steps[-1], AnswerAction)
+                        and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
+                    ):
+                        reward = 1
+                        success = 1
+                    else:
+                        reward = 0
+                        success = 0
 
                 reward_stats[new_tape.metadata.parent_id].append(reward)
                 step_stats[new_tape.metadata.parent_id].append(len(new_tape.steps))
                 new_tapes.append(new_tape)
                 rewards.append(reward)
                 no_errors.append(no_error)
+                successes.append(success)
 
                 for trace in agent.make_training_data(new_tape):
                     trace.rewards = [reward]
@@ -416,6 +428,7 @@ def main(cfg: DictConfig):
                 "min_steps": min_steps,
                 "var_steps": var_steps,
                 "no_error": np.mean(no_errors),
+                "success": np.mean(successes),
                 "execution_time/make_training_data": end_make_training_data - start_make_training_data,
                 "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
                 "execution_time/finetune": end_finetune - start_finetune,
