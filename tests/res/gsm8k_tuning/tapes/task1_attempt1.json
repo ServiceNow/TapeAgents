@@ -1,0 +1,175 @@
+{
+    "metadata": {
+        "id": "a3620635-a5b1-46fb-a2b6-7157ded132d8",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 1,
+        "error": null,
+        "result": {
+            "question": "Julie is reading a 120-page book. Yesterday, she was able to read 12 pages and today, she read twice as many pages as yesterday. If she wants to read half of the remaining pages tomorrow, how many pages should she read?",
+            "answer": "Maila read 12 x 2 = <<12*2=24>>24 pages today.\nSo she was able to read a total of 12 + 24 = <<12+24=36>>36 pages since yesterday.\nThere are 120 - 36 = <<120-36=84>>84 pages left to be read.\nSince she wants to read half of the remaining pages tomorrow, then she should read 84/2 = <<84/2=42>>42 pages.\n#### 42",
+            "value": 42,
+            "solved": true
+        }
+    },
+    "context": null,
+    "steps": [
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "task",
+            "task": "Julie is reading a 120-page book. Yesterday, she was able to read 12 pages and today, she read twice as many pages as yesterday. If she wants to read half of the remaining pages tomorrow, how many pages should she read?"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "27d0fec3-dbd5-4ecc-b08f-24c3fc1a22ce",
+                "node": "start",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "First, let's calculate how many pages Julie read today. Since she read twice as many pages as yesterday, we can multiply the number of pages she read yesterday by 2."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "710ab573-4fc2-4231-8814-4a99fefd7eb2",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "12 * 2"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "24.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "08a8f9c4-3f5b-4477-9e4d-becb914d1411",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Now, let's calculate the total number of pages Julie has read so far by adding the pages she read yesterday and today."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "1a4ccf3a-fd02-4eb1-bffa-92859b94c232",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "12 + 24"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "36.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "1840e2c0-98b5-44c9-8917-66bbfaa55ead",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Now, let's calculate the number of pages remaining in the book by subtracting the total number of pages Julie has read so far from the total number of pages in the book."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "fba1dd85-0556-4916-9060-92d9f5befe29",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "120 - 36"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "84.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "810601c4-47cf-44b0-90f7-334d56f02702",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Now, let's calculate how many pages Julie should read tomorrow to read half of the remaining pages."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "08a52384-8e40-47ed-ab30-9188697bfa22",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "84 / 2"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "42.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "8bd479e6-0b27-4caa-ac03-f5263f0bc30e",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "final_answer_action",
+            "reason": "",
+            "text": "Julie should read 42 pages tomorrow.",
+            "value": 42
+        }
+    ]
+}

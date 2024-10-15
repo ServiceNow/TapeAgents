@@ -1,0 +1,175 @@
+{
+    "metadata": {
+        "id": "92ff5480-f077-4cea-a8bc-7c375c083120",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 1,
+        "error": null,
+        "result": {
+            "question": "Betty is saving money for a new wallet which costs $100. Betty has only half of the money she needs. Her parents decided to give her $15 for that purpose, and her grandparents twice as much as her parents. How much more money does Betty need to buy the wallet?",
+            "answer": "In the beginning, Betty has only 100 / 2 = $<<100/2=50>>50.\nBetty's grandparents gave her 15 * 2 = $<<15*2=30>>30.\nThis means, Betty needs 100 - 50 - 30 - 15 = $<<100-50-30-15=5>>5 more.\n#### 5",
+            "value": 5,
+            "solved": true
+        }
+    },
+    "context": null,
+    "steps": [
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "task",
+            "task": "Betty is saving money for a new wallet which costs $100. Betty has only half of the money she needs. Her parents decided to give her $15 for that purpose, and her grandparents twice as much as her parents. How much more money does Betty need to buy the wallet?"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "aec11c53-b209-4690-993f-3bac534aa0cc",
+                "node": "start",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "First, let's calculate how much money Betty has initially. Since she has half of the money she needs, and the wallet costs $100, she has 100 / 2 = $50."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "f3b1185f-d3b7-4ad4-b283-f2f06e9abc2d",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "100 / 2"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "50.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "aac8bcfa-624b-44f6-95fd-aa1436de3f3d",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Next, let's calculate how much money Betty's grandparents gave her. Since they gave her twice as much as her parents, and her parents gave her $15, her grandparents gave her 2 * 15 = $30."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "2141a770-03e3-414c-be37-b4880d932eb5",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "2 * 15"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "30.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "2f211200-61ce-42d8-ae6d-8bdc963e853a",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Now, let's calculate the total amount of money Betty has after receiving money from her parents and grandparents. She already had $50, her parents gave her $15, and her grandparents gave her $30, so the total amount is 50 + 15 + 30."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "f967344b-cfa8-46a4-a4ee-b8101c6face2",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "50 + 15 + 30"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "95.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "deae4baf-6b88-415c-8b9e-752f0764337b",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Finally, let's calculate how much more money Betty needs to buy the wallet. The wallet costs $100, and she has $95, so the amount she needs is 100 - 95."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "121129f6-40a4-4af3-9547-bb10d413ec5f",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "100 - 95"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "5.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "08b304fe-d829-4c74-9cea-0737cfe1fa3a",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "final_answer_action",
+            "reason": "",
+            "text": "Betty needs $5 more to buy the wallet.",
+            "value": 5.0
+        }
+    ]
+}

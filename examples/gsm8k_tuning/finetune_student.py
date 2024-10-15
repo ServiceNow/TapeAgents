@@ -3,13 +3,14 @@ import logging
 import os
 import sys
 
-from math_agent import ActionExecutionFailure, MathAgent, MathTape
 from tqdm import tqdm
 
 from tapeagents.core import TrainingText
 from tapeagents.finetune.data import load_samples, save_samples
 from tapeagents.finetune.finetune import load_config, run_finetuning_loop
 from tapeagents.llms import TrainableLLM
+
+from .math_agent import ActionExecutionFailure, MathAgent, MathTape
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,14 +23,12 @@ def get_training_samples_from_tapes(tapes_path: str) -> list[TrainingText]:
     """
 
     # We need the agent to cut tapes into training samples
-    agent = MathAgent(
-        llms={
-            "default": TrainableLLM(
-                base_url="https://api.together.xyz",
-                model_name="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-                tokenizer_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
-            )
-        }
+    agent = MathAgent.create(
+        TrainableLLM(
+            base_url="https://api.together.xyz",
+            model_name="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+            tokenizer_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
+        )
     )
 
     training_samples: list[TrainingText] = []

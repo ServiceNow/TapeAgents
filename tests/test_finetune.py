@@ -127,7 +127,7 @@ def _prepare_accelerate_args(mixed_precision, distributed_mode):
 
 
 @pytest.mark.slow
-def test_tuning_regular(update_golden_result=False):
+def test_tuning(update_golden_result=False):
     result, artifacts = _run_isolated_tuning("test")
     _check_tuning_artifacts(artifacts)
     _check_tuning_result(result, "regular", update_golden_result)
@@ -158,7 +158,7 @@ def test_tuning_fp16(update_golden_result=False):
 
 @pytest.mark.slow
 @pytest.mark.gpu
-def test_tuning_half_precision(update_golden_result=False):
+def test_tuning_load_as_bf16(update_golden_result=False):
     result, artifacts = _run_isolated_tuning("test", overrides="finetune.load_as_bf16=true")
     _check_tuning_artifacts(artifacts)
     _check_tuning_result(result, "half_precision", update_golden_result)
@@ -219,10 +219,10 @@ def test_tuning_resumption(update_golden_result=False):
 
 if __name__ == "__main__":
     update_golden_result = False
-    test_tuning_regular(update_golden_result)
+    test_tuning(update_golden_result)
     test_tuning_bf16(update_golden_result)
     test_tuning_fp16(update_golden_result)
-    test_tuning_half_precision(update_golden_result)
+    test_tuning_load_as_bf16(update_golden_result)
     test_tuning_grad_checkpoints(update_golden_result)
     test_tuning_deepspeed(update_golden_result)
     test_tuning_lora(update_golden_result)
