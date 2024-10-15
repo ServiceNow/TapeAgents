@@ -7,7 +7,7 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Generator, Type, overload
+from typing import Any, Callable, Generator, Type
 
 import litellm
 import openai
@@ -671,7 +671,8 @@ def trainable_llm_make_training_text(
     tokenized_text = tokenizer.encode(text, add_special_tokens=True)
     tokenized_output = tokenized_text[len(tokenized_prompt) :]
 
-    assert len(log_probs) == len(
-        tokenized_output
-    ), f"Log probs length mismatch: {len(log_probs)} != {len(tokenized_output)}"
+    if len(log_probs):
+        assert len(log_probs) == len(
+            tokenized_output
+        ), f"Log probs length mismatch: {len(log_probs)} != {len(tokenized_output)}"
     return TrainingText(text=text, n_predicted=len(output_text), old_logprobs=log_probs)

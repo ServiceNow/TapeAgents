@@ -237,7 +237,7 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
-    for _ in range(10):
+    for _ in range(cfg.max_iterations):
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
         else:
