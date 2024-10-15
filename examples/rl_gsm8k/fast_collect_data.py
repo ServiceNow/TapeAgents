@@ -358,9 +358,8 @@ def main(cfg: DictConfig):
         os.makedirs(rollout_dir, exist_ok=True)
         with open(rollout_dir / "data.jsonl", "w") as f:
             for trace in training_samples:
-                if len(trace.old_logprobs) <= 2048:
-                    f.write(trace.model_dump_json() + "\n")
-                    f.flush()
+                f.write(trace.model_dump_json() + "\n")
+                f.flush()
 
         finetune_cfg = cfg.copy()
 
