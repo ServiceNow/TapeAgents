@@ -190,7 +190,7 @@ class WorkArenaRender(GuidedAgentRender):
 def main(dirname: str):
     renderer = WorkArenaRender(dirname)
     browser = WorkarenaTapeBrowser(dirname, renderer)
-    browser.launch(static_dir=dirname)
+    browser.launch(static_dir=dirname, port=7861)
 
 
 if __name__ == "__main__":
