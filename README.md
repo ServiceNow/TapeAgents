@@ -89,16 +89,18 @@ Other notable examples that demonstrate the main aspects of the framework:
 
 # Learn more 
 
-See our [Now AI paper](https://servicenow.sharepoint.com/sites/snrcat/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fsnrcat%2FShared%20Documents%2FTapeAgents%2FTapeAgents%5F2024nowai%2Epdf&parent=%2Fsites%2Fsnrcat%2FShared%20Documents%2FTapeAgents&p=true&ga=1) on TapeAgents.
+Our Paper on TapeAgents is coming soon!
 
 # Contact
 
-Please use the group email of the Conversational AssistanT (CAT) Program at ServiceNow
+Feel free to reach out to the team:
 
-snr-cat@servicenow.com
+oleh.shliazhko@servicenow.com for technical questions
+jordanprince.t@servicenow.com for tech transfer questions
+dzmitry.bahdanau@servicenow.com for all other questions
 
 # Acknowledgements
 
-We acknowledge the inspiration we took from prior frameworks, in particular [LangGraph](https://github.com/langchain-ai/langgraph), [AutoGen](https://github.com/microsoft/autogen), [Agents](https://github.com/aiwaves-cn/agents) and [DSPy](https://github.com/stanfordnlp/dspy).
+We acknowledge the inspiration we took from prior frameworks, in particular [LangGraph](https://github.com/langchain-ai/langgraph), [AutoGen](https://github.com/microsoft/autogen), [AIWaves Agents](https://github.com/aiwaves-cn/agents) and [DSPy](https://github.com/stanfordnlp/dspy).
 
 
