@@ -8,7 +8,7 @@ from termcolor import colored
 
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 
 from .agent import WorkArenaAgent, WorkArenaBaseline
 from .environment import WorkArenaEnvironment
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(
     version_base=None,
-    config_path="../../conf/tapeagent",
+    config_path="../../conf",
     config_name="workarena_openai",
 )
 def main(cfg: DictConfig) -> None:
@@ -44,10 +44,10 @@ def main(cfg: DictConfig) -> None:
             if os.path.exists(os.path.join(tapes_dir, fname)):
                 logger.info(f"Skipping task {i+1}, already solved")
                 continue
+            tmp_fpath = os.path.join(tapes_dir, f"{fname}.tmp")
             tape, metadata = env.start_task(task, seed)
             metadata["seed"] = seed
             metadata["number"] = i
-            tape.metadata.result = metadata
             logger.info(colored(f"Start task {i+1} seed {seed}: {metadata['goal']}", "cyan"))
             loop = 0
             logger.info(colored(f"Loop {loop+1}", "cyan"))
@@ -69,12 +69,13 @@ def main(cfg: DictConfig) -> None:
                     tape = tape.append(event.observation)  # type: ignore
                     loop += 1
                     logger.info(colored(f"Loop {loop+1}", "cyan"))
-                save_json_tape(tape, tapes_dir, f"{fname}.tmp")
+                tape.metadata.result = metadata
+                save_json_tape(tape, tmp_fpath)
             success, result = env.validate_task(tape)
             metadata["success"] = success
             metadata.update(result)
             env.finish_task(task_name)
-            os.unlink(os.path.join(tapes_dir, f"{fname}.tmp"))  # remove temporary file
+            os.unlink(tmp_fpath)  # remove temporary file
             tape.metadata.result = metadata
             save_json_tape(tape, tapes_dir, fname)
             logger.info(f"Saved tape to {fname}")

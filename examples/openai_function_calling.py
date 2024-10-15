@@ -19,7 +19,7 @@ from tapeagents.environment import (
     MockToolEnvironment,
 )
 from tapeagents.llms import LiteLLM, LLMStream
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 
 
 class FunctionCallingAgent(Agent[DialogTape]):

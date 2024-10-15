@@ -21,36 +21,33 @@ from .utils import FatalError, sanitize_json_completion
 logger = logging.getLogger(__name__)
 
 
-class GuidanceNode(Node):
+class MonoNode(Node):
     """
-    A node for the guided agent.
-    Validates that the tape starts with a specific step class.
-    Attaches a guidance text to the end of the prompt after rendering the tape.
-    Parses the llm output into provided step classes (class provided in a form of annotated union).
-    Trims the tape if needed.
+    A node for the monolithic agent.
+    - Renders the whole tape into a prompt. Trims the tape if needed.
+    - Attaches a guidance text to the end of the prompt after rendering the tape.
+    - Parses the llm output into provided step classes (class provided in a form of annotated union).
     """
 
-    trigger_step: str | list[str]
-    guidance: str
+    trigger_step: str | list[str]  # which step kind in the end of the tape triggers this node
+    guidance: str  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
-    steps_prompt: str = ""
+    steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_step_cls: Any = None
-    start_step_cls: Any = None
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        assert isinstance(tape.steps[0], self.start_step_cls)
         cleaned_tape = self.prepare_tape(tape)
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
-            cleaned_tape = agent.trim_tape(cleaned_tape)
+            cleaned_tape = self.trim_tape(cleaned_tape)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
         return tape
 
-    def make_llm_output(self, tape: Tape, index: int) -> LLMOutput:
+    def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
 
     def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
@@ -121,19 +118,16 @@ class GuidanceNode(Node):
             step.metadata.prompt_id = prompt_id
             yield step
 
+    def trim_tape(self, tape: Tape) -> Tape:
+        return tape
 
-class GuidedAgent(Agent, Generic[TapeType]):
+
+class MonoAgent(Agent, Generic[TapeType]):
     """
-    Generic agent class which renders all tape steps into prompt and parses the llm completion into a sequence of steps.
-    Main features:
-    - selects guidance node based on the kind of the last step in the tape.
-    - selected node does the following:
-        - validates that the tape starts with a specific step class.
-        - attaches a guidance prompt text to the end of the prompt after rendering the tape.
-        - trims the tape if the total token count exceeds the context size.
+    Monolithic agent which selects the node based on the last step in the tape.
     """
 
-    nodes: list[GuidanceNode]  # type: ignore
+    nodes: list[MonoNode]  # type: ignore
 
     def select_node(self, tape: TapeType) -> Node:
         last_kind = tape.steps[-1].kind
@@ -145,7 +139,7 @@ class GuidedAgent(Agent, Generic[TapeType]):
         return self.nodes[-1]  # default to the last node
 
     def delegate(self, tape: TapeType):
+        """
+        Does not support delegation to subagents.
+        """
         return self
-
-    def trim_tape(self, tape: Tape) -> Tape:
-        return tape

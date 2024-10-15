@@ -9,7 +9,7 @@ from tapeagents.studio import Studio
 from tapeagents.environment import CodeExecutionEnvironment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.rendering import PrettyRenderer
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 

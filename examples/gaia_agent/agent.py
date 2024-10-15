@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any
 
 from tapeagents.core import Step
-from tapeagents.guided_agent import GuidanceNode, GuidedAgent
+from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.llms import LLM
 
 from .prompts import PromptRegistry
@@ -34,10 +34,9 @@ class PlanningMode(str, Enum):
     reflect = "reflect"
 
 
-class GaiaNode(GuidanceNode):
+class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    start_step_cls: Any = GaiaQuestion
     agent_step_cls: Any = GaiaAgentStep
 
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
@@ -75,8 +74,26 @@ class GaiaNode(GuidanceNode):
             step.facts = tape.model_copy(update=dict(steps=tape.steps + new_steps)).facts()
         return step
 
+    def trim_tape(self, tape: GaiaTape) -> GaiaTape:
+        """
+        Make tape shorter to fit llm context size limits
+        """
+        finish_subtask_positions = [i for i, step in enumerate(tape) if isinstance(step, FinishSubtask)]
+        # trim either after last finished subtask or at 2/3 of the tape
+        summarization_border = (finish_subtask_positions[-1] + 1) if finish_subtask_positions else int(len(tape) * 0.66)
+        short_tape = tape.model_copy(update=dict(steps=[]))
+        pre_tape: GaiaTape = tape[:summarization_border]  # type: ignore
+        for step in pre_tape.steps:
+            if isinstance(step, (GaiaQuestion, PlanThought, SourcesThought, ListOfFactsThought)):
+                short_tape.steps.append(step)
+        short_tape.steps.append(PreviousFactsObservation(facts=pre_tape.facts()))
+        for step in tape.steps[summarization_border:]:
+            short_tape.steps.append(step)
+        logger.info(f"Tape reduced from {len(tape)} to {len(short_tape)} steps")
+        return short_tape
 
-class GaiaAgent(GuidedAgent):
+
+class GaiaAgent(MonoAgent):
     subtasks: bool
 
     @classmethod
@@ -168,23 +185,3 @@ class GaiaAgent(GuidedAgent):
             )
         guidance_nodes.append(GaiaNode(name="default", trigger_step="default", guidance=""))
         return guidance_nodes
-
-    def trim_tape(self, tape: GaiaTape) -> GaiaTape:
-        """
-        Make tape shorter to fit llm context size limits
-        """
-        for i, step in enumerate(tape):
-            logger.info(f"{i}: {step.__class__.__name__} {self.llm.count_tokens(step.llm_view())} tokens")
-        finish_subtask_positions = [i for i, step in enumerate(tape) if isinstance(step, FinishSubtask)]
-        # trim either after last finished subtask or at 2/3 of the tape
-        summarization_border = (finish_subtask_positions[-1] + 1) if finish_subtask_positions else int(len(tape) * 0.66)
-        short_tape = tape.model_copy(update=dict(steps=[]))
-        pre_tape: GaiaTape = tape[:summarization_border]  # type: ignore
-        for step in pre_tape.steps:
-            if isinstance(step, (GaiaQuestion, PlanThought, SourcesThought, ListOfFactsThought)):
-                short_tape.steps.append(step)
-        short_tape.steps.append(PreviousFactsObservation(facts=pre_tape.facts()))
-        for step in tape.steps[summarization_border:]:
-            short_tape.steps.append(step)
-        logger.info(f"Tape reduced from {len(tape)} to {len(short_tape)} steps")
-        return short_tape

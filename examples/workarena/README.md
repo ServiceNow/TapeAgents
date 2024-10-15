@@ -6,7 +6,7 @@ The agents could use OpenAI or big LLAMA models to solve these tasks.
 <img width="1233" alt="image" src="https://github.com/user-attachments/assets/9e4bc7e5-5547-41cb-aa5f-374c72669da2">
 
 ## Structure
-Both agents are built on top of the [GuidedAgent](../../tapeagents/guided_agent.py) class, which implements the following workflow:
+Both agents are built on top of the [MonoAgent](../../tapeagents/mono_agent.py) class, which implements the following workflow:
 - Expose the set of all available actions and thoughts to the model in each prompt
 - Render the whole tape into the prompt, trimming only in case when the tape does not fit into the context window
 - Based on the end of the current tape, select the short textual guidance prompt that briefly instructs the LLM what to do next
@@ -24,4 +24,4 @@ When the setup is done and all environment variables are set, you can run the ag
 - `python -m examples.workarena.evaluate` - script to run agent evaluation on the validation set.
 - `python -m examples.workarena.tape_browser` - Gradio UI for exploring the tapes with screenshots, videos and metrics produced during evaluation.
 
-Agents are configured using hydra configs from the `conf/tapeagent/` directory. You can change the agent configuration by modifying the `conf/tapeagent/workarena_openai.yaml` file.
+Agents are configured using hydra configs from the `conf/` directory. You can change the agent configuration by modifying the `conf/workarena_openai.yaml` file.

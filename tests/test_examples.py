@@ -33,7 +33,7 @@ from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
 from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls
-from tapeagents.runtime import replay_tape, replay_tapes
+from tapeagents.orchestrator import replay_tape, replay_tapes
 from tapeagents.team import TeamTape
 
 logger = logging.getLogger(__name__)
