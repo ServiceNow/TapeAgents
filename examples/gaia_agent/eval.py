@@ -175,13 +175,15 @@ def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int 
                 content = env.browser.get_whole_document(file_path)
                 file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
                 if len(file_text) > max_doc_length:
-                    file_text = f"{i+1}. Path to the '{file}': {file_path}"
+                    file_text = ""
+                file_text += f"{i+1}. Path to the '{file}': {file_path}"
                 document_text += file_text
         else:
             content = env.browser.get_whole_document(question.filename)
-            document_text = f"\n\n{ext.upper()} document content:\n{content}"
+            document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
             if len(document_text) > max_doc_length:
-                document_text = f"\nPath to the mentioned document: {question.filename}"
+                document_text = ""
+            document_text += f"\nPath to the mentioned document: {question.filename}"
         question.content += document_text
     question.filename = None
     logger.info(f"Question: {question.content}")
