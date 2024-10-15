@@ -10,7 +10,8 @@
 
 *TapeAgents* is an experimental framework to build, debug, serve and optimize AI agents. The key concept of the framework is *Tape*: a complete semantic-level log of the agent's session. All Agent-Environment interactions are mediated by the orchestrator and must go through the tape
 
-![image](/assets/overview.png)
+![image](https://github.com/user-attachments/assets/f428e6ee-7b4c-4a04-b18a-48183ba18a74)
+
 
 Key features:
 - Build your agent as a low-level state machine, as a high-level multi-agent team configuration, or as a mono-agent guided by multiple prompts
