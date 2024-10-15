@@ -267,7 +267,8 @@ def main(cfg: DictConfig):
         tapes = []
         training_samples = []
         start_make_training_data = time.time()
-        fork_stats = defaultdict(list)
+        reward_stats = defaultdict(list)
+        step_stats = defaultdict(list)
 
         try:
             sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
@@ -280,7 +281,7 @@ def main(cfg: DictConfig):
             # tapes = tapes * attempts
             tapes = [copy.deepcopy(tape) for tape in tapes for _ in range(attempts)]
             new_tapes = []
-            for new_tape in batch_main_loop(agent, tapes, env, max_loops=3):
+            for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
                     no_error = 0
                 else:
@@ -294,7 +295,8 @@ def main(cfg: DictConfig):
                 else:
                     reward = 0
 
-                fork_stats[new_tape.metadata.parent_id].append(reward)
+                reward_stats[new_tape.metadata.parent_id].append(reward)
+                step_stats[new_tape.metadata.parent_id].append(len(new_tape.steps))
                 new_tapes.append(new_tape)
                 rewards.append(reward)
                 no_errors.append(no_error)
@@ -304,9 +306,14 @@ def main(cfg: DictConfig):
                     trace.fork_id = new_tape.metadata.parent_id
                     training_samples.append(trace)
 
-            max_rewards = np.mean([max(stats) for stats in fork_stats.values() if stats])
-            min_rewards = np.mean([min(stats) for stats in fork_stats.values() if stats])
-            var_rewards = np.mean([np.var(stats) for stats in fork_stats.values() if stats])
+            max_rewards = np.mean([max(stats) for stats in reward_stats.values() if stats])
+            min_rewards = np.mean([min(stats) for stats in reward_stats.values() if stats])
+            var_rewards = np.mean([np.var(stats) for stats in reward_stats.values() if stats])
+
+            max_steps = np.mean([max(stats) for stats in step_stats.values() if stats])
+            min_steps = np.mean([min(stats) for stats in step_stats.values() if stats])
+            var_steps = np.mean([np.var(stats) for stats in step_stats.values() if stats])
+            mean_steps = np.mean([np.mean(stats) for stats in step_stats.values() if stats])
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -404,6 +411,10 @@ def main(cfg: DictConfig):
                 "max_rewards": max_rewards,
                 "min_rewards": min_rewards,
                 "var_rewards": var_rewards,
+                "steps": mean_steps,
+                "max_steps": max_steps,
+                "min_steps": min_steps,
+                "var_steps": var_steps,
                 "no_error": np.mean(no_errors),
                 "execution_time/make_training_data": end_make_training_data - start_make_training_data,
                 "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
