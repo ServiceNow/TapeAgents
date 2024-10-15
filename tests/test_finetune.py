@@ -92,7 +92,7 @@ def _run_isolated_tuning(config_name, overrides="", mixed_precision="no", distri
 def _run_tuning(config_name, overrides, tmpdirname, mixed_precision="no", distributed_mode="no"):
     config_dir = res_path / "conf"
     accelerate_args = _prepare_accelerate_args(mixed_precision, distributed_mode)
-    cmd = f"accelerate launch {accelerate_args} {res_path}/../../tapeagents/run_finetune.py --config-dir={config_dir} finetune={config_name} {overrides} hydra.run.dir={tmpdirname}"
+    cmd = f"accelerate launch {accelerate_args} {res_path}/../run_finetune.py --config-dir={config_dir} finetune={config_name} {overrides} hydra.run.dir={tmpdirname}"
     print(cmd)
     exitcode = os.system(cmd)
     assert exitcode == 0, f"Tuning failed with code {exitcode}"
@@ -108,13 +108,13 @@ def _prepare_accelerate_args(mixed_precision, distributed_mode):
     accelerate_args = [f"--mixed_precision={mixed_precision}"]
     if distributed_mode == "multi_gpu":
         accelerate_args += [
-            "--config_file ../conf/deepspeed/accelerate_base.yaml",
+            "--config_file conf/deepspeed/accelerate_base.yaml",
             "--num_processes 2",
             "--multi_gpu",
         ]
     elif distributed_mode == "deepspeed":
         accelerate_args += [
-            "--config_file ../conf/deepspeed/accelerate_base.yaml",
+            "--config_file conf/deepspeed/accelerate_base.yaml",
             "--use_deepspeed",
             "--deepspeed_config_file ../conf/deepspeed/deepspeed_stage3_bf16.json",
         ]
