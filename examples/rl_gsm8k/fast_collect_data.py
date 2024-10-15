@@ -278,7 +278,7 @@ def main(cfg: DictConfig):
 
             tapes = tapes * attempts
             new_tapes = []
-            for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
+            for new_tape in batch_main_loop(agent, tapes, env, max_loops=3):
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
                     no_error = 0
                 else:
@@ -329,6 +329,7 @@ def main(cfg: DictConfig):
                 stderr_file_path=stderr_path,
                 port=port,
                 verbose=True,
+                cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
             )
             try:
                 basemodel_llm = TrainableLLM(
@@ -357,8 +358,9 @@ def main(cfg: DictConfig):
         os.makedirs(rollout_dir, exist_ok=True)
         with open(rollout_dir / "data.jsonl", "w") as f:
             for trace in training_samples:
-                f.write(trace.model_dump_json() + "\n")
-                f.flush()
+                if len(trace.old_logprobs) <= 2048:
+                    f.write(trace.model_dump_json() + "\n")
+                    f.flush()
 
         finetune_cfg = cfg.copy()
 
