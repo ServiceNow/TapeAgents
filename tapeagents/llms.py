@@ -401,6 +401,7 @@ def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, floa
 
 
 class MockLLM(LLM):
+    model_name: str = "mock"
     call_number: int = 0
     mock_outputs: list[str] = [
         "Agent: I'm good, thank you",
