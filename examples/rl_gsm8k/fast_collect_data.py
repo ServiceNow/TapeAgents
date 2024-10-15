@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -6,9 +7,9 @@ import shutil
 import subprocess
 import sys
 import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
-from collections import defaultdict
 
 import hydra
 import numpy as np
@@ -276,7 +277,8 @@ def main(cfg: DictConfig):
                 tape = MathTape(steps=[start_step], context=None)
                 tapes.append(tape)
 
-            tapes = tapes * attempts
+            # tapes = tapes * attempts
+            tapes = [copy.deepcopy(tape) for tape in tapes for _ in range(attempts)]
             new_tapes = []
             for new_tape in batch_main_loop(agent, tapes, env, max_loops=3):
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
