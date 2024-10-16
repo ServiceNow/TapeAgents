@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
 
@@ -39,8 +40,40 @@ from tapeagents.finetune.finetune import load_config, run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# Replace the existing logging setup with this:
+def setup_logging(log_dir: Path):
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Create formatters
+    file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    console_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+    # Create handlers
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(console_formatter)
+
+    debug_handler = RotatingFileHandler(log_dir / "debug.log", maxBytes=10 * 1024 * 1024, backupCount=5)
+    debug_handler.setLevel(logging.DEBUG)
+    debug_handler.setFormatter(file_formatter)
+
+    info_handler = RotatingFileHandler(log_dir / "info.log", maxBytes=10 * 1024 * 1024, backupCount=5)
+    info_handler.setLevel(logging.INFO)
+    info_handler.setFormatter(file_formatter)
+
+    error_handler = RotatingFileHandler(log_dir / "error.log", maxBytes=10 * 1024 * 1024, backupCount=5)
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(file_formatter)
+
+    # Configure root logger
+    logger.setLevel(logging.DEBUG)  # Capture all levels
+    logger.addHandler(console_handler)
+    logger.addHandler(debug_handler)
+    logger.addHandler(info_handler)
+    logger.addHandler(error_handler)
 
 
 def terminate_with_children(process_id: int) -> None:
@@ -209,6 +242,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
 def main(cfg: DictConfig):
     random.seed(42)
     exp_path = Path(cfg.output_dir)
+    setup_logging(exp_path)
     run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
     if run is None:
         raise ValueError("Failed to initialize wandb run")
@@ -217,7 +251,7 @@ def main(cfg: DictConfig):
     # optionally clean all data at start time
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
-    
+
     dataset = load_dataset("openai/gsm8k", "main", split="train")
     samples = [s for s in dataset]
     logging.info(f"Loaded {len(samples)} samples")
