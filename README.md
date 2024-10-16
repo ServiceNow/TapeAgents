@@ -88,15 +88,14 @@ Other notable examples that demonstrate the main aspects of the framework:
 
 # Learn more 
 
-Our Paper on TapeAgents is coming soon!
+See our [Now AI paper](https://www.servicenow.com/research/TapeAgents.pdf) on TapeAgents.
 
-# Contact
+# Contacts
 
 Feel free to reach out to the team:
-
-oleh.shliazhko@servicenow.com for technical questions
-jordanprince.t@servicenow.com for tech transfer questions
-dzmitry.bahdanau@servicenow.com for all other questions
+- Dzmitry Bahdanau, dzmitry.bahdanau@servicenow.com
+- Oleh Shliazhko, oleh.shliazhko@servicenow.com
+- Jordan Prince Tremblay, jordanprince.t@servicenow.com
 
 # Acknowledgements
 
