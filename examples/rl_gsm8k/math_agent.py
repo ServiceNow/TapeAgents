@@ -114,7 +114,7 @@ HINTS = """
 Important considerations:
 - Always produce only one step at a time.
 - Step kind is always lowercase and underscore separated.
-- DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
+- DO NOT OUTPUT ANYTHING BESIDES A SINGLE JSON. It will break the system that processes the output.
 """
 
 START_TASK_GUIDANCE = f"Let's think step by step using reasoning and calculations.\n{HINTS}"

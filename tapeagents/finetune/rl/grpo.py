@@ -36,6 +36,7 @@ class StepConfig(object):
 
 @dataclass
 class GRPOConfig(StepConfig):
+    algo: Optional[str] = field(default="grpo", metadata={"help": "Algorithm to use for RL"})
     use_advantages: Optional[bool] = field(
         default=True,
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
@@ -126,20 +127,26 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
     log_ratio_new_old = new_log_probs - old_logprobs
     ratio_new_old = torch.exp(log_ratio_new_old)
     weights = advantages if config.use_advantages else rewards
-    surr1 = ratio_new_old * weights
+    match config.algo:
+        case "grpo":
+            surr1 = ratio_new_old * weights
 
-    clamped_ratio = torch.clamp(ratio_new_old, 1 - config.epsilon, 1 + config.epsilon)
+            clamped_ratio = torch.clamp(ratio_new_old, 1 - config.epsilon, 1 + config.epsilon)
 
-    surr2 = clamped_ratio * weights
+            surr2 = clamped_ratio * weights
 
-    surrogate_loss = torch.min(surr1, surr2)
+            surrogate_loss = torch.min(surr1, surr2)
 
-    # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
-    log_ratio_ref_new = ref_logprobs - new_log_probs
-    approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
-    assert approx_kl.shape == masks_.shape
-    assert approx_kl.shape == surrogate_loss.shape
-    loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
+            # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
+            log_ratio_ref_new = ref_logprobs - new_log_probs
+            approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
+            assert approx_kl.shape == masks_.shape
+            assert approx_kl.shape == surrogate_loss.shape
+            loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
+        case "reinforce":
+            loss = -masked_mean(new_log_probs * weights, masks_)
+        case _:
+            raise ValueError(f"Unknown algorithm {config.algo}")
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
 
     if (
