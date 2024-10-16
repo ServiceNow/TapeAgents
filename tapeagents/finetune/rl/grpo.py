@@ -127,6 +127,9 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
     log_ratio_new_old = new_log_probs - old_logprobs
     ratio_new_old = torch.exp(log_ratio_new_old)
     weights = advantages if config.use_advantages else rewards
+    # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
+    log_ratio_ref_new = ref_logprobs - new_log_probs
+    approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
     match config.algo:
         case "grpo":
             surr1 = ratio_new_old * weights
@@ -137,13 +140,12 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
 
             surrogate_loss = torch.min(surr1, surr2)
 
-            # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
-            log_ratio_ref_new = ref_logprobs - new_log_probs
-            approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
             assert approx_kl.shape == masks_.shape
             assert approx_kl.shape == surrogate_loss.shape
             loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
         case "reinforce":
+            surr1 = torch.zeros_like(ratio_new_old)
+            surr2 = torch.zeros_like(ratio_new_old)
             loss = -masked_mean(new_log_probs * weights, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
