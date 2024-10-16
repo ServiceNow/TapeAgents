@@ -44,6 +44,11 @@ make setup
 
 # Examples
 
+To run the example, first activate the `tapeagents` environment that was created during the setup process:
+```bash
+conda activate tapeagents
+```
+
 The simplest agent just to show the basic structure of the agent:
 ```python
 from tapeagents.agent import Agent, Node
