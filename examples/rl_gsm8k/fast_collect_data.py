@@ -43,37 +43,48 @@ from tapeagents.llms import TrainableLLM
 logger = logging.getLogger(__name__)
 
 
-# Replace the existing logging setup with this:
-def setup_logging(log_dir: Path):
-    os.makedirs(log_dir, exist_ok=True)
+def setup_logging(output_dir):
+    print(f'Setting up logging to {output_dir}')
 
-    # Create formatters
-    file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    console_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)  # Create the output directory if it doesn't exist
 
-    # Create handlers
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(console_formatter)
+    # Define log file paths
+    info_log = output_dir / 'info.log'
+    debug_log = output_dir / 'debug.log'
+    error_log = output_dir / 'error.log'
 
-    debug_handler = RotatingFileHandler(log_dir / "debug.log", maxBytes=10 * 1024 * 1024, backupCount=5)
-    debug_handler.setLevel(logging.DEBUG)
-    debug_handler.setFormatter(file_formatter)
+    # Clear any existing handlers
+    logger = logging.getLogger()  # get root logger
+    logger.handlers = []  # Clear existing handlers
+    logger.setLevel(logging.DEBUG)  # Ensure all levels are captured at the root level
 
-    info_handler = RotatingFileHandler(log_dir / "info.log", maxBytes=10 * 1024 * 1024, backupCount=5)
+    # Create file handlers for each log level
+    info_handler = logging.FileHandler(info_log)
     info_handler.setLevel(logging.INFO)
-    info_handler.setFormatter(file_formatter)
 
-    error_handler = RotatingFileHandler(log_dir / "error.log", maxBytes=10 * 1024 * 1024, backupCount=5)
+    debug_handler = logging.FileHandler(debug_log)
+    debug_handler.setLevel(logging.DEBUG)
+
+    error_handler = logging.FileHandler(error_log)
     error_handler.setLevel(logging.ERROR)
-    error_handler.setFormatter(file_formatter)
 
-    # Configure root logger
-    logger.setLevel(logging.DEBUG)  # Capture all levels
-    logger.addHandler(console_handler)
-    logger.addHandler(debug_handler)
+    stdout_handler = logging.StreamHandler()
+    stdout_handler.setLevel(logging.INFO)
+
+    # Create formatters and set them to the handlers
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    info_handler.setFormatter(formatter)
+    debug_handler.setFormatter(formatter)
+    error_handler.setFormatter(formatter)
+    stdout_handler.setFormatter(formatter)
+
+    # Add the handlers to the logger
     logger.addHandler(info_handler)
+    logger.addHandler(debug_handler)
     logger.addHandler(error_handler)
+    logger.addHandler(stdout_handler)
 
 
 def terminate_with_children(process_id: int) -> None:
