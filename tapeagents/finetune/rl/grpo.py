@@ -148,22 +148,22 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
         loss = loss * 0
 
     stats = {
-        "max_new_log_probs": (masks_ * new_log_probs).max().item(),
-        "max_ratio_new_old": (masks_ * ratio_new_old).max().item(),
+        "max_new_log_probs":  new_log_probs[masks_].max().item(),
+        "max_ratio_new_old": ratio_new_old[masks_].max().item(),
         "max_loss": loss.max().item(),
         "reward": masked_mean(rewards, masks_).item(),
-        "max_reward": (rewards * masks_).max().item(),
-        "min_reward": (rewards * masks_).min().item(),
+        "max_reward": rewards[masks_].max().item(),
+        "min_reward": rewards[masks_].min().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
         "mean_ref_logprobs": masked_mean(ref_logprobs, masks_).item(),
         "advantage": masked_mean(advantages, masks_).item(),
-        "max_advantage": advantages.max().item(),
-        "min_advantage": advantages.min().item(),
+        "max_advantage": advantages[masks_].max().item(),
+        "min_advantage": advantages[masks_].min().item(),
         "loss": loss.item(),
         "kl": masked_mean(approx_kl, masks_).item(),
-        "max_kl": (masks_ * approx_kl).max().item(),
-        "min_kl": (masks_ * approx_kl).min().item(),
+        "max_kl": approx_kl[masks_].max().item(),
+        "min_kl": approx_kl[masks_].min().item(),
         "surr1": masked_mean(surr1, masks_).item(),
         "surr2": masked_mean(surr2, masks_).item(),
         "ratio_new_old": masked_mean(ratio_new_old, masks_).item(),
@@ -171,20 +171,6 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
         "ratio_ref_old": masked_mean(torch.exp(ref_logprobs - old_logprobs), masks_).item(),
     }
     return loss, stats
-
-
-def replace_non_zero(reward_list, value):
-    """
-    Replace the non-zero entry in the reward list with the given value.
-    If all entries are zero, return the original list.
-    """
-    for i, r in enumerate(reward_list):
-        if r != 0:
-            new_list = reward_list.copy()
-            new_list[i] = value
-            return new_list
-    return reward_list  # Return original list if all entries are zero
-
 
 def update_advantages(dataset: Dataset, config: GRPOConfig) -> Dataset:
     """
