@@ -53,8 +53,8 @@ class TapeBrowser:
             raise
         return tapes
 
-    def load_prompts(self):
-        self.prompts = retrieve_tape_llm_calls(self.tapes)
+    def load_llm_calls(self):
+        self.llm_calls = retrieve_tape_llm_calls(self.tapes)
 
     def get_steps(self, tape: Tape) -> list:
         return tape.steps
@@ -132,7 +132,7 @@ class TapeBrowser:
     def update_view(self, selected_file: str):
         logger.info(f"Loading tapes from {selected_file}")
         self.tapes = self.load_tapes(selected_file)
-        self.load_prompts()
+        self.load_llm_calls()
         file_label = self.get_file_label(selected_file, self.tapes)
         tape_names = [(self.get_tape_name(i, tape), i) for i, tape in enumerate(self.tapes)]
         logger.info(f"Selected file: {selected_file}, selected tape: {self.selected_tape}")

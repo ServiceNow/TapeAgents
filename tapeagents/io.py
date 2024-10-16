@@ -49,7 +49,8 @@ def stream_yaml_tapes(filename: Path | str, mode: str = "w") -> Generator[TapeSa
 
 
 def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
-    fpath = os.path.join(tapes_dir, f"{name}.json") if name else tapes_dir
+    fname = name if name.endswith(".json") else f"{name}.json"
+    fpath = os.path.join(tapes_dir, fname) if name else tapes_dir
     with open(fpath, "w") as f:
         f.write(tape.model_dump_json(indent=4))
 
@@ -64,13 +65,14 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
         paths = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(file_extension)]
     else:
         paths = [path]
+        file_extension = os.path.splitext(path)[-1]
     loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
     tapes = []
     for path in paths:
         with open(path) as f:
             if file_extension == ".yaml":
                 data = yaml.safe_load_all(f)
-            elif file_extension == ".json":
+            else:
                 data = json.load(f)
         if not isinstance(data, list):
             data = [data]

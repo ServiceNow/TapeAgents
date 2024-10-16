@@ -13,7 +13,7 @@ from .core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadat
 from .environment import Environment, ExternalObservationNeeded
 from .io import stream_yaml_tapes
 from .parallel_processing import lazy_thread_pool_processor, sequential_processor
-from .runtime import main_loop
+from .orchestrator import main_loop
 
 logger = logging.getLogger(__name__)
 

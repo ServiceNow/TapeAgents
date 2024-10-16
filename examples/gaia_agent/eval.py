@@ -4,15 +4,15 @@ import logging
 import os
 import shutil
 import subprocess
-from functools import cached_property
 from typing import Any, Counter, Iterable
 from uuid import uuid4
 
+import yaml
 from pydantic import BaseModel, Field
 from termcolor import colored
 
+from tapeagents.orchestrator import main_loop
 from tapeagents.rendering import step_view
-from tapeagents.runtime import main_loop
 
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment
@@ -38,10 +38,6 @@ class GaiaResults(BaseModel, Iterable[GaiaTape]):
     web_cache: dict = Field(default_factory=dict)
     prompts: list[dict] = Field(default_factory=list)
 
-    @cached_property
-    def accuracy(self) -> tuple[float, int]:
-        return calculate_accuracy(self.tapes, show_intermediate=False, show_wrong=False)
-
     def __iter__(self):
         return iter(self.tapes)
 
@@ -58,21 +54,23 @@ def load_results(path: str) -> GaiaResults:
         return GaiaResults.model_validate(data)
 
 
-def tape_correct(tape_dict: dict) -> bool:
-    return question_scorer(str(tape_dict["metadata"]["result"]), tape_dict["metadata"]["task"]["Final answer"])
+def tape_correct(tape: GaiaTape) -> bool:
+    if not tape.metadata.result:
+        return False
+    predicted = str(tape.metadata.result)
+    golden = tape.metadata.task["Final answer"]
+    if golden == "?":  # placeholder for hidden answer in test set
+        return False
+    return question_scorer(predicted, golden)
 
 
-def calculate_accuracy(tapes: str | list[dict], show_intermediate=True, show_wrong=False):
-    if isinstance(tapes, str):
-        assert os.path.exists(tapes) and tapes.endswith(".json")
-        tapes = load_results(tapes).tapes
-
+def calculate_accuracy(tapes: list[GaiaTape], show_intermediate=False, show_wrong=False):
     accs = []
     accuracy = 0.0
     for tape in tapes:
         correct = tape_correct(tape)
         if show_wrong and not correct:
-            for step in tape["steps"]:
+            for step in tape:
                 print("-" * 80)
                 print(step_view(step))
             print("=" * 120)
@@ -81,9 +79,9 @@ def calculate_accuracy(tapes: str | list[dict], show_intermediate=True, show_wro
         accuracy = sum(accs) * 100 / len(accs)
         if show_intermediate:
             print(
-                tape["metadata"]["task"]["Final answer"],
+                tape.metadata.task["Final answer"],
                 "|",
-                colored(str(tape["metadata"]["result"]), "green" if correct else "red"),
+                colored(str(tape.metadata.result), "green" if correct else "red"),
             )
             print(f"{len(accs)}: Accuracy {accuracy:.2f}")
     return accuracy, sum(accs)
@@ -126,22 +124,26 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
             discard_attempt = False
             planned = False
             step = None
-            for event in main_loop(agent, tape, env, max_loops=30):
-                if event.agent_event and event.agent_event.step:
-                    step = event.agent_event.step
-                    tape = tape.append(step)  # type: ignore
-                    if isinstance(step, PlanThought) and not planned:
-                        plan_dump = "\n".join(step.plan)
-                        if plan_dump in previous_plans:
-                            logger.info("Plan already been used, discard attempt")
-                            discard_attempt = True
-                            break
-                        else:
-                            planned = True
-                            previous_plans.append(plan_dump)
-                if event.observation:
-                    tape = tape.append(event.observation)  # type: ignore
-            if discard_attempt:
+            try:
+                for event in main_loop(agent, tape, env, max_loops=30):
+                    if event.agent_event and event.agent_event.step:
+                        step = event.agent_event.step
+                        tape = tape.append(step)  # type: ignore
+                        if isinstance(step, PlanThought) and not planned:
+                            plan_dump = "\n".join(step.plan)
+                            if plan_dump in previous_plans:
+                                logger.info("Plan already been used, discard attempt")
+                                discard_attempt = True
+                                break
+                            else:
+                                planned = True
+                                previous_plans.append(plan_dump)
+                    if event.observation:
+                        tape = tape.append(event.observation)  # type: ignore
+                if discard_attempt:
+                    continue
+            except Exception as e:
+                logger.exception(f"Failed to solve task: {e}")
                 continue
             predicted = step.answer if isinstance(step, GaiaAnswer) else None
             tries -= 1
@@ -173,13 +175,15 @@ def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int 
                 content = env.browser.get_whole_document(file_path)
                 file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
                 if len(file_text) > max_doc_length:
-                    file_text = f"{i+1}. Path to the '{file}': {file_path}"
+                    file_text = ""
+                file_text += f"{i+1}. Path to the '{file}': {file_path}"
                 document_text += file_text
         else:
             content = env.browser.get_whole_document(question.filename)
-            document_text = f"\n\n{ext.upper()} document content:\n{content}"
+            document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
             if len(document_text) > max_doc_length:
-                document_text = f"\nPath to the mentioned document: {question.filename}"
+                document_text = ""
+            document_text += f"\nPath to the mentioned document: {question.filename}"
         question.content += document_text
     question.filename = None
     logger.info(f"Question: {question.content}")
@@ -229,3 +233,11 @@ def ensemble_files(files: list[str], outfile: str = ""):
         with open(outfile, "w") as f:
             json.dump(ensemble_result.model_dump(), f, indent=4, ensure_ascii=False)
         logger.info(f"Saved to {outfile}")
+
+
+def get_exp_config_dict(exp_path):
+    config_path = os.path.join(exp_path, ".hydra", "config.yaml")
+    assert os.path.exists(config_path), f"Config file {config_path} not found"
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    return cfg

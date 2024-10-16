@@ -25,7 +25,7 @@ from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
 from examples.optimize.optimize import make_agentic_rag_agent, make_env
 from examples.tape_improver import tape_improver
-from examples.workarena.agent import WorkArenaBaseline
+from examples.workarena.agent import WorkArenaAgent
 from examples.workarena.steps import WorkArenaTape
 from tapeagents.config import DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
@@ -33,7 +33,7 @@ from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
 from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls
-from tapeagents.runtime import replay_tape, replay_tapes
+from tapeagents.orchestrator import replay_tape, replay_tapes
 from tapeagents.team import TeamTape
 
 logger = logging.getLogger(__name__)
@@ -149,15 +149,11 @@ def test_gaia_agent():
     assert fails == 0, f"{fails} failed tapes"
 
 
-def test_workarena_baseline_agent():
-    # TODO add correct resources and uncomment
-    return
-    run_dir = str(res_path / "workarena" / "baseline")
-
+def test_workarena_agent():
+    run_dir = str(res_path / "workarena" / "guided")
     llm = mock_llm(run_dir)
     env = EmptyEnvironment()
-    agent = WorkArenaBaseline.create(llm)
-
+    agent = WorkArenaAgent.create(llm)
     tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
     fails = replay_tapes(agent, tapes, env, reuse_observations=True)
@@ -219,8 +215,8 @@ if __name__ == "__main__":
     test_llama_agent()
     test_llama_agent_traces()
     test_gaia_agent()
+    test_workarena_agent()
     test_delegate()
     test_delegate_stack()
     test_data_science()
     test_tape_improver()
-    test_workarena_baseline_agent()

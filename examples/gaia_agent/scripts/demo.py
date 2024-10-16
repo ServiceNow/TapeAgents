@@ -18,7 +18,7 @@ class GaiaDemo(Demo):
 
 @hydra.main(
     version_base=None,
-    config_path="../../../conf/tapeagent",
+    config_path="../../../conf",
     config_name="gaia_openai",
 )
 def main(cfg: DictConfig) -> None:

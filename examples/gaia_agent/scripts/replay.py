@@ -6,7 +6,7 @@ from termcolor import colored
 
 from tapeagents.core import LLMCall, LLMOutput, Prompt
 from tapeagents.llms import ReplayLLM
-from tapeagents.runtime import replay_tapes
+from tapeagents.orchestrator import replay_tapes
 from tapeagents.utils import diff_dicts
 
 from ..agent import GaiaAgent
