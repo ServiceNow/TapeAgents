@@ -8,8 +8,7 @@
 
 </div>
 
-**TapeAgents** is a framework to build, debug, serve and optimize your AI agent. It takes a holistic view of the agent lifecycle and aims to support you at all stages. The main distinguishing feature of the framework is that by design a TapeAgent creates its  
-**Tape**: a comprehensive semantic log of the agent's session that greatly facilitates audit, debugging, finetuning, agent optimization, etc. A Tape contains a context and a sequence of `Step` objects. A step can represent an agent’s action, thought, environment observation, or control flow.
+**TapeAgents** is a framework that leverages a structured, replayable log (**Tape**) of the agent session to facilitate all stages of the LLM Agent development lifecycle. In TapeAgents, the agent reasons by processing the tape and the LLM output to produce new thoughts, actions, control flow steps and append them to the tape. The environment then reacts to the agent’s actions by likewise appending observation steps to the tape.
 
 ![image](/assets/overview.png)
 
