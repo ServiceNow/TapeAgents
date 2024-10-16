@@ -259,8 +259,7 @@ def main(cfg: DictConfig):
         rewards = []
         no_errors = []
         successes = []
-        tapes = []
-        training_samples = []
+        training_samples: list[TrainingText] = []
         start_make_training_data = time.time()
         reward_stats = defaultdict(list)
         step_stats = defaultdict(list)
@@ -358,9 +357,11 @@ def main(cfg: DictConfig):
         )
 
         start_basemodel_logprobs = time.time()
+        new_training_samples: list[TrainingText] = []
         if assistant_model_path == cfg.model_path:
             for trace in training_samples:
                 trace.ref_logprobs = trace.old_logprobs
+                new_training_samples.append(trace)
         else:
             base_model_process, basemodel_stdout_file, basemodel_stderr_file = serve_vllm_local_model(
                 model_name_or_path=cfg.model_path,
@@ -380,7 +381,12 @@ def main(cfg: DictConfig):
 
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
                 for trace in training_samples:
-                    trace.ref_logprobs = basemodel_agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
+                    try:
+                        trace.ref_logprobs = basemodel_agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
+                    except Exception as e:
+                        logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
+                        continue
+                    new_training_samples.append(trace)
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))

@@ -31,3 +31,8 @@ vllm_config:
     - "--max-model-len": 8000
 
 output_dir: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k
+
+hydra:
+  job_logging:
+    root:
+      level: DEBUG
