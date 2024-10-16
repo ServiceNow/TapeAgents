@@ -92,7 +92,7 @@ def _run_isolated_tuning(config_name, overrides="", mixed_precision="no", distri
 def _run_tuning(config_name, overrides, tmpdirname, mixed_precision="no", distributed_mode="no"):
     config_dir = res_path / "conf"
     accelerate_args = _prepare_accelerate_args(mixed_precision, distributed_mode)
-    cmd = f"accelerate launch {accelerate_args} {res_path}/../../tapeagents/run_finetune.py --config-dir={config_dir} finetune={config_name} {overrides} hydra.run.dir={tmpdirname}"
+    cmd = f"accelerate launch {accelerate_args} {res_path}/../run_finetune.py --config-dir={config_dir} finetune={config_name} {overrides} hydra.run.dir={tmpdirname}"
     print(cmd)
     exitcode = os.system(cmd)
     assert exitcode == 0, f"Tuning failed with code {exitcode}"
@@ -108,13 +108,13 @@ def _prepare_accelerate_args(mixed_precision, distributed_mode):
     accelerate_args = [f"--mixed_precision={mixed_precision}"]
     if distributed_mode == "multi_gpu":
         accelerate_args += [
-            "--config_file ../conf/deepspeed/accelerate_base.yaml",
+            "--config_file conf/deepspeed/accelerate_base.yaml",
             "--num_processes 2",
             "--multi_gpu",
         ]
     elif distributed_mode == "deepspeed":
         accelerate_args += [
-            "--config_file ../conf/deepspeed/accelerate_base.yaml",
+            "--config_file conf/deepspeed/accelerate_base.yaml",
             "--use_deepspeed",
             "--deepspeed_config_file ../conf/deepspeed/deepspeed_stage3_bf16.json",
         ]
@@ -127,7 +127,7 @@ def _prepare_accelerate_args(mixed_precision, distributed_mode):
 
 
 @pytest.mark.slow
-def test_tuning_regular(update_golden_result=False):
+def test_tuning(update_golden_result=False):
     result, artifacts = _run_isolated_tuning("test")
     _check_tuning_artifacts(artifacts)
     _check_tuning_result(result, "regular", update_golden_result)
@@ -158,7 +158,7 @@ def test_tuning_fp16(update_golden_result=False):
 
 @pytest.mark.slow
 @pytest.mark.gpu
-def test_tuning_half_precision(update_golden_result=False):
+def test_tuning_load_as_bf16(update_golden_result=False):
     result, artifacts = _run_isolated_tuning("test", overrides="finetune.load_as_bf16=true")
     _check_tuning_artifacts(artifacts)
     _check_tuning_result(result, "half_precision", update_golden_result)
@@ -219,10 +219,10 @@ def test_tuning_resumption(update_golden_result=False):
 
 if __name__ == "__main__":
     update_golden_result = False
-    test_tuning_regular(update_golden_result)
+    test_tuning(update_golden_result)
     test_tuning_bf16(update_golden_result)
     test_tuning_fp16(update_golden_result)
-    test_tuning_half_precision(update_golden_result)
+    test_tuning_load_as_bf16(update_golden_result)
     test_tuning_grad_checkpoints(update_golden_result)
     test_tuning_deepspeed(update_golden_result)
     test_tuning_lora(update_golden_result)

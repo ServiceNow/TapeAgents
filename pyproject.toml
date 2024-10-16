@@ -34,3 +34,10 @@ indent-width = 4
 profile = "black"
 src_paths = ["src", "tests"]
 combine_as_imports = true
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "gpu: requires gpu",
+    "multi_gpu: requires more than 1 gpu",
+]

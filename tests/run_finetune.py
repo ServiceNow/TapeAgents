@@ -1,5 +1,6 @@
 import hydra
-from finetune.finetune import run_finetuning_loop
+
+from tapeagents.finetune.finetune import run_finetuning_loop
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="finetune")

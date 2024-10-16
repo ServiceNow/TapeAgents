@@ -25,6 +25,7 @@ Additionally, the Gaia agent implements the initial planning step, which produce
 ## Results
 | Model | Avg. Val Accuracy | Val Level 1 Accuracy|  Val Level 2 Accuracy |  Val Level 3 Accuracy |
 | --- | --- |  --- | --- | --- |
-| gpt-4o emsemble of 3 | 34.5 | 49.1 | 36.0 | 0.0 |
-| gpt-4o-2024-08-06 | 33.9 | 47.2 | 34.9 | 3.8 |
+| gpt-4o maj@3 | 34.5 | 49.1 | 36.0 | 0.0 |
+| gpt-4o | 33.9 | 47.2 | 34.9 | 3.8 |
+| gpt-4o-mini maj@3 | 29.1 | 45.3 | 26.7 | 3.8 |
 | gpt-4o-mini | 25.5 | 45.3 | 20.9 | 0.0 |

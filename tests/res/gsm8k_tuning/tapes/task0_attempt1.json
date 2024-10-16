@@ -1,0 +1,120 @@
+{
+    "metadata": {
+        "id": "5d82af1a-37e1-4f69-b966-8b1698b38ade",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 1,
+        "error": null,
+        "result": {
+            "question": "Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting. How much did she earn?",
+            "answer": "Weng earns 12/60 = $<<12/60=0.2>>0.2 per minute.\nWorking 50 minutes, she earned 0.2 x 50 = $<<0.2*50=10>>10.\n#### 10",
+            "value": 10,
+            "solved": true
+        }
+    },
+    "context": null,
+    "steps": [
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "task",
+            "task": "Weng earns $12 an hour for babysitting. Yesterday, she just did 50 minutes of babysitting. How much did she earn?"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "fa733a3f-f645-4315-b752-00d1e969f9e1",
+                "node": "start",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "First, we need to convert the 50 minutes of babysitting into hours, since Weng earns $12 per hour."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "4e2f8148-130b-4534-be0f-9b39ba9ecf96",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "First, we need to convert the 50 minutes of babysitting into hours, since Weng earns $12 per hour."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "485d6ccb-3613-4557-b261-fda1d0ab55f6",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "50 / 60"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "0.8333333333333334"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "6623746d-8612-4b63-816e-c11dd8b61c06",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Now that we know Weng worked 0.8333333333333334 hours, we can multiply this by her hourly wage to find her total earnings."
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "2609dba4-3a65-43b9-8d24-03902b9e6675",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "0.8333333333333334 * 12"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "result": "10.0"
+        },
+        {
+            "metadata": {
+                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
+                "prompt_id": "5a91a2eb-096d-46b4-bda1-a00693c6a948",
+                "node": "",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "final_answer_action",
+            "reason": "",
+            "text": "Weng earned $10.0 for 50 minutes of babysitting.",
+            "value": 10.0
+        }
+    ]
+}

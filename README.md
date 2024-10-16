@@ -8,7 +8,7 @@
 
 </div>
 
-*TapeAgents* is an experimental framework to build, debug, serve and optimize AI agents. The key concept of the framework is *Tape*: a complete semantic-level log of the agent's session. All Agent-Environment interactions are mediated by the orchestrator and must go through the tape
+**TapeAgents** is a framework that leverages a structured, replayable log (**Tape**) of the agent session to facilitate all stages of the LLM Agent development lifecycle. In TapeAgents, the agent reasons by processing the tape and the LLM output to produce new thoughts, actions, control flow steps and append them to the tape. The environment then reacts to the agent’s actions by likewise appending observation steps to the tape.
 
 ![image](/assets/overview.png)
 
@@ -79,7 +79,7 @@ The [examples/](examples/) directory contains examples of how to use the TapeAge
 
 
 Other notable examples that demonstrate the main aspects of the framework:
-- [workarena](examples/workarena) - custom agent that solves WorkArena benchmark using BrowserGym environment.
+- [workarena](examples/workarena) - custom agent that solves [WorkArena](https://github.com/ServiceNow/WorkArena) benchmark using [BrowserGym](https://github.com/ServiceNow/BrowserGym) environment.
 - [annotator.py](annotator.py) - example of the agent that annotates the existing tape with some score or label.
 - [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
 - [studio.py](examples/studio.py) - interactive Gradio demo of agent that could be changed in runtime.
@@ -88,16 +88,18 @@ Other notable examples that demonstrate the main aspects of the framework:
 
 # Learn more 
 
-See our [Now AI paper](https://servicenow.sharepoint.com/sites/snrcat/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2Fsnrcat%2FShared%20Documents%2FTapeAgents%2FTapeAgents%5F2024nowai%2Epdf&parent=%2Fsites%2Fsnrcat%2FShared%20Documents%2FTapeAgents&p=true&ga=1) on TapeAgents.
+Our Paper on TapeAgents is coming soon!
 
 # Contact
 
-Please use the group email of the Conversational AssistanT (CAT) Program at ServiceNow
+Feel free to reach out to the team:
 
-snr-cat@servicenow.com
+oleh.shliazhko@servicenow.com for technical questions
+jordanprince.t@servicenow.com for tech transfer questions
+dzmitry.bahdanau@servicenow.com for all other questions
 
 # Acknowledgements
 
-We acknowledge the inspiration we took from prior frameworks, in particular [LangGraph](https://github.com/langchain-ai/langgraph), [AutoGen](https://github.com/microsoft/autogen), [Agents](https://github.com/aiwaves-cn/agents) and [DSPy](https://github.com/stanfordnlp/dspy).
+We acknowledge the inspiration we took from prior frameworks, in particular [LangGraph](https://github.com/langchain-ai/langgraph), [AutoGen](https://github.com/microsoft/autogen), [AIWaves Agents](https://github.com/aiwaves-cn/agents) and [DSPy](https://github.com/stanfordnlp/dspy).
 
 

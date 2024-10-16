@@ -40,7 +40,7 @@ def main(exp_path: str, attempts: int = 1):
     tapes_dir = os.path.join(exp_path, "tapes")
     logger.info(f"Saving tapes to {tapes_dir}")
     os.makedirs(tapes_dir, exist_ok=True)
-    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "llm_calls.sqlite")
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "tapedata.sqlite")
 
     solved = []
     for i, sample in enumerate(tqdm(samples)):
