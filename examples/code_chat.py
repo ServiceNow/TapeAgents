@@ -2,7 +2,7 @@ import datetime
 import logging
 import sys
 
-from tapeagents.autogen_prompts import AUTOGEN_ASSISTANT_SYSTEM_MESSAGE
+from tapeagents.autogen_prompts import DEFAULT_TEAM_AGENT_SYSTEM_MESSAGE
 from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.studio import Studio
@@ -22,7 +22,7 @@ def try_chat(llm: LLM, studio: bool):
         system_prompt="",
         teammate=TeamAgent.create(
             name="Assistant",
-            system_prompt=AUTOGEN_ASSISTANT_SYSTEM_MESSAGE,
+            system_prompt=DEFAULT_TEAM_AGENT_SYSTEM_MESSAGE,
             llm=llm,
         ),
         max_calls=3,
