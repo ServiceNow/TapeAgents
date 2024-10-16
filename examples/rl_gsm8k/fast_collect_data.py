@@ -217,7 +217,7 @@ def main(cfg: DictConfig):
     # optionally clean all data at start time
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
-    attempts = 10
+    
     # Serve the vLLM model
 
     stdout_path = exp_path / "vllm_stdout.log"
@@ -272,15 +272,15 @@ def main(cfg: DictConfig):
         step_stats = defaultdict(list)
 
         try:
-            sub_samples = random.sample(samples, cfg.max_agent_forks // attempts)
+            sub_samples = random.sample(samples, cfg.max_agent_forks // cfg.attempts)
             tapes = []
             for sample in sub_samples:
                 start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))  # type: ignore
                 tape = MathTape(steps=[start_step], context=None)
                 tapes.append(tape)
 
-            # tapes = tapes * attempts
-            tapes = [copy.deepcopy(tape) for tape in tapes for _ in range(attempts)]
+            # tapes = tapes * cfg.attempts
+            tapes = [copy.deepcopy(tape) for tape in tapes for _ in range(cfg.attempts)]
             new_tapes = []
             for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
