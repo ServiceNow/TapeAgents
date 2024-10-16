@@ -218,12 +218,6 @@ def main(cfg: DictConfig):
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
     
-    # Serve the vLLM model
-
-    stdout_path = exp_path / "vllm_stdout.log"
-    stderr_path = exp_path / "vllm_stderr.log"
-    port = 8080
-
     dataset = load_dataset("openai/gsm8k", "main", split="train")
     samples = [s for s in dataset]
     logging.info(f"Loaded {len(samples)} samples")
@@ -245,9 +239,9 @@ def main(cfg: DictConfig):
 
         assistant_process, stdout_file, stderr_file = serve_vllm_local_model(
             model_name_or_path=assistant_model_path,
-            stdout_file_path=stdout_path,
-            stderr_file_path=stderr_path,
-            port=port,
+            stdout_file_path=exp_path / "assistant_vllm_stdout.log",
+            stderr_file_path=exp_path / "assistant_vllm_stderr.log",
+            port=8080,
             verbose=True,
             cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
         )
@@ -313,10 +307,14 @@ def main(cfg: DictConfig):
                 no_errors.append(no_error)
                 successes.append(success)
 
-                for trace in agent.make_training_data(new_tape):
-                    trace.rewards = [reward]
-                    trace.fork_id = new_tape.metadata.parent_id
-                    training_samples.append(trace)
+                try:
+                    for trace in agent.make_training_data(new_tape):
+                        trace.rewards = [reward]
+                        trace.fork_id = new_tape.metadata.parent_id
+                        training_samples.append(trace)
+                except Exception as e:
+                    logger.error(colored(f"Failed to make training data: {e}", "red"))
+                    logger.error(new_tape)
 
             max_rewards = np.mean([max(stats) for stats in reward_stats.values() if stats])
             min_rewards = np.mean([min(stats) for stats in reward_stats.values() if stats])
@@ -329,6 +327,7 @@ def main(cfg: DictConfig):
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
+            raise e
         finally:
             terminate_with_children(assistant_process.pid)
             assistant_process.wait()  # type: ignore
@@ -365,9 +364,9 @@ def main(cfg: DictConfig):
         else:
             base_model_process, basemodel_stdout_file, basemodel_stderr_file = serve_vllm_local_model(
                 model_name_or_path=cfg.model_path,
-                stdout_file_path=stdout_path,
-                stderr_file_path=stderr_path,
-                port=port,
+                stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
+                stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
+                port=8080,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
             )
@@ -385,6 +384,7 @@ def main(cfg: DictConfig):
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
+                raise e
             finally:
                 # Make sure the weights of the model to be trained are not loaded on the GPU
                 terminate_with_children(base_model_process.pid)
