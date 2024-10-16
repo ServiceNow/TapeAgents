@@ -339,6 +339,25 @@ def main(cfg: DictConfig):
 
         end_make_training_data = time.time()
 
+        logger.info(f"Collected {len(training_samples)} training samples")
+        logger.info(f"Rewards: {np.mean(rewards)}")
+        wandb.log(
+            {
+                "rewards": np.mean(rewards),
+                "max_rewards": max_rewards,
+                "min_rewards": min_rewards,
+                "var_rewards": var_rewards,
+                "steps": mean_steps,
+                "max_steps": max_steps,
+                "min_steps": min_steps,
+                "var_steps": var_steps,
+                "no_error": np.mean(no_errors),
+                "success": np.mean(successes),
+                "execution_time/make_training_data": end_make_training_data - start_make_training_data,
+            },
+            step=state["iteration"],
+        )
+
         start_basemodel_logprobs = time.time()
         if assistant_model_path == cfg.model_path:
             for trace in training_samples:
@@ -375,6 +394,12 @@ def main(cfg: DictConfig):
                 if basemodel_stderr_file:
                     basemodel_stderr_file.close()
         end_basemodel_logprobs = time.time()
+        wandb.log(
+            {
+                "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
+            },
+            step=state["iteration"],
+        )
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
         with open(rollout_dir / "data.jsonl", "w") as f:
@@ -419,18 +444,6 @@ def main(cfg: DictConfig):
 
         wandb.log(
             {
-                "rewards": np.mean(rewards),
-                "max_rewards": max_rewards,
-                "min_rewards": min_rewards,
-                "var_rewards": var_rewards,
-                "steps": mean_steps,
-                "max_steps": max_steps,
-                "min_steps": min_steps,
-                "var_steps": var_steps,
-                "no_error": np.mean(no_errors),
-                "success": np.mean(successes),
-                "execution_time/make_training_data": end_make_training_data - start_make_training_data,
-                "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
                 "execution_time/finetune": end_finetune - start_finetune,
             },
             step=state["iteration"],
