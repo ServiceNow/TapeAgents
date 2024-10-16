@@ -62,40 +62,47 @@ def init_sqlite_if_not_exists(only_once: bool = True):
 
 
 def sqlite_store_llm_call(call: LLMCall):
-    init_sqlite_if_not_exists()
-    with sqlite3.connect(sqlite_db_path()) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                call.prompt.id,
-                call.timestamp,
-                call.prompt.model_dump_json(),
-                call.output.model_dump_json(),
-                call.prompt_length_tokens,
-                call.output_length_tokens,
-                call.cached,
-            ),
-        )
-        cursor.close()
+    # TODO: ollmer: investigate `Failed to solve task: database is locked` error later, fix it, remove these try-catch wrappers
+    try:
+        init_sqlite_if_not_exists()
+        with sqlite3.connect(sqlite_db_path()) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    call.prompt.id,
+                    call.timestamp,
+                    call.prompt.model_dump_json(),
+                    call.output.model_dump_json(),
+                    call.prompt_length_tokens,
+                    call.output_length_tokens,
+                    call.cached,
+                ),
+            )
+            cursor.close()
+    except Exception as e:
+        logger.error(f"Failed to store LLMCall: {e}")
 
 
 def sqlite_store_tape(tape: Tape):
-    init_sqlite_if_not_exists()
-    with sqlite3.connect(sqlite_db_path()) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO Tapes (tape_id, timestamp, length, metadata, context, steps) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                tape.metadata.id,
-                datetime.datetime.now().isoformat(),
-                len(tape),
-                tape.metadata.model_dump_json(),
-                tape.context.model_dump_json() if isinstance(tape.context, BaseModel) else json.dumps(tape.context),
-                json.dumps([step.model_dump() for step in tape.steps]),
-            ),
-        )
-        cursor.close()
+    try:
+        init_sqlite_if_not_exists()
+        with sqlite3.connect(sqlite_db_path()) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO Tapes (tape_id, timestamp, length, metadata, context, steps) VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    tape.metadata.id,
+                    datetime.datetime.now().isoformat(),
+                    len(tape),
+                    tape.metadata.model_dump_json(),
+                    tape.context.model_dump_json() if isinstance(tape.context, BaseModel) else json.dumps(tape.context),
+                    json.dumps([step.model_dump() for step in tape.steps]),
+                ),
+            )
+            cursor.close()
+    except Exception as e:
+        logger.error(f"Failed to store LLMCall: {e}")
 
 
 llm_call_listeners: list[LLMCallListener] = [sqlite_store_llm_call]
