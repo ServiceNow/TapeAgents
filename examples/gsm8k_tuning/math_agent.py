@@ -5,7 +5,15 @@ from typing import Annotated, Literal, TypeAlias, Union
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep, Observation, Tape, Thought
+from tapeagents.core import (
+    Action,
+    AgentResponseParsingFailureAction,
+    FinalStep,
+    Observation,
+    SetNextNode,
+    Tape,
+    Thought,
+)
 from tapeagents.environment import Environment
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
@@ -79,6 +87,7 @@ MathTape = Tape[
         ActionExecutionFailure,
         AgentResponseParsingFailureAction,
         AnswerAction,
+        SetNextNode,
     ],
 ]
 

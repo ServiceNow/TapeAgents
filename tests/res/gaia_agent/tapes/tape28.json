@@ -1,10 +1,10 @@
 {
     "metadata": {
-        "id": "351e7270-cf20-4eb8-b230-aaffc6b1fd1a",
-        "parent_id": null,
-        "author": null,
+        "id": "2cb34f99-cd53-48a0-8fe4-7a950dfbbea0",
+        "parent_id": "83776b1d-c5d4-4a4c-8ab2-b41960276d0f",
+        "author": "GaiaAgent",
         "author_tape_id": null,
-        "n_added_steps": 1,
+        "n_added_steps": 3,
         "error": null,
         "result": {}
     },
@@ -26,8 +26,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "659802e5-6be8-4281-b002-b16fe13edd79",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f26a1729-65ff-4a71-8bce-d068a565ea54",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -42,8 +42,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "20d86a55-61ff-4a25-a60e-669d2e561d95",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "bbbea7c9-d754-4021-89c9-202ee815eeb7",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -69,8 +69,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "ea1febf2-dcf2-4400-950d-6627b2ef2020",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "508f6440-a584-4451-b781-f97163d6d96d",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -81,7 +81,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -119,8 +119,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "ee1f1fed-8665-4d54-a807-f99ad03148f4",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "d4ac3146-732f-4bd4-88b6-299b512debee",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -132,8 +132,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "ee1f1fed-8665-4d54-a807-f99ad03148f4",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "d4ac3146-732f-4bd4-88b6-299b512debee",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -143,7 +143,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -157,8 +157,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "d6e7aef8-9c4e-4118-9ee4-8a40df67eb99",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "b544f0e7-5f28-48bb-961d-5eefe2ad9e40",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -171,8 +171,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "d6e7aef8-9c4e-4118-9ee4-8a40df67eb99",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "b544f0e7-5f28-48bb-961d-5eefe2ad9e40",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -182,8 +182,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "129d7ef7-fa8a-4b25-9113-5d62b74c6c9f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f2e85985-5fa2-4a3d-a67f-ffd406abf99b",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -192,8 +192,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "129d7ef7-fa8a-4b25-9113-5d62b74c6c9f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f2e85985-5fa2-4a3d-a67f-ffd406abf99b",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -203,7 +203,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -214,8 +214,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "263156f6-8e55-40e6-83d2-9867506b6b68",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "3f330554-a7be-4865-b4eb-7efee8b57b72",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -228,8 +228,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "263156f6-8e55-40e6-83d2-9867506b6b68",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "3f330554-a7be-4865-b4eb-7efee8b57b72",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -239,8 +239,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "d5ce109b-6123-4220-8eb0-f18c7bfa3947",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "0797eb7a-75bc-4cf4-9fc5-2167279032de",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -251,8 +251,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "d5ce109b-6123-4220-8eb0-f18c7bfa3947",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "0797eb7a-75bc-4cf4-9fc5-2167279032de",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -262,7 +262,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -300,8 +300,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "c30c4a19-f438-4205-b65a-0601403bcd31",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "2fbd3b82-07da-4e0a-9f99-be8d12dfd199",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -312,8 +312,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "c30c4a19-f438-4205-b65a-0601403bcd31",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "2fbd3b82-07da-4e0a-9f99-be8d12dfd199",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -323,7 +323,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -351,8 +351,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b4b169af-2c5c-43b0-b2d0-8f9f70ba197a",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "5c1aad8c-c126-4d75-821e-f253feb07500",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -364,8 +364,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b4b169af-2c5c-43b0-b2d0-8f9f70ba197a",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "5c1aad8c-c126-4d75-821e-f253feb07500",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -375,7 +375,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -386,6 +386,44 @@
             "current_page": 1,
             "total_pages": 1,
             "error": null
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "c0ea298b-2507-4e1d-919a-5e93bbf78f56",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "equine_veterinarian_surname",
+            "unit": "",
+            "value": "Louvrier"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "c0ea298b-2507-4e1d-919a-5e93bbf78f56",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f1eca39a-5183-4a5b-bfcc-aada3e0e6b62",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "The surname of the equine veterinarian mentioned in the 1.E Exercises.",
+            "answer_unit": "",
+            "answer": "Louvrier"
         }
     ]
 }

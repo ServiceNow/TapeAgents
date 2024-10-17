@@ -1,10 +1,10 @@
 {
     "metadata": {
-        "id": "2625e219-0b02-4f72-8383-c31ac54dd499",
-        "parent_id": "e5aa468a-5fc9-48d9-a006-1b4c8f9a10f3",
+        "id": "a91fd035-0257-44b1-a615-8ac625a8283e",
+        "parent_id": "c36bc1b4-99cf-4f56-931e-142d9f8b84e3",
         "author": "GaiaAgent",
         "author_tape_id": null,
-        "n_added_steps": 4,
+        "n_added_steps": 1,
         "error": null,
         "result": {}
     },
@@ -26,8 +26,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b125a3e2-9b69-44df-a8cd-18fd86b9f8d2",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "2ee0ea26-2367-4094-98d8-95e766b4f9b5",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -42,8 +42,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "01f4a2de-d158-42bf-b995-f04fb437c2f7",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "7b586ecc-f6d0-427b-af3f-957f040d8dd1",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -83,8 +83,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "3a244fb6-be0a-42e2-977a-19970b481701",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "969936f9-0813-402d-867e-298778dda8cf",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -96,7 +96,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -110,8 +110,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "02c8ad62-cd4b-48e9-984a-84827dc6665f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8d22d283-8872-460c-ae11-8af79c3ebdc4",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -124,8 +124,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "02c8ad62-cd4b-48e9-984a-84827dc6665f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8d22d283-8872-460c-ae11-8af79c3ebdc4",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -135,8 +135,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "4f2c255b-0f11-42f8-b3a3-e29d77178472",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "7fee80ab-6c76-48ca-9e42-4a374a1a3ede",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -148,14 +148,28 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "4f2c255b-0f11-42f8-b3a3-e29d77178472",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "7fee80ab-6c76-48ca-9e42-4a374a1a3ede",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "set_next_node",
             "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "dbbd53d6-295f-405a-bbea-70423e89ff05",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Count of slides mentioning crustaceans",
+            "answer_unit": "",
+            "answer": "4"
         }
     ]
 }

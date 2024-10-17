@@ -1,10 +1,10 @@
 {
     "metadata": {
-        "id": "e38f5a81-ea0a-40a6-8c17-62d9cd05ae84",
-        "parent_id": "bd4ed6b8-321a-4668-983c-4d83b05a62f5",
+        "id": "8001890d-f554-4056-bd6a-91437a8e493f",
+        "parent_id": "e8d7a6e4-86df-4ff2-93a9-1f7d5be43f13",
         "author": "GaiaAgent",
         "author_tape_id": null,
-        "n_added_steps": 4,
+        "n_added_steps": 1,
         "error": null,
         "result": {}
     },
@@ -26,8 +26,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "95bd3834-e19c-4d6e-bfb5-61fe857bb61a",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "daf09385-c78b-4de5-aa9c-befbece97f9e",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -42,8 +42,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "56ad05c0-9eec-4dd9-bb6b-379f78dacad0",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "cb40bf10-f915-4463-bfe3-0000bd62378a",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -63,8 +63,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "c19db695-4ed7-4b5d-b34f-7476bdf38206",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "a2d1ba75-21f3-4b56-a4e0-dab9cc60c44c",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -75,7 +75,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -113,8 +113,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "16da7c13-c0bc-4852-96c5-2ed40e40be00",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "2ebdfb0c-f254-43ce-b8d9-d1ebb9e85d30",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -125,8 +125,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "16da7c13-c0bc-4852-96c5-2ed40e40be00",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "2ebdfb0c-f254-43ce-b8d9-d1ebb9e85d30",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -136,7 +136,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -174,8 +174,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "24dfc03e-23ce-470e-871d-ef1eb979bab1",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "23fedbdc-70a5-4249-84f2-c3e9bb98ac8a",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -186,8 +186,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "24dfc03e-23ce-470e-871d-ef1eb979bab1",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "23fedbdc-70a5-4249-84f2-c3e9bb98ac8a",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -197,7 +197,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -235,8 +235,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "a4e94fbb-756c-4df2-858a-3b01de7742dc",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f32c08d0-0acc-409d-9332-da1a72bcc0a4",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -247,8 +247,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "a4e94fbb-756c-4df2-858a-3b01de7742dc",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f32c08d0-0acc-409d-9332-da1a72bcc0a4",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -258,7 +258,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -296,8 +296,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "4a0ad690-4797-4f22-be7e-3b5fbceb033b",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "115b5ea5-d5fd-444a-a69d-d544f2f04f46",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -308,8 +308,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "4a0ad690-4797-4f22-be7e-3b5fbceb033b",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "115b5ea5-d5fd-444a-a69d-d544f2f04f46",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -319,7 +319,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -357,8 +357,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "2adce4ba-cf00-45c5-b31c-4accd1dd4de9",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "75455b3a-3440-4380-9eb8-6cdb769517cb",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -369,8 +369,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "2adce4ba-cf00-45c5-b31c-4accd1dd4de9",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "75455b3a-3440-4380-9eb8-6cdb769517cb",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -380,7 +380,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -418,8 +418,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "1113becc-9a09-4a83-9f63-7b6d1bed626e",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "4dd219c0-e602-48ba-aeb5-2a9455eb2be9",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -430,8 +430,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "1113becc-9a09-4a83-9f63-7b6d1bed626e",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "4dd219c0-e602-48ba-aeb5-2a9455eb2be9",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -441,7 +441,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -479,8 +479,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b5d284a3-a119-49fd-be25-6d26063c5420",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "592a6f7f-95e2-4649-b2ff-a3bcd66be227",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -491,8 +491,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b5d284a3-a119-49fd-be25-6d26063c5420",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "592a6f7f-95e2-4649-b2ff-a3bcd66be227",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -502,7 +502,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -540,8 +540,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "cb44d973-79ca-4c2a-9e00-178ede6e29ee",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8ba29509-d4c8-4d82-bc7f-69a03090c2ae",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -552,8 +552,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "cb44d973-79ca-4c2a-9e00-178ede6e29ee",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8ba29509-d4c8-4d82-bc7f-69a03090c2ae",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -563,7 +563,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -601,8 +601,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b48940cd-6aa4-4edc-81a4-15c4e9e2f210",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f448397a-c63a-4591-b425-a3a9549ce79f",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -614,8 +614,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b48940cd-6aa4-4edc-81a4-15c4e9e2f210",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f448397a-c63a-4591-b425-a3a9549ce79f",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -625,7 +625,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -639,8 +639,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b0dd5818-01dd-43ce-9a40-f548a36e6592",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f00d68fa-a647-4a9c-81c7-86f45c6a4e84",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -653,8 +653,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b0dd5818-01dd-43ce-9a40-f548a36e6592",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f00d68fa-a647-4a9c-81c7-86f45c6a4e84",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -664,8 +664,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "14bc7f6d-6361-4e9b-a7fd-3d4e480cd0d5",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "547b7cc2-bc46-4ba5-8fea-a67b82b5f6a8",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -677,14 +677,28 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "14bc7f6d-6361-4e9b-a7fd-3d4e480cd0d5",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "547b7cc2-bc46-4ba5-8fea-a67b82b5f6a8",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "set_next_node",
             "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8df7a9b3-fd83-4684-89a9-5a4842a8d108",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the other predictor base commands that received bug fixes in the Scikit-Learn July 2017 changelog.",
+            "answer_unit": "",
+            "answer": "ensemble.GradientBoostingClassifier, ensemble.GradientBoostingRegressor, ensemble.IsolationForest, linear_model.RANSACRegressor, linear_model.LassoLars, linear_model.LassoLarsIC, manifold.TSNE, neighbors.NearestCentroid, semi_supervised.LabelSpreading, semi_supervised.LabelPropagation"
         }
     ]
 }

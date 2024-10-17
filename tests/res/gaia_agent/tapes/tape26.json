@@ -1,10 +1,10 @@
 {
     "metadata": {
-        "id": "4d97276b-8c0a-4a21-be17-36b396bdc8d2",
-        "parent_id": null,
-        "author": null,
+        "id": "09ce435c-2e9a-49e3-bc6a-059085aee3d2",
+        "parent_id": "f1481ea1-0219-4c60-93e2-051ec386ad0a",
+        "author": "GaiaAgent",
         "author_tape_id": null,
-        "n_added_steps": 1,
+        "n_added_steps": 3,
         "error": null,
         "result": {}
     },
@@ -26,8 +26,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "f2c9f220-5c7e-40f3-b6e1-0ff981c8b43f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f9e9c764-16e5-4886-bda7-1da613d5bd95",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -43,8 +43,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "0b7e13e7-bb39-49c1-8327-eb5d6b01632a",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "05b32884-b8c2-4938-9c6a-84e91d5fcf94",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -64,8 +64,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "8532c209-0352-454f-be2e-6866a1c07321",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "416597ac-539d-464b-93ff-203c3d6eb636",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -77,7 +77,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -91,8 +91,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b6c7d7fa-d539-4ed7-81ed-2dc271e0d1d3",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f2ba52fa-ac09-4534-8dbf-6691778e21bd",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -105,8 +105,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b6c7d7fa-d539-4ed7-81ed-2dc271e0d1d3",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f2ba52fa-ac09-4534-8dbf-6691778e21bd",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -116,8 +116,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "6b757594-bffe-469c-9031-7720a0fa9118",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "44dae352-4cd5-41c4-b22d-e9d58422826b",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -128,8 +128,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "6b757594-bffe-469c-9031-7720a0fa9118",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "44dae352-4cd5-41c4-b22d-e9d58422826b",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -139,7 +139,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -172,8 +172,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "7c76d53e-e099-4936-b6d6-fb2d67e27e4f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f4b953d5-69dc-489c-a4b0-38bc750ccba6",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -184,8 +184,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "7c76d53e-e099-4936-b6d6-fb2d67e27e4f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f4b953d5-69dc-489c-a4b0-38bc750ccba6",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -195,7 +195,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -233,8 +233,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "65759098-561d-4a7d-b6ab-e244a968f9d9",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "2d4ab986-79fc-4e2e-a65d-cd22e850bdc3",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -245,8 +245,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "65759098-561d-4a7d-b6ab-e244a968f9d9",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "2d4ab986-79fc-4e2e-a65d-cd22e850bdc3",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -256,7 +256,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -294,8 +294,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "de7aaeec-2513-462b-a762-2f24f77d20d2",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "7d5d9592-0117-42f5-aa5e-d5115964eb89",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -306,8 +306,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "de7aaeec-2513-462b-a762-2f24f77d20d2",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "7d5d9592-0117-42f5-aa5e-d5115964eb89",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -317,7 +317,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -352,6 +352,44 @@
                     "content": "My favorite quotes (or maybe the ones that always made me chuckle) became: Teal'c's \"Indeed\" and Sam's \"I have an idea\""
                 }
             ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "6399b961-5031-452a-951c-1bd4c4c0e112",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "teal_c_response",
+            "unit": "",
+            "value": "Extremely"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "6399b961-5031-452a-951c-1bd4c4c0e112",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "5cf8598a-5895-4b5e-acd7-da051994f830",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Teal'c's response to the question 'Isn't that hot?'",
+            "answer_unit": "",
+            "answer": "Extremely"
         }
     ]
 }

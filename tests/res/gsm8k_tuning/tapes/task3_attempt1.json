@@ -6,7 +6,12 @@
         "author_tape_id": null,
         "n_added_steps": 1,
         "error": null,
-        "result": {}
+        "result": {
+            "question": "Betty is saving money for a new wallet which costs $100. Betty has only half of the money she needs. Her parents decided to give her $15 for that purpose, and her grandparents twice as much as her parents. How much more money does Betty need to buy the wallet?",
+            "answer": "In the beginning, Betty has only 100 / 2 = $<<100/2=50>>50.\nBetty's grandparents gave her 15 * 2 = $<<15*2=30>>30.\nThis means, Betty needs 100 - 50 - 30 - 15 = $<<100-50-30-15=5>>5 more.\n#### 5",
+            "value": 5,
+            "solved": true
+        }
     },
     "context": null,
     "steps": [

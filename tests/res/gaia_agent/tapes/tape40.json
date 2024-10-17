@@ -1,8 +1,8 @@
 {
     "metadata": {
-        "id": "dabcd6c4-456c-485f-865f-7c459f1fbaae",
-        "parent_id": null,
-        "author": null,
+        "id": "f996244a-babf-4666-95d6-5ddc85102424",
+        "parent_id": "f8e2a2b2-3759-4919-b631-e34ad0eb3e0b",
+        "author": "GaiaAgent",
         "author_tape_id": null,
         "n_added_steps": 1,
         "error": null,
@@ -26,8 +26,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "cd6a9133-9607-4ae9-b28c-b9bdea7a3774",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "4a9b4b37-2566-4602-aabd-2376daeb5c42",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -43,8 +43,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "73268b20-8abd-4b52-ba66-db43e46530b1",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f9898aa2-24e8-493f-9f8c-ced60300f136",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -92,8 +92,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "524c51f9-a291-4497-9369-e062c0616f91",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "25639340-fc7a-45a2-9884-b1d8632d0123",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -104,7 +104,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -142,8 +142,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "2f8d13d2-acdb-409f-9c70-e56c949d1533",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8561d55c-3a3e-48aa-b0f6-4c57c7f07ad5",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -156,8 +156,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "2f8d13d2-acdb-409f-9c70-e56c949d1533",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8561d55c-3a3e-48aa-b0f6-4c57c7f07ad5",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -167,8 +167,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "471ad0e5-54f3-497c-a153-7bd9c8d2b3d4",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8bdbff6d-6f9c-454c-909c-3b33f148ad9e",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -180,8 +180,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "471ad0e5-54f3-497c-a153-7bd9c8d2b3d4",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8bdbff6d-6f9c-454c-909c-3b33f148ad9e",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -191,7 +191,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -205,8 +205,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "7a54ac7e-90aa-48e2-a699-a444468a8788",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "e70e863f-4229-423a-8ec2-6f9a258b9be5",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -221,8 +221,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "7a54ac7e-90aa-48e2-a699-a444468a8788",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "e70e863f-4229-423a-8ec2-6f9a258b9be5",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -232,8 +232,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "7bffd09e-515b-42f4-9a3a-c2b091da0506",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "36023882-815b-47e7-ad17-8a522f67773e",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -244,8 +244,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "7bffd09e-515b-42f4-9a3a-c2b091da0506",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "36023882-815b-47e7-ad17-8a522f67773e",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -255,7 +255,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -293,8 +293,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "9c258cbf-ce82-43bf-a130-26d7ca40cf9f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "4060a2e1-73c6-441c-8617-09d7cc0bd62c",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -306,8 +306,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "9c258cbf-ce82-43bf-a130-26d7ca40cf9f",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "4060a2e1-73c6-441c-8617-09d7cc0bd62c",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -317,7 +317,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -331,8 +331,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "3fb81809-62ed-48c8-af44-bbaf38e0b9bf",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "53ab07f2-71a8-44fd-b2c6-ac93c3e984c5",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -346,8 +346,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "3fb81809-62ed-48c8-af44-bbaf38e0b9bf",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "53ab07f2-71a8-44fd-b2c6-ac93c3e984c5",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -357,8 +357,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b766f852-005a-4801-9977-598d756d93af",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "48257955-bf9f-4d13-9152-402876e6bd36",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -374,8 +374,8 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
-                "prompt_id": "b766f852-005a-4801-9977-598d756d93af",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "48257955-bf9f-4d13-9152-402876e6bd36",
                 "node": "default",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -385,7 +385,7 @@
         },
         {
             "metadata": {
-                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -394,6 +394,20 @@
             "kind": "calculation_result_observation",
             "name": "years_to_change",
             "result": "24"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "9349ec90-7f61-4ef2-af77-f2f9b4b4f472",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "The time it took for the percentage of computer scientists that were women to change by 13% from a starting point of 37% is calculated.",
+            "answer_unit": "years",
+            "answer": "24"
         }
     ]
 }

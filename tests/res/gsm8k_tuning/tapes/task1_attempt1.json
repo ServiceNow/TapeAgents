@@ -6,7 +6,12 @@
         "author_tape_id": null,
         "n_added_steps": 1,
         "error": null,
-        "result": {}
+        "result": {
+            "question": "Julie is reading a 120-page book. Yesterday, she was able to read 12 pages and today, she read twice as many pages as yesterday. If she wants to read half of the remaining pages tomorrow, how many pages should she read?",
+            "answer": "Maila read 12 x 2 = <<12*2=24>>24 pages today.\nSo she was able to read a total of 12 + 24 = <<12+24=36>>36 pages since yesterday.\nThere are 120 - 36 = <<120-36=84>>84 pages left to be read.\nSince she wants to read half of the remaining pages tomorrow, then she should read 84/2 = <<84/2=42>>42 pages.\n#### 42",
+            "value": 42,
+            "solved": true
+        }
     },
     "context": null,
     "steps": [

@@ -197,8 +197,9 @@ def replay_tape(
                 break
         assert event and event.final_tape
         agent_tape = event.final_tape
-        if isinstance(agent_tape.steps[-1], StopStep):
-            logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
+        new_tape = agent_tape
+        if isinstance(new_tape.steps[-1], StopStep):
+            logger.info("Agent emitted final step, stop")
             break
 
         if reuse_observations:
@@ -232,7 +233,10 @@ def replay_tape(
                 if isinstance(observation, StopStep):
                     logger.info(f"Environment emitted final step {observation}")
                     break
-    if new_steps_count > len(tape.steps):
+        if isinstance(new_tape.steps[-1], StopStep):
+            logger.info("Env emitted final step, stop")
+            break
+    if new_steps_count != len(tape.steps):
         logger.error(f"New tape has {new_steps_count} steps, old tape has {len(tape.steps)}")
         match = False
     return match
