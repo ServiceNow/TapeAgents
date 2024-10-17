@@ -1,14 +1,17 @@
 import json
 import logging
-from typing import Any, Generator, Generic
+from typing import Any, Generator, Generic, Type
 
 from pydantic import TypeAdapter, ValidationError
+
+from tapeagents.core import PartialStep, Prompt, SetNextNode, Step, Tape
 
 from .agent import Agent, Node
 from .core import (
     AgentResponseParsingFailureAction,
     AgentStep,
     LLMOutput,
+    Observation,
     PartialStep,
     Prompt,
     SetNextNode,
@@ -31,12 +34,11 @@ class MonoNode(Node):
     - Parses the llm output into provided step classes (class provided in a form of annotated union).
     """
 
-    trigger_step: str | list[str]  # which step kind in the end of the tape triggers this node
-    guidance: str  # guidance text that is attached to the end of the prompt
+    guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_step_cls: Any = None
-    next_node_idx: int = -1
+    next_node: int | None = None
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         cleaned_tape = self.prepare_tape(tape)
@@ -88,8 +90,8 @@ class MonoNode(Node):
         except FatalError:
             raise
 
-        if self.next_node_idx >= 0 and not isinstance(new_steps[-1], StopStep):
-            yield SetNextNode(next_node=self.next_node_idx)
+        if self.next_node is not None and not isinstance(new_steps[-1], StopStep):
+            yield SetNextNode(next_node=self.next_node)
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         return step
@@ -127,6 +129,41 @@ class MonoNode(Node):
 
     def trim_tape(self, tape: Tape) -> Tape:
         return tape
+
+
+class ControlFlowNode(Node):
+    """
+    ControlFlowNode is a Node that selects another node to run based on the tape.
+
+    Methods:
+        choose_next_node(tape: Tape) -> int:
+            Abstract method to choose the next node based on the tape. Must be implemented in a subclass.
+    """
+
+    def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
+        return Prompt(messages=[])  # empty prompt means no LLM call
+
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        yield SetNextNode(next_node=self.select_node(tape))
+
+    def select_node(self, tape: Tape) -> int:
+        raise NotImplementedError("Implement this method in the subclass to set the next node according to your logic")
+
+
+class ObservationControlNode(ControlFlowNode):
+    """
+    ObservationControlNode is a ControlFlowNode that selects the next node based on the last observation in the tape.
+    """
+
+    observation_to_node: dict[Type, int] = {}
+    default_node: int = -1  # jump to the last node by default
+
+    def select_node(self, tape: Tape) -> int:
+        observations = [step for step in tape.steps if isinstance(step, Observation)]
+        last_observation = observations[-1] if observations else None
+        return self.observation_to_node.get(type(last_observation), self.default_node)
 
 
 class MonoAgent(Agent, Generic[TapeType]):

@@ -114,7 +114,6 @@ class MathAgent(MonoAgent):
             nodes=[
                 MonoNode(
                     name="start",
-                    trigger_step="task",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
                     agent_step_cls=MathAgentStep,
@@ -122,11 +121,11 @@ class MathAgent(MonoAgent):
                 ),
                 MonoNode(
                     name="default",
-                    trigger_step="default",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
                     agent_step_cls=MathAgentStep,
                     guidance=HINTS,
+                    next_node=-1,
                 ),
             ],
             max_iterations=2,

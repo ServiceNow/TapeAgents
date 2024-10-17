@@ -2,8 +2,8 @@ import platform
 from typing import Any
 
 from tapeagents.core import Prompt
-from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.llms import LLM
+from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.utils import get_step_schemas_from_union_type
 
 from .prompts import PromptRegistry
@@ -113,9 +113,9 @@ class WorkArenaAgent(MonoAgent):
         return super().create(
             llm,
             nodes=[
-                WorkArenaNode(name="start", trigger_step="task", guidance=PromptRegistry.start),
-                WorkArenaNode(name="act", trigger_step="reflection_thought", guidance=PromptRegistry.act),
-                WorkArenaNode(name="think", trigger_step="default", guidance=PromptRegistry.think),
+                WorkArenaNode(name="start", guidance=PromptRegistry.start),
+                WorkArenaNode(name="act", guidance=PromptRegistry.act),
+                WorkArenaNode(name="think", guidance=PromptRegistry.think, next_node=1),
             ],
             max_iterations=2,
         )
