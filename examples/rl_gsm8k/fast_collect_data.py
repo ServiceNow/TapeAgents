@@ -44,15 +44,15 @@ logger = logging.getLogger(__name__)
 
 
 def setup_logging(output_dir):
-    print(f'Setting up logging to {output_dir}')
+    print(f"Setting up logging to {output_dir}")
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)  # Create the output directory if it doesn't exist
 
     # Define log file paths
-    info_log = output_dir / 'info.log'
-    debug_log = output_dir / 'debug.log'
-    error_log = output_dir / 'error.log'
+    info_log = output_dir / "info.log"
+    debug_log = output_dir / "debug.log"
+    error_log = output_dir / "error.log"
 
     # Clear any existing handlers
     logger = logging.getLogger()  # get root logger
@@ -73,7 +73,7 @@ def setup_logging(output_dir):
     stdout_handler.setLevel(logging.INFO)
 
     # Create formatters and set them to the handlers
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     info_handler.setFormatter(formatter)
     debug_handler.setFormatter(formatter)
@@ -282,6 +282,7 @@ def main(cfg: DictConfig):
         else:
             assistant_model_path = cfg.model_path
 
+        start_serving_assistant = time.time()
         assistant_process, stdout_file, stderr_file = serve_vllm_local_model(
             model_name_or_path=assistant_model_path,
             stdout_file_path=exp_path / "assistant_vllm_stdout.log",
@@ -290,6 +291,7 @@ def main(cfg: DictConfig):
             verbose=True,
             cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
         )
+        end_serving_assistant = time.time()
 
         llm = TrainableLLM(
             base_url="http://127.0.0.1:8080",
@@ -299,17 +301,10 @@ def main(cfg: DictConfig):
             use_cache=False,
         )
 
-        agent = MathAgent.create(llm=llm)
-
-        rewards = []
-        no_errors = []
-        successes = []
-        training_samples: list[TrainingText] = []
         start_make_training_data = time.time()
-        reward_stats = defaultdict(list)
-        step_stats = defaultdict(list)
 
         try:
+            agent = MathAgent.create(llm=llm)
             sub_samples = random.sample(samples, cfg.max_agent_forks // cfg.attempts)
             tapes = []
             for sample in sub_samples:
@@ -320,7 +315,16 @@ def main(cfg: DictConfig):
             # tapes = tapes * cfg.attempts
             tapes = [copy.deepcopy(tape) for tape in tapes for _ in range(cfg.attempts)]
             new_tapes = []
-            for new_tape in batch_main_loop(agent, tapes, env, max_loops=10):
+            for new_tape in batch_main_loop(agent, tapes, env, max_loops=30):
+                new_tapes.append(new_tape)
+
+            reward_stats = defaultdict(list)
+            step_stats = defaultdict(list)
+            rewards = []
+            no_errors = []
+            successes = []
+            training_samples: list[TrainingText] = []
+            for new_tape in new_tapes:
                 if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
                     new_tape_filtered = copy.deepcopy(new_tape)
                     new_tape_filtered.steps = []
@@ -346,7 +350,6 @@ def main(cfg: DictConfig):
 
                 reward_stats[new_tape.metadata.parent_id].append(reward)
                 step_stats[new_tape.metadata.parent_id].append(len(new_tape.steps))
-                new_tapes.append(new_tape)
                 rewards.append(reward)
                 no_errors.append(no_error)
                 successes.append(success)
@@ -397,6 +400,7 @@ def main(cfg: DictConfig):
                 "no_error": np.mean(no_errors),
                 "success": np.mean(successes),
                 "execution_time/make_training_data": end_make_training_data - start_make_training_data,
+                "execution_time/serving_assistant": end_serving_assistant - start_serving_assistant,
             },
             step=state["iteration"],
         )
