@@ -5,7 +5,7 @@ from typing import Any
 from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
-from tapeagents.mono_agent import GuidanceNode, ObservationControlNode
+from tapeagents.nodes import GuidanceNode, ObservationControlNode
 
 from .prompts import PromptRegistry
 from .steps import (

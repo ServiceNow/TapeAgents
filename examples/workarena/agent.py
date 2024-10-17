@@ -1,9 +1,10 @@
 import platform
 from typing import Any
 
+from tapeagents.agent import Agent
 from tapeagents.core import Prompt
 from tapeagents.llms import LLM
-from tapeagents.mono_agent import GuidanceNode, MonoAgent
+from tapeagents.nodes import GuidanceNode
 from tapeagents.utils import get_step_schemas_from_union_type
 
 from .prompts import PromptRegistry
@@ -73,12 +74,6 @@ class WorkArenaBaselineNode(GuidanceNode):
         return prompt
 
 
-class WorkArenaBaseline(MonoAgent):
-    @classmethod
-    def create(cls, llm: LLM):
-        return cls(llms={"default": llm}, nodes=[WorkArenaBaselineNode()])  # type: ignore
-
-
 class WorkArenaNode(GuidanceNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
@@ -108,7 +103,7 @@ class WorkArenaNode(GuidanceNode):
         return trimmed_tape
 
 
-class WorkArenaAgent(MonoAgent):
+class WorkArenaAgent(Agent):
     @classmethod
     def create(cls, llm: LLM):
         return super().create(

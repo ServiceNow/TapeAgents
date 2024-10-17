@@ -17,7 +17,7 @@ from tapeagents.core import (
 from tapeagents.environment import Environment
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
-from tapeagents.mono_agent import GuidanceNode, MonoAgent
+from tapeagents.nodes import GuidanceNode
 from tapeagents.orchestrator import main_loop
 from tapeagents.tools.calculator import calculate
 from tapeagents.utils import get_step_schemas_from_union_type
@@ -115,7 +115,7 @@ START_TASK_GUIDANCE = f"Let's think step by step using reasoning and calculation
 
 
 #### Agent and Environment ####
-class MathAgent(MonoAgent):
+class MathAgent(Agent):
     @classmethod
     def create(cls, llm: LLM):
         return super().create(

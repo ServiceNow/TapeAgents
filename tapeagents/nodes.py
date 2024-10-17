@@ -1,12 +1,10 @@
 import json
 import logging
-from typing import Any, Generator, Generic, Type
+from typing import Any, Generator, Type
 
 from pydantic import TypeAdapter, ValidationError
 
-from tapeagents.core import PartialStep, Prompt, SetNextNode, Step, Tape
-
-from .agent import Agent, Node
+from .agent import Node
 from .core import (
     AgentResponseParsingFailureAction,
     AgentStep,
@@ -18,7 +16,6 @@ from .core import (
     Step,
     StopStep,
     Tape,
-    TapeType,
 )
 from .llms import LLMStream
 from .utils import FatalError, sanitize_json_completion
@@ -161,17 +158,3 @@ class ObservationControlNode(ControlFlowNode):
         observations = [step for step in tape.steps if isinstance(step, Observation)]
         last_observation = observations[-1] if observations else None
         return self.observation_to_node.get(type(last_observation), self.default_node)
-
-
-class MonoAgent(Agent, Generic[TapeType]):
-    """
-    Monolithic agent which selects the node based on the last step in the tape.
-    """
-
-    nodes: list[GuidanceNode]  # type: ignore
-
-    def delegate(self, tape: TapeType):
-        """
-        Does not support delegation to subagents.
-        """
-        return self
