@@ -1,17 +1,12 @@
 {
     "metadata": {
-        "id": "92ff5480-f077-4cea-a8bc-7c375c083120",
-        "parent_id": null,
-        "author": null,
+        "id": "398ab0fd-896f-40c4-a2f1-769a762b011a",
+        "parent_id": "1c0957d1-73f5-4c0f-bcab-3c9014fe7c8f",
+        "author": "MathAgent",
         "author_tape_id": null,
         "n_added_steps": 1,
         "error": null,
-        "result": {
-            "question": "Betty is saving money for a new wallet which costs $100. Betty has only half of the money she needs. Her parents decided to give her $15 for that purpose, and her grandparents twice as much as her parents. How much more money does Betty need to buy the wallet?",
-            "answer": "In the beginning, Betty has only 100 / 2 = $<<100/2=50>>50.\nBetty's grandparents gave her 15 * 2 = $<<15*2=30>>30.\nThis means, Betty needs 100 - 50 - 30 - 15 = $<<100-50-30-15=5>>5 more.\n#### 5",
-            "value": 5,
-            "solved": true
-        }
+        "result": {}
     },
     "context": null,
     "steps": [
@@ -28,8 +23,8 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "aec11c53-b209-4690-993f-3bac534aa0cc",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "bc0c17a9-bc4d-4967-9610-e51020e71772",
                 "node": "start",
                 "agent": "MathAgent",
                 "other": {}
@@ -39,14 +34,25 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "f3b1185f-d3b7-4ad4-b283-f2f06e9abc2d",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "c50a52ee-14cb-4d3a-a483-7073eccc096d",
                 "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
             "kind": "use_calculator_action",
             "expression": "100 / 2"
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "c50a52ee-14cb-4d3a-a483-7073eccc096d",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
         },
         {
             "metadata": {
@@ -61,9 +67,9 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "aac8bcfa-624b-44f6-95fd-aa1436de3f3d",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "1fdbbfba-3214-47ce-9149-41c9144bf3e1",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
@@ -72,14 +78,36 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "2141a770-03e3-414c-be37-b4880d932eb5",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "1fdbbfba-3214-47ce-9149-41c9144bf3e1",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "2db1a05b-2d5b-4f12-bcf7-ace05204e6e4",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
             "kind": "use_calculator_action",
             "expression": "2 * 15"
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "2db1a05b-2d5b-4f12-bcf7-ace05204e6e4",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
         },
         {
             "metadata": {
@@ -94,9 +122,9 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "2f211200-61ce-42d8-ae6d-8bdc963e853a",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "a9de054f-ade2-4c9d-9f29-6355414aa6fa",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
@@ -105,14 +133,36 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "f967344b-cfa8-46a4-a4ee-b8101c6face2",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "a9de054f-ade2-4c9d-9f29-6355414aa6fa",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "43eb6d04-9c5f-4dc9-8548-67f76b9c2189",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
             "kind": "use_calculator_action",
             "expression": "50 + 15 + 30"
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "43eb6d04-9c5f-4dc9-8548-67f76b9c2189",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
         },
         {
             "metadata": {
@@ -127,9 +177,9 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "deae4baf-6b88-415c-8b9e-752f0764337b",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "69faf783-d31e-42c7-bbff-aaa086f9b52f",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
@@ -138,14 +188,36 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "121129f6-40a4-4af3-9547-bb10d413ec5f",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "69faf783-d31e-42c7-bbff-aaa086f9b52f",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "b9b6f635-d04b-4d22-999b-ec948376b73c",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
             "kind": "use_calculator_action",
             "expression": "100 - 95"
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "b9b6f635-d04b-4d22-999b-ec948376b73c",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
         },
         {
             "metadata": {
@@ -160,9 +232,9 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "08b304fe-d829-4c74-9cea-0737cfe1fa3a",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "ee72fdf3-39d2-4d49-a90b-fa3102c4542c",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
