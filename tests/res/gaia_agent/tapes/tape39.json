@@ -1,0 +1,552 @@
+{
+    "metadata": {
+        "id": "418922ca-a998-495d-90e1-7503d375a48e",
+        "parent_id": "0bcd03c3-eac5-423e-bf7e-493139f11f49",
+        "author": "GaiaAgent",
+        "author_tape_id": null,
+        "n_added_steps": 4,
+        "error": null,
+        "result": {}
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "e54ea78f-0ff1-473a-b140-849b1d2f2c5c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "Of the cities within the United States where U.S. presidents were born, which two are the farthest apart from the westernmost to the easternmost going east, giving the city names only? Give them to me in alphabetical order, in a comma-separated list",
+            "filename": ""
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "10b506c1-8bba-4012-8668-273e30990bdd",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Identify the cities in the United States where U.S. presidents were born.",
+                "Determine the geographical coordinates (longitude) of each city.",
+                "Find the westernmost and easternmost cities based on their longitudes.",
+                "Select the two cities that are the farthest apart from each other, one being the westernmost and the other the easternmost.",
+                "Sort the names of these two cities alphabetically.",
+                "Format the final answer as a comma-separated list."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "785ff249-e831-4c9b-a82d-1c38b4ce4707",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [],
+            "facts_to_lookup": [
+                {
+                    "name": "presidential_birth_cities",
+                    "description": "List of cities in the United States where U.S. presidents were born.",
+                    "format": "list",
+                    "unit": ""
+                },
+                {
+                    "name": "city_coordinates",
+                    "description": "Geographical coordinates (longitude) of each presidential birth city.",
+                    "format": "dict",
+                    "unit": ""
+                }
+            ],
+            "facts_to_derive": [
+                {
+                    "name": "westernmost_city",
+                    "description": "The city that is the westernmost among the presidential birth cities.",
+                    "format": "string",
+                    "unit": ""
+                },
+                {
+                    "name": "easternmost_city",
+                    "description": "The city that is the easternmost among the presidential birth cities.",
+                    "format": "string",
+                    "unit": ""
+                },
+                {
+                    "name": "farthest_apart_cities",
+                    "description": "The two cities that are the farthest apart from the westernmost to the easternmost.",
+                    "format": "list",
+                    "unit": ""
+                }
+            ],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "659610a1-95c4-49b9-9468-b59003d0bfcc",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "cities in the United States where U.S. presidents were born"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "cities in the United States where U.S. presidents were born",
+            "serp": [
+                {
+                    "title": "List of presidents of the United States by home state",
+                    "url": "https://en.wikipedia.org/wiki/List_of_presidents_of_the_United_States_by_home_state",
+                    "content": "Presidential birthplace and early childhood historic sites ; John Quincy Adams · John Quincy Adams Birthplace, Quincy, Massachusetts ; William Henry Harrison."
+                },
+                {
+                    "title": "Presidential Birth States and Places With Names of ...",
+                    "url": "https://www.census.gov/library/stories/2021/02/presidential-birth-states-and-places-with-names-of-presidents.html",
+                    "content": "10 Feb 2021 — All 46 U.S. Presidents Were Born in Just 21 States but Hundreds of Places Have Presidential Names. We inaugurated our 46th president, Joseph ..."
+                },
+                {
+                    "title": "List of presidents of the United States by home state - VEEP Wiki",
+                    "url": "https://veep.fandom.com/wiki/List_of_presidents_of_the_United_States_by_home_state",
+                    "content": "Birth places ; October 27, 1858, Theodore Roosevelt, New York City ; November 2, 1865, Warren G. Harding, Blooming Grove ; July 4, 1872, Calvin Coolidge, Plymouth ..."
+                },
+                {
+                    "title": "List of Presidential Birthplaces — Roadtrip to",
+                    "url": "https://events.thehistorylist.com/travel/list-of-presidential-birthplaces-roadtrip-to-their-birthplaces-historic-sites-and-homes",
+                    "content": "Let us look and take a tour across the country to see the birthplaces of the 46 United States Presidents."
+                },
+                {
+                    "title": "Which State Produced the Most U.S. Presidents?",
+                    "url": "https://www.usnews.com/news/best-states/slideshows/which-state-produced-the-most-us-presidents",
+                    "content": "19 Feb 2024 — More presidents were born in Virginia than any other state. Virginia; Ohio; New York; Massachusetts; North Carolina; Pennsylvania; Texas ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "1043a21f-0346-4214-9f54-ad7d98426825",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://en.wikipedia.org/wiki/List_of_presidents_of_the_United_States_by_home_state",
+            "fact_description": "List of cities in the United States where U.S. presidents were born.",
+            "fact_name": "presidential_birth_cities"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "1043a21f-0346-4214-9f54-ad7d98426825",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: List of presidents of the United States by home state - Wikipedia\n=======================\n# List of presidents of the United States by home state\n\nThese lists give the [states](/wiki/U.S._state \"U.S. state\") of primary affiliation and of birth for each [president](/wiki/President_of_the_United_States \"President of the United States\") of the [United States](/wiki/United_States \"United States\").\n\nBirthplaces\n-----------\n\n[[edit](/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&action=edit&section=1 \"Edit section: Birthplaces\")]\nTwenty-one states have the distinction of being the birthplace of a president.\n\nOne president's birth state is in dispute; North and South Carolina (British colonies at the time) both lay claim to [Andrew Jackson](/wiki/Andrew_Jackson \"Andrew Jackson\"), who was born in 1767 in the [Waxhaw region](/wiki/Waxhaws \"Waxhaws\") along their common border. Jackson himself considered South Carolina his birth state.[[1]](#cite_note-1)\n\nBorn on December 5, 1782, [Martin Van Buren](/wiki/Martin_Van_Buren \"Martin Van Buren\") was the first president born an [American citizen](/wiki/American_citizen \"American citizen\") (and not a [British subject](/wiki/British_subject \"British subject\")).[[2]](#cite_note-2)\n\nThe term [Virginia dynasty](/wiki/Virginia_dynasty \"Virginia dynasty\") is sometimes used to describe the fact that four of the first five U.S. presidents were from Virginia.\n\nThe number of presidents per state in which they were born, counting Jackson as being from South Carolina, are:\n\n* One: [Arkansas](/wiki/Arkansas \"Arkansas\"), [California](/wiki/California \"California\"), [Connecticut](/wiki/Connecticut \"Connecticut\"), [Georgia](/wiki/Georgia_(U.S._state) \"Georgia (U.S. state)\"), [Hawaii](/wiki/Hawaii \"Hawaii\"), [Illinois](/wiki/Illinois \"Illinois\"), [Iowa](/wiki/Iowa \"Iowa\"), [Kentucky](/wiki/Kentucky \"Kentucky\"), [Missouri](/wiki/Missouri \"Missouri\"), [Nebraska](/wiki/Nebraska \"Nebraska\"), [New Hampshire](/wiki/New_Hampshire \"New Hampshire\"), [New Jersey](/wiki/New_Jersey \"New Jersey\"), and [South Carolina](/wiki/South_Carolina \"South Carolina\")\n* Two: [North Carolina](/wiki/North_Carolina \"North Carolina\"), [Pennsylvania](/wiki/Pennsylvania \"Pennsylvania\"), [Texas](/wiki/Texas \"Texas\"), and [Vermont](/wiki/Vermont \"Vermont\")\n* Four: [Massachusetts](/wiki/Massachusetts \"Massachusetts\")\n* Five: [New York](/wiki/New_York_(state) \"New York (state)\")\n* Seven: [Ohio](/wiki/Ohio \"Ohio\")\n* Eight: [Virginia](/wiki/Virginia \"Virginia\")\n\n| Date of birth | President | Birthplace | State[†](#endnote_state_colony) of birth | In office |\n| --- | --- | --- | --- | --- |\n| February 22, 1732 | [George Washington](/wiki/George_Washington \"George Washington\") | [Popes Creek](/wiki/George_Washington_Birthplace_National_Monument \"George Washington Birthplace National Monument\") | [Virginia](/wiki/Colony_of_Virginia \"Colony of Virginia\")[†](#endnote_state_colony) | (1st) April 30, 1789 – March 4, 1797 |\n| October 30, 1735 | [John Adams](/wiki/John_Adams \"John Adams\") | [Braintree](/wiki/Braintree,_Massachusetts \"Braintree, Massachusetts\") | [Massachusetts](/wiki/Province_of_Massachusetts_Bay \"Province of Massachusetts Bay\")[†](#endnote_state_colony) | (2nd) March 4, 1797 – March 4, 1801 |\n| April 13, 1743\\* | [Thomas Jefferson](/wiki/Thomas_Jefferson \"Thomas Jefferson\") | [Shadwell](/wiki/Shadwell,_Virginia \"Shadwell, Virginia\") | Virginia[†](#endnote_state_colony) | (3rd) March 4, 1801 – March 4, 1809 |\n| March 16, 1751 | [James Madison](/wiki/James_Madison \"James Madison\") | [Port Conway](/wiki/Port_Conway,_Virginia \"Port Conway, Virginia\") | Virginia[†](#endnote_state_colony) | (4th) March 4, 1809 – March 4, 1817 |\n| April 28, 1758 | [James Monroe](/wiki/James_Monroe \"James Monroe\") | [Monroe Hall](/wiki/Monroe_Hall,_Virginia \"Monroe Hall, Virginia\") | Virginia[†](#endnote_state_colony) | (5th) March 4, 1817 – March 4, 1825 |\n| March 15, 1767 | [Andrew Jackson](/wiki/Andrew_Jackson \"Andrew Jackson\") | [Waxhaws](/wiki/Waxhaws \"Waxhaws\") Region | [South Carolina](/wiki/Province_of_South_Carolina \"Province of South Carolina\")[†](#endnote_state_colony) | (7th) March 4, 1829 – March 4, 1837 |\n| July 11, 1767 | [John Quincy Adams](/wiki/John_Quincy_Adams \"John Quincy Adams\") | [Braintree](/wiki/Braintree,_Massachusetts \"Braintree, Massachusetts\") | Massachusetts[†](#endnote_state_colony) | (6th) March 4, 1825 – March 4, 1829 |\n| February 9, 1773 | [William Henry Harrison](/wiki/William_Henry_Harrison \"William Henry Harrison\") | [Charles City County](/wiki/Charles_City_County,_Virginia \"Charles City County, Virginia\") | Virginia[†](#endnote_state_colony) | (9th) March 4, 1841 – April 4, 1841 |\n| December 5, 1782 | [Martin Van Buren](/wiki/Martin_Van_Buren \"Martin Van Buren\") | [Kinderhook](/wiki/Kinderhook_(town),_New_York \"Kinderhook (town), New York\") | [New York](/wiki/New_York_(state) \"New York (state)\") | (8th) March 4, 1837 – March 4, 1841 |\n| November 24, 1784 | [Zachary Taylor](/wiki/Zachary_Taylor \"Zachary Taylor\") | [Barboursville](/wiki/Barboursville,_Virginia \"Barboursville, Virginia\") | [Virginia](/wiki/Virginia \"Virginia\") | (12th) March 4, 1849 – July 9, 1850 |\n| March 29, 1790 | [John Tyler](/wiki/John_Tyler \"John Tyler\") | [Charles City County](/wiki/Charles_City_County,_Virginia \"Charles City County, Virginia\") | [Virginia](/wiki/Virginia \"Virginia\") | (10th) April 4, 1841 – March 4, 1845 |\n| April 23, 1791 | [James Buchanan](/wiki/James_Buchanan \"James Buchanan\") | [Cove Gap](/wiki/Cove_Gap,_Pennsylvania \"Cove Gap, Pennsylvania\") | [Pennsylvania](/wiki/Pennsylvania \"Pennsylvania\") | (15th) March 4, 1857 – March 4, 1861 |\n| November 2, 1795 | [James K. Polk](/wiki/James_K._Polk \"James K. Polk\") | [Pineville](/wiki/Pineville,_North_Carolina \"Pineville, North Carolina\") | [North Carolina](/wiki/North_Carolina \"North Carolina\") | (11th) March 4, 1845 – March 4, 1849 |\n| January 7, 1800 | [Millard Fillmore](/wiki/Millard_Fillmore \"Millard Fillmore\") | [Summerhill](/wiki/Summerhill,_New_York \"Summerhill, New York\") | [New York](/wiki/New_York_(state) \"New York (state)\") | (13th) July 9, 1850 – March 4, 1853 |\n| November 23, 1804 | [Franklin Pierce](/wiki/Franklin_Pierce \"Franklin Pierce\") | [Hillsborough](/wiki/Hillsborough,_New_Hampshire \"Hillsborough, New Hampshire\") | [New Hampshire](/wiki/New_Hampshire \"New Hampshire\") | (14th) March 4, 1853 – March 4, 1857 |\n| December 29, 1808 | [Andrew Johnson](/wiki/Andrew_Johnson \"Andrew Johnson\") | [Raleigh](/wiki/Raleigh,_North_Carolina \"Raleigh, North Carolina\") | [North Carolina](/wiki/North_Carolina \"North Carolina\") | (17th) April 15, 1865 – March 4, 1869 |\n| February 12, 1809 | [Abraham Lincoln](/wiki/Abraham_Lincoln \"Abraham Lincoln\") | [Hodgenville](/wiki/Hodgenville,_Kentucky \"Hodgenville, Kentucky\") | [Kentucky](/wiki/Kentucky \"Kentucky\") | (16th) March 4, 1861 – April 15, 1865 |\n| April 27, 1822 | [Ulysses S. Grant](/wiki/Ulysses_S._Grant \"Ulysses S. Grant\") | [Point Pleasant](/wiki/Point_Pleasant,_Ohio \"Point Pleasant, Ohio\") | [Ohio](/wiki/Ohio \"Ohio\") | (18th) March 4, 1869 – March 4, 1877 |\n| October 4, 1822 | [Rutherford B. Hayes](/wiki/Rutherford_B._Hayes \"Rutherford B. Hayes\") | [Delaware](/wiki/Delaware,_Ohio \"Delaware, Ohio\") | [Ohio](/wiki/Ohio \"Ohio\") | (19th) March 4, 1877 – March 4, 1881 |\n| October 5, 1829 | [Chester A. Arthur](/wiki/Chester_A._Arthur \"Chester A. Arthur\") | [Fairfield](/wiki/Fairfield,_Vermont \"Fairfield, Vermont\") | [Vermont](/wiki/Vermont \"Vermont\") | (21st) September 19, 1881 – March 4, 1885 |\n| November 19, 1831 | [James A. Garfield](/wiki/James_A._Garfield \"James A. Garfield\") | [Moreland Hills](/wiki/Moreland_Hills,_Ohio \"Moreland Hills, Ohio\") | [Ohio](/wiki/Ohio \"Ohio\") | (20th) March 4, 1881 – September 19, 1881 |\n| August 20, 1833 | [Benjamin Harrison](/wiki/Benjamin_Harrison \"Benjamin Harrison\") | [North Bend](/wiki/North_Bend,_Ohio \"North Bend, Ohio\") | [Ohio](/wiki/Ohio \"Ohio\") | (23rd) March 4, 1889 – March 4, 1893 |\n| March 18, 1837 | [Grover Cleveland](/wiki/Grover_Cleveland \"Grover Cleveland\") | [Caldwell](/wiki/Caldwell,_New_Jersey \"Caldwell, New Jersey\") | [New Jersey](/wiki/New_Jersey \"New Jersey\") | (22nd) March 4, 1885 – March 4, 1889(24th) March 4, 1893 – March 4, 1897 |\n| January 29, 1843 | [William McKinley](/wiki/William_McKinley \"William McKinley\") | [Niles](/wiki/Niles,_Ohio \"Niles, Ohio\") | [Ohio](/wiki/Ohio \"Ohio\") | (25th) March 4, 1897 – September 14, 1901 |\n| December 28, 1856 | [Woodrow Wilson](/wiki/Woodrow_Wilson \"Woodrow Wilson\") | [Staunton](/wiki/Staunton,_Virginia \"Staunton, Virginia\") | [Virginia](/wiki/Virginia \"Virginia\") | (28th) March 4, 1913 – March 4, 1921 |\n| September 15, 1857 | [William Howard Taft](/wiki/William_Howard_Taft \"William Howard Taft\") | [Cincinnati](/wiki/Cincinnati \"Cincinnati\") | [Ohio](/wiki/Ohio \"Ohio\") | (27th) March 4, 1909 – March 4, 1913 |\n| October 27, 1858 | [Theodore Roosevelt](/wiki/Theodore_Roosevelt \"Theodore Roosevelt\") | [Gramercy Park](/wiki/Gramercy_Park \"Gramercy Park\") | [New York](/wiki/New_York_(state) \"New York (state)\") | (26th) September 14, 1901 – March 4, 1909 |\n| November 2, 1865 | [Warren G. Harding](/wiki/Warren_G._Harding \"Warren G. Harding\") | [Blooming Grove](/wiki/Blooming_Grove,_Ohio \"Blooming Grove, Ohio\") | [Ohio](/wiki/Ohio \"Ohio\") | (29th) March 4, 1921 – August 2, 1923 |\n| July 4, 1872 | [Calvin Coolidge](/wiki/Calvin_Coolidge \"Calvin Coolidge\") | [Plymouth](/wiki/Plymouth,_Vermont \"Plymouth, Vermont\") | [Vermont](/wiki/Vermont \"Vermont\") | (30th) August 2, 1923 – March 4, 1929 |\n| August 10, 1874 | [Herbert Hoover](/wiki/Herbert_Hoover \"Herbert Hoover\") | [West Branch](/wiki/West_Branch,_Iowa \"West Branch, Iowa\") | [Iowa](/wiki/Iowa \"Iowa\") | (31st) March 4, 1929 – March 4, 1933 |\n| January 30, 1882 | [Franklin D. Roosevelt](/wiki/Franklin_D._Roosevelt \"Franklin D. Roosevelt\") | [Hyde Park](/wiki/Hyde_Park,_New_York \"Hyde Park, New York\") | [New York](/wiki/New_York_(state) \"New York (state)\") | (32nd) March 4, 1933 – April 12, 1945 |\n| May 8, 1884 | [Harry S. Truman](/wiki/Harry_S._Truman \"Harry S. Truman\") | [Lamar](/wiki/Lamar,_Missouri \"Lamar, Missouri\") | [Missouri](/wiki/Missouri \"Missouri\") | (33rd) April 12, 1945 – January 20, 1953 |\n| October 14, 1890 | [Dwight D. Eisenhower](/wiki/Dwight_D._Eisenhower \"Dwight D. Eisenhower\") | [Denison](/wiki/Denison,_Texas \"Denison, Texas\") | [Texas](/wiki/Texas \"Texas\") | (34th) January 20, 1953 – January 20, 1961 |\n| August 27, 1908 | [Lyndon B. Johnson](/wiki/Lyndon_B._Johnson \"Lyndon B. Johnson\") | [Stonewall](/wiki/Stonewall,_Texas \"Stonewall, Texas\") | [Texas](/wiki/Texas \"Texas\") | (36th) November 22, 1963 – January 20, 1969 |\n| February 6, 1911 | [Ronald Reagan](/wiki/Ronald_Reagan \"Ronald Reagan\") | [Tampico](/wiki/Tampico,_Illinois \"Tampico, Illinois\") | [Illinois](/wiki/Illinois \"Illinois\") | (40th) January 20, 1981 – January 20, 1989 |\n| January 9, 1913 | [Richard Nixon](/wiki/Richard_Nixon \"Richard Nixon\") | [Yorba Linda](/wiki/Yorba_Linda,_California \"Yorba Linda, California\") | [California](/wiki/California \"California\") | (37th) January 20, 1969 – August 9, 1974 |\n| July 14, 1913 | [Gerald Ford](/wiki/Gerald_Ford \"Gerald Ford\") | [Omaha](/wiki/Omaha,_Nebraska \"Omaha, Nebraska\") | [Nebraska](/wiki/Nebraska \"Nebraska\") | (38th) August 9, 1974 – January 20, 1977 |\n| May 29, 1917 | [John F. Kennedy](/wiki/John_F._Kennedy \"John F. Kennedy\") | [Brookline](/wiki/Brookline,_Massachusetts \"Brookline, Massachusetts\") | [Massachusetts](/wiki/Massachusetts \"Massachusetts\") | (35th) January 20, 1961 – November 22, 1963 |\n| June 12, 1924 | [George H. W. Bush](/wiki/George_H._W._Bush \"George H. W. Bush\") | [Milton](/wiki/Milton,_Massachusetts \"Milton, Massachusetts\") | [Massachusetts](/wiki/Massachusetts \"Massachusetts\") | (41st) January 20, 1989 – January 20, 1993 |\n| October 1, 1924 | [Jimmy Carter](/wiki/Jimmy_Carter \"Jimmy Carter\") | [Plains](/wiki/Plains,_Georgia \"Plains, Georgia\") | [Georgia](/wiki/Georgia_(U.S._state) \"Georgia (U.S. state)\") | (39th) January 20, 1977 – January 20, 1981 |\n| November 20, 1942 | [Joe Biden](/wiki/Joe_Biden \"Joe Biden\") | [Scranton](/wiki/Scranton \"Scranton\") | [Pennsylvania](/wiki/Pennsylvania \"Pennsylvania\") | (46th) January 20, 2021 – Present |\n| June 14, 1946 | [Donald Trump](/wiki/Donald_Trump \"Donald Trump\") | [Queens](/wiki/Queens \"Queens\") | [New York](/wiki/New_York_(state) \"New York (state)\") | (45th) January 20, 2017 – January 20, 2021 |\n| July 6, 1946 | [George W. Bush](/wiki/George_W._Bush \"George W. Bush\") | [New Haven](/wiki/New_Haven,_Connecticut \"New Haven, Connecticut\") | [Connecticut](/wiki/Connecticut \"Connecticut\") | (43rd) January 20, 2001 – January 20, 2009 |\n| August 19, 1946 | [Bill Clinton](/wiki/Bill_Clinton \"Bill Clinton\") | [Hope](/wiki/Hope,_Arkansas \"Hope, Arkansas\") | [Arkansas](/wiki/Arkansas \"Arkansas\") | (42nd) January 20, 1993 – January 20, 2001 |\n| August 4, 1961 | [Barack Obama](/wiki/Barack_Obama \"Barack Obama\") | [Honolulu](/wiki/Honolulu \"Honolulu\") | [Hawaii](/wiki/Hawaii \"Hawaii\") | (44th) January 20, 2009 – January 20, 2017 |\n| **\\*Gregorian date; Julian date is April 2, 1743 [[3]](#cite_note-3)** | | | | |\n| **†Colony, pre–1776, rather than state.** | | | | |\n\nPresidential birthplace and early childhood historic sites\n----------------------------------------------------------\n\n[[edit](/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&action=edit&section=2 \"Edit section: Presidential birthplace and early childhood historic sites\")]\nThe birthplaces and early childhood residences of many U.S. presidents have been preserved or replicated. In instances where a physical structure is absent, a monument or roadside marker has been erected to denote the site's historic significance. All sites in the table below are listed in the [National Register of Historic Places](/wiki/National_Register_of_Historic_Places \"National Register of Historic Places\").\n\nA dramatic shift in childbirth from home to hospital occurred in the United States in the early 20th century (mid–1920s to 1940).[[4]](#cite_note-4) Reflective of this trend, Jimmy Carter and all presidents born during and after [World War II](/wiki/World_War_II \"World War II\") ([Bill Clinton](/wiki/Bill_Clinton \"Bill Clinton\") and every president since) have been born in a hospital, not a private residence. This sortable table is ordered by the presidents' birthdates.\n\n| President | Image | Historic site |\n| --- | --- | --- |\n| [George Washington](/wiki/George_Washington \"George Washington\") |  | [George Washington Birthplace National Monument](/wiki/George_Washington_Birthplace_National_Monument \"George Washington Birthplace National Monument\"), Colonial Beach, Virginia |\n| [John Adams](/wiki/John_Adams \"John Adams\") |  | [John Adams Birthplace](/wiki/John_Adams_Birthplace \"John Adams Birthplace\"), Quincy, Massachusetts |\n| [James Madison](/wiki/James_Madison \"James Madison\") |  | [Belle Grove Plantation](/wiki/Belle_Grove_(Port_Conway,_Virginia) \"Belle Grove (Port Conway, Virginia)\"), Port Conway, Virginia |\n| [James Monroe](/wiki/James_Monroe \"James Monroe\") |  | [James Monroe Family Home Site](/wiki/James_Monroe_Family_Home_Site \"James Monroe Family Home Site\"), Colonial Beach, Virginia |\n| [John Quincy Adams](/wiki/John_Quincy_Adams \"John Quincy Adams\") |  | [John Quincy Adams Birthplace](/wiki/John_Quincy_Adams_Birthplace \"John Quincy Adams Birthplace\"), Quincy, Massachusetts |\n| [William Henry Harrison](/wiki/William_Henry_Harrison \"William Henry Harrison\") |  | [Berkeley Plantation](/wiki/Berkeley_Plantation \"Berkeley Plantation\"), Charles City County, Virginia |\n| [Zachary Taylor](/wiki/Zachary_Taylor \"Zachary Taylor\") |  | [Zachary Taylor House](/wiki/Zachary_Taylor_House \"Zachary Taylor House\"), Louisville, Kentucky |\n| [John Tyler](/wiki/John_Tyler \"John Tyler\") |  | [Greenway Plantation](/wiki/Greenway_Plantation \"Greenway Plantation\"), Charles City County, Virginia |\n| [James Buchanan](/wiki/James_Buchanan \"James Buchanan\") |  | [Buchanan's Birthplace State Park](/wiki/Buchanan%27s_Birthplace_State_Park \"Buchanan's Birthplace State Park\"), Cove Gap, Pennsylvania |\n| [James K. Polk](/wiki/James_K._Polk \"James K. Polk\") |  | [President James K. Polk Historic Site](/wiki/President_James_K._Polk_Historic_Site \"President James K. Polk Historic Site\"), Pineville, North Carolina |\n| [Franklin Pierce](/wiki/Franklin_Pierce \"Franklin Pierce\") |  | [Franklin Pierce Homestead](/wiki/Franklin_Pierce_Homestead \"Franklin Pierce Homestead\"), Hillsborough, New Hampshire |\n| [Andrew Johnson](/wiki/Andrew_Johnson \"Andrew Johnson\") |  | [Mordecai Historic Park](/wiki/Mordecai_House \"Mordecai House\"), Raleigh, North Carolina |\n| [Abraham Lincoln](/wiki/Abraham_Lincoln \"Abraham Lincoln\") |  | [Abraham Lincoln Birthplace National Historical Park](/wiki/Abraham_Lincoln_Birthplace_National_Historical_Park \"Abraham Lincoln Birthplace National Historical Park\"), Hodgenville, Kentucky |\n|  | [Lincoln Boyhood National Memorial](/wiki/Lincoln_Boyhood_National_Memorial \"Lincoln Boyhood National Memorial\"), Lincoln City, Indiana |\n| [Ulysses S. Grant](/wiki/Ulysses_S._Grant \"Ulysses S. Grant\") |  | [Grant Birthplace](/wiki/Grant_Birthplace \"Grant Birthplace\"), Point Pleasant, Ohio |\n| [Rutherford B. Hayes](/wiki/Rutherford_B._Hayes \"Rutherford B. Hayes\") |  | [Spiegel Grove](/wiki/Spiegel_Grove \"Spiegel Grove\"), Fremont, Ohio |\n| [Chester A. Arthur](/wiki/Chester_A._Arthur \"Chester A. Arthur\") |  | [Chester Alan Arthur State Historic Site](/wiki/Chester_Alan_Arthur_State_Historic_Site \"Chester Alan Arthur State Historic Site\"), Fairfield, Vermont |\n| [Grover Cleveland](/wiki/Grover_Cleveland \"Grover Cleveland\") |  | [Grover Cleveland Birthplace](/wiki/Grover_Cleveland_Birthplace \"Grover Cleveland Birthplace\"), Caldwell, New Jersey |\n| [William McKinley](/wiki/William_McKinley \"William McKinley\") |  | [McKinley Birthplace Home and Research Center](/wiki/McKinley_Birthplace_Home_and_Research_Center \"McKinley Birthplace Home and Research Center\"), Niles, Ohio |\n| [Theodore Roosevelt](/wiki/Theodore_Roosevelt \"Theodore Roosevelt\") |  | [Theodore Roosevelt Birthplace National Historic Site](/wiki/Theodore_Roosevelt_Birthplace_National_Historic_Site \"Theodore Roosevelt Birthplace National Historic Site\"), New York City, New York |\n| [William Howard Taft](/wiki/William_Howard_Taft \"William Howard Taft\") |  | [William Howard Taft National Historic Site](/wiki/William_Howard_Taft_National_Historic_Site \"William Howard Taft National Historic Site\"), Cincinnati, Ohio |\n| [Woodrow Wilson](/wiki/Woodrow_Wilson \"Woodrow Wilson\") |  | [Woodrow Wilson Birthplace and Presidential Library](/wiki/Woodrow_Wilson_Presidential_Library \"Woodrow Wilson Presidential Library\"), Staunton, Virginia |\n|  | [Woodrow Wilson Boyhood Home](/wiki/Woodrow_Wilson_Boyhood_Home \"Woodrow Wilson Boyhood Home\"), Augusta, Georgia |\n| [Calvin Coolidge](/wiki/Calvin_Coolidge \"Calvin Coolidge\") |  | [Calvin Coolidge Homestead District](/wiki/Calvin_Coolidge_Homestead_District \"Calvin Coolidge Homestead District\"), Plymouth, Vermont |\n| [Herbert Hoover](/wiki/Herbert_Hoover \"Herbert Hoover\") |  | [Herbert Hoover National Historic Site](/wiki/Herbert_Hoover_National_Historic_Site \"Herbert Hoover National Historic Site\"), West Branch, Iowa |\n|  | [Hoover–Minthorn House](/wiki/Hoover%E2%80%93Minthorn_House \"Hoover–Minthorn House\"), Newberg, Oregon |\n| [Franklin D. Roosevelt](/wiki/Franklin_D._Roosevelt \"Franklin D. Roosevelt\") |  | [Home of Franklin D. Roosevelt National Historic Site](/wiki/Home_of_Franklin_D._Roosevelt_National_Historic_Site \"Home of Franklin D. Roosevelt National Historic Site\"), Hyde Park, New York |\n| [Harry S. Truman](/wiki/Harry_S._Truman \"Harry S. Truman\") |  | [Harry S Truman Birthplace State Historic Site](/wiki/Harry_S_Truman_Birthplace_State_Historic_Site \"Harry S Truman Birthplace State Historic Site\"), Lamar, Missouri |\n| [Dwight D. Eisenhower](/wiki/Dwight_D._Eisenhower \"Dwight D. Eisenhower\") |  | [Eisenhower Boyhood Home](/wiki/Eisenhower_Home \"Eisenhower Home\"), Abilene, Kansas |\n| [John F. Kennedy](/wiki/John_F._Kennedy \"John F. Kennedy\") |  | [John Fitzgerald Kennedy National Historic Site](/wiki/John_Fitzgerald_Kennedy_National_Historic_Site \"John Fitzgerald Kennedy National Historic Site\"), Brookline, Massachusetts |\n| [Lyndon B. Johnson](/wiki/Lyndon_B._Johnson \"Lyndon B. Johnson\") |  | [Lyndon B. Johnson National Historical Park](/wiki/Lyndon_B._Johnson_National_Historical_Park \"Lyndon B. Johnson National Historical Park\"), Stonewall, Texas |\n| [Ronald Reagan](/wiki/Ronald_Reagan \"Ronald Reagan\") |  | [Birthplace of Ronald Reagan](/wiki/Birthplace_of_Ronald_Reagan \"Birthplace of Ronald Reagan\"), Tampico, Illinois |\n| [Richard Nixon](/wiki/Richard_Nixon \"Richard Nixon\") |  | [Birthplace of Richard Nixon](/wiki/Birthplace_of_Richard_Nixon \"Birthplace of Richard Nixon\"), Yorba Linda, California |\n| [Gerald Ford](/wiki/Gerald_Ford \"Gerald Ford\") |  | [President Gerald R. Ford Jr. Boyhood Home](/wiki/President_Gerald_R._Ford_Jr._Boyhood_Home \"President Gerald R. Ford Jr. Boyhood Home\"), Grand Rapids, Michigan |\n| [Jimmy Carter](/wiki/Jimmy_Carter \"Jimmy Carter\") |  | [Jimmy Carter National Historical Park](/wiki/Jimmy_Carter_National_Historical_Park \"Jimmy Carter National Historical Park\"), Plains, Georgia |\n| [George W. Bush](/wiki/George_W._Bush \"George W. Bush\") |  | [George W. Bush Childhood Home](/wiki/George_W._Bush_Childhood_Home \"George W. Bush Childhood Home\"), Midland, Texas |\n| [Bill Clinton](/wiki/Bill_Clinton \"Bill Clinton\") |  | [President William Jefferson Clinton Birthplace Home National Historic Site](/wiki/President_William_Jefferson_Clinton_Birthplace_Home_National_Historic_Site \"President William Jefferson Clinton Birthplace Home National Historic Site\"), Hope, Arkansas |\n\n[![List of presidents of the United States by home state is located in the US](//upload.wikimedia.org/wikipedia/commons/thumb/0/03/Usa_edcp_%28%2BHI_%2BAK%29_location_map.svg/1000px-Usa_edcp_%28%2BHI_%2BAK%29_location_map.svg.png)](/wiki/File:Usa_edcp_(%2BHI_%2BAK)_location_map.svg \"List of presidents of the United States by home state is located in the US\")![Washington](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Washington](/wiki/George_Washington \"George Washington\")**![J. Adams](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[J. Adams](/wiki/John_Adams \"John Adams\")**![Jefferson](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Jefferson](/wiki/Thomas_Jefferson \"Thomas Jefferson\")**![Madison](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Madison](/wiki/James_Madison \"James Madison\")**![Monroe](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Monroe](/wiki/James_Monroe \"James Monroe\")**![Jackson](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Jackson](/wiki/Andrew_Jackson \"Andrew Jackson\")**![J.Q. Adams](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[J.Q. Adams](/wiki/John_Quincy_Adams \"John Quincy Adams\")**![W.H. Harrison](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[W.H. Harrison](/wiki/William_Henry_Harrison \"William Henry Harrison\")**![Van Buren](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Van Buren](/wiki/Martin_Van_Buren \"Martin Van Buren\")**![Taylor](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Taylor](/wiki/Zachary_Taylor \"Zachary Taylor\")**![Tyler](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Tyler](/wiki/John_Tyler \"John Tyler\")**![Buchanan](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Buchanan](/wiki/James_Buchanan \"James Buchanan\")**![Polk](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Polk](/wiki/James_K._Polk \"James K. Polk\")**![Fillmore](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Fillmore](/wiki/Millard_Fillmore \"Millard Fillmore\")**![Pierce](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Pierce](/wiki/Franklin_Pierce \"Franklin Pierce\")**![A. Johnson](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[A. Johnson](/wiki/Andrew_Johnson \"Andrew Johnson\")**![Lincoln](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Lincoln](/wiki/Abraham_Lincoln \"Abraham Lincoln\")**![Grant](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Grant](/wiki/Ulysses_S._Grant \"Ulysses S. Grant\")**![Hayes](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Hayes](/wiki/Rutherford_B._Hayes \"Rutherford B. Hayes\")**![Arthur](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Arthur](/wiki/Chester_A._Arthur \"Chester A. Arthur\")**![Garfield](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Garfield](/wiki/James_A._Garfield \"James A. Garfield\")**![B. Harrison](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[B. Harrison](/wiki/Benjamin_Harrison \"Benjamin Harrison\")**![Cleveland](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Cleveland](/wiki/Grover_Cleveland \"Grover Cleveland\")**![McKinley](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[McKinley](/wiki/William_McKinley \"William McKinley\")**![Wilson](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Wilson](/wiki/Woodrow_Wilson \"Woodrow Wilson\")**![Taft](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Taft](/wiki/William_Howard_Taft \"William Howard Taft\")**![T. Roosevelt](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[T. Roosevelt](/wiki/Theodore_Roosevelt \"Theodore Roosevelt\")**![Harding](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Harding](/wiki/Warren_G._Harding \"Warren G. Harding\")**![Coolidge](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Coolidge](/wiki/Calvin_Coolidge \"Calvin Coolidge\")**![Hoover](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Hoover](/wiki/Herbert_Hoover \"Herbert Hoover\")**![F.D. Roosevelt](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[F.D. Roosevelt](/wiki/Franklin_D._Roosevelt \"Franklin D. Roosevelt\")**![Truman](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Truman](/wiki/Harry_S._Truman \"Harry S. Truman\")**![Eisenhower](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Eisenhower](/wiki/Dwight_D._Eisenhower \"Dwight D. Eisenhower\")**![Kennedy](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Kennedy](/wiki/John_F._Kennedy \"John F. Kennedy\")**![L.B. Johnson](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[L.B. Johnson](/wiki/Lyndon_B._Johnson \"Lyndon B. Johnson\")**![Reagan](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Reagan](/wiki/Ronald_Reagan \"Ronald Reagan\")**![Nixon](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Nixon](/wiki/Richard_Nixon \"Richard Nixon\")**![Ford](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Ford](/wiki/Gerald_Ford \"Gerald Ford\")**![G.H.W. Bush](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[G.H.W. Bush](/wiki/George_H._W._Bush \"George H. W. Bush\")**![Carter](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Carter](/wiki/Jimmy_Carter \"Jimmy Carter\")**![G.W. Bush](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[G.W. Bush](/wiki/George_W._Bush \"George W. Bush\")**![Clinton](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Clinton](/wiki/Bill_Clinton \"Bill Clinton\")**![Obama](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Obama](/wiki/Barack_Obama \"Barack Obama\")**![Trump](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Trump](/wiki/Donald_Trump \"Donald Trump\")**![Biden](//upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Red_pog.svg/5px-Red_pog.svg.png)**[Biden](/wiki/Joe_Biden \"Joe Biden\")**[class=notpageimage|](/wiki/File:Usa_edcp_(%2BHI_%2BAL)_location_map.svg \"File:Usa edcp (+HI +AL) location map.svg\") Birthplaces of U.S. presidents\nStates of primary affiliation\n-----------------------------\n\n[[edit](/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&action=edit&section=3 \"Edit section: States of primary affiliation\")]\nSee also: [List of residences of presidents of the United States](/wiki/List_of_residences_of_presidents_of_the_United_States \"List of residences of presidents of the United States\")\nA list of U.S. presidents including the state with which each was primarily affiliated or most closely associated with, due to residence, professional career, and electoral history.\n\n| OP | President | State |\n| --- | --- | --- |\n| 1 | [George Washington](/wiki/George_Washington \"George Washington\") | [Virginia](/wiki/Virginia \"Virginia\") |\n| 2 | [John Adams](/wiki/John_Adams \"John Adams\") | [Massachusetts](/wiki/Massachusetts \"Massachusetts\") |\n| 3 | [Thomas Jefferson](/wiki/Thomas_Jefferson \"Thomas Jefferson\") | [Virginia](/wiki/Virginia \"Virginia\") |\n| 4 | [James Madison](/wiki/James_Madison \"James Madison\") | [Virginia](/wiki/Virginia \"Virginia\") |\n| 5 | [James Monroe](/wiki/James_Monroe \"James Monroe\") | [Virginia](/wiki/Virginia \"Virginia\") |\n| 6 | [John Quincy Adams](/wiki/John_Quincy_Adams \"John Quincy Adams\") | [Massachusetts](/wiki/Massachusetts \"Massachusetts\") |\n| 7 | [Andrew Jackson](/wiki/Andrew_Jackson \"Andrew Jackson\") | [Tennessee](/wiki/Tennessee \"Tennessee\") |\n| 8 | [Martin Van Buren](/wiki/Martin_Van_Buren \"Martin Van Buren\") | [New York](/wiki/New_York_(state) \"New York (state)\") |\n| 9 | [William Henry Harrison](/wiki/William_Henry_Harrison \"William Henry Harrison\") | [Ohio](/wiki/Ohio \"Ohio\") |\n| 10 | [John Tyler](/wiki/John_Tyler \"John Tyler\") | [Virginia](/wiki/Virginia \"Virginia\") |\n| 11 | [James K. Polk](/wiki/James_K._Polk \"James K. Polk\") | [Tennessee](/wiki/Tennessee \"Tennessee\") |\n| 12 | [Zachary Taylor](/wiki/Zachary_Taylor \"Zachary Taylor\") | [Kentucky](/wiki/Kentucky \"Kentucky\")[[a]](#cite_note-5) |\n| 13 | [Millard Fillmore](/wiki/Millard_Fillmore \"Millard Fillmore\") | [New York](/wiki/New_York_(state) \"New York (state)\") |\n| 14 | [Franklin Pierce](/wiki/Franklin_Pierce \"Franklin Pierce\") | [New Hampshire](/wiki/New_Hampshire \"New Hampshire\") |\n| 15 | [James Buchanan](/wiki/James_Buchanan \"James Buchanan\") | [Pennsylvania](/wiki/Pennsylvania \"Pennsylvania\") |\n| 16 | [Abraham Lincoln](/wiki/Abraham_Lincoln \"Abraham Lincoln\") | [Illinois](/wiki/Illinois \"Illinois\") |\n| 17 | [Andrew Johnson](/wiki/Andrew_Johnson \"Andrew Johnson\") | [Tennessee](/wiki/Tennessee \"Tennessee\") |\n| 18 | [Ulysses S. Grant](/wiki/Ulysses_S._Grant \"Ulysses S. Grant\") | [Illinois](/wiki/Illinois \"Illinois\") |\n| 19 | [Rutherford B. Hayes](/wiki/Rutherford_B._Hayes \"Rutherford B. Hayes\") | [Ohio](/wiki/Ohio \"Ohio\") |\n| 20 | [James A. Garfield](/wiki/James_A._Garfield \"James A. Garfield\") | [Ohio](/wiki/Ohio \"Ohio\") |\n| 21 | [Chester A. Arthur](/wiki/Chester_A._Arthur \"Chester A. Arthur\") | [New York](/wiki/New_York_(state)",
+            "current_page": 1,
+            "total_pages": 2,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "a4e8d210-461a-4eed-9212-4277291c76cf",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "next_page_action"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "a4e8d210-461a-4eed-9212-4277291c76cf",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: List of presidents of the United States by home state - Wikipedia\n=======================\n\"New York (state)\") |\n| 22, 24 | [Grover Cleveland](/wiki/Grover_Cleveland \"Grover Cleveland\") | [New York](/wiki/New_York_(state) \"New York (state)\") |\n| 23 | [Benjamin Harrison](/wiki/Benjamin_Harrison \"Benjamin Harrison\") | [Indiana](/wiki/Indiana \"Indiana\") |\n| 25 | [William McKinley](/wiki/William_McKinley \"William McKinley\") | [Ohio](/wiki/Ohio \"Ohio\") |\n| 26 | [Theodore Roosevelt](/wiki/Theodore_Roosevelt \"Theodore Roosevelt\") | [New York](/wiki/New_York_(state) \"New York (state)\") |\n| 27 | [William Howard Taft](/wiki/William_Howard_Taft \"William Howard Taft\") | [Ohio](/wiki/Ohio \"Ohio\") |\n| 28 | [Woodrow Wilson](/wiki/Woodrow_Wilson \"Woodrow Wilson\") | [New Jersey](/wiki/New_Jersey \"New Jersey\") |\n| 29 | [Warren G. Harding](/wiki/Warren_G._Harding \"Warren G. Harding\") | [Ohio](/wiki/Ohio \"Ohio\") |\n| 30 | [Calvin Coolidge](/wiki/Calvin_Coolidge \"Calvin Coolidge\") | [Massachusetts](/wiki/Massachusetts \"Massachusetts\") |\n| 31 | [Herbert Hoover](/wiki/Herbert_Hoover \"Herbert Hoover\") | [California](/wiki/California \"California\") |\n| 32 | [Franklin D. Roosevelt](/wiki/Franklin_D._Roosevelt \"Franklin D. Roosevelt\") | [New York](/wiki/New_York_(state) \"New York (state)\") |\n| 33 | [Harry S. Truman](/wiki/Harry_S._Truman \"Harry S. Truman\") | [Missouri](/wiki/Missouri \"Missouri\") |\n| 34 | [Dwight D. Eisenhower](/wiki/Dwight_D._Eisenhower \"Dwight D. Eisenhower\") | [Kansas](/wiki/Kansas \"Kansas\")[[b]](#cite_note-6) |\n| 35 | [John F. Kennedy](/wiki/John_F._Kennedy \"John F. Kennedy\") | [Massachusetts](/wiki/Massachusetts \"Massachusetts\") |\n| 36 | [Lyndon B. Johnson](/wiki/Lyndon_B._Johnson \"Lyndon B. Johnson\") | [Texas](/wiki/Texas \"Texas\") |\n| 37 | [Richard Nixon](/wiki/Richard_Nixon \"Richard Nixon\") | [California](/wiki/California \"California\")[[c]](#cite_note-7) |\n| 38 | [Gerald Ford](/wiki/Gerald_Ford \"Gerald Ford\") | [Michigan](/wiki/Michigan \"Michigan\") |\n| 39 | [Jimmy Carter](/wiki/Jimmy_Carter \"Jimmy Carter\") | [Georgia](/wiki/Georgia_(U.S._state) \"Georgia (U.S. state)\") |\n| 40 | [Ronald Reagan](/wiki/Ronald_Reagan \"Ronald Reagan\") | [California](/wiki/California \"California\") |\n| 41 | [George H. W. Bush](/wiki/George_H._W._Bush \"George H. W. Bush\") | [Texas](/wiki/Texas \"Texas\") |\n| 42 | [Bill Clinton](/wiki/Bill_Clinton \"Bill Clinton\") | [Arkansas](/wiki/Arkansas \"Arkansas\") |\n| 43 | [George W. Bush](/wiki/George_W._Bush \"George W. Bush\") | [Texas](/wiki/Texas \"Texas\") |\n| 44 | [Barack Obama](/wiki/Barack_Obama \"Barack Obama\") | [Illinois](/wiki/Illinois \"Illinois\") |\n| 45 | [Donald Trump](/wiki/Donald_Trump \"Donald Trump\") | [New York](/wiki/New_York_(state) \"New York (state)\")[[d]](#cite_note-8)[[e]](#cite_note-9) |\n| 46 | [Joe Biden](/wiki/Joe_Biden \"Joe Biden\") | [Delaware](/wiki/Delaware \"Delaware\") |\n\n### Notes\n\n[[edit](/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&action=edit&section=4 \"Edit section: Notes\")]\n\n1. **[^](#cite_ref-5)** Taylor spent his entire childhood in Louisville, commissioned the Kentuckian 7th Infantry Regiment at [Terre aux Boeufs](/wiki/St._Bernard_Parish,_Louisiana \"St. Bernard Parish, Louisiana\"), and is buried in a cemetery in Louisville named after him. According to *Zachary Taylor: The American Presidents Series: The 12th President, 1849–1850* states on p. 11 ~ \"Taylor's *home state* of Kentucky,...\"\n2. **[^](#cite_ref-6)** Eisenhower held residency in New York during the [1952 presidential election](/wiki/1952_United_States_presidential_election \"1952 United States presidential election\") and later in Pennsylvania during the [1956 presidential election](/wiki/1956_United_States_presidential_election \"1956 United States presidential election\"), but was primarily raised in Kansas and later settled back there.\n3. **[^](#cite_ref-7)** For a brief period whilst working as a lawyer, Nixon identified his home state as New York and won the [1968 presidential election](/wiki/1968_United_States_presidential_election \"1968 United States presidential election\") as a resident, but he later reclaimed residency in California (where he was born, and served previously as a U.S. senator) early into his first term.\n4. **[^](#cite_ref-8)** • *Trump Revealed: The Definitive Biography of the 45th President* (Kranish, Michael) p. 124 ~ \"Trump had hoped his **home state** of [New York](/wiki/New_York_(state) \"New York (state)\")...\"\n• *The Elections of 2016* (Nelson, Michael) p. 50 ~ \"the next primary on the Republican calendar was in New York, Trump's **home state**\"\n5. **[^](#cite_ref-9)** Trump's official state of residence was [New York](/wiki/New_York_(state) \"New York (state)\") in the [2016 presidential election](/wiki/2016_United_States_presidential_election \"2016 United States presidential election\"), but it was changed to [Florida](/wiki/Florida \"Florida\") when his permanent residence was switched from [Trump Tower](/wiki/Trump_Tower \"Trump Tower\") to [Mar-a-Lago](/wiki/Mar-a-Lago \"Mar-a-Lago\") in 2019.\n\n### Presidents by state of primary affiliation\n\n[[edit](/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&action=edit&section=5 \"Edit section: Presidents by state of primary affiliation\")]\nA list of U.S. presidents grouped by primary state of residence and birth, with priority given to residence. Only 19 out of the 50 states are represented. Presidents with an asterisk (\\*) did not primarily reside in their respective birth states (they were not born in the state listed below).\n\n[![](//upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Presidents_of_the_united_states_primary_affiliation.png/388px-Presidents_of_the_united_states_primary_affiliation.png)](/wiki/File:Presidents_of_the_united_states_primary_affiliation.png)\n\n| State | # | Presidents (*in order of presidency*) |\n| --- | --- | --- |\n| [New York](/wiki/New_York_(state) \"New York (state)\") | 7 | [Martin Van Buren](/wiki/Martin_Van_Buren \"Martin Van Buren\") (8), [Millard Fillmore](/wiki/Millard_Fillmore \"Millard Fillmore\") (13), [Chester A. Arthur](/wiki/Chester_A._Arthur \"Chester A. Arthur\")\\* (21), [Grover Cleveland](/wiki/Grover_Cleveland \"Grover Cleveland\")\\* (22, 24), [Theodore Roosevelt](/wiki/Theodore_Roosevelt \"Theodore Roosevelt\") (26), [Franklin D. Roosevelt](/wiki/Franklin_D._Roosevelt \"Franklin D. Roosevelt\") (32), [Donald Trump](/wiki/Donald_Trump \"Donald Trump\") (45) |\n| [Ohio](/wiki/Ohio \"Ohio\") | 6 | [William Henry Harrison](/wiki/William_Henry_Harrison \"William Henry Harrison\")\\* (9), [Rutherford B. Hayes](/wiki/Rutherford_B._Hayes \"Rutherford B. Hayes\") (19), [James A. Garfield](/wiki/James_A._Garfield \"James A. Garfield\") (20), [William McKinley](/wiki/William_McKinley \"William McKinley\") (25), [William Howard Taft](/wiki/William_Howard_Taft \"William Howard Taft\") (27), [Warren G. Harding](/wiki/Warren_G._Harding \"Warren G. Harding\") (29) |\n| [Virginia](/wiki/Virginia \"Virginia\") | 5 | [George Washington](/wiki/George_Washington \"George Washington\") (1), [Thomas Jefferson](/wiki/Thomas_Jefferson \"Thomas Jefferson\") (3), [James Madison](/wiki/James_Madison \"James Madison\") (4), [James Monroe](/wiki/James_Monroe \"James Monroe\") (5), [John Tyler](/wiki/John_Tyler \"John Tyler\") (10) |\n| [Massachusetts](/wiki/Massachusetts \"Massachusetts\") | 4 | [John Adams](/wiki/John_Adams \"John Adams\") (2), [John Quincy Adams](/wiki/John_Quincy_Adams \"John Quincy Adams\") (6), [Calvin Coolidge](/wiki/Calvin_Coolidge \"Calvin Coolidge\")\\* (30), [John F. Kennedy](/wiki/John_F._Kennedy \"John F. Kennedy\") (35) |\n| [California](/wiki/California \"California\") | 3 | [Herbert Hoover](/wiki/Herbert_Hoover \"Herbert Hoover\")\\* (31), [Richard Nixon](/wiki/Richard_Nixon \"Richard Nixon\") (37), [Ronald Reagan](/wiki/Ronald_Reagan \"Ronald Reagan\")\\* (40) |\n| [Illinois](/wiki/Illinois \"Illinois\") | 3 | [Abraham Lincoln](/wiki/Abraham_Lincoln \"Abraham Lincoln\")\\* (16), [Ulysses S. Grant](/wiki/Ulysses_S._Grant \"Ulysses S. Grant\")\\* (18), [Barack Obama](/wiki/Barack_Obama \"Barack Obama\")\\* (44) |\n| [Tennessee](/wiki/Tennessee \"Tennessee\") | 3 | [Andrew Jackson](/wiki/Andrew_Jackson \"Andrew Jackson\")\\* (7), [James K. Polk](/wiki/James_K._Polk \"James K. Polk\")\\* (11), [Andrew Johnson](/wiki/Andrew_Johnson \"Andrew Johnson\")\\* (17) |\n| [Texas](/wiki/Texas \"Texas\") | 3 | [Lyndon B. Johnson](/wiki/Lyndon_B._Johnson \"Lyndon B. Johnson\") (36), [George H. W. Bush](/wiki/George_H._W._Bush \"George H. W. Bush\")\\* (41), [George W. Bush](/wiki/George_W._Bush \"George W. Bush\")\\* (43) |\n| [Arkansas](/wiki/Arkansas \"Arkansas\") | 1 | [Bill Clinton](/wiki/Bill_Clinton \"Bill Clinton\") (42) |\n| [Delaware](/wiki/Delaware \"Delaware\") | 1 | [Joe Biden](/wiki/Joe_Biden \"Joe Biden\")\\* (46) |\n| [Georgia](/wiki/Georgia_(U.S._state) \"Georgia (U.S. state)\") | 1 | [Jimmy Carter](/wiki/Jimmy_Carter \"Jimmy Carter\") (39) |\n| [Indiana](/wiki/Indiana \"Indiana\") | 1 | [Benjamin Harrison](/wiki/Benjamin_Harrison \"Benjamin Harrison\")\\* (23) |\n| [Kansas](/wiki/Kansas \"Kansas\") | 1 | [Dwight D. Eisenhower](/wiki/Dwight_D._Eisenhower \"Dwight D. Eisenhower\")\\* (34) |\n| [Kentucky](/wiki/Kentucky \"Kentucky\") | 1 | [Zachary Taylor](/wiki/Zachary_Taylor \"Zachary Taylor\")\\* (12) |\n| [Michigan](/wiki/Michigan \"Michigan\") | 1 | [Gerald Ford](/wiki/Gerald_Ford \"Gerald Ford\")\\* (38) |\n| [Missouri](/wiki/Missouri \"Missouri\") | 1 | [Harry S. Truman](/wiki/Harry_S._Truman \"Harry S. Truman\") (33) |\n| [New Hampshire](/wiki/New_Hampshire \"New Hampshire\") | 1 | [Franklin Pierce](/wiki/Franklin_Pierce \"Franklin Pierce\") (14) |\n| [New Jersey](/wiki/New_Jersey \"New Jersey\") | 1 | [Woodrow Wilson](/wiki/Woodrow_Wilson \"Woodrow Wilson\")\\* (28) |\n| [Pennsylvania](/wiki/Pennsylvania \"Pennsylvania\") | 1 | [James Buchanan](/wiki/James_Buchanan \"James Buchanan\") (15) |\n\nSee also\n--------\n\n[[edit](/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&action=edit&section=6 \"Edit section: See also\")]\n* [List of vice presidents of the United States by home state](/wiki/List_of_vice_presidents_of_the_United_States_by_home_state \"List of vice presidents of the United States by home state\")\n\nReferences\n----------\n\n[[edit](/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&action=edit&section=7 \"Edit section: References\")]\n\n1. **[^](#cite_ref-1)** Collings, Jeffrey (March 7, 2011). [\"Old fight lingers over Old Hickory's roots\"](https://www.washingtonpost.com/wp-dyn/content/article/2011/03/06/AR2011030603406.html?wprss=rss_print/asection). *[The Washington Post](/wiki/The_Washington_Post \"The Washington Post\")*. Washington, D.C.\n2. **[^](#cite_ref-2)** Glass, Andrew (July 21, 2014). [\"Van Buren slips into coma, July 21, 1862\"](https://www.politico.com/story/2014/07/this-day-in-politics-martin-van-buren-coma-109149). Arlington County, Virginia: Politico. Retrieved January 6, 2018.\n3. **[^](#cite_ref-3)** [\"Jefferson's Tombstone\"](https://charlottesville.guide/jeffersons-tombstone/). Charlottesville, Virginia. July 11, 2017. Retrieved February 12, 2021.\n4. **[^](#cite_ref-4)** [Thomasson, Melissa A.](/wiki/Melissa_Thomasson \"Melissa Thomasson\"); Treber, Jaret (January 2008). [\"From home to hospital: The evolution of childbirth in the United States, 1928–1940\"](http://www.nber.org/papers/w10873.pdf) (PDF). *Explorations in Economic History*. **45** (1). Amsterdam, Netherlands: Elsevier: 76–99. [doi](/wiki/Doi_(identifier) \"Doi (identifier)\"):[10.1016/j.eeh.2007.07.001](https://doi.org/10.1016%2Fj.eeh.2007.07.001). [S2CID](/wiki/S2CID_(identifier) \"S2CID (identifier)\") [54670409](https://api.semanticscholar.org/CorpusID:54670409).\n\nExternal links\n--------------\n\n[[edit](/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&action=edit&section=8 \"Edit section: External links\")]\n* [American Presidents Sites – Discover Our Shared Heritage Travel Itinerary](https://www.nps.gov/nr/travel/presidents/list_of_sites.html) from the National Park Service\n\n| * [v](/wiki/Template:Lists_of_US_presidents_and_vice_presidents \"Template:Lists of US presidents and vice presidents\") * [t](/wiki/Template_talk:Lists_of_US_presidents_and_vice_presidents \"Template talk:Lists of US presidents and vice presidents\") * [e](/wiki/Special:EditPage/Template:Lists_of_US_presidents_and_vice_presidents \"Special:EditPage/Template:Lists of US presidents and vice presidents\") Lists related to presidents and vice presidents of the United States | |\n| --- | --- |\n| * [List of presidents](/wiki/List_of_presidents_of_the_United_States \"List of presidents of the United States\") * [List of vice presidents](/wiki/List_of_vice_presidents_of_the_United_States \"List of vice presidents of the United States\") | |\n| Presidents | | Professionalcareer | * [Approval rating](/wiki/United_States_presidential_approval_rating \"United States presidential approval rating\") * [Assassination attempts and plots](/wiki/List_of_United_States_presidential_assassination_attempts_and_plots \"List of United States presidential assassination attempts and plots\") * [Control of Congress](/wiki/Divided_government_in_the_United_States \"Divided government in the United States\") * [Desks](/wiki/List_of_Oval_Office_desks \"List of Oval Office desks\") * [Doctrines](/wiki/United_States_presidential_doctrines \"United States presidential doctrines\") * [Executive orders](/wiki/List_of_United_States_federal_executive_orders \"List of United States federal executive orders\") * [Historical rankings](/wiki/Historical_rankings_of_presidents_of_the_United_States \"Historical rankings of presidents of the United States\") * [Impeachment efforts](/wiki/List_of_efforts_to_impeach_presidents_of_the_United_States \"List of efforts to impeach presidents of the United States\") * [International trips](/wiki/List_of_international_trips_made_by_presidents_of_the_United_States \"List of international trips made by presidents of the United States\") * [Judicial appointments](/wiki/List_of_presidents_of_the_United_States_by_judicial_appointments \"List of presidents of the United States by judicial appointments\") * [Military service](/wiki/List_of_presidents_of_the_United_States_by_military_service \"List of presidents of the United States by military service\") \t+ [rank](/wiki/List_of_presidents_of_the_United_States_by_military_rank \"List of presidents of the United States by military rank\") * [Official vehicles](/wiki/List_of_official_vehicles_of_the_president_of_the_United_States \"List of official vehicles of the president of the United States\") * [Other offices held](/wiki/List_of_presidents_of_the_United_States_by_other_offices_held \"List of presidents of the United States by other offices held\") * [Pardons](/wiki/List_of_people_pardoned_or_granted_clemency_by_the_president_of_the_United_States \"List of people pardoned or granted clemency by the president of the United States\") * [Post-presidency campaigns](/wiki/List_of_former_presidents_of_the_United_States_who_ran_for_office \"List of former presidents of the United States who ran for office\") * [Previous experience](/wiki/List_of_presidents_of_the_United_States_by_previous_experience \"List of presidents of the United States by previous experience\") * [Time in office](/wiki/List_of_presidents_of_the_United_States_by_time_in_office \"List of presidents of the United States by time in office\") * [Vetoes](/wiki/List_of_United_States_presidential_vetoes \"List of United States presidential vetoes\") | | --- | --- | | Personal life | * [Age](/wiki/List_of_presidents_of_the_United_States_by_age \"List of presidents of the United States by age\") * [Ancestry](/wiki/Ancestral_background_of_presidents_of_the_United_States \"Ancestral background of presidents of the United States\") * [Bibliographies](/wiki/List_of_bibliographies_of_presidents_of_the_United_States \"List of bibliographies of presidents of the United States\") \t+ [autobiographies](/wiki/List_of_autobiographies_by_presidents_of_the_United_States \"List of autobiographies by presidents of the United States\") * [Burial places](/wiki/List_of_burial_places_of_presidents_and_vice_presidents_of_the_United_States#Presidential_burial_places \"List of burial places of presidents and vice presidents of the United States\") * [Coats of arms](/wiki/List_of_personal_coats_of_arms_of_presidents_of_the_United_States \"List of personal coats of arms of presidents of the United States\") * [Death](/wiki/List_of_presidents_of_the_United_States_by_date_of_death \"List of presidents of the United States by date of death\") \t+ [in office](/wiki/List_of_presidents_of_the_United_States_who_died_in_office \"List of presidents of the United States who died in office\") * [Education](/wiki/List_of_presidents_of_the_United_States_by_education \"List of presidents of the United States by education\") * [Facial hair](/wiki/List_of_presidents_of_the_United_States_with_facial_hair \"List of presidents of the United States with facial hair\") * [Families](/wiki/First_family_of_the_United_States \"First family of the United States\") \t+ [first ladies](/wiki/List_of_first_ladies_of_the_United_States \"List of first ladies of the United States\") \t+ [children](/wiki/List_of_children_of_presidents_of_the_United_States \"List of children of presidents of the United States\") * [Firsts](/wiki/List_of_United_States_presidential_firsts \"List of United States presidential firsts\") * [Freemasons](/wiki/List_of_presidents_of_the_United_States_who_were_Freemasons \"List of presidents of the United States who were Freemasons\") * Home state * [Left-handed](/wiki/List_of_left-handed_presidents_of_the_United_States \"List of left-handed presidents of the United States\") * [Multilingualism](/wiki/List_of_multilingual_presidents_of_the_United_States \"List of multilingual presidents of the United States\") * [Net worth](/wiki/List_of_presidents_of_the_United_States_by_net_worth \"List of presidents of the United States by net worth\") * [Nicknames](/wiki/List_of_nicknames_of_presidents_of_the_United_States \"List of nicknames of presidents of the United States\") * [Pets](/wiki/United_States_presidential_pets \"United States presidential pets\") * [Religious affiliation](/wiki/Religious_affiliations_of_presidents_of_the_United_States \"Religious affiliations of presidents of the United States\") * [Residences](/wiki/List_of_residences_of_presidents_of_the_United_States \"List of residences of presidents of the United States\") * [Scouts](/wiki/List_of_presidents_of_the_United_States_involved_in_Scouting \"List of presidents of the United States involved in Scouting\") * [Slave owners](/wiki/List_of_presidents_of_the_United_States_who_owned_slaves \"List of presidents of the United States who owned slaves\") * [Vacations](/wiki/United_States_presidential_vacations \"United States presidential vacations\") | | Depictionsand honors | * [Actor portrayals](/wiki/List_of_actors_who_have_played_the_president_of_the_United_States \"List of actors who have played the president of the United States\") \t+ [fictional](/wiki/Lists_of_fictional_presidents_of_the_United_States \"Lists of fictional presidents of the United States\") * [Currency](/wiki/List_of_presidents_of_the_United_States_on_currency \"List of presidents of the United States on currency\") * [Educational institutions](/wiki/List_of_educational_institutions_named_after_presidents_of_the_United_States \"List of educational institutions named after presidents of the United States\") * [Libraries](/wiki/Presidential_library_system#List_of_presidential_libraries \"Presidential library system\") * [Memorials](/wiki/Presidential_memorials_in_the_United_States \"Presidential memorials in the United States\") \t+ [in other countries](/wiki/List_of_buildings_and_monuments_honoring_presidents_of_the_United_States_in_other_countries \"List of buildings and monuments honoring presidents of the United States in other countries\") * [Military vessels](/wiki/List_of_U.S._military_vessels_named_after_presidents \"List of U.S. military vessels named after presidents\") * [Portraits](/wiki/Portraits_of_presidents_of_the_United_States \"Portraits of presidents of the United States\") * [Sculptures](/wiki/List_of_sculptures_of_presidents_of_the_United_States \"List of sculptures of presidents of the United States\") * [U.S. counties](/wiki/List_of_U.S._counties_named_after_presidents_of_the_United_States \"List of U.S. counties named after presidents of the United States\") * [U.S. postage stamps](/wiki/Presidents_of_the_United_States_on_U.S._postage_stamps \"Presidents of the United States on U.S. postage stamps\") | |\n| Vice presidents | * [Age](/wiki/List_of_vice_presidents_of_the_United_States_by_age \"List of vice presidents of the United States by age\") * [Burial places](/wiki/List_of_burial_places_of_presidents_and_vice_presidents_of_the_United_States#Vice_presidential_burial_places \"List of burial places of presidents and vice presidents of the United States\") * [Coats of arms](/wiki/List_of_personal_coats_of_arms_of_vice_presidents_of_the_United_States \"List of personal coats of arms of vice presidents of the United States\") * [Education](/wiki/List_of_vice_presidents_of_the_United_States_by_education \"List of vice presidents of the United States by education\") * Families \t+ [spouses](/wiki/Second_ladies_and_gentlemen_of_the_United_States \"Second ladies and gentlemen of the United States\") \t+ [children](/wiki/List_of_children_of_vice_presidents_of_the_United_States \"List of children of vice presidents of the United States\") * [Home state](/wiki/List_of_vice_presidents_of_the_United_States_by_home_state \"List of vice presidents of the United States by home state\") * [Impeachment efforts](/wiki/List_of_efforts_to_impeach_vice_presidents_of_the_United_States \"List of efforts to impeach vice presidents of the United States\") * [Other offices held](/wiki/List_of_vice_presidents_of_the_United_States_by_other_offices_held \"List of vice presidents of the United States by other offices held\") * [Ran for president](/wiki/List_of_vice_presidents_of_the_United_States_who_ran_for_president \"List of vice presidents of the United States who ran for president\") * [Religious affiliation](/wiki/Religious_affiliations_of_vice_presidents_of_the_United_States \"Religious affiliations of vice presidents of the United States\") * [Slave owners](/wiki/List_of_vice_presidents_of_the_United_States_who_owned_slaves \"List of vice presidents of the United States who owned slaves\") * [Tie-breaking votes](/wiki/List_of_tie-breaking_votes_cast_by_the_vice_president_of_the_United_States \"List of tie-breaking votes cast by the vice president of the United States\") * [Time in office](/wiki/List_of_vice_presidents_of_the_United_States_by_time_in_office \"List of vice presidents of the United States by time in office\") * [U.S. Senate bust collection](/wiki/United_States_Senate_Vice_Presidential_Bust_Collection \"United States Senate Vice Presidential Bust Collection\") |\n| [Succession](/wiki/United_States_presidential_line_of_succession \"United States presidential line of succession\") | * [Acting presidents](/wiki/Acting_President_of_the_United_States \"Acting President of the United States\") * [Designated survivors](/wiki/Designated_survivor \"Designated survivor\") * [Inaugurations](/wiki/United_States_presidential_inauguration#List_of_inauguration_ceremonies \"United States presidential inauguration\") * [Transitions](/wiki/United_States_presidential_transition#List_of_presidential_transitions \"United States presidential transition\") |\n| [Elections](/wiki/United_States_presidential_election \"United States presidential election\") | * [Electoral College margin](/wiki/List_of_United_States_presidential_elections_by_Electoral_College_margin \"List of United States presidential elections by Electoral College margin\") * [Popular vote margin](/wiki/List_of_United_States_presidential_elections_by_popular_vote_margin \"List of United States presidential elections by popular vote margin\") * [Winner lost popular vote](/wiki/List_of_United_States_presidential_elections_in_which_the_winner_lost_the_popular_vote \"List of United States presidential elections in which the winner lost the popular vote\") |\n| [Candidates](/wiki/List_of_United_States_presidential_candidates \"List of United States presidential candidates\") | | [Political affiliation](/wiki/List_of_political_parties_in_the_United_States \"List of political parties in the United States\") | * [Democratic](/wiki/List_of_United_States_Democratic_Party_presidential_tickets \"List of United States Democratic Party presidential tickets\") * [Democratic-Republican](/wiki/List_of_Democratic-Republican_Party_presidential_tickets \"List of Democratic-Republican Party presidential tickets\") * [Federalist](/wiki/List_of_Federalist_Party_presidential_tickets \"List of Federalist Party presidential tickets\") * [Green](/wiki/List_of_Green_Party_of_the_United_States_presidential_tickets \"List of Green Party of the United States presidential tickets\") * [Libertarian](/wiki/List_of_United_States_Libertarian_Party_presidential_tickets \"List of United States Libertarian Party presidential tickets\") * [National Republican / Whig](/wiki/List_of_United_States_National_Republican_and_Whig_Party_presidential_tickets \"List of United States National Republican and Whig Party presidential tickets\") * [Republican](/wiki/List_of_United_States_Republican_Party_presidential_tickets \"List of United States Republican Party presidential tickets\") * [Third party / independent](/wiki/List_of_United_States_major_third-party_and_independent_presidential_tickets \"List of United States major third-party and independent presidential tickets\") | | --- | --- | | Distinctions | * [African American](/wiki/List_of_African-American_United_States_presidential_and_vice_presidential_candidates \"List of African-American United States presidential and vice presidential candidates\") * [Campaign slogans](/wiki/List_of_U.S._presidential_campaign_slogans \"List of U.S. presidential campaign slogans\") * [Female](/wiki/List_of_female_United_States_presidential_and_vice_presidential_candidates \"List of female United States presidential and vice presidential candidates\") * [Height](/wiki/Heights_of_presidents_and_presidential_candidates_of_the_United_States \"Heights of presidents and presidential candidates of the United States\") * [Lost their home state](/wiki/List_of_major-party_United_States_presidential_candidates_who_lost_their_home_state \"List of major-party United States presidential candidates who lost their home state\") * [Number of votes received](/wiki/List_of_United_States_presidential_candidates_by_number_of_votes_received \"List of United States presidential candidates by number of votes received\") \t+ [in primaries](/wiki/List_of_United_States_presidential_candidates_by_number_of_primary_votes_received \"List of United States presidential candidates by number of primary votes received\") * [Received at least one electoral vote](/wiki/List_of_people_who_received_an_electoral_vote_in_the_United_States_Electoral_College \"List of people who received an electoral vote in the United States Electoral College\") * [Unsuccessful major party presidential candidates](/wiki/List_of_unsuccessful_major_party_candidates_for_President_of_the_United_States \"List of unsuccessful major party candidates for President of the United States\") * [Unsuccessful major party vice presidential candidates](/wiki/List_of_unsuccessful_major_party_candidates_for_Vice_President_of_the_United_States \"List of unsuccessful major party candidates for Vice President of the United States\") | |\n| * [Biography portal](/wiki/Portal:Biography \"Portal:Biography\") * [Politics portal](/wiki/Portal:Politics \"Portal:Politics\") * [United States portal](/wiki/Portal:United_States \"Portal:United States\") | |\n\n![](https://login.wikimedia.org/wiki/Special:CentralAutoLogin/start?type=1x1)\nRetrieved from \"<https://en.wikipedia.org/w/index.php?title=List_of_presidents_of_the_United_States_by_home_state&oldid=1241232271>\"",
+            "current_page": 2,
+            "total_pages": 2,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "bbb45906-fa20-4a4f-ab20-edf769fa51af",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The cities where U.S. presidents were born include: Popes Creek (Virginia), Braintree (Massachusetts), Shadwell (Virginia), Port Conway (Virginia), Monroe Hall (Virginia), Waxhaws (South Carolina), New York City (New York), Kinderhook (New York), Barboursville (Virginia), Cove Gap (Pennsylvania), Pineville (North Carolina), Hillsborough (New Hampshire), Hodgenville (Kentucky), Point Pleasant (Ohio), Delaware (Ohio), North Bend (Ohio), Caldwell (New Jersey), Niles (Ohio), Staunton (Virginia), West Branch (Iowa), Hyde Park (New York), Lamar (Missouri), Denison (Texas), Stonewall (Texas), Tampico (Illinois), Yorba Linda (California), Omaha (Nebraska), Brookline (Massachusetts), Plains (Georgia), Midland (Texas), Hope (Arkansas), Scranton (Pennsylvania), Queens (New York), and Wilmington (Delaware).",
+                "Next, I will determine the westernmost and easternmost cities based on their geographical coordinates.",
+                "The westernmost city is likely to be Honolulu, Hawaii, and the easternmost city is likely to be New York City, New York.",
+                "I will now confirm the coordinates of these cities to finalize the answer."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "bbb45906-fa20-4a4f-ab20-edf769fa51af",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "264fed6f-d1c7-4150-9637-388c99fa75ee",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "longitude_of_honolulu - longitude_of_new_york_city",
+            "fact_name": "distance_between_cities",
+            "fact_unit": "degrees",
+            "facts": {}
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "264fed6f-d1c7-4150-9637-388c99fa75ee",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "action_execution_failure",
+            "error": "Evaluation stopped at line 'longitude_of_honolulu - longitude_of_new_york_city' because of the following error:\nThe variable `longitude_of_honolulu` is not defined."
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "cb09bfae-196b-456f-82a6-dcaf0436af0f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "longitude of Honolulu Hawaii and New York City"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "cb09bfae-196b-456f-82a6-dcaf0436af0f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "longitude of Honolulu Hawaii and New York City",
+            "serp": [
+                {
+                    "title": "Where is Honolulu, HI, USA on Map Lat Long Coordinates",
+                    "url": "https://www.latlong.net/place/honolulu-hi-usa-1453.html",
+                    "content": "The latitude of Honolulu, HI, USA is 21.315603, and the longitude is -157.858093. Honolulu, HI, USA is located at United States country in the Cities place ..."
+                },
+                {
+                    "title": "USA and Hawaii map with GPS, beach latitude and longitude",
+                    "url": "https://www.tropicsbeach.com/map-812-USA-Hawaii.html",
+                    "content": "You can use the GPS coordinates: latitude 21.27 and longitude -157.82 to find all the beaches by the Pacific Ocean with GoogleEarth or GoogleMaps."
+                },
+                {
+                    "title": "Latitude and Longitude of U.S. and Canadian Cities",
+                    "url": "https://www.infoplease.com/us/geography/latitude-and-longitude-us-and-canadian-cities",
+                    "content": "The table below gives the latitude and longitude of dozens of US and Canadian cities. For more US locations including cities, towns, parks and more, use the ..."
+                },
+                {
+                    "title": "Waikiki, Honolulu, HI, USA",
+                    "url": "https://www.latlong.net/place/waikiki-honolulu-hi-usa-2112.html",
+                    "content": "The latitude of Waikiki, Honolulu, HI, USA is 21.280693, and the longitude is -157.834549. Waikiki, Honolulu, HI, USA is located at United States country in ..."
+                },
+                {
+                    "title": "The latitude and longitude of Honolulu, Hawaii is",
+                    "url": "https://www.travelmath.com/cities/Honolulu,+HI",
+                    "content": "21° 18' 18\" N / 157° 51' 29\" W ; Where to stay in Honolulu? ; road trips from Honolulu ; cities near Honolulu ; distance to Honolulu ; 50 miles from Honolulu ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "06a38eb8-9f19-48df-aae3-5c108b60aa3a",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.latlong.net/place/honolulu-hi-usa-1453.html",
+            "fact_description": "longitude of Honolulu, Hawaii",
+            "fact_name": "longitude_honolulu"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "06a38eb8-9f19-48df-aae3-5c108b60aa3a",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Where is Honolulu, HI, USA on Map Lat Long Coordinates\n=======================\n[![LatLong Logo](/logo1x.png)](/ \"Lat Long Finder\")\n[Geographic Tools](/geo-tools \"Geographic Tools\")\n[**Pricing**](/products \"Pricing of our products\")\n[Places](/latest-places.html \"Latest Places\")\n[TV Series](/tv-series-locations \"TV Series Locations\")\n[Movies](/movies-locations \"Movies Locations\")\n[@LatLong](https://twitter.com/latlong_net \"Lat Long on Twitter\")\n[![My Account](/img/user.png)](/user/login) [☰](# \"Dropdown menu\")\n\n[Countries](/countries.html) » [United States](/country/united-states-236.html) »\n[Cities](/category/cities-236-15.html) »\nHonolulu, HI, USA\n=================\n\nLatitude and longitude coordinates are: **21\\.315603, \\-157\\.858093**.\n\nHonolulu is the capital and one of the most populous cities of Hawaii which is a remote state in the USA. The city is a popular resort and a destination for those who dream about a world\\-class vacation on the ocean shores. Located in the middle of the Pacific Ocean, the city has been inhabited since the early ages. As the evidence shows, the city has been a permanent settlement since about the 12th century. Honolulu is a historic center and the key tourist hub of the state. At the same time, it is a known business center with numerous business corporations and companies.\n\nThe remote location of the city does not change much as to the development and is connected with the rest of the world for the people of Honolulu and Hawaii. The capital city of the country is primarily known as the center of education and health care of the whole state, with the best hospitals, clinics, schools, colleges, and those few universities located in the state. Honolulu is undoubtedly the center of cultural life, with plenty of galleries, museums, arts schools, theaters, and venues for various musical and cultural events. The traditions and lifestyle of the local people are unique, but most of the guests of Honolulu say that unique local cuisine was among the most unforgettable and special parts of the cultural life that they've got to know.\n\nWhere is Honolulu, HI, USA on Map?\n----------------------------------\n\nRoad map of Honolulu, HI, USA shows where the location is placed.\n\nSatellite Map of Honolulu, HI, USA\n----------------------------------\n\n### Honolulu, HI, USA Lat Long Coordinates Info\n\nThe latitude of Honolulu, HI, USA is **21\\.315603**,\nand the longitude is **\\-157\\.858093**.\n**Honolulu, HI, USA** is located at *United States* country in the *Cities* place category with the gps coordinates of 21° 18' 56\\.1708'' N and 157° 51' 29\\.1348'' W.\n\nHonolulu, HI, USA Geographic Information\n\n| Country | United States |\n| --- | --- |\n| Latitude | 21\\.315603 |\n| Longitude | \\-157\\.858093 |\n| DMS Lat | 21° 18' 56\\.1708'' N |\n| DMS Long | 157° 51' 29\\.1348'' W |\n| UTM Easting | 618,431\\.58 |\n| UTM Northing | 2,357,505\\.97 |\n| Category | Cities |\n| Country Code | US |\n| Zoom Level | 11 |\n\nCoordinates of **Honolulu, HI, USA** is given above in both decimal degrees and\nDMS (degrees, minutes and seconds) format. The country code given is in the ISO2 format.\n\n---\n\n#### Similar Places\n\n* [Cresson, TX, USA](/place/cresson-tx-usa-2103.html \"Cresson, TX, USA\")\n* [South Bend, IN, USA](/place/south-bend-in-usa-27981.html \"South Bend, IN, USA\")\n* [Dalton Gardens, ID, USA](/place/dalton-gardens-id-usa-2447.html \"Dalton Gardens, ID, USA\")\n* [Fort Scott, KS, USA](/place/fort-scott-ks-usa-32436.html \"Fort Scott, KS, USA\")\n* [Scranton, PA, USA](/place/scranton-pa-usa-5586.html \"Scranton, PA, USA\")\n\n##### Cities in United States\n\nAlso check out these related Cities.\n\n* [Aurora, TX, USA](/place/aurora-tx-usa-33703.html \"Aurora, TX, USA\") (33\\.061062, \\-97\\.511391\\)\n* [Vernal, UT, USA](/place/vernal-ut-usa-33702.html \"Vernal, UT, USA\") (40\\.454086, \\-109\\.538246\\)\n* [Peabody, MA, USA](/place/peabody-ma-usa-32590.html \"Peabody, MA, USA\") (42\\.536457, \\-70\\.985786\\)\n* [Northampton, MA, USA](/place/northampton-ma-usa-32588.html \"Northampton, MA, USA\") (42\\.328674, \\-72\\.664658\\)\n* [Newton, MA, USA](/place/newton-ma-usa-32576.html \"Newton, MA, USA\") (42\\.341042, \\-71\\.217133\\)\n* [Newburyport, MA, USA](/place/newburyport-ma-usa-32575.html \"Newburyport, MA, USA\") (42\\.810356, \\-70\\.893875\\)\n* [New Bedford, MA, USA](/place/new-bedford-ma-usa-32574.html \"New Bedford, MA, USA\") (41\\.638409, \\-70\\.941208\\)\n* [Medford, MA, USA](/place/medford-ma-usa-32570.html \"Medford, MA, USA\") (42\\.419331, \\-71\\.119720\\)\n* [Malden, MA, USA](/place/malden-ma-usa-32568.html \"Malden, MA, USA\") (42\\.429752, \\-71\\.071022\\)\n* [Leominster, MA, USA](/place/leominster-ma-usa-32563.html \"Leominster, MA, USA\") (42\\.525482, \\-71\\.764183\\)\n\nShare Your Comment\nName (optional)\n\nComment\n\nSend\n\nNo comments written yet.\n\n© 2012\\-2024 [www.LatLong.net](https://www.latlong.net/ \"Latitude and Longitude Finder\")\n\n* [Refund Policy](/refund-policy \"Refund Policy\")\n* [Frequently Asked Questions](/faq \"Frequently Asked Questions\")\n* [Privacy Policy and Cookies](/privacy.php \"Privacy Policy and Cookies\")\n* [Contact Us](/contact.php \"Contact Us\")\n* [LatLong.net Twitter](https://twitter.com/latlong_net \"Lat Long on Twitter\")\n* [RSS](http://feeds.feedburner.com/LatLong \"Lat Long RSS\")\n\nWe do not guarantee the accuracy of the given coordinates of the places in our database. Please use Latlong.net at your own risk.",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "d0a3f283-9602-4443-a638-55de6e4ce0e7",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "longitude_honolulu",
+            "unit": "degrees",
+            "value": -157.858093
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "d0a3f283-9602-4443-a638-55de6e4ce0e7",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "762c0223-5255-4970-9fbe-83f8c88cd449",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "longitude of New York City"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "762c0223-5255-4970-9fbe-83f8c88cd449",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "longitude of New York City",
+            "serp": [
+                {
+                    "title": "Where is New York City, NY, USA on Map Lat Long ...",
+                    "url": "https://www.latlong.net/place/new-york-city-ny-usa-1848.html",
+                    "content": "The latitude of New York City, NY, USA is 40.730610, and the longitude is -73.935242. New York City, NY, USA is located at United States country in the Cities ..."
+                },
+                {
+                    "title": "Manhattan, New York City, NY, USA",
+                    "url": "https://www.latlong.net/place/manhattan-new-york-city-ny-usa-31886.html",
+                    "content": "The latitude of Manhattan, New York City, NY, USA is 40.776676, and the longitude is -73.971321. Manhattan, New York City, NY, USA is located at United States ..."
+                },
+                {
+                    "title": "GPS coordinates of New York City, United States. ...",
+                    "url": "https://latitude.to/articles-by-country/us/united-states/11/new-york-city",
+                    "content": "GPS coordinates of New York City, United States. Latitude: 40.7167 Longitude: -74.0000."
+                },
+                {
+                    "title": "New York City, United States latitude longitude",
+                    "url": "https://latitudelongitude.org/us/new-york-city/",
+                    "content": "Latitude and longitude coordinates for New York City, United States: Decimal lat-long coordinates are 40.71427, -74.00597."
+                },
+                {
+                    "title": "Latitude NYC - New York City Coordinates & NYC Maps",
+                    "url": "https://gps-coordinates.org/new-york-city-latitude.php",
+                    "content": "Latitude NYC - Find New York City Coordinates and NYC Maps for easy navigation. Show New York latitude and longitude with location and address."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "c659f4d2-653e-4edf-abdc-a1bc607f2e0f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.latlong.net/place/new-york-city-ny-usa-1848.html",
+            "fact_description": "longitude of New York City",
+            "fact_name": "longitude_new_york_city"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "c659f4d2-653e-4edf-abdc-a1bc607f2e0f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Where is New York City, NY, USA on Map Lat Long Coordinates\n=======================\n[![LatLong Logo](/logo1x.png)](/ \"Lat Long Finder\")\n[Geographic Tools](/geo-tools \"Geographic Tools\")\n[**Pricing**](/products \"Pricing of our products\")\n[Places](/latest-places.html \"Latest Places\")\n[TV Series](/tv-series-locations \"TV Series Locations\")\n[Movies](/movies-locations \"Movies Locations\")\n[@LatLong](https://twitter.com/latlong_net \"Lat Long on Twitter\")\n[![My Account](/img/user.png)](/user/login) [☰](# \"Dropdown menu\")\n\n[Countries](/countries.html) » [United States](/country/united-states-236.html) »\n[Cities](/category/cities-236-15.html) »\nNew York City, NY, USA\n======================\n\nLatitude and longitude coordinates are: **40\\.730610, \\-73\\.935242**.\n\nNew York City is one of the most known cities\\-symbols of the USA located in the northeastern part of the country, on the Atlantic coast. It is known as a global business capital city and one of the most populous, developed, innovative, and bustling cities of the world. New York is a true wonder of the US, and it can open its secrets and beautiful atmosphere to anyone who comes to visit it. It is located on the mouth of the Hudson River and is a destination for all kinds of tourists and guests, from business people to various tourists seeking some rest and new adventures.\n\nThe city has 5 famous central boroughs like Manhattan, Brooklyn, Queens, and others, and it is also known as the city located on one of the largest natural harbors on the continent. The city is home to some most visited tourist attractions of the world including Central Park, Times Square, the Metropolitan Museum of Arts, the Broadway Theater, and many more. New York has a really long history based on the social development of the city as the center of all aspects of the life of the country. NYC is also a key educational center of the country, with over 10 dozen of higher educational establishments operating.\n\nWhere is New York City, NY, USA on Map?\n---------------------------------------\n\nRoad map of New York City, NY, USA shows where the location is placed.\n\nSatellite Map of New York City, NY, USA\n---------------------------------------\n\n### New York City, NY, USA Lat Long Coordinates Info\n\nThe latitude of New York City, NY, USA is **40\\.730610**,\nand the longitude is **\\-73\\.935242**.\n**New York City, NY, USA** is located at *United States* country in the *Cities* place category with the gps coordinates of 40° 43' 50\\.1960'' N and 73° 56' 6\\.8712'' W.\n\nNew York City, NY, USA Geographic Information\n\n| Country | United States |\n| --- | --- |\n| Latitude | 40\\.730610 |\n| Longitude | \\-73\\.935242 |\n| DMS Lat | 40° 43' 50\\.1960'' N |\n| DMS Long | 73° 56' 6\\.8712'' W |\n| UTM Easting | 589,912\\.16 |\n| UTM Northing | 4,509,398\\.08 |\n| Category | Cities |\n| Country Code | US |\n| Zoom Level | 8 |\n\nCoordinates of **New York City, NY, USA** is given above in both decimal degrees and\nDMS (degrees, minutes and seconds) format. The country code given is in the ISO2 format.\n\n---\n\n#### Similar Places\n\n* [Mandeville, LA, USA](/place/mandeville-la-usa-25001.html \"Mandeville, LA, USA\")\n* [Connersville, IN, USA](/place/connersville-in-usa-32356.html \"Connersville, IN, USA\")\n* [Montgomery, AL, USA](/place/montgomery-al-usa-27910.html \"Montgomery, AL, USA\")\n* [Avondale, AZ, USA](/place/avondale-az-usa-4544.html \"Avondale, AZ, USA\")\n* [Keene, NH, USA](/place/keene-nh-usa-14288.html \"Keene, NH, USA\")\n\n##### Cities in United States\n\nAlso check out these related Cities.\n\n* [Aurora, TX, USA](/place/aurora-tx-usa-33703.html \"Aurora, TX, USA\") (33\\.061062, \\-97\\.511391\\)\n* [Vernal, UT, USA](/place/vernal-ut-usa-33702.html \"Vernal, UT, USA\") (40\\.454086, \\-109\\.538246\\)\n* [Peabody, MA, USA](/place/peabody-ma-usa-32590.html \"Peabody, MA, USA\") (42\\.536457, \\-70\\.985786\\)\n* [Northampton, MA, USA](/place/northampton-ma-usa-32588.html \"Northampton, MA, USA\") (42\\.328674, \\-72\\.664658\\)\n* [Newton, MA, USA](/place/newton-ma-usa-32576.html \"Newton, MA, USA\") (42\\.341042, \\-71\\.217133\\)\n* [Newburyport, MA, USA](/place/newburyport-ma-usa-32575.html \"Newburyport, MA, USA\") (42\\.810356, \\-70\\.893875\\)\n* [New Bedford, MA, USA](/place/new-bedford-ma-usa-32574.html \"New Bedford, MA, USA\") (41\\.638409, \\-70\\.941208\\)\n* [Medford, MA, USA](/place/medford-ma-usa-32570.html \"Medford, MA, USA\") (42\\.419331, \\-71\\.119720\\)\n* [Malden, MA, USA](/place/malden-ma-usa-32568.html \"Malden, MA, USA\") (42\\.429752, \\-71\\.071022\\)\n* [Leominster, MA, USA](/place/leominster-ma-usa-32563.html \"Leominster, MA, USA\") (42\\.525482, \\-71\\.764183\\)\n\nShare Your Comment\nName (optional)\n\nComment\n\nSend\n\n### Recent Comments\n\njohn 2022\\-08\\-26 17:43:17 thank you very helpful\n\n\\-6 ReplySOLOMON 2020\\-10\\-29 09:45:24 I love new York and I need a friend from new York\n\n2 ReplyJessica 2019\\-11\\-13 21:25:04 I think that this is a pretty cool thing to do.\n\n\\-6 ReplyJessica 2019\\-11\\-13 21:23:56 Thats cool\n\n\\-8 ReplyMax 2016\\-12\\-13 09:45:40 Very good for PoGo\n\n\\-7 Reply\n\n© 2012\\-2024 [www.LatLong.net](https://www.latlong.net/ \"Latitude and Longitude Finder\")\n\n* [Refund Policy](/refund-policy \"Refund Policy\")\n* [Frequently Asked Questions](/faq \"Frequently Asked Questions\")\n* [Privacy Policy and Cookies](/privacy.php \"Privacy Policy and Cookies\")\n* [Contact Us](/contact.php \"Contact Us\")\n* [LatLong.net Twitter](https://twitter.com/latlong_net \"Lat Long on Twitter\")\n* [RSS](http://feeds.feedburner.com/LatLong \"Lat Long RSS\")\n\nWe do not guarantee the accuracy of the given coordinates of the places in our database. Please use Latlong.net at your own risk.",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "35b7a4d8-9e2c-414a-ac75-7c3e95af07fd",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "longitude_new_york_city",
+            "unit": "degrees",
+            "value": -73.935242
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "35b7a4d8-9e2c-414a-ac75-7c3e95af07fd",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "f1f3330f-5ae8-4cc4-b3ce-fe6f93ac2b02",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The longitude of Honolulu, Hawaii is -157.858093.",
+                "The longitude of New York City, New York is -73.935242.",
+                "Honolulu is the westernmost city and New York City is the easternmost city among the presidential birth cities.",
+                "The two cities are Honolulu and New York City.",
+                "Now I will sort these city names alphabetically."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "f1f3330f-5ae8-4cc4-b3ce-fe6f93ac2b02",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        }
+    ]
+}

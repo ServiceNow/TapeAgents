@@ -1,0 +1,409 @@
+{
+    "metadata": {
+        "id": "59a8534f-b7e6-4663-bc90-15349918b1fb",
+        "parent_id": "ab0f70da-3edc-40e1-99d9-6e72c137f9c6",
+        "author": "GaiaAgent",
+        "author_tape_id": null,
+        "n_added_steps": 4,
+        "error": null,
+        "result": {}
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "e54ea78f-0ff1-473a-b140-849b1d2f2c5c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "Review the chess position provided in the image. It is black's turn. Provide the correct next move for black which guarantees a win. Please provide your response in algebraic notation.\nPNG document content:\n\n# Description:\nIn this intense chess position, we see a critical moment in the game. The board is set with White's king on b1, surrounded by a few pawns on the second rank, while Black has a strong presence with a knight on d4, a queen on h5, and a rook on e8. The black pieces are well-coordinated, posing significant threats to White's position.\n\nWhite's pieces include two bishops on c3 and f3, a rook on d3, and a queen on a5, but they are struggling to defend against the aggressive positioning of Black's pieces. The black pawn structure is solid, with pawns on a6, b6, and g7, while the knight on d4 exerts pressure on the c2 pawn and threatens to jump into more advantageous positions.\n\nThis position highlights the tactical complexities of chess, where every move can lead to a decisive advantage or a blunder. The game is poised for a dramatic turn, with Black having the upper hand in both material and positional strength. Players must carefully consider their next moves to either capitalize on their advantages or defend against potential threats.\n\n# Text detected by OCR:\n0",
+            "filename": "/tmp/cca530fc-4052-43b2-b130-b30968d8aa44.png"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "bda58f8a-fb2d-42ca-89f5-c5d771aee440",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Analyze the provided chess position description to identify the key pieces and their locations.",
+                "Determine the potential moves for Black's pieces, focusing on the knight, queen, and rook.",
+                "Evaluate the threats posed by Black's pieces against White's position, particularly looking for checkmate opportunities or significant material gain.",
+                "Identify any immediate threats from White that could affect Black's winning move.",
+                "Select the move that guarantees a win for Black, ensuring it is a legal move and follows the rules of chess.",
+                "Express the chosen move in algebraic notation."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "3a366a52-38cf-4731-9c6f-6ab341689df4",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [],
+            "facts_to_lookup": [
+                {
+                    "name": "chess_position_analysis",
+                    "description": "Analysis of the given chess position to determine the best move for Black.",
+                    "format": "string",
+                    "unit": ""
+                }
+            ],
+            "facts_to_derive": [
+                {
+                    "name": "best_move_for_black",
+                    "description": "The optimal move for Black that guarantees a win in the given position.",
+                    "format": "string",
+                    "unit": ""
+                }
+            ],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "c099ac60-3a12-4ba5-87ce-b31eb93fabc6",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "best chess move black guarantees win position knight queen rook"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "best chess move black guarantees win position knight queen rook",
+            "serp": [
+                {
+                    "title": "Why is this guaranteed to win a queen? : r/chessbeginners",
+                    "url": "https://www.reddit.com/r/chessbeginners/comments/1fe747f/why_is_this_guaranteed_to_win_a_queen/",
+                    "content": "Next move, you simply sac the rook and if they try to take back with the queen, bishop takes knight comes with a check and a fork on the queen."
+                },
+                {
+                    "title": "h4 Opening? - Chess Forums",
+                    "url": "https://www.chess.com/forum/view/chess-openings/h4-opening",
+                    "content": "Best is 1..d5 and just take control of the center. The only way any one will ever win with that opening is if you let it bother you so much you ..."
+                },
+                {
+                    "title": "1.e4 f6?! - Chess Forums - Page 3",
+                    "url": "https://www.chess.com/forum/view/chess-openings/1e4-f6?page=3",
+                    "content": "I will post a 28-move win with Black playing 1.e4 f6. Not that White did anything wrong. My position simply \"woke up\", and I had a good middle game."
+                },
+                {
+                    "title": "Rook Vs Queen endgame -drew a lost game",
+                    "url": "https://www.chess.com/forum/view/endgames/rook-vs-queen-endgame-drew-a-lost-game",
+                    "content": "The winning idea is to get into the Philidor position with black to move. Note that black is in zugzwang and must move his king away from the rook (note that ..."
+                },
+                {
+                    "title": "1.e4 f6?! - Chess Forums - Page 3",
+                    "url": "https://www.chess.com/forum/view/chess-openings/1e4-f6?page=3",
+                    "content": "I will post a 28-move win with Black playing 1.e4 f6. Not that White did anything wrong. My position simply \"woke up\", and I had a good middle game."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "752b1a8b-04ea-47ba-b417-438f760d96ad",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "best move for Black that guarantees a win in the given chess position",
+            "fact_found": false,
+            "quote_with_fact": "",
+            "where_to_look_next": "Search for specific chess tactics or strategies involving knight, queen, and rook for Black."
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "752b1a8b-04ea-47ba-b417-438f760d96ad",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "51c4ce43-fab9-47ff-ac59-2da77b9c9061",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "chess tactics knight queen rook winning move black"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "51c4ce43-fab9-47ff-ac59-2da77b9c9061",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "chess tactics knight queen rook winning move black",
+            "serp": [
+                {
+                    "title": "How to win with Queen vs Rook?",
+                    "url": "https://www.chess.com/forum/view/endgames/how-to-win-with-queen-vs-rook",
+                    "content": "The key thing for winning with K+Q vs. K+R is to force a zugzwang by triangulation and force the rook to move away from the king."
+                },
+                {
+                    "title": "How is the rook and queen fork NOT the best move for ...",
+                    "url": "https://www.reddit.com/r/chessbeginners/comments/17eg3vn/how_is_the_rook_and_queen_fork_not_the_best_move/",
+                    "content": "Now black plays Bb4 and wins another tempo plus has a strong bishop pair developed. If Qb3, knight can take on d4 to win a pawn. The fork is ..."
+                },
+                {
+                    "title": "Rook vs knight end game, how to win?",
+                    "url": "https://www.chess.com/forum/view/game-analysis/rook-vs-knight-end-game-how-to-win",
+                    "content": "May 6, 2020 — Just dance the rook around, for example on the last rank. Either win some pawns or force them to move. When they move they're weaker and you can bring your ..."
+                },
+                {
+                    "title": "Capture the Queen - Chess Forums",
+                    "url": "https://www.chess.com/forum/view/more-puzzles/queen-capture-in-3-moves",
+                    "content": "Nov 3, 2022 — The target is to capture the black queen in 3 moves, as you stated in post 6. Black can very well blunder mate as then the queen won't be captured."
+                },
+                {
+                    "title": "Knight & Queen: A Powerful Attacking Team",
+                    "url": "https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team",
+                    "content": "Feb 16, 2021 — In this example-packed article, GM Hellsten explains how the powerful team of a knight and a queen can combine as a deadly attacking force."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "414c6635-5e87-42a0-b49a-1823f7375fc6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "best move for Black that guarantees a win in the given chess position",
+            "fact_found": false,
+            "quote_with_fact": "",
+            "where_to_look_next": "Look for specific examples or tactics involving knight and queen combinations in chess."
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "414c6635-5e87-42a0-b49a-1823f7375fc6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "f98a755e-82d8-4cd4-bf64-b905fc7165f6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "knight queen tactics chess winning move examples"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "f98a755e-82d8-4cd4-bf64-b905fc7165f6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "knight queen tactics chess winning move examples",
+            "serp": [
+                {
+                    "title": "The Chess Move That Always Wins",
+                    "url": "https://www.chess.com/article/view/the-move-that-always-wins",
+                    "content": "Nov 22, 2018 — Here is another example of a crushing attack after the white queen takes the g7 pawn: Ljuboevic vs. Calvo. 1-0 Spain 1973. 8 7 6 5 4 3 2 1 a b ..."
+                },
+                {
+                    "title": "Knight & Queen: A Powerful Attacking Team",
+                    "url": "https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team",
+                    "content": "Feb 16, 2021 — In this example-packed article, GM Hellsten explains how the powerful team of a knight and a queen can combine as a deadly attacking force."
+                },
+                {
+                    "title": "Getting Crushed by Quick Queen + Knight/Bishop Attacks - ...",
+                    "url": "https://www.chess.com/forum/view/chess-openings/help-getting-crushed-by-quick-queen--knightbishop-attacks",
+                    "content": "Every time you attack his queen or otherwise make your opponent move his queen, you should be developing a piece in some way. You will enter the middlegame with ..."
+                },
+                {
+                    "title": "What is the simplest method to win Queen vs Knight ...",
+                    "url": "https://chess.stackexchange.com/questions/22901/what-is-the-simplest-method-to-win-queen-vs-knight-endgame",
+                    "content": "Nov 16, 2018 — Just drive the opponent's king to the edge of the board, as you would do with king+queen vs. king; just be careful that you don't end up in a ..."
+                },
+                {
+                    "title": "The Knight's Moves",
+                    "url": "https://www.chess.com/article/view/the-knights-moves",
+                    "content": "Aug 2, 2012 — The queen would like the h7 square, but it is too dangerous, so she sends in the knight to clear the mines first. 1. ... Ne8. 2. Nf8 ... Then ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "4788728a-ae5c-4911-8370-145dcb84a82f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "best move for Black that guarantees a win in the given chess position",
+            "fact_found": false,
+            "quote_with_fact": "",
+            "where_to_look_next": "Investigate the article about the knight and queen as a powerful attacking team for specific winning tactics."
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "4788728a-ae5c-4911-8370-145dcb84a82f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "da5a1a50-8d4e-40bd-977f-c6741e9b7cd0",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team",
+            "fact_description": "best move for Black that guarantees a win in the given chess position",
+            "fact_name": "best_move_for_black"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "da5a1a50-8d4e-40bd-977f-c6741e9b7cd0",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Knight & Queen: A Powerful Attacking Team\n=======================\n[Sign up](?register)\n[Log in](?login)\n\n Create your free account\n\n[![google](/img/google-auth.svg)\n Continue with Google](https://chessmood.com/auth/google)\n[![twitter](/img/twitter-auth.svg)\n Continue with Twitter](https://chessmood.com/auth/twitter)\n[![facebook](/img/facebook-auth.svg)\n Continue with Facebook](https://chessmood.com/auth/facebook)\n\nOR\n[Register](?register-with-email)\n\nCreate your free account\n\nName\n\nLast name\n\nEmail address\n\nPassword\n\nPassword confirmation\n\nRegister\n\nBy clicking “Register”, you agree to our\n\n[terms of service](https://chessmood.com/terms-of-service) and\n [privacy policy](https://chessmood.com/privacy-policy)\n\n Log in\n\n[![google](/img/google-auth.svg)\n Continue with Google](https://chessmood.com/auth/google)\n[![twitter](/img/twitter-auth.svg)\n Continue with Twitter](https://chessmood.com/auth/twitter)\n[![facebook](/img/facebook-auth.svg)\n Continue with Facebook](https://chessmood.com/auth/facebook)\n\nOR\n\nE-mail address\n\nPassword\n\nNot my device\n\n Forgot password?\n\nLog in\n\n A password link has been sent to your email address\n\nReset password\n\nE-mail address\n\nSend password reset link\n\n Don't have an account?\n [Sign up](?register)\n\n[![logo-dark](/img/logo-dark.svg)\n![logo](/img/logo.svg?v=1)](https://chessmood.com)\n\n[![logo](/img/logo.svg?v=1)](https://chessmood.com)\n\n* Courses & more\n\n[![courses](/img/courses-new.svg)\nCourses\n\n500+ hours of step-by-step courses by Grandmasters](https://chessmood.com/courses)\n[![Study plan](/img/study-plan.svg)\nStudy plan\n\nLevel-specific plans for optimal chess improvement](https://chessmood.com/chess-study-plans)\n[![events](/img/events-new.svg)\nEvents\n\nEngaging events to reinforce the knowledge from courses](https://chessmood.com/events)\n\n[![forum](/img/forum-new.svg)\nForum\n\nChess discussions with ChessMood family](/forum)\n[![puzzle](/img/puzzle-new.svg)\nDaily puzzle\n\nHand-picked daily puzzles for mental fitness](https://chessmood.com/daily-puzzle)\n* [Blog](https://chessmood.com/blog)\n* Get inspired\n\n[![puzzle](/img/student-story.svg)\nStudents’ stories\n\nInspirational stories of our students' achievements](https://chessmood.com/success-stories)\n[![puzzle](/img/our-story.svg)\nOur crazy story\n\nHow we overcame obstacles and why we created ChessMood](https://chessmood.com/our-story)\n* [Pricing](https://chessmood.com/become-a-pro)\n\n[Log in](?login)\n\n[Sign up](?register)\n\n[![login](/img/login-black.svg)\n![login](/img/login-white.svg)](?register)\n[Sign up](?register)\n\n* ![GM Johan Hellsten]()\n\nKnight & Queen: A Powerful Attacking Team\n=========================================\n\nIn this example-packed article, GM Hellsten explains how the powerful team of a knight and a queen can combine as a deadly attacking force.\n\n Strategy *|* 5 min read\n\n![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/161347108746879890webp_650a8cdf42e87.webp)\n\n[![facebook](/img/facebook-black.svg)](http://www.facebook.com/sharer.php?u=https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team)\n[![twitter](/img/twitter-black.svg)](https://twitter.com/share?url=https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team&text=ChessMood)\n[![linkedin](/img/linkedin.svg)](http://www.linkedin.com/shareArticle?mini=true&url=https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team)\n\nLet’s think for a moment about how the pieces in our game complement each other. A Rook and a Bishop move in completely different ways, so they usually work very well together in the endgame.\n\nFor similar reasons, a Bishop and a Knight cooperate beautifully in many positions, not to speak of the [Bishop pair](https://chessmood.com/blog/how-to-use-bishop-pair). In any position, two Rooks on the 7th rank is a devastating force. And on a good day, 2 connected passed Pawns can surpass an entire Rook.\n\nAs for the Queen, often she is very powerful on her own. However, a great companion for her at any stage of the game is the Knight.\n\nMany years ago, José Raúl Capablanca stated that a Queen and a Knight make a strong team, and his viewpoint has kept its validity over the years.\n\nOne simple explanation is that the Knight is the only piece that moves in a way, in which the Queen doesn’t.\n\n**Knight and Queen in Attack**\n------------------------------\n\nIn this article, I’ll share some examples where the powerful team of Queen and Knight had a key role in the attack.\n\nLet’s start with a simple one:\n\n### **Anand V. - Sokolov I., Hoogovens 1989**\n\n![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613465196546693291webp_650a8b7082462.webp)\n***White to move***\n\nWhite has more than one path to victory here. Still, Anand chose the most beautiful way:\n**36.Na6! Qxh4 37.Qf8+ Kd7 38.Nc5 mate**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613465307807838963webp_650a8b83f314f.webp)**\n\nA very nice mate! Note that when delivering mate, the Queen and Knight are often placed on squares of the same color, like f8 and c5 on this occasion, in order to control more squares.\n\n### **Glek I. -  Werle J., NED-chT 2002**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613465410325370256webp_650a8b96c0f6b.webp)*\n***Black to move***\n\nIn an innocent-looking endgame, Black finds a way to launch a strong attack.\n**30...f5! 31.gxf5+**\n\n31.Qg3 was better, although after 31...Nb6 heading for c4, Black would keep excellent winning chances.\n**31...Qxf5 32.Qxb7 Qf1+ 33.Kd2 Nb6!**\n\nThe team of Queen and Knight steals the show.\n**34.Qxc6+ Kf5**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613465545759993863webp_650a8ba606efb.webp)**\n\nAnand's mating pattern is just around the corner, and unfortunately for White, he has run out of Queen checks.\n**35.c4 Nxc4+ 36.Kc3 Qf3+**\n\nWhite resigned in view of 37.Kb4 Qxa3+ 38.Kb5 Qa5 mate, another nice picture.\n\n### **Stocek J. - Smirin I., CZE-chT 2005**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613465640119793472webp_650a8bb8a5dd9.webp)*\n***Black to move***\n\nBlack is under pressure, but applying the same mating motif he managed to save a draw.\n**30...Qe1!**\n\n30...Nf4?! 31.Qxc7 Rd8 32.d5 would leave White clearly better. Remember that the value of the Pawns increases further into the endgame!\n**31.Qh8+ Kf7 32.Qxb8 Qc1+ 33.Kd3 Nf4+ 34.Ke3 Ng2+!**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/161346577131212716webp_650a8bc7c3dbe.webp)**\n\nThe engine also suggests 34...Qe1+ 35.Kxf4 Qxd2+ 36.Kf5 Qh2! aiming for a perpetual, but that’s not easy at all for a human to visualize over the board!\n**35.Ke2 Nf4+ 36.Ke3 Ng2+**\n\nDraw agreed.\n\n### **Morovic F. - Rublevsky S., World Cup 2009**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613465868554914816webp_650a8bd955cce.webp)*\n***Black to move***\n\nWhen Queen and Knight combine for an attack, all kinds of mating motifs can appear on the board. Here Rublevsky spots a rather unusual one.\n**39...Rxh3+! 40.Kxh3**\n\nAfter 40.gxh3 Nf3+ 41.Kh1 Nxe1, again mate is around the corner.\n**40...Qh5+ 41.Kg3 Nf5 mate.**\n\nIn the game, Morovic had already resigned after 39...Rxh3+.\n\n### **Sjugirov S. -  Ionov S., RUS-chT 2010**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613466031449842638webp_650a8bf2428e2.webp)*\n***White to move***\n\nHere is a more complex case where the team of Queen and Knight works with multiple mating motifs.\n**31.f6+! Kxf6 32.Nf5!**\n\nEstablishing the threat of 33.Qe7+ Kg6 34.Qxg5+ Kh7 35.Qg7 mate. Worse is 32.Qf5+?! Ke7 33.Qxg5+ Kd7 and the black King escapes to safer soil.\n**32...Kg6**\n\nBlack could avoid the aforementioned mate on g7 by 32...Qh8 33.Qe7+ Kg6 34.Qxg5+ Kh7, however then White delivers a different one: 35.Qh6+! Kg8 36.Ne7 mate.\n\n**33.Nxd6+!**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613466167451186262webp_650a8c019f3c5.webp)**\n\nHere Black resigned, but let us make a few more moves.\n**33...Kh6**\n\n33...Kf6 34.Ne8 mate is another elegant picture, isn’t it?\n**34.Nf5+ Kg6**\n\nOr 34...Kh7 35.Qe5 with a similar situation.\n**35.Qc6+ Kh7 36.Qf6!**\n\nThe mate on g7 is inevitable.\n\n### **Nijboer F. -  Kalinin A., Donner Memorial 1995**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613466284120075599webp_650a8c13a123a.webp)*\n***White to move***\n\nIn a typical Sicilian battle, Black has neglected development and is now punished by a queen and Knight in tandem.\n**15.e5! dxe5 16.Ng4!**\n\nAnother way to the goal was 16.fxe5!? Qxe5 17.Ng4! Qc5+ 18.Kh1 Nxd3 19.Nxf6+ gxf6 and here, instead of reestablishing the material balance with 20.cxd3?, White would go for mate with 20.Ne4! Qe5 21.Nxf6+ Kg7 22.Qxh7 mate.\n**16...Nxd3 17.Nxf6+ gxf6 18.Ne4!**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/161346639018580772webp_650a8c255acb8.webp)**\n\nOne Knight left, another one arrives. Not 18.cxd3? f5 and Black survives.\n**18...Nxf4 19.Rxf4**\n\nGetting rid of the last defender.\n**19...exf4**\n\nHere Black resigned for obvious reasons.\n**20.Nxf6+ Kg7 21.Qg5+ Kh8 22.Qh6**\n\nThe only way to avoid mate on h7 is now 22...Qxc2, but then follows 23.Qxf8 mate instead.\n\n### **Cebalo M. -  Horvath J., Zenica 1987**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613466518891355539webp_650a8c50e8c56.webp)*\n***White to move***\n\nHere Black has just moved their Bishop from g7 to d4, creating the threat of mate in one. Relying on the team of Queen and Knight, White rejects the enemy attack and goes for the black King!\n**35.Rxd4! cxd4 36.Qc8+ Ke7 37.Nf5+ Kf6 38.g4!!**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613466607194293454webp_650a8c64c5454.webp)**\n\nA beautiful move that introduces the threat of 39.Qd8+ Kg6 40.Qg5 mate, among other things.\n**38...Re1+ 39.Kf2 Re4?**\n\nOmitting the aforementioned threat, but also after 39...Qh2+ 40.Kxe1 Qg1+ 41.Kd2 Qf2+ 42.Kd1 Qf1+ 43.Kc2 d3+ 44.Kb3 White would win.\n**40.Qd8+**\n\nBlack resigned.\n\n### **Iljiushenok I. -  Andriasian Z., EUR-ch 2017**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613466724682131024webp_650a8c7151db2.webp)*\n***White to move***\n\nIn this rather chaotic position, White spots a distant mating motif with the Queen and the Knight.\n**56.Qa1! Bxa2**\n\n56...Ba6 57.Rxc8+ Kxc8 58.Qh8+ would lead to exactly the same thing.\n**57.Rxc8+ Kxc8 58.Qh8+!**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613466830360911919webp_650a8c7d2af01.webp)**\n\nFrom here on, all White has to do is approach their Queen to the mating square on e8.\n**58...Kd7 59.Qg7+**\n\nIn view of 59...Ke8 60.Qf8+ Kd7 61.Qf7+ Kc8 62.Qe8+ Black resigned.\n\n### **Giri A. -  Naiditsch A., European Club Cup 2012**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613466925479438298webp_650a8c8a6977c.webp)*\n***White to move***\n\nEven the world’s best players sometimes forget about the dangerousness of the Queen and Knight team.\n**34.Qd1?**\n\nSafety could be reached by 34.Qf1 Qe6 35.Rc1, while the engine even suggests the cool 34.Qxb4!? Ne4 35.Bb6.\n**34...Rd5! 35.Rd4**\n\nIt seems that White is about to simplify into a better endgame, however...\n**35...Ne4!**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613467030420528474webp_650a8c982f9ac.webp)**\n\nOuch! Suddenly there is no good defense against the threat of 36...Qxf2+ 37.Kh1 Nxg3 mate.\n**36.f3 Qe5!**\n\nVery nice, White is unable to defend g3 and d4 at the same time.\n**37.Rxd5**\n\nNo better is 37.fxe4 Rxd4 or 37.Rxe4 Rxd1+.\n**37...Qxg3+**\n\nBlack gives mate on f2 next move. In fact, Giri had already resigned after 36...Qe5.\n\n### **Szeberenyi A. -  Forgacs J., Balatonlelle 2005**\n\n*![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613467152610668724webp_650a8cb634550.webp)*\n***White to move***\n\nAt first sight, White appears to be in huge danger. Not only is 19...c2 in the air, an even stronger threat exists: 19...Qd2+! 20.Rxd2 Rb1+ with mate.\n\nFortunately, there’s a move that defends against both threats, and also wins the game!\n**19.Bd3! Bxd1**\n\nThis loses on the spot, but also after 19...Ke7 20.f3 Be6 21.O-O White should win without major difficulties.\n**20.Qc8+ Ke7 21.Nf5+ Ke6 22.Qc6\n\nWhat a nice mate!**\n\n**![Knight & Queen: A Powerful Attacking Team](https://chessmood.sfo3.cdn.digitaloceanspaces.com/chessmood/images/articles/787/1613467281546367212webp_650a8cc48bac8.webp)**\n\n**Final thoughts**\n------------------\n\nThese examples should help you to spot Queen and Knight mating motifs in your own games, and inspire you to victory!\n\nI hope you’ve enjoyed this article.\n\nYou can also check today’s Daily Lesson with a Grandmaster, where I show another nice example on this topic.\n\nGood luck using your Queen and Knight team in future attacks?\n\n**P.S**. Feel free to share your thoughts and ask any questions about [this article in our forum](http://chessmood.com/forum/main-channel/new-article-knight-queen-a-powerful-attacking-team-2059).\n\n*Originally published Feb 16, 2021*\n\n[![facebook](/img/facebook-black.svg)](http://www.facebook.com/sharer.php?u=https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team)\n[![twitter](/img/twitter-black.svg)](https://twitter.com/share?url=https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team&text=ChessMood)\n[![linkedin](/img/linkedin.svg)](http://www.linkedin.com/shareArticle?mini=true&url=https://chessmood.com/blog/knight-and-queen-a-powerful-attacking-team)\n\nDon’t forget to share this article!\n\n[![chessmood]()](/)\n\n* [Pricing](https://chessmood.com/become-a-pro)\n* [Give a gift](https://chessmood.com/chess-gift)\n* [Refer a friend](https://chessmood.com/refer-a-friend)\n* [MoodCoin rewards](https://chessmood.com/moodcoin)\n* [Success stories](https://chessmood.com/success-stories)\n* [Careers](https://chessmood.com/careers)\n\n* [Study plan](https://chessmood.com/chess-study-plans)\n* [Privacy policy](https://chessmood.com/privacy-policy)\n* [Terms of service](https://chessmood.com/terms-of-service)\n* [Refund policy](https://chessmood.com/refund-policy)\n* [Cookie policy](https://chessmood.com/cookie-policy)\n* [Contact us](https://chessmood.com/contact)\n\n### Get in touch\n\nWant to join us? Send us a word and we’ll get back to you with a personalized offer!\n\nSubscribe\n\nSecured with SSL.\nCopyright © 2024 ChessMood\n\nThis website uses cookies. To learn more, visit our [Cookie Policy](https://chessmood.com/cookie-policy).\n\n[Accept](#)\n\n![email_subscribe](/img/popup.webp)\n![email_subscribe](/img/Mobile_blog_popup.webp)\n\nYou are in! 🥳\n-------------\n\nCheck your email inbox shortly for your welcome email and for a ton of exclusive tips and advice from our Grandmasters.\n\nIt’s your journey  and your next click!\n---------------------------------------\n\nJoin our over 50,000 users and don’t miss your opportunity to **speed up your\n chess growth** with exclusive tips and advice from **Grandmasters**, delivered into your inbox.\n\nI am in 😎\n\n No spam, no sales. We only provide value. If you’ll\n not be like “Wow!”, we owe you a beer 😉",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "fe1b25f0-3143-4762-9549-e85e81bdaf69",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The analysis of the chess position indicates that Black has a strong advantage with the knight on d4 and the queen on h5.",
+                "Given the coordination of Black's pieces, the move Qh1+ is a check that forces White's king to move, leading to a winning position for Black.",
+                "This move not only puts the White king in check but also sets up for further attacks with the knight and rook."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "fe1b25f0-3143-4762-9549-e85e81bdaf69",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "f6d907b2-b5be-44c4-b132-9c1beea0f697",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "best_move_for_black",
+            "unit": "",
+            "value": "Qh1+"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "f6d907b2-b5be-44c4-b132-9c1beea0f697",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        }
+    ]
+}

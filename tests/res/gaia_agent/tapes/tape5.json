@@ -1,0 +1,355 @@
+{
+    "metadata": {
+        "id": "9cd4e34a-5b09-465d-980d-a482e7df7968",
+        "parent_id": "5d2be20d-fedf-4fee-85a2-c02a867c9872",
+        "author": "GaiaAgent",
+        "author_tape_id": null,
+        "n_added_steps": 4,
+        "error": null,
+        "result": {}
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "e54ea78f-0ff1-473a-b140-849b1d2f2c5c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "Of the authors (First M. Last) that worked on the paper \"Pie Menus or Linear Menus, Which Is Better?\" in 2015, what was the title of the first paper authored by the one that had authored prior papers?",
+            "filename": ""
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "98fb70af-28ee-4822-82a3-741f11ef3de7",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Search for the paper titled 'Pie Menus or Linear Menus, Which Is Better?' published in 2015 to identify the authors.",
+                "List the authors of the paper along with their publication history to determine who had authored prior papers.",
+                "Identify the author who had authored prior papers and note their name.",
+                "Search for the first paper authored by this specific author prior to 2015.",
+                "Extract the title of that first paper."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "707dab0f-dfa1-4e31-afd3-b22ca89151b9",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                {
+                    "name": "paper_title",
+                    "description": "The title of the paper in question is 'Pie Menus or Linear Menus, Which Is Better?'",
+                    "format": "string",
+                    "unit": "",
+                    "value": "Pie Menus or Linear Menus, Which Is Better?"
+                },
+                {
+                    "name": "publication_year",
+                    "description": "The paper was published in the year 2015.",
+                    "format": "int",
+                    "unit": "",
+                    "value": 2015
+                }
+            ],
+            "facts_to_lookup": [
+                {
+                    "name": "authors_of_paper",
+                    "description": "The authors of the paper 'Pie Menus or Linear Menus, Which Is Better?' published in 2015.",
+                    "format": "list",
+                    "unit": ""
+                },
+                {
+                    "name": "prior_papers_author",
+                    "description": "The publication history of the authors to identify who had authored prior papers.",
+                    "format": "list",
+                    "unit": ""
+                },
+                {
+                    "name": "first_paper_title",
+                    "description": "The title of the first paper authored by the identified author who had prior publications.",
+                    "format": "string",
+                    "unit": ""
+                }
+            ],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "18fb2bdf-d389-4056-8b73-1f04921eb38d",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Pie Menus or Linear Menus, Which Is Better? 2015 authors"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Pie Menus or Linear Menus, Which Is Better? 2015 authors",
+            "serp": [
+                {
+                    "title": "(PDF) Pie Menus or Linear Menus, Which Is Better?",
+                    "url": "https://www.researchgate.net/publication/283265537_Pie_Menus_or_Linear_Menus_Which_Is_Better",
+                    "content": "20 Sept 2015 — This paper specifically compares pie menus with linear menus. Although other researchers have investigated similar themes it is felt that there ..."
+                },
+                {
+                    "title": "Pie Menus or Linear Menus, Which Is Better?",
+                    "url": "http://pietromurano.org/Papers/Murano-Khan-Published-Version.pdf",
+                    "content": "by P Murano · 2015 · Cited by 11 — The authors compared flower menus with linear menus and polygon menus. Polygon menus are also linked to radial menus where the selectable options are."
+                },
+                {
+                    "title": "Pie Menus or Linear Menus, Which Is Better?",
+                    "url": "https://oda.oslomet.no/oda-xmlui/handle/10642/3162",
+                    "content": "by P Murano · 2015 · Cited by 11 — Murano, P., & Khan, I. N. (2015). Pie Menus or Linear Menus, Which Is Better?. Journal of Emerging Trends in Computing and Information Sciences, 6(9)."
+                },
+                {
+                    "title": "Pie menu",
+                    "url": "https://en.wikipedia.org/wiki/Pie_menu",
+                    "content": "Comparison with other interaction techniques​​ Pie menus are faster and more reliable to select from than linear menus, because selection depends on direction ..."
+                },
+                {
+                    "title": "An Empirical Comparison of Pie vs. Linear Menus - Don Hopkins",
+                    "url": "https://donhopkins.medium.com/an-empirical-comparison-of-pie-vs-linear-menus-466c6fdbba4b",
+                    "content": "Pie menus gain over traditional linear menus by reducing target seek time, lowering error rates by fixing the distance factor and increasing the target size."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "2f905077-9fab-4f70-9485-bdaa4bc3b840",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "http://pietromurano.org/Papers/Murano-Khan-Published-Version.pdf",
+            "fact_description": "authors of the paper 'Pie Menus or Linear Menus, Which Is Better?'",
+            "fact_name": "authors_of_paper"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "2f905077-9fab-4f70-9485-bdaa4bc3b840",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Vol. 6, No. 9, September 2015                                                                                                 ISSN 2079-8407\nJournal of Emerging Trends in Computing and Information Sciences\n©2009-2015 CIS Journal. All rights reserved.\n\nhttp://www.cisjournal.org\nPie Menus or Linear Menus, Which Is Better?\n1 Pietro Murano, 2 Iram N. Khan\n1 Department of Computer Science, the Universal Design of ICT Research Group, Oslo and\nAkershus University College of Applied Sciences, Oslo, Norway\n2 University of Salford, School of Computing, Science and Engineering, Salford, M5 4WT, UK\n\n1\n  pietro.murano@hioa.no, 2\n\n I.N.Khan@edu.salford.ac.uk\n\nABSTRACT\nThis  paper  is  about  a  continuing  investigation  aiming  to  find  out  which  menu  type  is  more  useable  on  a  web  site  or\napplication. This paper specifically compares pie menus with linear menus. Although other researchers have investigated\nsimilar  themes  it  is  felt  that  there  is  still  not  enough  knowledge  regarding  the  various  effects  of  different  menu  types,\nincluding  their  positioning  on  a  screen.  An  empirical  approach  using  an  experiment  to  test  the  effectiveness  and  user\nsatisfaction  of  a  pie  menu  and  a  linear  menu  is  described  in  detail.  Four  tasks  were  administered  to  experimental\nparticipants  under  each  menu  design  in  a  within  users  experimental  design.  Overall  task  time,  number  of  errors  and\nparticipants' subjective opinions were measured. The data were statistically analysed. There were no statistically significant\nresults for task times and errors. However, subjective opinions were overall statistically significant, suggesting a preference\nfor  the  pie  menu  by  participants.  These  results  are  interesting  for  all  web  designers,  user  interface  designers  and\ndevelopers.  The  issues  being  investigated  are  rather  complex,  because  there  is  no  clear  pattern  of  results  to  suggest  a\ncategorical ‘best design’. These results add to the current knowledge in existence regarding menu types and to the wish of\nunderstanding better the issues involved with menu types.\n\nKeywords: Pie menus, radial menus, linear menus, usability, evaluation\n\n1.   INTRODUCTION\n\nIn  2010  Kevin  Kelly  [1]  suggested that the  web\ncontained approximately one trillion web pages. Whether\nthis  figure  is  correct  or  not,  the  amount  is  likely  to  be\nmore in 2015 than in 2010. Furthermore, most web pages\nare  not  entities  in  isolation,  but  in  most  cases  web  pages\nmake up the content of web sites, i.e. a web site is likely\nto contain two or more web pages.\n\nAlso,  most  web  sites  containing  several  web\npages  will  tend  to  have  a  navigation  mechanism  or\nstructure  to  allow  users  to  navigate  from  one  page  to\nanother within a particular site.\n\nDepending  on  how  the  navigation  structure  is\ndesigned,  this  can  either  create  a  good  or  bad  user\nexperience  (UX).  The  researchers  in  this  paper  are\ninvestigating the usability of different types  of menus  on\nweb  pages.  While  there  have  been  other  researchers\ninvestigating these issues, it could appear that there is no\nmore  work  left  to  do  in  this  area.  However,  when  one\nlooks  collectively  at  the  results  of  these  other  studies,\nthere is no overall consistent pattern of results to suggest\nthat one menu type is  much better than  some  other.  This\ntherefore  suggests  that  there  is  still  some  lack  of\nknowledge\nimportant  aspect  of  web  site\nconstruction.\n\nthis\n\nin\n\nA  pie  menu  (radial  menu)  is  a  type  of  menu\nwhich can be used for navigation purposes, e.g. on a web\nsite  or  application.  Such  a  menu  can  have  the  same\nfunctionality  as  a  linear  menu.  Further,  a  pie  menu,  with\ndegrees of variance, can be similar in appearance to a pie\nchart used in a typical spreadsheet application.\n\nIn  this  paper  therefore,  a  brief  consideration  of\nsome of the main literature in the area is presented. Then\n\nan  experiment  the  authors  conducted  is  described  along\nwith  the  results  obtained.  This  is  followed  by  some\nconclusions.\n\n2.   KEY LITERATURE\n\nMost  efforts  in  the  research  and  development\ncommunity have concentrated on linear menus. Therefore\nthe amount of work  that has been done in relation to  pie\nmenus is limited when compared with the work done with\nlinear menus.\n\nIn  a  study  by  Kalbach  and  Bosenick  [2]an\nevaluation  was  carried  out  for  the  development  of  the\nAudi Cars web site.  They tested  linear  menus  on the  left\nand right sides of the web pages of the Audi web site.\n\nthat\n\nThey  found\n\nthere  was  no  significant\ndifference  in  terms  of  task  times  between  the  two  menu\ntypes.  However  they  did  not  test  out  any  other  metrics,\nwhich could have led to some interesting information.\n\nIn  contrast  a  study [3]  carried  out  by one of  the\nauthors  of  this  paper  indicates  that  measuring  other\nmetrics can give other interesting and useful information.\n\nIn  the  study  by  Murano  and  Lomas  [3],  four\nlinear  menu  positions  (top,  bottom,  left  and  right  of  a\npage)  were  evaluated  in  the  context  of  an  online  store.\nThe  results  showed  in  agreement  with  Kalback  and\nBosenick [2] that tasks times did not seem to be affected.\n\nHowever  in  the  Murano  and  Lomas  [3]  study\nerrors  and  mouse  clicks  were  recorded  along  with  final\nparticipant  subjective  opinions.  The  results  showed  that\nthe  top  horizontal  and  left  vertical  positioned  menus\nincurred  fewer  errors  and  fewer  mouse  clicks.  Further,\n\n476\n\n\f      Vol. 6, No. 9, September 2015                                                                                                 ISSN 2079-8407\nJournal of Emerging Trends in Computing and Information Sciences\n©2009-2015 CIS Journal. All rights reserved.\n\nhttp://www.cisjournal.org\n\nparticipants’  levels  of  satisfaction  were  in  line  with  the\nefficiency aspects observed in the study.\n\nThe issues of task time seem to be in agreement\nwith  Faulkner  and  Hayton  [4]  too.  They  tested  left  and\nright  positioned  menus  on  a  fictitious  web  site  selling\nvarious  goods  to  do  with  Christmas  celebrations.  They\nfound no significant differences in task times (in this case\nbuying  something).  However  the  study  would  have\nperhaps  been  much  more  rounded  if  other  performance\nmetrics  had  been  evaluated  along  with  participant\nsatisfaction.\n\nHowever in some work done by McCarthy, Sasse\nand Riegelsberger [5] the position of menus was studied.\nTheir context was a commercial web site where they had\nsimple or complex versions. They evaluated left, top and\nright hand  side  menu  positions.  In  recording  tasks  times,\nthese  were  significantly  longer  with  the  complex  site\nversion.  The\nthree  menu  positions  did  not  differ\nsignificantly when averaged across the tasks done and the\nsimple  and  complex  sites.  However  there  was  better\nperformance  with  the  left  menu  when  users  interacted\nwith  the  first  page  of  the  site.  However,  when  users\ninteracted with the second page there were no differences\nfor performance.\n\nThe authors reasoned that users are able to adapt\nswiftly  to  other  web  page  layouts,  with  performance  not\nbeing  affected negatively.  However the impact of  having\nreduced performance with the interaction of the first page\nis not clear and would need investigating further.\n\nAlthough more work has been carried out in the\ncontext  of  linear  menus  as  described  briefly  above,  the\nwork concerning pie menus is more limited, e.g. in Rubio\nand  Janecek[6]  some  improvements  to  basic  pie  menus\nare  described.  They  developed  pie  menus  as  contextual\nmenus to have transparency, the possibility for the user to\nmove the menu and a feature allowing the user to lock the\npie  menu  open  and  deploy  several  commands  on  one\nobject.  This  was  in  the  context  of  a  ‘graphical  schema\neditor  for  modelling  spatio-temporal  databases’  [6].  The\nideas described in the paper are very interesting; however\nit  would  have  been  also  interesting  and  useful  if  some\nevaluation of this design had been done.\n\nIn Samp and Decker [7] a comparison by means\nof an experiment was carried out with various versions of\npie  menus  and  linear  menus.  Overall  they  found  that\n‘visual  search’  was  faster  with  linear  menus.  However\nradial  menus  were  found  to  be  faster  for  pointing.  The\nauthors  tested  some  interesting  aspects.  The  task  they\ndesigned  for  users  was  for  them  to  ‘select  a  three  word\nphrase of the form adjective-adjective-noun’ [7]. However\nit  would  have  been  good  if  the  tasks  used  in  the\nexperiment  had  a  more  realistic  setting  or  better\necological validity.\n\nIn Bailly, Lecolinet and Nigay [8] flower menus\nare described and evaluated. Flower menus can be viewed\n\nas being related to pie menus because the options appear\nin  a  vaguely  radial  fashion  on  the  screen.  However  their\nfunctionality somewhat differs from a typical pie menu.\n\nThese  allow  the  use  of  mouse-based  gestures  in\noption  selection.  They  also  have  an  expert  and  novice\nmode available. The authors compared flower menus with\nlinear menus and polygon menus. Polygon menus are also\nlinked  to  radial  menus  where  the  selectable  options  are\ndisplayed  in  a  more  symmetrical  fashion  around  a  radial\ntype  shape.  Focusing  on  expert  mode  and  learning,  the\nauthors  obtained  results  from  an  experiment  to  suggest\nthat  flower  and  polygon  menus  were  better  for  learning\nhow to use the expert mode. However flower menus were\nbetter  for  ‘activation’  and  expert  mode  learning.  The\nauthors  conclude  that  flower  menus  are  good  for  ‘large\nbreadth menus’ [8].\n\nThe  menu  concept  and  work  carried  out  is\ninteresting.  However  it  is  felt  that  not  enough  is  known\nabout  how  such  a  menu  would  fare  in  a  real  world\ncontext.  This  aspect  would  need  evaluating  further.  Also\nflower  menus  do  function  in  a  different  manner  when\ncompared with a typical pie menu.\n\nThis  brief  review  of  the  key  literature  indicates\nthat  in  some  areas  there  is  still  knowledge  lacking\nconcerning the usability of pie menus and indeed of linear\nmenus too. The sections that follow will now describe an\nexperiment and the results from the experiment conducted\nby the authors of this paper.\n\n3.   MENU COMPARISON EXPERIMENT\n\n3.1  Hypothesis\n\nOur  main  key  question  regarding  the  use  of  pie\nmenus  or  linear  menus  is:  Which  of  the  two  would  be\nbetter in terms of user performance and user satisfaction?\n\nTo  that  end  the  following  hypotheses  were\n\ndevised to help focus the evaluation efforts:\n\nH1:  The  pie  menu  will  be  faster  than  the  horizontal\n\nlinear menu for task time.\n\nH0: There will be no difference for task time between\nthe pie menu and the horizontal linear menu.\nH1:  The  pie  menu  will  incur  fewer  errors  than  the\n\nhorizontal linear menu.\n\nH0: There will be no difference for errors between the\n\npie menu and the horizontal linear menu.\n\nH1:  Participants  will  have  more  positive  perceptions\nfor  the  pie  menu  compared  to  the  horizontal\nlinear menu.\n\nH0:  There  will  be  no  difference  for  participant\nperceptions  between  the  pie  menu  and  the\nhorizontal linear menu.\n\n3.2  Participants\n\nFor  this  study  we  wanted  participants  to  be\nexperienced  with  computers  and  the  internet.  The  main\nreasons  for  this  requirement  were  to  remove  potential\n\n477\n\n\f      Vol. 6, No. 9, September 2015                                                                                                 ISSN 2079-8407\nJournal of Emerging Trends in Computing and Information Sciences\n©2009-2015 CIS Journal. All rights reserved.\n\nhttp://www.cisjournal.org\n\nproblems of lack of basic knowledge with computers and\nthe  internet  in  novices  and  to  see  the  effects  of  the\nexperimental conditions on experienced users.\n\nto\n\nIn  order\n\ntry  and  discover  prospective\nparticipants'  experience  levels  we  used  a  recruitment\nquestionnaire.  We  asked  recruits  to  report  the  amount  of\ntime  they  spent  on  the  web  and  their  experience  with  e-\ncommerce explicitly. It was decided that spending a large\namount  of  time  on  the  web  and  remaining  engaged  in  e-\ncommerce  was\nindicate  expertise  and\nto\nengagement  with  the  Web  as  a  medium.  On  average,\nparticipants  were  expected  to  use  the  internet  on  a  daily\nbasis or 20 hours per week or more.\n\ntaken\n\nPotential  participants'  comfort\n\nlevels  with\ncomputer  usage  were  also  ascertained  by  means  of  the\nrecruitment questionnaire.  We  expected  reported  comfort\nlevels  to  be  fairly  high  (3  points  or  more  on  a  Likert-\ntype[9]  scale  of  5  points  on  the  questionnaire).  Further\nthere was the expectation that participants should be using\ncomputers for a wide range of purposes, preferably using\nthe  internet  for  academic  research,  e-shopping,  gaming\nand information gathering, e.g. job hunting and browsing\nthe news etc.\n\nLastly all participants had never used a pie menu\n\nin their computing usage experiences.\n\n3.3  Pilot Test\n\nPrior  to  conducting  the  experiment  with  the\nrecruited participants, a pilot test was conducted with two\nparticipants. They were selected after they met the desired\nrecruitment criteria. Observations from the pilot test were\nused to revise the method for carrying out the experiment\nwith the eventual real participants of the study.\n\nAt the end of the pilot test, the participants were\ngiven  a  post-experiment  questionnaire  to  elicit  their\nopinions  about  their  performance,  but they  had  difficulty\nin  answering  four  questions  which  were  specifically\nrelated  to  the  tasks  (see  the  Apparatus  and  Materials\nsection  below  for  a  full  description  of  the  tasks)  as  they\ncould  not  remember  what  had  'happened'  in  the  four\ndifferent  tasks.  In  these  questions  users  had  to  mark\naLikert-type  scale  according  to  the  level  of  ease  they\nexperienced to accomplish the tasks.\n\nIn  order  to  resolve  this  issue,  in  the  actual\nexperiment it was decided to ask participants to complete\neach  question  relevant  to  each  task  immediately  after\ncompleting a respective task.\n\n3.4  Design\n\nA  within  users  design  was  used  to  execute  the\nexperiment. This was chosen because a within users study\ncan  help  in  reducing  issues  associated  with  individual\ndifferences.  Hence,  all  the  participants  were  exposed  to\nboth menu designs.\n\nFurthermore, the within users design was applied\nby having half of the participants using the pie menu first\nand then  the  linear  menu.  The  other  half  of  the  group  of\nparticipants  used  the  linear  menu  first  and  then  the  pie\nto  allocate\nmenu.  Random  allocation  was  used\nparticipants to a particular ordering of menu use.\n\n3.5  Variables\n\nThe  independent  variables  were  the  two  menu\ntypes (pie and linear) and the type of tasks which involved\nfinding\nitems/information  on  a  specially  developed\nprototype web site.\n\nThe  dependent  variables  were  the  performance\n\nand the participants' subjective opinions.\n\nThe  dependent  measures  were  the  overall  task\ntime,  the  number  of  errors  (i.e.  errors  occurred  when  the\nuser  selected  an  incorrect  menu  item),  and  participants'\nsubjective opinions regarding various features of the web\nsite and the navigation used.\n\nThe  perceptive  opinions  were  elicited  by  means\nof a post-experiment questionnaire which covered detailed\naspects of the design of the basic web site, the navigation\nbar  used  and  aspects  of  the  participants'  feelings  during\nthe  experiment.  A  Likert-type  scale  ranging  from  1  to  5\nwas used for all the questions, where for all questions a 5\nscore was the highest possible positive score that could be\nallocated. The questionnaire covered the topics of ease of\nlearning, simplicity of the navigation and ease of use.\n\n3.6  Apparatus and Materials\n\nFor  the  experiment  various  items  of  apparatus\n\nand equipment were used. These were:\n\n  An  HP\n\nlaptop  with\n\nthe\n\nfollowing  main\n\nspecification:\n\no  HP Pavilion dv6 Notebook PC,\no  Windows  Vista  Home  Premium  64-bit\n\nEnglish,\nIntel® CoreTM2 Duo CPU @ 2.00GHz,\n\no\no  4 GB RAM,\no  14.5” Screen.\n\n  A stopwatch.\n  A pre experiment questionnaire.\n  A post experiment questionnaire.\n  A consent form.\n  The  tasks  sheets  containing  four  tasks  for  each\n\nmenu type.\n\nThe  tasks  were  formulated  to  be  performed  at\nboth website versions separately. In each task participants\nwere  required  to  find  particular  products  having  specific\ncharacteristics.  For  each  menu  type  four  different  tasks\nwere devised. The tasks were equivalent to each other in\nterms of efficiency, difficulty, time taken to search menu\nitems  and  in  terms  of  where  the  required  items  appeared\non  the  screen.  This  approach  was  used  to  minimize\n\n478\n\n\f      Vol. 6, No. 9, September 2015                                                                                                 ISSN 2079-8407\nJournal of Emerging Trends in Computing and Information Sciences\n©2009-2015 CIS Journal. All rights reserved.\n\nhttp://www.cisjournal.org\n\npossible learning effects from one menu type to another in\nthe within users design setup. Two out of four tasks were\neasier  as  they  belonged  to  the  second  level  of  the  pie\nmenu  while  the  remaining  two  tasks  were  comparatively\ndifficult belonging to the third level of the menu design.\n\nFurthermore, four different tasks were devised as\n\nfamiliarization tasks for the pie menu.\n\nTherefore the actual task list used is listed below:\n\nPie Menu Task list:\n\n  Task1  -  Find  out  the  screen  size  of  the  “HTC\n\nRhyme” Mobile Phone.\n\n  Task2  -  Find  out  the  processor  speed  of  the\n“Apple IMAC MC309” Desktop Computer.\n  Task3  -  Find  out  the  resolution  of  the  “LG\n\nL1510M 15\"” LCD Flat Panel Monitor.\n\n  Task4  -  Find  out  how  many  print  modes  are\nthe  “Canon  SELPHY  CP710\n\nsupported  by\nCompact Photo Printer”.\n\nLinear Menu Task list:\n\n  Task1  -  Find  out  the  screen  size  of  the  “Apple\n\niMac MC510LL/A” Desktop Computer.\n\n  Task2 - Find out the platform for the “HTC One\nphone.\nMobile\nV”\nTask3 - Find out the aspect ratio of the “W2040T\n20-Inch 720p LCD” LG Monitor.\n\n  Task4  -  Find  out  the  item  width  of  “Canon\n\nPIXMA MP 210” Photo Printer.\n\nThe  Pie  Menu  familiarization  tasks  are  listed\nbelow  (see  next  section  for  how  these  were  used  during\nthe experiment):\n\n  Task 1- Please clicks on the ‘Bird’ menu item.\n  Task  2  -  Please  find  and  click  the  ‘Ford’  menu\n\nitem under ‘Cars’ menu item.\n\n  Task 3 - Please click the ‘Banana’ menu item.\n  Task 4 - Please find and click the ‘Nandos’ menu\n\nitem under the ‘Fast-food’ menu item.\n\n4. PROCEDURE\n\nA  sample  of  16  participants  was  recruited\nencompassing  students  at  a  university.  The  experiment\nwas  conducted  in  a  project  study  room  at  the  university.\nThe  experimenter  was\nthe\nin\nparticipants.  The  room  was  quiet  and  private.  The  door\nwas kept closed to avoid distractions. Overall each session\nwith each participant lasted approximately 15 minutes.\n\nthe  same  room  as\n\nOnce a participant had arrived they were greeted\nand  asked  to  be  seated.  Afterwards,  a  consent  form  was\nread  and  signed  by  the  participant.  The  consent  form\nspecified  some  details  of  the  research  and  assured\nthat\nparticipants\nto\nthere  was  no  risk\nconfidentiality  would  be  maintained,\ntheir\nparticipation was voluntary and that they could terminate\n\nthem,\nthat\n\nthat\n\nfollowed  by\n\ntheir  participation  at  any  time.  Signing  the  consent  form\nwas\na  pre-experiment\nfilling  out\nquestionnaire.  This  questionnaire  inquired  about  the\ndemographic  information  of  participants  as  well  as  their\nexperience  and  comfort  levels  regarding  computer  and\ninternet usage.\n\nParticipants were then randomly assigned to one\nof the  menu types (see  Design  section above for specific\ndetails)\n\nAt  the  start  of  each  task,  each  participant  was\nrequested to read aloud the task description from a printed\ncopy  of  the  task  list  and  then  to  begin  the  task.  As  each\nparticipant had no experience with pie menus, just before\nthe  tasks  were  undertaken  with  the  pie  menu,  the\nparticipants were given some familiarization tasks with a\npie  menu.  Then  the  real  tasks  were  undertaken  by  each\nparticipant. The pie menu used in the familiarization stage\nwas  different  to  the  pie  menu  used  in  the  actual\nexperiment.  The  functionality  was  similar,  but\nthe\nimagery and content were different.\n\nAfter completing the tasks with both websites, a\npost-experiment questionnaire was handed to participants\nto  record  their  experiences.  The  questionnaire  asked\nparticipants' opinions about ease of learning, simplicity of\nthe navigation and ease of use.\n\nDuring  the  experiment  if  a  participant  asked\nquestions regarding issues that arose which they felt were\nnot  resolvable,  with  the  hope  of  receiving  hints from  the\nexperimenter,  a  prepared  response  was  given.  To  avoid\nany bias, the response to all the questions regarding help\nor  hints  to  complete  a  task was:  ‘Go  ahead  and  give  it  a\ntry and I will note where it will take you’.\n\nAt\n\nthe  end  of\n\nthe\nparticipants,  each  received  a  chocolate  bar  as  a  small\nremuneration for their participation.\n\nthe  experiment  with\n\n5. RESULTS\n\nAll  the  collected  data  was  firstly  explored  with\nsummary  statistics  and  examining  the  distributions  and\noverall  patterns.  Complete  results  are  not  included  here\nfor  the  purpose  of  brevity.  However  means  and  standard\ndeviations  (SD)  are  included  in  Appendix  1.The  initial\nexamination suggested that there was enough normality in\nthe  data  to  use  a  parametric  test.  Therefore  repeated\nmeasures one-way ANOVA was used.\n\nFor\n\ntask\n\ntimes  and  errors,  no  significant\ndifferences  were  indicated  by  the  ANOVA  test  and  will\ntherefore  not  be  discussed  further  in  this  section.  These\nwere  the  only  two  performance  aspects  recorded  in  the\nexperiment.\n\nThe  other  data  that  was  collected  was  of  a\nsubjective  nature  and  was  elicited  by  means  of  a  10\nquestion  post-experiment  questionnaire  using  Likert-type\nscales. Each question was asked in relation to each menu\n\n479\n\n\f      Vol. 6, No. 9, September 2015                                                                                                 ISSN 2079-8407\nJournal of Emerging Trends in Computing and Information Sciences\n©2009-2015 CIS Journal. All rights reserved.\n\nhttp://www.cisjournal.org\n\ntype.  Therefore  each  question  had  two  answers  which\ncould then be compared.\n\nQuestion  1  asked  users  to  rate  how  simply  they\nfelt the navigation to be. Question 3 asked users to rate the\nease of learning for each menu. Question 9 asked users to\nrate how logical they felt the organisation of the menu and\nsub-menus  to  be.  Question  10  asked  users  to  rate  how\nconfused  they  became  during  their  interaction  with  the\nmenus. For all these questions, there were no statistically\nsignificant  results.  Therefore  the  actual  ANOVA  results\nare not presented here for brevity.\n\nHowever, for Question 2, there was a statistically\nsignificant  result  F(1,15)  =  19.12,  p<0.001.  This  asked\nusers  to  rate  how  pleasant  they  felt  each  menu  to  be  in\nappearance. The pie menu was scored significantly higher\nthan the equivalent linear menu.\n\nFor  Question  4,\n\nthere  was  a  statistically\nsignificant  result  F(1,15)  =  5.45,  p<0.034.  This  asked\nusers to  rate their  comfort levels  whilst using  each menu\ntype.  The  pie  menu  was  scored  significantly  higher  than\nthe equivalent linear menu.\n\nFor  Question  5,\n\nthere  was  a  statistically\nsignificant  result  F(1,15)  =  5.95,  p<0.028.  This  question\nconcerned Task 1 and asked users to rate the ease of their\n'searching'  for  this  task.  The  pie  menu  was  scored\nsignificantly higher than the equivalent linear menu.\n\nFor  Question  6,\n\nthere  was  a  statistically\nsignificant  result  F(1,15)  =  5.95,  p<0.028.  This  question\nconcerned Task 2 and asked users to rate the ease of their\n'searching'  for  this  task.  The  pie  menu  was  scored\nsignificantly higher than the equivalent linear menu.\n\nFor  Question  7,\n\nthere  was  a  statistically\nsignificant  result  F  1,15)  =  4.75,  p<0.046.  This  question\nconcerned Task 3 and asked users to rate the ease of their\n'searching'  for  this  task.  The  pie  menu  was  scored\nsignificantly higher than the equivalent linear menu.\n\nFor  Question  8,\n\nthere  was  a  statistically\nsignificant  result  F(1,15)  =  6.36,  p<0.023.  This  question\nconcerned Task 4 and asked users to rate the ease of their\n'searching'  for  this  task.  The  pie  menu  was  scored\nsignificantly higher than the equivalent linear menu.\n\n6. DISCUSSION AND CONCLUSION\n\nHaving  statistically  analysed  the  data  collected\nduring  the  experiment,  some  interesting  results  were\nobtained.  For  performance  no  statistically  significant\nresults  were  observed.  For  times  and  errors  during  the\ntasks,  the  data  suggests  that  using  a  pie  menu  or  linear\nmenu  does  not  affect  performance  in  terms  of  times  and\nerrors. Positive hypotheses 1 and 2, which suggested that\nthe pie menu would perform better, are therefore rejected\non the basis of the above.\n\nHowever,  the  last  positive  hypothesis  which\nsuggested  that  the  pie  menu  would  be  'preferred'  is\naccepted,  because  the  data  for  subjective  opinions  has  a\nsubstantial  amount  of  significant  statistical\nresults\nindicating  the  pie  menu  to  have  been  perceived  more\npositively than the linear menu.\n\nHowever,  one  of  the  potential  issues  that  is\nunclear is whether the subjective opinions were as a result\nof seeing and interacting with something that was perhaps\nperceived at that moment in time as being new, different\nand  maybe  a  fun  activity.  This  question  is  not  easily\nresolved and it would probably take a longer term study to\ninvestigate  this  matter.  This  would  need  to  be  done  with\nsome software or a web site that is more fully developed\nand in the context of something more real that users could\nengage  with  on  a  regular  basis.  Preferences  over  time\ncould thus be elicited from a group of users. This can be\ndifficult  to  achieve  because  users  would  need  some\npositive  incentive  to  use  such  a  system  over  a  period  of\ntime and thus form more mature opinions.\n\nSome of the main previous studies involving pie\nmenus  (or  similar)  have  suggested  a  difference  in\nperformance depending on menu type. Some studies also\nhad  the  common  characteristic  of  having  tasks  that  were\nnot of the kind used in real world situations whilst using a\ncomputer. The work described in this paper is advancing\nthis  area,  because  firstly,  the  tasks  designed  for  the\nexperiment were much more ‘real’ and therefore had more\necological  validity.  Secondly,  the  fact  that  our  study\nsuggests  no  difference  in  performance  with  either  menu\ntype,  while  other  studies  have  shown  some  differences,\ncan indicate that there are still some issues to discover.\n\nFurthermore,  this  study  and  some  of  the  other\nstudies  may  have  the  fault  of  using  menus  that  are  too\nsimple in nature. Perhaps future studies should ensure that\ndeeper  levels  of  menus  are  tested.  This  may  show  some\ndifferences  at  deeper  levels  but  not  at  higher  levels  and\nhaving this knowledge could be useful and interesting.\n\nREFERENCES\n[1]   Kelly, K. (2010)  What  Technology Wants, Viking\n\nBooks.\n\n[2]   Kalbach,  J.  &Bosenick,  T.  (2003)  Web  Page\nLayout:  A  Comparison  between  Left  and  Right\nJustified Site Navigation Menus, Journal of Digital\nInformation, Vol 4, No 1.\n\n[3]   Murano,  P.  &  Lomas,  T.J.\n\n(2015) Menu\nPositioning  on  Web  Pages.  Does  it  Matter?,\nInternational  Journal  of  Advanced  Computer\nScience  and  Applications,  Vol.  6,  Issue  4,  April\n2015.\n\n[4]   Faulkner, X. &Hayton, C (2011) When Left Might\nNot Be  Right, Journal of  Usability Studies, Vol 6,\nIssue 4, P. 245-256.\n\n480\n\n\f      Vol. 6, No. 9, September 2015                                                                                                 ISSN 2079-8407\nJournal of Emerging Trends in Computing and Information Sciences\n©2009-2015 CIS Journal. All rights reserved.\n\nhttp://www.cisjournal.org\n\n[5]\n\nJ.D. McCarthy, M.  A.  Sasse,  and J. Riegelsberger,\n(2004)  Could  I  Have  the  Menu  Please?  An  Eye\nTracking Study of Design Conventions, People and\nComputers XVII — Designing for Society, pp 401-\n414, 2004.\n\n[6]   Rubio,  J.  M  &Janecek,  P.  (2002)  Floating  Pie\nMenus: Enhancing the Functionality of Contextual\nTools, UIST '02 - Adjunct Proceedings of the 15th\nInterface\nannual  ACM  Symposium  on  User\nSoftware and Technology.\n\n[7]   Samp,  K.  &  Decker,  S.  (2010)  Supporting  Menu\nDesign  With  Radial  Layouts,  Proceedings  of  the\n\nInternational  Conference  on  Advanced  Visual\nInterfaces, ACM.\n\n[8]   Bailly, G., Lecolinet, E. &Nigay, L. (2008) Flower\nMenus: A New Type of Marking Menu With Large\nMenu Breadth, Within Groups and Efficient Expert\nMode  Memorization,  Proceedings  of  the  working\nconference  on  Advanced  Visual  Interfaces,  AVI\n2008, Napoli, Italy, May 28-30.\n\n[9]   Likert,  R.A.\n\nthe\nMeasurement  of  Attitudes,  Columbia  University\nPress, NY, 1932.\n\n(1932)  Technique\n\nfor\n\nAPPENDIX 1\n\nDescriptive statistics\n\nTime T1 Linear\nTime T1 Pie\nTime T2 Linear\nTime T2 Pie\nTime T3 Linear\nTime T3 Pie\nTime T4 Linear\nTime T4 Pie\nErrors T1 Linear\nErrors T1 Pie\nErrors T2 Linear\nErrors T2 Pie\nErrors T3 Linear\nErrors T3 Pie\nErrors T4 Linear\nErrors T4 Pie\nLinear Q1\nPie Q1\nLinear Q2\nPie Q2\nLinear Q3\nPie Q3\nLinear Q4\nPie Q4\nLinear Q5\nPie Q5\nLinear Q6\nPie Q6\nLinear Q7\nPie Q7\nLinear Q8\nPie Q8\nLinear Q9\nPie Q9\nLinear Q10\nPie Q10\n\nMean\n37.37\n34.12\n29.31\n28.50\n44.75\n39.44\n35.38\n33.25\n1.06\n.75\n.06\n.13\n2.13\n1.69\n.75\n.75\n3.87\n4.06\n2.94\n4.37\n3.56\n4.06\n3.75\n4.31\n3.31\n3.94\n3.44\n4.06\n2.88\n3.50\n3.69\n4.25\n4.00\n4.06\n2.38\n2.13\n\nSD\n20.232\n21.587\n10.229\n8.748\n10.517\n14.408\n15.819\n13.883\n.929\n.775\n.250\n.342\n1.025\n.946\n.683\n.683\n.719\n.680\n.772\n.806\n.629\n.772\n.683\n.704\n.946\n.680\n.629\n.680\n.719\n.816\n.793\n.577\n.730\n.854\n1.147\n1.204\n\nN\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n16\n\n481",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "90f7f865-41db-4e72-bc07-ca495b7d6014",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The authors of the paper 'Pie Menus or Linear Menus, Which Is Better?' are Pietro Murano and Iram N. Khan.",
+                "Next, I need to check the publication history of Pietro Murano to find out if he authored any papers prior to 2015."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "90f7f865-41db-4e72-bc07-ca495b7d6014",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "b767a058-9594-4bdf-a638-ef43c7590eb6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Pietro Murano publication history"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "b767a058-9594-4bdf-a638-ef43c7590eb6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Pietro Murano publication history",
+            "serp": [
+                {
+                    "title": "Publications",
+                    "url": "http://pietromurano.org/publications.html",
+                    "content": "Murano, Pietro (2003) Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery - PDF, 7th International Conference on ..."
+                },
+                {
+                    "title": "Pietro Murano - Publications",
+                    "url": "https://dl.acm.org/profile/81327490721/publications?Role=author",
+                    "content": "Abstract. This paper presents new, novel and useful Universal Design principles in the context of mobile augmented reality (AR) applications."
+                },
+                {
+                    "title": "Murano: San Pietro Martire - Corvinus",
+                    "url": "https://corvinus.nl/2017/08/19/murano-san-pietro-martire/",
+                    "content": "19 Aug 2017 — The island of Murano has been famous for its glassmaking industry for over 700 years. In 1291, the government of Venice ordered all ..."
+                },
+                {
+                    "title": "Murano: San Pietro Martire - Corvinus",
+                    "url": "https://corvinus.nl/2018/12/16/murano-san-pietro-martire-2/",
+                    "content": "16 Dec 2018 — In 1806 werd de San Pietro Martire gesloten en werden de meeste van haar kunstwerken in beslag genomen en verplaatst naar de Accademia in ..."
+                },
+                {
+                    "title": "Pietro Bigaglia, versatile Murano businessman",
+                    "url": "https://www.researchgate.net/publication/297973603_Pietro_Bigaglia_versatile_Murano_businessman",
+                    "content": "Pietro Bigaglia, a Muranese glassmaker who was active in the first half of the 19th century, is famous for his blown glass with colored filigree (which ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "4534ba4d-f6e7-4a77-b332-55d4ec3e2473",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "http://pietromurano.org/publications.html",
+            "fact_description": "publication history of Pietro Murano",
+            "fact_name": "prior_papers_author"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "4534ba4d-f6e7-4a77-b332-55d4ec3e2473",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Pietro Murano - Publications\n=======================\nPietro Murano\n=============\n\nPublications\n============\n\n* [Home](http://pietromurano.org/index.html)\n* [Research](http://pietromurano.org/research.html)\n* [Lecturing](http://pietromurano.org/lecturing.html)\n* [Administration](http://pietromurano.org/administration.html)\n* [Popular Media](http://pietromurano.org/popular_media.html)\n* [Contact](http://pietromurano.org/contact.html)\n\nThis section lists all my publications and where possible the publications are included. Click on a title to read a paper.\n--------------------------------------------------------------------------------------------------------------------------\n\nINTERNATIONAL REFEREED JOURNAL PAPERS\n-------------------------------------\n\nAl\\-Jasim, Alyaa \\& Murano, Pietro (2023\\) [Designing User Interface Toggles for Usability \\- PDF](http://pietromurano.org/Papers/JUX_Al-Jasim_Murano_Aug_2023_PUBLISHED_VERSION.pdf), Journal of User Experience, Volume 18, Issue 4, August 2023\\.\n\nShrestha, Sayush Lal \\& Murano, Pietro (2022\\) [The Design and Evaluation of an Online Dictionary User\nInterface \\- PDF](http://pietromurano.org/Papers/Online Dictionary User Interface - Shrestha-Murano PUBLISHED VERSION.pdf), International Journal of Computing and Digital Systems, Volume 1, March 2022\\.\n\nKeya, Rashika Tasnim \\& Murano, Pietro (2022\\) [Is Carousel Interaction Really Usable? \\- PDF](http://pietromurano.org/Papers/Keya Murano PUBLISHED VERSION.pdf), First Monday, Volume 27, Issue 1, January 2022\\.\n\nChaudhary, Karan Singh \\& Murano, Pietro (2021\\)  [The Design and Evaluation of a New Smartwatch User Interface\\- PDF](http://pietromurano.org/Papers/Chaudhary Murano Published Version.pdf), International Journal of Interactive Mobile Technologies (iJIM), Vol. 15, Issue 13, 2021\\.\n\nAwale, Bikram \\& Murano, Pietro (2020\\)  [A Preliminary Usability and Universal Design Evaluation of a Television App User Interface \\- PDF](http://pietromurano.org/Papers/Awale Murano PUBLISHED Version.pdf), Baltic Journal of Modern Computing, Vol. 8, Issue 3, 2020\\.\n\nSharma, Sushil \\& Murano, Pietro (2020\\)  [A Usability Evaluation of Web User Interface Scrolling Types \\- PDF](http://pietromurano.org/Papers/Sharma-Murano-Paper - Final Version.pdf), First Monday, Vol. 25, Issue 3, February 2020\\.\n\nSuru, Hassan Umar \\& Murano, Pietro (2019\\)  [Security and User Interface Usability of Graphical Authentication Systems A Review\n \\- PDF](http://pietromurano.org/Papers/Published Version Murano Suru.pdf), International Journal of Computer Trends and Technology, Vol. 67, Issue 2, February, p.17\\-36\\.\n\nMurano, Pietro \\& Ali, Rao Muhammad Danial (2018\\)  [A Preliminary Investigation into the Usability of Force Touch Interaction in a Mobile Context\n \\- PDF](http://pietromurano.org/Papers/Force-Touch-Mobile-Context-Murano-Ali-Published-Version.pdf), International Journal of Interactive Mobile Technologies, Vol. 12, Issue 5, p.169\\-181\\.\n\nShrestha, Suraj \\& Murano, Pietro (2018\\)  [An Algorithm For Automatically\nDetecting Dyslexia On The Fly\n \\- PDF](http://pietromurano.org/Papers/Algorithm-Detect-Dyslexia-on-Fly-Shrestha-Murano-Published-Version.pdf), International Journal of Computer Science \\& Information Technology, Vol. 10, Issue 3, p.1\\-18, (c) AIRCC Publishing Corporation.\n\nMurano, Pietro (2018\\)  [A New User Interface for a Text Proofreading Web Portal in a Digitization\nand Crowdsourcing Context\n \\- PDF](http://pietromurano.org/Papers/Crowdsourcing-Paper-FINAL-Web.pdf), International Journal of Web Information Systems, Vol. 14, Issue 1, p.107\\-122\\.\n\nShrestha, Suraj \\& Murano, Pietro (2016\\)  [A Universally Designed and Usable Data Visualization for A Mobile Application in the Context of Rheumatoid Arthritis\n \\- PDF](http://pietromurano.org/Papers/A_Universally_Designed_and_Usable_Data_Visualization-PUBLISHED VERSION.pdf), International Journal of Advanced Computer Science and Applications, Vol. 7, Issue 12, December 2016\\.\n\nMurano, Pietro \\& Sander, Margrete (2016\\)  [User Interface Menu Design Performance and User Preferences: A Review and Ways Forward \\- PDF](http://pietromurano.org/Papers/Published_Version_User_Interface_Menu_Design_Performance_and_User_Preferences_Murano_Sander.pdf), International Journal of Advanced Computer Science and Applications, Vol. 7, Issue 4, April 2016\\.\n\nMurano, Pietro \\& Khan, Iram N. (2015\\)  [Pie Menus or Linear Menus, Which Is Better? \\- PDF](http://pietromurano.org/Papers/Murano-Khan-Published-Version.pdf), Journal of Emerging Trends in Computing and Information Sciences, Vol. 6, Issue 9, September 2015\\.\n\nMurano, Pietro \\& Lomas, Tracey J. (2015\\)  [Menu Positioning on Web Pages. Does it Matter? \\- PDF](http://pietromurano.org/Papers/IJACSA-Murano-Lomas-Published-Version.pdf), International Journal of Advanced Computer Science and Applications, Vol. 6, Issue 4, April 2015\\.\n\nTravis, Charlotte \\& Murano, Pietro (2014\\) A Comparative Study of the Usability of Touch\\-Based and Mouse\\-Based Interaction, International Journal of Pervasive Computing and Communications, Vol. 10, Issue 1\\. PAPER RECEIVED AN EMERALD HIGHLY COMMENDED AWARD 2015\n\nMurano, Pietro \\& Oenga, Kennedy K. (2012\\)  [The Impact on Effectiveness and User Satisfaction of Menu Positioning on Web Pages \\- PDF](http://pietromurano.org/Papers/IJACSA-Murano-Oenga-Journal-Final.pdf), International Journal of Advanced Computer Science and Applications, Vol. 3, Issue 9, September 2012\\.\n\nMurano, Pietro, Gee, Anthony \\& Holt, Patrik O'Brian (2011\\) [Evaluation of an Anthropomorphic User Interface in a Travel Reservation Context and Affordances \\- PDF](http://pietromurano.org/Papers/JoC-Murano-Holt-Gee-Anthro-TravelRes.pdf), Journal of Computing, Volume 3, Issue 8, August 2011\\.\n\nMurano, Pietro \\& Holt, Patrik O'Brian (2011\\) [Evaluation of Human\\-Like Anthropomorphism in the Context of Online Bidding and Affordances \\- PDF](http://pietromurano.org/Papers/JoC-Murano-Holt-Anthro-Bidding-Affordances-Final.pdf), Journal of Computing, Vol 3, Issue 6, June 2011\\.\n\nMurano, Pietro \\& Sethi, Tanvi (2011\\)  [Anthropomorphic User Interface Feedback in a Sewing Context and Affordances \\- PDF](http://pietromurano.org/Papers/IJACSA-Murano-Sethi-Sewing-Affordances.pdf), International Journal of Advanced Computer Science and Applications, Vol 2, Issue 4, April 2011\\.\n\nMurano, Pietro \\& Holt, Patrik O'Brian (2011\\)  [Evaluation of Anthropomorphic Feedback for an Online Auction and Affordances \\- PDF](http://pietromurano.org/Papers/Murano-IJCSI-Final.pdf), International Journal of Computer Science Issues, Vol 8, Issue 2, March 2011\\.\n\nMurano, Pietro \\& Holt, Patrik O'Brian (2007\\) Anthropomorphic Feedback In User Interfaces: The Effect of Personality Traits, Context and Grice's Maxims on Effectiveness and Preferences. International Journal of Technology and Human Interaction, Vol 3, Issue 4, p. 52\\-63\\. \\- IDEA Group Inc.\n\nMurano, Pietro \\& Mackey, Dino (2007\\) Usefulness of VRML Building Models in a Direction Finding Context. Interacting With Computers \\- Elsevier .\n\nBOOK CHAPTERS\n-------------\n\nSzentirmai, Attila Bekkvik \\& Murano, Pietro (2023\\)  [New Universal Design Heuristics for Mobile Augmented Reality Applications \\- PDF](http://pietromurano.org/Papers/Published Version Szentirmai Murano 2023.pdf), HCI International 2023 – Late Breaking Papers, 25th International Conference on Human\\-Computer Interaction, HCII 2023, Copenhagen, Denmark, July 23–28, 2023\n Proceedings, Part II Springer LNCS 14055, Eds. Gao, Qin; Zhou, Jia; Duffy, Vincent G.; Antona, Margherita; Stephanidis, Constantine.\n\nMurano, Pietro, Holt, Patrik O'Brian (2009\\) Anthropomorphic Feedback In User Interfaces: The Effect of Personality Traits, Context and Grice's Maxims on Effectiveness and Preferences, In Cross\\-Disciplinary Advances in Human Computer Interaction, User Modeling, Social Computing and Adaptive Interfaces, Eds. Zaphiris, Panayiotis \\& Ang, Chee Siang, IGI Global.\n\nMurano, Pietro (2006\\) Why Anthropomorphic User Interface Feedback can be Effective and Preferred by Users, In Enterprise Information Systems 7, Eds. Chen, Chin\\-Sheng, Filipe, Joaquim, Seruca, Isabel and Cordeiro, Jose, (c) Springer.\n\nINTERNATIONAL REFEREED PAPERS\n-----------------------------\n\nMurano, Pietro \\& Kongshaug, Petter (2024\\)  [The Usability of Persistent and Non\\-Persistent Headers on Web Pages \\- PDF](http://pietromurano.org/Papers/Murano Kongshaug Web Page Headers.pdf), Proceedings of the 26th International Conference on Enterprise Information Systems (ICEIS 2024\\), April 28\\-30, 2024, Angers \\- France (c) \\- INSTICC, SciTePress.\n\nMunir, Mubashar \\& Murano, Pietro (2023\\)  [The Usability of Hidden Functional Elements in Mobile User Interfaces \\- PDF](http://pietromurano.org/Papers/Munir-Murano-Hidden-Elements-Published-Version.pdf), Proceedings of the 25th International Conference on Enterprise Information Systems (ICEIS 2023\\), April 24\\-26, 2023, Prague \\- Czech Republic (c) \\- INSTICC, SciTePress.\n\nFerati, Mexhid, Murano, Pietro \\& Giannoumis, G. Anthony (2017\\)  [Universal Design of User Interfaces in Self\\-driving Cars \\- PDF](http://pietromurano.org/Papers/Ferati_Murano_Giannoumis_web.pdf), Proceedings of the AHFE 2017 International Conference on Design for Inclusion, July 17\\-21, 2017, The Westin Bonaventure Hotel, Los Angeles, California, USA (c) \\- Springer.\n\nMurano, Pietro \\& Holt, Patrik O'Brian (2010\\)  [Evaluation of an Anthropomorphic User Interface in a Telephone Bidding Context and Affordances \\- PDF](http://pietromurano.org/Papers/Murano-Voices-Bidding-Final.pdf), 12th International Conference on Enterprise Information Systems, Madeira, Portugal, 8\\-12 June. (c) \\- INSTICC. In Cooperation With ACM SIGCHI\n\nMurano, Pietro \\& Tuah, Nooralisa Mohd (2010\\)  [Effectiveness and Preferences of Anthropomorphic Feedback in a Statistics Context \\- PDF](http://pietromurano.org/Papers/Murano-Tuah-Anthro-Statistics.pdf), 12th International Conference on Enterprise Information Systems, Madeira, Portugal, 8\\-12 June. (c) \\- INSTICC. In Cooperation With ACM SIGCHI\n\nMurano, Pietro, Malik, Amir \\& Holt, Patrik O'Brian (2009\\) [Evaluation of Anthropomorphic User Interface Feedback in an Email Client Context and Affordances \\- PDF](http://pietromurano.org/Papers/ICEIS-Milan-Final.pdf), 11th International Conference on Enterprise Information Systems, Milan, Italy, 6\\-10 May. (c) \\- INSTICC.\n\nMurano, Pietro, Ede, Christopher \\& Holt, Patrik O'Brian (2008\\) [Effectiveness and Preferences of Anthropomorphic User Interface Feedback in a PC Building Context and Cognitive Load \\- PDF](http://pietromurano.org/Papers/ICEIS-BarcelonaV2.pdf), 10th International Conference on Enterprise Information Systems, Barcelona, Spain, 12\\-16 June 2008\\. (c) \\- INSTICC.\n\nMurano, Pietro, Gee, Anthony \\& Holt, Patrik O'Brian (2007\\) [Anthropomorphic Vs Non\\-Anthropomorphic User Interface Feedback for Online Hotel Bookings \\- PDF](http://pietromurano.org/Papers/PM-iceis-Portugal-Final.pdf), 9th International Conference on Enterprise Information Systems, Funchal, Madeira, Portugal, 12\\-16 June 2007\\. (c) \\- INSTICC.\n\nMurano, Pietro \\& Mackey, Dino (2005\\) [Effectiveness of VRML Building Models for Direction Finding \\- PDF](http://pietromurano.org/Papers/HCI-2005-LasVegas-paper.pdf), HCI International 2005 \\- 11th International Conference on Human\\-Computer Interaction, Las Vegas, USA, 22\\-27 July 2005\n\nMurano, Pietro (2005\\) [Why Anthropomorphic User Interface Feedback Can be Effective and Preferred by Users \\- PDF](http://pietromurano.org/Papers/ICEIS-Miami-2005.pdf), 7th International Conference on Enterprise Information Systems, Miami, USA, 25\\-28 May 2005\\. (c) \\- INSTICC \\- RECEIVED A BEST PAPER AWARD\\-PUBLISHED AS BOOK CHAPTER by Springer.\n\nMurano, Pietro (2003\\) [Anthropomorphic Vs Non\\-Anthropomorphic Software Interface Feedback for Online Factual Delivery \\- PDF](http://pietromurano.org/Papers/IV-LondonV2.pdf), 7th International Conference on Information Visualisation (IV 2003\\) An International Conference on Computer Visualisation and Graphics Applications, London, England, 16\\-18 July 2003, (c) \\- IEEE.\n\nMurano, Pietro (2002\\) [Anthropomorphic Vs Non\\-Anthropomorphic Software Interface Feedback for Online Systems Usage \\- PDF](http://pietromurano.org/Papers/parisV2-1.pdf), 7th European Research Consortium for Informatics and Mathematics (ERCIM) Workshop \\- 'User Interfaces for All' \\- Special Theme: 'Universal Access'.Paris(Chantilly),France 24,25 October 2002\\. Published in Lecture Notes in Computer Science (C) \\- Springer.\n\nMurano, Pietro (2002\\) [Effectiveness of Mapping Human\\-Oriented Information to Feedback From a Software Interface \\- PDF](http://pietromurano.org/Papers/EFL.pdf), Proceedings of the 24th International Conference on Information Technology Interfaces, Cavtat, Croatia, 24\\-27 June 2002\\.\n\nMurano, Pietro (2001\\) [A New Software Agent 'Learning' Algorithm \\- PDF](http://pietromurano.org/Papers/Agent-Algorithm-2001.pdf), People in Control An International Conference on Human Interfaces in Control Rooms, Cockpits and Command Centres, UMIST, UK, IEE.\n\nMurano, Pietro (2001\\) [Mapping Human\\-Oriented Information to Software Agents for Online Systems Usage \\- PDF](http://pietromurano.org/Papers/Systems-Usage-2001.pdf) People in Control An International Conference on Human Interfaces in Control Rooms, Cockpits and Command Centres, UMIST, UK, IEE.\n\nINTERNATIONAL PRESENTATIONS\n---------------------------\n\nRitchings, Tim. Papoulakis, George. Garvey, David. Murano, Pietro. Sheta, Walaa. (2003\\) [Augmenting Environments By Automated Sign Location and Text Detection \\- PDF](http://pietromurano.org/Papers/HCII2003.pdf) HCI International 2003, 10th International Conference on Human Computer Interaction \\- Symposium on Human Interface (Japan) 2003 \\- 5th International Conference on Engineering Psychology and Cognitive Ergonomics \\- 2nd International Conference on Universal Access in Human Computer Interaction. 22\\-27 June 2003, Crete, Greece.\n\nEffectiveness of Mapping Human\\-Oriented Information to Software Agents for Online Teaching Environments Womens Engineering Society (WES) 73rd Annual Conference \\- Human Interface With Machines. UCLAN,UK, September 2000\\.\n\n(C) Pietro Murano (applies to entire site content) All rights reserved.",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "92083bb6-9132-424b-867c-75580a843ca4",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "Pietro Murano has authored several papers prior to 2015.",
+                "The first paper listed in his publication history is from 2003, titled 'Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery'.",
+                "This paper is the earliest in his publication history."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "92083bb6-9132-424b-867c-75580a843ca4",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "14daea1a-b044-44ec-812e-1c9eb467c32f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "first_paper_title",
+            "unit": "",
+            "value": "Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "14daea1a-b044-44ec-812e-1c9eb467c32f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        }
+    ]
+}

@@ -1,0 +1,516 @@
+{
+    "metadata": {
+        "id": "cedce27f-588c-462a-9f94-89bea08c0051",
+        "parent_id": "2b42444c-fbf1-4f0a-aece-1fc9fa16bf68",
+        "author": "GaiaAgent",
+        "author_tape_id": null,
+        "n_added_steps": 4,
+        "error": null,
+        "result": {}
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "e54ea78f-0ff1-473a-b140-849b1d2f2c5c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "On Cornell Law School website's legal information institute, under the fifth section of federal rules alphabetically, what word was deleted in the last amendment to the first rule in the article that has \"witnesses\" in the most titles as of 2021?",
+            "filename": ""
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "10e1a3b4-94ae-4956-b8ce-0fb6e7c026de",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Search for the Cornell Law School website's Legal Information Institute.",
+                "Locate the section that lists federal rules alphabetically.",
+                "Identify the fifth section in the alphabetical list of federal rules.",
+                "Find the article that has 'witnesses' in the most titles within that section.",
+                "Review the first rule of that article to determine the last amendment.",
+                "Check the details of the last amendment to identify any deleted words.",
+                "Document the specific word that was deleted."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "41fd97ab-d2d4-4e59-bf01-3a99b7900a00",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [],
+            "facts_to_lookup": [
+                {
+                    "name": "cornell_law_school_website",
+                    "description": "The official website of Cornell Law School, which includes the Legal Information Institute.",
+                    "format": "string",
+                    "unit": ""
+                },
+                {
+                    "name": "federal_rules_alphabetical_section",
+                    "description": "The fifth section of federal rules listed alphabetically on the Cornell Law School's Legal Information Institute.",
+                    "format": "string",
+                    "unit": ""
+                },
+                {
+                    "name": "article_with_witnesses",
+                    "description": "The article within the fifth section that has 'witnesses' in the most titles.",
+                    "format": "string",
+                    "unit": ""
+                },
+                {
+                    "name": "first_rule_last_amendment",
+                    "description": "The details of the last amendment to the first rule of the identified article.",
+                    "format": "string",
+                    "unit": ""
+                }
+            ],
+            "facts_to_derive": [
+                {
+                    "name": "deleted_word",
+                    "description": "The specific word that was deleted in the last amendment to the first rule.",
+                    "format": "string",
+                    "unit": ""
+                }
+            ],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "d66f7c67-e103-40ad-91f1-d28d46eda4f0",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Cornell Law School Legal Information Institute federal rules"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Cornell Law School Legal Information Institute federal rules",
+            "serp": [
+                {
+                    "title": "Federal Rules | US Law | LII / Legal Information Institute",
+                    "url": "https://www.law.cornell.edu/rules",
+                    "content": "Federal Rules of Appellate Procedure · Federal Rules of Civil Procedure · Federal Rules of Criminal Procedure · Federal Rules of Evidence · Federal Rules of ..."
+                },
+                {
+                    "title": "Federal Rules of Evidence - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/rules/fre",
+                    "content": "These are the Federal Rules of Evidence, as amended to December 1, 2023. Click on any rule to read it. ARTICLE I. GENERAL PROVISIONS."
+                },
+                {
+                    "title": "Federal Rules of Criminal Procedure - Open Textbook Library",
+                    "url": "https://open.umn.edu/opentextbooks/textbooks/117",
+                    "content": "This series of Federal Rules books, consisting of the Federal Rules of Evidence, Criminal Procedure and Civil Procedure, are powered by the Legal Information ..."
+                },
+                {
+                    "title": "Legal Information Institute",
+                    "url": "https://en.wikipedia.org/wiki/Legal_Information_Institute",
+                    "content": "LII electronically publishes on the Web the U.S. Code, U.S. Supreme Court opinions, Uniform Commercial Code, the US Code of Federal Regulations, several Federal ..."
+                },
+                {
+                    "title": "Federal Rules of Civil Procedure - Open Textbook Library",
+                    "url": "https://open.umn.edu/opentextbooks/textbooks/118",
+                    "content": "The FRCP govern civil proceedings in the United States district courts and are often the foundation for the standard 1L law school course, Civil Procedure."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "c0e4bada-1467-47f0-a42c-eebc9caeabf1",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.law.cornell.edu/rules",
+            "fact_description": "The fifth section of federal rules listed alphabetically.",
+            "fact_name": "federal_rules_alphabetical_section"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "c0e4bada-1467-47f0-a42c-eebc9caeabf1",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Federal Rules | Federal Rules | US Law | LII / Legal Information Institute\n=======================\nPlease help us improve our site!\n\n×\n\n[No thank you](#)\n\n[Skip to main content](#content)\n\n[![Cornell University insignia](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/insignia.gif)](https://www.cornell.edu \"Cornell University\")\n[Cornell Law\n School](https://www.lawschool.cornell.edu/ \"Cornell Law School\")\n[Search\n Cornell](https://www.cornell.edu/search/ \"Search Cornell University\")\n\nToggle navigation\n\nPlease help\n us improve our site!\n\n[Support Us!](/donate)\n\n[Search](#)\n\n* [About\n LII](/lii/about/about_lii)\n\t+ [Who We Are](/lii/about/who_we_are)\n\t+ [What We Do](/lii/about/what_we_do)\n\t+ [Who Pays For This](/lii/about/who_pays_for_this)\n\t+ [Contact Us](/lii/about/contact_us)\n* [Get the\n law](/lii/get_the_law)\n\t+ [Constitution](/constitution \"U.S. Constitution\")\n\t+ [Supreme Court](/supremecourt/text/home \"Supreme Court\")\n\t+ [U.S. Code](/uscode/text \"U.S. Code\")\n\t+ [CFR](/cfr/text \"C.F.R.\")\n\t+ [Federal Rules](/rules \"Federal Rules\")\n\t\t- [Federal Rules of Appellate Procedure](/rules/frap)\n\t\t- [Federal Rules of Civil Procedure](/rules/frcp)\n\t\t- [Federal Rules of Criminal Procedure](/rules/frcrmp)\n\t\t- [Federal Rules of Evidence](/rules/fre)\n\t\t- [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n\t+ [U.C.C.](/ucc \"U.C.C.\")\n\t+ [Law by jurisdiction](# \"Law by jurisdiction\")\n\t\t- [State law](/states)\n\t\t- [Uniform laws](/uniform)\n\t\t- [Federal law](/federal)\n\t\t- [World law](/world)\n* [Lawyer directory](https://lawyers.law.cornell.edu/)\n* [Legal encyclopedia](/wex)\n\t+ [Business law](/wex/category/business_law)\n\t+ [Constitutional law](/wex/category/constitutional_law)\n\t+ [Criminal law](/wex/category/criminal_law_and_procedure)\n\t+ [Family law](/wex/category/family_law)\n\t+ [Employment law](/wex/category/employment_law)\n\t+ [Money and Finances](/wex/category/money_and_financial_problems)\n\t+ [More...](/wex/wex_articles)\n* [Help out](/lii/help_out)\n\t+ [Give](/donate)\n\t+ [Sponsor](/lii/help_out/sponsor)\n\t+ [Advertise](/lii/help_out/advertise)\n\t+ [Create](/lii/help_out/create)\n\t+ [Promote](/lii/help_out/promote)\n\t+ [Join Lawyer Directory](/lii/help_out/join_directory)\n\n*\n\n1. [LII](/)\n2. Federal Rules\n\nFederal Rules\n=============\n\nPrimary tabs\n------------\n\n* [Federal Rules of Appellate Procedure](/rules/frap)\n* [Federal Rules of Civil Procedure](/rules/frcp)\n* [Federal Rules of Criminal Procedure](/rules/frcrmp)\n* [Federal Rules of Evidence](/rules/fre)\n* [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n* [U.S. Supreme Court Rules](/rules/supct)\n\nFederal Rules Toolbox\n---------------------\n\n---\n\n---\n\n* [Accessibility](/lii/about/accessibility)\n* [About LII](/lii/about/about_lii)\n* [Contact us](/lii/about/contact_us)\n* [Advertise here](/lii/help_out/sponsor)\n* [Help](/lii/help)\n* [Terms of use](/lii/terms/documentation)\n* [Privacy](/lii/terms/privacy_policy)\n\n* [![LII logo](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/LII_logo_footer.gif)](/ \"LII home page\")",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "7221d3f2-a731-4249-a9ba-53d888ce1188",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The page contains links to various federal rules, but does not provide specific details about the fifth section or the articles.",
+                "Next, I will need to access each of the federal rules listed to find the fifth section and identify the article with 'witnesses' in the most titles."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "7221d3f2-a731-4249-a9ba-53d888ce1188",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "b1489a8d-2ced-4a80-8503-a7a39e05bcf6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.law.cornell.edu/rules/frap",
+            "fact_description": "The fifth section of federal rules listed alphabetically.",
+            "fact_name": "federal_rules_alphabetical_section"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "b1489a8d-2ced-4a80-8503-a7a39e05bcf6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Federal Rules of Appellate Procedure | Federal Rules of Appellate Procedure | US Law | LII / Legal Information Institute\n=======================\nPlease help us improve our site!\n\n×\n\n[No thank you](#)\n\n[Skip to main content](#content)\n\n[![Cornell University insignia](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/insignia.gif)](https://www.cornell.edu \"Cornell University\")\n[Cornell Law\n School](https://www.lawschool.cornell.edu/ \"Cornell Law School\")\n[Search\n Cornell](https://www.cornell.edu/search/ \"Search Cornell University\")\n\nToggle navigation\n\nPlease help\n us improve our site!\n\n[Support Us!](/donate)\n\n[Search](#)\n\n* [About\n LII](/lii/about/about_lii)\n\t+ [Who We Are](/lii/about/who_we_are)\n\t+ [What We Do](/lii/about/what_we_do)\n\t+ [Who Pays For This](/lii/about/who_pays_for_this)\n\t+ [Contact Us](/lii/about/contact_us)\n* [Get the\n law](/lii/get_the_law)\n\t+ [Constitution](/constitution \"U.S. Constitution\")\n\t+ [Supreme Court](/supremecourt/text/home \"Supreme Court\")\n\t+ [U.S. Code](/uscode/text \"U.S. Code\")\n\t+ [CFR](/cfr/text \"C.F.R.\")\n\t+ [Federal Rules](/rules \"Federal Rules\")\n\t\t- [Federal Rules of Appellate Procedure](/rules/frap)\n\t\t- [Federal Rules of Civil Procedure](/rules/frcp)\n\t\t- [Federal Rules of Criminal Procedure](/rules/frcrmp)\n\t\t- [Federal Rules of Evidence](/rules/fre)\n\t\t- [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n\t+ [U.C.C.](/ucc \"U.C.C.\")\n\t+ [Law by jurisdiction](# \"Law by jurisdiction\")\n\t\t- [State law](/states)\n\t\t- [Uniform laws](/uniform)\n\t\t- [Federal law](/federal)\n\t\t- [World law](/world)\n* [Lawyer directory](https://lawyers.law.cornell.edu/)\n* [Legal encyclopedia](/wex)\n\t+ [Business law](/wex/category/business_law)\n\t+ [Constitutional law](/wex/category/constitutional_law)\n\t+ [Criminal law](/wex/category/criminal_law_and_procedure)\n\t+ [Family law](/wex/category/family_law)\n\t+ [Employment law](/wex/category/employment_law)\n\t+ [Money and Finances](/wex/category/money_and_financial_problems)\n\t+ [More...](/wex/wex_articles)\n* [Help out](/lii/help_out)\n\t+ [Give](/donate)\n\t+ [Sponsor](/lii/help_out/sponsor)\n\t+ [Advertise](/lii/help_out/advertise)\n\t+ [Create](/lii/help_out/create)\n\t+ [Promote](/lii/help_out/promote)\n\t+ [Join Lawyer Directory](/lii/help_out/join_directory)\n\n*\n\n1. [LII](/)\n2. Federal Rules of Appellate Procedure\n\nFederal Rules of Appellate Procedure\n====================================\n\nPrimary tabs\n------------\n\n(As amended to December 1, 2023)\n\n[1](#TitleIII) Title III amended April 16, 2013, effective December 1, 2013.\n\n1. TITLE I. APPLICABILITY OF RULES\n\t1. [Rule 1](/rules/frap/rule_1). Scope of Rules; Definition; Title\n\t2. [Rule 2](/rules/frap/rule_2). Suspension of Rules\n2. TITLE II. APPEAL FROM A JUDGMENT OR ORDER OF A DISTRICT COURT\n\t1. [Rule 3](/rules/frap/rule_3). Appeal as of Right—How Taken\n\t2. [[Rule 3.1](/rules/frap/rule_3.1). Appeal from a Judgment of a Magistrate Judge in a Civil Case] (Abrogated Apr. 24, 1998, eff. Dec. 1, 1998)\n\t3. [Rule 4](/rules/frap/rule_4). Appeal as of Right—When Taken\n\t4. [Rule 5](/rules/frap/rule_5). Appeal by Permission\n\t5. [[Rule 5.1](/rules/frap/rule_5.1). Appeal by Leave under 28 U.S.C. §636(c)(5) ] (Abrogated Apr. 24, 1998, eff. Dec. 1, 1998)\n\t6. [Rule 6](/rules/frap/rule_6). Appeal in a Bankruptcy Case from a Final Judgment, Order, or Decree of a District Court or Bankruptcy Appellate Panel\n\t7. [Rule 7](/rules/frap/rule_7). Bond for Costs on Appeal in a Civil Case\n\t8. [Rule 8](/rules/frap/rule_8). Stay or Injunction Pending Appeal\n\t9. [Rule 9](/rules/frap/rule_9). Release in a Criminal Case\n\t10. [Rule 10](/rules/frap/rule_10). The Record on Appeal\n\t11. [Rule 11](/rules/frap/rule_11). Forwarding the Record\n\t12. [Rule 12](/rules/frap/rule_12). Docketing the Appeal; Filing a Representation Statement; Filing the Record\n\t13. [Rule 12.1](/rules/frap/rule_12.1) Remand After an Indicative Ruling by the District Court on a Motion for Relief That Is Barred by a Pending Appeal\n3. TITLE III. APPEALS FROM THE UNITED STATES TAX COURT[1](#TitleIII_target)\n\t1. [Rule 13](/rules/frap/rule_13). Review of a Decision of the Tax Court\n\t2. [Rule 14](/rules/frap/rule_14). Applicability of Other Rules to the Review of a Tax Court Decision\n4. TITLE IV. REVIEW OR ENFORCEMENT OF AN ORDER OF AN ADMINISTRATIVE AGENCY, BOARD, COMMISSION, OR OFFICER\n\t1. [Rule 15](/rules/frap/rule_15). Review or Enforcement of an Agency Order—How Obtained; Intervention\n\t2. [Rule 15.1](/rules/frap/rule_15.1) Briefs and Oral Argument in a National Labor Relations Board Proceeding\n\t3. [Rule 16](/rules/frap/rule_16). The Record on Review or Enforcement\n\t4. [Rule 17](/rules/frap/rule_17). Filing the Record\n\t5. [Rule 18](/rules/frap/rule_18). Stay Pending Review\n\t6. [Rule 19](/rules/frap/rule_19). Settlement of a Judgment Enforcing an Agency Order in Part\n\t7. [Rule 20](/rules/frap/rule_20). Applicability of Rules to the Review or Enforcement of an Agency Order\n5. TITLE V. EXTRAORDINARY WRITS\n\t1. [Rule 21](/rules/frap/rule_21). Writs of Mandamus and Prohibition, and Other Extraordinary Writs\n6. TITLE VI. HABEAS CORPUS; PROCEEDINGS IN FORMA PAUPERIS\n\t1. [Rule 22](/rules/frap/rule_22). Habeas Corpus and Section 2255 Proceedings\n\t2. [Rule 23](/rules/frap/rule_23). Custody or Release of a Prisoner in a Habeas Corpus Proceeding\n\t3. [Rule 24](/rules/frap/rule_24). Proceeding in Forma Pauperis\n7. TITLE VII. GENERAL PROVISIONS\n\t1. [Rule 25](/rules/frap/rule_25). Filing and Service\n\t2. [Rule 26](/rules/frap/rule_26). Computing and Extending Time\n\t3. [Rule 26.1](/rules/frap/rule_26.1) Disclosure Statement\n\t4. [Rule 27](/rules/frap/rule_27). Motions\n\t5. [Rule 28](/rules/frap/rule_28). Briefs\n\t6. [Rule 28.1](/rules/frap/rule_28.1) Cross-Appeals\n\t7. [Rule 29](/rules/frap/rule_29). Brief of an Amicus Curiae\n\t8. [Rule 30](/rules/frap/rule_30). Appendix to the Briefs\n\t9. [Rule 31](/rules/frap/rule_31). Serving and Filing Briefs\n\t10. [Rule 32](/rules/frap/rule_32). Form of Briefs, Appendices, and Other Papers\n\t11. [Rule 32.1](/rules/frap/rule_32.1) Citing Judicial Dispositions\n\t12. [Rule 33](/rules/frap/rule_33). Appeal Conferences\n\t13. [Rule 34](/rules/frap/rule_34). Oral Argument\n\t14. [Rule 35](/rules/frap/rule_35). En Banc Determination\n\t15. [Rule 36](/rules/frap/rule_36). Entry of Judgment; Notice\n\t16. [Rule 37](/rules/frap/rule_37). Interest on Judgment\n\t17. [Rule 38](/rules/frap/rule_38). Frivolous Appeal—Damages and Costs\n\t18. [Rule 39](/rules/frap/rule_39). Costs\n\t19. [Rule 40](/rules/frap/rule_40). Petition for Panel Rehearing\n\t20. [Rule 41](/rules/frap/rule_41). Mandate: Contents; Issuance and Effective Date; Stay\n\t21. [Rule 42](/rules/frap/rule_42). Voluntary Dismissal\n\t22. [Rule 43](/rules/frap/rule_43). Substitution of Parties\n\t23. [Rule 44](/rules/frap/rule_44). Case Involving a Constitutional Question When the United States or the Relevant State is Not a Party\n\t24. [Rule 45](/rules/frap/rule_45). Clerk's Duties\n\t25. [Rule 46](/rules/frap/rule_46). Attorneys\n\t26. [Rule 47](/rules/frap/rule_47). Local Rules by Courts of Appeals\n\t27. [Rule 48](/rules/frap/rule_48). Masters\n\nHistorical Note\n\nThe Federal Rules of Appellate Procedure were adopted by order of the Supreme Court on Dec. 4, 1967, transmitted to Congress by the Chief Justice on Jan. 15, 1968, and became effective on July 1, 1968.\n\nThe Rules have been amended Mar. 30, 1970, eff. July 1, 1970; Mar. 1, 1971, eff. July 1, 1971; Apr. 24, 1972, eff. Oct. 1, 1972; Apr. 30, 1979, eff. Aug. 1, 1979; Oct. 12, 1984, Pub. L. 98–473, title II, §210, 98 Stat 1987; Mar. 10, 1986, eff. July 1, 1986; Nov. 18, 1988, Pub. L. 100–690, title VII, §7111, 102 Stat. 4419; Apr. 25, 1989, eff. Dec. 1, 1989; Apr. 30, 1991, eff. Dec. 1, 1991; Apr. 22, 1993, eff. Dec. 1, 1993; Apr. 29, 1994, eff. Dec. 1, 1994; Apr. 27, 1995, eff. Dec. 1, 1995; Apr. 23, 1996, eff. Dec. 1, 1996; Apr. 24, 1996, Pub. L. 104–132, title I, §103, 110 Stat. 1218; Apr. 24, 1998, eff. Dec. 1, 1998; Apr. 29, 2002, eff. Dec. 1, 2002; Mar. 27, 2003, eff. Dec. 1, 2003; Apr. 25, 2005, eff. Dec. 1, 2005; Apr. 12, 2006, eff. Dec. 1, 2006; Apr. 30, 2007, eff. Dec. 1, 2007; Mar. 26, 2009, eff. Dec. 1, 2009; Apr. 28, 2010, eff. Dec. 1, 2010; Apr. 26, 2011, eff. Dec. 1, 2011; Apr. 16, 2013, eff. Dec. 1, 2013; Apr. 28, 2016, eff. Dec 1, 2016; Apr. 25, 2019, eff. Dec. 1, 2019.\n\nEffective Date and Application of Rules\n\nSection 2 of the Order of the Supreme Court, dated Dec. 4, 1967, provided: “That the foregoing rules shall take effect on July 1, 1968, and shall govern all proceedings in appeals and petitions for review or enforcement of orders thereafter brought in and in all such proceedings then pending, except to the extent that in the opinion of the court of appeals their application in a particular proceeding then pending would not be feasible or would work injustice, in which case the former procedure may be followed.”\n\nEffective Date of 1970 Amendment; Transmission to Congress\n\nSections 2 and 3 of the Order of the Supreme Court, dated Mar. 30, 1970, provided:\n\n“2. That the foregoing amendments to the Federal Rules of Appellate Procedure shall take effect on July 1, 1970, and shall govern all proceedings in actions brought thereafter and also in all further proceedings in actions then pending, except to the extent that in the opinion of the court their application in a particular action then pending would not be feasible or would work injustice, in which event the former procedure applies.\n\n“3. That the Chief Justice be, and he hereby is, authorized to transmit to the Congress the foregoing amendments to existing rules, in accordance with the provisions of Title 18, U.S.C., §3372, and Title 28, U.S.C., §§2072 and 2075.”\n\nCommittee Notes on Rules—2019 Amendment\n\n26.1 Title change (removed Corporate in Title 26.1).\n\n* [TITLE I. APPLICABILITY OF RULES](/rules/frap/title_I)\n* [TITLE II. APPEAL FROM A JUDGMENT OR ORDER OF A DISTRICT COURT](/rules/frap/title_II)\n* [TITLE III. REVIEW OF A DECISION OF THE UNITED STATES TAX COURT](/rules/frap/title_III)\n* [TITLE IV. REVIEW OR ENFORCEMENT OF AN ORDER OF AN ADMINISTRATIVE AGENCY, BOARD, COMMISSION, OR OFFICER](/rules/frap/title_IV)\n* [TITLE V. EXTRAORDINARY WRITS](/rules/frap/title_V)\n* [TITLE VI. HABEAS CORPUS; PROCEEDINGS IN FORMA PAUPERIS](/rules/frap/title_VI)\n* [TITLE VII. GENERAL PROVISIONS](/rules/frap/title_VII)\n* [Appendix: Length Limits Stated in the Federal Rules of Appellate Procedure](/node/6224147)\n\n[TITLE I. APPLICABILITY OF RULES ›](/rules/frap/title_I \"Go to next page\")\n\nFederal Rules of Appellate Procedure Toolbox\n--------------------------------------------\n\n* Wex: [Appellate Procedure: Overview](/wex/appellate_procedure)\n\n---\n\n---\n\n* [Accessibility](/lii/about/accessibility)\n* [About LII](/lii/about/about_lii)\n* [Contact us](/lii/about/contact_us)\n* [Advertise here](/lii/help_out/sponsor)\n* [Help](/lii/help)\n* [Terms of use](/lii/terms/documentation)\n* [Privacy](/lii/terms/privacy_policy)\n\n* [![LII logo](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/LII_logo_footer.gif)](/ \"LII home page\")",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "b2d162ac-c2df-4b85-a95b-39b83b95ff67",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Federal Rules of Appellate Procedure amendments witnesses"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "b2d162ac-c2df-4b85-a95b-39b83b95ff67",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Federal Rules of Appellate Procedure amendments witnesses",
+            "serp": [
+                {
+                    "title": "FEDERAL RULES APPELLATE PROCEDURE",
+                    "url": "https://www.uscourts.gov/file/rules-appellate-procedure",
+                    "content": "This document contains the Federal Rules of Appellate Proce- dure together with forms, as amended to December 1, 2015. The rules and forms have been promulgated ..."
+                },
+                {
+                    "title": "Federal Rules of Appellate Procedure",
+                    "url": "https://www.uscourts.gov/rules-policies/current-rules-practice-procedure/federal-rules-appellate-procedure",
+                    "content": "The appellate rules forms are officially published in an Appendix of Forms accompanying the Federal Rules of Appellate Procedure."
+                },
+                {
+                    "title": "A Brief Guide to the 2023 Amendments to the Federal ...",
+                    "url": "https://fedsoc.org/commentary/fedsoc-blog/a-brief-guide-to-the-2023-amendments-to-the-federal-rules-of-evidence-1",
+                    "content": "Jan 30, 2024 — Amendments to Federal Rules of Evidence 702, 106, and 615 took effect on December 1, 2023. These rules address testimony by expert witnesses."
+                },
+                {
+                    "title": "Proposed Amendments to the Federal Rules of Appellate ...",
+                    "url": "https://www.supremecourt.gov/orders/courtorders/frap24_g204.pdf",
+                    "content": "Apr 2, 2024 — The Federal Rules of Appellate Procedure are amended to include amendments to. Rules 32, 35, and 40, and the Appendix of Length Limits. [See ..."
+                },
+                {
+                    "title": "New Year, New Rules: Recent Amendments to Federal Rules",
+                    "url": "https://www.crowell.com/en/insights/client-alerts/new-year-new-rules-recent-amendments-to-federal-rules",
+                    "content": "Jan 14, 2021 — 2020 was a year full of changes—including changes to the federal court rules of procedure. As litigants prepare for a new year of court ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "50b8bfb0-e345-4ec1-8593-86b2bde59577",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.uscourts.gov/rules-policies/current-rules-practice-procedure/federal-rules-appellate-procedure",
+            "fact_description": "The last amendment to the first rule of the Federal Rules of Appellate Procedure.",
+            "fact_name": "first_rule_last_amendment"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "50b8bfb0-e345-4ec1-8593-86b2bde59577",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Federal Rules of Appellate Procedure | United States Courts\n=======================\n[Skip to main navigation](#skip-main-menu)\n\nSearch uscourts.gov\n\n[Menu](#sidr)\n[Search](#mobile-search)\n\n[United States Courts](/ \"United States Courts Home\")\n[Skip to main content](#skip-main-content)\n\n* [![Home icon](/profiles/uscourts/themes/usczen/images/home78.svg)](/)\n* [About\nFederal Courts](/about-federal-courts)\n\t+ [Federal Courts & the Public](/about-federal-courts/federal-courts-public)\n\t\t- [Visit a Federal Court](/about-federal-courts/federal-courts-public/visit-federal-court)\n\t\t- [Court Website Links](/about-federal-courts/federal-courts-public/court-website-links)\n\t\t- [Federal Court Scams](/about-federal-courts/federal-courts-public/federal-court-scams)\n\t+ [Court Role and Structure](/about-federal-courts/court-role-and-structure)\n\t\t- [Comparing Federal & State Courts](/about-federal-courts/court-role-and-structure/comparing-federal-state-courts)\n\t\t- [About the U.S. Courts of Appeals](/about-federal-courts/court-role-and-structure/about-us-courts-appeals)\n\t+ [Types of Cases](/about-federal-courts/types-cases)\n\t\t- [Appeals](/about-federal-courts/types-cases/appeals)\n\t\t- [Bankruptcy Cases](/about-federal-courts/types-cases/bankruptcy-cases)\n\t\t- [Civil Cases](/about-federal-courts/types-cases/civil-cases)\n\t\t- [Criminal Cases](/about-federal-courts/types-cases/criminal-cases)\n\t+ [Educational Resources](/about-federal-courts/educational-resources)\n\t\t- [Educational Activities](/about-federal-courts/educational-resources/educational-activities)\n\t\t- [Supreme Court Landmarks](/about-federal-courts/educational-resources/supreme-court-landmarks)\n\t\t- [Annual Observances](/about-federal-courts/educational-resources/annual-observances)\n\t\t- [About Educational Outreach](/about-federal-courts/educational-resources/about-educational-outreach)\n\t+ [Governance & the Judicial Conference](/about-federal-courts/governance-judicial-conference)\n\t\t- [About the Judicial Conference](/about-federal-courts/governance-judicial-conference/about-judicial-conference)\n\t\t- [Congressional Budget Request](/about-federal-courts/governance-judicial-conference/congressional-budget-request)\n\t+ [Judicial Administration](/about-federal-courts/judicial-administration)\n\t\t- [Administrative Oversight and Accountability](/about-federal-courts/judicial-administration/administrative-oversight-and-accountability)\n\t\t- [Audio Streaming Pilot](/about-federal-courts/judicial-administration/audio-streaming-pilot)\n\t\t- [Cameras in Courts](/about-federal-courts/judicial-administration/cameras-courts)\n\t+ [Workplace Conduct](/about-federal-courts/workplace-conduct-federal-judiciary)\n\t\t- [Director of Workplace Relations Contacts by Circuit](/about-federal-courts/workplace-conduct/director-workplace-relations-contacts-circuit)\n\t\t- [Fact Sheet for Workplace Protections in the Federal Judiciary](/about-federal-courts/workplace-conduct/fact-sheet-workplace-protections-federal-judiciary)\n\t\t- [Background & Resources](/about-federal-courts/workplace-conduct/workplace-conduct-background-resources)\n* [Judges &\nJudgeships](/judges-judgeships)\n\t+ [Authorized Judgeships](/judges-judgeships/authorized-judgeships)\n\t\t- [Judgeship Appointments By President](/judges-judgeships/authorized-judgeships/judgeship-appointments-president)\n\t\t- [Chronological History of Authorized Judgeships - Courts of Appeals](/judges-judgeships/authorized-judgeships/chronological-history-authorized-judgeships-courts-appeals)\n\t\t- [Chronological History of Authorized Judgeships - District Courts](/judges-judgeships/authorized-judgeships/chronological-history-authorized-judgeships-district-courts)\n\t+ [Judicial Vacancies](/judges-judgeships/judicial-vacancies)\n\t\t- [Current Judicial Vacancies](/judges-judgeships/judicial-vacancies/current-judicial-vacancies)\n\t\t- [Future Judicial Vacancies](/judges-judgeships/judicial-vacancies/future-judicial-vacancies)\n\t\t- [Confirmation Listing](/judges-judgeships/judicial-vacancies/confirmation-listing)\n\t\t- [Judicial Emergencies](/judges-judgeships/judicial-vacancies/judicial-emergencies)\n\t\t- [Archive of Judicial Vacancies](/judges-judgeships/judicial-vacancies/archive-judicial-vacancies)\n\t+ [Judicial Milestones](/judges-judgeships/judicial-milestones)\n\t+ [Judicial Compensation](/judges-judgeships/judicial-compensation)\n\t+ [About Federal Judges](/judges-judgeships/about-federal-judges)\n\t\t- [Pathways to the Bench Video Series](/judges-judgeships/about-federal-judges/pathways-bench-video-series)\n\t\t- [Roadways to the Bench: Who Me? A Bankruptcy or Magistrate Judge?](/judges-judgeships/about-federal-judges/roadways-bench-who-me-bankruptcy-or-magistrate-judge)\n\t+ [Judiciary Financial Disclosure Reports](/judges-judgeships/judiciary-financial-disclosure-reports)\n\t+ [Privately Funded Seminars Disclosure](/judges-judgeships/privately-funded-seminars-disclosure-system)\n\t\t- [Log in & Create Account](/judges-judgeships/privately-funded-seminars-disclosure/log-privately-funded-seminars-disclosure)\n\t\t- [Overview](/judges-judgeships/privately-funded-seminars-disclosure/overview-privately-funded-seminars-disclosure)\n\t\t- [Statement of Purpose](/judges-judgeships/privately-funded-seminars-disclosure/statement-purpose-privately-funded-seminars)\n\t\t- [Instructions](/judges-judgeships/privately-funded-seminars-disclosure/instructions-privately-funded-seminars)\n\t\t- [Policy](/judges-judgeships/privately-funded-seminars-disclosure/judicial-conference-policy-judges-attendance)\n\t\t- [Frequently Asked Questions](/judges-judgeships/privately-funded-seminars-disclosure/faqs-privately-funded-seminars-disclosure)\n\t+ [Judicial Conduct & Disability](/judges-judgeships/judicial-conduct-disability)\n\t\t- [FAQs: Filing a Judicial Conduct or Disability Complaint Against a Federal Judge](/judges-judgeships/judicial-conduct-disability/faqs-filing-judicial-conduct-or-disability-complaint)\n\t\t- [Judicial Conduct and Disability Orders](/rules-policies/judiciary-policies/ethics-policies/code-conduct-judicial-employees/judicial-conduct-disability-opinions)\n\t\t- [Archives of the Committee on Judicial Conduct and Disability](/judges-judgeships/judicial-conduct-disability/archives-committee-judicial-conduct-and-disability)\n\t+ [Code of Conduct for U.S. Judges](/judges-judgeships/code-conduct-united-states-judges)\n* [Services\n& Forms](/services-forms)\n\t+ [Forms](/services-forms/forms)\n\t\t- [Attorney Forms](/forms/attorney-forms)\n\t\t- [Bankruptcy Forms](/forms/bankruptcy-forms)\n\t\t- [Superseded Bankruptcy Forms](/forms/superseded-bankruptcy-forms)\n\t\t- [Civil Forms](/forms/civil-forms)\n\t\t- [Criminal Forms](/forms/criminal-forms)\n\t\t- [Court Reporter Forms](/forms/court-reporter-forms)\n\t\t- [CJA Forms](/forms/cja-forms)\n\t\t- [Human Resources Forms](/forms/human-resources-forms)\n\t\t- [Jury Forms](/forms/jury-forms)\n\t\t- [Other Forms](/forms/other-forms)\n\t+ [Bankruptcy](/services-forms/bankruptcy)\n\t\t- [Bankruptcy Basics](/services-forms/bankruptcy/bankruptcy-basics)\n\t\t- [Filing Without an Attorney](/services-forms/bankruptcy/filing-without-attorney)\n\t\t- [Credit Counseling and Debtor Education](/services-forms/bankruptcy/credit-counseling-and-debtor-education-courses)\n\t\t- [Trustees and Administrators](/services-forms/bankruptcy/trustees-and-administrators)\n\t\t- [Bankruptcy Case Records & Credit Reporting](/services-forms/bankruptcy/bankruptcy-case-records-credit-reporting)\n\t\t- [Bankruptcy Noticing](/services-forms/bankruptcy/bankruptcy-noticing)\n\t\t- [Unclaimed Funds in Bankruptcy](/services-forms/bankruptcy/unclaimed-funds-bankruptcy)\n\t+ [Jury Service](/services-forms/jury-service)\n\t\t- [Summoned for Federal Jury Service?](/services-forms/jury-service/summoned-federal-jury-service)\n\t\t- [Juror Selection Process](/services-forms/jury-service/juror-selection-process)\n\t\t- [Types of Juries](/services-forms/jury-service/types-juries)\n\t\t- [Juror Qualifications, Exemptions and Excuses](/services-forms/jury-service/juror-qualifications-exemptions-and-excuses)\n\t\t- [Juror Pay](/services-forms/jury-service/juror-pay)\n\t\t- [Juror Scams](/services-forms/jury-service/juror-scams)\n\t+ [Fees](/services-forms/fees)\n\t\t- [Court of Appeals Fees](/services-forms/fees/court-appeals-miscellaneous-fee-schedule)\n\t\t- [District Court Fees](/services-forms/fees/district-court-miscellaneous-fee-schedule)\n\t\t- [Bankruptcy Court Fees](/services-forms/fees/bankruptcy-court-miscellaneous-fee-schedule)\n\t\t- [Electronic Public Access Fees](/services-forms/fees/electronic-public-access-fee-schedule)\n\t\t- [U.S. Court of Federal Claims Fees](/services-forms/fees/us-court-federal-claims-fee-schedule)\n\t\t- [Judicial Panel on Multidistrict Litigation Fees](/services-forms/fees/judicial-panel-multidistrict-litigation-fee-schedule)\n\t\t- [Post Judgment Interest Rate](/services-forms/fees/post-judgment-interest-rate)\n\t+ [Federal Court Interpreters](/services-forms/federal-court-interpreters)\n\t\t- [Interpreter Categories](/services-forms/federal-court-interpreters/interpreter-categories)\n\t\t- [Federal Court Interpreter Certification Examination](/services-forms/federal-court-interpreters/federal-court-interpreter-certification-examination)\n\t\t- [Interpreter Skills](/services-forms/federal-court-interpreters/interpreter-skills)\n\t\t- [National Court Interpreter Database (NCID) Gateway](/services-forms/federal-court-interpreters/national-court-interpreter-database-ncid-gateway)\n\t+ [Federal Court Reporting Program](/services-forms/federal-court-reporting-program)\n\t+ [Probation and Pretrial Services](/services-forms/probation-and-pretrial-services)\n\t\t- [Evidence-Based Practices](/services-forms/probation-and-pretrial-services/evidence-based-practices)\n\t\t- [Officers and Officer Assistants](/services-forms/probation-and-pretrial-services/officers-and-officer-assistants)\n\t\t- [Pretrial Services](/services-forms/probation-and-pretrial-services/pretrial-services)\n\t\t- [Presentence Investigations](/services-forms/probation-and-pretrial-services/presentence-investigations)\n\t\t- [Post-Conviction Supervision](/services-forms/probation-and-pretrial-services/post-conviction-supervision)\n\t\t- [Data Release Regulations](/services-forms/probation-and-pretrial-services/probation-data-release-regulations)\n\t\t- [Federal Probation and Pretrial Academy](/services-forms/probation-and-pretrial-services/federal-probation-and-pretrial-academy)\n\t\t- [History](/services-forms/probation-and-pretrial-services/probation-and-pretrial-services-history)\n\t+ [Defender Services](/services-forms/defender-services)\n\t\t- [Defender Services Mission](/services-forms/defender-services/mission-defender-services)\n\t\t- [Publications](/services-forms/defender-services/defender-services-publications)\n\t+ [Business Opportunities](/services-forms/business-opportunities)\n\t\t- [Pre-Lapse in Appropriations Notice to Contractors](/services-forms/business-opportunities/pre-lapse-appropriations-notice-contractors)\n\t\t- [Transfer of Excess Judiciary Personal Property](/services-forms/business-opportunities/transfer-excess-judiciary-personal-property)\n* [Court\nRecords](/court-records)\n\t+ [Find a Case (PACER)](/court-records/find-case-pacer)\n\t+ [Electronic Filing (CM/ECF)](/court-records/electronic-filing-cmecf)\n\t\t- [FAQs: CM/ECF](/court-records/electronic-filing-cmecf/faqs-case-management-electronic-case-files-cmecf)\n\t+ [Court Records Schedule](/courtrecords/court-records-schedule)\n\t+ [Electronic Public Access Public User Group](/court-records/electronic-public-access-public-user-group)\n* [Statistics\n& Reports](/statistics-reports)\n\t+ [Analysis & Reports](/statistics-reports/analysis-reports)\n\t\t- [BAPCPA Report](/statistics-reports/analysis-reports/bankruptcy-abuse-prevention-and-consumer-protection-act-report)\n\t\t- [Civil Justice Reform Act Report](/statistics-reports/analysis-reports/civil-justice-reform-act-report)\n\t\t- [Federal Court Management Statistics](/statistics-reports/analysis-reports/federal-court-management-statistics)\n\t\t- [Federal Judicial Caseload Statistics](/statistics-reports/analysis-reports/federal-judicial-caseload-statistics)\n\t\t- [Judicial Facts and Figures](/statistics-reports/analysis-reports/judicial-facts-and-figures)\n\t\t- [Judicial Business](/statistics-reports/analysis-reports/judicial-business-united-states-courts)\n\t\t- [Statistical Tables for the Federal Judiciary](/statistics-reports/analysis-reports/statistical-tables-federal-judiciary)\n\t\t- [Wiretap Reports](/statistics-reports/analysis-reports/wiretap-reports)\n\t\t- [Delayed-Notice Search Warrant](/statistics-reports/analysis-reports/delayed-notice-search-warrant-report)\n\t\t- [FISA Report](/statistics-reports/analysis-reports/directors-report-foreign-intelligence-surveillance-courts)\n\t\t- [Director's Annual Report](/statistics-reports/analysis-reports/directors-annual-report)\n\t\t- [Bankruptcy Filings Statistics](/statistics-reports/analysis-reports/bankruptcy-filings-statistics)\n\t\t- [Crime Victims’ Rights Report](/statistics-reports/analysis-reports/crime-victims-rights-report)\n\t+ [Data Tables](/statistics-reports/caseload-statistics-data-tables)\n\t+ [Publications](/statistics-reports/publications)\n\t\t- [Asset Management Planning Process Handbook](/statistics-reports/publications/asset-management-planning-process-handbook)\n\t\t- [Civil Litigation Management Manual](/statistics-reports/publications/civil-litigation-management-manual)\n\t\t- [Courtroom Technology](/statistics-reports/publications/courtroom-technology-infrastructure-audiovisual-systems-new-spaces)\n\t\t- [Dodd Frank Act Report](/statistics-reports/publications/dodd-frank-act-report)\n\t\t- [Federal Court System in the U.S.](/statistics-reports/publications/federal-court-system-us)\n\t\t- [Federal Probation Journal](/statistics-reports/publications/federal-probation-journal)\n\t\t- [Journalist’s Guide to the Federal Courts](/statistics-reports/publications/journalists-guide-federal-courts)\n\t\t- [Judiciary Conferences That Cost More Than $100,000](/statistics-reports/publications/judiciary-conferences-cost-more-100000)\n\t\t- [Long Range Plan for Information Technology](/statistics-reports/publications/long-range-plan-information-technology)\n\t\t- [Long Range Plan for the Federal Courts](/statistics-reports/publications/long-range-plan-federal-courts)\n\t\t- [Strategic Plan for Federal Judiciary](/statistics-reports/strategic-plan-federal-judiciary)\n* [Rules &\nPolicies](/rules-policies)\n\t+ [Current Rules of Practice & Procedure](/rules-policies/current-rules-practice-procedure)\n\t\t- [Federal Rules of Appellate Procedure](/rules-policies/current-rules-practice-procedure/federal-rules-appellate-procedure)\n\t\t- [Federal Rules of Bankruptcy Procedure](/rules-policies/current-rules-practice-procedure/federal-rules-bankruptcy-procedure)\n\t\t- [Federal Rules of Civil Procedure](/rules-policies/current-rules-practice-procedure/federal-rules-civil-procedure)\n\t\t- [Federal Rules of Criminal Procedure](/rules-policies/current-rules-practice-procedure/federal-rules-criminal-procedure)\n\t\t- [Federal Rules of Evidence](/rules-policies/current-rules-practice-procedure/federal-rules-evidence)\n\t\t- [Rules Governing Section 2254 and Section 2255 Proceedings](/rules-policies/current-rules-practice-procedure/rules-governing-section-2254-and-section-2255)\n\t+ [Pending Rules and Forms Amendments](/rules-policies/pending-rules-and-forms-amendments)\n\t\t- [Pending Changes in the Bankruptcy Forms](/rules-policies/pending-rules-and-forms-amendments/pending-or-recent-changes-bankruptcy-forms)\n\t+ [Proposed Amendments Published for Public Comment](/rules-policies/proposed-amendments-published-public-comment)\n\t+ [About the Rulemaking Process](/rules-policies/about-rulemaking-process)\n\t\t- [Laws and Procedures Governing the Work of the Rules Committees](/rules-policies/about-rulemaking-process/laws-and-procedures-governing-work-rules-committees)\n\t\t- [How the Rulemaking Process Works](/rules-policies/about-rulemaking-process/how-rulemaking-process-works)\n\t\t- [How to Suggest a Change to Federal Court Rules and Forms](/rules-policies/about-rulemaking-process/how-suggest-change-federal-court-rules-and-forms)\n\t\t- [How to Submit Input on a Pending Proposal](/rules-policies/about-rulemaking-process/how-submit-input-pending-proposal)\n\t\t- [Committee Membership Selection](/rules-policies/about-rulemaking-process/committee-membership-selection)\n\t\t- [Open Meetings and Hearings of the Rules Committee](/rules-policies/about-rulemaking-process/open-meetings-and-hearings-rules-committee)\n\t\t- [Permitted Changes to Official Bankruptcy Forms](/rules-policies/about-rulemaking-process/permitted-changes-official-bankruptcy-forms)\n\t+ [Records of the Rules Committees](/rules-policies/records-rules-committees)\n\t\t- [Agenda Books](/rules-policies/records-rules-committees/agenda-books)\n\t\t- [Committee Reports](/rules-policies/records-and-archives-rules-committees/committee-reports)\n\t\t- [Congressional and Supreme Court Rules Packages](/records-rules-committees/congressional-and-supreme-court-rules-packages)\n\t\t- [FJC Studies and Related Publications](/rules-policies/records-rules-committees/fjc-studies-and-related-publications)\n\t\t- [Meeting Minutes](/rules-policies/records-and-archives-rules-committees/meeting-minutes)\n\t\t- [Past Members of the Rules Committees](/rules-policies/records-rules-committees/past-members-rules-committees)\n\t\t- [Preliminary Drafts of Proposed Rule Amendments](/records-rules-committees/preliminary-drafts-proposed-rule-amendments)\n\t\t- [Rules Comments](/rules-policies/records-rules-committees/rules-comments)\n\t\t- [Rules Suggestions](/rules-policies/records-rules-committees/rules-suggestions)\n\t\t- [Special Projects of the Rules Committees](/rules-policies/records-rules-committees/special-projects-rules-committees)\n\t\t- [Style Resources](/rules-policies/records-and-archives-rules-committees/style-resources)\n\t\t- [Superseded Rules Pamphlets](/rules-policies/records-and-archives-rules-committees/superseded-rules-pamphlets)\n\t\t- [Transcripts and Testimony](/rules-policies/records-rules-committees/transcripts-and-testimony)\n\t+ [Judiciary Policies](/rules-policies/judiciary-policies)\n\t\t- [Bankruptcy Case Policies](/rules-policies/judiciary-policies/bankruptcy-case-policies)\n\t\t- [CJA Guidelines](/rules-policies/judiciary-policies/criminal-justice-act-cja-guidelines)\n\t\t- [Court Interpreting Guidance](/rules-policies/judiciary-policies/court-interpreting-guidance)\n\t\t- [Court Reporting Guidance](/rules-policies/judiciary-policies/court-reporting-guidance)\n\t\t- [Ethics Policies](/rules-policies/judiciary-policies/ethics-policies)\n\t\t- [Workplace Conduct and Protections](/rules-policies/judiciary-policies/workplace-conduct-and-protections-policy)\n\t\t- [Federal Tort Claims](/rules-policies/judiciary-policies/federal-tort-claims-against-federal-judiciary-personnel)\n\t\t- [Fraud, Waste, or Abuse Policy](/rules-policies/judiciary-policies/fraud-waste-or-abuse-policy)\n\t\t- [Garnishment Regulations](/rules-policies/judiciary-policies/garnishment-regulations)\n\t\t- [Judiciary Staff Travel Regulations](/rules-policies/judiciary-policies/judiciary-staff-travel-regulations)\n\t\t- [Portable Communication Devices](/rules-policies/judiciary-policies/portable-communication-devices-courthouse)\n\t\t- [Post-Conviction Supervision Policies](/rules-policies/judiciary-policies/post-conviction-supervision-policies)\n\t\t- [Privacy Policy for Electronic Case Files](/rules-policies/judiciary-policies/privacy-policy-electronic-case-files)\n\t\t- [Procurement Policies](/rules-policies/judiciary-policies/procurement-policies)\n\t\t- [Subpoena Regulations](/rules-policies/judiciary-policies/subpoena-regulations)\n\t\t- [Cameras in the Courtroom Policy](/rules-policies/judiciary-policies/cameras-courtroom-policy)\n\t\t- [Confidentiality Regulations for Pretrial Services Information](/rules-policies/judiciary-policies/confidentiality-regulations-pretrial-services-information)\n\t\t- [Proposed Changes to Code and JC&D Rules](/rules-policies/judiciary-policies/proposed-changes-code-conduct-judges-judicial-conduct-disability-rules)\n\t\t- [U.S. Courts Design Guide](/rules-policies/judiciary-policies/us-courts-design-guide)\n\n* [Email Updates](/email-updates)\n* [Federal Court Finder](/federal-court-finder)\n* [Careers](/careers)\n* [News](/judiciary-news)\n\nMain content\nFederal Rules of Appellate Procedure\n====================================\n\n The Federal Rules of Appellate Procedure govern procedure in the United States courts of appeals.\n\n The Supreme Court first adopted the Rules of Appellate Procedure by order dated December 4, 1967, transmitted to Congress on January 15, 1968, and effective July 1, 1968. The Appellate Rules and accompanying forms were last amended in 2023.\n\n* Read the [Federal Rules of Appellate Procedure](/file/78321/download) (pdf)\n\nOfficial Forms\n--------------\n\n The appellate rules forms are officially published in an Appendix of Forms accompanying the Federal Rules of Appellate Procedure.\n\n**Word-Processing Templates:** For user convenience, the Administrative Office Forms Working Group of judges and clerks has recommended making available to the public the unofficial Word versions linked below. Given their nature, language in these forms may require modification before the document can be filed with the court. These forms are therefore offered as templates based on the official published forms.\n\n* **Appellate Form 1A.** Notice of Appeal to a Court of Appeals From a Judgment of a District Court. ([word](/file/36159/download))\n* **Appellate Form 1B.** Notice of Appeal to a Court of Appeals From an Appealable Order of a District Court. ([word](/file/36166/download))\n* **Appellate Form 2.** Notice of Appeal to a Court of Appeals From a Decision of the United States Tax Court. ([word](/file/3016/download))\n* **Appellate Form 3.** Petition for Review of Order of an Agency, Board, Commission or Officer. ([word](/file/3017/download))\n* **Appellate Form 4.** Affidavit Accompanying Motion for Permission to Appeal In Forma Pauperis. ([word](/file/3018/download))\n* **Appellate Form 5.** Notice of Appeal to a Court of Appeals from a Judgment or Order of a District Court or a Bankruptcy Appellate Panel. ([word](/file/3019/download))\n* **Appellate Form 6.** Certificate of Compliance With Type-Volume Limit. ([word](/file/21361/download))\n* **Appellate Form 7.** Declaration of Inmate Filing. ([word](/file/21362/download))\n* **Appendix:** Length Limits Stated in the Federal Rules of Appellate Procedure. ([word](/file/21363/download))\n\n[Rules & Policies](/rules-policies)\n-----------------------------------\n\n* [Current Rules of Practice & Procedure](/rules-policies/current-rules-practice-procedure)\n\t+ [Federal Rules of Appellate Procedure](/rules-policies/current-rules-practice-procedure/federal-rules-appellate-procedure)\n\t+ [Federal Rules of Bankruptcy Procedure](/rules-policies/current-rules-practice-procedure/federal-rules-bankruptcy-procedure)\n\t+ [Federal Rules of Civil Procedure](/rules-policies/current-rules-practice-procedure/federal-rules-civil-procedure)\n\t+ [Federal Rules of Criminal Procedure](/rules-policies/current-rules-practice-procedure/federal-rules-criminal-procedure)\n\t+ [Federal Rules of Evidence](/rules-policies/current-rules-practice-procedure/federal-rules-evidence)\n\t+ [Rules Governing Section 2254 and Section 2255 Proceedings](/rules-policies/current-rules-practice-procedure/rules-governing-section-2254-and-section-2255)\n\nRelated Downloads\n-----------------\n\n [Federal Rules of Appellate Procedure (pdf, 946.48 KB)](/file/78321/download)\n\n[About Federal Courts](/about-federal-courts)\n---------------------------------------------\n\n* [Federal Courts & the Public](/about-federal-courts/federal-courts-public)\n* [Court Role and Structure](/about-federal-courts/court-role-and-structure)\n* [Types of Cases](/about-federal-courts/types-cases)\n* [Educational Resources](/about-federal-courts/educational-resources)\n* [Governance & the Judicial Conference](/about-federal-courts/governance-judicial-conference)\n* [Judicial Administration](/about-federal-courts/judicial-administration)\n* [Workplace Conduct](/about-federal-courts/workplace-conduct-federal-judiciary)\n[Judges & Judgeships](/judges-judgeships)\n-----------------------------------------\n\n* [Authorized Judgeships](/judges-judgeships/authorized-judgeships)\n* [Judicial Vacancies](/judges-judgeships/judicial-vacancies)\n* [Judicial Milestones](/judges-judgeships/judicial-milestones)\n* [Judicial Compensation](/judges-judgeships/judicial-compensation)\n* [About Federal Judges](/judges-judgeships/about-federal-judges)\n* [Judiciary Financial Disclosure Reports](/judges-judgeships/judiciary-financial-disclosure-reports)\n* [Privately Funded Seminars Disclosure](/judges-judgeships/privately-funded-seminars-disclosure-system)\n* [Judicial Conduct & Disability](/judges-judgeships/judicial-conduct-disability)\n* [Code of Conduct for U.S. Judges](/judges-judgeships/code-conduct-united-states-judges)\n[Services & Forms](/services-forms)\n-----------------------------------\n\n* [Forms](/services-forms/forms)\n* [Bankruptcy](/services-forms/bankruptcy)\n* [Jury Service](/services-forms/jury-service)\n* [Fees](/services-forms/fees)\n* [Federal Court Interpreters](/services-forms/federal-court-interpreters)\n* [Federal Court Reporting Program](/services-forms/federal-court-reporting-program)\n* [Probation and Pretrial Services](/services-forms/probation-and-pretrial-services)\n* [Defender Services](/services-forms/defender-services)\n* [Business Opportunities](/services-forms/business-opportunities)\n[Court Records](/court-records)\n-------------------------------\n\n* [Find a Case (PACER)](/court-records/find-case-pacer)\n* [Electronic Filing (CM/ECF)](/court-records/electronic-filing-cmecf)\n* [Court Records Schedule](/courtrecords/court-records-schedule)\n* [Electronic Public Access Public User Group](/court-records/electronic-public-access-public-user-group)\n[Statistics & Reports](/statistics-reports)\n-------------------------------------------\n\n* [Analysis & Reports](/statistics-reports/analysis-reports)\n* [Data Tables](/statistics-reports/caseload-statistics-data-tables)\n* [Publications](/statistics-reports/publications)\n[Rules & Policies](/rules-policies)\n-----------------------------------\n\n* [Current Rules of Practice & Procedure](/rules-policies/current-rules-practice-procedure)\n* [Pending Rules and Forms Amendments](/rules-policies/pending-rules-and-forms-amendments)\n* [Proposed Amendments Published for Public Comment](/rules-policies/proposed-amendments-published-public-comment)\n* [About the Rulemaking Process](/rules-policies/about-rulemaking-process)\n* [Records of the Rules Committees](/rules-policies/records-rules-committees)\n* [Judiciary Policies](/rules-policies/judiciary-policies)\n\n[Menu](javascript:void(0))*\n*\n*\n* [RSS](/rss-feeds)\n* [Privacy & Security Policy](/privacy-security-policy)\n* [Glossary of Legal Terms](/glossary)\n* [Operating Status](/ao-operating-status)\n* [Download Plug-Ins](/download-plug-ins)\n* [Email Updates](/email-updates)\n* [Contact Us](/contact-us)\n* [FAQs](/frequently-asked-questions-faqs)\n\nThis site is maintained by the Administrative Office of the U.S. Courts on behalf of the Federal Judiciary. The purpose of this site is to provide information from and about the Judicial Branch of the U.S. Government.\n\nYour browser does not support Javascript.\n\nYour browser does not support Javascript.",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "4038f64c-21de-41ac-8f99-ca71d0e3ef08",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The Federal Rules of Appellate Procedure were last amended in 2023.",
+                "I need to find the specific details of the first rule and any amendments related to it to identify the deleted word."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "4038f64c-21de-41ac-8f99-ca71d0e3ef08",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "4df8d310-0d93-412b-b755-afec29992bf3",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Federal Rules of Appellate Procedure Rule 1 amendment details"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "4df8d310-0d93-412b-b755-afec29992bf3",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Federal Rules of Appellate Procedure Rule 1 amendment details",
+            "serp": [
+                {
+                    "title": "Rule 1. Scope of Rules; Definition; Title - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/rules/frap/rule_1",
+                    "content": "These rules are to be known as the Federal Rules of Appellate Procedure. Notes. (As amended Apr. 30, 1979, eff. Aug. 1, 1979; Apr. 25, 1989, eff. Dec. 1, 1989; ..."
+                },
+                {
+                    "title": "Federal Rules of Appellate Procedure",
+                    "url": "https://www.uscourts.gov/rules-policies/current-rules-practice-procedure/federal-rules-appellate-procedure",
+                    "content": "... 1, 1968. The Appellate Rules and accompanying forms were last amended in 2023. Read the Federal Rules of Appellate Procedure (pdf) Official Forms The ..."
+                },
+                {
+                    "title": "FEDERAL RULES APPELLATE PROCEDURE",
+                    "url": "https://www.uscourts.gov/file/rules-appellate-procedure",
+                    "content": "This document contains the Federal Rules of Appellate Proce- dure together with forms, as amended to December 1, 2015. The rules and forms have been promulgated ..."
+                },
+                {
+                    "title": "Federal Rules of Appellate Procedure - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/rules/frap",
+                    "content": "(As amended to December 1, 2023). Title III amended April 16, 2013, effective December 1, 2013. TITLE I. APPLICABILITY OF RULES. Rule 1. Scope of Rules ..."
+                },
+                {
+                    "title": "FEDERAL RULES OF APPELLATE PROCEDURE",
+                    "url": "https://uscode.house.gov/view.xhtml?path=/prelim@title28/title28a/node6&edition=prelim",
+                    "content": "FEDERAL RULES OF APPELLATE PROCEDURE. (As amended to December 26, 2023). Historical Note. The Federal Rules of Appellate Procedure were adopted by order of ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "88afd48e-687c-48ac-a7e1-1a0a029c7082",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.law.cornell.edu/rules/frap/rule_1",
+            "fact_description": "The last amendment details of Rule 1 of the Federal Rules of Appellate Procedure.",
+            "fact_name": "first_rule_last_amendment"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "88afd48e-687c-48ac-a7e1-1a0a029c7082",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Rule 1. Scope of Rules; Definition; Title | Federal Rules of Appellate Procedure | US Law | LII / Legal Information Institute\n=======================\nPlease help us improve our site!\n\n×\n\n[No thank you](#)\n\n[Skip to main content](#content)\n\n[![Cornell University insignia](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/insignia.gif)](https://www.cornell.edu \"Cornell University\")\n[Cornell Law\n School](https://www.lawschool.cornell.edu/ \"Cornell Law School\")\n[Search\n Cornell](https://www.cornell.edu/search/ \"Search Cornell University\")\n\nToggle navigation\n\nPlease help\n us improve our site!\n\n[Support Us!](/donate)\n\n[Search](#)\n\n* [About\n LII](/lii/about/about_lii)\n\t+ [Who We Are](/lii/about/who_we_are)\n\t+ [What We Do](/lii/about/what_we_do)\n\t+ [Who Pays For This](/lii/about/who_pays_for_this)\n\t+ [Contact Us](/lii/about/contact_us)\n* [Get the\n law](/lii/get_the_law)\n\t+ [Constitution](/constitution \"U.S. Constitution\")\n\t+ [Supreme Court](/supremecourt/text/home \"Supreme Court\")\n\t+ [U.S. Code](/uscode/text \"U.S. Code\")\n\t+ [CFR](/cfr/text \"C.F.R.\")\n\t+ [Federal Rules](/rules \"Federal Rules\")\n\t\t- [Federal Rules of Appellate Procedure](/rules/frap)\n\t\t- [Federal Rules of Civil Procedure](/rules/frcp)\n\t\t- [Federal Rules of Criminal Procedure](/rules/frcrmp)\n\t\t- [Federal Rules of Evidence](/rules/fre)\n\t\t- [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n\t+ [U.C.C.](/ucc \"U.C.C.\")\n\t+ [Law by jurisdiction](# \"Law by jurisdiction\")\n\t\t- [State law](/states)\n\t\t- [Uniform laws](/uniform)\n\t\t- [Federal law](/federal)\n\t\t- [World law](/world)\n* [Lawyer directory](https://lawyers.law.cornell.edu/)\n* [Legal encyclopedia](/wex)\n\t+ [Business law](/wex/category/business_law)\n\t+ [Constitutional law](/wex/category/constitutional_law)\n\t+ [Criminal law](/wex/category/criminal_law_and_procedure)\n\t+ [Family law](/wex/category/family_law)\n\t+ [Employment law](/wex/category/employment_law)\n\t+ [Money and Finances](/wex/category/money_and_financial_problems)\n\t+ [More...](/wex/wex_articles)\n* [Help out](/lii/help_out)\n\t+ [Give](/donate)\n\t+ [Sponsor](/lii/help_out/sponsor)\n\t+ [Advertise](/lii/help_out/advertise)\n\t+ [Create](/lii/help_out/create)\n\t+ [Promote](/lii/help_out/promote)\n\t+ [Join Lawyer Directory](/lii/help_out/join_directory)\n\n*\n\n1. [LII](/)\n2. [Federal Rules of Appellate Procedure](/rules/frap)\n3. Rule 1. Scope of Rules; Definition; Title\n\nRule 1. Scope of Rules; Definition; Title\n=========================================\n\nPrimary tabs\n------------\n\n(a) Scope of Rules.\n\n(1) These rules govern procedure in the United States courts of appeals.\n\n(2) When these rules provide for filing a motion or other document in the district court, the procedure must comply with the practice of the district court.\n\n(b) Definition. In these rules, 'state'1 includes the District of Columbia and any United States commonwealth or territory.\n\n(c) Title. These rules are to be known as the Federal Rules of Appellate Procedure.\n\nNotes\n-----\n\n(As amended Apr. 30, 1979, eff. Aug. 1, 1979; Apr. 25, 1989, eff. Dec. 1, 1989; Apr. 29, 1994, eff. Dec. 1, 1994; Apr. 24, 1998, eff. Dec. 1, 1998; Apr. 29, 2002, eff. Dec. 1, 2002; Apr. 28, 2010, eff. Dec. 1, 2010.)\n\n1 So in original\n\n### Notes of Advisory Committee on Rules—1967\n\nThese rules are drawn under the authority of [28 U.S.C. §2072](https://www.law.cornell.edu//uscode/text/28/2072), as amended by the Act of November 6, 1966, 80 Stat. 1323 (1 U.S. Code Cong. & Ad. News, p. 1546 (1966)) (Rules of Civil Procedure); [28 U.S.C. §2075](https://www.law.cornell.edu//uscode/text/28/2075) (Bankruptcy Rules); and 18 U.S.C. §§3771 (Procedure to and including verdict) and 3772 (Procedure after verdict). Those statutes combine to give to the Supreme Court power to make rules of practice and procedure for all cases within the jurisdiction of the courts of appeals. By the terms of the statutes, after the rules have taken effect all laws in conflict with them are of no further force or effect. Practice and procedure in the eleven courts of appeals are now regulated by rules promulgated by each court under the authority of [28 U.S.C. §2071](https://www.law.cornell.edu//uscode/text/28/2071). Rule 47 expressly authorizes the courts of appeals to make rules of practice not inconsistent with these rules.\n\nAs indicated by the titles under which they are found, the following rules are of special application: Rules 3 through 12 apply to appeals from judgments and orders of the district courts; Rules [13](/rules/frap/rule_13) and [14](/rules/frap/rule_14) apply to appeals from decisions of the Tax Court (Rule 13 establishes an appeal as the mode of review of decisions of the Tax Court in place of the present petition for review); Rules 15 through 20 apply to proceedings for review or enforcement of orders of administrative agencies, boards, commissions and officers. Rules 22 through 24 regulate habeas corpus proceedings and appeals in forma pauperis. All other rules apply to all proceedings in the courts of appeals.\n\n### Notes of Advisory Committee on Rules—1979 Amendment\n\nThe [Federal Rules of Appellate Procedure](/rules/frap) were designed as an integrated set of rules to be followed in appeals to the courts of appeals, covering all steps in the appellate process, whether they take place in the district court or in the court of appeals, and with their adoption Rules 72–76 of the [F.R.C.P.](/rules/frcp) were abrogated. In some instances, however, the F.R.A.P. provide that a motion or application for relief may, or must, be made in the district court. See Rules 4(a), 10(b), and 24. The proposed amendment would make it clear that when this is so the motion or application is to be made in the form and manner prescribed by the [F.R.C.P.](/rules/frcp) or F.R.Cr.P. and local rules relating to the form and presentation of motions and is not governed by Rule 27 of the F.R.A.P. See Rule 7(b) of the [F.R.C.P.](/rules/frcp) and Rule 47 of the F.R.Cr.P.\n\n### Notes of Advisory Committee on Rules—1989 Amendment\n\nThe amendment is technical. No substantive change is intended.\n\n### Notes of Advisory Committee on Rules—1994 Amendment\n\n*Subdivision (c)*. A new subdivision is added to the rule. The text of new subdivision (c) has been moved from Rule 48 to Rule 1 to allow the addition of new rules at the end of the existing set of appellate rules without burying the title provision among other rules. In a similar fashion the Bankruptcy Rules combine the provisions governing the scope of the rules and the title in the first rule.\n\n### Committee Notes on Rules—1998 Amendment\n\nThe language and organization of the rule are amended to make the rule more easily understood. In addition to changes made to improve the understanding, the Advisory Committee has changed language to make style and terminology consistent throughout the appellate rules. These changes are intended to be stylistic only. The Advisory Committee recommends deleting the language in subdivision (a) that describes the different types of proceedings that may be brought in a court of appeals. The Advisory Committee believes that the language is unnecessary and that its omission does not work any substantive change.\n\n### Committee Notes on Rules—2002 Amendment\n\n*Subdivision (b).* Two recent enactments make it likely that, in the future, one or more of the [Federal Rules of Appellate Procedure](/rules/frap) (“FRAP”) will extend or limit the jurisdiction of the courts of appeals. In 1990, Congress amended the Rules Enabling Act to give the Supreme Court authority to use the federal rules of practice and procedure to define when a ruling of a district court is final for purposes of [28 U.S.C. §1291](https://www.law.cornell.edu//uscode/text/28/1291). *See* [28 U.S.C. §2072(c)](https://www.law.cornell.edu//uscode/text/28/2072). In 1992, Congress amended [28 U.S.C. §1292](https://www.law.cornell.edu//uscode/text/28/1292) to give the Supreme Court authority to use the federal rules of practice and procedure to provide for appeals of interlocutory decisions that are not already authorized by [28 U.S.C. §1292](https://www.law.cornell.edu//uscode/text/28/1292). *See* [28 U.S.C. §1292(e)](https://www.law.cornell.edu//uscode/text/28/1292). Both §1291 and §1292 are unquestionably jurisdictional statutes, and thus, as soon as [FRAP](/rules/frap) is amended to define finality for purposes of the former or to authorize interlocutory appeals not provided for by the latter, [FRAP](/rules/frap) will “extend or limit the jurisdiction of the courts of appeals,” and subdivision (b) will become obsolete. For that reason, subdivision (b) has been abrogated.\n\n### Committee Notes on Rules—2010 Amendment\n\n*Subdivision (b).*  New subdivision (b) defines the term \"state\" to include the District of Columbia and any commonwealth or territory of the United States. Thus, as used in these Rules, \"state\" includes the District of Columbia, Guam, American Samoa, the U.S. Virgin Islands, the Commonwealth of Puerto Rico, and the Commonwealth of the Northern Mariana Islands.\n\n*Changes Made After Publication and Comment*. No changes were made after publication and comment.\n\n[‹ TITLE I. APPLICABILITY OF RULES](/rules/frap/title_I \"Go to previous page\")\n[up](/rules/frap/title_I \"Go to parent page\")\n[Rule 2. Suspension of Rules ›](/rules/frap/rule_2 \"Go to next page\")\n\nFederal Rules of Appellate Procedure Toolbox\n--------------------------------------------\n\n* Wex: [Appellate Procedure: Overview](/wex/appellate_procedure)\n\n---\n\n---\n\n* [Accessibility](/lii/about/accessibility)\n* [About LII](/lii/about/about_lii)\n* [Contact us](/lii/about/contact_us)\n* [Advertise here](/lii/help_out/sponsor)\n* [Help](/lii/help)\n* [Terms of use](/lii/terms/documentation)\n* [Privacy](/lii/terms/privacy_policy)\n\n* [![LII logo](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/LII_logo_footer.gif)](/ \"LII home page\")",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "daa7a093-8899-4f18-a89d-479e8b952a38",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "The specific word that was deleted in the last amendment to the first rule of the Federal Rules of Appellate Procedure.",
+            "fact_found": true,
+            "quote_with_fact": "The Advisory Committee recommends deleting the language in subdivision (a) that describes the different types of proceedings that may be brought in a court of appeals.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "daa7a093-8899-4f18-a89d-479e8b952a38",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "2bda7a64-771c-40a4-8136-0453a57d48bc",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "deleted_word",
+            "unit": "",
+            "value": "language"
+        },
+        {
+            "metadata": {
+                "id": "9d71998e-d5ac-4077-853b-6681b9a37481",
+                "prompt_id": "2bda7a64-771c-40a4-8136-0453a57d48bc",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        }
+    ]
+}
