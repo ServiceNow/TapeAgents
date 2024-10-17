@@ -255,7 +255,8 @@ class Agent(BaseModel, Generic[TapeType]):
         :param tape: the tape to make the decision on
         :return: the node to run next
         """
-        return self.nodes[self.compute_view(tape).top.next_node]
+        node = self.compute_view(tape).top.next_node
+        return self.nodes[node]
 
     def make_prompt(self, tape: TapeType) -> Prompt:
         """Make the prompt for the next iteration of the agent.

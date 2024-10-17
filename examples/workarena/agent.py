@@ -91,6 +91,7 @@ class WorkArenaNode(GuidanceNode):
         """
         Trim all page observations except the last two.
         """
+        tape = super().prepare_tape(tape)  # type: ignore
         page_positions = [i for i, step in enumerate(tape.steps) if isinstance(step, PageObservation)]
         if len(page_positions) < 2:
             return tape
@@ -113,9 +114,9 @@ class WorkArenaAgent(MonoAgent):
         return super().create(
             llm,
             nodes=[
-                WorkArenaNode(name="start", guidance=PromptRegistry.start),
-                WorkArenaNode(name="act", guidance=PromptRegistry.act),
-                WorkArenaNode(name="think", guidance=PromptRegistry.think, next_node=1),
+                WorkArenaNode(name="set_goal", guidance=PromptRegistry.start),
+                WorkArenaNode(name="reflect", guidance=PromptRegistry.reflect),
+                WorkArenaNode(name="act", guidance=PromptRegistry.act, next_node=1),
             ],
             max_iterations=2,
         )

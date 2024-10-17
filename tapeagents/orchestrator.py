@@ -203,7 +203,7 @@ def replay_tape(
 
         if reuse_observations:
             observations: list[Step] = []
-            for step in tape.steps[len(agent_tape) :]:
+            for step in tape.steps[new_steps_count:]:
                 if isinstance(step, Observation):
                     observations.append(step)
                 else:
@@ -255,7 +255,8 @@ def replay_tapes(
     for i, tape in enumerate(tapes):
         logger.debug(f"Tape {i}")
         try:
-            if not replay_tape(agent, tape, env, reuse_observations=reuse_observations):
+            matched = replay_tape(agent, tape, env, reuse_observations=reuse_observations)
+            if not matched:
                 raise FatalError("Tape mismatch")
             ok += 1
         except FatalError as f:
