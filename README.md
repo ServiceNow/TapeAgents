@@ -93,7 +93,7 @@ Other notable examples that demonstrate the main aspects of the framework:
 
 # Learn more 
 
-See our [Now AI paper](https://www.servicenow.com/research/TapeAgents.pdf) on TapeAgents.
+See our [Now AI paper](https://www.servicenow.com/research/TapeAgentsFramework.pdf) on TapeAgents.
 
 # Contacts
 
