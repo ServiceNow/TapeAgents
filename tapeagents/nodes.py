@@ -158,3 +158,13 @@ class ObservationControlNode(ControlFlowNode):
         observations = [step for step in tape.steps if isinstance(step, Observation)]
         last_observation = observations[-1] if observations else None
         return self.observation_to_node.get(type(last_observation), self.default_node)
+
+
+class FixedStepsNode(Node):
+    steps: list[Step]
+
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        for step in self.steps:
+            yield step

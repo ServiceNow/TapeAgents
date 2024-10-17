@@ -91,16 +91,6 @@ class Node(BaseModel):
         return LLMOutput(role="assistant", content=tape.steps[index].content)
 
 
-class FixedStepsNode(Node):
-    steps: list[Step]
-
-    def generate_steps(
-        self, agent: Any, tape: Tape, llm_stream: LLMStream
-    ) -> Generator[Step | PartialStep, None, None]:
-        for step in self.steps:
-            yield step
-
-
 class Agent(BaseModel, Generic[TapeType]):
     """
     The base class for agents.
