@@ -22,7 +22,6 @@ from examples.delegate_stack import ExampleTape as ExampleTapeStack
 from examples.delegate_stack import Linguist, make_analyze_text_chain
 from examples.gaia_agent.agent import GaiaAgent
 from examples.gaia_agent.environment import GaiaEnvironment
-from examples.gaia_agent.eval import load_results
 from examples.gaia_agent.tape import GaiaTape
 from examples.gsm8k_tuning.math_agent import MathAgent, MathTape
 from examples.llama_agent import LLAMAChatBot
@@ -35,7 +34,7 @@ from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
-from tapeagents.observe import LLMCall, init_sqlite_if_not_exists, retrieve_tape_llm_calls
+from tapeagents.observe import init_sqlite_if_not_exists, retrieve_tape_llm_calls
 from tapeagents.orchestrator import replay_tape, replay_tapes
 from tapeagents.team import TeamTape
 
@@ -135,19 +134,16 @@ def test_llama_agent_tape_reuse():
 
 
 def test_gaia_agent():
+    # TODO: FIX final steps in the end in test res!
     run_dir = str(res_path / "gaia_agent")
-    results = load_results(os.path.join(run_dir, "results.json"))
-
-    llm = ReplayLLM(llm_calls=[LLMCall.model_validate(p) for p in results.prompts], model_name=results.model)
+    llm = mock_llm(run_dir)
     env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
-    # add lowercased keys to the cache for legacy compatibility
-    cache = results.web_cache | {k.lower().strip(): v for k, v in results.web_cache.items() if len(v)}
-    env.browser.set_web_cache(cache)
+    with open(f"{run_dir}/web_cache.json") as f:
+        web_cache = json.load(f)
+    env.browser.set_web_cache(web_cache)
     agent = GaiaAgent.create(llm)
-
-    tapes = [GaiaTape.model_validate(tape) for tape in results.tapes]
+    tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
-
     fails = replay_tapes(agent, tapes, env)
     assert fails == 0, f"{fails} failed tapes"
 
@@ -155,11 +151,10 @@ def test_gaia_agent():
 def test_workarena_agent():
     run_dir = str(res_path / "workarena" / "guided")
     llm = mock_llm(run_dir)
-    env = EmptyEnvironment()
     agent = WorkArenaAgent.create(llm)
     tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+    fails = replay_tapes(agent, tapes, reuse_observations=True)
     assert fails == 0, f"{fails} failed tapes"
 
 
@@ -217,11 +212,10 @@ def test_optimize():
 def test_gsm8k_tuning_tapes_generation():
     run_dir = f"{res_path}/gsm8k_tuning"
     llm = mock_llm(run_dir)
-    env = EmptyEnvironment()
     agent = MathAgent.create(llm)
     tapes = load_tapes(MathTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+    fails = replay_tapes(agent, tapes, reuse_observations=True)
     assert fails == 0, f"{fails} failed tapes"
 
 

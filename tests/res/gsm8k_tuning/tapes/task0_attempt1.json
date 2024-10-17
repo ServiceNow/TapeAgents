@@ -1,8 +1,8 @@
 {
     "metadata": {
-        "id": "5d82af1a-37e1-4f69-b966-8b1698b38ade",
-        "parent_id": null,
-        "author": null,
+        "id": "c62e328e-f5ae-4027-86f7-935507a8b1f6",
+        "parent_id": "cdef1bc0-d0e6-4c30-98f6-d8d1157f4bc4",
+        "author": "MathAgent",
         "author_tape_id": null,
         "n_added_steps": 1,
         "error": null,
@@ -28,8 +28,8 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "fa733a3f-f645-4315-b752-00d1e969f9e1",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "46751db5-ad50-4458-a474-22631fdfcbc9",
                 "node": "start",
                 "agent": "MathAgent",
                 "other": {}
@@ -39,8 +39,8 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "4e2f8148-130b-4534-be0f-9b39ba9ecf96",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "c8d0357c-98fa-42bf-bb74-6080e1cd06b3",
                 "node": "default",
                 "agent": "MathAgent",
                 "other": {}
@@ -50,14 +50,36 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "485d6ccb-3613-4557-b261-fda1d0ab55f6",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "c8d0357c-98fa-42bf-bb74-6080e1cd06b3",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "1cd6261d-51b1-4cd3-b620-e5f2c05bad3c",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
             "kind": "use_calculator_action",
             "expression": "50 / 60"
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "1cd6261d-51b1-4cd3-b620-e5f2c05bad3c",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
         },
         {
             "metadata": {
@@ -72,9 +94,9 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "6623746d-8612-4b63-816e-c11dd8b61c06",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "bd8729c2-526c-493d-a2f1-4f66137531a3",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
@@ -83,14 +105,36 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "2609dba4-3a65-43b9-8d24-03902b9e6675",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "bd8729c2-526c-493d-a2f1-4f66137531a3",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "b6608c97-fbb3-41c2-a47d-5302bf7463b2",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
             "kind": "use_calculator_action",
             "expression": "0.8333333333333334 * 12"
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "b6608c97-fbb3-41c2-a47d-5302bf7463b2",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
         },
         {
             "metadata": {
@@ -105,9 +149,9 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "5a91a2eb-096d-46b4-bda1-a00693c6a948",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "f49697ea-9f9c-43b0-9808-1be79c18fee2",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },

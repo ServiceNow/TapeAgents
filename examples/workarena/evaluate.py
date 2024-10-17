@@ -6,11 +6,12 @@ from browsergym.workarena import ALL_WORKARENA_TASKS
 from omegaconf import DictConfig
 from termcolor import colored
 
+from tapeagents.agent import Agent
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
 from tapeagents.orchestrator import main_loop
 
-from .agent import WorkArenaAgent, WorkArenaBaseline
+from .agent import WorkArenaAgent, WorkArenaBaselineNode
 from .environment import WorkArenaEnvironment
 from .steps import WorkArenaAction
 
@@ -28,7 +29,7 @@ def main(cfg: DictConfig) -> None:
     llm: LLM = hydra.utils.instantiate(cfg.llm)
     env = WorkArenaEnvironment(**cfg.env)
     if cfg.agent == "baseline":
-        agent = WorkArenaBaseline.create(llm)
+        agent = Agent.create(llm, nodes=[WorkArenaBaselineNode()])
     else:
         logger.info("Use guided agent")
         agent = WorkArenaAgent.create(llm)
