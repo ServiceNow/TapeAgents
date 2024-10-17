@@ -11,6 +11,7 @@ import yaml
 from pydantic import BaseModel, Field
 from termcolor import colored
 
+from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.rendering import step_view
 
@@ -25,33 +26,6 @@ logger = logging.getLogger(__name__)
 
 def get_git_revision_hash() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-
-
-class GaiaResults(BaseModel, Iterable[GaiaTape]):
-    run_id: str = str(uuid4())
-    dataset_path: str = ""
-    datetime: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
-    commit: str = Field(default_factory=get_git_revision_hash)
-    model: str = ""
-    llm_config: dict = Field(default_factory=dict)
-    tapes: list[dict] = Field(default_factory=list)
-    web_cache: dict = Field(default_factory=dict)
-    prompts: list[dict] = Field(default_factory=list)
-
-    def __iter__(self):
-        return iter(self.tapes)
-
-
-def save_results(results: GaiaResults, outfile: str):
-    with open(outfile, "w") as wf:
-        json.dump(results.model_dump(), wf, indent=2, ensure_ascii=False)
-
-
-def load_results(path: str) -> GaiaResults:
-    with open(path) as f:
-        data = json.load(f)
-        assert "tapes" in data, f"Invalid results file {path}"
-        return GaiaResults.model_validate(data)
 
 
 def tape_correct(tape: GaiaTape) -> bool:
@@ -190,12 +164,13 @@ def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int 
     return question
 
 
-def ensemble_results(all_tapes: list[list[dict]], oracle: bool = False) -> list[dict]:
+def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> list[GaiaTape]:
     ensemble = []
     improved = 0
     degraded = 0
     for i, tapes in enumerate(zip(*all_tapes)):
-        results = [tape["metadata"]["result"] for tape in tapes]
+        tapes: list[GaiaTape] = tapes
+        results = [tape.metadata.result for tape in tapes]
         most_common_idx = majority_vote(results)
         if oracle:
             for j, tape in enumerate(tapes):
@@ -207,8 +182,8 @@ def ensemble_results(all_tapes: list[list[dict]], oracle: bool = False) -> list[
         orig = tapes[0]
         orig_correct = int(tape_correct(orig))
         ensemble_correct = int(tape_correct(best_tape))
-        expected = tapes[0]["metadata"]["task"]["Final answer"]
-        log_message = f"{i+1}: {orig_correct} -> {ensemble_correct} | choose {most_common_idx+1} ({best_tape['metadata']['result']}) of {results}. Expected: {expected}"
+        expected = tapes[0].metadata.task["Final answer"]
+        log_message = f"{i+1}: {orig_correct} -> {ensemble_correct} | choose {most_common_idx+1} ({best_tape.metadata.result}) of {results}. Expected: {expected}"
         if orig_correct < ensemble_correct:
             logger.info("Improved")
             improved += 1
@@ -222,17 +197,16 @@ def ensemble_results(all_tapes: list[list[dict]], oracle: bool = False) -> list[
     return ensemble
 
 
-def ensemble_files(files: list[str], outfile: str = ""):
-    tapes = [load_results(fname).tapes for fname in files]
-    ensemble = ensemble_results(tapes)
-    acc, num = calculate_accuracy(ensemble, show_intermediate=False)
-    logger.info(f"Ensembled {len(files)} accuracy: {acc:.2f} ({num} of {len(ensemble)})")
-    ensemble_result = GaiaResults(tapes=ensemble)
-    if outfile:
-        assert not os.path.exists(outfile), f"File {outfile} already exists"
-        with open(outfile, "w") as f:
-            json.dump(ensemble_result.model_dump(), f, indent=4, ensure_ascii=False)
-        logger.info(f"Saved to {outfile}")
+def ensemble_files(tape_dirs: list[str], out_dir: str = ""):
+    tapes: list[list[GaiaTape]] = [load_tapes(GaiaTape, tape_dir, file_extension=".json") for tape_dir in tape_dirs]  # type: ignore
+    ensembled_tapes = ensemble_results(tapes)
+    acc, num = calculate_accuracy(ensembled_tapes, show_intermediate=False)
+    logger.info(f"Ensembled {len(tape_dirs)} accuracy: {acc:.2f} ({num} of {len(ensembled_tapes)})")
+    if out_dir:
+        assert not os.path.exists(out_dir), f"Directory {out_dir} already exists"
+        for i, tape in enumerate(ensembled_tapes):
+            save_json_tape(tape, out_dir, f"tape{i+1}")
+        logger.info(f"Saved to {out_dir}")
 
 
 def get_exp_config_dict(exp_path):
