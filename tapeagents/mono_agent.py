@@ -11,7 +11,9 @@ from .core import (
     LLMOutput,
     PartialStep,
     Prompt,
+    SetNextNode,
     Step,
+    StopStep,
     Tape,
     TapeType,
 )
@@ -34,6 +36,7 @@ class MonoNode(Node):
     system_prompt: str = ""
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_step_cls: Any = None
+    next_node_idx: int = -1
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         cleaned_tape = self.prepare_tape(tape)
@@ -45,7 +48,8 @@ class MonoNode(Node):
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
-        return tape
+        steps_without_control_flow = [step for step in tape.steps if not isinstance(step, SetNextNode)]
+        return tape.model_copy(update=dict(steps=steps_without_control_flow))
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
@@ -83,6 +87,9 @@ class MonoNode(Node):
                 raise FatalError("No completions!")
         except FatalError:
             raise
+
+        if self.next_node_idx >= 0 and not isinstance(new_steps[-1], StopStep):
+            yield SetNextNode(next_node=self.next_node_idx)
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         return step
@@ -128,15 +135,6 @@ class MonoAgent(Agent, Generic[TapeType]):
     """
 
     nodes: list[MonoNode]  # type: ignore
-
-    def select_node(self, tape: TapeType) -> Node:
-        last_kind = tape.steps[-1].kind
-        for node in self.nodes:
-            if (isinstance(node.trigger_step, str) and last_kind == node.trigger_step) or (
-                isinstance(node.trigger_step, list) and last_kind in node.trigger_step
-            ):
-                return node
-        return self.nodes[-1]  # default to the last node
 
     def delegate(self, tape: TapeType):
         """

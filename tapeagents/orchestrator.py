@@ -163,36 +163,38 @@ def replay_tape(
 
     event = None
     new_tape: TapeType = start_tape
-    i = len(start_tape)
-    while i < len(tape):
+    new_steps_count = len(start_tape)
+    while new_steps_count < len(tape):
         for event in agent.run(new_tape):
             if event.step:
                 step_dict = event.step.llm_dict()
-                if i >= len(tape.steps):
-                    logger.error(f"Extra step {i} from agent, kind: {step_dict.get('kind')}")
+                if step_dict.get("kind") == "set_next_node":
+                    continue
+                if new_steps_count >= len(tape.steps):
+                    logger.error(f"Extra step {new_steps_count} from agent, kind: {step_dict.get('kind')}")
                     match = False
                     if stop_on_mismatch:
                         return False
                     break
-                old_step_dict = tape.steps[i].llm_dict()
-                i += 1
+                old_step_dict = tape.steps[new_steps_count].llm_dict()
+                new_steps_count += 1
                 kind = step_dict.get("kind")
                 old_kind = old_step_dict.get("kind")
                 if kind != old_kind:
                     logger.error(
-                        f"Step {i} kind mismatch: Old {old_kind}, New {kind}\nOld step: {old_step_dict}\nNew step: {step_dict}"
+                        f"Step {new_steps_count} kind mismatch: Old {old_kind}, New {kind}\nOld step: {old_step_dict}\nNew step: {step_dict}"
                     )
                     match = False
                     if stop_on_mismatch:
                         return False
                 elif old_step_dict != step_dict:
-                    logger.error(f"Step {i} mismatch")
+                    logger.error(f"Step {new_steps_count} mismatch")
                     logger.error(diff_dicts(old_step_dict, step_dict))
                     match = False
                     if stop_on_mismatch:
                         return False
                 else:
-                    logger.debug(f"Step {i} ok")
+                    logger.debug(f"Step {new_steps_count} ok")
             if event.final_tape:
                 break
         assert event and event.final_tape
@@ -211,27 +213,30 @@ def replay_tape(
             if len(observations):
                 logger.debug(f"Reusing {len(observations)} observations from tape")
             new_tape = agent_tape + observations
-            i += len(observations)
+            new_steps_count += len(observations)
         else:
             assert env is not None
             new_tape = env.react(agent_tape)
             observations = new_tape.steps[len(agent_tape) :]
             for observation in observations:
                 step_dict = observation.llm_dict()
-                old_step_dict = tape.steps[i].llm_dict()
-                i += 1
+                old_step_dict = tape.steps[new_steps_count].llm_dict()
+                new_steps_count += 1
                 if old_step_dict != step_dict:
-                    logger.error(f"Observation {i} mismatch")
+                    logger.error(f"Observation {new_steps_count} mismatch")
                     logger.error(diff_dicts(old_step_dict, step_dict))
                     match = False
                     if stop_on_mismatch:
                         return False
                 else:
-                    logger.debug(f"Observation {i} ok")
+                    logger.debug(f"Observation {new_steps_count} ok")
 
                 if isinstance(observation, StopStep):
                     logger.info(f"Environment emitted final step {observation}")
                     break
+    if new_steps_count > len(tape.steps):
+        logger.error(f"New tape has {new_steps_count} steps, old tape has {len(tape.steps)}")
+        match = False
     return match
 
 

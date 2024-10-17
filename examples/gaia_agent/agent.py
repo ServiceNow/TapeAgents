@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Any
 
 from tapeagents.core import Step
-from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.llms import LLM
+from tapeagents.mono_agent import MonoAgent, MonoNode
 
 from .prompts import PromptRegistry
 from .steps import (
@@ -51,6 +51,7 @@ class GaiaNode(MonoNode):
         """
         Trim long observations except for the last 3 steps
         """
+        tape = super().prepare_tape(tape)  # type: ignore
         steps = []
         for step in tape.steps[:-3]:
             if isinstance(step, PageObservation):
@@ -183,5 +184,12 @@ class GaiaAgent(MonoAgent):
                     guidance=PromptRegistry.is_subtask_finished,
                 )
             )
-        guidance_nodes.append(GaiaNode(name="default", trigger_step="default", guidance=""))
+        guidance_nodes.append(
+            GaiaNode(
+                name="default",
+                trigger_step="default",
+                guidance="",
+                next_node_idx=len(guidance_nodes),  # loop that node to itself
+            )
+        )
         return guidance_nodes
