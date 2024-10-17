@@ -74,51 +74,31 @@ class Node(BaseModel):
     """
 
     name: str = ""
-    make_prompt_func: PromptMakerFunction = Field(default=lambda agent, tape: Prompt(), exclude=True)
-    generate_steps_func: StepsGeneratorFunction = Field(
-        default=lambda agent, tape, llm_stream: (step for step in ()), exclude=True
-    )
-    make_llm_output_func: Callable[[Any, Tape, int], LLMOutput] = Field(
-        default=lambda agent, tape, index: LLMOutput(role="assistant", content=tape.steps[index].content), exclude=True
-    )
 
     def model_post_init(self, __context: Any) -> None:
         if not self.name:
             self.name = self.__class__.__name__.split("[")[0]  # class name without type variables
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        return self.make_prompt_func(agent, tape)
+        return Prompt()
 
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
-        yield from self.generate_steps_func(agent, tape, llm_stream)
+        raise NotImplementedError("Node must implement generate_steps")
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
-        """"""
-        return self.make_llm_output_func(agent, tape, index)
+        return LLMOutput(role="assistant", content=tape.steps[index].content)
 
-    def with_prompt(self, make_prompt: PromptMakerFunction) -> Node:
-        self.make_prompt_func = make_prompt
-        return self
 
-    def with_generate_steps(self, generate_steps: StepsGeneratorFunction) -> Node:
-        """
-        Set the function that generates steps from the LLM output
-        """
-        self.generate_steps_func = generate_steps
-        return self
+class FixedStepsNode(Node):
+    steps: list[Step]
 
-    def with_llm_output(self, make_llm_output: Callable[[Any, Tape, int], LLMOutput]) -> Node:
-        self.make_llm_output_func = make_llm_output
-        return self
-
-    def with_fixed_steps(self, steps: list[Step]) -> Node:
-        """
-        Use fixed steps instead of generating them from the LLM output for that node
-        """
-        self.generate_steps_func = lambda agent, tape, llm_stream: (yield from steps)  # type: ignore
-        return self
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        for step in self.steps:
+            yield step
 
 
 class Agent(BaseModel, Generic[TapeType]):

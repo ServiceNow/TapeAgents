@@ -140,9 +140,6 @@ class ControlFlowNode(Node):
             Abstract method to choose the next node based on the tape. Must be implemented in a subclass.
     """
 
-    def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        return Prompt(messages=[])  # empty prompt means no LLM call
-
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
