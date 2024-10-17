@@ -9,7 +9,7 @@ from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep
 from tapeagents.environment import Environment
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
-from tapeagents.mono_agent import MonoAgent, MonoNode
+from tapeagents.mono_agent import GuidanceNode, MonoAgent
 from tapeagents.orchestrator import main_loop
 from tapeagents.tools.calculator import calculate
 from tapeagents.utils import get_step_schemas_from_union_type
@@ -112,14 +112,14 @@ class MathAgent(MonoAgent):
         return super().create(
             llm,
             nodes=[
-                MonoNode(
+                GuidanceNode(
                     name="start",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
                     agent_step_cls=MathAgentStep,
                     guidance=START_TASK_GUIDANCE,
                 ),
-                MonoNode(
+                GuidanceNode(
                     name="default",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,

@@ -26,9 +26,9 @@ from .utils import FatalError, sanitize_json_completion
 logger = logging.getLogger(__name__)
 
 
-class MonoNode(Node):
+class GuidanceNode(Node):
     """
-    A node for the monolithic agent.
+    A node for simple agents:
     - Renders the whole tape into a prompt. Trims the tape if needed.
     - Attaches a guidance text to the end of the prompt after rendering the tape.
     - Parses the llm output into provided step classes (class provided in a form of annotated union).
@@ -171,7 +171,7 @@ class MonoAgent(Agent, Generic[TapeType]):
     Monolithic agent which selects the node based on the last step in the tape.
     """
 
-    nodes: list[MonoNode]  # type: ignore
+    nodes: list[GuidanceNode]  # type: ignore
 
     def delegate(self, tape: TapeType):
         """

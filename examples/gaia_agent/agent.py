@@ -2,9 +2,10 @@ import logging
 from enum import Enum
 from typing import Any
 
+from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
-from tapeagents.mono_agent import MonoAgent, MonoNode, ObservationControlNode
+from tapeagents.mono_agent import GuidanceNode, ObservationControlNode
 
 from .prompts import PromptRegistry
 from .steps import (
@@ -36,7 +37,7 @@ class PlanningMode(str, Enum):
     reflect = "reflect"
 
 
-class GaiaNode(MonoNode):
+class GaiaNode(GuidanceNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
     agent_step_cls: Any = GaiaAgentStep
@@ -96,7 +97,7 @@ class GaiaNode(MonoNode):
         return short_tape
 
 
-class GaiaAgent(MonoAgent):
+class GaiaAgent(Agent):
     subtasks: bool
 
     @classmethod
