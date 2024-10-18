@@ -234,10 +234,9 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
         target_path / "error.log",
         target_path / "info.log",
         target_path / "dialogue_trace.log",
-        target_path / "rl_forks_train",
-        target_path / "train",
-        target_path / "rl_forks_eval",
-        target_path / "eval",
+        target_path / "rollouts",
+        target_path / "tapes",
+        target_path / "conf",
         target_path / "finetune" / "current",
         target_path / "finetune" / "logs",
         target_path / "finetune" / "intermediate",
@@ -247,6 +246,79 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
     for directory in directories:
         remove_dir(directory)
         logger.info(f"{directory} removed.")
+
+
+def calculate_stats(stats):
+    return {
+        "max": np.mean([max(stats) for stats in stats.values() if stats]),
+        "min": np.mean([min(stats) for stats in stats.values() if stats]),
+        "var": np.mean([np.var(stats) for stats in stats.values() if stats]),
+        "mean": np.mean([np.mean(stats) for stats in stats.values() if stats]),
+    }
+
+
+def create_tapes(samples):
+    tapes = []
+    for sample in samples:
+        start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))
+        tape = MathTape(steps=[start_step], context=None)
+        tapes.append(tape)
+    return tapes
+
+
+def process_dataset(agent, tapes, cfg, env, tapes_dir, is_training=True):
+    os.makedirs(tapes_dir, exist_ok=True)
+
+    new_tapes = []
+    for new_tape in batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers):
+        new_tapes.append(new_tape)
+        save_tape(os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"), new_tape)
+
+    reward_stats = defaultdict(list)
+    step_stats = defaultdict(list)
+    no_errors_stats = defaultdict(list)
+    success_stats = defaultdict(list)
+    training_samples: List[TrainingText] = []
+
+    for new_tape in new_tapes:
+        if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
+            new_tape_filtered = copy.deepcopy(new_tape)
+            new_tape_filtered.steps = [
+                step for step in new_tape.steps if not isinstance(step, AgentResponseParsingFailureAction)
+            ]
+            no_error, reward, success = 0, -1, 0
+            new_tape = new_tape_filtered
+        else:
+            no_error = 1
+            if (
+                isinstance(new_tape.steps[-1], AnswerAction)
+                and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
+            ):
+                reward, success = 1, 1
+            else:
+                reward, success = 0, 0
+
+        reward_stats[new_tape.metadata.parent_id].append(reward)
+        step_stats[new_tape.metadata.parent_id].append(len(new_tape.steps))
+        success_stats[new_tape.metadata.parent_id].append(success)
+        no_errors_stats[new_tape.metadata.parent_id].append(no_error)
+
+        if is_training:
+            try:
+                for trace in agent.make_training_data(new_tape):
+                    trace.rewards = [reward]
+                    trace.fork_id = new_tape.metadata.parent_id
+                    training_samples.append(trace)
+            except Exception as e:
+                logger.error(f"Failed to make training data: {e}")
+                logger.error(new_tape)
+
+    reward_stats = {f"{k}_reward": v for k, v in calculate_stats(reward_stats).items()}
+    step_stats = {f"{k}_steps": v for k, v in calculate_stats(step_stats).items()}
+    success_stats = {f"{k}_success": v for k, v in calculate_stats(success_stats).items()}
+    no_errors_stats = {f"{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()}
+    stats = {**reward_stats, **step_stats, **success_stats, **no_errors_stats}
+    return new_tapes, training_samples, stats
 
 
 @hydra.main(config_path="../../conf/", config_name="fast_rl_gsm8k")
@@ -263,15 +335,15 @@ def main(cfg: DictConfig):
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
 
-    dataset = load_dataset("openai/gsm8k", "main", split="train")
-    samples = [s for s in dataset]
-    logging.info(f"Loaded {len(samples)} samples")
+    train_dataset = load_dataset("openai/gsm8k", "main", split="train")
+    train_samples = [s for s in train_dataset]
+    test_dataset = load_dataset("openai/gsm8k", "main", split="test")
+    test_samples = [s for s in test_dataset]
+    logging.info(f"Loaded {len(train_samples)} training samples")
+    logging.info(f"Loaded {len(test_samples)} test samples")
 
     env = MathEnvironment()
 
-    tapes_dir = os.path.join(exp_path, "tapes")
-    logger.info(f"Saving tapes to {tapes_dir}")
-    os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "llm_calls.sqlite")
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
@@ -301,76 +373,57 @@ def main(cfg: DictConfig):
             use_cache=False,
         )
 
-        start_make_training_data = time.time()
+        test_llm = TrainableLLM(
+            base_url="http://127.0.0.1:8080",
+            model_name=str(assistant_model_path),
+            tokenizer_name=str(assistant_model_path),
+            parameters=cfg.test_llm.parameters,
+            use_cache=False,
+        )
+
+        tapes_dir = exp_path / "tapes" / str(state["iteration"])
+        os.makedirs(tapes_dir, exist_ok=True)
 
         try:
-            agent = MathAgent.create(llm=llm)
-            sub_samples = random.sample(samples, cfg.max_agent_forks // cfg.attempts)
-            tapes = []
-            for sample in sub_samples:
-                start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))  # type: ignore
-                tape = MathTape(steps=[start_step], context=None)
-                tapes.append(tape)
+            sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
+            train_tapes = create_tapes(sub_samples)
+            train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
+            test_tapes = create_tapes(test_samples)
+            train_agent = MathAgent.create(llm=llm)
+            test_agent = MathAgent.create(llm=test_llm)
 
-            # tapes = tapes * cfg.attempts
-            tapes = [copy.deepcopy(tape) for tape in tapes for _ in range(cfg.attempts)]
-            new_tapes = []
-            for new_tape in batch_main_loop(agent, tapes, env, max_loops=30):
-                new_tapes.append(new_tape)
+            datasets = [("train", train_agent, train_tapes)]
+            if state["iteration"] % cfg.test_every_n_iterations == 0:
+                datasets.append(("test", test_agent, test_tapes))
+            all_results = {}
 
-            reward_stats = defaultdict(list)
-            step_stats = defaultdict(list)
-            rewards = []
-            no_errors = []
-            successes = []
-            training_samples: list[TrainingText] = []
-            for new_tape in new_tapes:
-                if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
-                    new_tape_filtered = copy.deepcopy(new_tape)
-                    new_tape_filtered.steps = []
-                    for step in new_tape.steps:
-                        new_tape_filtered.steps.append(step)
-                        if isinstance(step, AgentResponseParsingFailureAction):
-                            break
-                    no_error = 0
-                    new_tape = new_tape_filtered
-                    reward = -1
-                    success = 0
+            for dataset_name, agent, tapes in datasets:
+                is_training = dataset_name == "train"
+                if is_training:
+                    tapes_dir = exp_path / "train_tapes" / str(state["iteration"])
                 else:
-                    no_error = 1
-                    if (
-                        isinstance(new_tape.steps[-1], AnswerAction)
-                        and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
-                    ):
-                        reward = 1
-                        success = 1
-                    else:
-                        reward = 0
-                        success = 0
+                    tapes_dir = exp_path / "test_tapes" / str(state["iteration"])
+                start_make_training_data = time.time()
+                new_tapes, training_samples, stats = process_dataset(agent, tapes, cfg, env, tapes_dir, is_training)
+                end_make_training_data = time.time()
+                stats = {f"{dataset_name}_{k}": v for k, v in stats.items()}
+                stats.update(
+                    {
+                        f"execution_time/{dataset_name}_make_training_data": end_make_training_data  # type: ignore
+                        - start_make_training_data
+                    }
+                )
 
-                reward_stats[new_tape.metadata.parent_id].append(reward)
-                step_stats[new_tape.metadata.parent_id].append(len(new_tape.steps))
-                rewards.append(reward)
-                no_errors.append(no_error)
-                successes.append(success)
+                all_results[dataset_name] = {
+                    "new_tapes": new_tapes,
+                    "training_samples": training_samples,
+                    "stats": stats,
+                }
 
-                try:
-                    for trace in agent.make_training_data(new_tape):
-                        trace.rewards = [reward]
-                        trace.fork_id = new_tape.metadata.parent_id
-                        training_samples.append(trace)
-                except Exception as e:
-                    logger.error(colored(f"Failed to make training data: {e}", "red"))
-                    logger.error(new_tape)
-
-            max_rewards = np.mean([max(stats) for stats in reward_stats.values() if stats])
-            min_rewards = np.mean([min(stats) for stats in reward_stats.values() if stats])
-            var_rewards = np.mean([np.var(stats) for stats in reward_stats.values() if stats])
-
-            max_steps = np.mean([max(stats) for stats in step_stats.values() if stats])
-            min_steps = np.mean([min(stats) for stats in step_stats.values() if stats])
-            var_steps = np.mean([np.var(stats) for stats in step_stats.values() if stats])
-            mean_steps = np.mean([np.mean(stats) for stats in step_stats.values() if stats])
+                # Log results
+                logger.info(f"{dataset_name.capitalize()} Results:")
+                for stat_name, stat_value in stats.items():
+                    logger.info(f"{dataset_name}_{stat_name}: {stat_value}")
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -383,29 +436,22 @@ def main(cfg: DictConfig):
             if stderr_file:
                 stderr_file.close()
 
-        end_make_training_data = time.time()
-
         logger.info(f"Collected {len(training_samples)} training samples")
-        logger.info(f"Rewards: {np.mean(rewards)}")
+        stats = all_results["train"]["stats"]
+        if "test" in all_results:
+            stats.update(all_results["test"]["stats"])
         wandb.log(
             {
-                "rewards": np.mean(rewards),
-                "max_rewards": max_rewards,
-                "min_rewards": min_rewards,
-                "var_rewards": var_rewards,
-                "steps": mean_steps,
-                "max_steps": max_steps,
-                "min_steps": min_steps,
-                "var_steps": var_steps,
-                "no_error": np.mean(no_errors),
-                "success": np.mean(successes),
-                "execution_time/make_training_data": end_make_training_data - start_make_training_data,
-                "execution_time/serving_assistant": end_serving_assistant - start_serving_assistant,
+                **{
+                    "execution_time/serving_assistant": end_serving_assistant - start_serving_assistant,
+                },
+                **stats
             },
             step=state["iteration"],
         )
 
         start_basemodel_logprobs = time.time()
+        training_samples = all_results["train"]["training_samples"]
         new_training_samples: list[TrainingText] = []
         if assistant_model_path == cfg.model_path:
             for trace in training_samples:
@@ -431,7 +477,7 @@ def main(cfg: DictConfig):
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
                 for trace in training_samples:
                     try:
-                        trace.ref_logprobs = basemodel_agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
+                        trace.ref_logprobs = basemodel_agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
                     except Exception as e:
                         logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
                         continue
@@ -457,8 +503,8 @@ def main(cfg: DictConfig):
         )
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
-        with open(rollout_dir / "data.jsonl", "w") as f:
-            for trace in training_samples:
+        for trace in training_samples:
+            with open(rollout_dir / f"{trace.fork_id}.jsonl", "a") as f:
                 f.write(trace.model_dump_json() + "\n")
                 f.flush()
 
