@@ -10,11 +10,12 @@ from tqdm import tqdm
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
 
-from .math_agent import (
+from examples.gsm8k_tuning.math_agent import (
     MathAgent,
     MathEnvironment,
     extract_result_value,
     solve_task,
+
 )
 
 logging.basicConfig(level=logging.INFO)

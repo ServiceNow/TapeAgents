@@ -36,6 +36,7 @@ class StepConfig(object):
 
 @dataclass
 class GRPOConfig(StepConfig):
+    algo: Optional[str] = field(default="grpo", metadata={"help": "Algorithm to use for RL"})
     use_advantages: Optional[bool] = field(
         default=True,
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
@@ -119,12 +120,6 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
     masks_ = masks[:, 1:]
     ref_logprobs = batch["ref_logprobs"][:, 1:]
     old_logprobs = batch["old_logprobs"][:, 1:]
-    # assert torch.isfinite(rewards).all(), "rewards contains NaN or inf"
-    # assert torch.isfinite(advantages).all(), "advantages contains NaN or inf"
-    # assert torch.isfinite(ref_logprobs).all(), "ref_logprobs contains NaN or inf"
-    # assert torch.isfinite(old_logprobs).all(), "old_logprobs contains NaN or inf"
-    # assert torch.isfinite(new_log_probs).all(), "new_log_probs contains NaN or inf"
-
     assert new_log_probs.shape == ref_logprobs.shape
 
     # First compute the PPO surrogate loss, see https://arxiv.org/pdf/2402.03300 eq 3
@@ -132,33 +127,29 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
     log_ratio_new_old = new_log_probs - old_logprobs
     ratio_new_old = torch.exp(log_ratio_new_old)
     weights = advantages if config.use_advantages else rewards
-    # assert torch.isfinite(log_ratio_new_old).all(), "log_ratio_new_old contains NaN or inf"
-    # assert torch.isfinite(ratio_new_old).all(), "ratio_new_old contains NaN or inf"
-    # assert torch.isfinite(weights).all(), "weights contains NaN or inf"
-    # assert ratio_new_old.shape == weights.shape
-    surr1 = ratio_new_old * weights
-    # assert torch.isfinite(surr1).all(), "surr1 contains NaN or inf"
-
-    clamped_ratio = torch.clamp(ratio_new_old, 1 - config.epsilon, 1 + config.epsilon)
-    # assert torch.isfinite(clamped_ratio).all(), "clamped_ratio contains NaN or inf"
-
-    surr2 = clamped_ratio * weights
-    # assert torch.isfinite(surr2).all(), "surr2 contains NaN or inf"
-
-    surrogate_loss = torch.min(surr1, surr2)
-    # assert torch.isfinite(surrogate_loss).all(), "surrogate_loss contains NaN or inf"
-
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
     approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
-    assert approx_kl.shape == masks_.shape
-    assert approx_kl.shape == surrogate_loss.shape
-    # assert torch.isfinite(surrogate_loss).all(), "surrogate_loss contains NaN or inf"
-    # assert torch.isfinite(approx_kl).all(), "approx_kl contains NaN or inf"
-    loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
+    match config.algo:
+        case "grpo":
+            surr1 = ratio_new_old * weights
+
+            clamped_ratio = torch.clamp(ratio_new_old, 1 - config.epsilon, 1 + config.epsilon)
+
+            surr2 = clamped_ratio * weights
+
+            surrogate_loss = torch.min(surr1, surr2)
+
+            assert approx_kl.shape == masks_.shape
+            assert approx_kl.shape == surrogate_loss.shape
+            loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
+        case "reinforce":
+            surr1 = torch.zeros_like(ratio_new_old)
+            surr2 = torch.zeros_like(ratio_new_old)
+            loss = -masked_mean(new_log_probs * weights, masks_)
+        case _:
+            raise ValueError(f"Unknown algorithm {config.algo}")
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
-    # if not torch.isfinite(loss):
-    #    loss = torch.nan_to_num(loss, nan=0.0, posinf=0.0, neginf=0.0)
 
     if (
         masked_mean(ratio_new_old, masks_) > config.ratio_threshold
@@ -166,22 +157,22 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
         loss = loss * 0
 
     stats = {
-        "max_new_log_probs": (masks_ * new_log_probs).max().item(),
-        "max_ratio_new_old": (masks_ * ratio_new_old).max().item(),
+        "max_new_log_probs":  new_log_probs[masks_].max().item(),
+        "max_ratio_new_old": ratio_new_old[masks_].max().item(),
         "max_loss": loss.max().item(),
         "reward": masked_mean(rewards, masks_).item(),
-        "max_reward": (rewards * masks_).max().item(),
-        "min_reward": (rewards * masks_).min().item(),
+        "max_reward": rewards[masks_].max().item(),
+        "min_reward": rewards[masks_].min().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
         "mean_ref_logprobs": masked_mean(ref_logprobs, masks_).item(),
         "advantage": masked_mean(advantages, masks_).item(),
-        "max_advantage": advantages.max().item(),
-        "min_advantage": advantages.min().item(),
+        "max_advantage": advantages[masks_].max().item(),
+        "min_advantage": advantages[masks_].min().item(),
         "loss": loss.item(),
         "kl": masked_mean(approx_kl, masks_).item(),
-        "max_kl": (masks_ * approx_kl).max().item(),
-        "min_kl": (masks_ * approx_kl).min().item(),
+        "max_kl": approx_kl[masks_].max().item(),
+        "min_kl": approx_kl[masks_].min().item(),
         "surr1": masked_mean(surr1, masks_).item(),
         "surr2": masked_mean(surr2, masks_).item(),
         "ratio_new_old": masked_mean(ratio_new_old, masks_).item(),
@@ -189,20 +180,6 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
         "ratio_ref_old": masked_mean(torch.exp(ref_logprobs - old_logprobs), masks_).item(),
     }
     return loss, stats
-
-
-def replace_non_zero(reward_list, value):
-    """
-    Replace the non-zero entry in the reward list with the given value.
-    If all entries are zero, return the original list.
-    """
-    for i, r in enumerate(reward_list):
-        if r != 0:
-            new_list = reward_list.copy()
-            new_list[i] = value
-            return new_list
-    return reward_list  # Return original list if all entries are zero
-
 
 def update_advantages(dataset: Dataset, config: GRPOConfig) -> Dataset:
     """
@@ -311,9 +288,7 @@ def prepare_rl_fields(
         old_logprobs
     ), f"Target tokens: {len(target_tokens)}, old logprobs: {len(old_logprobs)}"
 
-    encoding["rewards"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + rewards_per_line[:1] * len(
-        old_logprobs
-    )
+    encoding["rewards"] = rewards_per_line[:1] * len(encoding["labels"])
     encoding["advantages"] = [0.0] * len(encoding["labels"])  # place holder
     encoding["old_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
     encoding["ref_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + ref_logprobs

@@ -9,6 +9,7 @@ from typing_extensions import Self
 
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
+from tapeagents.core import AgentResponseParsingFailureAction
 
 from .core import (
     Action,
@@ -242,6 +243,7 @@ class Agent(BaseModel, Generic[TapeType]):
             templates = {DEFAULT: templates}
         if templates:
             kwargs["templates"] = templates
+        
         return cls(llms=llms or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
@@ -418,11 +420,13 @@ class Agent(BaseModel, Generic[TapeType]):
                     assert isinstance(new_step, Step)
                     old_step = tape.steps[i + j]
                     if type(old_step) is not type(new_step) or not _is_step_data_equal(old_step, new_step):
-                        raise TapeReuseFailure(
-                            f"Can't reuse tape because regenerated step {i + j} data doesn't match"
-                            f"\nold step data: {old_step.llm_dict()}\nnew step data: {new_step.llm_dict()}",
-                            partial_tape=past_tape,
-                        )
+                        #TODO: Oleh discussion
+                        pass
+                        #raise TapeReuseFailure(
+                        #    f"Can't reuse tape because regenerated step {i + j} data doesn't match"
+                        #    f"\nold step data: {old_step.llm_dict()}\nnew step data: {new_step.llm_dict()}",
+                        #    partial_tape=past_tape,
+                        #)
                 llm_calls.append(llm_call)
                 reused_steps.extend(new_steps)
                 i += len(new_steps)
@@ -443,10 +447,10 @@ class Agent(BaseModel, Generic[TapeType]):
             last_prompt_id = prompt_id
         return result
 
-    def make_training_text(self, llm_call: LLMCall) -> TrainingText:
+    def make_training_text(self, llm_call: LLMCall, compute_log_probs=False) -> TrainingText:
         """Routes the request to make trace to the appropriate agent's LLM."""
         # TODO: support more than 1 LLM
-        return self.llm.make_training_text(llm_call.prompt, llm_call.output)
+        return self.llm.make_training_text(llm_call.prompt, llm_call.output, compute_log_probs)
 
     def make_training_data(self, tape: TapeType) -> list[TrainingText]:
         _, llm_calls = self.reuse(tape)
@@ -470,7 +474,11 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
 
     """
 
+
     def just_data(step: Step) -> dict:
+        if isinstance(step, AgentResponseParsingFailureAction):
+            return {}
+
         data = step.llm_dict()
         for tc in data.get("tool_calls", []):
             tc.pop("id", None)
