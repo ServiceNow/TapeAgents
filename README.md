@@ -85,10 +85,7 @@ The [examples/](examples/) directory contains examples of how to use the TapeAge
 
 Other notable examples that demonstrate the main aspects of the framework:
 - [workarena](examples/workarena) - custom agent that solves [WorkArena](https://github.com/ServiceNow/WorkArena) benchmark using [BrowserGym](https://github.com/ServiceNow/BrowserGym) environment.
-- [annotator.py](annotator.py) - example of the agent that annotates the existing tape with some score or label.
 - [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
-- [studio.py](examples/studio.py) - interactive Gradio demo of agent that could be changed in runtime.
-
 
 
 # Learn more 
