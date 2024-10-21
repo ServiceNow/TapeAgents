@@ -2,8 +2,8 @@ defaults:
   - finetune: rl_llama31_8b
   - _self_
 
-n_workers: 24
-max_loops: 10
+n_workers: 32
+max_loops: 1
 test_every_n_iterations: 5
 model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
 max_agent_forks: 1024

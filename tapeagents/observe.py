@@ -8,12 +8,16 @@ from pydantic import BaseModel
 
 from .config import sqlite_db_path
 from .core import LLMCall, LLMOutput, Prompt, Tape
+import queue
+import threading
+
 
 logger = logging.getLogger(__name__)
 
 _checked_sqlite = False
 
 
+LLM_WRITE_QUEUE = queue.Queue()
 LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
 
@@ -60,34 +64,40 @@ def init_sqlite_if_not_exists(only_once: bool = True):
     cursor.close()
     _checked_sqlite = True
 
+def sqlite_writer():
+    while True:
+        call = LLM_WRITE_QUEUE.get()
+        if call is None:
+            break  # Stop the thread
+        try:
+            init_sqlite_if_not_exists()
+            with sqlite3.connect(sqlite_db_path(), timeout=30) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        call.prompt.id,
+                        call.timestamp,
+                        call.prompt.model_dump_json(),
+                        call.output.model_dump_json(),
+                        call.prompt_length_tokens,
+                        call.output_length_tokens,
+                        call.cached,
+                    ),
+                )
+                cursor.close()
+        except Exception as e:
+            logger.error(f"Failed to store LLMCall: {e}")
+
 
 def sqlite_store_llm_call(call: LLMCall):
-    # TODO: ollmer: investigate `Failed to solve task: database is locked` error later, fix it, remove these try-catch wrappers
-    try:
-        init_sqlite_if_not_exists()
-        with sqlite3.connect(sqlite_db_path()) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    call.prompt.id,
-                    call.timestamp,
-                    call.prompt.model_dump_json(),
-                    call.output.model_dump_json(),
-                    call.prompt_length_tokens,
-                    call.output_length_tokens,
-                    call.cached,
-                ),
-            )
-            cursor.close()
-    except Exception as e:
-        logger.error(f"Failed to store LLMCall: {e}")
+    LLM_WRITE_QUEUE.put(call)
 
 
 def sqlite_store_tape(tape: Tape):
     try:
         init_sqlite_if_not_exists()
-        with sqlite3.connect(sqlite_db_path()) as conn:
+        with sqlite3.connect(sqlite_db_path(), timeout=30) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO Tapes (tape_id, timestamp, length, metadata, context, steps) VALUES (?, ?, ?, ?, ?, ?)",
@@ -210,3 +220,11 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
             )
         )
     return calls
+
+def start_sqlite_writer():
+    writer_thread = threading.Thread(target=sqlite_writer)
+    writer_thread.start()
+
+def stop_sqlite_writer():
+    LLM_WRITE_QUEUE.put(None)
+    LLM_WRITE_QUEUE.join()

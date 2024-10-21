@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
@@ -20,6 +21,7 @@ import torch
 from datasets import load_dataset
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
+from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored, cprint
 from tqdm import tqdm
 
@@ -39,8 +41,18 @@ from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, Tap
 from tapeagents.finetune.finetune import load_config, run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
+from tapeagents.observe import start_sqlite_writer, stop_sqlite_writer
 
 logger = logging.getLogger(__name__)
+
+
+def process_trace(agent, trace):
+    try:
+        trace.ref_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
+        return trace
+    except Exception as e:
+        logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
+        return None
 
 
 def setup_logging(output_dir):
@@ -132,6 +144,7 @@ def wait_for_service(process, url, headers=None, timeout=120):
         time.sleep(5)
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
 def serve_vllm_local_model(
     model_name_or_path: str | Path,
     stdout_file_path: str | Path,
@@ -230,6 +243,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
 
     # List of directories to remove
     directories = [
+        target_path / "llm_calls.sqlite",
         target_path / "debug.log",
         target_path / "error.log",
         target_path / "info.log",
@@ -269,9 +283,8 @@ def create_tapes(samples):
 def process_dataset(agent, tapes, cfg, env, tapes_dir, is_training=True):
     os.makedirs(tapes_dir, exist_ok=True)
 
-    new_tapes = []
-    for new_tape in batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers):
-        new_tapes.append(new_tape)
+    new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
+    for new_tape in new_tapes:
         save_tape(os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"), new_tape)
 
     reward_stats = defaultdict(list)
@@ -304,20 +317,21 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, is_training=True):
         no_errors_stats[new_tape.metadata.parent_id].append(no_error)
 
         if is_training:
-            try:
-                for trace in agent.make_training_data(new_tape):
+            for trace in agent.make_training_data(new_tape):
+                try:
                     trace.rewards = [reward]
                     trace.fork_id = new_tape.metadata.parent_id
                     training_samples.append(trace)
-            except Exception as e:
-                logger.error(f"Failed to make training data: {e}")
-                logger.error(new_tape)
+                except Exception as e:
+                    logger.error(f"Failed to make training data: {e}")
+                    logger.error(new_tape)
 
-    reward_stats = {f"{k}_reward": v for k, v in calculate_stats(reward_stats).items()}
-    step_stats = {f"{k}_steps": v for k, v in calculate_stats(step_stats).items()}
-    success_stats = {f"{k}_success": v for k, v in calculate_stats(success_stats).items()}
-    no_errors_stats = {f"{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()}
-    stats = {**reward_stats, **step_stats, **success_stats, **no_errors_stats}
+    stats = {
+        **{f"{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
+        **{f"{k}_steps": v for k, v in calculate_stats(step_stats).items()},
+        **{f"{k}_success": v for k, v in calculate_stats(success_stats).items()},
+        **{f"{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+    }
     return new_tapes, training_samples, stats
 
 
@@ -348,7 +362,7 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
-    while state["iteration"] < cfg.max_iterations:
+    while state["iteration"] <= cfg.max_iterations:
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
         else:
@@ -410,7 +424,9 @@ def main(cfg: DictConfig):
                 stats.update(
                     {
                         f"execution_time/{dataset_name}_make_training_data": end_make_training_data  # type: ignore
-                        - start_make_training_data
+                        - start_make_training_data,
+                        f"execution_time/{dataset_name}_tapes_per_second": len(tapes)
+                        / (end_make_training_data - start_make_training_data),
                     }
                 )
 
@@ -445,7 +461,7 @@ def main(cfg: DictConfig):
                 **{
                     "execution_time/serving_assistant": end_serving_assistant - start_serving_assistant,
                 },
-                **stats
+                **stats,
             },
             step=state["iteration"],
         )
@@ -475,13 +491,13 @@ def main(cfg: DictConfig):
                 )
 
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
-                for trace in training_samples:
-                    try:
-                        trace.ref_logprobs = basemodel_agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
-                    except Exception as e:
-                        logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
-                        continue
-                    new_training_samples.append(trace)
+
+                with ThreadPoolExecutor() as executor:
+                    futures = [executor.submit(process_trace, basemodel_agent, trace) for trace in training_samples]
+                    for future in as_completed(futures):
+                        result = future.result()
+                        if result:
+                            new_training_samples.append(result)
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
@@ -554,4 +570,8 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        start_sqlite_writer()
+        main()
+    finally:
+        stop_sqlite_writer()

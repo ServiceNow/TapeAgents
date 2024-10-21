@@ -13,7 +13,7 @@ wandb_entity_name: null
 # W&B project name
 wandb_project_name: tapeagents
 # W&B resume policy
-wandb_resume: if_not_interactive
+wandb_resume: always
 # Whether to use only the basename or the full path as the run name
 wandb_use_basename: false
 config_name: meta-llama/Meta-Llama-3.1-8B-Instruct

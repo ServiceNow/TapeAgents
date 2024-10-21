@@ -10,7 +10,7 @@ from typing_extensions import Self
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
 from tapeagents.core import AgentResponseParsingFailureAction
-
+import queue
 from .core import (
     Action,
     AgentEvent,
