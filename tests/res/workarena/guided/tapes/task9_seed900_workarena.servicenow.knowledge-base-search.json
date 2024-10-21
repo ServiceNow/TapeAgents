@@ -1,27 +1,12 @@
 {
     "metadata": {
-        "id": "fe98d46b-e9ab-47a7-b1ad-c18a782783b7",
-        "parent_id": null,
-        "author": null,
+        "id": "8b80d7c7-8d4c-457a-b91b-57ca28b2d689",
+        "parent_id": "12f89056-5b69-498c-a70a-d4204f2d79c3",
+        "author": "WorkArenaAgent",
         "author_tape_id": null,
-        "n_added_steps": 1,
+        "n_added_steps": 2,
         "error": null,
-        "result": {
-            "name": "workarena.servicenow.knowledge-base-search",
-            "goal": "Answer the following question using the knowledge base: \"What is the recorded number of projects that the company finished last year? Provide the answer in digits.\"",
-            "task_info": {},
-            "video": "9d31104a496a01b8808c2d5be8905117.webm",
-            "chat_video": "7d634c1d8cd10b8588f1a4e13b79753b.webm",
-            "seed": 900,
-            "number": 9,
-            "success": true,
-            "reward": 1,
-            "stop": true,
-            "message": "That is correct, thank you!",
-            "info": {
-                "message": "Correct answer."
-            }
-        }
+        "result": {}
     },
     "context": {
         "tools": []
@@ -56,9 +41,9 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "d6e0c32c-8115-49a1-ba86-790037f9f08b",
-                "node": "start",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "6c7489bd-8308-422b-8d52-c88c193afa8f",
+                "node": "set_goal",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },
@@ -67,9 +52,9 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "6ca4dc71-c204-4e11-afb7-2a81e1cdf84c",
-                "node": "act",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "0883c509-a2aa-4ffb-a2dd-b0352a117050",
+                "node": "reflect",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },
@@ -91,15 +76,26 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "b70c18e1-3f49-489d-a96a-a7321bc8155f",
-                "node": "think",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "44bffd59-1063-4988-bc97-f1d6d0ca8715",
+                "node": "act",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },
             "kind": "input_text_action",
             "bid": "a190",
             "text": "number of projects completed last year"
+        },
+        {
+            "metadata": {
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "44bffd59-1063-4988-bc97-f1d6d0ca8715",
+                "node": "act",
+                "agent": "WorkArenaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 1
         },
         {
             "metadata": {
@@ -120,9 +116,9 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "52fe5250-ba69-4f49-be67-889f3654d452",
-                "node": "",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "2f6cae92-62af-42e4-8ae2-ea43a0674d3d",
+                "node": "reflect",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },
@@ -143,15 +139,26 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "02e5a9f6-29ce-4cf3-b8bc-a7bf6dc46cae",
-                "node": "",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "7667a0b6-fcea-4472-aa07-4b9816d1a6b7",
+                "node": "act",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },
             "kind": "press_action",
             "bid": "a190",
             "key_comb": "Enter"
+        },
+        {
+            "metadata": {
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "7667a0b6-fcea-4472-aa07-4b9816d1a6b7",
+                "node": "act",
+                "agent": "WorkArenaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 1
         },
         {
             "metadata": {
@@ -172,9 +179,9 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "d9aeaba7-e6c1-4b35-9ce4-aee06fa9e510",
-                "node": "",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "ddaafbc5-c4dc-418e-ae8b-cd04adea9a2c",
+                "node": "reflect",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },
@@ -195,9 +202,9 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "5ece870f-85e9-4907-ba8a-639f3ddf9896",
-                "node": "",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "47816194-659b-4e13-abff-cec065ec69dc",
+                "node": "act",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },
@@ -205,6 +212,17 @@
             "bid": "a1434",
             "button": "left",
             "modifiers": []
+        },
+        {
+            "metadata": {
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "47816194-659b-4e13-abff-cec065ec69dc",
+                "node": "act",
+                "agent": "WorkArenaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 1
         },
         {
             "metadata": {
@@ -225,9 +243,9 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "18c49fd1-c5f9-4578-85d2-21be4d635361",
-                "node": "",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "b08dbb55-95ad-40cd-8280-905ab4820e86",
+                "node": "reflect",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },
@@ -246,9 +264,9 @@
         },
         {
             "metadata": {
-                "id": "0793f00b-4abb-4dc6-b5ac-7347ef842c88",
-                "prompt_id": "622612d4-2768-44d7-9f3a-bfa19e136142",
-                "node": "",
+                "id": "b5ec3a9c-51e0-4599-b421-ab5eff097b1a",
+                "prompt_id": "14c6ecaa-5436-4124-965d-f696b06fa94a",
+                "node": "act",
                 "agent": "WorkArenaAgent",
                 "other": {}
             },

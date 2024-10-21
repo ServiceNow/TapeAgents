@@ -1,0 +1,413 @@
+{
+    "metadata": {
+        "id": "f996244a-babf-4666-95d6-5ddc85102424",
+        "parent_id": "f8e2a2b2-3759-4919-b631-e34ad0eb3e0b",
+        "author": "GaiaAgent",
+        "author_tape_id": null,
+        "n_added_steps": 1,
+        "error": null,
+        "result": {}
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "e54ea78f-0ff1-473a-b140-849b1d2f2c5c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "According to Girls Who Code, how long did it take in years for the percentage of computer scientists that were women to change by 13% from a starting point of 37%?",
+            "filename": ""
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "4a9b4b37-2566-4602-aabd-2376daeb5c42",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Search for the specific statistic from Girls Who Code regarding the percentage of women in computer science and the time frame for the change.",
+                "Identify the starting percentage (37%) and the target percentage (50%) based on the 13% increase.",
+                "Look for historical data or reports from Girls Who Code that detail the timeline of changes in the percentage of women in computer science.",
+                "Calculate the number of years it took for the percentage to change from 37% to 50% based on the gathered data.",
+                "Summarize the findings to provide a clear answer to the question."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "f9898aa2-24e8-493f-9f8c-ced60300f136",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                {
+                    "name": "starting_percentage",
+                    "description": "The initial percentage of computer scientists that were women, which is 37%.",
+                    "format": "float",
+                    "unit": "%",
+                    "value": 37.0
+                },
+                {
+                    "name": "percentage_increase",
+                    "description": "The change in percentage of women in computer science, which is 13%.",
+                    "format": "float",
+                    "unit": "%",
+                    "value": 13.0
+                }
+            ],
+            "facts_to_lookup": [
+                {
+                    "name": "current_percentage",
+                    "description": "The current percentage of women in computer science after the increase.",
+                    "format": "float",
+                    "unit": "%"
+                },
+                {
+                    "name": "time_frame",
+                    "description": "The number of years it took for the percentage of women in computer science to change from 37% to the current percentage.",
+                    "format": "int",
+                    "unit": "years"
+                }
+            ],
+            "facts_to_derive": [
+                {
+                    "name": "target_percentage",
+                    "description": "The target percentage of women in computer science after a 13% increase from the starting percentage.",
+                    "format": "float",
+                    "unit": "%"
+                }
+            ],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "25639340-fc7a-45a2-9884-b1d8632d0123",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Girls Who Code percentage of women in computer science change 37% to 50% timeline"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Girls Who Code percentage of women in computer science change 37% to 50% timeline",
+            "serp": [
+                {
+                    "title": "Girls Who Code | About Us",
+                    "url": "https://girlswhocode.com/about-us",
+                    "content": "In 1995, 37% of computer scientists were women. Today, it's only 24%. The percent will continue to decline if we do nothing. We know that the biggest drop off ..."
+                },
+                {
+                    "title": "Percentage of women in programming: peaked at 37% ...",
+                    "url": "https://www.reddit.com/r/programming/comments/1d91eu/percentage_of_women_in_programming_peaked_at_37/",
+                    "content": "Percentage of women in programming: peaked at 37% in 1993, now down to 25% · Comments Section."
+                },
+                {
+                    "title": "2019 Annual Report",
+                    "url": "https://girlswhocode.com/2019report/",
+                    "content": "In under a decade, Girls Who Code has solved the so-called “pipeline problem” and completely shifted the gender gap in K–12 computer science classrooms."
+                },
+                {
+                    "title": "Girls Who Code",
+                    "url": "https://en.wikipedia.org/wiki/Girls_Who_Code",
+                    "content": "Girls Who Code (also known as GWC) is an international nonprofit organization that aims to support and increase the number of women in computer science."
+                },
+                {
+                    "title": "Reshma Saujani, Founder of Girls Who Code",
+                    "url": "https://www.scrippscollege.edu/commencement/speeches/reshma-saujani-founder-of-girls-who-code",
+                    "content": "May 9, 2017 — In 1995, women made up almost 40 percent of the computing workforce. Today? Less than 25 percent. If current trends hold, that number could ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8561d55c-3a3e-48aa-b0f6-4c57c7f07ad5",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "The timeline for the percentage of women in computer science to change from 37% to a higher percentage.",
+            "fact_found": false,
+            "quote_with_fact": "",
+            "where_to_look_next": "Check the 2019 Annual Report from Girls Who Code for specific statistics and timelines."
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8561d55c-3a3e-48aa-b0f6-4c57c7f07ad5",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8bdbff6d-6f9c-454c-909c-3b33f148ad9e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://girlswhocode.com/2019report/",
+            "fact_description": "The timeline for the percentage of women in computer science to change from 37% to a higher percentage.",
+            "fact_name": "time_frame"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8bdbff6d-6f9c-454c-909c-3b33f148ad9e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Girls Who Code - 2019 Annual Report\n=======================\n![](hamburger.fe914c37.svg)  ![](close.d736fbdc.svg)\n[LETTER FROM RESHMA](#letter)\n[BY THE NUMBERS](#numbers)\n[OUR PROGRAMS](#work)\n[OUR ALUMNI](#alumni)\n[CHANGING CULTURE](#culture)\n[OUR PARTNERS](#partners)\n[VISION FOR 2020](#vision)\n[FINANCIALS](#financials)\n[DOWNLOAD PDF](#download)\n\n[LETTER FROM RESHMA](#letter)\n[BY THE NUMBERS](#numbers)\n[PROGRAMS](#work)\n[ALUMNI](#alumni)\n[CULTURE](#culture)\n[PARTNERS](#partners)\n[VISION FOR 2020](#vision)\n[FINANCIALS](#financials)\n[DOWNLOAD PDF](#download)\n       ![ ](hero-1.12ef1f3a.jpg)   ![ ](hero-2.a0ec11a2.jpg)  GIRLS\n=====\n\n WHO\n===\n\n CODE\n====\n\n    ![ ](hero-3.90ac98f0.jpg)  ANNUAL\n======\n\n REPORT\n======\n\n 2019\n====\n\n                   LETTER FROMRESHMA\n-----------------\n\n   ![Reshma](letter-1.530fcbb9.png)  When I set out to close the gender gap in tech, I said we could do it in a lifetime. Most people said I was naive, and maybe I was. I’d never run a non-profit. I didn’t know the first thing about being a CEO. I had no idea how to code.\n\n But eight years later, Girls Who Code has 8,500 Clubs operating across the country and around the world. We’ve raised $100 million to close the gender gap in tech from partners and allies who are deeply committed to diversifying their workforces. And we’ve reached 500 million people with our campaigns, changing people’s perceptions about computer science.\n\n In under a decade, Girls Who Code has solved the so-called “pipeline problem” and completely shifted the gender gap in K–12 computer science classrooms. We’ve reached so many girls that the graduating classes of top computer science colleges are closer to parity than they’ve been since the 1980s. And in the next seven years, we’ll have closed the gender gap in new entry-level tech jobs.\n\n This movement we started in a small, borrowed conference room in New York is well on its way to completely and totally transforming the industry. And we’re able to do all of this because we believe deeply that this work is as much about coding as it is about equity and diversity and opportunity.\n\n Because we envision a world where girls have access to the highest-paying jobs in the market. Where they can’t imagine a workplace where their peers, mentors, bosses aren’t women who look like them. Where women thriving in tech is the norm, not the exception. That world is within reach. And together, we’ll get there.\n\n     ![Reshma](letter-2.249fc5b3.png)       BY THENUMBERS\n-------------\n\n      ![](numbers-1.3efc9545.jpg)   ### $100 MILLION\n\n ### TOTAL REVENUE\n\n ### TO DATE\n\n     ### 500 MILLION\n\n ### PEOPLE REACHED\n\n ### TO DATE\n\n    ![](numbers-2.dbd22213.jpg)      ![](numbers-3.8b69ea28.jpg)   ### 300,000\n\n ### GIRLS SERVED\n\n ### TO DATE\n\n     ### 80,000\n\n ### COLLEGE-AGED ALUMNI\n\n    ![](numbers-4.33fdfdc7.jpg)      ![](numbers-5.46167363.jpg)   ### 8,500\n\n ### GIRLS WHO CODE CLUBS\n\n     ### OVER 50%\n\n ### OF GIRLS SERVED COME\n\n ### FROM HISTORICALLY\n\n ### UNDERREPRESENTED\n\n ### GROUPS IN TECH\n\n    ![](numbers-6.5ee58115.jpg)                   OUR PROGRAMMATICWORK\n--------------------\n\n  ![](curve-text-1.00847f72.svg)      ![](work-1.12e2462e.jpg)    When we set out to close the gender gap in tech, we knew we needed a grassroots-first model that we could scale quickly. We bet on facilitators, allies, libraries, community centers, neighbors, friends, family. And today, not a day goes by when there isn’t a Girls Who Code Club or program meeting. It’s remarkable.\n\n   GIRLS SERVED SINCE 2012\n\n                                                                           2012-13   13-14   14-15   15-16   16-17   17-18   18-19   19-20         300,000    185,000 89,000 31,000 13,000 4,000 800 20 300,000      Girls Who Code has served 300,000 girls to date. And we know our signature Clubs program, serving girls from 3–12th grade, is making a difference. According to a groundbreaking report we released in 2019, in states with more girls served by our Clubs, computer science classrooms were closer to parity. In states with lower concentrations of girls served by our Clubs, K–12 computer science classrooms were further from parity.\n\n   STUDENTS AND ALUMNI BY SCHOOL YEAR\n\n05101520253035POST COLLEGECOLLEGEHIGH SCHOOLMIDDLE SCHOOLELEMENTARYSCHOOL\nPROGRAMS BY MARKET IN THE U.S., CANADA, UNITED KINGDOM, AND INDIA 2012–2019\n\n    2012–13  2013–14  2014–15  2015–16  2016–17  2017–18  2018–19  2019–20     ![](map-2013.f0b7a3c3.png) ![](map-2020.00dadacb.png) ![](map-2019.2733a7eb.png) ![](map-2018.dbbf4590.png) ![](map-2017.3c91fcc4.png) ![](map-2016.c22ca0a4.png) ![](map-2015.0217e175.png) ![](map-2014.3348687f.png) ![](map-2013.f0b7a3c3.png)    Girls Who Code changed my life. I found a new interest that eventually became a plan for a college major, and a new confidence in my ability to accomplish things because I want to, not because they are already easy.\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n      ![](curve-text-2.d44bb81f.svg)  OURALUMNI\n---------\n\n      ![](alumni-1.07f6b45a.jpg)   In the last year, the number of Girls Who Code college-aged alumni grew from 30,000 to 80,000.\n----------------------------------------------------------------------------------------------\n\n     To put that in perspective, American universities graduate just 12,500 female computer science (CS) majors every year. We now have more than six times that number of alumni who are college-aged.\n\n        80,000Girls Who Codecollege-aged alumni   Female CS graduates,2017-18     12,500      ![](alumni-3.7e1d2a11.svg)   Our college-aged alumni are majoring in computer science and related fields at 15 times the national average. Our Black and Latinx college-aged alumni are majoring in CS and related fields at 16 times the national average.\n\n   It was my first academic setting that wasn’t discipline-oriented, but success-oriented. I was used to teachers talking down to you. Girls Who Code showed me what the classroom and education could be like.\n------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n               ![](brave-1.f4973607.jpg) ![](brave-2.7ad3162f.jpg) ![](brave-3.2ab2715f.jpg) ![](brave-4.39595457.jpg) ![](brave-5.a783c8c8.jpg)   ![](sisterhood-1.ce6cd00b.jpg) ![](sisterhood-2.17e637f1.jpg) ![](sisterhood-3.42a30c35.jpg) ![](sisterhood-4.f7044797.jpg) ![](sisterhood-5.48766328.jpg) ![](sisterhood-6.d28a6288.jpg)   ![](classrooms-1.f6a1e25b.jpg) ![](classrooms-2.698a6c9c.jpg) ![](classrooms-3.d3cacff4.jpg) ![](classrooms-4.95407ff2.jpg) ![](classrooms-5.aebb7f91.jpg)   ![](congress-1.efbd0af0.jpg) ![](congress-2.7a44f0fc.jpg) ![](congress-3.6641a778.jpg) ![](congress-4.69dbd43c.jpg) ![](congress-5.df5599ce.jpg) ![](congress-6.6a9aa959.jpg)     CULTURECHANGE WORK\n------------------\n\n      ![](culture-1.2b7fe057.jpg)    We’ve never underestimated the power of culture, how stereotypes impact girls and young women. And that’s why we’ve been able to move the needle on this issue. Because we’re willing to work to change culture and combat stereotypes.\n\n       ![](culture-2.c382bcfb.jpg)    “BRAVE, NOT PERFECT”\n\n In 2019, Girls Who Code founder and CEO Reshma Saujani released her international bestseller “Brave, Not Perfect” and re-launched a podcast by the same title. She has sparked a national conversation about how girls are raised to be perfect and how we all can break free from the cult of perfection.\n\n     DAY OF THE GIRL / SISTERHOOD\n\n This year, for the organization’s annual Sisterhood campaign, Girls Who Code launched the first-ever all-digital global march for girls, by girls, and about girls: the #MarchForSisterhood. Over 250,000 girls from around the world participated in the march and hundreds of millions viewed the campaign.\n\n     ![](culture-3.12c06ba3.jpg)    Today, girls—and all who identify as girls—are more connected to one another than ever before. Our ideas and dreams spread quickly from one smartphone to another, allowing us to share our lives with another girl, family, and community a world away.\n--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n     ![](culture-4.c6095700.jpg)    BRINGING COMPUTER SCIENCE TO K–12 CLASSROOMS\n\n Girls Who Code is passing the first gender-focused computer science legislation at the state and federal level, with bills passed in Washington and Colorado in 2019.\n\n     As a part of that work, Girls Who Code convened a bipartisan panel with female congressional leadership to discuss policy solutions to bring more girls into computer science.\n\n     ![](culture-5.28170610.jpg) Girls Who Code Event with Congressional Leadership, July 2019. From left to right, Rep. Ayanna Pressley, Sen. Shelley Moore Capito, Sen. Jacky Rosen, moderator Tiffany Cross\n\n    I look forward to continue working with Girls Who Code to develop bipartisan legislation that ensures federal computer science programs effectively close the gender gap.\n-------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n      ![](curve-text-3.910364f0.svg)  OURPARTNERS\n-----------\n\n       ![](partners-1.b8308327.jpg)    We wouldn’t be the organization we are today without our partners. They are generous not only with their resources, but in myriad other ways—as advocates of our movement, mentors for our girls, and real agents of change in their industries.\n\n     Through work with partners like Girls Who Code, Delta is working to play a role in solving systemic underrepresentation across tech and aviation industries. Working together, we can change what engineers, scientists, tech programmers, pilots, and aircraft maintenance technicians look like in the future.\n\n     ![](partners-2.624bb939.jpg)        ![](partners-3.2e7a3881.jpg)    Computing and technology hold the promise of opportunity for so many girls. Yet, while progress has been made to successfully connect girls to computer science from kindergarten to career, we still have work to do. Microsoft’s partnership with Girls Who Code is central to our commitment to help ensure every girl and young woman has access to computer science education.\n\n   $1M+AT&TPrudential Financial, Inc.UberUnited Technologies WalmartXandr$500K – $999,999Apple, Inc.Bank of AmericaCraig Newmark PhilanthropiesDeloitteFOXJPMorgan Chase & Co.LyftNews CorpOmazeProcter & GambleSalesforce.org$250K – $499,999AdobeAmazonAnonymousArthur M. Blank Family FoundationBarbara and Fred Kort FoundationBlizzard EntertainmentCitrixDell Technologies Endless NetworkIBMKPMGMicrosoftSynchrony Financial Transperfect US Bank$150K – $249,999Accenture LLPBlackRockCadence Design SystemsGeneral MotorsGoldman SachsMoody’sPfizerPricewaterhouseCoopersS&P Global and the S&P Global FoundationWarnerMediaWW International$75K – $149,999AkamaiAmerican ExpressAutodeskBNY MellonCapital OneCNADelta Air LinesEYF5 NetworksFiserv Ford Motor CompanyG2General Dynamics Information TechnologyHumble BundleIntuitJohnson & JohnsonKate Spade New York FoundationLightspeed Venture PartnersRBC Capital MarketsSoftware.org: the BSA FoundationTango Card, Inc.The Chuck Lorre FoundationThe Depository Trust & Clearing Corporation (DTCC)The Hearst FoundationThe Pinkerton FoundationThe Walt Disney CompanyViacomCBSWarner Bros.$25K – $74,999Amazon Web ServicesBattery FoundationCoverGirlDecoded AdvertisingDolbyGoogleJCDRP Family FoundationJuan SabaterMcEvoy Spero Family Charitable FundNew York City Department of Youth and Community DevelopmentOath FoundationOff the FieldOneMain FinancialSilicon Valley Community FoundationThe Ford FundThe Guardian Life Insurance Company of America Inc.The Wallace FoundationXTX Markets$10K – $24,999Atlassian Foundation InternationalBeth and David ShawBresky FoundationBrides for a CauseBright Funds FoundationCatey DeBalkoChad WeiderChevronCloudflareCloudinary, Inc.Creative Goods Merchandise LLCDW Gore Family FoundationEpic GamesEvive Health, LLCExperianFirst TechHopper-Dean Family FundInkWell ManagementIsobarJason CohnJohnson Charitable Gift FundJonathan David PerlowKathryn WakaLeyla SekaLinkedIn For GoodLuke McGeeMarianne C. BrownNetwork For GoodNorthern TrustNorthrop GrummanO’Reilly Media, Inc.Okta, Inc.OVHCloudPassion Planner, LLCProtivitiThe Computing TeThe Conru FoundationThe D. E. Shaw GroupThe Overwatch LeagueThe UPS FoundationTwitterVisa Zoe Cruz$5K – $9,999ActiveCampaignAnita RaiBOP FoundationCharles and Angie SunderlandChristopher RiceCisco Systems, Inc.Clarkston ConsultingCommunity Foundation of New JerseyDerek GibsonElizabeth HumeEssex County Community FoundationFormagrid Inc.Four Four FoundationGregory BialeckiHeather RodriguezIDC ResearchJae S. Lim FoundationJanet SpatesJason FingerJeff HazarianJulie B. HarkinsKara SpragueKunal VermaLouis and Mary Kay Smith FoundationManish P. Gupta and Namrata M. GuptaMann Family FoundationMarissa ShorensteinMichael HommelMoira ForbesMr. and Mrs. Andrew OrdingMZ Wallace Inc.Nancy PineNB VenturesPriya AggarwalRachelle PalmerRebecca RuhlmanRichard PineRobert AndrewsSamuel GlasgowSchulte Roth & Zabel, LLCSMAATO, Inc.Teresa HollowayTerrebonne Foundation for Academic ExcellenceThe Haynes Family Charitable FundThe Nerdery FoundationThird Door MediaTraci WalkerUnited Way of Massachusetts Bay & Marrimack ValleyVettery CompanyWealthcounsel, LLCWhapps, LLC                 VISION FOR 2020\n---------------\n\n  ![](curve-text-4.a4fba311.svg)    We’re smart. We’re qualified. And we’ve fought to get to where we are because we love computer science and because we think tech can change the world for good.\n---------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n     ![](vision-1.792de6ed.jpg)      We’ve disrupted the idea of a pipeline problem in tech. We’re rapidly changing the makeup of computer science classrooms in K–12 and at the college level. And, with more and more alumni entering the workforce, we have no doubt about the strides we can make there too.\n\n All of this work is possible because we have the support of generous partners—funders, community organizations, and facilitators—who understand the impact of the gender gap in tech and are committed to doing something about it.\n\n   But what really makes this work possible are the girls driving so much of this work forward themselves. When they choose to be brave and take their first-ever computer science course. Or when they’re trying to fix a broken line of code for the first time. Or when they’re applying for a job, faced with the pressure of being the only woman in the room.\n\n They are bravery, redefined. They lean on their sisterhood, their skills, and their spirit to succeed. And they keep us going, every day.\n\n        2019FINANCIALS\n--------------\n\n     STATEMENT OF FINANCIAL POSITION\n\n ![](chevron-up.69a84f2f.svg)   ![](financials.0792f196.svg)     STATEMENT OF ACTIVITIES\n\n ![](chevron-up.69a84f2f.svg)   ![](activities.86dc8ade.svg)                 #### DOWNLOAD A PDF\n\n #### OF THIS REPORT\n\n  [CLICK HERE TO DOWNLOAD](GWC_AnnualReport2019.pdf)      *FOR PARTNERSHIP INQUIRIES:* [[email protected]](/cdn-cgi/l/email-protection#13575645565f5c435e565d4753545a415f40445b5c505c57563d505c5e)\n\n *FOR PRESS INQUIRIES:* [[email protected]](/cdn-cgi/l/email-protection#83d3d1c6d0d0c3c4cad1cfd0d4cbccc0ccc7c6adc0ccce)\n\n *FOR PROGRAM INQUIRIES:* [[email protected]](/cdn-cgi/l/email-protection#c9999b868e9b88849a898e809b859a9e81868a868d8ce78a8684)\n\n     [![Girls Who Code logo](logo-white.92879bf9.svg)](https://www.girlswhocode.com/)        [BACK TO GIRLS WHO CODE](https://www.girlswhocode.com/)",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "e70e863f-4229-423a-8ec2-6f9a258b9be5",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The starting percentage of women in computer science was 37%.",
+                "The target percentage after a 13% increase would be 50%.",
+                "The document did not provide a specific timeline for this change.",
+                "Further investigation is needed to find historical data or reports that detail the timeline for this percentage change."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "e70e863f-4229-423a-8ec2-6f9a258b9be5",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "36023882-815b-47e7-ad17-8a522f67773e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "historical data women in computer science percentage change timeline"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "36023882-815b-47e7-ad17-8a522f67773e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "historical data women in computer science percentage change timeline",
+            "serp": [
+                {
+                    "title": "Changing the Curve: Women in Computing - I School Online",
+                    "url": "https://ischoolonline.berkeley.edu/blog/women-computing-computer-science/",
+                    "content": "Jul 14, 2021 — The proportion of women receiving these degrees peaked during the mid-1980s — in 1986, 36 percent of all recipients were women. Since then, the ..."
+                },
+                {
+                    "title": "The Evolution of Women's Participation in Computer Science",
+                    "url": "https://sociology.sas.upenn.edu/sites/default/files/jacobs%20Women's%20Participation%20in%20Computer%20Science.pdf",
+                    "content": "by LJ Sax · 2017 · Cited by 326 — computer science bachelor's degree recipients has fluctuated during the past four decades from a low of 13.6% (in 1971) to a high of 37.1% (in ..."
+                },
+                {
+                    "title": "The Secret History of Women in Coding",
+                    "url": "https://www.nytimes.com/2019/02/13/magazine/women-coding-computer-programming.html",
+                    "content": "Feb 13, 2019 — From 1984 onward, the percentage dropped; by the time 2010 rolled around, it had been cut in half. Only 17.6 percent of the students graduating ..."
+                },
+                {
+                    "title": "Women in computing",
+                    "url": "https://en.wikipedia.org/wiki/Women_in_computing",
+                    "content": "The gender disparity and the lack of women in computing from the late 20th century onward has been examined, but no firm explanations have been established."
+                },
+                {
+                    "title": "Where are the Women? A Detailed History ...",
+                    "url": "https://studentorgs.kentlaw.iit.edu/ckjip/where-are-the-women-a-detailed-history-of-women-in-computer-science-and-how-it-impacts-the-modern-day-industry/",
+                    "content": "May 22, 2024 — [3] By the early 1940s, the majority of people employed as computers were women.[4] However, as software development rose in popularity and ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "4060a2e1-73c6-441c-8617-09d7cc0bd62c",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://ischoolonline.berkeley.edu/blog/women-computing-computer-science/",
+            "fact_description": "The timeline for the percentage of women in computer science to change from 37% to a higher percentage.",
+            "fact_name": "time_frame"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "4060a2e1-73c6-441c-8617-09d7cc0bd62c",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Changing the Curve: Women in Computing - I School Online\n=======================\n[Skip to main](#main-body-content)\n\n[![UC Berkeley School of Information - home](https://whitelabel.2u.com/cdn/v1/b2b57977-3799-4958-b13b-4db6f983e929/marketing/logo-1.png)](https://ischoolonline.berkeley.edu/)\n\n[![UC Berkeley Online Information Science Degrees - home](https://whitelabel.2u.com/cdn/v1/b2b57977-3799-4958-b13b-4db6f983e929/marketing/logo-mobile.png)](/)\n\nMenu\n[Apply NowExternal link:*open\\_in\\_new*](https://ischoolonline.berkeley.edu/choose-your-program/)\n\n* [Cybersecurity\n*expand\\_more*](https://ischoolonline.berkeley.edu/cybersecurity/)\n\t+ [Curriculum\n\t*expand\\_more*](https://ischoolonline.berkeley.edu/cybersecurity/curriculum/)\n\t\t- [Certificate in Applied Data Science](https://ischoolonline.berkeley.edu/cybersecurity/curriculum/data-science-certificate/)\n\t+ [What is Cybersecurity?](https://ischoolonline.berkeley.edu/cybersecurity/what-is-cybersecurity/)\n\t+ [MICS Class Profile](https://ischoolonline.berkeley.edu/cybersecurity/class-profile/)\n* [Data Science\n*expand\\_more*](https://ischoolonline.berkeley.edu/data-science/)\n\t+ [Curriculum](https://ischoolonline.berkeley.edu/data-science/curriculum/)\n\t+ [What Is Data Science?](https://ischoolonline.berkeley.edu/data-science/what-is-data-science/)\n\t+ [Careers in Data Science](https://ischoolonline.berkeley.edu/data-science/careers-data-science/)\n\t+ [MIDS Class Profile](https://ischoolonline.berkeley.edu/data-science/class-profile/)\n\t+ [Study Applied Statistics](https://ischoolonline.berkeley.edu/data-science/study-applied-statistics/)\n* [Admissions\n*expand\\_more*](https://ischoolonline.berkeley.edu/admissions/)\n\t+ [International Admissions](https://ischoolonline.berkeley.edu/admissions/international-admissions/)\n\t+ [Tuition and Financial Aid\n\t*expand\\_more*](https://ischoolonline.berkeley.edu/admissions/tuition-financial-aid/)\n\t\t- [Fellowships](https://ischoolonline.berkeley.edu/admissions/tuition-financial-aid/fellowships/)\n* [Experience\n*expand\\_more*](https://ischoolonline.berkeley.edu/experience/)\n\t+ [Faculty](https://ischoolonline.berkeley.edu/experience/faculty/)\n\t+ [Student Profiles](https://ischoolonline.berkeley.edu/experience/student-profiles/)\n\t+ [Alumni Profiles](https://ischoolonline.berkeley.edu/experience/alumni-profiles/)\n\t+ [Video Library](https://ischoolonline.berkeley.edu/experience/video-library/)\n* [Apply NowExternal link:*open\\_in\\_new*](https://ischoolonline.berkeley.edu/choose-your-program/)\n\n[Home](https://ischoolonline.berkeley.edu/)\n\nChanging the Curve: Women in Computing\n======================================\n\nJuly 14, 2021\n\n![women have continued to be at the forefront of some major industry-changing advancements in computer science](https://ischoolonline.berkeley.edu/wp-content/uploads/sites/37/2021/06/datascience@berkeley_women-in-computing.jpg?w=768)\n\nMore than 150 years ago, [Ada Lovelace wrote the first computer program—an algorithm to calculate Bernoulli sequences.](https://www.newyorker.com/tech/annals-of-technology/ada-lovelace-the-first-tech-visionary) Since then, women have continued to be at the forefront of some major industry-changing advancements in computer science.\n\nFrom [developing the first compiler](https://news.yale.edu/2017/02/10/grace-murray-hopper-1906-1992-legacy-innovation-and-service) to [uncovering bias in AI recognition software](https://news.mit.edu/2018/study-finds-gender-skin-type-bias-artificial-intelligence-systems-0212), women’s contributions to computing are varied and important — but not always credited or celebrated.\n\nAccording to *The New York Times*, [women were the predominant software engineers of the 1940s:](https://www.nytimes.com/2019/02/13/magazine/women-coding-computer-programming.html) “At the time, men in the computing industry regarded writing code as a secondary, less interesting task.”\n\nBut as the industry became more desirable for men, women became a shrinking minority. [Women comprised 37 percent of all students graduating with degrees in computer and information sciences](https://nces.ed.gov/programs/digest/d95/dtab274.asp) in 1984. By 2010, they accounted for less than half that.\n\ndatascience@berkeley explores the history and influence of women in computing and reviews the state of the gap between women and men in computing today.\n\n**Timeline of Women’s Achievements in Computing and Computer Science**\n----------------------------------------------------------------------\n\n**1843**\n\n**ADA LOVELACE** expands on Charles Babbage’s Analytical Engine. She is widely considered the first computer programmer.\n\n**1946**\n\n**ENIAC PROGRAMMERS** program the first all-electronic, programmable computer for the U.S. army. The six women were not credited for their work.\n\n**1952**\n\n**GRACE HOPPER** invents the first computer compiler.\n\n**1962**\n\n**KATHERINE JOHNSON** performs the orbital calculations needed for John Glenn’s orbital space mission.\n\n**1965**\n\n**SISTER MARY KENNETH KELLER** is the first woman to earn a Ph.D. in computer science in the United States.\n\n**1978**\n\n**CAROL SHAW** becomes the first professional female video game designer.\n\n**1985**\n\n**RADIA PERLMAN** invents the Spanning Tree Protocol. She is referred to as the “Mother of the Internet.”\n\n**1997**\n\n**ANITA BORG** founds the Institute for Women in Technology.\n\n**2005**\n\n**RUCHI SANGHVI** is hired as the first female engineer at Facebook.\n\n**2018**\n\n**JOY BUOLAMWINI** authors research uncovering large racial and gender bias in AI services. She is the founder of the Algorithmic Justice League.\n\nWomen and Computing Education\n-----------------------------\n\nThe computing field, and women’s involvement in it, predates traditional computer science education. The first department began at Purdue University in the 1960s, almost 100 years after Ada Lovelace wrote the first computer program.\n\nToday, degree programs are prolific. But the data about the students involved with them reveals large gender gaps at all levels of schooling.\n\nFor example, the [Advanced Placement (AP) Exam](https://apstudents.collegeboard.org/ap-exams-overview) — a standardized test for high-achieving high school students in the subject of their choosing — has been [administered to more female than male students since the year 2000.](https://research.collegeboard.org/programs/ap/data/participation/ap-2020)\n\nHowever, [girls make up slightly less than half of all calculus test-takers in the program.](https://research.collegeboard.org/programs/ap/data/participation/ap-2020) An even wider gap exists among computer science students: Despite the doubling of the proportion of test-takers who are female in the past 20 years, College Board data indicates they are still less than one-third.\n\n![line graph of percentage of AP exam test-takers who are female, by subject](https://ischoolonline.berkeley.edu/wp-content/uploads/sites/37/2021/06/line-graph-girls-computing-ap-exams.jpg?w=1024)\n*In 2000, females were about 54 percent of all Advanced Placement exam test-takers. That same year, they were 45 percent of AP Calculus test-takers and 15 percent of AP Computer Science test-takers. Since then, the percentage of all test-takers who are female has risen to almost 56 percent. In 2020, females were 47 percent of AP Calculus test-takers and 31 percent of AP Computer Science test-takers.*\n\nAs students rise through the education system, gender gaps in computing persist.\n\nWomen make up more of the overall population of bachelor’s degree recipients—57 percent in 2019, [according to the National Center for Education Statistics.](https://nces.ed.gov/programs/digest/d20/tables/dt20_322.20.asp) However, as with AP exams, women are disproportionately underrepresented in the computing field.\n\nThe same data reveals that in 1986, women comprised about 36 percent of computer and information science bachelor’s degree recipients, but that number fell to less than half by 2010. Most recent data shows that [women receive about one in five of conferred computing bachelor’s degrees](https://nces.ed.gov/programs/digest/d20/tables/dt20_322.50.asp?current=yes).\n\n![bar chart of percentage of computer science bachelor’s degree recipients who are female](https://ischoolonline.berkeley.edu/wp-content/uploads/sites/37/2021/06/bar-graph-female-compsci-degree-recipients.jpg?w=1024)\n*In 1971, only 14 percent of computer science bachelor’s degree recipients were women. The proportion of women receiving these degrees peaked during the mid-1980s — in 1986, 36 percent of all recipients were women. Since then, the number has declined. As of 2019, 21 percent of computer science bachelor’s degree recipients were women.*\n\nWomen and the Computing Workforce\n---------------------------------\n\nThe decline of girls entering computer science programs trickled down to the workforce quickly. [In 1991, women held about 36 percent of computing occupations,](https://ncwit.org/women-in-it-the-facts-infographic-2016-update/) according to the National Center for Women and Information Technology.\n\nBy 2014, they were only about one-fourth of computing professionals. Overall, [the proportion of women in computer and mathematical occupations has declined 19 percent since 1995](https://www.bls.gov/cps/tables.htm#annual), according to data from the U.S. Bureau of Labor Statistics.\n\nToday, women’s participation in computing occupations varies by position.\n\n![bar chart of percentage of employed computer science professionals who are female, by career](https://ischoolonline.berkeley.edu/wp-content/uploads/sites/37/2021/06/bar-graph-women-in-computing-occupations.jpg?w=1024)\n*In 2020, women comprised 36 percent of computer systems analysts, 12 percent of information security analysts, 21 percent of computer programmers, 19 percent of software developers, 28 percent of web developers and 29 percent of database administrators and architects.*\n\nThe employment gender gap is larger for women of color. In 2020, the computing workforce was 3 percent Black women, 2 percent Hispanic women and 7 percent Asian women, according to [WIT by the Numbers 2021](https://ncwit.org/resource/bythenumbers/).\n\nWhy are girls and women not pursuing computing as often as their male counterparts?\n\nResearch does not have a conclusive answer, but survey data points to some of the differences in how men and women value their careers.\n\nFor example, women were significantly more likely than men to cite, “I am interested in helping people or society” as a reason for pursuing a computing degree, according to a [Girls in IT report from Microsoft.](https://ncwit.org/resource/thefactsgirls/)\n\nBut even this preference cannot stand on its own. The Microsoft report states that “girls do not come by these perceptions, interests, and career decisions innately or in a vacuum. Indeed, these are shaped by the larger society and local environments in which they learn about computing and technology.”\n\nThe report shows that abstract curriculum fails to connect the social influence of computing to the profession; a tendency toward independent, non-collaborative learning; and unconscious biases about “innate” talent all contribute to an industry that systematically favors boys’ development and learning.\n\nWomen and Computing Leadership\n------------------------------\n\nAt the highest levels of professional leadership in computing and technology, women are making strides: [Twenty percent of newly funded startups in 2019 have a female founder](https://news.crunchbase.com/news/eoy-2019-diversity-report-20-percent-of-newly-funded-startups-in-2019-have-a-female-founder/), double the amount in 2009, according to a Crunchbase report.\n\nThis is good for business because women-led startups tend to be more financially efficient. WeROC, a women-focused entrepreneurship program, found that [women-led startups deliver twice as much per dollar invested than those founded by men.](https://venturecapital.org/weroc/)\n\nIn the C-suite, women are slowly getting more seats at the table. [Korn Ferry analysis of largest U.S. companies](https://www.kornferry.com/about-us//press/korn-ferry-analysis-of-largest-us-companies-shows-percentage-of-women-in-c-suite-roles-inches-up-from-previous-year) reveals that women make up 18 percent of CIO/CTO positions among the top 1,000 U.S. companies (based on revenue), up from 16 percent the prior year. However, among C-suites in the tech industry, women are just 10 percent of CIO/CTO positions.\n\nAdditional Resources\n--------------------\n\nBelow are some curated resources, toolkits, and organizations dedicated to helping women pursue and navigate computing careers in a male-centered workforce.\n\n### For Women\n\n* [Microsoft STEM Programs for Girls](https://www.microsoft.com/en-us/corporate-responsibility/skills-employability/girls-stem-computer-science)\n* [Girls Who Code](https://girlswhocode.com/)\n* [AnitaB.org: Global Organization for Women Technologists](https://anitab.org/)\n* [National Center for Women & Information Technology](https://www.ncwit.org/)\n* [Ada’s List](https://www.adaslist.co/)\n* [AAUW STEM Gap Resources](https://www.aauw.org/resources/research/the-stem-gap/)\n* [Association for Women in Computing](http://www.awc-hq.org/home.html)\n\n### For Women of Color\n\n* [Black Girls Code](https://www.blackgirlscode.com/)\n* [Change Catalyst](https://changecatalyst.co/)\n* [Society of STEM Women of Color](https://www.sswoc.org/)\n* [Blacks in Technology](https://www.blacksintechnology.net/)\n* [Institute for African-American Mentoring in Computing Sciences](http://iaamcs.org/)\n* [American Indian Science and Engineering Society](https://www.aises.org/about)\n\n*Citation for this content: datascience@berkeley, the* [*online Master of Information and Data Science*](/data-science/) *from the UC Berkeley School of Information.*\n\n REQUEST INFO\n\n`*close*\n\nClose Modal\n\nRequest More Information\n------------------------\n\n Next Step`\n\n* [Cybersecurity](https://ischoolonline.berkeley.edu/cybersecurity/)\n* [Data Science](https://ischoolonline.berkeley.edu/data-science/)\n* [Admissions](https://ischoolonline.berkeley.edu/admissions/)\n* [Experience](https://ischoolonline.berkeley.edu/experience/)\n* [Blog](https://ischoolonline.berkeley.edu/blog/)\n* [Contact Us](https://ischoolonline.berkeley.edu/contact-us/)\n* [2U, Our Program Partner](https://ischoolonline.berkeley.edu/2u-program-partner/)\n* [Legal](https://ischoolonline.berkeley.edu/legal/)\n* [Privacy Policy](/legal/privacy-policy/)\n* [Cookie Policy](/cookie-policy/)\n* [Your Privacy Choices](#)\n* [Terms of Use](https://ischoolonline.berkeley.edu/legal/terms-of-use-agreement/)\n* [Sitemap](/page-sitemap.xml)\n* [COVID-19 Resources](https://ischoolonline.berkeley.edu/covid-19/)\n\n[![UC Berkeley School of Information - home](https://whitelabel.2u.com/cdn/v1/b2b57977-3799-4958-b13b-4db6f983e929/marketing/logo-footer.png)](https://ischoolonline.berkeley.edu/)\n\n---\n\n© 2024 UC Berkeley School of Information\n\n`*close*\n\nClose Modal\n\nRequest More Information\n------------------------\n\n Next Step`",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "53ab07f2-71a8-44fd-b2c6-ac93c3e984c5",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The percentage of women in computer science peaked at 37% in 1986.",
+                "By 2010, this percentage had declined significantly, indicating a trend of decreasing representation.",
+                "To find the time it took for the percentage to change from 37% to a higher percentage, I need to determine the years between 1986 and the next significant data point."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "53ab07f2-71a8-44fd-b2c6-ac93c3e984c5",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "48257955-bf9f-4d13-9152-402876e6bd36",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "use_calculator_action",
+            "expression": "2010 - 1986",
+            "fact_name": "years_to_change",
+            "fact_unit": "years",
+            "facts": {
+                "starting_percentage": 37.0,
+                "percentage_increase": 13.0
+            }
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "48257955-bf9f-4d13-9152-402876e6bd36",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "calculation_result_observation",
+            "name": "years_to_change",
+            "result": "24"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "9349ec90-7f61-4ef2-af77-f2f9b4b4f472",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "The time it took for the percentage of computer scientists that were women to change by 13% from a starting point of 37% is calculated.",
+            "answer_unit": "years",
+            "answer": "24"
+        }
+    ]
+}

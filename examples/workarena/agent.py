@@ -1,9 +1,10 @@
 import platform
 from typing import Any
 
+from tapeagents.agent import Agent
 from tapeagents.core import Prompt
-from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.llms import LLM
+from tapeagents.nodes import MonoNode
 from tapeagents.utils import get_step_schemas_from_union_type
 
 from .prompts import PromptRegistry
@@ -73,12 +74,6 @@ class WorkArenaBaselineNode(MonoNode):
         return prompt
 
 
-class WorkArenaBaseline(MonoAgent):
-    @classmethod
-    def create(cls, llm: LLM):
-        return cls(llms={"default": llm}, nodes=[WorkArenaBaselineNode()])  # type: ignore
-
-
 class WorkArenaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
@@ -91,6 +86,7 @@ class WorkArenaNode(MonoNode):
         """
         Trim all page observations except the last two.
         """
+        tape = super().prepare_tape(tape)  # type: ignore
         page_positions = [i for i, step in enumerate(tape.steps) if isinstance(step, PageObservation)]
         if len(page_positions) < 2:
             return tape
@@ -107,15 +103,15 @@ class WorkArenaNode(MonoNode):
         return trimmed_tape
 
 
-class WorkArenaAgent(MonoAgent):
+class WorkArenaAgent(Agent):
     @classmethod
     def create(cls, llm: LLM):
         return super().create(
             llm,
             nodes=[
-                WorkArenaNode(name="start", trigger_step="task", guidance=PromptRegistry.start),
-                WorkArenaNode(name="act", trigger_step="reflection_thought", guidance=PromptRegistry.act),
-                WorkArenaNode(name="think", trigger_step="default", guidance=PromptRegistry.think),
+                WorkArenaNode(name="set_goal", guidance=PromptRegistry.start),
+                WorkArenaNode(name="reflect", guidance=PromptRegistry.reflect),
+                WorkArenaNode(name="act", guidance=PromptRegistry.act, next_node=1),
             ],
             max_iterations=2,
         )

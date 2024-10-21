@@ -21,7 +21,7 @@ class MockPrompt(Prompt):
 
 class EmptyLLM(MockLLM):
     def generate(self, prompt):
-        return LLMStream(iter([]), prompt)  # type: ignore
+        return LLMStream(None, prompt)
 
 
 def test_get_final_tape_success():
@@ -42,10 +42,11 @@ def test_get_final_tape_failure():
 
 
 def test_node_make_prompt():
-    def mock_make_prompt_func(agent, tape):
-        return MockPrompt()
+    class MockNode(Node):
+        def make_prompt(self, agent, tape):
+            return MockPrompt()
 
-    node = Node().with_prompt(mock_make_prompt_func)
+    node = MockNode()
     agent = MockAgent()
     tape = MockTape()
 
@@ -55,14 +56,15 @@ def test_node_make_prompt():
 
 
 def test_node_generate_steps():
-    def mock_generate_steps_func(agent, tape, llm_stream):
-        yield PartialStep(step=Action())
-        yield Action()
+    class MockNode(Node):
+        def generate_steps(self, agent, tape, llm_stream):
+            yield PartialStep(step=Action())
+            yield Action()
 
-    node = Node().with_generate_steps(mock_generate_steps_func)
+    node = MockNode()
     agent = MockAgent()
     tape = MockTape()
-    llm_stream = LLMStream(iter([]), Prompt())  # type: ignore
+    llm_stream = LLMStream(None, Prompt())
 
     steps = list(node.generate_steps(agent, tape, llm_stream))
 
@@ -211,7 +213,7 @@ def test_generate_steps():
 
     agent = MockAgent()
     tape = MockTape()
-    llm_stream = LLMStream(iter([]), Prompt())  # type: ignore
+    llm_stream = LLMStream(None, Prompt())
 
     steps = list(agent.generate_steps(tape, llm_stream))
 
@@ -232,7 +234,7 @@ def test_run_iteration_with_llm_stream():
 
     agent = MockAgent()
     tape = MockTape()
-    llm_stream = LLMStream(iter([]), Prompt())  # type: ignore
+    llm_stream = LLMStream(None, Prompt())
 
     steps = list(agent.run_iteration(tape, llm_stream))
 

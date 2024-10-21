@@ -1,8 +1,8 @@
 {
     "metadata": {
-        "id": "4ef69c2a-e3c6-4e78-a63d-dcddd2bcf62e",
-        "parent_id": null,
-        "author": null,
+        "id": "d22e988d-084e-4c1c-988a-cca84dcf40c6",
+        "parent_id": "67f6dfa3-51d4-4217-a87f-5ecc0769d1c5",
+        "author": "MathAgent",
         "author_tape_id": null,
         "n_added_steps": 1,
         "error": null,
@@ -28,8 +28,8 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "b943a79e-04ae-4d63-8bc6-cdae89157fe7",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "0c8c9852-217a-4040-8bc1-70116b022257",
                 "node": "start",
                 "agent": "MathAgent",
                 "other": {}
@@ -39,14 +39,25 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "d993c6b6-8d21-4822-b410-b827b0f588f4",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "161cd8a2-46cb-4397-a3dc-b3d4235afb9c",
                 "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
             "kind": "use_calculator_action",
             "expression": "48 / 2"
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "161cd8a2-46cb-4397-a3dc-b3d4235afb9c",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
         },
         {
             "metadata": {
@@ -61,9 +72,9 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "10288a18-6ea9-4d9d-944a-be5b0935e7bf",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "442a5781-1c9e-4bdc-ba96-7ef345f21f5d",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
@@ -72,14 +83,36 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "ca81c0d7-9605-43d0-81ab-45dd80f4634f",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "442a5781-1c9e-4bdc-ba96-7ef345f21f5d",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "e8769fe5-2485-4663-a8a1-11dadb13f2f2",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },
             "kind": "use_calculator_action",
             "expression": "48 + 24"
+        },
+        {
+            "metadata": {
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "e8769fe5-2485-4663-a8a1-11dadb13f2f2",
+                "node": "default",
+                "agent": "MathAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": -1
         },
         {
             "metadata": {
@@ -94,9 +127,9 @@
         },
         {
             "metadata": {
-                "id": "421e58fe-2623-450d-94b9-8b99bf3b84b5",
-                "prompt_id": "7f871f5b-e0b6-4dd2-9684-a9e1f54955f5",
-                "node": "",
+                "id": "8a805dca-ab07-46f2-a2da-9900a05b028c",
+                "prompt_id": "aa43694d-0859-4408-8971-0dfcb3e5187d",
+                "node": "default",
                 "agent": "MathAgent",
                 "other": {}
             },

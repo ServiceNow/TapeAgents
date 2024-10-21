@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import Action, AgentResponseParsingFailureAction, Observation, StopStep, Thought
+from tapeagents.core import Action, AgentResponseParsingFailureAction, Observation, SetNextNode, StopStep, Thought
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -337,6 +337,7 @@ GaiaStep = Union[
     GaiaAnswer,
     ActionExecutionFailure,
     AgentResponseParsingFailureAction,
+    SetNextNode,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[

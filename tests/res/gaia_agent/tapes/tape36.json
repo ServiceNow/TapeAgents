@@ -1,0 +1,289 @@
+{
+    "metadata": {
+        "id": "c819cb25-973f-4194-9f52-a491c65a9b80",
+        "parent_id": "ee06d7d0-e7e1-4608-b43d-763dd28da5f0",
+        "author": "GaiaAgent",
+        "author_tape_id": null,
+        "n_added_steps": 1,
+        "error": null,
+        "result": {}
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "e54ea78f-0ff1-473a-b140-849b1d2f2c5c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "Bob was invited to participate in a game show, and he advanced to the final round. The final round offered Bob the chance to win a large sum by playing a game against the host. The host has 30 shiny prop coins, each of which is worth $1,000 if Bob manages to win them by playing the game. The host hides the coins in three different prize boxes and then shuffles their order. The only rule restricting the host's coin placement is that one box must contain at least 2 coins, and one box must contain 6 more coins than another box. In order to play, Bob must submit three guesses, one guess for the number of coins in each box. The box is then opened and the number of coins is revealed. If Bob's guess is a number greater than the number of coins in the box, Bob earns no coins. If Bob guesses a number equal to or less than the number of coins in the box, Bob wins a number of coins equal to his guess.\n\nIf Bob plays uses the optimal strategy, what's the minimum amount of money he can win from the game?",
+            "filename": ""
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "8368711f-6b73-4b9e-9d1b-41c9f7a476dc",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Identify the constraints for distributing the 30 coins among the three boxes: one box must have at least 2 coins, and one box must have 6 more coins than another box.",
+                "Define variables for the number of coins in each box: let x, y, and z represent the number of coins in the three boxes, ensuring that x + y + z = 30.",
+                "Apply the constraints to set up equations: for instance, if one box has at least 2 coins, set x = 2 + a, where a is a non-negative integer.",
+                "Determine the relationships between the boxes based on the constraint that one box has 6 more coins than another. For example, if y = x + 6, express all boxes in terms of one variable.",
+                "Solve the equations to find possible distributions of coins that satisfy all constraints.",
+                "Evaluate Bob's optimal guessing strategy based on the distributions found, considering that he should guess the number of coins in each box to maximize his winnings.",
+                "Calculate the minimum amount of money Bob can win by analyzing the outcomes of his guesses against the possible distributions of coins."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "dfe9fd6b-2a57-459a-8a05-c5aa9a06bcdb",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                {
+                    "name": "total_coins",
+                    "description": "The total number of shiny prop coins available in the game show.",
+                    "format": "int",
+                    "unit": "",
+                    "value": 30
+                },
+                {
+                    "name": "coin_value",
+                    "description": "The monetary value of each shiny prop coin if Bob wins them.",
+                    "format": "int",
+                    "unit": "$",
+                    "value": 1000
+                },
+                {
+                    "name": "minimum_coins_in_box",
+                    "description": "The minimum number of coins that must be placed in one of the boxes.",
+                    "format": "int",
+                    "unit": "",
+                    "value": 2
+                },
+                {
+                    "name": "coin_difference",
+                    "description": "The difference in the number of coins between two boxes, where one box must contain 6 more coins than another.",
+                    "format": "int",
+                    "unit": "",
+                    "value": 6
+                }
+            ],
+            "facts_to_lookup": [],
+            "facts_to_derive": [
+                {
+                    "name": "coin_distribution",
+                    "description": "The possible distributions of the 30 coins among the three boxes that satisfy the given constraints.",
+                    "format": "list",
+                    "unit": "list of integers"
+                },
+                {
+                    "name": "optimal_guesses",
+                    "description": "The optimal guesses Bob should make for the number of coins in each box to maximize his winnings.",
+                    "format": "list",
+                    "unit": "list of integers"
+                },
+                {
+                    "name": "minimum_winnings",
+                    "description": "The minimum amount of money Bob can win based on his optimal strategy and the distribution of coins.",
+                    "format": "int",
+                    "unit": "$"
+                }
+            ],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "1a30415c-1a16-4ddf-b902-b938a3f95936",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The total number of coins is 30, and we need to distribute them into three boxes with specific constraints.",
+                "Let the number of coins in the three boxes be x, y, and z.",
+                "We know that x + y + z = 30.",
+                "One box must have at least 2 coins, so we can set x = 2 + a, where a is a non-negative integer.",
+                "Additionally, one box must have 6 more coins than another, which we can express as y = x + 6 or z = y + 6.",
+                "We will explore possible values for x, y, and z that satisfy these conditions."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "7f0dfa73-cb55-4620-8cf1-2f29b6314199",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "distributing 30 coins into 3 boxes with constraints"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "7f0dfa73-cb55-4620-8cf1-2f29b6314199",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "distributing 30 coins into 3 boxes with constraints",
+            "serp": [
+                {
+                    "title": "Maximum number of guaranteed coins to get in a \"30 ...",
+                    "url": "https://math.stackexchange.com/questions/2603283/maximum-number-of-guaranteed-coins-to-get-in-a-30-coins-in-3-boxes-puzzle",
+                    "content": "Jan 13, 2018 — The best you can do is guarantee 12 coins with (12,12,12). Note we've shown this is the only triple to guarantee 12 won coins."
+                },
+                {
+                    "title": "No. of ways of distributing balls in boxes with constraints",
+                    "url": "https://www.reddit.com/r/math/comments/as0eec/no_of_ways_of_distributing_balls_in_boxes_with/",
+                    "content": "The number of ways in which n indistinguishable balls can be distributed into k distinguishable boxes can be calculated as (n+k-1)C(n)."
+                },
+                {
+                    "title": "In how many ways can a set of three balls be distributed ...",
+                    "url": "https://www.quora.com/In-how-many-ways-can-a-set-of-three-balls-be-distributed-into-three-boxes",
+                    "content": "3*3*3= 27 ways. The first ball can be put in any one of the three boxes. Then the second ball can be put in any of the 3 boxes so 3*3= 9 ..."
+                },
+                {
+                    "title": "Problem 16 A large pile of coins consists o... [FREE SOLUTION]",
+                    "url": "https://www.vaia.com/en-us/textbooks/math/discrete-mathematics-with-applications-3-edition/chapter-6/problem-16-a-large-pile-of-coins-consists-of-pennies-nickels/",
+                    "content": "We can use the stars and bars method to determine the number of different collections of 30 coins. We have 4 types of coins, and we want to distribute 30 coins ..."
+                },
+                {
+                    "title": "Number of ways in which 30 can be partitioned into thre",
+                    "url": "https://www.doubtnut.com/qna/642533078",
+                    "content": "Aug 7, 2024 — Statement 1: Number of ways in which 30 can be partitioned into three unequal parts, each part being a natural number is 61."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "ae012e50-3435-4594-80ca-e33ae328c119",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://math.stackexchange.com/questions/2603283/maximum-number-of-guaranteed-coins-to-get-in-a-30-coins-in-3-boxes-puzzle",
+            "fact_description": "The maximum number of guaranteed coins Bob can win based on the distribution of coins.",
+            "fact_name": "maximum_guaranteed_coins"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "ae012e50-3435-4594-80ca-e33ae328c119",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Maximum number of guaranteed coins to get in a \"30 coins in 3 boxes\" puzzle - Mathematics Stack Exchange\n=======================\n[Skip to main content](#content)\n\n#### Stack Exchange Network\n\n Stack Exchange network consists of 183 Q&A communities including [Stack Overflow](https://stackoverflow.com), the largest, most trusted online community for developers to learn, share their knowledge, and build their careers.\n\n[Visit Stack Exchange](https://stackexchange.com)\n\nLoading…\n\n1.\n\n* [Tour\n\n Start here for a quick overview of the site](/tour)\n* [Help Center\n\n Detailed answers to any questions you might have](/help)\n* [Meta\n\n Discuss the workings and policies of this site](https://math.meta.stackexchange.com)\n* [About Us\n\n Learn more about Stack Overflow the company, and our products](https://stackoverflow.co/)\n\n3.\n4. ### [current community](https://math.stackexchange.com)\n\n\t* [Mathematics](https://math.stackexchange.com)\n\n\t[help](https://math.stackexchange.com/help)\n\t[chat](https://chat.stackexchange.com?tab=site&host=math.stackexchange.com)\n\t* [Mathematics Meta](https://math.meta.stackexchange.com)\n\n### your communities\n\n[Sign up](https://math.stackexchange.com/users/signup?ssrc=site_switcher&returnurl=https%3a%2f%2fmath.stackexchange.com%2fquestions%2f2603283%2fmaximum-number-of-guaranteed-coins-to-get-in-a-30-coins-in-3-boxes-puzzle) or [log in](https://math.stackexchange.com/users/login?ssrc=site_switcher&returnurl=https%3a%2f%2fmath.stackexchange.com%2fquestions%2f2603283%2fmaximum-number-of-guaranteed-coins-to-get-in-a-30-coins-in-3-boxes-puzzle) to customize your list.\n\n### [more stack exchange communities](https://stackexchange.com/sites)\n\n[company blog](https://stackoverflow.blog)\n5.\n6. [Log in](https://math.stackexchange.com/users/login?ssrc=head&returnurl=https%3a%2f%2fmath.stackexchange.com%2fquestions%2f2603283%2fmaximum-number-of-guaranteed-coins-to-get-in-a-30-coins-in-3-boxes-puzzle)\n7. [Sign up](https://math.stackexchange.com/users/signup?ssrc=head&returnurl=https%3a%2f%2fmath.stackexchange.com%2fquestions%2f2603283%2fmaximum-number-of-guaranteed-coins-to-get-in-a-30-coins-in-3-boxes-puzzle)\n\n[![Mathematics](https://cdn.sstatic.net/Sites/math/Img/logo.svg?v=4a36350d1199)](https://math.stackexchange.com)\n\n1. 1. [Home](/)\n\t2. [Questions](/questions)\n\t3. [Tags](/tags)\n\t4.\n\t5. [Users](/users)\n\t6. [Unanswered](/unanswered)\n2. Teams\n\nNow available on Stack Overflow for Teams! AI features where you work: search, IDE, and chat.\n\n[Learn more](https://stackoverflow.co/teams/ai/?utm_medium=referral&utm_source=math-community&utm_campaign=side-bar&utm_content=overflowai-learn-more)\n[Explore Teams](https://stackoverflow.co/teams/?utm_medium=referral&utm_source=math-community&utm_campaign=side-bar&utm_content=explore-teams)\n3. [Teams](javascript:void(0))\n4. Ask questions, find answers and collaborate at work with Stack Overflow for Teams.\n [Explore Teams](https://stackoverflow.co/teams/?utm_medium=referral&utm_source=math-community&utm_campaign=side-bar&utm_content=explore-teams-compact)\n\n**Teams**\n\nQ&A for work\n\nConnect and share knowledge within a single location that is structured and easy to search.\n\n[Learn more about Teams](https://stackoverflow.co/teams/)\n\n[Maximum number of guaranteed coins to get in a \"30 coins in 3 boxes\" puzzle](/questions/2603283/maximum-number-of-guaranteed-coins-to-get-in-a-30-coins-in-3-boxes-puzzle)\n===========================================================================================================================================================================\n\n[Ask Question](/questions/ask)\n\nAsked\n6 years, 9 months ago\n\nModified\n[6 years, 8 months ago](?lastactivity \"2018-01-13 17:58:16Z\")\n\nViewed\n 1k times\n\n 2\n\n$\\begingroup$\n\n> There are a total of 30 gold coins in three wooden boxes (but you do not know\n>  how many in each individual box). However, you know that one box has exactly 4 coins more than another box.\n>\n>\n> For each box, you can ask for a number of coins from that box, of your choice. If there are at least that many coins in that box, then you get as many coins as you asked for. Otherwise, you get nothing from that box. You must place all your demands simultaneously in the beginning.\n>\n>\n> What is the maximum number of coins that you can guarantee yourself to get?\n\nAdded for clarification: you don't know which box has 4 coins more.\n\nLet $x, y, y+4$ be the coin contents $=> x+2y=26$ $=>$ solutions $(0,13,17),...,(24,1,5)$.\n\nWhat next?\n\n* [number-theory](/questions/tagged/number-theory \"show questions tagged 'number-theory'\")\n* [elementary-number-theory](/questions/tagged/elementary-number-theory \"show questions tagged 'elementary-number-theory'\")\n* [puzzle](/questions/tagged/puzzle \"show questions tagged 'puzzle'\")\n* [game-theory](/questions/tagged/game-theory \"show questions tagged 'game-theory'\")\n\n[Share](/q/2603283 \"Short permalink to this question\")\n\nCite\n\n Follow\n\n[edited Jan 13, 2018 at 17:58](/posts/2603283/revisions \"show all edits to this post\")\n\n[![Andrew T.'s user avatar](https://i.sstatic.net/KAcfF.png?s=64)](/users/174736/andrew-t)\n\n[Andrew T.](/users/174736/andrew-t)\n\n13811 silver badge1111 bronze badges\n\n asked Jan 13, 2018 at 7:25\n\n[![ami_ba's user avatar](https://www.gravatar.com/avatar/250ccc396ccd58e52962f8453e0b0e33?s=64&d=identicon&r=PG&f=y&so-version=2)](/users/269497/ami-ba)\n\n[ami\\_ba](/users/269497/ami-ba)ami\\_ba\n\n2,16233 gold badges1414 silver badges3434 bronze badges\n\n$\\endgroup$\n\n6\n\n* 2\n\n$\\begingroup$\nYou forgot 26, 0, 4\n$\\endgroup$\n\n– [QuIcKmAtHs](/users/515633/quickmaths \"1,465 reputation\")\n\nCommented\nJan 13, 2018 at 7:41\n* $\\begingroup$\nDo we know which box has 4 more coins than other? (or one unknown box has 4 more coins than some other?)\n$\\endgroup$\n\n– [Atbey](/users/327944/atbey \"1,497 reputation\")\n\nCommented\nJan 13, 2018 at 7:49\n* $\\begingroup$\n@Atbey No, we do not know which box has 4 coins more.\n$\\endgroup$\n\n– [ami\\_ba](/users/269497/ami-ba \"2,162 reputation\")\n\nCommented\nJan 13, 2018 at 8:10\n* $\\begingroup$\nFun puzzle. If one looks at it statistically, the best choice is actually $(8,8,8)$ as this has the highest expected value, which is 14.77.\n$\\endgroup$\n\n– [Jens](/users/307210/jens \"5,726 reputation\")\n\nCommented\nJan 13, 2018 at 14:19\n* $\\begingroup$\nSince you're using quote block, may I know the source of this puzzle? (just curious, because sometimes users are misusing quote block and code block to highlight/emphasize, which is certainly not the correct purpose)\n$\\endgroup$\n\n– [Andrew T.](/users/174736/andrew-t \"138 reputation\")\n\nCommented\nJan 13, 2018 at 17:56\n\n |\n[Show **1** more comment](# \"Expand to show all comments on this post\")\n\n4 Answers\n 4\n------------\n\n Sorted by:\n\n[Reset to default](/questions/2603283/maximum-number-of-guaranteed-coins-to-get-in-a-30-coins-in-3-boxes-puzzle?answertab=scoredesc#tab-top)\n\n Highest score (default)\n\n Date modified (newest first)\n\n Date created (oldest first)\n\n 7\n\n$\\begingroup$\n\nIf you ask for $13,13,13$, then you get nothing if the boxes are $10,8,12$.\n\nIf you ask for $12,12,12$, you will always get exactly $12$ coins, since in all cases, exactly one of the boxes has at least $12$ coins.\n\nClaim $12$ is best possible.\n\nCertainly it's best possible with all requests equal.\n\nSuppose a better request triple is $a,b,c$, with $a \\le b \\le $c, and $a < c$.\n\nBut any of the $3$ requests might fail if that box contains $0$ coins, hence to be sure to get more than $12$ coins, every pair must sum to more than $12$.\n\nFrom $a \\le b \\le c $, and $a + b > 12$, we get $6 < b \\le c$.\n\nBut if the boxes are some permutation of $26,0,4$, the $b,c$ requests might both fail, so to be sure to get more than $12$, we must have $a > 12$.\n\nBut then $a,b,c$ all exceed $12$, so all requests would fail if the boxes are $10,8,12$.\n\nThus, unequal requests can't beat the uniform $12,12,12$ request strategy.\n\nIt follows that $12$ is the maximum number of coins which can be guaranteed.\n\n[Share](/a/2603308 \"Short permalink to this answer\")\n\nCite\n\n Follow\n\n[edited Jan 13, 2018 at 8:17](/posts/2603308/revisions \"show all edits to this post\")\n\n answered Jan 13, 2018 at 8:12\n\n[![quasi's user avatar](https://www.gravatar.com/avatar/89db5ec008223d67d0fb316efdbbfbd9?s=64&d=identicon&r=PG&f=y&so-version=2)](/users/400434/quasi)\n\n[quasi](/users/400434/quasi)quasi\n\n59.6k33 gold badges4545 silver badges101101 bronze badges\n\n$\\endgroup$\n\n1\n\n* 1\n\n$\\begingroup$\nInteresting to note that although (12,12,12) maximises the guaranteed (i.e. minimum) return, it does not maximise the expected (i.e. average) return. (12,12,12) gives an average return of 13 5/7, whereas (10,10,10) gives an average return of 15.\n$\\endgroup$\n\n– [gandalf61](/users/424513/gandalf61 \"15,426 reputation\")\n\nCommented\nJan 13, 2018 at 15:40\n\n[Add a comment](# \"Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.\")\n |\n\n 3\n\n$\\begingroup$\n\nThere is always one box with at least 12 coins. If you name (12, 12, 12), you will win at least 12 coins.\n\nIf you name some triple where one of the numbers is more than 12, then it's possible that box only has 12, and you win nothing from it. If you are to win from *both* the other boxes, your other two named numbers must be at most 2, since the other boxes could have 2 and 16. So then you'd win at most 4 total. If you are to win from exactly *one* of the other two boxes, they might have 8 and 10 and you'd win at most 10 total.\n\nIf you name some triple where your *lowest* number is less than 12 but more than 4, then it's possible that box has 26, and you win nothing from the other two boxes which have 0 and 4 coins. And you only win your lowest named number which we assumed is less than 12.\n\nIf your lowest called number is 4 or lower, that box may again have 26, and you can't do better than winning that number plus the 4 from the box with 4. So no better than 8 total.\n\nSo your lowest named number is at least 12, and none of your named numbers are more than 12. So the best you can do is guarantee 12 coins with (12,12,12). Note we've shown this is the *only* triple to guarantee 12 won coins.\n\n[Share](/a/2603301 \"Short permalink to this answer\")\n\nCite\n\n Follow\n\n[edited Jan 13, 2018 at 9:33](/posts/2603301/revisions \"show all edits to this post\")\n\n answered Jan 13, 2018 at 7:57\n\n[![2'5 9'2's user avatar](https://i.sstatic.net/J1i6U.png?s=64)](/users/11123/25-92)\n\n[2'5 9'2](/users/11123/25-92)2'5 9'2\n\n55.8k88 gold badges8484 silver badges159159 bronze badges\n\n$\\endgroup$\n\n[Add a comment](# \"Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.\")\n |\n\n 0\n\n$\\begingroup$\n\nAfter much thought, I realised that (10, 8, 12) can only be the optimal solution. Firstly, we have (10, 10, 10) to ensure we get the most coins in a situation with no constraints. However, here, we have to take note of the 4 coins, so I would say (10, 8, 12).\n\nHowever, should the boxes with more coins be unknown to us, then alex's answer of (12, 12, 12) would be more suitable.\n\n[Share](/a/2603298 \"Short permalink to this answer\")\n\nCite\n\n Follow\n\n[edited Jan 13, 2018 at 8:01](/posts/2603298/revisions \"show all edits to this post\")\n\n answered Jan 13, 2018 at 7:48\n\n[![QuIcKmAtHs's user avatar](https://www.gravatar.com/avatar/074040db5e59bc608cfcebf9b259ebc7?s=64&d=identicon&r=PG)](/users/515633/quickmaths)\n\n[QuIcKmAtHs](/users/515633/quickmaths)QuIcKmAtHs\n\n1,4651313 silver badges2727 bronze badges\n\n$\\endgroup$\n\n4\n\n* $\\begingroup$\nIf the box you apply 8 to has 26, 24, 22, 20, or 18 coins, then this strategy only gives you 8 coins. But as someone pointed out elsewhere, naming (10,10,10) always gives you at least 10 coins (and half the time gives you 20).\n$\\endgroup$\n\n– [2'5 9'2](/users/11123/25-92 \"55,836 reputation\")\n\nCommented\nJan 13, 2018 at 7:51\n* $\\begingroup$\nYes, but what about if the case is 8, 9, 13? You get 27.\n$\\endgroup$\n\n– [QuIcKmAtHs](/users/515633/quickmaths \"1,465 reputation\")\n\nCommented\nJan 13, 2018 at 7:54\n* 4\n\n$\\begingroup$\nquestion asks about maximum number of coins to guarantee.\n$\\endgroup$\n\n– [Atbey](/users/327944/atbey \"1,497 reputation\")\n\nCommented\nJan 13, 2018 at 7:54\n* 1\n\n$\\begingroup$\nThe question is about *guaranteeing* some minimal amount. Not about *maybe* getting some better amount.\n$\\endgroup$\n\n– [2'5 9'2](/users/11123/25-92 \"55,836 reputation\")\n\nCommented\nJan 13, 2018 at 8:07\n\n[Add a comment](# \"Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.\")\n |\n\n 0\n\n$\\begingroup$\n\nThis is not an answer, just in case we know which box has 4 coin more, we can have a better strategy.\n\nSay box 3 has 4 more coin than box 2, label them as you did $(x,\\ y,\\ y+4)$.\nWe can demand for $(16, 6, 10)$, so that in any case we get $16$ coins.\n\n[Share](/a/2603309 \"Short permalink to this answer\")\n\nCite\n\n Follow\n\n answered Jan 13, 2018 at 8:14\n\n[![Atbey's user avatar](https://i.sstatic.net/cxnuy.png?s=64)](/users/327944/atbey)\n\n[Atbey](/users/327944/atbey)Atbey\n\n1,4971212 silver badges1616 bronze badges\n\n$\\endgroup$\n\n[Add a comment](# \"Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.\")\n |\n\nYou must [log in](/users/login?ssrc=question_page&returnurl=https%3a%2f%2fmath.stackexchange.com%2fquestions%2f2603283) to answer this question.\n------------------------------------------------------------------------------------------------------------------------------------------------\n\nNot the answer you're looking for? Browse other questions tagged * [number-theory](/questions/tagged/number-theory \"show questions tagged 'number-theory'\")\n* [elementary-number-theory](/questions/tagged/elementary-number-theory \"show questions tagged 'elementary-number-theory'\")\n* [puzzle](/questions/tagged/puzzle \"show questions tagged 'puzzle'\")\n* [game-theory](/questions/tagged/game-theory \"show questions tagged 'game-theory'\")\n\n.\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n* Featured on Meta\n* [Preventing unauthorized automated access to the network](https://meta.stackexchange.com/questions/403002/preventing-unauthorized-automated-access-to-the-network)\n* [Upcoming initiatives on Stack Overflow and across the Stack Exchange network...](https://meta.stackexchange.com/questions/403367/upcoming-initiatives-on-stack-overflow-and-across-the-stack-exchange-network-oc \"Upcoming initiatives on Stack Overflow and across the Stack Exchange network (October 2024)\")\n* [A Limited Advertising Test on this Site](https://math.meta.stackexchange.com/questions/37789/a-limited-advertising-test-on-this-site)\n\n#### Related\n\n[2](/q/315264 \"Question score (upvotes - downvotes)\")\n[James has 773500 gold coins to purchase a number of hats and ties.....](/questions/315264/james-has-773500-gold-coins-to-purchase-a-number-of-hats-and-ties)\n\n[3](/q/434270 \"Question score (upvotes - downvotes)\")\n[Knight Knave puzzle with three boxes](/questions/434270/knight-knave-puzzle-with-three-boxes)\n\n[30](/q/969781 \"Question score (upvotes - downvotes)\")\n[A beautiful game of gold and silver coins](/questions/969781/a-beautiful-game-of-gold-and-silver-coins)\n\n[31](/q/1020066 \"Question score (upvotes - downvotes)\")\n[Puzzle of gold coins in the bag](/questions/1020066/puzzle-of-gold-coins-in-the-bag)\n\n[4](/q/1577168 \"Question score (upvotes - downvotes)\")\n[Puzzle about sorting coins while blindfolded](/questions/1577168/puzzle-about-sorting-coins-while-blindfolded)\n\n[3](/q/2976114 \"Question score (upvotes - downvotes)\")\n[with no more than $n$ steps, the total number of heads equals the total number of tails?](/questions/2976114/with-no-more-than-n-steps-the-total-number-of-heads-equals-the-total-number-o)\n\n[1](/q/3203144 \"Question score (upvotes - downvotes)\")\n[There are 314 coins in 21 open boxes. In each move you can take 1 coin from each of any two boxes and put them into a third box and...](/questions/3203144/there-are-314-coins-in-21-open-boxes-in-each-move-you-can-take-1-coin-from-each)\n\n[0](/q/4495483 \"Question score (upvotes - downvotes)\")\n[Maximise the earnings](/questions/4495483/maximise-the-earnings)\n\n[1](/q/4592417 \"Question score (upvotes - downvotes)\")\n[What is the maximum number of silver coins that we can obtain from $q$ gold coins?](/questions/4592417/what-is-the-maximum-number-of-silver-coins-that-we-can-obtain-from-q-gold-coin)\n\n[2](/q/4735220 \"Question score (upvotes - downvotes)\")\n[Finding defected boxes puzzle](/questions/4735220/finding-defected-boxes-puzzle)\n\n#### [Hot Network Questions](https://stackexchange.com/questions?tab=hot)\n\n* [How to make angled slopes in drain PVC/ABS fittings in a tight space](https://diy.stackexchange.com/questions/308202/how-to-make-angled-slopes-in-drain-pvc-abs-fittings-in-a-tight-space)\n* [Minimum Bend Radius of a FR-4 PCB](https://electronics.stackexchange.com/questions/727259/minimum-bend-radius-of-a-fr-4-pcb)\n* [Does “redeeming quality” simply mean “positive quality” today?](https://ell.stackexchange.com/questions/357942/does-redeeming-quality-simply-mean-positive-quality-today)\n* [How long should a direct quote be in order to be put in quotation marks](https://academia.stackexchange.com/questions/214086/how-long-should-a-direct-quote-be-in-order-to-be-put-in-quotation-marks)\n* [Why do apps such as the DuckDuckGo browser or Signal seem to try to protect my own data from me?](https://security.stackexchange.com/questions/279056/why-do-apps-such-as-the-duckduckgo-browser-or-signal-seem-to-try-to-protect-my-o)\n* [A Simple, Theft-Proof Connecting Wall](https://puzzling.stackexchange.com/questions/128691/a-simple-theft-proof-connecting-wall)\n* [Why does the Schwarzschild solution describe a black hole?](https://physics.stackexchange.com/questions/830227/why-does-the-schwarzschild-solution-describe-a-black-hole)\n* [Smoothing Pump Pressure Spikes with a Helmholtz or Pipe Resonator?](https://physics.stackexchange.com/questions/830319/smoothing-pump-pressure-spikes-with-a-helmholtz-or-pipe-resonator)\n* [Can you arrange ABCD...Z into a straight line so that consecutive letters of the alphabet have an odd number of letters between them?](https://puzzling.stackexchange.com/questions/128686/can-you-arrange-abcd-z-into-a-straight-line-so-that-consecutive-letters-of-the)\n* [How can I insert this symbol in Latex?](https://tex.stackexchange.com/questions/728138/how-can-i-insert-this-symbol-in-latex)\n* [What is the term for types that are not type variables?](https://langdev.stackexchange.com/questions/4078/what-is-the-term-for-types-that-are-not-type-variables)\n* [Applying to two PhD positions under the same professor at the same time?](https://academia.stackexchange.com/questions/214096/applying-to-two-phd-positions-under-the-same-professor-at-the-same-time)\n* [I forgot to tell a journal that the submitted article is actually a condensed version of my MA thesis!](https://academia.stackexchange.com/questions/214059/i-forgot-to-tell-a-journal-that-the-submitted-article-is-actually-a-condensed-ve)\n* [British Children's Educational Televison show from the 80's / 90's about an alien disguised as a chair](https://movies.stackexchange.com/questions/123614/british-childrens-educational-televison-show-from-the-80s-90s-about-an-alie)\n* [What is more important: observing the fast of Gedalia or taking care of one's children?](https://judaism.stackexchange.com/questions/145271/what-is-more-important-observing-the-fast-of-gedalia-or-taking-care-of-ones-ch)\n* [MySQL using a multi-column index even when the first column isn't being queried](https://dba.stackexchange.com/questions/342823/mysql-using-a-multi-column-index-even-when-the-first-column-isnt-being-queried)\n* [Bipolar analog latch circuit needed](https://electronics.stackexchange.com/questions/727274/bipolar-analog-latch-circuit-needed)\n* [Soldiers bred for battle are killed when peace begins](https://scifi.stackexchange.com/questions/292112/soldiers-bred-for-battle-are-killed-when-peace-begins)\n* [Manga? Large Tower Dungeon climb/battle defeating each level. MC has a cheat. He had explored, died and was then reborn BEFORE the tower appeared](https://scifi.stackexchange.com/questions/292123/manga-large-tower-dungeon-climb-battle-defeating-each-level-mc-has-a-cheat-he)\n* [Would it be possible for a planet to have only one lifeform?](https://worldbuilding.stackexchange.com/questions/262232/would-it-be-possible-for-a-planet-to-have-only-one-lifeform)\n* [Access clipboard contents from the command line](https://apple.stackexchange.com/questions/475926/access-clipboard-contents-from-the-command-line)\n* [Space after display math mode](https://tex.stackexchange.com/questions/728062/space-after-display-math-mode)\n* [What is Iran's long-term objective in the Middle East?](https://politics.stackexchange.com/questions/89335/what-is-irans-long-term-objective-in-the-middle-east)\n* [What is the science behind this freeze seawater news article?](https://physics.stackexchange.com/questions/830255/what-is-the-science-behind-this-freeze-seawater-news-article)\n\n[more hot questions](#)\n\n[Question feed](/feeds/question/2603283 \"Feed of this question and its answers\")\n\nSubscribe to RSS\n================\n\n Question feed\n To subscribe to this RSS feed, copy and paste this URL into your RSS reader.\n\n![](/posts/2603283/ivc/1309?prg=6198300f-32bb-45b3-bb25-9b6fc2fa96d5)\n\n##### [Mathematics](/)\n\n* [Tour](/tour)\n* [Help](/help)\n* [Chat](https://chat.stackexchange.com?tab=site&host=math.stackexchange.com)\n* [Contact](/contact)\n* [Feedback](https://math.meta.stackexchange.com)\n\n##### [Company](https://stackoverflow.co/)\n\n* [Stack Overflow](https://stackoverflow.com)\n* [Teams](https://stackoverflow.co/teams/)\n* [Advertising](https://stackoverflow.co/advertising/)\n* [Talent](https://stackoverflow.co/advertising/employer-branding/)\n* [About](https://stackoverflow.co/)\n* [Press](https://stackoverflow.co/company/press/)\n* [Legal](https://stackoverflow.com/legal)\n* [Privacy Policy](https://stackoverflow.com/legal/privacy-policy)\n* [Terms of Service](https://stackoverflow.com/legal/terms-of-service/public)\n* Cookie Settings\n* [Cookie Policy](https://stackoverflow.com/legal/cookie-policy)\n\n##### [Stack Exchange Network](https://stackexchange.com)\n\n* [Technology](https://stackexchange.com/sites#technology)\n* [Culture & recreation](https://stackexchange.com/sites#culturerecreation)\n* [Life & arts](https://stackexchange.com/sites#lifearts)\n* [Science](https://stackexchange.com/sites#science)\n* [Professional](https://stackexchange.com/sites#professional)\n* [Business](https://stackexchange.com/sites#business)\n* [API](https://api.stackexchange.com/)\n* [Data](https://data.stackexchange.com/)\n\n* [Blog](https://stackoverflow.blog?blb=1)\n* [Facebook](https://www.facebook.com/officialstackoverflow/)\n* [Twitter](https://twitter.com/stackoverflow)\n* [LinkedIn](https://linkedin.com/company/stack-overflow)\n* [Instagram](https://www.instagram.com/thestackoverflow)\n\nSite design / logo © 2024 Stack Exchange Inc;\nuser contributions licensed under\n[CC BY-SA](https://stackoverflow.com/help/licensing)\n.\nrev 2024.10.7.16451",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "abde1f25-7e3f-4d6b-ad06-f9498f74e46e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "The maximum number of guaranteed coins Bob can win based on the distribution of coins.",
+            "fact_found": true,
+            "quote_with_fact": "you will win at least 12 coins. If you name some triple where one of the numbers is more than 12, then it's possible that box only has 12, and you win nothing from it. If you are to win from both the other boxes, your other two named numbers must be at most 2, since the other boxes could have 2 and 16. So then you'd win at most 4 total. If you are to win from exactly one of the other two boxes, they might have 8 and 10 and you'd win at most 10 total.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "abde1f25-7e3f-4d6b-ad06-f9498f74e46e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "0ef855ca-5191-410e-892f-6707992b6192",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "maximum_guaranteed_coins",
+            "unit": "$",
+            "value": 12000
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "0ef855ca-5191-410e-892f-6707992b6192",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "fbe96134-88a9-49d3-b830-44209ac4f121",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Calculated the minimum amount of money Bob can win using optimal strategy.",
+            "answer_unit": "$",
+            "answer": "12000"
+        }
+    ]
+}

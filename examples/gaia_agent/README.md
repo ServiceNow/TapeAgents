@@ -7,10 +7,10 @@ Tape example:
 
 
 ## Structure
-The agent is built on top of the [MonoAgent](../../tapeagents/mono_agent.py) class, which implements the following workflow:
+The agent is built using the [MonoNode](../../tapeagents/nodes.py), which implement the following workflow:
 - Expose the set of all available actions and thoughts to the model in each prompt
 - Render the whole tape into the prompt, trimming only in case when the tape does not fit into the context window
-- Based on the end of the current tape, select the short textual guidance prompt that briefly instructs the LLM what to do next
+- Append a short textual guidance prompt that briefly instructs the LLM what to do next
 - Append the hints about formatting to the end of the prompt.
 
 The agent is free to choose which thoughts and actions to use to satisfy the current guidance recommendations without the additional constraints of specific node or subagent.

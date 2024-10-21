@@ -1,0 +1,196 @@
+{
+    "metadata": {
+        "id": "2199f11d-5811-4da0-be80-bfff17f71a8e",
+        "parent_id": "b2055002-b7d7-4e66-a806-488734e34639",
+        "author": "GaiaAgent",
+        "author_tape_id": null,
+        "n_added_steps": 3,
+        "error": null,
+        "result": {}
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "e54ea78f-0ff1-473a-b140-849b1d2f2c5c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "Hi, I'm making a pie but I could use some help with my shopping list. I have everything I need for the crust, but I'm not sure about the filling. I got the recipe from my friend Aditi, but she left it as a voice memo and the speaker on my phone is buzzing so I can't quite make out what she's saying. Could you please listen to the recipe and list all of the ingredients that my friend described? I only want the ingredients for the filling, as I have everything I need to make my favorite pie crust. I've attached the recipe as Strawberry pie.mp3.\n\nIn your response, please only list the ingredients, not any measurements. So if the recipe calls for \"a pinch of salt\" or \"two cups of ripe strawberries\" the ingredients on the list would be \"salt\" and \"ripe strawberries\".\n\nPlease format your response as a comma separated list of ingredients. Also, please alphabetize the ingredients.\nMP3 document content:\n### Audio Transcript:\nIn a saucepan, combine ripe strawberries, granulated sugar, freshly squeezed lemon juice and cornstarch. Cook the mixture over medium heat, stirring constantly until it thickens to a smooth consistency. Remove from heat and stir in a dash of pure vanilla extract. Allow the strawberry pie feeling to cool before using it as a delicious and fruity feeling for your pie crust.",
+            "filename": "/tmp/99c9cc74-fdc8-46c6-8f8d-3ce2d3bfeea3.mp3"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "0b9d3590-f4f5-440e-a544-78a0b919cb8e",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Listen to the audio file 'Strawberry pie.mp3' to extract the recipe details.",
+                "Identify and note down all the ingredients mentioned for the filling in the audio.",
+                "Remove any measurements or additional instructions from the list of ingredients.",
+                "Alphabetize the list of ingredients for clarity and organization.",
+                "Format the final list as a comma-separated string."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "3616f6a5-33ed-4c1d-8da6-944fc079da72",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                {
+                    "name": "audio_file_name",
+                    "description": "The name of the audio file containing the recipe for the strawberry pie filling.",
+                    "format": "string",
+                    "unit": "",
+                    "value": "Strawberry pie.mp3"
+                },
+                {
+                    "name": "recipe_source",
+                    "description": "The person who provided the recipe for the pie filling.",
+                    "format": "string",
+                    "unit": "",
+                    "value": "Aditi"
+                }
+            ],
+            "facts_to_lookup": [],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "0a6d1a74-8d65-43c9-b771-cf7a4aaa4cce",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "/tmp/99c9cc74-fdc8-46c6-8f8d-3ce2d3bfeea3.mp3",
+            "fact_description": "ingredients for the filling of the strawberry pie",
+            "fact_name": "strawberry_pie_filling_ingredients"
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "### Audio Transcript:\nIn a saucepan, combine ripe strawberries, granulated sugar, freshly squeezed lemon juice and cornstarch. Cook the mixture over medium heat, stirring constantly until it thickens to a smooth consistency. Remove from heat and stir in a dash of pure vanilla extract. Allow the strawberry pie feeling to cool before using it as a delicious and fruity feeling for your pie crust.",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "63dc1949-2f01-4720-bd71-d31b67474e2b",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "ingredients for the filling of the strawberry pie",
+            "fact_found": true,
+            "quote_with_fact": "In a saucepan, combine ripe strawberries, granulated sugar, freshly squeezed lemon juice and cornstarch. Cook the mixture over medium heat, stirring constantly until it thickens to a smooth consistency. Remove from heat and stir in a dash of pure vanilla extract.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "63dc1949-2f01-4720-bd71-d31b67474e2b",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "345a4cb2-8e2d-45c4-b910-4a02cbfe5cde",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "strawberry_pie_filling_ingredients",
+            "unit": "",
+            "value": [
+                "ripe strawberries",
+                "granulated sugar",
+                "freshly squeezed lemon juice",
+                "cornstarch",
+                "pure vanilla extract"
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "345a4cb2-8e2d-45c4-b910-4a02cbfe5cde",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "a39d326c-57ed-4c7b-be85-64a4d6a90b2f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The ingredients for the filling have been identified from the audio transcript.",
+                "Next, I will remove any measurements and format the ingredients into a comma-separated list.",
+                "Finally, I will alphabetize the list of ingredients."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "a39d326c-57ed-4c7b-be85-64a4d6a90b2f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": 3
+        },
+        {
+            "metadata": {
+                "id": "f41f3e2f-7c1c-4fea-93b3-0fe9628c4027",
+                "prompt_id": "9d215d27-7d6d-4308-aea0-525b0f23b5c3",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "List of ingredients for the strawberry pie filling extracted and formatted.",
+            "answer_unit": "",
+            "answer": "cornstarch, freshly squeezed lemon juice, granulated sugar, pure vanilla extract, ripe strawberries"
+        }
+    ]
+}
