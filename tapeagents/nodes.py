@@ -23,7 +23,7 @@ from .utils import FatalError, sanitize_json_completion
 logger = logging.getLogger(__name__)
 
 
-class GuidanceNode(Node):
+class MonoNode(Node):
     """
     A node for simple agents:
     - Renders the whole tape into a prompt. Trims the tape if needed.

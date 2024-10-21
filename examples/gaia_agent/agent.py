@@ -5,7 +5,7 @@ from typing import Any
 from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
-from tapeagents.nodes import GuidanceNode, ObservationControlNode
+from tapeagents.nodes import MonoNode, ObservationControlNode
 
 from .prompts import PromptRegistry
 from .steps import (
@@ -37,7 +37,7 @@ class PlanningMode(str, Enum):
     reflect = "reflect"
 
 
-class GaiaNode(GuidanceNode):
+class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
     agent_step_cls: Any = GaiaAgentStep
@@ -113,7 +113,7 @@ class GaiaAgent(Agent):
     @classmethod
     def prepare_guidance(cls, planning_mode: PlanningMode, subtasks: bool) -> list[GaiaNode]:
         """
-        Prepare guidance nodes based on the planning mode and subtasks flag
+        Prepare mononodes based on the planning mode and subtasks flag
         """
         guidance_nodes = []
         if planning_mode == PlanningMode.simple:
@@ -127,10 +127,10 @@ class GaiaAgent(Agent):
             guidance_nodes = [
                 GaiaNode(name="plan", guidance=PromptRegistry.plan),
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
-                GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution, next_node=-1),
-                GaiaNode(name="think_after_observation", guidance=PromptRegistry.think_after_observation, next_node=-1),
-                GaiaNode(name="think_after_calculation", guidance=PromptRegistry.think_after_calculation, next_node=-1),
-                GaiaNode(name="default", next_node=-1),
+                GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution, next_node=6),
+                GaiaNode(name="think_after_observation", guidance=PromptRegistry.think_after_observation, next_node=6),
+                GaiaNode(name="think_after_calculation", guidance=PromptRegistry.think_after_calculation, next_node=6),
+                GaiaNode(name="default", next_node=6),
                 ObservationControlNode(
                     name="node_after_observation",
                     observation_to_node={
@@ -147,7 +147,7 @@ class GaiaAgent(Agent):
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
                 GaiaNode(name="sources_plan", guidance=PromptRegistry.sources_plan),
                 GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
-                GaiaNode(name="default", next_node=-1),
+                GaiaNode(name="default", next_node=4),
             ]
         elif planning_mode == PlanningMode.multiplan:
             guidance_nodes = [
@@ -155,7 +155,7 @@ class GaiaAgent(Agent):
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
                 GaiaNode(name="sources_plan", guidance=PromptRegistry.sources_plan),
                 GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
-                GaiaNode(name="default", next_node=-1),
+                GaiaNode(name="default", next_node=4),
             ]
         elif planning_mode == PlanningMode.replan_after_sources:
             guidance_nodes = [
@@ -163,7 +163,7 @@ class GaiaAgent(Agent):
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
                 GaiaNode(name="better_plan", guidance=PromptRegistry.better_plan),
                 GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
-                GaiaNode(name="default", next_node=-1),
+                GaiaNode(name="default", next_node=4),
             ]
         else:
             raise ValueError(f"Unknown planning mode: {planning_mode}")
