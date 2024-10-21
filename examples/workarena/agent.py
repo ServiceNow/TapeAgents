@@ -32,7 +32,7 @@ class WorkArenaBaselineNode(MonoNode):
     """
 
     guidance: str = ""
-    agent_step_cls: Any = WorkArenaAgentStep
+    _agent_step_cls: Any = WorkArenaAgentStep
 
     def make_prompt(self, agent: Any, tape: WorkArenaTape) -> Prompt:
         assert isinstance(tape.steps[1], WorkArenaTask)
@@ -77,7 +77,7 @@ class WorkArenaBaselineNode(MonoNode):
 class WorkArenaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = WorkArenaAgentStep
+    _agent_step_cls: Any = WorkArenaAgentStep
 
     def get_steps_description(self, tape: WorkArenaTape, agent: Any) -> str:
         return self.steps_prompt.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep))

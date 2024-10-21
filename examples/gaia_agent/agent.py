@@ -40,7 +40,7 @@ class PlanningMode(str, Enum):
 class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = GaiaAgentStep
+    _agent_step_cls: Any = GaiaAgentStep
 
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
         """
