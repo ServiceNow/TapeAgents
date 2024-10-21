@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any, Generator, Type
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import Field, TypeAdapter, ValidationError
 
 from .agent import Node
 from .core import (
@@ -34,7 +34,7 @@ class MonoNode(Node):
     guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
-    agent_step_cls: Any = None
+    agent_step_cls: Any = Field(exclude=True)
     next_node: int | None = None
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:

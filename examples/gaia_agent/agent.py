@@ -2,6 +2,8 @@ import logging
 from enum import Enum
 from typing import Any
 
+from pydantic import Field
+
 from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
@@ -40,7 +42,7 @@ class PlanningMode(str, Enum):
 class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = GaiaAgentStep
+    agent_step_cls: Any = Field(exclude=True, default=GaiaAgentStep)
 
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
         """
