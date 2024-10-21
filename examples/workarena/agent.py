@@ -1,6 +1,8 @@
 import platform
 from typing import Any
 
+from pydantic import Field
+
 from tapeagents.agent import Agent
 from tapeagents.core import Prompt
 from tapeagents.llms import LLM
@@ -32,7 +34,7 @@ class WorkArenaBaselineNode(MonoNode):
     """
 
     guidance: str = ""
-    _agent_step_cls: Any = WorkArenaAgentStep
+    agent_step_cls: Any = Field(exclude=True, default=WorkArenaAgentStep)
 
     def make_prompt(self, agent: Any, tape: WorkArenaTape) -> Prompt:
         assert isinstance(tape.steps[1], WorkArenaTask)
@@ -77,7 +79,7 @@ class WorkArenaBaselineNode(MonoNode):
 class WorkArenaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    _agent_step_cls: Any = WorkArenaAgentStep
+    agent_step_cls: Any = Field(exclude=True, default=WorkArenaAgentStep)
 
     def get_steps_description(self, tape: WorkArenaTape, agent: Any) -> str:
         return self.steps_prompt.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep))
