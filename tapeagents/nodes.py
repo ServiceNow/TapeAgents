@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class MonoNode(Node):
     """
-    A node for simple agents:
+    A node for simple monolithic agents:
     - Renders the whole tape into a prompt. Trims the tape if needed.
     - Attaches a guidance text to the end of the prompt after rendering the tape.
     - Parses the llm output into provided step classes (class provided in a form of annotated union).
