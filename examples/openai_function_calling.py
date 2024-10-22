@@ -7,8 +7,8 @@ from tapeagents.agent import Agent
 from tapeagents.core import Prompt
 from tapeagents.dialog_tape import (
     AssistantStep,
-    DialogTape,
     DialogContext,
+    DialogTape,
     ToolCalls,
     ToolResult,
     ToolSpec,
@@ -20,27 +20,23 @@ from tapeagents.environment import (
 )
 from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.orchestrator import main_loop
+from tapeagents.prompting import tape_to_messages
 
 
 class FunctionCallingAgent(Agent[DialogTape]):
     def make_prompt(self, tape: DialogTape):
-        steps = list(tape.steps)
-        for i in range(len(steps)):
-            if isinstance(steps[i], ToolResult):
-                steps[i] = steps[i].model_copy()
-                steps[i].content = str(steps[i].content)  # type: ignore
         assert tape.context
-        return Prompt(tools=[t.model_dump() for t in tape.context.tools], messages=[s.llm_dict() for s in steps])
+        return Prompt(tools=[t.model_dump() for t in tape.context.tools], messages=tape_to_messages(tape))
 
     def generate_steps(self, _, llm_stream: LLMStream):
-        m = llm_stream.get_message()
-        if m.content:
-            yield AssistantStep(content=m.content)
-        elif m.tool_calls:
-            assert all(isinstance(tc, ChatCompletionMessageToolCall) for tc in m.tool_calls)
-            yield ToolCalls(tool_calls=m.tool_calls)
+        llm_output = llm_stream.get_message()
+        if llm_output.content:
+            yield AssistantStep(content=llm_output.content)
+        elif llm_output.tool_calls:
+            assert all(isinstance(tc, ChatCompletionMessageToolCall) for tc in llm_output.tool_calls)
+            yield ToolCalls.from_llm_output(llm_output)
         else:
-            raise ValueError(f"don't know what to do with message {m}")
+            raise ValueError(f"don't know what to do with message {llm_output}")
 
 
 TOOL_SCHEMAS = TypeAdapter(list[ToolSpec]).validate_python(
@@ -116,8 +112,6 @@ def try_openai_function_callling_with_environment():
             elif event.observation:
                 print("OBSERVATION")
                 pprint(event.observation.model_dump(exclude_none=True))
-            else:
-                raise ValueError("Must be something in the event")
     except ExternalObservationNeeded as e:
         assert isinstance(e.action, AssistantStep)
     print("Stopping, next user message is needed")
