@@ -9,7 +9,7 @@ from tapeagents.core import Action, AgentResponseParsingFailureAction, FinalStep
 from tapeagents.environment import Environment
 from tapeagents.llms import LLM
 from tapeagents.mono_agent import MonoAgent, MonoNode
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 from tapeagents.tools.calculator import calculate
 from tapeagents.utils import get_step_schemas_from_union_type
 
@@ -151,6 +151,7 @@ class MathAgent(MonoAgent):
         """
         We only train on the last completion
         """
+        logger.info(f"Making training data for tape: {tape.metadata.id}")
         _, llm_calls = self.reuse(tape)
         return [self.make_training_text(llm_call, compute_log_probs=True) for llm_call in llm_calls]
 

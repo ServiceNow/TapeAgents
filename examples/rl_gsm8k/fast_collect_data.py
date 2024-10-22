@@ -9,6 +9,7 @@ import sys
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import partial
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
@@ -165,6 +166,7 @@ def serve_vllm_local_model(
         f"python -m vllm.entrypoints.openai.api_server "
         f"--model {model_name_or_path} "
         f"--tensor-parallel-size {tensor_parallel_size} "
+        #f"--pipeline-parallel-size {tensor_parallel_size} "
         f"--port {port} "
         "--disable-frontend-multiprocessing "
         "--dtype bfloat16 "
@@ -240,13 +242,27 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
     save_state(state, state_path)
 
     logger.info("Cleaning up checkpoints and training state")
+    # list of files to remove
+    files = [
+        target_path / "assistant_vllm_stdout.log",
+        target_path / "assistant_vllm_stderr.log",
+        target_path / "basemodel_vllm_stdout.log",
+        target_path / "basemodel_vllm_stderr.log",
+        target_path / "debug.log",
+        target_path / "error.log",
+        target_path / "info.log",
+    ]
+
+    for file in files:
+        if file.exists():
+            # erase the content but not the file
+            with open(file, "w"):
+                pass
+            logger.info(f"{file} erased.")
 
     # List of directories to remove
     directories = [
         target_path / "llm_calls.sqlite",
-        target_path / "debug.log",
-        target_path / "error.log",
-        target_path / "info.log",
         target_path / "dialogue_trace.log",
         target_path / "rollouts",
         target_path / "tapes",
@@ -280,20 +296,21 @@ def create_tapes(samples):
     return tapes
 
 
-def process_dataset(agent, tapes, cfg, env, tapes_dir, is_training=True):
+def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
+    start_process_tapes = time.time()
     os.makedirs(tapes_dir, exist_ok=True)
-
-    new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
-    for new_tape in new_tapes:
-        save_tape(os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"), new_tape)
-
     reward_stats = defaultdict(list)
     step_stats = defaultdict(list)
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
-    for new_tape in new_tapes:
+    logger.info("Starting main loop")
+    start_make_new_tapes = time.time()
+    new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
+    end_make_new_tapes = time.time()
+
+    def process_tape(new_tape, agent, dataset_name, tapes_dir):
         if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
             new_tape_filtered = copy.deepcopy(new_tape)
             new_tape_filtered.steps = [
@@ -311,26 +328,47 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, is_training=True):
             else:
                 reward, success = 0, 0
 
-        reward_stats[new_tape.metadata.parent_id].append(reward)
-        step_stats[new_tape.metadata.parent_id].append(len(new_tape.steps))
-        success_stats[new_tape.metadata.parent_id].append(success)
-        no_errors_stats[new_tape.metadata.parent_id].append(no_error)
+        save_tape(os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"), new_tape)
 
-        if is_training:
+        training_samples = []
+        if dataset_name == "train":
             for trace in agent.make_training_data(new_tape):
-                try:
-                    trace.rewards = [reward]
-                    trace.fork_id = new_tape.metadata.parent_id
-                    training_samples.append(trace)
-                except Exception as e:
-                    logger.error(f"Failed to make training data: {e}")
-                    logger.error(new_tape)
+                trace.rewards = [reward]
+                trace.fork_id = new_tape.metadata.parent_id
+                training_samples.append(trace)
+
+        return new_tape, reward, len(new_tape.steps), success, no_error, training_samples
+
+    logger.info("Starting data creation")
+    start_make_data = time.time()
+    with ThreadPoolExecutor(max_workers=torch.cuda.device_count()) as executor:
+        process_tape_partial = partial(process_tape, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir)
+        futures = [executor.submit(process_tape_partial, new_tape) for new_tape in new_tapes]
+        # Wrap futures with tqdm for progress tracking
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
+            new_tape, reward, steps, success, no_error, tape_training_samples = future.result()
+            reward_stats[new_tape.metadata.parent_id].append(reward)
+            step_stats[new_tape.metadata.parent_id].append(steps)
+            success_stats[new_tape.metadata.parent_id].append(success)
+            no_errors_stats[new_tape.metadata.parent_id].append(no_error)
+            new_tapes.append(new_tape)
+            training_samples.extend(tape_training_samples)
+
+    end_make_data = time.time()
+
+    end_process_tapes = time.time()
 
     stats = {
-        **{f"{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
-        **{f"{k}_steps": v for k, v in calculate_stats(step_stats).items()},
-        **{f"{k}_success": v for k, v in calculate_stats(success_stats).items()},
-        **{f"{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+        **{f"{dataset_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
+        **{f"{dataset_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
+        **{f"{dataset_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
+        **{f"{dataset_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+        **{
+            f"execution_time/{dataset_name}_make_new_tapes": end_make_new_tapes - start_make_new_tapes,
+            f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
+            f"execution_time/{dataset_name}_tapes_per_second": len(new_tapes)
+            / (end_process_tapes - start_process_tapes),
+        },
     }
     return new_tapes, training_samples, stats
 
@@ -412,23 +450,8 @@ def main(cfg: DictConfig):
             all_results = {}
 
             for dataset_name, agent, tapes in datasets:
-                is_training = dataset_name == "train"
-                if is_training:
-                    tapes_dir = exp_path / "train_tapes" / str(state["iteration"])
-                else:
-                    tapes_dir = exp_path / "test_tapes" / str(state["iteration"])
-                start_make_training_data = time.time()
-                new_tapes, training_samples, stats = process_dataset(agent, tapes, cfg, env, tapes_dir, is_training)
-                end_make_training_data = time.time()
-                stats = {f"{dataset_name}_{k}": v for k, v in stats.items()}
-                stats.update(
-                    {
-                        f"execution_time/{dataset_name}_make_training_data": end_make_training_data  # type: ignore
-                        - start_make_training_data,
-                        f"execution_time/{dataset_name}_tapes_per_second": len(tapes)
-                        / (end_make_training_data - start_make_training_data),
-                    }
-                )
+                tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
+                new_tapes, training_samples, stats = process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name)
 
                 all_results[dataset_name] = {
                     "new_tapes": new_tapes,
