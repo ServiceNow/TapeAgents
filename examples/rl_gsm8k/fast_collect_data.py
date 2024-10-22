@@ -27,14 +27,14 @@ from termcolor import colored, cprint
 from tqdm import tqdm
 
 import wandb
-from examples.rl_gsm8k.math_agent import (
+from tapeagents.io import save_json_tape
+from examples.gsm8k_tuning.math_agent import (
     AnswerAction,
     MathAgent,
     MathEnvironment,
     MathTape,
     Task,
     extract_result_value,
-    save_tape,
     solve_task,
 )
 from tapeagents.batch import batch_main_loop
@@ -328,7 +328,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
             else:
                 reward, success = 0, 0
 
-        save_tape(os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"), new_tape)
+        save_json_tape(new_tape, os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"))
 
         training_samples = []
         if dataset_name == "train":
