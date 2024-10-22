@@ -1,0 +1,9 @@
+_target_: tapeagents.llms.TrainableLLM
+model_name: mistralai/Mixtral-8x22B-v0.1
+stream: false
+use_cache: false
+context_size: 8000
+base_url: http://0.0.0.0:8080
+parameters:
+  temperature: 0.05
+  max_tokens: 1000

@@ -1,0 +1,7 @@
+_target_: tapeagents.llms.LiteLLM
+model_name: together_ai/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
+stream: false
+use_cache: false
+context_size: 128000
+request_parameters:
+  temperature: 0.0

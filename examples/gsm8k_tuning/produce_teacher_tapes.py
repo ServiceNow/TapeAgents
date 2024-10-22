@@ -7,13 +7,13 @@ from datasets import load_dataset
 from termcolor import colored
 from tqdm import tqdm
 
+from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
 
 from examples.gsm8k_tuning.math_agent import (
     MathAgent,
     MathEnvironment,
     extract_result_value,
-    save_tape,
     solve_task,
 
 )
@@ -41,7 +41,7 @@ def main(exp_path: str, attempts: int = 1):
     tapes_dir = os.path.join(exp_path, "tapes")
     logger.info(f"Saving tapes to {tapes_dir}")
     os.makedirs(tapes_dir, exist_ok=True)
-    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "llm_calls.sqlite")
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "tapedata.sqlite")
 
     solved = []
     for i, sample in enumerate(tqdm(samples)):
@@ -54,7 +54,7 @@ def main(exp_path: str, attempts: int = 1):
             try:
                 tape = solve_task(agent, env, sample, tape_file)
                 solved.append(int(tape.metadata.result["solved"]))
-                save_tape(tape_file, tape)
+                save_json_tape(tape, tape_file)
             except Exception as e:
                 logger.error(colored(f"Failed to solve task, attempt {j+1}: {e}", "red"))
                 solved.append(0)

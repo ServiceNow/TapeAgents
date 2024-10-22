@@ -10,7 +10,7 @@ from tapeagents.environment import CodeExecutionEnvironment, Environment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.rendering import BasicRenderer, PrettyRenderer
-from tapeagents.runtime import main_loop
+from tapeagents.orchestrator import main_loop
 from tapeagents.team import TeamAgent, TeamTape
 from tapeagents.view import Call, Respond
 

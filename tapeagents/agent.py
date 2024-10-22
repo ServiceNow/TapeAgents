@@ -158,17 +158,17 @@ class Agent(BaseModel, Generic[TapeType]):
             self.name = self.__class__.__name__.split("[")[0]
         names = set()
         for i, agent in enumerate(self.subagents):
-            if agent.name in names:
-                raise ValueError(
-                    f'Duplicate subagent name "{agent.name}" in subagent {i}, pass a unique name to the subagent during creation'
-                )
-            names.add(agent.name)
             if isinstance(agent, Agent):
                 if agent._manager is not None:
                     raise ValueError("Agent is already a subagent of another agent. Make a copy of your agent.")
                 agent._manager = self
             else:
                 raise ValueError("Subagents must be instances of Agent")
+            if agent.name in names:
+                raise ValueError(
+                    f'Duplicate subagent name "{agent.name}" in subagent {i}, pass a unique name to the subagent during creation'
+                )
+            names.add(agent.name)
         node_names = set()
         for i, node in enumerate(self.nodes):
             if node.name in node_names:
@@ -207,7 +207,7 @@ class Agent(BaseModel, Generic[TapeType]):
             if agent.name == name:
                 return agent
         raise ValueError(f"Agent {name} not found")
-    
+
     def find_node(self, name: str):
         for node in self.nodes:
             if node.name == name:
@@ -250,7 +250,7 @@ class Agent(BaseModel, Generic[TapeType]):
         """
         Reload the configuration of all llms and subagents while keeping their classes.
 
-        :param obj: the new configuration
+        :param agent_config: the new configuration dictionary
         """
         if not set(self.llms.keys()) == set(agent_config["llms"].keys()):
             raise ValueError("Agent has different LLMs than the new configuration.")
@@ -435,7 +435,7 @@ class Agent(BaseModel, Generic[TapeType]):
                 i += 1
         reused_tape = tape.model_validate(dict(context=tape.context, metadata=TapeMetadata(), steps=reused_steps))
         return reused_tape, llm_calls
-    
+
     def get_node_runs(self, tape: TapeType) -> list[tuple[Node, int]]:
         """Parse the tape into fragments produced by the agent's nodes"""
         last_prompt_id = None
@@ -446,7 +446,6 @@ class Agent(BaseModel, Generic[TapeType]):
                 result.append((node, index))
             last_prompt_id = prompt_id
         return result
-            
 
     def make_training_text(self, llm_call: LLMCall, compute_log_probs=False) -> TrainingText:
         """Routes the request to make trace to the appropriate agent's LLM."""

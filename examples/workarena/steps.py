@@ -79,6 +79,9 @@ class ReflectionThought(WorkArenaThought):
         description="detailed list of things to do to accomplish the task, down to the fields level"
     )
     next_action: str = Field(description="describe the next action to be performed and expected effect on the page")
+    page_line: str = Field(
+        description="verbatim quote of the line of the page that contains required element. Empty if next action is not related to specific page element"
+    )
 
 
 class ClickAction(WorkArenaAction):
@@ -198,7 +201,9 @@ class GotoPageAction(WorkArenaAction):
 
 class FinalAnswerAction(WorkArenaAction, StopStep):
     """
-    Action that provides the final answer to the user after completing the task. Should be produced when the agent has finished the task.
+    Action that provides the final answer to the user after completing the task.
+    Should be produced when the agent has finished the task.
+    When the task has question about numerical value, the answer should contain only one number!
     """
 
     kind: Literal["final_answer_action"] = "final_answer_action"

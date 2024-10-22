@@ -24,4 +24,4 @@ When the setup is done and all environment variables are set, you can run the ag
 - `python -m examples.workarena.evaluate` - script to run agent evaluation on the validation set.
 - `python -m examples.workarena.tape_browser` - Gradio UI for exploring the tapes with screenshots, videos and metrics produced during evaluation.
 
-Agents are configured using hydra configs from the `conf/tapeagent/` directory. You can change the agent configuration by modifying the `conf/tapeagent/workarena_openai.yaml` file.
+Agents are configured using hydra configs from the `conf/` directory. You can change the agent configuration by modifying the `conf/workarena_openai.yaml` file.

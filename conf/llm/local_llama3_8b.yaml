@@ -1,0 +1,8 @@
+_target_: tapeagents.llms.TrainableLLM
+model_name: meta-llama/Llama-3.1-8B-Instruct
+stream: false
+use_cache: false
+context_size: 128000
+base_url: http://0.0.0.0:8080
+parameters:
+  temperature: 0.2

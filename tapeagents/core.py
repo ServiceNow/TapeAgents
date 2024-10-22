@@ -55,7 +55,7 @@ class Step(BaseModel):
 
     def llm_view(self, indent: int | None = 2) -> str:
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
-    
+
     @classmethod
     def get_kind(cls) -> str:
         return cls.model_fields["kind"].default
@@ -98,7 +98,7 @@ class AgentResponseParsingFailureAction(Action):
 
 class StopStep(Action):
     """
-    Action that stops runtime loop
+    Action that stops orchestrator loop
     """
 
     pass

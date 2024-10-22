@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# coding=utf-8
-# Borrowed from HF Agents https://github.com/huggingface/transformers/blob/main/src/transformers/agents/python_interpreter.py
+# Modified from the original source: https://github.com/huggingface/transformers/blob/main/src/transformers/agents/python_interpreter.py
 
 # Copyright 2024 The HuggingFace Inc. team. All rights reserved.
 #
@@ -15,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import ast
 import builtins
 import difflib

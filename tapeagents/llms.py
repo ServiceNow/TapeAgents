@@ -250,113 +250,6 @@ class LiteLLM(CachedLLM):
         raise NotImplementedError()
 
 
-class TrainableLLMConfig(BaseModel):
-    model_name: str
-    base_url: str
-    parameters: dict[str, Any] = {}
-
-
-class TypedVLLM(LLM):
-    """
-    VLLM inference API with typed responses, using json schema enforcing by lm-format-enforcer
-    """
-
-    _obj_log: dict
-
-    def __init__(self, config: TrainableLLMConfig, use_cache: bool = True, only_cache: bool = False):
-        import transformers
-
-        self.model_name = config.model_name
-        self.parameters = config.parameters
-        self.use_cache = use_cache
-        self.only_cache = only_cache
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(config.model_name)
-        self.context_size = config.parameters.pop("context_size", 8000)
-        self.base_url = config.base_url
-        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
-        self._obj_log = {}
-
-    def get_prompt_key(self, prompt: Prompt) -> str:
-        return prompt.model_dump_json(exclude={"id"})
-
-    def count_tokens(self, messages: list[dict]) -> int:
-        return litellm.token_counter(model=self.model_name, messages=messages)
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
-    def generate(self, prompt: Prompt, response_type: Type[BaseModel], suggest_outputs: bool = True) -> LLMStream:
-        def _implementation():
-            k = self.get_prompt_key(prompt)
-            if k in self._log:
-                logger.info(colored("llm cache hit", "green"))
-                object_json = self._obj_log[k]
-                yield LLMEvent(output=response_type.model_validate_json(object_json))  # type: ignore
-                return
-            elif self.only_cache:
-                raise ValueError("llm cache miss not allowed")
-
-            logger.debug("llm cache miss")
-
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_token}",
-            }
-
-            schema = self.prepare_schema(response_type.model_json_schema())
-            if suggest_outputs:
-                prompt.messages[-1]["content"] += "\nAllowed outputs: {schema}"
-            data = {
-                "model": self.model_name,
-                "messages": prompt.messages,
-                "guided_json": schema,
-                "guided_decoding_backend": "lm-format-enforcer",
-            }
-            r = requests.post(
-                url=f"{self.base_url}/v1/chat/completions",
-                json=data | self.parameters,
-                headers=headers,
-                verify=False,
-            )
-            r.raise_for_status()
-            response = r.json()
-            try:
-                object_json = response["choices"][0]["message"]["content"]
-                response_object = response_type.model_validate_json(object_json)
-                self._obj_log[k] = object_json  # only cache if parsed successfully
-            except Exception as e:
-                logger.exception(f"Failed to parse llm response: {response}")
-                raise e
-            yield LLMEvent(output=response_object)  # type: ignore
-
-        return LLMStream(_implementation(), prompt=prompt)
-
-    def make_training_text(self, *args, **kwargs) -> TrainingText:
-        raise NotImplementedError()
-
-    def prepare_schema(self, schema: dict) -> dict:
-        """
-        Prepare schema with oneOf replaced with anyOf, as it is buggy in lm-format-encforcer lib inside vllm
-        TODO: remove this workaround when the bug is fixed in https://github.com/noamgat/lm-format-enforcer
-        """
-
-        # recursive function to replace oneOf with anyOf and fix kind required
-        def fix_schema(schema: dict) -> dict:
-            if "oneOf" in schema:
-                schema["anyOf"] = schema.pop("oneOf")
-            if (
-                "required" in schema
-                and "properties" in schema
-                and "kind" in schema["properties"]
-                and "kind" not in schema["required"]
-            ):
-                schema["required"].append("kind")
-            for key, value in schema.items():
-                if isinstance(value, dict):
-                    schema[key] = fix_schema(value)
-            return schema
-
-        return fix_schema(schema)
-
-
 class TrainableLLM(CachedLLM):
     """Talk to TGI or VLLM endpoints serving HF based model (Llama, Mistral, etc.) using OpenAI API.
 
@@ -596,7 +489,7 @@ class ReplayLLM(LLM):
         def _implementation():
             prompt_key = json.dumps(prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
             if prompt_key in self.outputs:
-                logger.info(colored("prompt cache hit", "green"))
+                logger.debug(colored("prompt cache hit", "green"))
                 output = self.outputs[prompt_key]
             else:
                 logger.warning(
@@ -628,6 +521,7 @@ def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, floa
 
 
 class MockLLM(LLM):
+    model_name: str = "mock"
     call_number: int = 0
     mock_outputs: list[str] = [
         "Agent: I'm good, thank you",
