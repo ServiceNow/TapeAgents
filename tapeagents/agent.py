@@ -14,14 +14,19 @@ import queue
 from .core import (
     Action,
     AgentEvent,
+    AgentResponseParsingFailureAction,
     AgentStep,
     AnnotatorTapeType,
+    Call,
     LLMCall,
     LLMOutput,
     MakeObservation,
     ObservationMakerTapeType,
     PartialStep,
+    Pass,
     Prompt,
+    Respond,
+    SetNextNode,
     Step,
     Tape,
     TapeMetadata,
@@ -285,9 +290,11 @@ class Agent(BaseModel, Generic[TapeType]):
             subagent = subagent.find_subagent(view.agent_name)
         return subagent
 
-    def is_agent_step(self, step: Step) -> bool:
-        """Check if the step was produced by the agent or by the environment."""
-        return isinstance(step, (Action, Thought))
+    def is_llm_step(self, step: Step) -> bool:
+        """Check if the step was produced by the llm."""
+        return isinstance(step, (Action, Thought)) and not isinstance(
+            step, (SetNextNode, Pass, Call, Respond, AgentResponseParsingFailureAction)
+        )
 
     def should_stop(self, tape: TapeType) -> bool:
         """Check if the agent should stop its turn and wait for observations."""
@@ -375,7 +382,7 @@ class Agent(BaseModel, Generic[TapeType]):
         while i < len(tape):
             past_tape = tape[:i]
             step = tape.steps[i]
-            if self.is_agent_step(step):
+            if self.is_llm_step(step):
                 current_agent = self.delegate(past_tape)
                 prompt = current_agent.make_prompt(past_tape)
                 output = current_agent.make_llm_output(tape, i)
