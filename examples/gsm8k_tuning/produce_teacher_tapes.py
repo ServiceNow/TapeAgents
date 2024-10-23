@@ -15,7 +15,6 @@ from .math_agent import (
     MathEnvironment,
     extract_result_value,
     solve_task,
-
 )
 
 logging.basicConfig(level=logging.INFO)
