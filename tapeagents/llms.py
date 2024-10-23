@@ -85,7 +85,7 @@ class LLM(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def make_training_text(self, prompt: Prompt, output: LLMOutput, compute_log_probs: bool = False) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         pass
 
     def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
@@ -320,12 +320,9 @@ class TrainableLLM(CachedLLM):
             name = _MOCK_TOKENIZER if _MOCK_TOKENIZER else (self.tokenizer_name or self.model_name)
             self.tokenizer = transformers.AutoTokenizer.from_pretrained(name)
 
-    def make_training_text(self, prompt: Prompt, output: LLMOutput, compute_log_probs: bool = False) -> TrainingText:
+    def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         self.load_tokenizer()
-        log_probs = []
-        if compute_log_probs:
-            log_probs = self.get_log_probs(prompt, output)
-        return trainable_llm_make_training_text(prompt, output, self.tokenizer, log_probs)
+        return trainable_llm_make_training_text(prompt, output, self.tokenizer)
 
     def get_log_probs_complete(self, prompt: str, output: str) -> list[float]:
         if not self.tokenizer:
@@ -548,9 +545,8 @@ class MockLLM(LLM):
 
 
 def trainable_llm_make_training_text(
-    prompt: Prompt, output: LLMOutput, tokenizer, log_probs: list[float] = []
+    prompt: Prompt, output: LLMOutput, tokenizer
 ) -> TrainingText:
-    # TODO: Oleh discussion
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )
@@ -558,15 +554,5 @@ def trainable_llm_make_training_text(
         prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=False
     )
     output_text = text[len(prompt_text) :]
-    if tokenizer.bos_token and output_text.startswith(tokenizer.bos_token):
-        output_text = output_text[len(tokenizer.bos_token) :]
 
-    tokenized_prompt = tokenizer.encode(prompt_text, add_special_tokens=True)
-    tokenized_text = tokenizer.encode(text, add_special_tokens=True)
-    tokenized_output = tokenized_text[len(tokenized_prompt) :]
-
-    if len(log_probs):
-        assert len(log_probs) == len(
-            tokenized_output
-        ), f"Log probs length mismatch: {len(log_probs)} != {len(tokenized_output)}"
-    return TrainingText(text=text, n_predicted=len(output_text), old_logprobs=log_probs)
+    return TrainingText(text=text, n_predicted=len(output_text))

@@ -447,10 +447,10 @@ class Agent(BaseModel, Generic[TapeType]):
             last_prompt_id = prompt_id
         return result
 
-    def make_training_text(self, llm_call: LLMCall, compute_log_probs=False) -> TrainingText:
+    def make_training_text(self, llm_call: LLMCall) -> TrainingText:
         """Routes the request to make trace to the appropriate agent's LLM."""
         # TODO: support more than 1 LLM
-        return self.llm.make_training_text(llm_call.prompt, llm_call.output, compute_log_probs)
+        return self.llm.make_training_text(llm_call.prompt, llm_call.output)
 
     def make_training_data(self, tape: TapeType) -> list[TrainingText]:
         _, llm_calls = self.reuse(tape)

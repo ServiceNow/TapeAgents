@@ -50,7 +50,7 @@ class MonoNode(Node):
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         if isinstance(tape.steps[index], AgentResponseParsingFailureAction):
-            #TODO: Oleh discussion
+            # TODO: Oleh discussion
             # FIXME: this is a hack to log the completion to train the agent
             return LLMOutput(role="assistant", content=tape.steps[index].metadata.other["completion"])
         return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
@@ -105,7 +105,10 @@ class MonoNode(Node):
             )
             return
         try:
-            steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
+            steps = [
+                TypeAdapter(self.agent_step_cls + [AgentResponseParsingFailureAction]).validate_python(step_dict)
+                for step_dict in step_dicts
+            ]
         except ValidationError as e:
             err_text = ""
             for err in e.errors():

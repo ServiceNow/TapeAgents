@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import multiprocessing
 import os
 import random
 import shutil
@@ -27,7 +28,6 @@ from termcolor import colored, cprint
 from tqdm import tqdm
 
 import wandb
-from tapeagents.io import save_json_tape
 from examples.gsm8k_tuning.math_agent import (
     AnswerAction,
     MathAgent,
@@ -41,13 +41,14 @@ from tapeagents.batch import batch_main_loop
 from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TapeMetadata, TrainingText
 from tapeagents.finetune.finetune import load_config, run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
 from tapeagents.observe import start_sqlite_writer, stop_sqlite_writer
 
 logger = logging.getLogger(__name__)
 
 
-def process_trace(agent, trace):
+def get_log_probs(agent, trace):
     try:
         trace.ref_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
         return trace
@@ -166,7 +167,7 @@ def serve_vllm_local_model(
         f"python -m vllm.entrypoints.openai.api_server "
         f"--model {model_name_or_path} "
         f"--tensor-parallel-size {tensor_parallel_size} "
-        #f"--pipeline-parallel-size {tensor_parallel_size} "
+        # f"--pipeline-parallel-size {tensor_parallel_size} "
         f"--port {port} "
         "--disable-frontend-multiprocessing "
         "--dtype bfloat16 "
@@ -333,6 +334,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
         training_samples = []
         if dataset_name == "train":
             for trace in agent.make_training_data(new_tape):
+                trace.old_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
                 trace.rewards = [reward]
                 trace.fork_id = new_tape.metadata.parent_id
                 training_samples.append(trace)
@@ -375,6 +377,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
 
 @hydra.main(config_path="../../conf/", config_name="fast_rl_gsm8k")
 def main(cfg: DictConfig):
+    multiprocessing.set_start_method("spawn")
     random.seed(42)
     exp_path = Path(cfg.output_dir)
     setup_logging(exp_path)
@@ -516,7 +519,7 @@ def main(cfg: DictConfig):
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
 
                 with ThreadPoolExecutor() as executor:
-                    futures = [executor.submit(process_trace, basemodel_agent, trace) for trace in training_samples]
+                    futures = [executor.submit(get_log_probs, basemodel_agent, trace) for trace in training_samples]
                     for future in as_completed(futures):
                         result = future.result()
                         if result:
@@ -575,12 +578,15 @@ def main(cfg: DictConfig):
         logger.info(f"Executing finetune command: {finetune_command}")
 
         start_finetune = time.time()
-        error_code = subprocess.call(finetune_command, shell=True)
+        # error_code = subprocess.call(finetune_command, shell=True)
+        p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
+        p.start()  # Start the subprocess
+        p.join()  # Wait for the process to complete
         end_finetune = time.time()
 
-        if error_code != 0:
-            logger.error(f"Finetuning failed with error code {error_code}")
-            sys.exit(1)
+        # if error_code != 0:
+        #    logger.error(f"Finetuning failed with error code {error_code}")
+        #    sys.exit(1)
 
         wandb.log(
             {
