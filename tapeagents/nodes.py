@@ -53,10 +53,6 @@ class MonoNode(Node):
         return tape.model_copy(update=dict(steps=steps_without_control_flow))
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
-        if isinstance(tape.steps[index], AgentResponseParsingFailureAction):
-            # TODO: Oleh discussion
-            # FIXME: this is a hack to log the completion to train the agent
-            return LLMOutput(role="assistant", content=tape.steps[index].metadata.other["completion"])
         return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
 
     def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
@@ -106,14 +102,9 @@ class MonoNode(Node):
                 step_dicts = [step_dicts]
         except Exception as e:
             logger.exception(f"Failed to parse agent output: {completion}\n\nError: {e}")
-            yield AgentResponseParsingFailureAction(
-                error=f"Failed to parse agent output: {completion}\n\nError: {e}",
-                metadata=StepMetadata(other={"completion": completion}),
-            )
+            yield AgentResponseParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
             return
         try:
-            #FIXME: step_dict can be AgentParsingFailureAction but self.agent_step_cls does not contain it
-            # we should not discard these steps since we need to train on them (negative reward)
             steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
         except ValidationError as e:
             err_text = ""
@@ -129,8 +120,7 @@ class MonoNode(Node):
         except Exception as e:
             logger.exception(f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}")
             yield AgentResponseParsingFailureAction(
-                error=f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}",
-                metadata=StepMetadata(other={"completion": completion}),
+                error=f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}"
             )
             return
         for step in steps:
