@@ -380,6 +380,7 @@ def main(cfg: DictConfig):
     random.seed(42)
     exp_path = Path(cfg.output_dir)
     setup_logging(exp_path)
+    cfg.finetune.wandb_id = exp_path.name
     run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
     if run is None:
         raise ValueError("Failed to initialize wandb run")
