@@ -15,7 +15,7 @@ import threading
 logger = logging.getLogger(__name__)
 
 _checked_sqlite = False
-
+LLM_WRITE_QUEUE = None
 
 LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
@@ -66,7 +66,8 @@ def init_sqlite_if_not_exists(only_once: bool = True):
 def queue_sqlite_writer():
     global LLM_WRITE_QUEUE
     while True:
-        call = LLM_WRITE_QUEUE.get()
+        if LLM_WRITE_QUEUE is not None: 
+            call = LLM_WRITE_QUEUE.get()
         if call is None:
             break  # Stop the thread
         sqlite_writer(call)
@@ -239,5 +240,6 @@ def start_sqlite_writer():
 
 def stop_sqlite_writer():
     global LLM_WRITE_QUEUE
-    LLM_WRITE_QUEUE.put(None)
-    LLM_WRITE_QUEUE.join()
+    if LLM_WRITE_QUEUE is not None:
+        LLM_WRITE_QUEUE.put(None)
+        LLM_WRITE_QUEUE.join()
