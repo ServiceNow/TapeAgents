@@ -17,7 +17,7 @@ from tapeagents.core import TrainingText
 
 from .context import accelerator, logger
 from .logging_ import log_time
-from .rl.grpo import RL_DATA_COLUMNS, prepare_rl_fields
+from .rl import RL_DATA_COLUMNS, prepare_rl_fields
 from .types import DataArgs, DataPartArgs
 
 datasets.builder.has_sufficient_disk_space = (

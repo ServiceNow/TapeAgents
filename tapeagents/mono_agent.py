@@ -105,10 +105,9 @@ class MonoNode(Node):
             )
             return
         try:
-            steps = [
-                TypeAdapter(self.agent_step_cls + [AgentResponseParsingFailureAction]).validate_python(step_dict)
-                for step_dict in step_dicts
-            ]
+            #FIXME: step_dict can be AgentParsingFailureAction but self.agent_step_cls does not contain it
+            # we should not discard these steps since we need to train on them (negative reward)
+            steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
         except ValidationError as e:
             err_text = ""
             for err in e.errors():

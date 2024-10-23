@@ -60,8 +60,18 @@ class AnswerAction(FinalStep):
     text: str = Field(description="final answer to the user")
     value: int | float | None = Field(description="numerical value of the answer or null if solution is not found")
 
-
+#FIXME: hack to handle TypeAdapter(self.agent_step_cls).validate_python(step_dict) in MonoNode
 MathAgentStep: TypeAlias = Annotated[
+    Union[
+        UseCalculatorAction,
+        ReasoningThought,
+        AnswerAction,
+        AgentResponseParsingFailureAction,
+    ],
+    Field(discriminator="kind"),
+]
+
+MathAgentStep2: TypeAlias = Annotated[
     Union[
         UseCalculatorAction,
         ReasoningThought,
@@ -69,6 +79,7 @@ MathAgentStep: TypeAlias = Annotated[
     ],
     Field(discriminator="kind"),
 ]
+
 MathTape = Tape[
     None,
     Union[
@@ -91,7 +102,7 @@ Keep your replies concise and direct. Prioritize clarity and avoid over-elaborat
 
 ALLOWED_STEPS = f"""
 You are allowed to produce ONLY steps with the following json schemas:
-{get_step_schemas_from_union_type(MathAgentStep)}
+{get_step_schemas_from_union_type(MathAgentStep2)}
 Do not reproduce schema when producing the steps, use it as a reference.
 """
 

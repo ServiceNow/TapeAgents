@@ -35,8 +35,10 @@ class StepConfig(object):
 
 
 @dataclass
-class GRPOConfig(StepConfig):
-    algo: Optional[str] = field(default="grpo", metadata={"help": "Algorithm to use for RL"})
+class RLConfig(StepConfig):
+    algo: Optional[str] = field(
+        default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]}
+    )
     use_advantages: Optional[bool] = field(
         default=True,
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
@@ -55,7 +57,7 @@ class GRPOConfig(StepConfig):
 def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
     """Compute sum of tensor with a masked values."""
     if axis is not None:
-        return (values * mask).sum(axis=axis)
+        return (values * mask).sum(axis=axis) # type: ignore
     else:
         return (values * mask).sum()
 
@@ -63,7 +65,7 @@ def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = 
 def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
     """Compute mean of tensor with a masked values."""
     if axis is not None:
-        return (values * mask).sum(axis=axis) / mask.sum(axis=axis)
+        return (values * mask).sum(axis=axis) / mask.sum(axis=axis) # type: ignore
     else:
         return (values * mask).sum() / mask.sum()
 
@@ -96,9 +98,8 @@ def flatten_dict(nested: Dict, sep: str = "/") -> Dict:
     return flat
 
 
-def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str, float]]:
+def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, float]]:
     """
-    GRPO is based on https://arxiv.org/pdf/2402.03300
     model: model that is updated
 
     """
@@ -132,6 +133,7 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
     approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
     match config.algo:
         case "grpo":
+            # GRPO is based on https://arxiv.org/pdf/2402.03300
             surr1 = ratio_new_old * weights
 
             clamped_ratio = torch.clamp(ratio_new_old, 1 - config.epsilon, 1 + config.epsilon)
@@ -157,7 +159,7 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
         loss = loss * 0
 
     stats = {
-        "max_new_log_probs":  new_log_probs[masks_].max().item(),
+        "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),
         "max_loss": loss.max().item(),
         "reward": masked_mean(rewards, masks_).item(),
@@ -181,7 +183,8 @@ def grpo_step(model, batch, config: GRPOConfig) -> tuple[torch.Tensor, dict[str,
     }
     return loss, stats
 
-def update_advantages(dataset: Dataset, config: GRPOConfig) -> Dataset:
+
+def update_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
     """
     Updates the advantages column in the given dataset based on reward statistics.
 
@@ -195,8 +198,7 @@ def update_advantages(dataset: Dataset, config: GRPOConfig) -> Dataset:
     df = dataset.to_pandas()
 
     # Group by fork_id and compute mean and std of reward
-    # new_df = expand_rewards_column(df, "rewards")
-    df["reward"] = df["rewards"].apply(np.mean)
+    df["reward"] = df["rewards"].apply(np.mean) 
     grouped = df.groupby("fork_id")["reward"].agg(["mean", "std", "count"]).reset_index()
 
     # Rename columns for clarity
@@ -224,7 +226,7 @@ def populate_rl_data(
     dataset: Dataset,
     columns: list[str],
     collate_fn: Callable,
-    config: GRPOConfig,
+    config: RLConfig,
 ) -> Dataset:
     """
     Prepares the dataset for RL by performing forward passes and updating the dataset.
