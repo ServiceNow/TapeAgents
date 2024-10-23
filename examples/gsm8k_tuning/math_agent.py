@@ -68,7 +68,6 @@ class AnswerAction(FinalStep):
     text: str = Field(description="final answer to the user")
     value: int | float | None = Field(description="numerical value of the answer or null if solution is not found")
 
-#FIXME: hack to handle TypeAdapter(self.agent_step_cls).validate_python(step_dict) in MonoNode
 MathAgentStep: TypeAlias = Annotated[
     Union[
         UseCalculatorAction,

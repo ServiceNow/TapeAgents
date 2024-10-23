@@ -26,7 +26,7 @@ from omegaconf import DictConfig, OmegaConf
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored, cprint
 from tqdm import tqdm
-
+from tapeagents.observe import retrieve_all_llm_calls
 import wandb
 from examples.gsm8k_tuning.math_agent import (
     AnswerAction,
@@ -308,6 +308,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
     logger.info("Starting main loop")
     start_make_new_tapes = time.time()
     new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
+    llm_calls = retrieve_all_llm_calls(os.environ["TAPEAGENTS_SQLITE_DB"] )
     end_make_new_tapes = time.time()
 
     def process_tape(new_tape, agent, dataset_name, tapes_dir):
@@ -332,7 +333,9 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
 
         training_samples = []
         if dataset_name == "train":
-            for trace in agent.make_training_data(new_tape):
+            prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
+            sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
+            for trace in agent.make_training_data(new_tape, sub_llm_calls):
                 trace.old_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
                 trace.rewards = [reward]
                 trace.fork_id = new_tape.metadata.parent_id

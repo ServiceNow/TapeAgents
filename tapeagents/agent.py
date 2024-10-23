@@ -391,13 +391,11 @@ class Agent(BaseModel, Generic[TapeType]):
                     assert isinstance(new_step, Step)
                     old_step = tape.steps[i + j]
                     if type(old_step) is not type(new_step) or not _is_step_data_equal(old_step, new_step):
-                        #TODO: Oleh discussion
-                        pass
-                        #raise TapeReuseFailure(
-                        #    f"Can't reuse tape because regenerated step {i + j} data doesn't match"
-                        #    f"\nold step data: {old_step.llm_dict()}\nnew step data: {new_step.llm_dict()}",
-                        #    partial_tape=past_tape,
-                        #)
+                        raise TapeReuseFailure(
+                            f"Can't reuse tape because regenerated step {i + j} data doesn't match"
+                            f"\nold step data: {old_step.llm_dict()}\nnew step data: {new_step.llm_dict()}",
+                            partial_tape=past_tape,
+                        )
                 llm_calls.append(llm_call)
                 reused_steps.extend(new_steps)
                 i += len(new_steps)
@@ -423,8 +421,11 @@ class Agent(BaseModel, Generic[TapeType]):
         # TODO: support more than 1 LLM
         return self.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-    def make_training_data(self, tape: TapeType) -> list[TrainingText]:
-        _, llm_calls = self.reuse(tape)
+    def make_training_data(self, tape: TapeType, llm_calls: list[LLMCall] | None = None) -> list[TrainingText]:
+
+        if llm_calls is None:
+            _, llm_calls = self.reuse(tape)
+        #llm_calls from sqlite db
         return [self.make_training_text(llm_call) for llm_call in llm_calls]
 
 
