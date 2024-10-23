@@ -308,8 +308,13 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
     logger.info("Starting main loop")
     start_make_new_tapes = time.time()
     new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
-    llm_calls = retrieve_all_llm_calls(os.environ["TAPEAGENTS_SQLITE_DB"] )
     end_make_new_tapes = time.time()
+    start_reading_sqlite = time.time()
+    if dataset_name == "train":
+        llm_calls = retrieve_all_llm_calls(os.environ["TAPEAGENTS_SQLITE_DB"] )
+    else:
+        llm_calls = []
+    end_reading_sqlite = time.time()
 
     def process_tape(new_tape, agent, dataset_name, tapes_dir):
         if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
@@ -372,6 +377,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
             f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{dataset_name}_tapes_per_second": len(new_tapes)
             / (end_process_tapes - start_process_tapes),
+            f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
         },
     }
     return new_tapes, training_samples, stats
