@@ -74,8 +74,6 @@ MathAgentStep: TypeAlias = Annotated[
         UseCalculatorAction,
         ReasoningThought,
         AnswerAction,
-        AgentResponseParsingFailureAction,
-        SetNextNode,
     ],
     Field(discriminator="kind"),
 ]
