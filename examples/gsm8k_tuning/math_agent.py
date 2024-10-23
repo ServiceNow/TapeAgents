@@ -78,14 +78,6 @@ MathAgentStep: TypeAlias = Annotated[
     Field(discriminator="kind"),
 ]
 
-MathAgentStep2: TypeAlias = Annotated[
-    Union[
-        UseCalculatorAction,
-        ReasoningThought,
-        AnswerAction,
-    ],
-    Field(discriminator="kind"),
-]
 
 MathTape = Tape[
     None,
@@ -110,7 +102,7 @@ Keep your replies concise and direct. Prioritize clarity and avoid over-elaborat
 
 ALLOWED_STEPS = f"""
 You are allowed to produce ONLY steps with the following json schemas:
-{get_step_schemas_from_union_type(MathAgentStep2)}
+{get_step_schemas_from_union_type(MathAgentStep)}
 Do not reproduce schema when producing the steps, use it as a reference.
 """
 
