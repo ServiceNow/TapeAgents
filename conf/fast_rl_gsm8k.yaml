@@ -19,13 +19,6 @@ test_llm:
     max_tokens: 1024
     temperature: 0.
 
-
-finetune_job:
-  accelerate: 1
-  local: 1
-  snapshot: 0
-  conda: 1
-
 finetune:
   config_name: ${..model_path}
   output_dir: ${..output_dir}/finetune
