@@ -35,7 +35,6 @@ from examples.gsm8k_tuning.math_agent import (
     MathTape,
     Task,
     extract_result_value,
-    solve_task,
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TapeMetadata, TrainingText

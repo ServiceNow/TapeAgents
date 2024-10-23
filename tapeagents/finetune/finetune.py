@@ -96,8 +96,9 @@ def run_finetuning_loop(
     logger.info(accelerator.state)
     logger.info(f"Saving experiment to {output_dir}")
     dt = log_time(dt, "finetune/startup")
-    model = load_model(args, model_class, current_dir, is_rl)
+
     tokenizer = load_tokenizer(args.config_name)
+    model = load_model(args, model_class, current_dir, is_rl)
 
     dt = log_time(dt, "finetune/model_load")
 
@@ -266,17 +267,16 @@ def run_finetuning_loop(
                 training_metrics = evaluate_and_get_metrics(
                     args, model, eval_dataloader, dev_dataloader, training_metrics
                 )
-                if not is_rl:
-                    metrics_dict.update(
-                        {
-                            "loss/eval": training_metrics.eval_loss,
-                            "loss/dev": training_metrics.dev_loss,
-                            "loss/perplexity": np.exp(training_metrics.eval_loss),
-                            "best/completed_steps": training_metrics.best_completed_steps,
-                            "best/eval_loss": training_metrics.best_eval_loss,
-                            "best/perplexity": np.exp(training_metrics.best_eval_loss),
-                        }
-                    )
+                metrics_dict.update(
+                    {
+                        "loss/eval": training_metrics.eval_loss,
+                        "loss/dev": training_metrics.dev_loss,
+                        "loss/perplexity": np.exp(training_metrics.eval_loss),
+                        "best/completed_steps": training_metrics.best_completed_steps,
+                        "best/eval_loss": training_metrics.best_eval_loss,
+                        "best/perplexity": np.exp(training_metrics.best_eval_loss),
+                    }
+                )
 
                 if args.keep_intermediate_checkpoints:
                     intermediate_dir = intermediate_root_dir / str(training_metrics.completed_steps)

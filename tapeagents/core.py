@@ -2,16 +2,13 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar, List
+from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import litellm
 from pydantic import BaseModel, Field, SerializeAsAny
 from typing_extensions import Self
 
-class UUIDGenerator:
-    def __call__(self):
-        return str(uuid4())
 
 class TrainingText(BaseModel):
     """
@@ -39,7 +36,7 @@ class StepMetadata(BaseModel):
     Metadata for the step
     """
 
-    id: str = Field(default_factory=UUIDGenerator())
+    id: str = Field(default_factory=lambda: str(uuid4()))
     prompt_id: str = ""
     node: str = ""
     agent: str = ""
@@ -135,7 +132,7 @@ StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
 
 class TapeMetadata(BaseModel):
-    id: str = Field(default_factory=UUIDGenerator())
+    id: str = Field(default_factory=lambda: str(uuid4()))
     parent_id: str | None = None
     author: str | None = None
     author_tape_id: str | None = None
@@ -194,7 +191,7 @@ TapeType = TypeVar("TapeType", bound=Tape)
 
 
 class Prompt(BaseModel):
-    id: str = Field(default_factory=UUIDGenerator())
+    id: str = Field(default_factory=lambda: str(uuid4()))
     tools: list[dict] | None = None
     messages: list[dict] = []
 
