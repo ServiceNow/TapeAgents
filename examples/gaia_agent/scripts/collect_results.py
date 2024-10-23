@@ -1,22 +1,26 @@
+import os
+
+from examples.gaia_agent.tape import GaiaTape
 from tapeagents.io import load_tapes
 
-from ..eval import GaiaResults, majority_vote, tape_correct
+from ..eval import majority_vote, tape_correct
 
 
 def main(root: str, model: str, runs: list[str]):
     assert len(runs) == 3
-    template = "{root}{run}/l{level}_{model}_run.json"
-
     lvl1 = []
     lvl2 = []
     lvl3 = []
     for run in runs:
-        fname1 = template.format(root=root, run=run, level="1", model=model)
-        fname2 = template.format(root=root, run=run, level="2", model=model)
-        fname3 = template.format(root=root, run=run, level="3", model=model)
-        lvl1.append(load_tapes(GaiaResults, fname1, file_extension=".json")[0])
-        lvl2.append(load_tapes(GaiaResults, fname2, file_extension=".json")[0])
-        lvl3.append(load_tapes(GaiaResults, fname3, file_extension=".json")[0])
+        tapes_dir = os.path.join(root, run, "tapes")
+        tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_dir, file_extension=".json")  # type: ignore
+        for tape in tapes:
+            if tape.metadata.level == 1:
+                lvl1.append(tape)
+            elif tape.metadata.level == 2:
+                lvl2.append(tape)
+            elif tape.metadata.level == 3:
+                lvl3.append(tape)
 
     avg = [[]] + [[] for _ in runs]
     print("Accuracy")

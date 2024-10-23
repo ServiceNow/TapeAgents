@@ -28,7 +28,7 @@ Produce reasoning_thought step that describes the intended solution to the task.
 Produce only one step!
 """
 
-THINK = f"""
+REFLECT = f"""
 Review the current state of the page and previous steps to find the best possible next action to accomplish the task.
 Produce reflection_thought.
 {hints}
@@ -139,6 +139,6 @@ class PromptRegistry:
     concrete_example = CONCRETE_EXAMPLE
     abstract_example = ABSTRACT_EXAMPLE
     mac_hint = MAC_HINT
-    think = THINK
+    reflect = REFLECT
     act = ACT
     start = START

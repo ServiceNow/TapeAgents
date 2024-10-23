@@ -476,7 +476,7 @@ class ReplayLLM(LLM):
             prompt_key = json.dumps(llm_call.prompt.messages, indent=2, ensure_ascii=False, sort_keys=True)
             output = llm_call.output.content or ""
             if prompt_key in self.outputs and output != self.outputs[prompt_key]:
-                logger.warning(f"Output duplicate, using last value!\nOLD:{self.outputs[prompt_key]}\nNEW:{output}")
+                logger.debug(f"Output duplicate, using last value!\nOLD:{self.outputs[prompt_key]}\nNEW:{output}")
                 dups += 1
             self.outputs[prompt_key] = output
         logger.info(f"Loaded {len(self.outputs)} outputs, {dups} duplicates")

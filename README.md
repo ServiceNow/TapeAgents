@@ -44,6 +44,11 @@ make setup
 
 # Examples
 
+To run the example, first activate the `tapeagents` environment that was created during the setup process:
+```bash
+conda activate tapeagents
+```
+
 The simplest agent just to show the basic structure of the agent:
 ```python
 from tapeagents.agent import Agent, Node
@@ -80,23 +85,19 @@ The [examples/](examples/) directory contains examples of how to use the TapeAge
 
 Other notable examples that demonstrate the main aspects of the framework:
 - [workarena](examples/workarena) - custom agent that solves [WorkArena](https://github.com/ServiceNow/WorkArena) benchmark using [BrowserGym](https://github.com/ServiceNow/BrowserGym) environment.
-- [annotator.py](annotator.py) - example of the agent that annotates the existing tape with some score or label.
 - [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
-- [studio.py](examples/studio.py) - interactive Gradio demo of agent that could be changed in runtime.
-
 
 
 # Learn more 
 
-Our Paper on TapeAgents is coming soon!
+See our [technical report](https://www.servicenow.com/research/TapeAgentsFramework.pdf) on TapeAgents.
 
-# Contact
+# Contacts
 
 Feel free to reach out to the team:
-
-oleh.shliazhko@servicenow.com for technical questions
-jordanprince.t@servicenow.com for tech transfer questions
-dzmitry.bahdanau@servicenow.com for all other questions
+- Dzmitry Bahdanau, dzmitry.bahdanau@servicenow.com
+- Oleh Shliazhko, oleh.shliazhko@servicenow.com
+- Jordan Prince Tremblay, jordanprince.t@servicenow.com
 
 # Acknowledgements
 

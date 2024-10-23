@@ -2,13 +2,17 @@ import logging
 from enum import Enum
 from typing import Any
 
+from pydantic import Field
+
+from tapeagents.agent import Agent
 from tapeagents.core import Step
-from tapeagents.mono_agent import MonoAgent, MonoNode
 from tapeagents.llms import LLM
+from tapeagents.nodes import MonoNode, ObservationControlNode
 
 from .prompts import PromptRegistry
 from .steps import (
     ActionExecutionFailure,
+    CalculationResultObservation,
     FinishSubtask,
     GaiaAgentStep,
     GaiaQuestion,
@@ -17,6 +21,7 @@ from .steps import (
     PlanThought,
     PreviousFactsObservation,
     PythonCodeAction,
+    SearchResultsObservation,
     SourcesThought,
     UseCalculatorAction,
     get_allowed_steps,
@@ -37,7 +42,7 @@ class PlanningMode(str, Enum):
 class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = GaiaAgentStep
+    agent_step_cls: Any = Field(exclude=True, default=GaiaAgentStep)
 
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
         """
@@ -51,6 +56,7 @@ class GaiaNode(MonoNode):
         """
         Trim long observations except for the last 3 steps
         """
+        tape = super().prepare_tape(tape)  # type: ignore
         steps = []
         for step in tape.steps[:-3]:
             if isinstance(step, PageObservation):
@@ -93,7 +99,7 @@ class GaiaNode(MonoNode):
         return short_tape
 
 
-class GaiaAgent(MonoAgent):
+class GaiaAgent(Agent):
     subtasks: bool
 
     @classmethod
@@ -109,79 +115,60 @@ class GaiaAgent(MonoAgent):
     @classmethod
     def prepare_guidance(cls, planning_mode: PlanningMode, subtasks: bool) -> list[GaiaNode]:
         """
-        Prepare guidance nodes based on the planning mode and subtasks flag
+        Prepare mononodes based on the planning mode and subtasks flag
         """
         guidance_nodes = []
         if planning_mode == PlanningMode.simple:
             guidance_nodes = [
-                GaiaNode(name="plan", trigger_step="question", guidance=PromptRegistry.plan),
-                GaiaNode(name="facts_survey", trigger_step="plan_thought", guidance=PromptRegistry.facts_survey),
-                GaiaNode(
-                    name="start_execution",
-                    trigger_step="list_of_facts_thought",
-                    guidance=PromptRegistry.start_execution,
-                ),
+                GaiaNode(name="plan", guidance=PromptRegistry.plan),
+                GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
+                GaiaNode(name="default", next_node=3),
             ]
         elif planning_mode == PlanningMode.reflect:
             guidance_nodes = [
-                GaiaNode(name="plan", trigger_step="question", guidance=PromptRegistry.plan),
-                GaiaNode(name="facts_survey", trigger_step="plan_thought", guidance=PromptRegistry.facts_survey),
-                GaiaNode(
-                    name="start_execution",
-                    trigger_step="list_of_facts_thought",
-                    guidance=PromptRegistry.start_execution,
-                ),
-                GaiaNode(
-                    name="think_after_observation",
-                    trigger_step=["page_observation", "search_results_observation"],
-                    guidance=PromptRegistry.think_after_observation,
-                ),
-                GaiaNode(
-                    name="think_after_calculation",
-                    trigger_step=["calculation_result_observation"],
-                    guidance=PromptRegistry.think_after_calculation,
+                GaiaNode(name="plan", guidance=PromptRegistry.plan),
+                GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution, next_node=6),
+                GaiaNode(name="think_after_observation", guidance=PromptRegistry.think_after_observation, next_node=6),
+                GaiaNode(name="think_after_calculation", guidance=PromptRegistry.think_after_calculation, next_node=6),
+                GaiaNode(name="default", next_node=6),
+                ObservationControlNode(
+                    name="node_after_observation",
+                    observation_to_node={
+                        PageObservation: 3,
+                        SearchResultsObservation: 3,
+                        CalculationResultObservation: 4,
+                    },
+                    default_node=5,
                 ),
             ]
         elif planning_mode == PlanningMode.facts_and_sources:
             guidance_nodes = [
-                GaiaNode(name="plan", trigger_step="question", guidance=PromptRegistry.plan),
-                GaiaNode(name="facts_survey", trigger_step="draft_plans_thought", guidance=PromptRegistry.facts_survey),
-                GaiaNode(
-                    name="sources_plan", trigger_step="list_of_facts_thought", guidance=PromptRegistry.sources_plan
-                ),
-                GaiaNode(
-                    name="start_execution", trigger_step="sources_thought", guidance=PromptRegistry.start_execution
-                ),
+                GaiaNode(name="plan", guidance=PromptRegistry.plan),
+                GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="sources_plan", guidance=PromptRegistry.sources_plan),
+                GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
+                GaiaNode(name="default", next_node=4),
             ]
         elif planning_mode == PlanningMode.multiplan:
             guidance_nodes = [
-                GaiaNode(name="plan", trigger_step="question", guidance=PromptRegistry.plan3),
-                GaiaNode(name="facts_survey", trigger_step="draft_plans_thought", guidance=PromptRegistry.facts_survey),
-                GaiaNode(
-                    name="sources_plan", trigger_step="list_of_facts_thought", guidance=PromptRegistry.sources_plan
-                ),
-                GaiaNode(
-                    name="start_execution", trigger_step="sources_thought", guidance=PromptRegistry.start_execution
-                ),
+                GaiaNode(name="plan", guidance=PromptRegistry.plan3),
+                GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="sources_plan", guidance=PromptRegistry.sources_plan),
+                GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
+                GaiaNode(name="default", next_node=4),
             ]
         elif planning_mode == PlanningMode.replan_after_sources:
             guidance_nodes = [
-                GaiaNode(name="plan", trigger_step="question", guidance=PromptRegistry.plan),
-                GaiaNode(name="facts_survey", trigger_step="plan_thought", guidance=PromptRegistry.facts_survey),
-                GaiaNode(name="better_plan", trigger_step="list_of_facts_thought", guidance=PromptRegistry.better_plan),
-                GaiaNode(
-                    name="start_execution", trigger_step="sources_thought", guidance=PromptRegistry.start_execution
-                ),
+                GaiaNode(name="plan", guidance=PromptRegistry.plan),
+                GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
+                GaiaNode(name="better_plan", guidance=PromptRegistry.better_plan),
+                GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
+                GaiaNode(name="default", next_node=4),
             ]
         else:
             raise ValueError(f"Unknown planning mode: {planning_mode}")
         if subtasks:
-            guidance_nodes.append(
-                GaiaNode(
-                    name="check_subtask_finished",
-                    trigger_step="calculation_result_observation",
-                    guidance=PromptRegistry.is_subtask_finished,
-                )
-            )
-        guidance_nodes.append(GaiaNode(name="default", trigger_step="default", guidance=""))
+            guidance_nodes.append(GaiaNode(name="check_subtask_finished", guidance=PromptRegistry.is_subtask_finished))
         return guidance_nodes
