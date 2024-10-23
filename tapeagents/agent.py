@@ -428,11 +428,8 @@ class Agent(BaseModel, Generic[TapeType]):
         # TODO: support more than 1 LLM
         return self.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-    def make_training_data(self, tape: TapeType, llm_calls: list[LLMCall] | None = None) -> list[TrainingText]:
-
-        if llm_calls is None:
-            _, llm_calls = self.reuse(tape)
-        #llm_calls from sqlite db
+    def make_training_data(self, tape: TapeType) -> list[TrainingText]:
+        _, llm_calls = self.reuse(tape)
         return [self.make_training_text(llm_call) for llm_call in llm_calls]
 
 

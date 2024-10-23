@@ -99,7 +99,7 @@ def sqlite_store_llm_call(call: LLMCall):
     if LLM_WRITE_QUEUE is not None:
         LLM_WRITE_QUEUE.put(call)
     else:
-        logger.warning("LLM_WRITE_QUEUE is None, storing LLMCall directly")
+        logger.warning("writing would be single-threaded and blocking unless you start the queue")
         sqlite_writer(call)
 
 

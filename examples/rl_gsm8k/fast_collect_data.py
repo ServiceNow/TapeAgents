@@ -340,7 +340,8 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
         if dataset_name == "train":
             prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
             sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
-            for trace in agent.make_training_data(new_tape, sub_llm_calls):
+            for llm_call in sub_llm_calls:
+                trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.old_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
                 trace.rewards = [reward]
                 trace.fork_id = new_tape.metadata.parent_id
