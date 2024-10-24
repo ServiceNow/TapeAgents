@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 _checked_sqlite = False
 LLM_WRITE_QUEUE = None
+_writer_thread = None
 
 LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
@@ -62,22 +63,32 @@ def init_sqlite_if_not_exists(only_once: bool = True):
     cursor.close()
     _checked_sqlite = True
 
+
 def erase_sqlite():
     path = sqlite_db_path()
     conn = sqlite3.connect(path)
     cursor = conn.cursor()
-    cursor.execute("DROP TABLE IF EXISTS LLMCalls")
-    cursor.execute("DROP TABLE IF EXISTS Tapes")
+    cursor.execute("DELETE FROM LLMCalls")
+    cursor.execute("DELETE FROM Tapes")
     cursor.close()
+    conn.commit()  # Don't forget to commit the changes
+    conn.close()  # Close the connection when done
+
 
 def queue_sqlite_writer():
-    global LLM_WRITE_QUEUE
     while True:
-        if LLM_WRITE_QUEUE is not None:
-            call = LLM_WRITE_QUEUE.get()
-        if call is None:
-            break  # Stop the thread
-        sqlite_writer(call)
+        try:
+            q = LLM_WRITE_QUEUE  # Local reference
+            if q is None:
+                break
+            call = q.get()
+            if call is None:
+                break
+            sqlite_writer(call)
+            q.task_done()
+        except Exception as e:
+            logger.error(f"Error in queue_sqlite_writer: {e}")
+            continue
 
 
 def sqlite_writer(call):
@@ -240,14 +251,18 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
 
 
 def start_sqlite_writer():
-    global LLM_WRITE_QUEUE
+    global LLM_WRITE_QUEUE, _writer_thread
+    if LLM_WRITE_QUEUE is not None:
+        return  # Already running
     LLM_WRITE_QUEUE = queue.Queue()
-    writer_thread = threading.Thread(target=queue_sqlite_writer)
-    writer_thread.start()
+    _writer_thread = threading.Thread(target=queue_sqlite_writer, daemon=True)
+    _writer_thread.start()
 
 
 def stop_sqlite_writer():
-    global LLM_WRITE_QUEUE
-    if LLM_WRITE_QUEUE is not None:
-        LLM_WRITE_QUEUE.put(None)
-        LLM_WRITE_QUEUE.join()
+    global LLM_WRITE_QUEUE, _writer_thread
+    if LLM_WRITE_QUEUE is not None and _writer_thread is not None:
+        LLM_WRITE_QUEUE.put(None)  # Signal thread to stop
+        _writer_thread.join()  # Wait for thread to finish
+        LLM_WRITE_QUEUE = None
+        _writer_thread = None

@@ -550,7 +550,7 @@ def main(cfg: DictConfig):
         end_basemodel_logprobs = time.time()
         wandb.log(
             {
-                "execution_time/basemodel_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
+                "execution_time/populating_ref_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
             },
             step=state["iteration"],
         )
