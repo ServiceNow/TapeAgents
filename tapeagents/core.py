@@ -17,10 +17,10 @@ class TrainingText(BaseModel):
 
     text: str
     n_predicted: int
-    rewards: List[float] = [0.0]
-    old_logprobs: List[float] = Field(default_factory=list)
+    reward: float = 0.0
+    logprobs: List[float] = Field(default_factory=list)
     ref_logprobs: List[float] = Field(default_factory=list)
-    fork_id: str | None = None
+    parent_tape_id: str | None = None
 
     @property
     def prompt_text(self) -> str:

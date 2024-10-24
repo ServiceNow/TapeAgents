@@ -26,7 +26,7 @@ from omegaconf import DictConfig, OmegaConf
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored, cprint
 from tqdm import tqdm
-from tapeagents.observe import retrieve_all_llm_calls
+from tapeagents.observe import retrieve_all_llm_calls, erase_sqlite
 import wandb
 from examples.gsm8k_tuning.math_agent import (
     AnswerAction,
@@ -297,7 +297,7 @@ def create_tapes(samples):
 
 
 def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
-    start_process_tapes = time.time()
+    start_make_data = time.time()
     os.makedirs(tapes_dir, exist_ok=True)
     reward_stats = defaultdict(list)
     step_stats = defaultdict(list)
@@ -306,9 +306,9 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
     training_samples: List[TrainingText] = []
 
     logger.info("Starting main loop")
-    start_make_new_tapes = time.time()
+    start_sampling_from_llm = time.time()
     new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
-    end_make_new_tapes = time.time()
+    end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
     if dataset_name == "train":
         llm_calls = retrieve_all_llm_calls(os.environ["TAPEAGENTS_SQLITE_DB"] )
@@ -342,15 +342,15 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
             sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
             for llm_call in sub_llm_calls:
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-                trace.old_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.rewards = [reward]
-                trace.fork_id = new_tape.metadata.parent_id
+                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
+                trace.reward = reward
+                trace.parent_tape_id = new_tape.metadata.parent_id
                 training_samples.append(trace)
 
         return new_tape, reward, len(new_tape.steps), success, no_error, training_samples
 
     logger.info("Starting data creation")
-    start_make_data = time.time()
+    start_annotate_tape = time.time()
     with ThreadPoolExecutor(max_workers=torch.cuda.device_count()) as executor:
         process_tape_partial = partial(process_tape, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir)
         futures = [executor.submit(process_tape_partial, new_tape) for new_tape in new_tapes]
@@ -364,9 +364,9 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
             new_tapes.append(new_tape)
             training_samples.extend(tape_training_samples)
 
-    end_make_data = time.time()
+    end_annotate_tape = time.time()
 
-    end_process_tapes = time.time()
+    end_make_data = time.time()
 
     stats = {
         **{f"{dataset_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
@@ -374,10 +374,11 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
         **{f"{dataset_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{dataset_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            f"execution_time/{dataset_name}_make_new_tapes": end_make_new_tapes - start_make_new_tapes,
+            f"execution_time/{dataset_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
+            f"execution_time/{dataset_name}_annotate_tapes": end_annotate_tape - start_annotate_tape, 
             f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
-            f"execution_time/{dataset_name}_tapes_per_second": len(new_tapes)
-            / (end_process_tapes - start_process_tapes),
+            f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes)
+            / (end_make_data - start_make_data),
             f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
         },
     }
@@ -507,7 +508,7 @@ def main(cfg: DictConfig):
         new_training_samples: list[TrainingText] = []
         if assistant_model_path == cfg.model_path:
             for trace in training_samples:
-                trace.ref_logprobs = trace.old_logprobs
+                trace.ref_logprobs = trace.logprobs
                 new_training_samples.append(trace)
         else:
             base_model_process, basemodel_stdout_file, basemodel_stderr_file = serve_vllm_local_model(
@@ -556,7 +557,7 @@ def main(cfg: DictConfig):
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
         for trace in training_samples:
-            with open(rollout_dir / f"{trace.fork_id}.jsonl", "a") as f:
+            with open(rollout_dir / f"{trace.parent_tape_id}.jsonl", "a") as f:
                 f.write(trace.model_dump_json() + "\n")
                 f.flush()
 
@@ -576,28 +577,12 @@ def main(cfg: DictConfig):
         config_path = conf_dir / f"{state['iteration']}.yaml"
         OmegaConf.save(finetune_cfg, config_path)
 
-        finetune_command = (
-            "cd /home/toolkit/TapeAgents/tapeagents && "
-            "PYTHONPATH=/home/toolkit/TapeAgents:/home/toolkit/TapeAgents/tapeagents/src "
-            "conda run -n tapeagents --no-capture-output "
-            f"accelerate launch --mixed_precision=bf16 --num_processes {str(torch.cuda.device_count())} "
-            "--config_file /home/toolkit/TapeAgents/conf/deepspeed/accelerate_local.yaml "
-            f"run_finetune.py --config-dir {str(conf_dir)} "
-            f"--config-name {str(state['iteration'])} hydra.run.dir={str(finetune_path)}"
-        )
-        logger.info(f"Executing finetune command: {finetune_command}")
-
         start_finetune = time.time()
-        # error_code = subprocess.call(finetune_command, shell=True)
         p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
         p.start()  # Start the subprocess
         p.join()  # Wait for the process to complete
         end_finetune = time.time()
-
-        # if error_code != 0:
-        #    logger.error(f"Finetuning failed with error code {error_code}")
-        #    sys.exit(1)
-
+        
         wandb.log(
             {
                 "execution_time/finetune": end_finetune - start_finetune,
@@ -606,6 +591,8 @@ def main(cfg: DictConfig):
         )
         state["iteration"] += 1
         save_state(state, state_path)
+        erase_sqlite()
+        
 
 
 if __name__ == "__main__":

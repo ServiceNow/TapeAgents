@@ -1,16 +1,15 @@
 import datetime
 import json
 import logging
+import queue
 import sqlite3
+import threading
 from typing import Callable, Type
 
 from pydantic import BaseModel
 
 from .config import sqlite_db_path
 from .core import LLMCall, LLMOutput, Prompt, Tape
-import queue
-import threading
-
 
 logger = logging.getLogger(__name__)
 
@@ -63,14 +62,23 @@ def init_sqlite_if_not_exists(only_once: bool = True):
     cursor.close()
     _checked_sqlite = True
 
+def erase_sqlite():
+    path = sqlite_db_path()
+    conn = sqlite3.connect(path)
+    cursor = conn.cursor()
+    cursor.execute("DROP TABLE IF EXISTS LLMCalls")
+    cursor.execute("DROP TABLE IF EXISTS Tapes")
+    cursor.close()
+
 def queue_sqlite_writer():
     global LLM_WRITE_QUEUE
     while True:
-        if LLM_WRITE_QUEUE is not None: 
+        if LLM_WRITE_QUEUE is not None:
             call = LLM_WRITE_QUEUE.get()
         if call is None:
             break  # Stop the thread
         sqlite_writer(call)
+
 
 def sqlite_writer(call):
     try:
@@ -101,8 +109,6 @@ def sqlite_store_llm_call(call: LLMCall):
     else:
         logger.warning("writing would be single-threaded and blocking unless you start the queue")
         sqlite_writer(call)
-
-
 
 
 def sqlite_store_tape(tape: Tape):
@@ -232,11 +238,13 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
         )
     return calls
 
+
 def start_sqlite_writer():
     global LLM_WRITE_QUEUE
     LLM_WRITE_QUEUE = queue.Queue()
     writer_thread = threading.Thread(target=queue_sqlite_writer)
     writer_thread.start()
+
 
 def stop_sqlite_writer():
     global LLM_WRITE_QUEUE

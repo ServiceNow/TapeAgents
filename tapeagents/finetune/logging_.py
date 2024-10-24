@@ -100,9 +100,10 @@ def log_metrics(logger: logging.Logger, completed_steps: int, metrics: dict[str,
     metrics_pretty = {k: f"{v:.3f}" for k, v in metrics.items()}
     logger.info(f"Completed steps {completed_steps}: {metrics_pretty}")
     try:
+        metrics = {k: v for k, v in metrics.items() if isinstance(v, (int, float))}
         wandb.log(metrics, step=completed_steps)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to log metrics to wandb with error: {e}")
 
 
 # TODO: remove all the calls of this function after the RLHF pipeline is stabilized

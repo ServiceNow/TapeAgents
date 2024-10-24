@@ -18,6 +18,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logger = logging.getLogger(__name__)
 
 RL_DATA_COLUMNS = [
+    "reward",
     "rewards",
     "advantages",
     "old_logprobs",
@@ -70,11 +71,11 @@ def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] =
         return (values * mask).sum() / mask.sum()
 
 
-def make_rl_data_callback(args, current_dir, ppo_config, model):
-    if ppo_config:
+def make_rl_data_callback(args, current_dir, rl_config, model):
+    if rl_config:
         populate_rl_data_ = partial(
             populate_rl_data,
-            config=ppo_config,
+            config=rl_config,
         )
     else:
         populate_rl_data_ = None
@@ -197,15 +198,14 @@ def update_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
     """
     df = dataset.to_pandas()
 
-    # Group by fork_id and compute mean and std of reward
-    df["reward"] = df["rewards"].apply(np.mean) 
-    grouped = df.groupby("fork_id")["reward"].agg(["mean", "std", "count"]).reset_index()
+    # Group by parent_tape_id and compute mean and std of reward
+    grouped = df.groupby("parent_tape_id")["reward"].agg(["mean", "std", "count"]).reset_index()
 
     # Rename columns for clarity
-    grouped.columns = ["fork_id", "reward_mean", "reward_std", "count"]
+    grouped.columns = ["parent_tape_id", "reward_mean", "reward_std", "count"]
 
     # Merge the computed statistics back to the original dataset
-    df_with_stats = pd.merge(df, grouped, on="fork_id", how="left")
+    df_with_stats = pd.merge(df, grouped, on="parent_tape_id", how="left")
 
     def calculate_advantage(row):
         rewards = row["rewards"]
@@ -265,32 +265,19 @@ def replace_dataset_column(dataset: Dataset, column_name: str, new_column: List[
 
 def prepare_rl_fields(
     encoding: BatchEncoding,
-    rewards_per_line: list[float],
+    reward: float,
     old_logprobs: list[float],
     ref_logprobs: list[float],
-    spans: list[tuple[int, int]],
-    seq_length: int,
-    tokenizer: AutoTokenizer,
 ) -> BatchEncoding:
     """
-    Convert reward per lines to reward per token and add returns and advantages placeholders
-
-    inputs:
-        encoding: BatchEncoding
-        rewards_per_line: list of rewards per line
-        spans: list of spans
-        seq_length: length of the sequence
-
-    outputs:
-        encoding: BatchEncoding with rewards per token and returns and advantages placeholders
-
+    Convert reward per agent step to reward per token and add returns and advantages placeholders
     """
     target_tokens = [token for token in encoding["labels"] if token != -100]
     assert len(target_tokens) == len(
         old_logprobs
     ), f"Target tokens: {len(target_tokens)}, old logprobs: {len(old_logprobs)}"
 
-    encoding["rewards"] = rewards_per_line[:1] * len(encoding["labels"])
+    encoding["rewards"] = [reward] * len(encoding["labels"])
     encoding["advantages"] = [0.0] * len(encoding["labels"])  # place holder
     encoding["old_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
     encoding["ref_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + ref_logprobs
