@@ -35,7 +35,7 @@ def get_auto_model_class(
 
 
 def load_tokenizer(config_name):
-    tokenizer = AutoTokenizer.from_pretrained(config_name, use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(config_name, use_fast=True, truncation_side="left")
     if not isinstance(tokenizer, transformers.PreTrainedTokenizerFast):
         raise ValueError(f"tokenizer {tokenizer} is not fast")
     if tokenizer.pad_token is None:

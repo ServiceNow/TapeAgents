@@ -68,7 +68,6 @@ class AnswerAction(FinalStep):
     text: str = Field(description="final answer to the user")
     value: int | float | None = Field(description="numerical value of the answer or null if solution is not found")
 
-
 MathAgentStep: TypeAlias = Annotated[
     Union[
         UseCalculatorAction,
@@ -77,6 +76,8 @@ MathAgentStep: TypeAlias = Annotated[
     ],
     Field(discriminator="kind"),
 ]
+
+
 MathTape = Tape[
     None,
     Union[
@@ -190,7 +191,7 @@ def solve_task(agent: Agent, env: Environment, task: dict, tape_file: str = "") 
 
 def extract_result_value(sample) -> dict:
     sample = dict(sample)
-    expected_result = str(sample["answer"]).rsplit("####", maxsplit=1)[-1].strip().replace(",", ".")
+    expected_result = str(sample["answer"]).rsplit("####", maxsplit=1)[-1].strip().replace(",", "")
     if expected_result.isdigit():
         expected_result = int(expected_result)
     else:

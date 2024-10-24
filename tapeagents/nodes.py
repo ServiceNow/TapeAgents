@@ -8,6 +8,7 @@ from .agent import Node
 from .core import (
     AgentResponseParsingFailureAction,
     AgentStep,
+    StepMetadata,
     LLMOutput,
     Observation,
     PartialStep,
@@ -44,6 +45,7 @@ class MonoNode(Node):
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
             cleaned_tape = self.trim_tape(cleaned_tape)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
+        print(messages)
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
@@ -111,7 +113,8 @@ class MonoNode(Node):
                 err_text += f"{loc}: {err['msg']}\n"
             logger.exception(f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}")
             yield AgentResponseParsingFailureAction(
-                error=f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}"
+                error=f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}",
+                metadata=StepMetadata(other={"completion": completion}),
             )
             return
         except Exception as e:

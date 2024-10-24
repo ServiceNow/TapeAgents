@@ -34,6 +34,7 @@ def batch_main_loop(
     environments: Environment | list[Environment],
     n_workers: int = _DEFAULT_N_WORKERS,
     strict: bool = False,
+    max_loops: int = -1,
 ) -> Generator[TapeType, None, None]:
     """Continue tapes in parallel using an agent."""
     if not isinstance(environments, list):
@@ -43,13 +44,14 @@ def batch_main_loop(
         last_tape = None
         start_tape, env = input
         try:
-            result = main_loop(agent, start_tape, env).get_final_tape()
+            result = main_loop(agent, start_tape, env, max_loops=max_loops).get_final_tape()
         except Exception as e:
             if is_debug_mode() or strict:
                 return e
             return start_tape.model_copy(
                 update=dict(metadata=TapeMetadata(parent_id=start_tape.metadata.id, error=traceback.format_exc()))
             )
+        result.metadata.parent_id = start_tape.metadata.id
         return result
 
     processor = _choose_processor(n_workers=n_workers)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar
+from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar, List
 from uuid import uuid4
 
 import litellm
@@ -17,6 +17,10 @@ class TrainingText(BaseModel):
 
     text: str
     n_predicted: int
+    reward: float = 0.0
+    logprobs: List[float] = Field(default_factory=list)
+    ref_logprobs: List[float] = Field(default_factory=list)
+    parent_tape_id: str | None = None
 
     @property
     def prompt_text(self) -> str:
@@ -126,6 +130,7 @@ class Respond(Thought):
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
 
+
 class TapeMetadata(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     parent_id: str | None = None
@@ -134,6 +139,7 @@ class TapeMetadata(BaseModel):
     n_added_steps: int = 0
     error: Any | None = None
     result: Any = {}
+    
 
 
 ContextType = TypeVar("ContextType")
@@ -144,9 +150,9 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
     A sequence of steps produced by agents and environments
     """
 
-    metadata: TapeMetadata = TapeMetadata()
+    metadata: TapeMetadata = Field(default_factory=TapeMetadata)
     context: ContextType | None = None
-    steps: list[StepType] = []
+    steps: List[StepType] = Field(default_factory=list)
 
     def __iter__(self) -> Iterator[StepType]:  # type: ignore
         return iter(self.steps)
