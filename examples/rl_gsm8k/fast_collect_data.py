@@ -348,7 +348,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
                 trace.reward = reward * (cfg.reward_discount**i)
                 trace.parent_tape_id = (
                     f"{new_tape.metadata.parent_id}_{i}"
-                    if cfg.use_process_reward_model
+                    if cfg.normalize_reward_per_step
                     else new_tape.metadata.parent_id
                 )
                 training_samples.append(trace)

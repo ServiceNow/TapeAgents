@@ -9,7 +9,7 @@ model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
 max_agent_forks: 1024
 attempts: 64
 reward_discount: 0.9
-use_process_reward_model: true
+normalize_reward_per_step: true
 force_restart: false
 max_iterations: 100
 llm:
