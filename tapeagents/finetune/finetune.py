@@ -267,16 +267,17 @@ def run_finetuning_loop(
                 training_metrics = evaluate_and_get_metrics(
                     args, model, eval_dataloader, dev_dataloader, training_metrics
                 )
-                metrics_dict.update(
-                    {
-                        "loss/eval": training_metrics.eval_loss,
-                        "loss/dev": training_metrics.dev_loss,
-                        "loss/perplexity": np.exp(training_metrics.eval_loss),
-                        "best/completed_steps": training_metrics.best_completed_steps,
-                        "best/eval_loss": training_metrics.best_eval_loss,
-                        "best/perplexity": np.exp(training_metrics.best_eval_loss),
-                    }
-                )
+                if not is_rl:
+                    metrics_dict.update(
+                        {
+                            "loss/eval": training_metrics.eval_loss,
+                            "loss/dev": training_metrics.dev_loss,
+                            "loss/perplexity": np.exp(training_metrics.eval_loss),
+                            "best/completed_steps": training_metrics.best_completed_steps,
+                            "best/eval_loss": training_metrics.best_eval_loss,
+                            "best/perplexity": np.exp(training_metrics.best_eval_loss),
+                        }
+                    )
 
                 if args.keep_intermediate_checkpoints:
                     intermediate_dir = intermediate_root_dir / str(training_metrics.completed_steps)

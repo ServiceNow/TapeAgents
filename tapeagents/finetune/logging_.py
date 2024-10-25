@@ -78,7 +78,7 @@ def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None =
         wandb_config = {}
         if run is not None:
             wandb_config = {
-                "name": run.name,
+                "name": run.name[:128], # wandb limits name to 128 characters
                 "entity": run.entity,
                 "project": run.project_name(),
                 "id": run.id,
