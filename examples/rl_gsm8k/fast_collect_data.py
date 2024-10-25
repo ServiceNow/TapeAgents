@@ -583,6 +583,9 @@ def main(cfg: DictConfig):
         p.start()  # Start the subprocess
         p.join()  # Wait for the process to complete
         end_finetune = time.time()
+        # Check if the subprocess exited with an error
+        if p.exitcode != 0:
+            raise RuntimeError(f"Finetuning subprocess failed with exit code {p.exitcode}")
 
         wandb.log(
             {
