@@ -95,7 +95,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 1
+            "next_node": "reflect"
         },
         {
             "metadata": {
@@ -158,7 +158,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 1
+            "next_node": "reflect"
         },
         {
             "metadata": {
@@ -222,7 +222,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 1
+            "next_node": "reflect"
         },
         {
             "metadata": {
