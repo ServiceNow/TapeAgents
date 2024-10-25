@@ -43,7 +43,7 @@ def init_wandb(
         project=cfg.finetune.wandb_project_name,
         config=config_for_wandb,  # type: ignore
         resume=resume,
-        id=wandb_id,
+        id=wandb_id[:128],
         tags=cfg.finetune.tags,
     )
     if not isinstance(run, wandb_run.Run):
