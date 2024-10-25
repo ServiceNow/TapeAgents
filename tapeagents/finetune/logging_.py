@@ -37,6 +37,12 @@ def init_wandb(
         raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
     wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
 
+    if len(wandb_id) > 128 or len(wandb_name) > 128:
+        logger.warning(
+            f"wandb_id or wandb_name is longer than 128 characters. "
+            f"Truncating to 128 characters. wandb_id: {wandb_id}, wandb_name: {wandb_name}"
+        )
+
     run = wandb.init(
         name=wandb_name[:128], # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
