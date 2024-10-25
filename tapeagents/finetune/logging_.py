@@ -38,7 +38,7 @@ def init_wandb(
     wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
 
     run = wandb.init(
-        name=wandb_name,
+        name=wandb_name[:128], # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
         project=cfg.finetune.wandb_project_name,
         config=config_for_wandb,  # type: ignore
