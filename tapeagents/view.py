@@ -52,8 +52,12 @@ class TapeView(BaseModel, Generic[StepType]):
         return agent_steps[-1].metadata.node if agent_steps else ""
 
     def next_node(self) -> str:
-        for step in self.steps:
-            if isinstance(step, SetNextNode):
+        agent_steps = [step for step in self.steps if isinstance(step, AgentStep)]
+        if not agent_steps:
+            return ""
+        last_prompt_id = agent_steps[-1].metadata.prompt_id  # to identify the steps from the last iteration
+        for step in reversed(self.steps):
+            if isinstance(step, SetNextNode) and step.metadata.prompt_id == last_prompt_id:
                 return step.next_node
         return ""
 
