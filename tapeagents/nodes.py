@@ -151,10 +151,10 @@ class ObservationControlNode(ControlFlowNode):
     ObservationControlNode is a ControlFlowNode that selects the next node based on the last observation in the tape.
     """
 
-    observation_to_node: dict[Type, int] = {}
-    default_node: int = -1  # jump to the last node by default
+    observation_to_node: dict[Type, str] = {}
+    default_node: str = ""  # jump to the last node by default
 
-    def select_node(self, tape: Tape) -> int:
+    def select_node(self, tape: Tape) -> str:
         observations = [step for step in tape.steps if isinstance(step, Observation)]
         last_observation = observations[-1] if observations else None
         return self.observation_to_node.get(type(last_observation), self.default_node)

@@ -48,7 +48,8 @@ class TapeView(BaseModel, Generic[StepType]):
         return self.outputs_by_subagent[subagent_name_or_index]
 
     def last_node(self) -> str:
-        return self.steps[-1].metadata.node
+        agent_steps = [step for step in self.steps if isinstance(step, AgentStep)]
+        return agent_steps[-1].metadata.node if agent_steps else ""
 
     def next_node(self) -> str:
         for step in self.steps:
