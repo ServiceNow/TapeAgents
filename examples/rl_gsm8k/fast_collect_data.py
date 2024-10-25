@@ -145,7 +145,7 @@ def wait_for_service(process, url, headers=None, timeout=120):
         time.sleep(5)
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
+@retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=2, min=10))
 def serve_vllm_local_model(
     model_name_or_path: str | Path,
     stdout_file_path: str | Path,
@@ -311,7 +311,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
     end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
     if dataset_name == "train":
-        llm_calls = retrieve_all_llm_calls(os.environ["TAPEAGENTS_SQLITE_DB"] )
+        llm_calls = retrieve_all_llm_calls(os.environ["TAPEAGENTS_SQLITE_DB"])
     else:
         llm_calls = []
     end_reading_sqlite = time.time()
@@ -340,11 +340,17 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
         if dataset_name == "train":
             prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
             sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
-            for llm_call in sub_llm_calls:
+            # Sort sub_llm_calls to match the order of prompt_ids
+            sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
+            for i, llm_call in enumerate(sub_llm_calls[::-1]):
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.reward = reward
-                trace.parent_tape_id = new_tape.metadata.parent_id
+                trace.reward = reward * (cfg.reward_discount**i)
+                trace.parent_tape_id = (
+                    f"{new_tape.metadata.parent_id}_{i}"
+                    if cfg.use_process_reward_model
+                    else new_tape.metadata.parent_id
+                )
                 training_samples.append(trace)
 
         return new_tape, reward, len(new_tape.steps), success, no_error, training_samples
@@ -375,10 +381,9 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
         **{f"{dataset_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
             f"execution_time/{dataset_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
-            f"execution_time/{dataset_name}_annotate_tapes": end_annotate_tape - start_annotate_tape, 
+            f"execution_time/{dataset_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
             f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
-            f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes)
-            / (end_make_data - start_make_data),
+            f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
         },
     }
@@ -582,7 +587,7 @@ def main(cfg: DictConfig):
         p.start()  # Start the subprocess
         p.join()  # Wait for the process to complete
         end_finetune = time.time()
-        
+
         wandb.log(
             {
                 "execution_time/finetune": end_finetune - start_finetune,
@@ -592,7 +597,6 @@ def main(cfg: DictConfig):
         state["iteration"] += 1
         save_state(state, state_path)
         erase_sqlite()
-        
 
 
 if __name__ == "__main__":
