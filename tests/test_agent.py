@@ -157,15 +157,15 @@ def test_create_with_dict_llms_and_templates():
 def test_select_node():
     class MockTapeViewStack:
         class MockTapeView:
-            def __init__(self, next_node):
-                self.next_node = next_node
+            def next_node(self):
+                return "node1"
 
-        def __init__(self, next_node):
-            self.top = self.MockTapeView(next_node)
+        def __init__(self):
+            self.top = self.MockTapeView()
 
         @staticmethod
         def compute(tape):
-            return MockTapeViewStack(1)
+            return MockTapeViewStack()
 
     class MockAgent(Agent):
         def compute_view(self, tape):

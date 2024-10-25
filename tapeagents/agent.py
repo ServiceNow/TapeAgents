@@ -245,8 +245,19 @@ class Agent(BaseModel, Generic[TapeType]):
         :param tape: the tape to make the decision on
         :return: the node to run next
         """
-        node = self.compute_view(tape).top.next_node
-        return self.nodes[node]
+        view = self.compute_view(tape).top
+        next_node = view.next_node()
+        if next_node:
+            # Next node was set explicitly in the tape using SetNextNode step
+            return self.find_node(next_node)
+        if not view.last_node():
+            # No nodes have been run yet, select the first node
+            return self.nodes[0]
+        # Select the next node that stored after the last node found in the tape
+        for i, node in enumerate(self.nodes):
+            if node.name == view.last_node() and i + 1 < len(self.nodes):
+                return self.nodes[i + 1]
+        raise ValueError("Next node not found")
 
     def make_prompt(self, tape: TapeType) -> Prompt:
         """Make the prompt for the next iteration of the agent.
@@ -265,7 +276,12 @@ class Agent(BaseModel, Generic[TapeType]):
         :param llm_stream: the stream of tokens from the LLM
         :return: a generator of steps (or partial steps) to append to the tape
         """
-        yield from self.select_node(tape).generate_steps(self, tape, llm_stream)
+        node = self.select_node(tape)
+        for step in node.generate_steps(self, tape, llm_stream):
+            if isinstance(step, AgentStep):
+                step.metadata.prompt_id = llm_stream.prompt.id
+                step.metadata.node = node.name
+            yield step
 
     def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
         return self.select_node(tape[:index]).make_llm_output(self, tape, index)
@@ -291,14 +307,6 @@ class Agent(BaseModel, Generic[TapeType]):
         """Check if the agent should stop its turn and wait for observations."""
         return isinstance(tape.steps[-1], Action)
 
-    def get_node_name(self, tape: TapeType) -> str:
-        idx = self.compute_view(tape).top.next_node
-        try:
-            name = self.nodes[idx].name
-        except IndexError:
-            name = ""
-        return name
-
     def run_iteration(
         self, tape: TapeType, llm_stream: LLMStream | None = None
     ) -> Generator[Step | PartialStep, None, None]:
@@ -312,19 +320,12 @@ class Agent(BaseModel, Generic[TapeType]):
         reuses a tape.
 
         """
-        node_name = self.get_node_name(tape)
         if llm_stream is None:
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:
                 raise NotImplementedError("TODO: implement LLM choice in the prompt")
             llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
-        for step in self.generate_steps(tape, llm_stream):
-            if isinstance(step, AgentStep):
-                step.metadata.prompt_id = llm_stream.prompt.id
-                step.metadata.node = node_name
-                yield step
-            else:
-                yield step
+        yield from self.generate_steps(tape, llm_stream)
 
     def run(self, tape: TapeType, max_iterations: int | None = None) -> AgentStream[TapeType]:
         """

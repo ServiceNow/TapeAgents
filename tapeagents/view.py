@@ -33,8 +33,6 @@ class TapeView(BaseModel, Generic[StepType]):
     agent_full_name: str
     steps: list[StepType] = []
     steps_by_kind: dict[str, list[StepType]] = {}
-    next_node: int = 0
-    last_prompt_id: str = ""
     outputs_by_subagent: dict[str, StepType] = {}
 
     def add_step(self, step: StepType):
@@ -48,6 +46,15 @@ class TapeView(BaseModel, Generic[StepType]):
         if isinstance(subagent_name_or_index, int):
             return list(self.outputs_by_subagent.values())[subagent_name_or_index]
         return self.outputs_by_subagent[subagent_name_or_index]
+
+    def last_node(self) -> str:
+        return self.steps[-1].metadata.node
+
+    def next_node(self) -> str:
+        for step in self.steps:
+            if isinstance(step, SetNextNode):
+                return step.next_node
+        return ""
 
 
 class TapeViewStack(BaseModel, Generic[StepType]):
@@ -79,14 +86,6 @@ class TapeViewStack(BaseModel, Generic[StepType]):
 
     def update(self, step: StepType):
         top = self.stack[-1]
-
-        if isinstance(step, AgentStep):
-            # the first step of each iteration always bumps up the next node pointer,
-            # note: if this step is SetNextNode, the next node pointer will be updated again by the code below
-            if step.metadata.prompt_id != top.last_prompt_id:
-                top.next_node += 1
-            top.last_prompt_id = step.metadata.prompt_id
-
         match step:
             case Call():
                 self.put_new_view_on_stack(step)
@@ -94,8 +93,6 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 self.broadcast(step)
             case Respond():
                 self.pop_view_from_stack(step)
-            case SetNextNode():
-                top.next_node = step.next_node
             case AgentStep():
                 top.add_step(step)
             case Observation():
