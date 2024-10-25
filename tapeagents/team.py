@@ -69,7 +69,7 @@ class TeamAgent(Agent[TeamTape]):
             name=name,
             templates={"system": system_prompt} if system_prompt else {},
             llms={DEFAULT: llm} if llm else {},
-            nodes=([ExecuteCodeNode()] if execute_code else []) + [RespondNode()],
+            nodes=([ExecuteCodeNode()] if execute_code else []) + [RespondNode()],  # type: ignore
         )
 
     @classmethod
@@ -84,12 +84,14 @@ class TeamAgent(Agent[TeamTape]):
         Create a team manager that broadcasts the last message to all subagents, selects one of them to call, call it and
         responds to the last message if the termination message is not received.
         """
-        nodes = [BroadcastLastMessageNode(), SelectAndCallNode()]
-        nodes.append(RespondOrRepeatNode(next_node=nodes[0].name))
         return cls(
             name=name,
             subagents=subagents,
-            nodes=nodes,
+            nodes=[
+                BroadcastLastMessageNode(),
+                SelectAndCallNode(),
+                RespondOrRepeatNode(next_node="broadcast_last_message"),
+            ],
             max_calls=max_calls,
             templates={
                 "select_before": SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE,
@@ -114,9 +116,9 @@ class TeamAgent(Agent[TeamTape]):
         """
         nodes = []
         if execute_code:
-            nodes.append(ExecuteCodeNode())
-        nodes.append(CallNode())
-        nodes.append(TerminateOrRepeatNode(next_node=nodes[0].name))
+            nodes = [ExecuteCodeNode(), CallNode(), TerminateOrRepeatNode(next_node="execute_code")]
+        else:
+            nodes = [CallNode(), TerminateOrRepeatNode(next_node="call")]
         return cls(
             name=name,
             templates={
