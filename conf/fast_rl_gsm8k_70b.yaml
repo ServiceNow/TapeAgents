@@ -1,11 +1,11 @@
 defaults:
-  - finetune: rl_llama31_8b
+  - finetune: rl_llama31_70b
   - _self_
 
 n_workers: 32
 max_loops: 10
 test_every_n_iterations: 5
-model_path: /mnt/llmd/base_models/gemma-2-27b-it
+model_path: /mnt/llmd/base_models/Mixtral-8x7B-Instruct-v0.1
 max_agent_forks: 1024
 attempts: 64
 force_restart: false
@@ -22,7 +22,6 @@ test_llm:
 finetune:
   config_name: ${..model_path}
   output_dir: ${..output_dir}/finetune
-  optim: cpuadam
 
 vllm_config:
   vllm_kwargs:
