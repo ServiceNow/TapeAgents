@@ -5,7 +5,7 @@ defaults:
 n_workers: 32
 max_loops: 10
 test_every_n_iterations: 5
-model_path: /mnt/llmd/base_models/Mixtral-8x7B-Instruct-v0.1
+model_path: /mnt/llmd/base_models/Meta-Llama-3.1-70B-Instruct
 max_agent_forks: 1024
 attempts: 64
 force_restart: false
