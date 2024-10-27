@@ -1,8 +1,8 @@
 defaults:
   - base
   - _self_
+
 lora:
-  enabled: False
   task_type: CAUSAL_LM # supported: CAUSAL_LM, SEQ_2_SEQ_LM
   base_model_8bit: False # format used for storing base mode weights during forward
   base_model_4bit: False
@@ -10,9 +10,7 @@ lora:
   alpha: 32 # the alpha parameter for Lora scaling.
   dropout: 0.05 # the dropout probability for Lora layers.
   bias: "none" # Bias type for Lora. Can be 'none', 'all' or 'lora_only'
-  target_modules: [] # the names of the modules to apply Lora to.
   enabled: True
-  base_model_8bit: False
   target_modules: ['q_proj', 'k_proj', 'v_proj']
 #Use W&B experiment logging
 use_wandb: True
