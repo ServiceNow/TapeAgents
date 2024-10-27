@@ -8,6 +8,8 @@ test_every_n_iterations: 5
 model_path: /mnt/llmd/base_models/Meta-Llama-3.1-70B-Instruct
 max_agent_forks: 1024
 attempts: 64
+reward_discount: 0.9
+normalize_reward_per_step: true
 force_restart: false
 max_iterations: 100
 llm:
