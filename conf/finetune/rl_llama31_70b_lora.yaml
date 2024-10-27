@@ -1,0 +1,48 @@
+defaults:
+  - base
+  - _self_
+
+lora:
+  task_type: CAUSAL_LM # supported: CAUSAL_LM, SEQ_2_SEQ_LM
+  base_model_8bit: False # format used for storing base mode weights during forward
+  base_model_4bit: True
+  r: 16 # Lora attention dimension.
+  alpha: 32 # the alpha parameter for Lora scaling.
+  dropout: 0.05 # the dropout probability for Lora layers.
+  bias: "none" # Bias type for Lora. Can be 'none', 'all' or 'lora_only'
+  enabled: True
+  target_modules: ['q_proj', 'k_proj', 'v_proj']
+#Use W&B experiment logging
+use_wandb: True
+# W&B id; if given, will resume this run
+wandb_id: null
+# W&B name; if not given will use run dir
+wandb_name: null
+# W&B entity name
+wandb_entity_name: null
+# W&B project name
+wandb_project_name: tapeagents
+# W&B resume policy
+wandb_resume: always
+# Whether to use only the basename or the full path as the run name
+wandb_use_basename: false
+config_name: meta-llama/Meta-Llama-3.1-8B-Instruct
+learning_rate: 0.000005
+train_batch_size: 1
+gradient_accumulation_passes: 1024
+seq_length: 4096
+load_as_bf16: True
+max_train_steps: 100000
+save_checkpoint_steps: 10
+optim: adafactor
+objective: rl
+log_each_n_steps: 1
+resume_dataloader: false
+cuda_empty_cache: true
+use_safetensors: true
+weight_decay: 0.1
+gradient_clipping_threshold: 1
+rl:
+  kl_coef: 0.05
+  use_advantages: true
+  algo: reinforce
