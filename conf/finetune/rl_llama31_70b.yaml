@@ -4,7 +4,7 @@ defaults:
 
 lora:
   task_type: CAUSAL_LM # supported: CAUSAL_LM, SEQ_2_SEQ_LM
-  base_model_8bit: False # format used for storing base mode weights during forward
+  base_model_8bit: True # format used for storing base mode weights during forward
   base_model_4bit: False
   r: 16 # Lora attention dimension.
   alpha: 32 # the alpha parameter for Lora scaling.
@@ -34,7 +34,7 @@ seq_length: 4096
 load_as_bf16: True
 max_train_steps: 100000
 save_checkpoint_steps: 10
-optim: adamw_torch
+optim: adafactor
 objective: rl
 log_each_n_steps: 1
 resume_dataloader: false
