@@ -1,5 +1,5 @@
 defaults:
-  - finetune: rl_llama31_70b
+  - finetune: rl_llama31_70b_lora
   - _self_
 
 n_workers: 32
@@ -31,7 +31,7 @@ vllm_config:
     - "--gpu-memory-utilization": 0.8   
     - "--max-model-len": 8000
 
-output_dir: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k
+output_dir: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k_70b
 
 hydra:
   job_logging:
