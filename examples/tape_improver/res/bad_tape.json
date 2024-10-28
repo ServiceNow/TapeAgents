@@ -55,7 +55,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 0,
+      "next_node": "broadcast_last_message",
       "metadata": {
         "agent": "UserProxy/GroupChatManager",
         "node": "respond_or_repeat",
@@ -125,7 +125,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 0,
+      "next_node": "broadcast_last_message",
       "metadata": {
         "agent": "UserProxy/GroupChatManager",
         "node": "respond_or_repeat",
@@ -166,7 +166,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 0,
+      "next_node": "broadcast_last_message",
       "metadata": {
         "agent": "UserProxy/GroupChatManager",
         "node": "respond_or_repeat",
@@ -241,7 +241,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 0,
+      "next_node": "broadcast_last_message",
       "metadata": {
         "agent": "UserProxy/GroupChatManager",
         "node": "respond_or_repeat",
@@ -282,7 +282,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 0,
+      "next_node": "broadcast_last_message",
       "metadata": {
         "agent": "UserProxy/GroupChatManager",
         "node": "respond_or_repeat",
@@ -357,7 +357,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 0,
+      "next_node": "broadcast_last_message",
       "metadata": {
         "agent": "UserProxy/GroupChatManager",
         "node": "respond_or_repeat",
@@ -398,7 +398,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 0,
+      "next_node": "broadcast_last_message",
       "metadata": {
         "agent": "UserProxy/GroupChatManager",
         "node": "respond_or_repeat",
@@ -468,7 +468,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 0,
+      "next_node": "broadcast_last_message",
       "metadata": {
         "agent": "UserProxy/GroupChatManager",
         "node": "respond_or_repeat",
