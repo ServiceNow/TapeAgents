@@ -249,19 +249,20 @@ class Agent(BaseModel, Generic[TapeType]):
         :return: the node to run next
         """
         view = self.compute_view(tape).top
-        next_node = view.next_node()
-        if next_node:
-            # Next node was set explicitly in the tape using SetNextNode step
-            logger.debug(f"Next node was set explicitly in the tape: {next_node}")
-            return self.find_node(next_node)
-        if not view.last_node():
-            # No nodes have been run yet, select the first node
-            logger.debug("No nodes have been run yet, select node 0")
+        if view.next_node:
+            logger.debug(f"{self.name}: Next node was set explicitly in the tape: {view.next_node}")
+            return self.find_node(view.next_node)
+
+        if not view.last_node:
+            logger.debug(f"{self.name}: No nodes have been run yet, select node 0: {self.nodes[0].name}")
             return self.nodes[0]
+
         # Select the next node that stored after the last node found in the tape
+        logger.debug(f"{self.name}: Last node in view: {view.last_node}")
+        logger.debug(f"{self.name}: Known nodes: {[node.name for node in self.nodes]}")
         for i, node in enumerate(self.nodes):
-            if node.name == view.last_node() and i + 1 < len(self.nodes):
-                logger.debug(f"Select immediate next node: {node.name}")
+            if node.name == view.last_node and i + 1 < len(self.nodes):
+                logger.debug(f"{self.name}: Select immediate next node: {self.nodes[i + 1].name}")
                 return self.nodes[i + 1]
         raise ValueError("Next node not found")
 

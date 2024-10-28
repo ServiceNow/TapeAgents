@@ -34,32 +34,28 @@ class TapeView(BaseModel, Generic[StepType]):
     steps: list[StepType] = []
     steps_by_kind: dict[str, list[StepType]] = {}
     outputs_by_subagent: dict[str, StepType] = {}
+    last_node: str = ""
+    last_prompt_id: str = ""
+    next_node: str = ""
 
     def add_step(self, step: StepType):
         self.steps.append(step)
         kind = step.kind  # type: ignore
         if kind not in self.steps_by_kind:
             self.steps_by_kind[kind] = []
+        if isinstance(step, SetNextNode):
+            self.next_node = step.next_node
+        if isinstance(step, AgentStep):
+            self.last_node = step.metadata.node
+            if step.metadata.prompt_id != self.last_prompt_id:  # start of the new iteration
+                self.next_node = ""
+                self.last_prompt_id = step.metadata.prompt_id
         self.steps_by_kind[kind].append(step)
 
     def get_output(self, subagent_name_or_index: int | str) -> StepType:
         if isinstance(subagent_name_or_index, int):
             return list(self.outputs_by_subagent.values())[subagent_name_or_index]
         return self.outputs_by_subagent[subagent_name_or_index]
-
-    def last_node(self) -> str:
-        agent_steps = [step for step in self.steps if isinstance(step, AgentStep)]
-        return agent_steps[-1].metadata.node if agent_steps else ""
-
-    def next_node(self) -> str:
-        agent_steps = [step for step in self.steps if isinstance(step, AgentStep)]
-        if not agent_steps:
-            return ""
-        last_prompt_id = agent_steps[-1].metadata.prompt_id  # to identify the steps from the last iteration
-        for step in reversed(self.steps):
-            if isinstance(step, SetNextNode) and step.metadata.prompt_id == last_prompt_id:
-                return step.next_node
-        return ""
 
 
 class TapeViewStack(BaseModel, Generic[StepType]):
