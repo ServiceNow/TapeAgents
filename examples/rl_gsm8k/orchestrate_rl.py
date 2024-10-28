@@ -537,9 +537,9 @@ def main(cfg: DictConfig):
                 with ThreadPoolExecutor() as executor:
                     futures = [executor.submit(get_log_probs, basemodel_agent, trace) for trace in training_samples]
                     for future in as_completed(futures):
-                        result = future.result()
-                        if result:
-                            new_training_samples.append(result)
+                        trace = future.result()
+                        if trace:
+                            new_training_samples.append(trace)
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
