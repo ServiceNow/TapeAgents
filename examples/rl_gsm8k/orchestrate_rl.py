@@ -43,6 +43,7 @@ from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
 from tapeagents.observe import start_sqlite_queue_writer, stop_sqlite_queue_writer
+from tapeagents.finetune.context import accelerator
 
 logger = logging.getLogger(__name__)
 
@@ -586,8 +587,14 @@ def main(cfg: DictConfig):
         config_path = conf_dir / f"{state['iteration']}.yaml"
         OmegaConf.save(finetune_cfg, config_path)
 
+        def run_finetuning_loop_wrapper(cfg):
+            # Set accelerator num_processes to match available GPUs
+            accelerator.state.num_processes = torch.cuda.device_count() # type: ignore
+            run_finetuning_loop(cfg)
+
         start_finetune = time.time()
-        p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
+        # Set up accelerate command with environment variables
+        p = multiprocessing.Process(target=run_finetuning_loop_wrapper, args=(finetune_cfg,))
         p.start()  # Start the subprocess
         p.join()  # Wait for the process to complete
         end_finetune = time.time()
