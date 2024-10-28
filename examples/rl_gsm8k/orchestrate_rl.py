@@ -42,7 +42,7 @@ from tapeagents.finetune.finetune import load_config, run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import start_sqlite_writer, stop_sqlite_writer
+from tapeagents.observe import start_sqlite_queue_writer, stop_sqlite_queue_writer
 
 logger = logging.getLogger(__name__)
 
@@ -398,7 +398,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
 
 @hydra.main(config_path="../../conf/", config_name="fast_rl_gsm8k")
 def main(cfg: DictConfig):
-    multiprocessing.set_start_method("spawn")
+    multiprocessing.set_start_method("spawn") # necessary to use gpus in subprocesses
     random.seed(42)
     exp_path = Path(cfg.output_dir)
     setup_logging(exp_path)
@@ -502,7 +502,7 @@ def main(cfg: DictConfig):
 
         logger.info(f"Collected {len(training_samples)} training samples")
         stats = all_results["train"]["stats"]
-        if "test" in all_results:
+        if "test" in all_results: # test is only present every cfg.test_every_n_iterations
             stats.update(all_results["test"]["stats"])
         wandb.log(
             {
@@ -518,10 +518,12 @@ def main(cfg: DictConfig):
         training_samples = all_results["train"]["training_samples"]
         new_training_samples: list[TrainingText] = []
         if assistant_model_path == cfg.model_path:
+            # At the first itetration, Ref logprobs are the same as logprobs
             for trace in training_samples:
                 trace.ref_logprobs = trace.logprobs
                 new_training_samples.append(trace)
         else:
+            # Load the base model to get the reference log probabilities
             base_model_process, basemodel_stdout_file, basemodel_stderr_file = serve_vllm_local_model(
                 model_name_or_path=cfg.model_path,
                 stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
@@ -606,7 +608,7 @@ def main(cfg: DictConfig):
 
 if __name__ == "__main__":
     try:
-        start_sqlite_writer()
+        start_sqlite_queue_writer()
         main()
     finally:
-        stop_sqlite_writer()
+        stop_sqlite_queue_writer()

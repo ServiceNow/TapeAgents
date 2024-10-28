@@ -250,7 +250,7 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
     return calls
 
 
-def start_sqlite_writer():
+def start_sqlite_queue_writer():
     global LLM_WRITE_QUEUE, _writer_thread
     if LLM_WRITE_QUEUE is not None:
         return  # Already running
@@ -259,7 +259,7 @@ def start_sqlite_writer():
     _writer_thread.start()
 
 
-def stop_sqlite_writer():
+def stop_sqlite_queue_writer():
     global LLM_WRITE_QUEUE, _writer_thread
     if LLM_WRITE_QUEUE is not None and _writer_thread is not None:
         LLM_WRITE_QUEUE.put(None)  # Signal thread to stop
