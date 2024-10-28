@@ -138,10 +138,12 @@ DialogEvent: TypeAlias = AgentEvent[DialogTape]
 
 
 class AnnotatorFreeFormThought(Thought):
+    kind: Literal["annotator_free_form_thought"] = "annotator_free_form_thought"
     content: str
 
 
 class AnnotationAction(Action):
+    kind: Literal["annotation_action"] = "annotation_action"
     annotation: dict
 
 

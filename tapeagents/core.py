@@ -61,7 +61,7 @@ class PartialStep(BaseModel):
 
 
 class Observation(Step):
-    pass
+    kind: str = "observation"
 
 
 class Error(Observation):
@@ -69,7 +69,7 @@ class Error(Observation):
 
 
 class AgentStep(Step):
-    pass
+    kind: str = "agent_step"
 
 
 class Thought(AgentStep):
@@ -255,4 +255,5 @@ ObservationMakerTapeType = TypeVar("ObservationMakerTapeType", bound=Tape)
 
 
 class MakeObservation(Action, Generic[StepType]):
+    kind: Literal["make_observation"] = "make_observation"
     new_observation: StepType
