@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from abc import abstractmethod
 from typing import Any, Callable, Generator, Generic
 
@@ -31,6 +32,8 @@ from .core import (
 from .llms import LLM, LLMEvent, LLMStream
 
 DEFAULT = "default"
+
+logger = logging.getLogger(__name__)
 
 
 class AgentStream(Generic[TapeType]):
@@ -249,13 +252,16 @@ class Agent(BaseModel, Generic[TapeType]):
         next_node = view.next_node()
         if next_node:
             # Next node was set explicitly in the tape using SetNextNode step
+            logger.debug(f"Next node was set explicitly in the tape: {next_node}")
             return self.find_node(next_node)
         if not view.last_node():
             # No nodes have been run yet, select the first node
+            logger.debug("No nodes have been run yet, select node 0")
             return self.nodes[0]
         # Select the next node that stored after the last node found in the tape
         for i, node in enumerate(self.nodes):
             if node.name == view.last_node() and i + 1 < len(self.nodes):
+                logger.debug(f"Select immediate next node: {node.name}")
                 return self.nodes[i + 1]
         raise ValueError("Next node not found")
 
@@ -279,7 +285,6 @@ class Agent(BaseModel, Generic[TapeType]):
         node = self.select_node(tape)
         for step in node.generate_steps(self, tape, llm_stream):
             if isinstance(step, AgentStep):
-                step.metadata.prompt_id = llm_stream.prompt.id
                 step.metadata.node = node.name
             yield step
 
@@ -325,7 +330,10 @@ class Agent(BaseModel, Generic[TapeType]):
             if len(self.llms) > 1:
                 raise NotImplementedError("TODO: implement LLM choice in the prompt")
             llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
-        yield from self.generate_steps(tape, llm_stream)
+        for step in self.generate_steps(tape, llm_stream):
+            if isinstance(step, AgentStep):
+                step.metadata.prompt_id = llm_stream.prompt.id
+            yield step
 
     def run(self, tape: TapeType, max_iterations: int | None = None) -> AgentStream[TapeType]:
         """
