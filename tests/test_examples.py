@@ -117,20 +117,27 @@ def test_llama_agent_tape_reuse():
 
     with tempfile.TemporaryDirectory() as run_dir:
         with set_sqlite_db_dir(run_dir):
-            reused_tape, _ = agent.reuse(tape)
+            reused_tape, llm_calls = agent.reuse(tape)
             for reused_step, step in zip(reused_tape, tape):
                 if isinstance(step, AgentStep):
                     assert isinstance(reused_step, AgentStep)
                     assert reused_step.metadata.prompt_id != step.metadata.prompt_id
-            traces_from_logs = [
-                agent.make_training_text(llm_call) for llm_call in retrieve_tape_llm_calls(reused_tape).values()
-            ]
-            direct_traces = agent.make_training_data(tape)
-            for traces in [traces_from_logs, direct_traces]:
-                assert len(traces) == len(orig_traces), f"Expected {len(orig_traces)} traces, got {len(traces)}"
-                for trace, orig_trace in zip(traces, orig_traces):
-                    assert trace.prompt_text == orig_trace.prompt_text
-                    assert trace.output_text == orig_trace.output_text
+    c = retrieve_tape_llm_calls(reused_tape)
+    traces_from_logs = [agent.make_training_text(llm_call) for llm_call in llm_calls]
+    direct_traces = agent.make_training_data(tape)
+    assert len(traces_from_logs) == len(
+        orig_traces
+    ), f"Expected {len(orig_traces)} traces from logs, got {len(traces_from_logs)}"
+    for trace, orig_trace in zip(traces_from_logs, orig_traces):
+        assert trace.prompt_text == orig_trace.prompt_text
+        assert trace.output_text == orig_trace.output_text
+
+    assert len(direct_traces) == len(
+        orig_traces
+    ), f"Expected {len(orig_traces)} direct traces, got {len(direct_traces)}"
+    for trace, orig_trace in zip(direct_traces, orig_traces):
+        assert trace.prompt_text == orig_trace.prompt_text
+        assert trace.output_text == orig_trace.output_text
 
 
 def test_gaia_agent():
@@ -229,6 +236,7 @@ def test_gsm8k_tuning_samples_prep():
 if __name__ == "__main__":
     test_llama_agent()
     test_llama_agent_traces()
+    test_llama_agent_tape_reuse()
     test_gaia_agent()
     test_workarena_agent()
     test_delegate()
