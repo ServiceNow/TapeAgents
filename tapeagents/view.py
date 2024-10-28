@@ -43,13 +43,16 @@ class TapeView(BaseModel, Generic[StepType]):
         kind = step.kind  # type: ignore
         if kind not in self.steps_by_kind:
             self.steps_by_kind[kind] = []
-        if isinstance(step, SetNextNode):
-            self.next_node = step.next_node
         if isinstance(step, AgentStep):
-            self.last_node = step.metadata.node
+            if (
+                step.metadata.agent.split("/")[1:] == self.agent_full_name.split("/")[1:]
+            ):  # compare without the root agent name
+                self.last_node = step.metadata.node
             if step.metadata.prompt_id != self.last_prompt_id:  # start of the new iteration
                 self.next_node = ""
                 self.last_prompt_id = step.metadata.prompt_id
+        if isinstance(step, SetNextNode):
+            self.next_node = step.next_node
         self.steps_by_kind[kind].append(step)
 
     def get_output(self, subagent_name_or_index: int | str) -> StepType:
@@ -149,9 +152,9 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         self.messages_by_agent[receiver].append(step)
 
     @staticmethod
-    def compute(tape: Tape) -> TapeViewStack[StepType]:
+    def compute(tape: Tape, agent_name: str = "root") -> TapeViewStack[StepType]:
         # TODO: retrieve view from a prefix of the tape, recompute from the prefix
-        stack = TapeViewStack(stack=[TapeView(agent_name="root", agent_full_name="root")])
+        stack = TapeViewStack(stack=[TapeView(agent_name=agent_name, agent_full_name=agent_name)])
         for step in tape.steps:
             stack.update(step)
         return stack  # type: ignore

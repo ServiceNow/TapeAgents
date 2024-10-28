@@ -303,6 +303,7 @@ class Agent(BaseModel, Generic[TapeType]):
         subagent = self
         for view in views.stack[1:]:
             subagent = subagent.find_subagent(view.agent_name)
+        logger.debug(f"{self.full_name}: Delegating to subagent: {subagent.full_name}")
         return subagent
 
     def is_agent_step(self, step: Step) -> bool:
