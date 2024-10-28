@@ -173,7 +173,8 @@ def test_delegate():
     start_tape = ExampleTape.model_validate(load_tape_dict(run_dir, fname="start_tape.json"))
     tape = ExampleTape.model_validate(load_tape_dict(run_dir))
 
-    assert replay_tape(agent, tape, start_tape=start_tape, reuse_observations=True)
+    replay_success = replay_tape(agent, tape, start_tape=start_tape, reuse_observations=True)
+    assert replay_success, "Failed to replay tape"
 
 
 def test_delegate_stack():
@@ -186,8 +187,10 @@ def test_delegate_stack():
     tape1 = ExampleTapeStack.model_validate(load_tape_dict(run_dir, fname="tape1.json"))
     tape2 = ExampleTapeStack.model_validate(load_tape_dict(run_dir, fname="tape2.json"))
 
-    assert replay_tape(agent1, tape1, start_tape=start_tape, reuse_observations=True)
-    assert replay_tape(agent2, tape2, start_tape=start_tape, reuse_observations=True)
+    replay_success = replay_tape(agent1, tape1, start_tape=start_tape, reuse_observations=True)
+    assert replay_success, "Failed to replay tape"
+    replay_success = replay_tape(agent2, tape2, start_tape=start_tape, reuse_observations=True)
+    assert replay_success, "Failed to replay tape"
 
 
 def test_data_science():
@@ -195,7 +198,8 @@ def test_data_science():
     llm = mock_llm(run_dir)
     agent, start_tape, env = data_science.make_world(llm, EmptyEnvironment())
     final_tape = TeamTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
-    assert replay_tape(agent, final_tape, start_tape=start_tape, env=env, reuse_observations=True)
+    replay_success = replay_tape(agent, final_tape, start_tape=start_tape, env=env, reuse_observations=True)
+    assert replay_success, "Failed to replay tape"
 
 
 def test_tape_improver():
@@ -203,7 +207,8 @@ def test_tape_improver():
     llm = mock_llm(run_dir)
     agent, _, improver_tape = tape_improver.make_world(llm)
     final_tape = tape_improver.CodeImproverTape.model_validate(load_tape_dict(run_dir, "final_tape.json"))
-    assert replay_tape(agent, final_tape, start_tape=improver_tape, reuse_observations=True)
+    replay_success = replay_tape(agent, final_tape, start_tape=improver_tape, reuse_observations=True)
+    assert replay_success, "Failed to replay tape"
 
 
 def test_optimize():
@@ -213,7 +218,8 @@ def test_optimize():
         agent = make_agentic_rag_agent(cfg)
         env = make_env()
         tape = DialogTape.model_validate(load_tape_dict(""))
-        assert replay_tape(agent, tape, env=env, reuse_observations=True)
+        replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
+        assert replay_success, "Failed to replay tape"
 
 
 def test_gsm8k_tuning_tapes_generation():
