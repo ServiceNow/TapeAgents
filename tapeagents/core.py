@@ -13,6 +13,13 @@ from typing_extensions import Self
 class TrainingText(BaseModel):
     """
     Data sample to finetune a language model
+    A training sample for finetuning a language model. Contains:
+    - text: The full text sequence (prompt + completion)
+    - n_predicted: Number of tokens in the completion
+    - reward: Reward value for the completion
+    - logprobs: Log probabilities of the completion tokens from the assistant model
+    - ref_logprobs: Log probabilities of the completion tokens from the reference model
+    - parent_tape_id: ID of the parent tape that generated this sample
     """
 
     text: str
