@@ -342,6 +342,12 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
             sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
             # Sort sub_llm_calls to match the order of prompt_ids
             sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
+            # Process LLM calls in reverse order to apply reward discounting
+            # For each LLM interaction in the tape:
+            # - Create a training sample from the prompt and output
+            # - Get log probabilities of the output tokens
+            # - Apply discounted reward based on position (earlier steps get more discount)
+            # - Set parent tape ID for tracking
             for i, llm_call in enumerate(sub_llm_calls[::-1]):
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
