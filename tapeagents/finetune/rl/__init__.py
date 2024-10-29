@@ -205,14 +205,14 @@ def update_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
     """
     df = dataset.to_pandas()
 
-    # Group by parent_tape_id and compute mean and std of reward
-    grouped = df.groupby("parent_tape_id")["reward"].agg(["mean", "std", "count"]).reset_index()
+    # Group by group_id and compute mean and std of reward
+    grouped = df.groupby("group_id")["reward"].agg(["mean", "std", "count"]).reset_index()
 
     # Rename columns for clarity
-    grouped.columns = ["parent_tape_id", "reward_mean", "reward_std", "count"]
+    grouped.columns = ["group_id", "reward_mean", "reward_std", "count"]
 
     # Merge the computed statistics back to the original dataset
-    df_with_stats = pd.merge(df, grouped, on="parent_tape_id", how="left")
+    df_with_stats = pd.merge(df, grouped, on="group_id", how="left")
 
     def calculate_advantage(row):
         rewards = row["rewards"]

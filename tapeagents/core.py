@@ -19,7 +19,7 @@ class TrainingText(BaseModel):
     - reward: Reward value for the completion
     - logprobs: Log probabilities of the completion tokens from the assistant model
     - ref_logprobs: Log probabilities of the completion tokens from the reference model
-    - parent_tape_id: ID of the parent tape that generated this sample
+    - group_id: ID of the group. It is used by the RL finetuning script to normalize rewards.
     """
 
     text: str
@@ -27,7 +27,7 @@ class TrainingText(BaseModel):
     reward: float = 0.0
     logprobs: List[float] = Field(default_factory=list)
     ref_logprobs: List[float] = Field(default_factory=list)
-    parent_tape_id: str | None = None
+    group_id: str | None = None
 
     @property
     def prompt_text(self) -> str:

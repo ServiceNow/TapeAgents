@@ -31,9 +31,8 @@ from examples.rl_gsm8k.utils import (
     clean_up,
     load_state,
     save_state,
-    serve_vllm_local_model,
+    VLLMServiceManager,
     setup_logging,
-    terminate_with_children,
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TrainingText
@@ -167,22 +166,16 @@ def generate_training_data(
             prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
             sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
             # Sort sub_llm_calls to match the order of prompt_ids
-            sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
             # Process LLM calls in reverse order to apply reward discounting
             # For each LLM interaction in the tape:
             # - Create a training sample from the prompt and output
             # - Get log probabilities of the output tokens
-            # - Apply discounted reward based on position (earlier steps get more discount)
             # - Set parent tape ID for tracking
-            for i, llm_call in enumerate(sub_llm_calls[::-1]):
+            for llm_call in sub_llm_calls:
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.reward = reward * (cfg.reward_discount**i)
-                trace.parent_tape_id = (
-                    f"{new_tape.metadata.parent_id}_{i}"
-                    if cfg.normalize_reward_per_step
-                    else new_tape.metadata.parent_id
-                )
+                trace.reward = reward - len(new_tape.steps) * cfg.length_penalty
+                trace.group_id = new_tape.metadata.parent_id
                 training_samples.append(trace)
         tape_stats = {
             "reward": reward,
@@ -264,17 +257,6 @@ def main(cfg: DictConfig):
         else:
             assistant_model_path = cfg.model_path
 
-        start_serving_assistant = time.time()
-        assistant_process, stdout_file, stderr_file = serve_vllm_local_model(
-            model_name_or_path=assistant_model_path,
-            stdout_file_path=exp_path / "assistant_vllm_stdout.log",
-            stderr_file_path=exp_path / "assistant_vllm_stderr.log",
-            port=8080,
-            verbose=True,
-            cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-        )
-        end_serving_assistant = time.time()
-
         llm = TrainableLLM(
             base_url="http://127.0.0.1:8080",
             model_name=str(assistant_model_path),
@@ -306,46 +288,41 @@ def main(cfg: DictConfig):
             if state["iteration"] % cfg.test_every_n_iterations == 0:
                 datasets.append(("test", test_agent, test_tapes))
             all_results = {}
+            with VLLMServiceManager(
+                model_name_or_path=assistant_model_path,
+                stdout_file_path=exp_path / "assistant_vllm_stdout.log",
+                stderr_file_path=exp_path / "assistant_vllm_stderr.log",
+                port=8080,
+                verbose=True,
+                cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+            ):
+                for dataset_name, agent, tapes in datasets:
+                    tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
+                    new_tapes, training_samples, stats = generate_training_data(
+                        agent, tapes, cfg, env, tapes_dir, dataset_name
+                    )
 
-            for dataset_name, agent, tapes in datasets:
-                tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
-                new_tapes, training_samples, stats = generate_training_data(
-                    agent, tapes, cfg, env, tapes_dir, dataset_name
-                )
+                    all_results[dataset_name] = {
+                        "new_tapes": new_tapes,
+                        "training_samples": training_samples,
+                        "stats": stats,
+                    }
 
-                all_results[dataset_name] = {
-                    "new_tapes": new_tapes,
-                    "training_samples": training_samples,
-                    "stats": stats,
-                }
-
-                # Log results
-                logger.info(f"{dataset_name.capitalize()} Results:")
-                for stat_name, stat_value in stats.items():
-                    logger.info(f"{dataset_name}_{stat_name}: {stat_value}")
+                    # Log results
+                    logger.info(f"{dataset_name.capitalize()} Results:")
+                    for stat_name, stat_value in stats.items():
+                        logger.info(f"{dataset_name}_{stat_name}: {stat_value}")
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
             raise e
-        finally:
-            terminate_with_children(assistant_process.pid)
-            assistant_process.wait()  # type: ignore
-            if stdout_file:
-                stdout_file.close()
-            if stderr_file:
-                stderr_file.close()
 
         logger.info(f"Collected {len(training_samples)} training samples")
         stats = all_results["train"]["stats"]
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
             stats.update(all_results["test"]["stats"])
         wandb.log(
-            {
-                **{
-                    "execution_time/serving_assistant": end_serving_assistant - start_serving_assistant,
-                },
-                **stats,
-            },
+            stats,
             step=state["iteration"],
         )
 
@@ -359,14 +336,6 @@ def main(cfg: DictConfig):
                 new_training_samples.append(trace)
         else:
             # Load the base model to get the reference log probabilities
-            base_model_process, basemodel_stdout_file, basemodel_stderr_file = serve_vllm_local_model(
-                model_name_or_path=cfg.model_path,
-                stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
-                stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
-                port=8080,
-                verbose=True,
-                cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-            )
             try:
                 basemodel_llm = TrainableLLM(
                     base_url="http://127.0.0.1:8080",
@@ -377,27 +346,28 @@ def main(cfg: DictConfig):
 
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
 
-                with ThreadPoolExecutor() as executor:
-                    futures = [
-                        executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
-                        for trace in training_samples
-                    ]
-                    for future in as_completed(futures):
-                        trace = future.result()
-                        if trace:
-                            new_training_samples.append(trace)
+                with VLLMServiceManager(
+                    model_name_or_path=cfg.model_path,
+                    stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
+                    stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
+                    port=8080,
+                    verbose=True,
+                    cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+                ):
+                    with ThreadPoolExecutor() as executor:
+                        futures = [
+                            executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
+                            for trace in training_samples
+                        ]
+                        for future in as_completed(futures):
+                            trace = future.result()
+                            if trace:
+                                new_training_samples.append(trace)
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
                 raise e
-            finally:
-                # Make sure the weights of the model to be trained are not loaded on the GPU
-                terminate_with_children(base_model_process.pid)
-                base_model_process.wait()
-                if basemodel_stdout_file:
-                    basemodel_stdout_file.close()
-                if basemodel_stderr_file:
-                    basemodel_stderr_file.close()
+
         end_basemodel_logprobs = time.time()
         wandb.log(
             {
