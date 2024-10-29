@@ -41,7 +41,7 @@ from tapeagents.finetune.finetune import run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import erase_sqlite, retrieve_all_llm_calls, start_sqlite_queue_writer, stop_sqlite_queue_writer
+from tapeagents.observe import SQLiteQueueManager, retrieve_all_llm_calls
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,13 @@ def generate_training_data(
 
     logger.info("Starting main loop")
     start_sampling_from_llm = time.time()
-    new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
+
+    with SQLiteQueueManager() as queue_manager:
+        new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
+        while not queue_manager.is_empty:
+            logging.info("Waiting for LLM calls to be written to SQLite")
+            time.sleep(5)
+
     end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
     if dataset_name == "train":
@@ -436,12 +442,7 @@ def main(cfg: DictConfig):
         )
         state["iteration"] += 1
         save_state(state, state_path)
-        erase_sqlite()
 
 
 if __name__ == "__main__":
-    try:
-        start_sqlite_queue_writer()
-        main()
-    finally:
-        stop_sqlite_queue_writer()
+    main()

@@ -14,20 +14,20 @@ python examples/rl_gsm8k/orchestrate_rl.py
 
 ![image](https://github.com/user-attachments/assets/c715de7a-8d15-4504-9c7c-d8ad28726941)
 
-### Collect data
+### Collect online RL training data
 
 #### Collect tapes
 * the current model (updated llama 3.1 8b) is served on all the gpus using vllm. 
 * a subset of 16 tasks from the train set of gsm8k is sampled and replicated 64 times each for a total of 1024 tasks. 
 * the agent produce complete tapes for each of these 1024 tasks using temperature 0.7. 
 * traces are created from these new tapes. 
-* the log prob of the traces under the current model are computed. We refer to these as log prob to be close to the naming of the grpo paper. #todo should be log prob and old log prob only in fine tune. 
+* the log prob of the traces under the current model are computed.
 
 #### Annotate tapes with rewards
 * For each trace, the reward is computed as follows:
     * +1 for correct answer
     * 0 for incorrect answer or no answer
-    * -1 for step that cannot be parsed
+    * -1 for step that cannot be parsed to json
 
 
 #### Annotate tapes with ref log probs

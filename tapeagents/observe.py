@@ -4,7 +4,8 @@ import logging
 import queue
 import sqlite3
 import threading
-from typing import Callable, Type
+import time
+from typing import Callable, Optional, Type
 
 from pydantic import BaseModel
 
@@ -14,8 +15,7 @@ from .core import LLMCall, LLMOutput, Prompt, Tape
 logger = logging.getLogger(__name__)
 
 _checked_sqlite = False
-LLM_WRITE_QUEUE = None
-_writer_thread = None
+_ACTIVE_MANAGER: Optional['SQLiteQueueManager'] = None
 
 LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
@@ -113,12 +113,20 @@ def sqlite_writer(call):
         logger.error(f"Failed to store LLMCall: {e}")
 
 
+
 def sqlite_store_llm_call(call: LLMCall):
-    global LLM_WRITE_QUEUE
-    if LLM_WRITE_QUEUE is not None:
-        LLM_WRITE_QUEUE.put(call)
+    """Standalone function to store LLM calls.
+    
+    Will use the queue if available (within context manager),
+    otherwise falls back to single-threaded mode.
+    """
+    if _ACTIVE_MANAGER is not None and _ACTIVE_MANAGER.queue is not None:
+        # We're in a context manager, use the queue
+        logger.debug("Using SQLite queue writing mode")
+        _ACTIVE_MANAGER.queue.put(call)
     else:
-        logger.warning("writing would be single-threaded and blocking unless you start the queue")
+        # We're not in a context manager, use single-threaded mode
+        logger.debug("Using single-threaded SQLite writing mode")
         sqlite_writer(call)
 
 
@@ -250,19 +258,76 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
     return calls
 
 
-def start_sqlite_queue_writer():
-    global LLM_WRITE_QUEUE, _writer_thread
-    if LLM_WRITE_QUEUE is not None:
-        return  # Already running
-    LLM_WRITE_QUEUE = queue.Queue()
-    _writer_thread = threading.Thread(target=queue_sqlite_writer, daemon=True)
-    _writer_thread.start()
+class SQLiteQueueManager:
+    def __init__(self):
+        self.write_queue: Optional[queue.Queue] = None
+        self.writer_thread: Optional[threading.Thread] = None
 
+    def __enter__(self):
+        """Start the SQLite queue writer when entering the context."""
+        if self.write_queue is not None:
+            return self  # Already running
+        
+        self.write_queue = queue.Queue()
+        self.writer_thread = threading.Thread(
+            target=self._queue_sqlite_writer,
+            daemon=True
+        )
+        self.writer_thread.start()
+        
+        # Set the global reference
+        global _ACTIVE_MANAGER
+        _ACTIVE_MANAGER = self
+        return self
 
-def stop_sqlite_queue_writer():
-    global LLM_WRITE_QUEUE, _writer_thread
-    if LLM_WRITE_QUEUE is not None and _writer_thread is not None:
-        LLM_WRITE_QUEUE.put(None)  # Signal thread to stop
-        _writer_thread.join()  # Wait for thread to finish
-        LLM_WRITE_QUEUE = None
-        _writer_thread = None
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Stop the SQLite queue writer when exiting the context."""
+        if self.write_queue is not None and self.writer_thread is not None:
+            self.wait_for_empty()
+            self.write_queue.put(None)  # Signal thread to stop
+            self.writer_thread.join()  # Wait for thread to finish
+            self.write_queue = None
+            self.writer_thread = None
+            
+            # Clear the global reference
+            global _ACTIVE_MANAGER
+            _ACTIVE_MANAGER = None
+
+    def _queue_sqlite_writer(self):
+        """The worker function that processes the queue."""
+        while True:
+            item = self.write_queue.get()
+            if item is None:  # Stop signal
+                break
+            sqlite_writer(item)
+            self.write_queue.task_done()
+
+    def wait_for_empty(self, timeout: Optional[float] = None) -> bool:
+        """Wait for the queue to be empty and all tasks to be processed."""
+        if self.write_queue is None:
+            return True
+
+        try:
+            self.write_queue.join()
+            start_time = time.monotonic()
+            while not self.write_queue.empty():
+                if timeout is not None:
+                    elapsed = time.monotonic() - start_time
+                    if elapsed >= timeout:
+                        return False
+                time.sleep(0.1)
+                self.write_queue.join()
+            return True
+        except Exception as e:
+            logger.error(f"Error while waiting for queue to empty: {e}")
+            return False
+
+    @property
+    def queue(self) -> Optional[queue.Queue]:
+        """Access the write queue."""
+        return self.write_queue
+
+    @property
+    def is_empty(self) -> bool:
+        """Check if the queue is empty."""
+        return self.write_queue is None or self.write_queue.empty()
