@@ -375,7 +375,7 @@ def main(cfg: DictConfig):
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
         for trace in training_samples:
-            with open(rollout_dir / f"{trace.parent_tape_id}.jsonl", "a") as f:
+            with open(rollout_dir / f"{trace.group_id}.jsonl", "a") as f:
                 f.write(trace.model_dump_json() + "\n")
                 f.flush()
 
