@@ -48,7 +48,7 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
-def get_log_probs(agent, trace):
+def annotate_trace_with_ref_log_probs(agent: MathAgent, trace: TrainingText) -> TrainingText | None:
     try:
         trace.ref_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
         return trace
@@ -376,7 +376,10 @@ def main(cfg: DictConfig):
                 basemodel_agent = MathAgent.create(llm=basemodel_llm)
 
                 with ThreadPoolExecutor() as executor:
-                    futures = [executor.submit(get_log_probs, basemodel_agent, trace) for trace in training_samples]
+                    futures = [
+                        executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
+                        for trace in training_samples
+                    ]
                     for future in as_completed(futures):
                         trace = future.result()
                         if trace:
@@ -419,14 +422,9 @@ def main(cfg: DictConfig):
         config_path = conf_dir / f"{state['iteration']}.yaml"
         OmegaConf.save(finetune_cfg, config_path)
 
-        def run_finetuning_loop_wrapper(cfg):
-            # Set accelerator num_processes to match available GPUs
-            accelerator.state.num_processes = torch.cuda.device_count()  # type: ignore
-            run_finetuning_loop(cfg)
-
         start_finetune = time.time()
         # Set up accelerate command with environment variables
-        p = multiprocessing.Process(target=run_finetuning_loop_wrapper, args=(finetune_cfg,))
+        p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
         p.start()  # Start the subprocess
         p.join()  # Wait for the process to complete
         end_finetune = time.time()
