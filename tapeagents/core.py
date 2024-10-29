@@ -61,7 +61,7 @@ class PartialStep(BaseModel):
 
 
 class Observation(Step):
-    kind: str = "observation"
+    kind: Literal["observation"] = "observation"
 
 
 class Error(Observation):
@@ -69,7 +69,7 @@ class Error(Observation):
 
 
 class AgentStep(Step):
-    kind: str = "agent_step"
+    kind: Literal["agent_step"] = "agent_step"
 
 
 class Thought(AgentStep):
