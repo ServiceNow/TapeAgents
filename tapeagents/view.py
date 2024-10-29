@@ -49,7 +49,9 @@ class TapeView(BaseModel, Generic[StepType]):
             ):  # compare without the root agent name
                 self.last_node = step.metadata.node
             if step.metadata.prompt_id != self.last_prompt_id:  # start of the new iteration
-                self.next_node = ""
+                # respond should not reset the previous set_next_node in the caller agent
+                if not isinstance(step, Respond):
+                    self.next_node = ""
                 self.last_prompt_id = step.metadata.prompt_id
         if isinstance(step, SetNextNode):
             self.next_node = step.next_node
