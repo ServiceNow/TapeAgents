@@ -26,16 +26,7 @@ from examples.gsm8k_tuning.math_agent import (
     Task,
     extract_result_value,
 )
-from tapeagents.batch import batch_main_loop
-from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TrainingText
-from tapeagents.finetune.context import accelerator
-from tapeagents.finetune.finetune import run_finetuning_loop
-from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.io import save_json_tape
-from tapeagents.llms import TrainableLLM
-from tapeagents.observe import erase_sqlite, retrieve_all_llm_calls, start_sqlite_queue_writer, stop_sqlite_queue_writer
-
-from .utils import (
+from examples.rl_gsm8k.utils import (
     calculate_stats,
     clean_up,
     load_state,
@@ -44,6 +35,13 @@ from .utils import (
     setup_logging,
     terminate_with_children,
 )
+from tapeagents.batch import batch_main_loop
+from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.finetune.finetune import run_finetuning_loop
+from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.io import save_json_tape
+from tapeagents.llms import TrainableLLM
+from tapeagents.observe import erase_sqlite, retrieve_all_llm_calls, start_sqlite_queue_writer, stop_sqlite_queue_writer
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +68,7 @@ def convert_samples_to_tapes(samples: list) -> list[MathTape]:
             Each tape contains a single starting Task step with the question and expected answer value
             stored in metadata.
     """
-    tapes = []
+    tapes: list[MathTape] = []
     for sample in samples:
         start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))
         tape = MathTape(steps=[start_step], context=None)
@@ -124,7 +122,7 @@ def generate_training_data(
     end_reading_sqlite = time.time()
 
     def extract_tape_training_samples(
-        new_tape: MathTape, agent: MathAgent, dataset_name: str, tapes_dir: str
+        new_tape: MathTape, agent: MathAgent, dataset_name: str, tapes_dir: str | Path
     ) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
         """
         Process a single tape to extract training samples and statistics.
@@ -142,20 +140,18 @@ def generate_training_data(
             - Dictionary with statistics (reward, steps, success, no_errors)
         """
         if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
-            new_tape_filtered = copy.deepcopy(new_tape)
-            new_tape_filtered.steps = [
-                step for step in new_tape.steps if not isinstance(step, AgentResponseParsingFailureAction)
-            ]
+            # LLM produced a step that was unparsable. Negative reward.
             no_error, reward, success = 0, -1, 0
-            new_tape = new_tape_filtered
         else:
             no_error = 1
             if (
                 isinstance(new_tape.steps[-1], AnswerAction)
                 and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
             ):
+                # Correct answer
                 reward, success = 1, 1
             else:
+                # Incorrect answer or no answer
                 reward, success = 0, 0
 
         save_json_tape(new_tape, os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"))
@@ -186,7 +182,7 @@ def generate_training_data(
             "reward": reward,
             "steps": len(new_tape.steps),
             "success": success,
-            "no_errors": no_error,
+            "no_error": no_error,
         }
         return new_tape, training_samples, tape_stats
 
