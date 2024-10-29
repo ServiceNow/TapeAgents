@@ -43,16 +43,12 @@ class TapeView(BaseModel, Generic[StepType]):
         kind = step.kind  # type: ignore
         if kind not in self.steps_by_kind:
             self.steps_by_kind[kind] = []
-        if isinstance(step, AgentStep):
-            if (
-                step.metadata.agent.split("/")[1:] == self.agent_full_name.split("/")[1:]
-            ):  # compare without the root agent name
-                self.last_node = step.metadata.node
-            if step.metadata.prompt_id != self.last_prompt_id:  # start of the new iteration
+        if self.is_step_by_active_agent(step):
+            if step.metadata.prompt_id != self.last_prompt_id and not isinstance(step, Respond):
                 # respond should not reset the previous set_next_node in the caller agent
-                if not isinstance(step, Respond):
-                    self.next_node = ""
-                self.last_prompt_id = step.metadata.prompt_id
+                self.next_node = ""
+            self.last_prompt_id = step.metadata.prompt_id
+            self.last_node = step.metadata.node
         if isinstance(step, SetNextNode):
             self.next_node = step.next_node
         self.steps_by_kind[kind].append(step)
@@ -61,6 +57,15 @@ class TapeView(BaseModel, Generic[StepType]):
         if isinstance(subagent_name_or_index, int):
             return list(self.outputs_by_subagent.values())[subagent_name_or_index]
         return self.outputs_by_subagent[subagent_name_or_index]
+
+    def is_step_by_active_agent(self, step: StepType):
+        # state machine doesn't know the name of the root agent, so in the comparison here
+        # we need cut of the first component
+        if not isinstance(step, AgentStep):
+            return False
+        parts_by = step.metadata.agent.split("/")
+        parts_frame_by = self.agent_full_name.split("/")
+        return parts_by[1:] == parts_frame_by[1:]
 
 
 class TapeViewStack(BaseModel, Generic[StepType]):
@@ -80,15 +85,6 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     @property
     def top(self):
         return self.stack[-1]
-
-    def is_step_by_active_agent(self, step: StepType):
-        # state machine doesn't know the name of the root agent, so in the comparison here
-        # we need cut of the first component
-        if not isinstance(step, AgentStep):
-            return False
-        parts_by = step.metadata.agent.split("/")
-        parts_frame_by = self.top.agent_full_name.split("/")
-        return parts_by[1:] == parts_frame_by[1:]
 
     def update(self, step: StepType):
         top = self.stack[-1]
@@ -119,7 +115,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 # - exclude Call and Respond steps
                 # - exclude Observation steps
                 # - among the remaining steps pick the last one
-                if not self.is_step_by_active_agent(top_step) and not isinstance(
+                if not self.top.is_step_by_active_agent(top_step) and not isinstance(
                     top_step, (Call, Respond, Observation)
                 ):
                     new_top.add_step(top_step)
