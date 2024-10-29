@@ -290,6 +290,7 @@ class SQLiteQueueManager:
         try:
             self.write_queue.join()
             start_time = time.monotonic()
+            logger.info("Waiting for SQLite queue to empty...")
             while not self.write_queue.empty():
                 if timeout is not None:
                     elapsed = time.monotonic() - start_time

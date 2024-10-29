@@ -112,11 +112,8 @@ def generate_training_data(
     logger.info("Starting main loop")
     start_sampling_from_llm = time.time()
 
-    with SQLiteQueueManager() as queue_manager:
+    with SQLiteQueueManager():
         new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
-        while not queue_manager.is_empty:
-            logging.info("Waiting for LLM calls to be written to SQLite")
-            time.sleep(5)
 
     end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
