@@ -1,9 +1,16 @@
 # RL for GSM8k (WIP)
 
-This example demonstrates how to train a reinforcement learning agent to solve math problems from the GSM8k dataset.
-
 ![image](https://github.com/user-attachments/assets/c715de7a-8d15-4504-9c7c-d8ad28726941)
 
+This example demonstrates how to train a reinforcement learning agent to solve math problems from the GSM8k dataset.
+
+## Quickstart
+
+The example can be run with the following command on a H100s (should also run on a A100):
+
+```bash
+python examples/rl_gsm8k/fast_collect_data.py
+```
 
 ## Collect data
 * the current model (updated llama 3.1 8b) is served on all the gpus using vllm. 
