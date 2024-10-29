@@ -1,32 +1,22 @@
 import copy
-import json
 import logging
 import multiprocessing
 import os
 import random
-import shutil
-import subprocess
-import sys
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, TextIO, Tuple
+from typing import Dict, List, Tuple
 
 import hydra
-import numpy as np
-import psutil
-import requests
 import torch
 from datasets import load_dataset
-from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
-from tenacity import retry, stop_after_attempt, wait_exponential
-from termcolor import colored, cprint
+from termcolor import colored
 from tqdm import tqdm
-from tapeagents.observe import retrieve_all_llm_calls, erase_sqlite
+
 import wandb
 from examples.gsm8k_tuning.math_agent import (
     AnswerAction,
@@ -37,13 +27,23 @@ from examples.gsm8k_tuning.math_agent import (
     extract_result_value,
 )
 from tapeagents.batch import batch_main_loop
-from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TapeMetadata, TrainingText
-from tapeagents.finetune.finetune import load_config, run_finetuning_loop
+from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.finetune.context import accelerator
+from tapeagents.finetune.finetune import run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import start_sqlite_queue_writer, stop_sqlite_queue_writer
-from tapeagents.finetune.context import accelerator
+from tapeagents.observe import erase_sqlite, retrieve_all_llm_calls, start_sqlite_queue_writer, stop_sqlite_queue_writer
+
+from .utils import (
+    calculate_stats,
+    clean_up,
+    load_state,
+    save_state,
+    serve_vllm_local_model,
+    setup_logging,
+    terminate_with_children,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,238 +57,19 @@ def get_log_probs(agent, trace):
         return None
 
 
-def setup_logging(output_dir):
-    print(f"Setting up logging to {output_dir}")
+def convert_samples_to_tapes(samples: list) -> list[MathTape]:
+    """
+    Creates MathTape objects from a list of sample dictionaries.
 
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)  # Create the output directory if it doesn't exist
+    Args:
+        samples (list[dict]): List of dictionaries containing math problems, where each dict
+            has 'question' and expected answer value. The list is created from a dataset.
 
-    # Define log file paths
-    info_log = output_dir / "info.log"
-    debug_log = output_dir / "debug.log"
-    error_log = output_dir / "error.log"
-
-    # Clear any existing handlers
-    logger = logging.getLogger()  # get root logger
-    logger.handlers = []  # Clear existing handlers
-    logger.setLevel(logging.DEBUG)  # Ensure all levels are captured at the root level
-
-    # Create file handlers for each log level
-    info_handler = logging.FileHandler(info_log)
-    info_handler.setLevel(logging.INFO)
-
-    debug_handler = logging.FileHandler(debug_log)
-    debug_handler.setLevel(logging.DEBUG)
-
-    error_handler = logging.FileHandler(error_log)
-    error_handler.setLevel(logging.ERROR)
-
-    stdout_handler = logging.StreamHandler()
-    stdout_handler.setLevel(logging.INFO)
-
-    # Create formatters and set them to the handlers
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-    info_handler.setFormatter(formatter)
-    debug_handler.setFormatter(formatter)
-    error_handler.setFormatter(formatter)
-    stdout_handler.setFormatter(formatter)
-
-    # Add the handlers to the logger
-    logger.addHandler(info_handler)
-    logger.addHandler(debug_handler)
-    logger.addHandler(error_handler)
-    logger.addHandler(stdout_handler)
-
-
-def terminate_with_children(process_id: int) -> None:
-    try:
-        process = psutil.Process(process_id)
-        children = process.children(recursive=True)
-        # terminate child processes
-        for child in children:
-            child.terminate()
-        _, still_alive = psutil.wait_procs(children, timeout=3)
-        for child in still_alive:
-            child.kill()
-
-        # terminate parent process
-        process.terminate()
-        process.wait(timeout=3)
-    except psutil.NoSuchProcess:
-        print(f"No process found with PID: {process_id}")
-    except psutil.AccessDenied:
-        print(f"Insufficient privileges to terminate process with PID: {process_id}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-
-def wait_for_service(process, url, headers=None, timeout=120):
-    start_time = time.time()
-    while True:
-        try:
-            response = requests.get(url, headers=headers, timeout=1)
-            if response.status_code == 200:
-                logger.info(f"-> Service at {url} is ready!")
-                return True
-        except requests.exceptions.RequestException as e:
-            pass
-
-        if time.time() - start_time > timeout:
-            logger.error(f"-> Timeout waiting for service at {url}")
-            return False
-
-        if process.poll() is not None:
-            logger.error(f"-> Process terminated while waiting for service at {url}")
-            return False
-
-        logger.info(f"-> Waiting for service at {url}")
-        time.sleep(5)
-
-
-@retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=2, min=10))
-def serve_vllm_local_model(
-    model_name_or_path: str | Path,
-    stdout_file_path: str | Path,
-    stderr_file_path: str | Path,
-    port: int = 8080,
-    verbose: bool = True,
-    cuda_device: str = "0",
-    host: str = "localhost",
-    **kwargs,
-) -> Tuple[subprocess.Popen[str], Optional[TextIO], Optional[TextIO]]:
-    tensor_parallel_size = cuda_device.count(",") + 1
-    kwargs_str = ""
-    if kwargs:
-        kwargs_str = " ".join([f"{k} {v} " for k, v in kwargs.items()])
-    cmd = (
-        f"OUTLINES_CACHE_DIR=/tmp/.outlines_{cuda_device}_{int(time.time())} "  # outlines cache is a source of constant problem, see https://github.com/vllm-project/vllm/issues/4193
-        f"CUDA_VISIBLE_DEVICES={cuda_device} "
-        f"python -m vllm.entrypoints.openai.api_server "
-        f"--model {model_name_or_path} "
-        f"--tensor-parallel-size {tensor_parallel_size} "
-        # f"--pipeline-parallel-size {tensor_parallel_size} "
-        f"--port {port} "
-        "--disable-frontend-multiprocessing "
-        "--dtype bfloat16 "
-        "--download-dir /mnt/llmd/base_models/ " + kwargs_str
-    )
-    if tensor_parallel_size > 1:  # needs spawn for vllm 0.6.1
-        cmd = "VLLM_WORKER_MULTIPROC_METHOD=spawn " + cmd
-
-    if verbose:
-        cprint(f"Server launcher cmd: {cmd}", "light_green")
-
-    process_args = {
-        "shell": True,
-        "stdout": subprocess.DEVNULL,
-        "stderr": subprocess.DEVNULL,
-    }
-
-    stdout_file = stderr_file = None
-    if verbose:
-        stdout_file = open(stdout_file_path, "w")
-        stderr_file = open(stderr_file_path, "w")
-        process_args["stdout"] = stdout_file
-        process_args["stderr"] = stderr_file
-
-    try:
-        process = subprocess.Popen(cmd, **process_args)
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        raise TimeoutError(f"execution_timeout while waiting for {model_name_or_path} service to start")
-
-    vllm_url = f"http://{host}:{port}/health"
-    headers = {"User-Agent": "vLLM Client"}
-    if wait_for_service(process, vllm_url, headers=headers, timeout=8000):
-        cprint(f"Student {model_name_or_path} model loaded on port {port}", "magenta")
-    else:
-        cprint(
-            f"execution_timeout while waiting for {model_name_or_path} service to start on port {port}",
-            "magenta",
-        )
-        terminate_with_children(process.pid)  # type: ignore
-        process.wait()  # type: ignore
-        if stdout_file:
-            stdout_file.close()
-        if stderr_file:
-            stderr_file.close()
-        raise TimeoutError(f"execution_timeout while waiting for {model_name_or_path} service to start")
-
-    return process, stdout_file, stderr_file
-
-
-def load_state(state_path):
-    if state_path.exists():
-        with open(state_path, "r") as f:
-            return json.load(f)
-    else:
-        return {"iteration": 0}
-
-
-def save_state(state, state_path):
-    with open(state_path, "w") as f:
-        json.dump(state, f)
-
-
-def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
-    os.makedirs(target_path, exist_ok=True)
-
-    def remove_dir(directory: Path):
-        if directory.exists() and directory.is_dir():
-            shutil.rmtree(directory)
-
-    # Reset the state iteration steps
-    state["iteration"] = 0
-    save_state(state, state_path)
-
-    logger.info("Cleaning up checkpoints and training state")
-    # list of files to remove
-    files = [
-        target_path / "assistant_vllm_stdout.log",
-        target_path / "assistant_vllm_stderr.log",
-        target_path / "basemodel_vllm_stdout.log",
-        target_path / "basemodel_vllm_stderr.log",
-        target_path / "debug.log",
-        target_path / "error.log",
-        target_path / "info.log",
-    ]
-
-    for file in files:
-        if file.exists():
-            # erase the content but not the file
-            with open(file, "w"):
-                pass
-            logger.info(f"{file} erased.")
-
-    # List of directories to remove
-    directories = [
-        target_path / "llm_calls.sqlite",
-        target_path / "dialogue_trace.log",
-        target_path / "rollouts",
-        target_path / "tapes",
-        target_path / "conf",
-        target_path / "finetune" / "current",
-        target_path / "finetune" / "logs",
-        target_path / "finetune" / "intermediate",
-        target_path / "finetune" / "training_state",
-    ]
-
-    for directory in directories:
-        remove_dir(directory)
-        logger.info(f"{directory} removed.")
-
-
-def calculate_stats(stats):
-    return {
-        "max": np.mean([max(stats) for stats in stats.values() if stats]),
-        "min": np.mean([min(stats) for stats in stats.values() if stats]),
-        "var": np.mean([np.var(stats) for stats in stats.values() if stats]),
-        "mean": np.mean([np.mean(stats) for stats in stats.values() if stats]),
-    }
-
-
-def create_tapes(samples):
+    Returns:
+        list[MathTape]: List of MathTape objects initialized with the math problems as Task steps.
+            Each tape contains a single starting Task step with the question and expected answer value
+            stored in metadata.
+    """
     tapes = []
     for sample in samples:
         start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))
@@ -297,7 +78,32 @@ def create_tapes(samples):
     return tapes
 
 
-def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
+def generate_training_data(
+    agent: MathAgent,
+    tapes: list[MathTape],
+    cfg: DictConfig,
+    env: MathEnvironment,
+    tapes_dir: str | Path,
+    dataset_name: str,
+) -> Tuple[List[MathTape], List[TrainingText], Dict[str, float]]:
+    """
+    Generate complete tapes and training samples from a list of initialized tapes.
+
+    Args:
+        agent: Agent that interacts with the math environment
+        tapes: List of tapes initialized with math problems
+        cfg: Configuration
+        env: Environment with tools
+        tapes_dir: Directory to save processed episodes
+        dataset_name: Name of dataset ('train' or other)
+
+    Returns:
+        Tuple containing:
+        - List of completed MathTapes
+        - List of training samples with rewards and logprobs
+        - Dictionary of performance statistics and execution times
+    """
+
     start_make_data = time.time()
     os.makedirs(tapes_dir, exist_ok=True)
     reward_stats = defaultdict(list)
@@ -317,7 +123,24 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
         llm_calls = []
     end_reading_sqlite = time.time()
 
-    def process_tape(new_tape, agent, dataset_name, tapes_dir):
+    def extract_tape_training_samples(
+        new_tape: MathTape, agent: MathAgent, dataset_name: str, tapes_dir: str
+    ) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
+        """
+        Process a single tape to extract training samples and statistics.
+
+        Args:
+            new_tape: The tape to process containing math problem steps
+            agent: MathAgent
+            dataset_name: Name of dataset ('train' or 'test')
+            tapes_dir: Directory to save processed tapes
+
+        Returns:
+            Tuple containing:
+            - Processed MathTape
+            - List of training samples with rewards and logprobs
+            - Dictionary with statistics (reward, steps, success, no_errors)
+        """
         if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
             new_tape_filtered = copy.deepcopy(new_tape)
             new_tape_filtered.steps = [
@@ -337,7 +160,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
 
         save_json_tape(new_tape, os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"))
 
-        training_samples = []
+        training_samples: list[TrainingText] = []
         if dataset_name == "train":
             prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
             sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
@@ -359,21 +182,28 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
                     else new_tape.metadata.parent_id
                 )
                 training_samples.append(trace)
-
-        return new_tape, reward, len(new_tape.steps), success, no_error, training_samples
+        tape_stats = {
+            "reward": reward,
+            "steps": len(new_tape.steps),
+            "success": success,
+            "no_errors": no_error,
+        }
+        return new_tape, training_samples, tape_stats
 
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
     with ThreadPoolExecutor(max_workers=torch.cuda.device_count()) as executor:
-        process_tape_partial = partial(process_tape, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir)
-        futures = [executor.submit(process_tape_partial, new_tape) for new_tape in new_tapes]
+        extract_tape_training_samples_partial = partial(
+            extract_tape_training_samples, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir
+        )
+        futures = [executor.submit(extract_tape_training_samples_partial, new_tape) for new_tape in new_tapes]
         # Wrap futures with tqdm for progress tracking
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
-            new_tape, reward, steps, success, no_error, tape_training_samples = future.result()
-            reward_stats[new_tape.metadata.parent_id].append(reward)
-            step_stats[new_tape.metadata.parent_id].append(steps)
-            success_stats[new_tape.metadata.parent_id].append(success)
-            no_errors_stats[new_tape.metadata.parent_id].append(no_error)
+            new_tape, tape_training_samples, tape_stats = future.result()
+            reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
+            step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
+            success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
+            no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             new_tapes.append(new_tape)
             training_samples.extend(tape_training_samples)
 
@@ -399,7 +229,7 @@ def process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name):
 
 @hydra.main(config_path="../../conf/", config_name="fast_rl_gsm8k")
 def main(cfg: DictConfig):
-    multiprocessing.set_start_method("spawn") # necessary to use gpus in subprocesses
+    multiprocessing.set_start_method("spawn")  # necessary to use gpus in subprocesses
     random.seed(42)
     exp_path = Path(cfg.output_dir)
     setup_logging(exp_path)
@@ -464,9 +294,9 @@ def main(cfg: DictConfig):
 
         try:
             sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
-            train_tapes = create_tapes(sub_samples)
+            train_tapes = convert_samples_to_tapes(sub_samples)
             train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
-            test_tapes = create_tapes(test_samples)
+            test_tapes = convert_samples_to_tapes(test_samples)
             train_agent = MathAgent.create(llm=llm)
             test_agent = MathAgent.create(llm=test_llm)
 
@@ -477,7 +307,9 @@ def main(cfg: DictConfig):
 
             for dataset_name, agent, tapes in datasets:
                 tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
-                new_tapes, training_samples, stats = process_dataset(agent, tapes, cfg, env, tapes_dir, dataset_name)
+                new_tapes, training_samples, stats = generate_training_data(
+                    agent, tapes, cfg, env, tapes_dir, dataset_name
+                )
 
                 all_results[dataset_name] = {
                     "new_tapes": new_tapes,
@@ -503,7 +335,7 @@ def main(cfg: DictConfig):
 
         logger.info(f"Collected {len(training_samples)} training samples")
         stats = all_results["train"]["stats"]
-        if "test" in all_results: # test is only present every cfg.test_every_n_iterations
+        if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
             stats.update(all_results["test"]["stats"])
         wandb.log(
             {
@@ -589,7 +421,7 @@ def main(cfg: DictConfig):
 
         def run_finetuning_loop_wrapper(cfg):
             # Set accelerator num_processes to match available GPUs
-            accelerator.state.num_processes = torch.cuda.device_count() # type: ignore
+            accelerator.state.num_processes = torch.cuda.device_count()  # type: ignore
             run_finetuning_loop(cfg)
 
         start_finetune = time.time()
