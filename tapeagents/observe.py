@@ -15,7 +15,7 @@ from .core import LLMCall, LLMOutput, Prompt, Tape
 logger = logging.getLogger(__name__)
 
 _checked_sqlite = False
-_ACTIVE_MANAGER: Optional['SQLiteQueueManager'] = None
+_ACTIVE_MANAGER: Optional["SQLiteQueueManager"] = None
 
 LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
@@ -75,22 +75,6 @@ def erase_sqlite():
     conn.close()  # Close the connection when done
 
 
-def queue_sqlite_writer():
-    while True:
-        try:
-            q = LLM_WRITE_QUEUE  # Local reference
-            if q is None:
-                break
-            call = q.get()
-            if call is None:
-                break
-            sqlite_writer(call)
-            q.task_done()
-        except Exception as e:
-            logger.error(f"Error in queue_sqlite_writer: {e}")
-            continue
-
-
 def sqlite_writer(call):
     try:
         init_sqlite_if_not_exists()
@@ -113,10 +97,9 @@ def sqlite_writer(call):
         logger.error(f"Failed to store LLMCall: {e}")
 
 
-
 def sqlite_store_llm_call(call: LLMCall):
     """Standalone function to store LLM calls.
-    
+
     Will use the queue if available (within context manager),
     otherwise falls back to single-threaded mode.
     """
@@ -267,14 +250,11 @@ class SQLiteQueueManager:
         """Start the SQLite queue writer when entering the context."""
         if self.write_queue is not None:
             return self  # Already running
-        
+
         self.write_queue = queue.Queue()
-        self.writer_thread = threading.Thread(
-            target=self._queue_sqlite_writer,
-            daemon=True
-        )
+        self.writer_thread = threading.Thread(target=self._queue_sqlite_writer, daemon=True)
         self.writer_thread.start()
-        
+
         # Set the global reference
         global _ACTIVE_MANAGER
         _ACTIVE_MANAGER = self
@@ -288,7 +268,7 @@ class SQLiteQueueManager:
             self.writer_thread.join()  # Wait for thread to finish
             self.write_queue = None
             self.writer_thread = None
-            
+
             # Clear the global reference
             global _ACTIVE_MANAGER
             _ACTIVE_MANAGER = None
