@@ -186,7 +186,8 @@ def generate_training_data(
 
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
-    with ThreadPoolExecutor() as executor:
+    #FIXME: 1 worker is a workaround to avoid OOM errors
+    with ThreadPoolExecutor(max_workers=1) as executor:
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir
         )
@@ -357,7 +358,8 @@ def main(cfg: DictConfig):
                     cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                     **cfg.vllm_config.vllm_kwargs,
                 ):
-                    with ThreadPoolExecutor() as executor:
+                    # FIXME: more than 1 worker causes the LLM to run OOM
+                    with ThreadPoolExecutor(max_workers=1) as executor:
                         futures = [
                             executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
                             for trace in training_samples
