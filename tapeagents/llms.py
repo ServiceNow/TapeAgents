@@ -54,17 +54,17 @@ class LLMStream:
             raise StopIteration
         return next(self.generator)
 
-    def get_message(self) -> LLMOutput:
+    def get_output(self) -> LLMOutput:
         for event in self:
             if event.output:
                 return event.output
         raise ValueError("LLM did not produce an output")
 
     def get_text(self) -> str:
-        message = self.get_message()
-        if not message.role == "assistant" or message.content is None:
+        o = self.get_output()
+        if not o.role == "assistant" or o.content is None:
             raise ValueError("LLM did not produce an assistant message")
-        return message.content
+        return o.content
 
 
 class LLM(BaseModel, ABC):
