@@ -28,9 +28,17 @@ vllm_config:
     --download-dir: /mnt/llmd/base_models/ 
     --max-model-len: 8000
 
-output_dir: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k
+output_dir: outputs/rl_gsm8k
 
 hydra:
   job_logging:
     root:
       level: DEBUG
+    handlers:
+      node_errors:
+        class: logging.FileHandler
+        filename: ${output_dir}/node_errors.log    
+    loggers:
+      tapeagents.nodes:
+        handlers: [node_errors]
+        propagate: no
