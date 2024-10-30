@@ -319,7 +319,7 @@ def main(cfg: DictConfig):
                     # Log results
                     logger.info(f"{dataset_name.capitalize()} Results:")
                     for stat_name, stat_value in stats.items():
-                        logger.info(f"{dataset_name}_{stat_name}: {stat_value}")
+                        logger.info(f"{stat_name}: {stat_value}")
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
