@@ -73,7 +73,7 @@ class LLM(BaseModel, ABC):
     context_size: int = 32000
     tokenizer_name: str = ""
     tokenizer: Any = None
-    
+
     token_count: int = 0
     _log: list = []
 
@@ -542,7 +542,7 @@ class MockLLM(LLM):
         return 42
 
     def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
-        return TrainingText(text="mock trace", n_predicted=10)
+        return TrainingText(text="mock trace", n_predicted=10, seq_num_tokens=3)
 
 
 def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
@@ -553,5 +553,8 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
         prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=False
     )
     output_text = text[len(prompt_text) :]
+    tokenized_text = tokenizer.apply_chat_template(
+        prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True
+    )
 
-    return TrainingText(text=text, n_predicted=len(output_text))
+    return TrainingText(text=text, n_predicted=len(output_text), seq_num_tokens=len(tokenized_text))

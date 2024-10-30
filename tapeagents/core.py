@@ -24,6 +24,7 @@ class TrainingText(BaseModel):
 
     text: str
     n_predicted: int
+    seq_num_tokens: int
     reward: float = 0.0
     logprobs: List[float] = Field(default_factory=list)
     ref_logprobs: List[float] = Field(default_factory=list)
