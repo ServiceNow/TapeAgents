@@ -35,7 +35,7 @@ from examples.rl_gsm8k.utils import (
     setup_logging,
 )
 from tapeagents.batch import batch_main_loop
-from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.finetune import run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.io import save_json_tape
@@ -142,7 +142,7 @@ def generate_training_data(
             - List of training samples with rewards and logprobs
             - Dictionary with statistics (reward, steps, success, no_errors)
         """
-        if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
+        if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
             # LLM produced a step that was unparsable. Negative reward.
             no_error, reward, success = 0, -1, 0
         else:

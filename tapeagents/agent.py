@@ -9,7 +9,7 @@ from typing_extensions import Self
 
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
-from tapeagents.core import AgentResponseParsingFailureAction
+from tapeagents.core import LLMOutputParsingFailureAction
 from .core import (
     Action,
     AgentEvent,
@@ -291,7 +291,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def is_llm_step(self, step: Step) -> bool:
         """Check if the step was produced by the llm."""
         return isinstance(step, (Action, Thought)) and not isinstance(
-            step, (SetNextNode, Pass, Call, Respond, AgentResponseParsingFailureAction)
+            step, (SetNextNode, Pass, Call, Respond, LLMOutputParsingFailureAction)
         )
 
     def should_stop(self, tape: TapeType) -> bool:
@@ -450,7 +450,7 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
 
 
     def just_data(step: Step) -> dict:
-        if isinstance(step, AgentResponseParsingFailureAction):
+        if isinstance(step, LLMOutputParsingFailureAction):
             return {}
 
         data = step.llm_dict()
