@@ -113,7 +113,8 @@ def generate_training_data(
     start_sampling_from_llm = time.time()
 
     with SQLiteQueueManager():
-        new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
+        main_loops = batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers)
+        new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
 
     end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
@@ -219,12 +220,13 @@ def generate_training_data(
     return new_tapes, training_samples, stats
 
 
-@hydra.main(config_path="../../conf/", config_name="rl_gsm8k")
+@hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
 def main(cfg: DictConfig):
     multiprocessing.set_start_method("spawn")  # necessary to use gpus in subprocesses
     random.seed(42)
     exp_path = Path(cfg.output_dir)
     setup_logging(exp_path)
+    logger.info(f"Current dir: {os.getcwd()}, output dir: {cfg.output_dir}")
     cfg.finetune.wandb_id = exp_path.name
     run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
     if run is None:
