@@ -142,6 +142,7 @@ def generate_training_data(
             - List of training samples with rewards and logprobs
             - Dictionary with statistics (reward, steps, success, no_errors)
         """
+        discarded = []
         if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
             # LLM produced a step that was unparsable. Negative reward.
             no_error, reward, success = 0, -1, 0
@@ -169,7 +170,6 @@ def generate_training_data(
             # - Create a training sample from the prompt and output
             # - Get log probabilities of the output tokens
             # - Set group ID for tracking
-            discarded = []
             for llm_call in sub_llm_calls:
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
