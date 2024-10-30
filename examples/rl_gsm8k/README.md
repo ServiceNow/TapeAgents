@@ -4,6 +4,18 @@ This example demonstrates how to train a reinforcement learning agent to solve m
 
 ## Quickstart
 
+#### Prerequisities
+
+We use VLLM for inference in our training pipeline. Install it as follows:
+
+```bash
+pip install -r examples/rl_gsm8k/requirements.txt
+```
+
+Make sure you hav a Huggingface account with access to https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct and use `huggingface-cli` to login to the Hugging Face Hub.
+
+#### Run training loop
+
 The example can be run with the following command on a H100s (should also run on a A100):
 
 ```bash
