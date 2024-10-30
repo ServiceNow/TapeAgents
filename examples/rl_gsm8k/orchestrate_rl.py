@@ -168,7 +168,8 @@ def generate_training_data(
             # For each LLM interaction in the tape:
             # - Create a training sample from the prompt and output
             # - Get log probabilities of the output tokens
-            # - Set parent tape ID for tracking
+            # - Set group ID for tracking
+            discarded = []
             for llm_call in sub_llm_calls:
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
@@ -176,11 +177,15 @@ def generate_training_data(
                 trace.group_id = new_tape.metadata.parent_id
                 if trace.seq_num_tokens < cfg.finetune.seq_length:
                     training_samples.append(trace)
+                    discarded.append(0)
+                else:
+                    discarded.append(1)
         tape_stats = {
             "reward": reward,
             "steps": len(new_tape.steps),
             "success": success,
             "no_error": no_error,
+            "discarded": sum(discarded),
         }
         return new_tape, training_samples, tape_stats
 
