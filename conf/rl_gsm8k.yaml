@@ -32,8 +32,7 @@ vllm_config:
     --max-model-len: 8000
     --gpu-memory-utilization: 0.9
 
-
-output_dir: outputs/rl_gsm8k_v5
+output_dir: outputs/rl_gsm8k
 
 hydra:
   job_logging:
