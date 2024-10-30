@@ -149,14 +149,6 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
             loss = -masked_mean(new_log_probs * weights, masks_)
-        case "reinforce_with_kl_shaped_reward":
-            assert rewards.shape == approx_kl.shape
-            # similar to Eq 3 in https://arxiv.org/abs/2402.14740
-            kl_shaped_reward = masked_mean(rewards - config.kl_coef * approx_kl, masks_)
-            kl_shaped_reward = kl_shaped_reward.detach()
-            new_log_probs = masked_mean(new_log_probs, masks_)
-            assert kl_shaped_reward.shape == new_log_probs.shape
-            loss = - kl_shaped_reward * new_log_probs
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
@@ -287,5 +279,5 @@ def prepare_rl_fields(
     encoding["rewards"] = [reward] * len(encoding["labels"])
     encoding["advantages"] = [0.0] * len(encoding["labels"])  # place holder
     encoding["old_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
-    encoding["ref_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + ref_logprobs
+    encoding["ref_logprobs"] = [0.0] * (len(encoding["labels"]) - len(ref_logprobs)) + ref_logprobs
     return encoding
