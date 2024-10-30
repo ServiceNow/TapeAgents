@@ -97,7 +97,7 @@ class VLLMServiceManager:
             f"--port {self.port} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
-            f"--download-dir /mnt/llmd/base_models/ {kwargs_str}"
+            f"{kwargs_str}"
         )
 
         if tensor_parallel_size > 1:

@@ -292,6 +292,7 @@ def main(cfg: DictConfig):
                 port=8080,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+                **cfg.vllm_config.vllm_kwargs
             ):
                 for dataset_name, agent, tapes in datasets:
                     tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
@@ -350,6 +351,7 @@ def main(cfg: DictConfig):
                     port=8080,
                     verbose=True,
                     cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+                    **cfg.vllm_config.vllm_kwargs,
                 ):
                     with ThreadPoolExecutor() as executor:
                         futures = [

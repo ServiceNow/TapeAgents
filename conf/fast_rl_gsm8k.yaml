@@ -27,9 +27,9 @@ finetune:
 
 vllm_config:
   vllm_kwargs:
-    - "--download-dir": "/mnt/llmd/base_models/" 
-    - "--gpu-memory-utilization": 0.8   
-    - "--max-model-len": 8000
+    --download-dir: /mnt/llmd/base_models/ 
+    --gpu-memory-utilization: 0.8   
+    --max-model-len: 8000
 
 output_dir: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k
 
