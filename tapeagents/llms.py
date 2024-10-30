@@ -7,8 +7,8 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Generator, Type
-import queue
+from typing import Any, Callable, Generator
+
 import litellm
 import openai
 import requests
@@ -54,17 +54,17 @@ class LLMStream:
             raise StopIteration
         return next(self.generator)
 
-    def get_message(self) -> LLMOutput:
+    def get_output(self) -> LLMOutput:
         for event in self:
             if event.output:
                 return event.output
         raise ValueError("LLM did not produce an output")
 
     def get_text(self) -> str:
-        message = self.get_message()
-        if not message.role == "assistant" or message.content is None:
+        o = self.get_output()
+        if not o.role == "assistant" or o.content is None:
             raise ValueError("LLM did not produce an assistant message")
-        return message.content
+        return o.content
 
 
 class LLM(BaseModel, ABC):
@@ -73,6 +73,7 @@ class LLM(BaseModel, ABC):
     context_size: int = 32000
     tokenizer_name: str = ""
     tokenizer: Any = None
+    
     token_count: int = 0
     _log: list = []
 
@@ -544,9 +545,7 @@ class MockLLM(LLM):
         return TrainingText(text="mock trace", n_predicted=10)
 
 
-def trainable_llm_make_training_text(
-    prompt: Prompt, output: LLMOutput, tokenizer
-) -> TrainingText:
+def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )

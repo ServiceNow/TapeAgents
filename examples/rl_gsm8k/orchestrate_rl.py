@@ -35,7 +35,7 @@ from examples.rl_gsm8k.utils import (
     setup_logging,
 )
 from tapeagents.batch import batch_main_loop
-from tapeagents.core import AgentResponseParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.finetune import run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.io import save_json_tape
@@ -113,7 +113,8 @@ def generate_training_data(
     start_sampling_from_llm = time.time()
 
     with SQLiteQueueManager():
-        new_tapes = list(batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers))
+        main_loops = batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers)
+        new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
 
     end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
@@ -141,7 +142,7 @@ def generate_training_data(
             - List of training samples with rewards and logprobs
             - Dictionary with statistics (reward, steps, success, no_errors)
         """
-        if any([isinstance(step, AgentResponseParsingFailureAction) for step in new_tape.steps]):
+        if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
             # LLM produced a step that was unparsable. Negative reward.
             no_error, reward, success = 0, -1, 0
         else:
@@ -184,7 +185,7 @@ def generate_training_data(
 
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
-    with ThreadPoolExecutor(max_workers=torch.cuda.device_count()) as executor:
+    with ThreadPoolExecutor() as executor:
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir
         )
@@ -214,17 +215,19 @@ def generate_training_data(
             f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
+            f"execution_time/{dataset_name}_tokens_per_second": agent.llm.token_count / (end_make_data - start_make_data),
         },
     }
     return new_tapes, training_samples, stats
 
 
-@hydra.main(config_path="../../conf/", config_name="rl_gsm8k")
+@hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
 def main(cfg: DictConfig):
     multiprocessing.set_start_method("spawn")  # necessary to use gpus in subprocesses
     random.seed(42)
     exp_path = Path(cfg.output_dir)
     setup_logging(exp_path)
+    logger.info(f"Current dir: {os.getcwd()}, output dir: {cfg.output_dir}")
     cfg.finetune.wandb_id = exp_path.name
     run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
     if run is None:

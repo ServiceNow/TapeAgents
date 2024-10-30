@@ -91,12 +91,12 @@ class Action(AgentStep):
     pass
 
 
-class AgentResponseParsingFailureAction(Action):
+class LLMOutputParsingFailureAction(Action):
     """
-    Action produced automatically when the agent response parsing failed
+    Action produced automatically when the LLM output parsing failed
     """
 
-    kind: Literal["agent_response_parsing_failure_action"] = "agent_response_parsing_failure_action"
+    kind: Literal["llm_output_parsing_failure_action"] = "llm_output_parsing_failure_action"
     error: str
 
 

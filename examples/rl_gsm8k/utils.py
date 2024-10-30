@@ -55,13 +55,13 @@ class VLLMServiceManager:
             process.terminate()
             process.wait(timeout=3)
         except psutil.NoSuchProcess:
-            logger.warning(f"No process found with PID: {process_id}")
+            logger.warning(f"Could not terminate process with PID: {process_id}, not found")
         except psutil.AccessDenied:
             logger.error(f"Insufficient privileges to terminate process with PID: {process_id}")
         except Exception as e:
             logger.error(f"An error occurred while terminating process: {e}")
 
-    def _wait_for_service(self, process, url, headers=None, timeout=120) -> bool:
+    def _wait_for_service(self, process: subprocess.Popen, url, headers=None, timeout=120) -> bool:
         start_time = time.time()
         while True:
             try:
@@ -77,13 +77,13 @@ class VLLMServiceManager:
                 return False
 
             if process.poll() is not None:
-                logger.error(f"-> Process terminated while waiting for service at {url}")
+                logger.error(f"-> Service process has terminated")
                 return False
 
             logger.info(f"-> Waiting for service at {url}")
             time.sleep(5)
 
-    @retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=2, min=10))
+    @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
     def _start_service(self) -> None:
         tensor_parallel_size = self.cuda_device.count(",") + 1
         kwargs_str = " ".join([f"{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
@@ -122,7 +122,7 @@ class VLLMServiceManager:
             self.process = subprocess.Popen(cmd, **process_args)
         except Exception as e:
             logger.error(f"Error occurred: {e}")
-            raise TimeoutError(f"execution_timeout while waiting for {self.model_name_or_path} service to start")
+            raise e
 
         vllm_url = f"http://{self.host}:{self.port}/health"
         headers = {"User-Agent": "vLLM Client"}
@@ -130,11 +130,8 @@ class VLLMServiceManager:
         if self._wait_for_service(self.process, vllm_url, headers=headers, timeout=8000):
             logger.info(f"Student {self.model_name_or_path} model loaded on port {self.port}")
         else:
-            logger.error(
-                f"execution_timeout while waiting for {self.model_name_or_path} service to start on port {self.port}"
-            )
             self._cleanup()
-            raise TimeoutError(f"execution_timeout while waiting for {self.model_name_or_path} service to start")
+            raise Exception("Failed to start the service")
 
     def _cleanup(self) -> None:
         if self.process and self.process.pid:

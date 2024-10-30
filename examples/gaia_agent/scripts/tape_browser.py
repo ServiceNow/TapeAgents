@@ -77,7 +77,7 @@ class GaiaTapeBrowser(TapeBrowser):
                     )
                 if step.kind == "page_observation" and step.error:
                     page_errors += 1
-                elif step.kind == "agent_response_parsing_failure_action":
+                elif step.kind == "llm_output_parsing_failure_action":
                     parsing_errors += 1
                 elif "failure" in step.kind:
                     other_failures += 1

@@ -8,7 +8,7 @@ from tapeagents.utils import FatalError
 
 from .steps import (
     ActionExecutionFailure,
-    AgentResponseParsingFailureAction,
+    LLMOutputParsingFailureAction,
     CalculationResultObservation,
     CodeResultObservation,
     ConvertFactAction,
@@ -77,7 +77,7 @@ class GaiaEnvironment(Environment):
                         tape = tape.append(
                             CodeResultObservation(name=action.fact_name, result=result, stdout=stdout, stderr=stderr)
                         )
-                    case AgentResponseParsingFailureAction():
+                    case LLMOutputParsingFailureAction():
                         pass
                     case _:
                         raise Exception(f"Unknown action: {type(action)}")

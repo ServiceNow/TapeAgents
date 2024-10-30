@@ -5,7 +5,7 @@ defaults:
 n_workers: 32
 max_loops: 10
 test_every_n_iterations: 5
-model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
+model_path: meta-llama/Meta-Llama-3.1-8B-Instruct
 max_agent_forks: 1024
 attempts: 64
 force_restart: false
@@ -22,11 +22,15 @@ test_llm:
 finetune:
   config_name: ${..model_path}
   output_dir: ${..output_dir}/finetune
+  # Each finetuning iteration will be stopped after 10 steps,
+  # after which we generate new tapes and start a new iteration
+  save_checkpoint_steps: 10
 
 vllm_config:
   vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 
     --max-model-len: 8000
+    --gpu-memory-utilization: 0.9
 
 output_dir: outputs/rl_gsm8k
 
@@ -34,11 +38,3 @@ hydra:
   job_logging:
     root:
       level: DEBUG
-    handlers:
-      node_errors:
-        class: logging.FileHandler
-        filename: ${output_dir}/node_errors.log    
-    loggers:
-      tapeagents.nodes:
-        handlers: [node_errors]
-        propagate: no

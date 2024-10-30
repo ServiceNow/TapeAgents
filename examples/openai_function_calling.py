@@ -29,14 +29,14 @@ class FunctionCallingAgent(Agent[DialogTape]):
         return Prompt(tools=[t.model_dump() for t in tape.context.tools], messages=tape_to_messages(tape))
 
     def generate_steps(self, _, llm_stream: LLMStream):
-        llm_output = llm_stream.get_message()
-        if llm_output.content:
-            yield AssistantStep(content=llm_output.content)
-        elif llm_output.tool_calls:
-            assert all(isinstance(tc, ChatCompletionMessageToolCall) for tc in llm_output.tool_calls)
-            yield ToolCalls.from_llm_output(llm_output)
+        o = llm_stream.get_output()
+        if o.content:
+            yield AssistantStep(content=o.content)
+        elif o.tool_calls:
+            assert all(isinstance(tc, ChatCompletionMessageToolCall) for tc in o.tool_calls)
+            yield ToolCalls.from_llm_output(o)
         else:
-            raise ValueError(f"don't know what to do with message {llm_output}")
+            raise ValueError(f"don't know what to do with message {o}")
 
 
 TOOL_SCHEMAS = TypeAdapter(list[ToolSpec]).validate_python(

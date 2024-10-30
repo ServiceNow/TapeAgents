@@ -7,7 +7,7 @@ from pydantic import Field
 from tapeagents.agent import Agent
 from tapeagents.core import (
     Action,
-    AgentResponseParsingFailureAction,
+    LLMOutputParsingFailureAction,
     FinalStep,
     Observation,
     SetNextNode,
@@ -86,7 +86,7 @@ MathTape = Tape[
         UseCalculatorAction,
         CalculationResultObservation,
         ActionExecutionFailure,
-        AgentResponseParsingFailureAction,
+        LLMOutputParsingFailureAction,
         AnswerAction,
         SetNextNode,
     ],
@@ -149,7 +149,7 @@ class MathEnvironment(Environment):
     def react(self, tape: MathTape) -> MathTape:
         actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
         for action in actions:
-            if isinstance(action, AgentResponseParsingFailureAction):
+            if isinstance(action, LLMOutputParsingFailureAction):
                 continue
             try:
                 match action:
