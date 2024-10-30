@@ -7,8 +7,7 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
-from collections import defaultdict
-from typing import Any, Callable, Generator, Type
+from typing import Any, Callable, Generator
 
 import litellm
 import openai
@@ -74,6 +73,7 @@ class LLM(BaseModel, ABC):
     context_size: int = 32000
     tokenizer_name: str = ""
     tokenizer: Any = None
+    
     token_count: int = 0
     _log: list = []
 
