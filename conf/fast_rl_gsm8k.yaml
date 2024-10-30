@@ -6,6 +6,7 @@ n_workers: 32
 max_loops: 10
 test_every_n_iterations: 5
 model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
+# model_path: meta-llama/Meta-Llama-3.1-8B-Instruct
 max_agent_forks: 1024
 attempts: 64
 length_penalty: 0.0
@@ -31,7 +32,7 @@ vllm_config:
     - "--gpu-memory-utilization": 0.8   
     - "--max-model-len": 8000
 
-output_dir: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k
+output_dir: outputs/rl_gsm8k_v3
 
 hydra:
   job_logging:

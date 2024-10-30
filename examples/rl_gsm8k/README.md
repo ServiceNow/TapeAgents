@@ -7,7 +7,7 @@ This example demonstrates how to train a reinforcement learning agent to solve m
 The example can be run with the following command on a H100s (should also run on a A100):
 
 ```bash
-python examples/rl_gsm8k/orchestrate_rl.py
+python -m examples.rl_gsm8k.orchestrate_rl
 ```
 
 ## Overview
