@@ -23,7 +23,9 @@ finetune:
   config_name: ${..model_path}
   output_dir: ${..output_dir}/finetune
   # Each finetuning iteration will be stopped after 10 steps,
-  # after which we generate new tapes and start a new iteration
+  # after which we generate new tapes and start a new iteration.
+  # One step is one weight update. See the finetuning configuration
+  # for the info in how many sequences are used for each weight update.
   save_checkpoint_steps: 10
 
 vllm_config:
