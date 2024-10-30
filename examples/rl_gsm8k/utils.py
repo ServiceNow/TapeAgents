@@ -26,7 +26,6 @@ class VLLMServiceManager:
         verbose: bool = True,
         cuda_device: str = "0",
         host: str = "localhost",
-        download_dir: str = "outputs/models",
         **kwargs,
     ):
         self.model_name_or_path = model_name_or_path
@@ -40,7 +39,6 @@ class VLLMServiceManager:
         self.process: Optional[subprocess.Popen] = None
         self.stdout_file: Optional[TextIO] = None
         self.stderr_file: Optional[TextIO] = None
-        self.download_dir = download_dir
 
     def _terminate_with_children(self, process_id: int) -> None:
         try:
@@ -99,7 +97,7 @@ class VLLMServiceManager:
             f"--port {self.port} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
-            f"--download-dir {self.download_dir} {kwargs_str}"
+            f"{kwargs_str}"
         )
 
         if tensor_parallel_size > 1:

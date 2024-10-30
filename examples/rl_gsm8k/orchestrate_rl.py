@@ -172,7 +172,7 @@ def generate_training_data(
             for llm_call in sub_llm_calls:
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.reward = reward - len(new_tape.steps) * cfg.length_penalty
+                trace.reward = reward 
                 trace.group_id = new_tape.metadata.parent_id
                 training_samples.append(trace)
         tape_stats = {
@@ -220,7 +220,7 @@ def generate_training_data(
     return new_tapes, training_samples, stats
 
 
-@hydra.main(config_path="../../conf/", config_name="fast_rl_gsm8k", version_base="1.3.2")
+@hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
 def main(cfg: DictConfig):
     multiprocessing.set_start_method("spawn")  # necessary to use gpus in subprocesses
     random.seed(42)
@@ -294,6 +294,7 @@ def main(cfg: DictConfig):
                 port=8080,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+                **cfg.vllm_config.vllm_kwargs
             ):
                 for dataset_name, agent, tapes in datasets:
                     tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
@@ -352,6 +353,7 @@ def main(cfg: DictConfig):
                     port=8080,
                     verbose=True,
                     cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+                    **cfg.vllm_config.vllm_kwargs,
                 ):
                     with ThreadPoolExecutor() as executor:
                         futures = [
