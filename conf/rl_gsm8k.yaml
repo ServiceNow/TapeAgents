@@ -27,6 +27,8 @@ vllm_config:
   vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 
     --max-model-len: 8000
+    --gpu-memory-utilization: 0.9
+
 
 output_dir: /home/toolkit/TapeAgents/outputs/fast_rl_gsm8k
 

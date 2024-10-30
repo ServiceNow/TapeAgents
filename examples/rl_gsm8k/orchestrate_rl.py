@@ -184,7 +184,7 @@ def generate_training_data(
 
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
-    with ThreadPoolExecutor(max_workers=torch.cuda.device_count()) as executor:
+    with ThreadPoolExecutor() as executor:
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir
         )
@@ -214,6 +214,7 @@ def generate_training_data(
             f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
+            f"execution_time/{dataset_name}_tokens_per_second": agent.llm.token_count / (end_make_data - start_make_data),
         },
     }
     return new_tapes, training_samples, stats

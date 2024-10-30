@@ -7,8 +7,9 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from typing import Any, Callable, Generator, Type
-import queue
+
 import litellm
 import openai
 import requests
@@ -544,9 +545,7 @@ class MockLLM(LLM):
         return TrainingText(text="mock trace", n_predicted=10)
 
 
-def trainable_llm_make_training_text(
-    prompt: Prompt, output: LLMOutput, tokenizer
-) -> TrainingText:
+def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )
