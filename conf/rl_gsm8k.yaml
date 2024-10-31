@@ -1,0 +1,54 @@
+defaults:
+  - finetune: rl_llama31_8b
+  - _self_
+
+n_workers: 32
+max_loops: 10
+test_every_n_iterations: 5
+model_path: meta-llama/Meta-Llama-3.1-8B-Instruct
+max_agent_forks: 1024
+attempts: 64
+force_restart: false
+max_iterations: 100
+llm:
+  parameters:
+    max_tokens: 1024
+    temperature: 0.7
+test_llm:
+  parameters:
+    max_tokens: 1024
+    temperature: 0.
+
+finetune:
+  config_name: ${..model_path}
+  output_dir: ${..output_dir}/finetune
+  # Each finetuning iteration will be stopped after 10 steps,
+  # after which we generate new tapes and start a new iteration.
+  # One step is one weight update. See the finetuning configuration
+  # for the info in how many sequences are used for each weight update.
+  save_checkpoint_steps: 10
+
+vllm_config:
+  vllm_kwargs:
+    --download-dir: /mnt/llmd/base_models/ 
+    --max-model-len: 8000
+    --gpu-memory-utilization: 0.9
+    # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
+    --enable-chunked-prefill: ""
+
+output_dir: outputs/rl_gsm8k
+
+hydra:
+  run:
+    dir: ${output_dir}
+  job_logging:
+    root:
+      level: DEBUG
+    handlers:
+      node_errors:
+        class: logging.FileHandler
+        filename: ${output_dir}/node_errors.log    
+    loggers:
+      tapeagents.nodes:
+        handlers: [node_errors]
+        propagate: no      

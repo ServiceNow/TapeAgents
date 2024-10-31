@@ -71,7 +71,7 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
     for path in paths:
         with open(path) as f:
             if file_extension == ".yaml":
-                data = yaml.safe_load_all(f)
+                data = list(yaml.safe_load_all(f))
             else:
                 data = json.load(f)
         if not isinstance(data, list):

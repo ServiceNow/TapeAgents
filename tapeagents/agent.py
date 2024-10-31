@@ -10,18 +10,22 @@ from typing_extensions import Self
 
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
-
+from tapeagents.core import LLMOutputParsingFailureAction
 from .core import (
     Action,
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
+    Call,
     LLMCall,
     LLMOutput,
     MakeObservation,
     ObservationMakerTapeType,
     PartialStep,
+    Pass,
     Prompt,
+    Respond,
+    SetNextNode,
     Step,
     Tape,
     TapeMetadata,
@@ -215,6 +219,7 @@ class Agent(BaseModel, Generic[TapeType]):
             templates = {DEFAULT: templates}
         if templates:
             kwargs["templates"] = templates
+        
         return cls(llms=llms or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
@@ -452,7 +457,11 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
 
     """
 
+
     def just_data(step: Step) -> dict:
+        if isinstance(step, LLMOutputParsingFailureAction):
+            return {}
+
         data = step.llm_dict()
         for tc in data.get("tool_calls", []):
             tc.pop("id", None)

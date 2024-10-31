@@ -10,7 +10,7 @@ fastapi==0.112.4
 langchain-community==0.0.38
 langchain-core==0.1.52
 Levenshtein==0.25.1
-litellm==1.37.9
+litellm==1.51.2
 matplotlib==3.9.0
 pathvalidate==3.2.0
 podman==5.0
@@ -18,4 +18,4 @@ pydantic==2.9.1
 seaborn==0.13.2
 tavily-python==0.3.4
 termcolor==2.4.0
-transformers==4.44.2
+transformers==4.45.2

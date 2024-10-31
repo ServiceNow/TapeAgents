@@ -4,7 +4,7 @@ from typing import Any
 
 from browsergym.workarena.tasks.base import AbstractServiceNowTask
 
-from tapeagents.core import AgentResponseParsingFailureAction
+from tapeagents.core import LLMOutputParsingFailureAction
 from tapeagents.environment import Environment
 from tapeagents.tools.gym_browser import GymBrowser
 from tapeagents.utils import FatalError
@@ -108,7 +108,7 @@ class WorkArenaEnvironment(Environment):
         for action in actions:
             try:
                 action_type = type(action)
-                if action_type == AgentResponseParsingFailureAction:
+                if action_type == LLMOutputParsingFailureAction:
                     continue
                 elif action_type not in self.action_map:
                     raise Exception(f"Unknown action: {action_type}")
