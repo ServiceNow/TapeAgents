@@ -52,6 +52,7 @@ class StepMetadata(BaseModel):
 
 class Step(BaseModel):
     metadata: StepMetadata = StepMetadata()
+    kind: Literal["define_me"] = "define_me" # This is a placeholder value, it should be overwritten in subclasses
 
     def llm_dict(self) -> dict[str, Any]:
         """Dump step data only, drop the metadata"""
@@ -268,4 +269,5 @@ ObservationMakerTapeType = TypeVar("ObservationMakerTapeType", bound=Tape)
 
 
 class MakeObservation(Action, Generic[StepType]):
+    kind: Literal["make_observation"] = "make_observation"
     new_observation: StepType

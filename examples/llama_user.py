@@ -1,4 +1,5 @@
 import json
+from typing import Literal
 
 from tapeagents.agent import ObservationMaker
 from tapeagents.core import AgentEvent, MakeObservation, Observation, Prompt, Tape
@@ -26,10 +27,12 @@ ONLY output this JSON and nothing else."""
 
 
 class UserModelFreeFormThought(Observation):
+    kind: Literal["user_model_free_form_thought"] = "user_model_free_form_thought"
     content: str
 
 
 class UserModelInstruction(Observation):
+    kind: Literal["user_model_instruction"] = "user_model_instruction"
     instruction: str
 
 
