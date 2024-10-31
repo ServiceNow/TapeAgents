@@ -304,12 +304,11 @@ def launch_training(config_dir, config_name, accelerate_cfg_path):
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
     try:
-        # Use subprocess.run instead of Popen for better error handling
         result = subprocess.run(
             base_cmd,
             check=True,  # Raises CalledProcessError if return code != 0
             text=True,
-            capture_output=True,
+            capture_output=False,
         )
 
     except subprocess.CalledProcessError as e:
