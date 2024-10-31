@@ -381,6 +381,8 @@ def test_run():
         if event.final_tape:
             final_tape = event.final_tape
             break
+    # check that the tape metadata is the same
+    assert tape.metadata == initial_tape_meatadata
     # check that the metadata is updated correclty
     assert final_tape.metadata.parent_id == initial_tape_meatadata.id
     assert final_tape.metadata.n_added_steps == 1
