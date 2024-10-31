@@ -10,7 +10,7 @@ fastapi==0.112.4
 langchain-community==0.0.38
 langchain-core==0.1.52
 Levenshtein==0.25.1
-litellm==1.37.9
+litellm==1.44.8
 matplotlib==3.9.0
 pathvalidate==3.2.0
 podman==5.0
