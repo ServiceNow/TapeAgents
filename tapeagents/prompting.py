@@ -61,7 +61,8 @@ def prompt_with_guidance(tape: Tape, guidance: str) -> Prompt:
 def view_to_messages(view: TapeView, agent: Agent | None = None) -> list[dict]:
     messages = []
     for step in view.steps:
-        assert not isinstance(step, (Pass, SetNextNode))
+        if isinstance(step, (Pass, SetNextNode)):
+            continue
         llm_message = step_to_message(step, agent)
         messages.append(llm_message)
     return messages

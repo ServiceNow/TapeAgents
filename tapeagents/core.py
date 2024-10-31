@@ -116,7 +116,7 @@ class FinalStep(StopStep):
 
 class SetNextNode(Thought):
     kind: Literal["set_next_node"] = "set_next_node"
-    next_node: int
+    next_node: str
 
 
 class Pass(Thought):

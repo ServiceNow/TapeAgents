@@ -33,21 +33,39 @@ class TapeView(BaseModel, Generic[StepType]):
     agent_full_name: str
     steps: list[StepType] = []
     steps_by_kind: dict[str, list[StepType]] = {}
-    next_node: int = 0
-    last_prompt_id: str = ""
     outputs_by_subagent: dict[str, StepType] = {}
+    last_node: str = ""
+    last_prompt_id: str = ""
+    next_node: str = ""
 
     def add_step(self, step: StepType):
         self.steps.append(step)
         kind = step.kind  # type: ignore
         if kind not in self.steps_by_kind:
             self.steps_by_kind[kind] = []
+        if self.is_step_by_active_agent(step):
+            if step.metadata.prompt_id != self.last_prompt_id and not isinstance(step, Respond):
+                # respond should not reset the previous set_next_node in the caller agent
+                self.next_node = ""
+            self.last_prompt_id = step.metadata.prompt_id
+            self.last_node = step.metadata.node
+        if isinstance(step, SetNextNode):
+            self.next_node = step.next_node
         self.steps_by_kind[kind].append(step)
 
     def get_output(self, subagent_name_or_index: int | str) -> StepType:
         if isinstance(subagent_name_or_index, int):
             return list(self.outputs_by_subagent.values())[subagent_name_or_index]
         return self.outputs_by_subagent[subagent_name_or_index]
+
+    def is_step_by_active_agent(self, step: StepType):
+        # state machine doesn't know the name of the root agent, so in the comparison here
+        # we need cut of the first component
+        if not isinstance(step, AgentStep):
+            return False
+        parts_by = step.metadata.agent.split("/")
+        parts_frame_by = self.agent_full_name.split("/")
+        return parts_by[1:] == parts_frame_by[1:]
 
 
 class TapeViewStack(BaseModel, Generic[StepType]):
@@ -68,25 +86,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     def top(self):
         return self.stack[-1]
 
-    def is_step_by_active_agent(self, step: StepType):
-        # state machine doesn't know the name of the root agent, so in the comparison here
-        # we need cut of the first component
-        if not isinstance(step, AgentStep):
-            return False
-        parts_by = step.metadata.agent.split("/")
-        parts_frame_by = self.top.agent_full_name.split("/")
-        return parts_by[1:] == parts_frame_by[1:]
-
     def update(self, step: StepType):
         top = self.stack[-1]
-
-        if isinstance(step, AgentStep):
-            # the first step of each iteration always bumps up the next node pointer,
-            # note: if this step is SetNextNode, the next node pointer will be updated again by the code below
-            if step.metadata.prompt_id != top.last_prompt_id:
-                top.next_node += 1
-            top.last_prompt_id = step.metadata.prompt_id
-
         match step:
             case Call():
                 self.put_new_view_on_stack(step)
@@ -94,8 +95,6 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 self.broadcast(step)
             case Respond():
                 self.pop_view_from_stack(step)
-            case SetNextNode():
-                top.next_node = step.next_node
             case AgentStep():
                 top.add_step(step)
             case Observation():
@@ -116,7 +115,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 # - exclude Call and Respond steps
                 # - exclude Observation steps
                 # - among the remaining steps pick the last one
-                if not self.is_step_by_active_agent(top_step) and not isinstance(
+                if not self.top.is_step_by_active_agent(top_step) and not isinstance(
                     top_step, (Call, Respond, Observation)
                 ):
                     new_top.add_step(top_step)
@@ -151,9 +150,9 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         self.messages_by_agent[receiver].append(step)
 
     @staticmethod
-    def compute(tape: Tape) -> TapeViewStack[StepType]:
+    def compute(tape: Tape, root_agent_name: str = "root") -> TapeViewStack[StepType]:
         # TODO: retrieve view from a prefix of the tape, recompute from the prefix
-        stack = TapeViewStack(stack=[TapeView(agent_name="root", agent_full_name="root")])
+        stack = TapeViewStack(stack=[TapeView(agent_name=root_agent_name, agent_full_name=root_agent_name)])
         for step in tape.steps:
             stack.update(step)
         return stack  # type: ignore

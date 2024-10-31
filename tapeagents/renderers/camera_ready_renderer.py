@@ -1,10 +1,11 @@
 import ast
 import json
+
 import yaml
 
 from tapeagents.container_executor import CodeBlock
-from tapeagents.core import Action, Observation, Step, Thought, SetNextNode
-from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, UserStep, ToolResult, ToolCalls
+from tapeagents.core import Action, Observation, SetNextNode, Step, Thought
+from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
 from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer
@@ -74,7 +75,7 @@ class CameraReadyRenderer(BasicRenderer):
             class_ = "broadcast"
         elif isinstance(step, SetNextNode):
             role = ""
-            title = f"Thought: SetNextNode({step.next_node})"
+            title = f"Set Next Node: {step.next_node}"
             class_ = "thought"
             dump.pop("next_node", None)
         elif isinstance(step, Thought):
@@ -113,7 +114,9 @@ class CameraReadyRenderer(BasicRenderer):
         elif isinstance(step, ToolCalls):
             function_calls = []
             for tool_call in dump["tool_calls"]:
-                function_calls.append(f"{tool_call['function']['name']}({dict_to_params(tool_call['function']['arguments'])})")
+                function_calls.append(
+                    f"{tool_call['function']['name']}({dict_to_params(tool_call['function']['arguments'])})"
+                )
             text = maybe_fold(", ".join(function_calls))
         elif isinstance(step, ExecuteCode):
             del dump["code"]
@@ -193,7 +196,8 @@ class CameraReadyRenderer(BasicRenderer):
             </details>
         </div>"""
         return html
-    
+
+
 def dict_to_params(arguments: str) -> str:
     """
     Transform a dictionary into a function parameters string.
@@ -202,6 +206,7 @@ def dict_to_params(arguments: str) -> str:
     if type(arguments) is str:
         arguments = str_to_dict(arguments)
     return ", ".join(f"{key}={value!r}" for key, value in arguments.items())
+
 
 def str_to_dict(s: str) -> dict:
     """
