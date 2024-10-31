@@ -9,8 +9,8 @@ import testbook
 
 import tapeagents.observe
 from examples import delegate_stack
-from examples.tape_improver import tape_improver
 from examples.data_science import data_science
+from examples.tape_improver import tape_improver
 
 
 @contextlib.contextmanager
@@ -80,6 +80,4 @@ if __name__ == "__main__":
             with run_in_tmp_dir_to_make_test_data("data_science"):
                 data_science.main(studio=False)
         case _:
-            raise Exception(
-                "Usage: python -m examples.make_test_data [delegate_stack | intro_notebook | tape_improver]"
-            )
+            raise Exception("Usage: python -m tests.make_test_data [delegate_stack | intro_notebook | tape_improver]")

@@ -7,6 +7,7 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
+from itertools import zip_longest
 from typing import Any, Callable, Generator
 
 import litellm
@@ -496,7 +497,9 @@ class ReplayLLM(LLM):
                 known_prompts = list(self.outputs.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
                 if score >= 0.7:
-                    logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(closest, prompt_key)}")
+                    logger.warning(f"Closest prompt score {score:.3f}")
+                    for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
+                        logger.warning(f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n")
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 
