@@ -189,7 +189,8 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
         """
         Add a step to the tape
         """
-        return self.model_copy(update=dict(steps=self.steps + [step], metadata=TapeMetadata(n_added_steps=1)))
+        metadata = self.metadata.model_copy(update=dict(n_added_steps=self.metadata.n_added_steps + 1))
+        return self.model_copy(update=dict(steps=self.steps + [step], metadata=metadata))
 
     def with_new_id(self) -> Self:
         return self.model_copy(update=dict(metadata=TapeMetadata()))

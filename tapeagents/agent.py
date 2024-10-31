@@ -4,6 +4,7 @@ import json
 import logging
 from abc import abstractmethod
 from typing import Any, Callable, Generator, Generic
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
@@ -368,10 +369,13 @@ class Agent(BaseModel, Generic[TapeType]):
                     else:
                         raise ValueError("Agent can only generate steps or partial steps")
                 n_iterations += 1
-            final_tape = tape
-            final_tape.metadata = TapeMetadata(
-                n_added_steps=len(tape) - input_tape_length, parent_id=tape.metadata.id, author=self.name
-            )
+            updated_metadata = tape.metadata.model_copy(update=dict(
+                id=str(uuid4()),
+                parent_id=tape.metadata.id,
+                author=self.name,
+                n_added_steps=len(tape) - input_tape_length,
+            ))
+            final_tape = tape.model_copy(update=dict(metadata=updated_metadata))
             yield AgentEvent(final_tape=final_tape)
 
         return AgentStream(_run_implementation())
