@@ -150,9 +150,9 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         self.messages_by_agent[receiver].append(step)
 
     @staticmethod
-    def compute(tape: Tape, agent_name: str = "root") -> TapeViewStack[StepType]:
+    def compute(tape: Tape, root_agent_name: str = "root") -> TapeViewStack[StepType]:
         # TODO: retrieve view from a prefix of the tape, recompute from the prefix
-        stack = TapeViewStack(stack=[TapeView(agent_name=agent_name, agent_full_name=agent_name)])
+        stack = TapeViewStack(stack=[TapeView(agent_name=root_agent_name, agent_full_name=root_agent_name)])
         for step in tape.steps:
             stack.update(step)
         return stack  # type: ignore
