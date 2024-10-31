@@ -177,7 +177,7 @@ def generate_training_data(
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
                 trace.reward = reward
                 trace.group_id = new_tape.metadata.parent_id
-                if trace.seq_num_tokens < cfg.finetune.seq_length:
+                if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length:
                     training_samples.append(trace)
                     discarded.append(0)
                 else:
