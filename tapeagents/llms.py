@@ -557,4 +557,4 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
         prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True
     )
 
-    return TrainingText(text=text, n_predicted=len(output_text), seq_num_tokens=len(tokenized_text))
+    return TrainingText(text=text, n_predicted=len(output_text))
