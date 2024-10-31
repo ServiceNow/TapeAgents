@@ -31,6 +31,7 @@ from examples.rl_gsm8k.utils import (
     VLLMServiceManager,
     calculate_stats,
     clean_up,
+    launch_training,
     load_state,
     save_state,
     setup_logging,
@@ -111,7 +112,7 @@ def generate_training_data(
     discarded_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
-    logger.info("Starting main loop")
+    logger.info(f"Starting {dataset_name} main loop")
     start_sampling_from_llm = time.time()
 
     with SQLiteQueueManager():
@@ -219,7 +220,6 @@ def generate_training_data(
         **{f"{dataset_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{dataset_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{dataset_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
-
         **{
             f"execution_time/{dataset_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
             f"execution_time/{dataset_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
@@ -411,15 +411,8 @@ def main(cfg: DictConfig):
         OmegaConf.save(finetune_cfg, config_path)
 
         start_finetune = time.time()
-        # Set up accelerate command with environment variables
-        p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
-        p.start()  # Start the subprocess
-        p.join()  # Wait for the process to complete
+        launch_training(conf_dir, state["iteration"], cfg.accelerate_cfg_path)
         end_finetune = time.time()
-        # Check if the subprocess exited with an error
-        if p.exitcode != 0:
-            raise RuntimeError(f"Finetuning subprocess failed with exit code {p.exitcode}")
-
         wandb.log(
             {
                 "execution_time/finetune": end_finetune - start_finetune,

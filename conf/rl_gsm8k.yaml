@@ -35,6 +35,7 @@ vllm_config:
     --gpu-memory-utilization: 0.9
 
 output_dir: outputs/rl_gsm8k
+accelerate_cfg_path: conf/deepspeed/accelerate_local.yaml
 
 hydra:
   run:

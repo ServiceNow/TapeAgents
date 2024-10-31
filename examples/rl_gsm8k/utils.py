@@ -5,13 +5,13 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, Optional, TextIO, Tuple, Union
+from typing import Dict, Optional, TextIO, Union
 
 import numpy as np
 import psutil
 import requests
+import torch
 from tenacity import retry, stop_after_attempt, wait_exponential
-from termcolor import cprint
 
 logger = logging.getLogger(__name__)
 
@@ -263,3 +263,70 @@ def calculate_stats(stats):
         "var": np.mean([np.var(stats) for stats in stats.values() if stats]),
         "mean": np.mean([np.mean(stats) for stats in stats.values() if stats]),
     }
+
+
+def launch_training(config_dir, config_name, accelerate_cfg_path):
+    """
+    Launch training process with proper GPU configuration and error handling.
+
+    Args:
+        config_path (str): Path to the training config file
+        cfg: Configuration object containing accelerate_cfg_path
+
+    Returns:
+        float: Training duration in seconds
+
+    Raises:
+        ValueError: If no GPUs are available
+        RuntimeError: If training process fails
+    """
+    # Check GPU availability
+    num_gpus = torch.cuda.device_count()
+    if num_gpus == 0:
+        raise ValueError("No GPUs available for finetuning")
+
+    # Construct command based on GPU count
+    base_cmd = [
+        "accelerate",
+        "launch",
+        "--mixed_precision=bf16",
+        "--config_file",
+        accelerate_cfg_path,
+        "examples/rl_gsm8k/run_finetune.py",
+        "--config-dir",
+        config_dir,
+        "--config-name",
+        config_name,
+    ]
+
+    if num_gpus > 1:
+        base_cmd[2:2] = ["--multi_gpu", "--num_processes", str(num_gpus)]
+
+    logger.info(f"Launching training with command: {' '.join(base_cmd)}")
+    try:
+        # Use subprocess.run instead of Popen for better error handling
+        result = subprocess.run(
+            base_cmd,
+            check=True,  # Raises CalledProcessError if return code != 0
+            text=True,
+            capture_output=True,
+        )
+
+    except subprocess.CalledProcessError as e:
+        # Capture both stdout and stderr for debugging
+        error_msg = (
+            f"Training process failed with exit code {e.returncode}\n" f"stdout: {e.stdout}\n" f"stderr: {e.stderr}"
+        )
+        raise RuntimeError(error_msg) from e
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error during training: {str(e)}") from e
+
+import hydra
+from omegaconf import DictConfig
+@hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
+def main(cfg: DictConfig):
+    finetune_config_path = "/home/toolkit/TapeAgents/outputs/rl_gsm8k_adamw_fixed_llm_calls_8gpus_70b_lr_0_000005_clip_1_0_wd_0_1_gap_1024_max_agent_forks_1024_attempts_64_algo_reinforce/conf/"
+    launch_training(finetune_config_path, "0", "conf/deepspeed/accelerate_local.yaml")
+
+if __name__ == "__main__":
+    main()
