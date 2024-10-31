@@ -37,6 +37,8 @@ vllm_config:
 output_dir: outputs/rl_gsm8k
 
 hydra:
+  run:
+    dir: ${output_dir}
   job_logging:
     root:
       level: DEBUG
