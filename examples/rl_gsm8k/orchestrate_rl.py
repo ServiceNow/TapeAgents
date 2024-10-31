@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import hydra
+import numpy as np
 import torch
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
@@ -27,11 +28,11 @@ from examples.gsm8k_tuning.math_agent import (
     extract_result_value,
 )
 from examples.rl_gsm8k.utils import (
+    VLLMServiceManager,
     calculate_stats,
     clean_up,
     load_state,
     save_state,
-    VLLMServiceManager,
     setup_logging,
 )
 from tapeagents.batch import batch_main_loop
@@ -107,6 +108,7 @@ def generate_training_data(
     step_stats = defaultdict(list)
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
+    discarded_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
     logger.info("Starting main loop")
@@ -173,7 +175,7 @@ def generate_training_data(
             for llm_call in sub_llm_calls:
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.reward = reward 
+                trace.reward = reward
                 trace.group_id = new_tape.metadata.parent_id
                 if trace.seq_num_tokens < cfg.finetune.seq_length:
                     training_samples.append(trace)
@@ -185,13 +187,13 @@ def generate_training_data(
             "steps": len(new_tape.steps),
             "success": success,
             "no_error": no_error,
-            "discarded": sum(discarded),
+            "discarded": np.mean(discarded) if discarded else 0,
         }
         return new_tape, training_samples, tape_stats
 
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
-    #FIXME: 1 worker is a workaround to avoid OOM errors
+    # FIXME: 1 worker is a workaround to avoid OOM errors
     with ThreadPoolExecutor(max_workers=1) as executor:
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir
@@ -204,6 +206,7 @@ def generate_training_data(
             step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
+            discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
             new_tapes.append(new_tape)
             training_samples.extend(tape_training_samples)
 
@@ -216,13 +219,16 @@ def generate_training_data(
         **{f"{dataset_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{dataset_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{dataset_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+
         **{
             f"execution_time/{dataset_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
             f"execution_time/{dataset_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
             f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
-            f"execution_time/{dataset_name}_tokens_per_second": agent.llm.token_count / (end_make_data - start_make_data),
+            f"execution_time/{dataset_name}_tokens_per_second": agent.llm.token_count
+            / (end_make_data - start_make_data),
+            f"{dataset_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
         },
     }
     return new_tapes, training_samples, stats
@@ -302,7 +308,7 @@ def main(cfg: DictConfig):
                 port=8080,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **cfg.vllm_config.vllm_kwargs
+                **cfg.vllm_config.vllm_kwargs,
             ):
                 for dataset_name, agent, tapes in datasets:
                     tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
