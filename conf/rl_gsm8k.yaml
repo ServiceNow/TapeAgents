@@ -33,6 +33,8 @@ vllm_config:
     --download-dir: /mnt/llmd/base_models/ 
     --max-model-len: 8000
     --gpu-memory-utilization: 0.9
+    # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
+    --enable-chunked-prefill: ""
 
 output_dir: outputs/rl_gsm8k
 
