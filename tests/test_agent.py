@@ -358,3 +358,36 @@ def test_select_node_next_node_not_found():
 
     with pytest.raises(ValueError, match="Next node not found"):
         agent.select_node(tape)
+
+
+def test_run():
+    class MockNode(Node):
+        def generate_steps(self, agent, tape, llm_stream):
+            yield PartialStep(step=Action())
+            yield Action()
+
+    class MockAgent(Agent):
+        def select_node(self, tape):
+            return MockNode()
+
+    agent = MockAgent(llms={DEFAULT: EmptyLLM()})
+    tape = MockTape()
+
+    initial_tape_meatadata = tape.metadata.model_copy()
+    assert initial_tape_meatadata.n_added_steps == 0
+
+    final_tape: MockTape = None
+    for event in agent.run(tape):
+        if event.final_tape:
+            final_tape = event.final_tape
+            break
+    # check that the metadata is updated correclty
+    assert final_tape.metadata.parent_id == initial_tape_meatadata.id
+    assert final_tape.metadata.n_added_steps == 1
+    assert final_tape.metadata.author == agent.name
+    # assert that the rest is the same
+    initial_tape_meatadata.id, final_tape.metadata.id = None, None
+    initial_tape_meatadata.parent_id, final_tape.metadata.parent_id = None, None
+    initial_tape_meatadata.n_added_steps, final_tape.metadata.n_added_steps = 0, 0
+    initial_tape_meatadata.author, final_tape.metadata.author = None, None
+    assert initial_tape_meatadata == final_tape.metadata
