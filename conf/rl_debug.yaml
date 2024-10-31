@@ -2,7 +2,7 @@ defaults:
   - rl_gsm8k
 max_agent_forks: 16
 attempts: 1
-
+test_every_n_iterations: -1
 finetune:
   save_checkpoint_steps: 2
   gradient_accumulation_passes: 16

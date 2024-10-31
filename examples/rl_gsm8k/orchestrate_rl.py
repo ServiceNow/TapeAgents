@@ -309,7 +309,7 @@ def main(cfg: DictConfig):
             test_agent = MathAgent.create(llm=test_llm)
 
             datasets = [("train", train_agent, train_tapes)]
-            if state["iteration"] % cfg.test_every_n_iterations == 0:
+            if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                 datasets.append(("test", test_agent, test_tapes))
             all_results = {}
             with VLLMServiceManager(
