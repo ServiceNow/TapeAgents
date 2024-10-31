@@ -16,21 +16,19 @@
 
 
 ### Error classes
-Bad reasoning - the model either produced incorrect chain of thoughts or chose the wrong action or action parameters. Sometimes the coding ability could help.
-
-| Erorr Class | Number of Errors | Percentage |
-| --- | --- | --- |
-| bad reasoning | 34 | 20.6% | 
-| failed to follow plan | 22 | 13.3% | 
-| read page wrong | 19 | 11.5% | 
-| cannot find info | 18 | 10.9% | 
-| bad doc parsing | 14 | 8.5% | 
-| bad plan | 8 | 4.9% | 
-| cannot read video | 6 | 3.6% | 
-| bad image reading | 4 | 2.4% | 
-| wrong output format | 3 | 1.8% |
-| browser errors | 2 | 1.2% |
-| not enough steps | 2 | 1.2% |
+| Erorr Class | Number of Errors | Percentage of all tasks| Description |
+| --- | --- | --- | --- |
+| bad reasoning | 34 | 20.6% | model produced incorrect chain of thoughts or chose the wrong action or action parameters. Or used thoughts instead of coding.
+| failed to follow plan | 22 | 13.3% | model doing something else (usually easier) that the step described in the plan
+| read page wrong | 19 | 11.5% | model failed to read the fact present in the page correctly. Miss or hallucination.
+| cannot find info | 18 | 10.9% | failed to find answer to the very specific query in the web search
+| bad doc parsing | 14 | 8.5% | doc format was broken during the conversion, model cannot read it correctly
+| bad plan | 8 | 4.9% | plan steps are incorrect or not enough
+| cannot read video | 6 | 3.6% | tools cannot extract the info from the audio or specific frames of video
+| bad image reading | 4 | 2.4% | generic image description is not enough
+| wrong output format | 3 | 1.8% | model output is not in the required format
+| browser errors | 2 | 1.2% | js required or page error
+| not enough steps | 2 | 1.2% | model did not complete task in 30 turns
 
 Specific comments for tasks with bad reasoning:
 - lack of modeling in code
@@ -51,17 +49,21 @@ Specific comments for tasks with bad reasoning:
 
 | Erorr Class | Fix Complexity | Idea |
 | --- | --- | --- |
-| bad reasoning | 3 | coding subagent could help partially |
-| failed to follow plan | 2 | plan enforcing / multiagents could help |
+| bad reasoning | 3 | coding subagent could help partially, reflection |
+| failed to follow plan | 2 | plan enforcing / multiagents |
 | read page wrong | 2 | reflection could help partially |
-| cannot find info | 3 | stuck in repeated search frequently, reflection could help |
-| bad doc parsing | 1 | could be fixed by improving tools |
+| cannot find info | 3 | stuck in repeated search frequently, reflection |
+| bad doc parsing | 1 | improving tools |
 | bad plan | 3 | ? |
-| cannot read video | 1 | could be fixed by improving tools |
+| cannot read video | 1 | improving tools |
 | bad image reading | 1 | could be fixed by image qa subagent |
 | wrong output format | 1 | could be fixed by special formatting node in the end |
 | browser errors | ? | ? |
 | not enough steps | ? | ? |
+
+Also:
+- make subsets for specific error classes to test solutions quickly
+- extract specific subtasks into separate debug sets, like image QA, pdf paper data extraction
 
 
 ## Effects of the better model
