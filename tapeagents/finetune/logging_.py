@@ -37,13 +37,19 @@ def init_wandb(
         raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
     wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
 
+    if len(wandb_id) > 128 or len(wandb_name) > 128:
+        logger.warning(
+            f"wandb_id or wandb_name is longer than 128 characters. "
+            f"Truncating to 128 characters. wandb_id: {wandb_id}, wandb_name: {wandb_name}"
+        )
+
     run = wandb.init(
-        name=wandb_name,
+        name=wandb_name[:128], # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
         project=cfg.finetune.wandb_project_name,
         config=config_for_wandb,  # type: ignore
         resume=resume,
-        id=wandb_id,
+        id=wandb_id[:128],
         tags=cfg.finetune.tags,
     )
     if not isinstance(run, wandb_run.Run):
@@ -78,7 +84,7 @@ def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None =
         wandb_config = {}
         if run is not None:
             wandb_config = {
-                "name": run.name,
+                "name": run.name[:128], # wandb limits name to 128 characters
                 "entity": run.entity,
                 "project": run.project_name(),
                 "id": run.id,
@@ -100,9 +106,10 @@ def log_metrics(logger: logging.Logger, completed_steps: int, metrics: dict[str,
     metrics_pretty = {k: f"{v:.3f}" for k, v in metrics.items()}
     logger.info(f"Completed steps {completed_steps}: {metrics_pretty}")
     try:
+        metrics = {k: v for k, v in metrics.items() if isinstance(v, (int, float))}
         wandb.log(metrics, step=completed_steps)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to log metrics to wandb with error: {e}")
 
 
 # TODO: remove all the calls of this function after the RLHF pipeline is stabilized

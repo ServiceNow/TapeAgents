@@ -2,7 +2,7 @@ from typing import Annotated, Literal, TypeAlias, Union
 
 from pydantic import Field
 
-from tapeagents.core import Action, AgentResponseParsingFailureAction, Observation, SetNextNode, StopStep, Tape, Thought
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Tape, Thought
 from tapeagents.dialog_tape import DialogContext
 
 from ..gaia_agent.steps import ActionExecutionFailure
@@ -214,7 +214,7 @@ WorkArenaStep = Union[
     WorkArenaTask,
     PageObservation,
     ActionExecutionFailure,
-    AgentResponseParsingFailureAction,
+    LLMOutputParsingFailureAction,
     # thoughts
     ReasoningThought,
     ReflectionThought,

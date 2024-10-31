@@ -5,7 +5,6 @@ import time
 from collections import defaultdict
 from dataclasses import asdict
 from pathlib import Path
-
 import numpy as np
 import torch
 from hydra import compose, initialize
@@ -31,7 +30,7 @@ from .data import create_dataloader, prepare_dataloaders
 from .eval import evaluate_and_get_metrics
 from .logging_ import log_metrics, log_time, setup_logging
 from .optim import get_optimizer
-from .rl.grpo import GRPOConfig, grpo_step, make_rl_data_callback
+from .rl import RLConfig, rl_step, make_rl_data_callback
 from .rl.utils import get_avg_rl_stats
 from .types import DataArgs, DataPartArgs, ModelClass, TrainingMetrics
 
@@ -64,7 +63,7 @@ def run_finetuning_loop(
     output_dir = Path(cfg.output_dir)
     model_class: ModelClass = args.model_class
     objective = args.get("objective", "nll")
-    if objective == "grpo":
+    if objective == "rl":
         is_rl = True
     elif objective == "nll":
         is_rl = False
@@ -106,9 +105,8 @@ def run_finetuning_loop(
     forward = lambda model, batch: (model(**batch).loss, {})  # noqa: E731
     rl_data_callback = None
     if is_rl:
-        rl_config = GRPOConfig(**args.grpo)
-        # rl_config.padding_side = tokenizer.padding_side
-        forward = lambda model, batch: grpo_step(model, batch, rl_config)  # noqa: E731
+        rl_config = RLConfig(**args.rl)
+        forward = lambda model, batch: rl_step(model, batch, rl_config)  # noqa: E731
         rl_data_callback = make_rl_data_callback(args, current_dir, rl_config, model)
 
     dataloader_rng = torch.Generator()
@@ -120,6 +118,8 @@ def run_finetuning_loop(
             tokenizer=tokenizer,
             seq_length=args.seq_length,
             batch_size=args.train_batch_size,
+            rl_data_callback=rl_data_callback,
+            is_rl=is_rl,
         )
     else:
         train_dataloader, eval_dataloader, dev_dataloader = prepare_dataloaders(
@@ -242,6 +242,7 @@ def run_finetuning_loop(
                         "loss/train": training_metrics.train_loss,
                     }
                 )
+                
                 metrics_dict.update(get_avg_rl_stats(rl_metrics))
                 rl_metrics = defaultdict(list)
 
@@ -266,16 +267,17 @@ def run_finetuning_loop(
                 training_metrics = evaluate_and_get_metrics(
                     args, model, eval_dataloader, dev_dataloader, training_metrics
                 )
-                metrics_dict.update(
-                    {
-                        "loss/eval": training_metrics.eval_loss,
-                        "loss/dev": training_metrics.dev_loss,
-                        "loss/perplexity": np.exp(training_metrics.eval_loss),
-                        "best/completed_steps": training_metrics.best_completed_steps,
-                        "best/eval_loss": training_metrics.best_eval_loss,
-                        "best/perplexity": np.exp(training_metrics.best_eval_loss),
-                    }
-                )
+                if not is_rl:
+                    metrics_dict.update(
+                        {
+                            "loss/eval": training_metrics.eval_loss,
+                            "loss/dev": training_metrics.dev_loss,
+                            "loss/perplexity": np.exp(training_metrics.eval_loss),
+                            "best/completed_steps": training_metrics.best_completed_steps,
+                            "best/eval_loss": training_metrics.best_eval_loss,
+                            "best/perplexity": np.exp(training_metrics.best_eval_loss),
+                        }
+                    )
 
                 if args.keep_intermediate_checkpoints:
                     intermediate_dir = intermediate_root_dir / str(training_metrics.completed_steps)

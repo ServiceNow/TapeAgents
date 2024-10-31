@@ -123,24 +123,34 @@ class GaiaAgent(Agent):
                 GaiaNode(name="plan", guidance=PromptRegistry.plan),
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
                 GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
-                GaiaNode(name="default", next_node=3),
+                GaiaNode(name="default", next_node="default"),
             ]
         elif planning_mode == PlanningMode.reflect:
             guidance_nodes = [
                 GaiaNode(name="plan", guidance=PromptRegistry.plan),
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
-                GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution, next_node=6),
-                GaiaNode(name="think_after_observation", guidance=PromptRegistry.think_after_observation, next_node=6),
-                GaiaNode(name="think_after_calculation", guidance=PromptRegistry.think_after_calculation, next_node=6),
-                GaiaNode(name="default", next_node=6),
+                GaiaNode(
+                    name="start_execution", guidance=PromptRegistry.start_execution, next_node="after_observation"
+                ),
+                GaiaNode(
+                    name="think_after_observation",
+                    guidance=PromptRegistry.think_after_observation,
+                    next_node="after_observation",
+                ),
+                GaiaNode(
+                    name="think_after_calculation",
+                    guidance=PromptRegistry.think_after_calculation,
+                    next_node="after_observation",
+                ),
+                GaiaNode(name="default", next_node="after_observation"),
                 ObservationControlNode(
-                    name="node_after_observation",
+                    name="after_observation",
                     observation_to_node={
-                        PageObservation: 3,
-                        SearchResultsObservation: 3,
-                        CalculationResultObservation: 4,
+                        PageObservation: "think_after_observation",
+                        SearchResultsObservation: "think_after_observation",
+                        CalculationResultObservation: "think_after_calculation",
                     },
-                    default_node=5,
+                    default_node="default",
                 ),
             ]
         elif planning_mode == PlanningMode.facts_and_sources:
@@ -149,7 +159,7 @@ class GaiaAgent(Agent):
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
                 GaiaNode(name="sources_plan", guidance=PromptRegistry.sources_plan),
                 GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
-                GaiaNode(name="default", next_node=4),
+                GaiaNode(name="default", next_node="default"),
             ]
         elif planning_mode == PlanningMode.multiplan:
             guidance_nodes = [
@@ -157,7 +167,7 @@ class GaiaAgent(Agent):
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
                 GaiaNode(name="sources_plan", guidance=PromptRegistry.sources_plan),
                 GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
-                GaiaNode(name="default", next_node=4),
+                GaiaNode(name="default", next_node="default"),
             ]
         elif planning_mode == PlanningMode.replan_after_sources:
             guidance_nodes = [
@@ -165,7 +175,7 @@ class GaiaAgent(Agent):
                 GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
                 GaiaNode(name="better_plan", guidance=PromptRegistry.better_plan),
                 GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
-                GaiaNode(name="default", next_node=4),
+                GaiaNode(name="default", next_node="default"),
             ]
         else:
             raise ValueError(f"Unknown planning mode: {planning_mode}")
