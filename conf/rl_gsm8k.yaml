@@ -37,6 +37,7 @@ vllm_config:
 
 output_dir: outputs/rl_gsm8k
 accelerate_cfg_path: conf/deepspeed/accelerate_local.yaml
+deepspeed_cfg_path: conf/deepspeed/deepspeed_stage3_bf16.json
 
 hydra:
   run:

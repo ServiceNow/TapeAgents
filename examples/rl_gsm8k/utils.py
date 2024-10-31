@@ -265,7 +265,7 @@ def calculate_stats(stats):
     }
 
 
-def launch_training(config_dir, config_name, accelerate_cfg_path):
+def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str, deepspeed_cfg_path: str):
     """
     Launch training process with proper GPU configuration and error handling.
 
@@ -300,7 +300,14 @@ def launch_training(config_dir, config_name, accelerate_cfg_path):
     ]
 
     if num_gpus > 1:
-        base_cmd[2:2] = ["--multi_gpu", "--num_processes", str(num_gpus)]
+        base_cmd[2:2] = [
+            "--use_deepspeed",
+            "--multi_gpu",
+            "--num_processes",
+            str(num_gpus),
+            "--deepspeed_config_file",
+            deepspeed_cfg_path,
+        ]
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
     try:

@@ -12,7 +12,11 @@ We use VLLM for inference in our training pipeline. Install it as follows:
 pip install -r examples/rl_gsm8k/requirements.txt
 ```
 
-Make sure you hav a Huggingface account with access to https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct and use `huggingface-cli` to login to the Hugging Face Hub.
+Make sure you have a Huggingface account with access to https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct and use `huggingface-cli` to login to the Hugging Face Hub. You may also want to test your vllm installation and downloading the model's weights by running the following command:
+
+```bash
+python -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3.1-8B-Instruct --dtype bfloat16
+```
 
 #### Run training loop
 

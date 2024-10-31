@@ -146,6 +146,8 @@ def generate_training_data(
             - Dictionary with statistics (reward, steps, success, no_errors)
         """
         discarded = []
+        prompt_tokens = 0
+        output_tokens = 0
         if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
             # LLM produced a step that was unparsable. Negative reward.
             no_error, reward, success = 0, -1, 0
@@ -178,6 +180,8 @@ def generate_training_data(
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
                 trace.reward = reward
                 trace.group_id = new_tape.metadata.parent_id
+                prompt_tokens += llm_call.prompt_length_tokens
+                output_tokens += llm_call.output_length_tokens
                 if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length:
                     training_samples.append(trace)
                     discarded.append(0)
@@ -189,11 +193,15 @@ def generate_training_data(
             "success": success,
             "no_error": no_error,
             "discarded": np.mean(discarded) if discarded else 0,
+            "prompt_tokens": prompt_tokens,
+            "output_tokens": output_tokens,
         }
         return new_tape, training_samples, tape_stats
 
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
+    prompt_tokens = 0
+    output_tokens = 0
     # FIXME: 1 worker is a workaround to avoid OOM errors
     with ThreadPoolExecutor(max_workers=1) as executor:
         extract_tape_training_samples_partial = partial(
@@ -208,6 +216,8 @@ def generate_training_data(
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
+            prompt_tokens += tape_stats["prompt_tokens"]
+            output_tokens += tape_stats["output_tokens"]
             new_tapes.append(new_tape)
             training_samples.extend(tape_training_samples)
 
@@ -226,7 +236,9 @@ def generate_training_data(
             f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
-            f"execution_time/{dataset_name}_tokens_per_second": agent.llm.token_count
+            f"execution_time/{dataset_name}_output_tokens_per_second": output_tokens
+            / (end_make_data - start_make_data),
+            f"execution_time/{dataset_name}_prompt_tokens_per_second": prompt_tokens
             / (end_make_data - start_make_data),
             f"{dataset_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
         },
@@ -411,7 +423,7 @@ def main(cfg: DictConfig):
         OmegaConf.save(finetune_cfg, config_path)
 
         start_finetune = time.time()
-        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path)
+        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path, cfg.deepspeed_cfg_path)
         end_finetune = time.time()
         wandb.log(
             {
