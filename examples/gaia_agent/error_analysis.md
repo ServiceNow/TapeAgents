@@ -16,7 +16,7 @@
 
 
 ### Error classes
-| Erorr Class | Number of Errors | Percentage of all tasks| Description |
+| Error Class | Number of Errors | Percentage of all tasks| Description |
 | --- | --- | --- | --- |
 | bad reasoning | 34 | 20.6% | model produced incorrect chain of thoughts or chose the wrong action or action parameters. Or used thoughts instead of coding.
 | failed to follow plan | 22 | 13.3% | model doing something else (usually easier) that the step described in the plan
@@ -47,7 +47,7 @@ Specific comments for tasks with bad reasoning:
 
 ## What we can do to improve
 
-| Erorr Class | Fix Complexity | Idea |
+| Error Class | Fix Complexity | Idea |
 | --- | --- | --- |
 | bad reasoning | 3 | coding subagent could help partially, reflection |
 | failed to follow plan | 2 | plan enforcing / multiagents |
@@ -79,7 +79,7 @@ Compare the results with the GPT-4o model and SFT SoTA submission:
 
 Improvements by error class:
 
-| Erorr Class | GPT-4o-mini errors | GPT-4o solved | Percent solved |
+| Error Class | GPT-4o-mini errors | GPT-4o solved | Percent solved |
 | --- | --- | --- | --- |
 | bad reasoning | 34 | 12 | 35.3% |
 | failed to follow plan | 22 | 3 | 13.6% |
