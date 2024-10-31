@@ -1,172 +1,168 @@
-level,task num,task text beginning,steps,answer produced,solved,bad plan,bad doc parsing,bad image reading,cannot read video,cannot find info,read page wrong,failed to follow plan,bad reasoning,browser errors,wrong output format,not enough steps,comment
-1,1,"If Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach?",19,1,1,,,,,,,,,,,,
-1,2,How many studio albums were published by Mercedes Sosa between 2000 and 2009 (included)? You can use the latest 2022 version of english wikipedia.,22,1,1,,,,,,,,,,,,
-1,3,Here's a fun riddle that I think you'll enjoy.,11,1,0,,,,,,,,1,,,,lack of modeling in code
-1,4,"What was the volume in m^3 of the fish bag that was calculated in the University of Leicester paper ""Can Hiccup Supply Enough Fish to Maintain a Dragonís Diet?""",10,1,1,,,,,,,,,,,,
-1,5,"In the video https://www.youtube.com/watch?v=L1vXCYZAYYM, what is the highest number of bird species to be on camera simultaneously?",13,0,0,,,,1,,,,,,,,
-1,6,"Of the authors (First M. Last) that worked on the paper ""Pie Menus or Linear Menus, Which Is Better?"" in 2015, what was the title of the first paper authored by the one that had authored prior papers?",15,1,0,,,,,,1,,,,,,"failed to find earliest date, code could help"
-1,7,"In Series 9, Episode 11 of Doctor Who, the Doctor is trapped inside an ever-shifting maze. What is this location called in the official script for the episode? Give the setting exactly as it appears in the first scene heading.",10,1,1,,,,,,,,,,,,
-1,8,An office held a Secret Santa gift exchange where each of its twelve employees was assigned one other employee,7,1,0,,,,,,,1,,,,,
-1,9,".rewsna eht sa ""tfel"" drow eht fo etisoppo eht etirw ,ecnetnes siht dnatsrednu uoy fI",5,1,0,,,,,,,,1,,,,failed to follow instruction
-1,10,Each cell in the attached spreadsheet represents a plot of land.,7,0,0,,1,,,,,,,,,,
-1,11,¨(A ? B) ? (¨A ? ¨B),9,1,1,,,,,,,,,,,,
-1,12,"My family reunion is this week, and I was assigned the mashed potatoes to bring. ",10,1,1,,,,,,,,,,,,
-1,13,"In Emily Midkiff's June 2014 article in a journal named for the one of Hreidmar's sons that guarded his house, what word was quoted from two different authors in distaste for the nature of dragon depictions?",12,1,1,,,,,,,,,,,,
-1,14,"Under DDC 633 on Bielefeld University Library's BASE, as of 2020, from what country was the unknown language article with a flag unique from the others?",12,1,1,,,,,,,,,,,,
-1,15,"In the fictional language of Tizin, basic sentences are arranged with the Verb first, followed by the direct object, followed by the subject of the sentence.",5,1,0,,,,,,,,1,,,,
-1,16,"In Nature journal's Scientific Reports conference proceedings from 2012, in the article that did not mention plasmons or plasmonics, what nano-compound is studied? Don't use the prefix nano in your answer if there is one.",10,1,1,,,,,,,,,,,,
-1,17,Review the chess position provided in the image. It is black's turn.,17,1,0,,1,,,,,,1,,,,
-1,18,"In the year 2022, and before December, what does ""R"" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page?",9,1,1,,,,,,,,,,,,
-1,19,Who nominated the only Featured Article on English Wikipedia about a dinosaur that was promoted in November 2016?,14,1,0,,,,,,1,,,,,,
-1,20,"What writer is quoted by Merriam-Webster for the Word of the Day from June 27, 2022?",10,1,1,,,,,,,,,,,,
-1,21,"Given this table defining * on the set S = {a, b, c, d, e}",10,1,1,,,,,,,,,,,,
-1,22,"As a comma separated list with no whitespace, using the provided image provide all the fractions that use / as the fraction line and the answers to the sample problems. Order the list by the order in which the fractions appear.",20,1,0,,1,,,,,,,,,,
-1,23,You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. ,9,1,0,,,,,,,,1,,,,
-1,24,If there is anything that doesn't make sense in the instructions,4,1,1,,,,,,,,,,,,
-1,25,How many slides in this PowerPoint presentation mention crustaceans?,8,1,1,,,,,,,,,,,,
-1,26,"You are Van Helsing, a renowned vampire hunter. A Count of Moldova, La?cu IV, son of  Costea",5,1,0,,,,,,,,1,,,,
+level,task num,task text beginning,steps,answer produced,solved,bad plan,bad doc parsing,bad image reading,cannot read video,cannot find info,read page wrong,failed to follow plan,bad reasoning,browser errors,wrong output format,not enough steps,comment,task_id
+1,1,"If Eliud Kipchoge could maintain his record-making marathon pace indefinitely, how many thousand hours would it take him to run the distance between the Earth and the Moon its closest approach?",19,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,e1fc63a2-da7a-432f-be78-7c4a95598703
+1,2,How many studio albums were published by Mercedes Sosa between 2000 and 2009 (included)? You can use the latest 2022 version of english wikipedia.,22,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,8e867cd7-cff9-4e6c-867a-ff5ddc2550be
+1,3,Here's a fun riddle that I think you'll enjoy.,11,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,lack of modeling in code,ec09fa32-d03f-4bf8-84b0-1f16922c3ae4
+1,4,"What was the volume in m^3 of the fish bag that was calculated in the University of Leicester paper ""Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?""",10,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,5d0080cb-90d7-4712-bc33-848150e917d3
+1,5,"In the video https://www.youtube.com/watch?v=L1vXCYZAYYM, what is the highest number of bird species to be on camera simultaneously?",13,0,0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,a1e91b78-d3d8-4675-bb8d-62741b4b68a6
+1,6,"Of the authors (First M. Last) that worked on the paper ""Pie Menus or Linear Menus, Which Is Better?"" in 2015, what was the title of the first paper authored by the one that had authored prior papers?",15,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,"failed to find earliest date, code could help",46719c30-f4c3-4cad-be07-d5cb21eee6bb
+1,7,"In Series 9, Episode 11 of Doctor Who, the Doctor is trapped inside an ever-shifting maze. What is this location called in the official script for the episode? Give the setting exactly as it appears in the first scene heading.",10,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,4b6bb5f7-f634-410e-815d-e673ab7f8632
+1,8,An office held a Secret Santa gift exchange where each of its twelve employees was assigned one other employee,7,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,cffe0e32-c9a6-4c52-9877-78ceb4aaa9fb
+1,9,".rewsna eht sa ""tfel"" drow eht fo etisoppo eht etirw ,ecnetnes siht dnatsrednu uoy fI",5,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,failed to follow instruction,2d83110e-a098-4ebb-9987-066c06fa42d0
+1,10,Each cell in the attached spreadsheet represents a plot of land.,7,0,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,5cfb274c-0207-4aa7-9575-6ac0bd95d9b2
+1,11,¬(A ∧ B) ↔ (¬A ∨ ¬B),9,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,27d5d136-8563-469e-92bf-fd103c28b57c
+1,12,"My family reunion is this week, and I was assigned the mashed potatoes to bring. ",10,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,dc28cf18-6431-458b-83ef-64b3ce566c10
+1,13,"In Emily Midkiff's June 2014 article in a journal named for the one of Hreidmar's sons that guarded his house, what word was quoted from two different authors in distaste for the nature of dragon depictions?",12,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,b816bfce-3d80-4913-a07d-69b752ce6377
+1,14,"Under DDC 633 on Bielefeld University Library's BASE, as of 2020, from what country was the unknown language article with a flag unique from the others?",12,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,72e110e7-464c-453c-a309-90a95aed6538
+1,15,"In the fictional language of Tizin, basic sentences are arranged with the Verb first, followed by the direct object, followed by the subject of the sentence.",5,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,42576abe-0deb-4869-8c63-225c2d75a95a
+1,16,"In Nature journal's Scientific Reports conference proceedings from 2012, in the article that did not mention plasmons or plasmonics, what nano-compound is studied? Don't use the prefix nano in your answer if there is one.",10,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,b415aba4-4b68-4fc6-9b89-2c812e55a3e1
+1,17,Review the chess position provided in the image. It is black's turn.,17,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,cca530fc-4052-43b2-b130-b30968d8aa44
+1,18,"In the year 2022, and before December, what does ""R"" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page?",9,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,935e2cff-ae78-4218-b3f5-115589b19dae
+1,19,Who nominated the only Featured Article on English Wikipedia about a dinosaur that was promoted in November 2016?,14,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,,4fc2f1ae-8625-45b5-ab34-ad4433bc21f8
+1,20,"What writer is quoted by Merriam-Webster for the Word of the Day from June 27, 2022?",10,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,5188369a-3bbe-43d8-8b94-11558f909a08
+1,21,"Given this table defining * on the set S = {a, b, c, d, e}",10,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,6f37996b-2ac7-44b0-8e68-6d28256631b4
+1,22,"As a comma separated list with no whitespace, using the provided image provide all the fractions that use / as the fraction line and the answers to the sample problems. Order the list by the order in which the fractions appear.",20,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,9318445f-fe6a-4e1b-acbf-c68228c9906a
+1,23,You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. ,9,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,389793a7-ca17-4e82-81cb-2b3a2391b4b9
+1,24,If there is anything that doesn't make sense in the instructions,4,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,4b650a35-8529-4695-89ed-8dc7a500a498
+1,25,How many slides in this PowerPoint presentation mention crustaceans?,8,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c
+1,26,"You are Van Helsing, a renowned vampire hunter. A Count of Moldova, Lațcu IV, son of  Costea",5,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,c714ab3a-da30-4603-bacd-d008800188b9
 1,27,"Examine the video at https://www.youtube.com/watch?v=1htKBjuUWec.
 
-What does Teal'c say in response to the question ""Isn't that hot?""",16,1,1,,,,,,,,,,,,
-1,28,You are given this Excel file as a map.,20,1,0,,1,,,,,,,,,,
-1,29,What is the surname of the equine veterinarian mentioned in 1.E Exercises from the chemistry materials licensed by Marisa Alviar-Agnew & Henry Agnew under the CK-12 license in LibreText's Introductory Chemistry materials as compiled 08/21/2023?,19,1,1,,,,,,,,,,,,
-1,30,"I'm making a grocery list for my mom, but she's a professor of botany",6,1,0,,,,,,,1,,,,,
-1,31,"Hi, I'm making a pie but I could use some help with my shopping list",9,1,1,,,,,,,,,,,,
-1,32,"In the Scikit-Learn July 2017 changelog, what other predictor base command received a bug fix? Just give the name, not a path.",26,1,0,,,,,,1,,,,,,"stuck in repeated searches, lack of reflection"
-1,33,Who did the actor who played Ray in the Polish-language version of Everybody Loves Raymond play in Magda M.? Give only the first name.,14,0,0,,,,,,,,,1,,,search returned empty result
-1,34,"On the BBC Earth YouTube video of the Top 5 Silliest Animal Moments, what species of bird is featured?",12,0,0,,,,1,,,,,,,,
-1,35,What is the final numeric output from the attached Python code?,8,1,1,,,,,,,,,,,,
-1,36,How many more blocks (also denoted as layers) in BERT base encoder than the encoder from the architecture proposed in Attention is All You Need?,13,1,1,,,,,,,,,,,,
-1,37,"Bob was invited to participate in a game show, and he advanced to the final round.",11,1,0,,,,,,,,1,,,,code could help
-1,38,Pull out the sentence in the following 5x7 block of text.,5,1,0,,,,,,,,1,,,,code could help
-1,39,On Cornell Law School website's legal information institute,22,1,0,,,,,,1,,,,,,
-1,40,Of the cities within the United States where U.S. presidents were born,24,1,0,,,,,,,1,,,,,
-1,41,"According to Girls Who Code, how long did it take in years",17,1,0,1,,,,,,,,,,,
-1,42,What was the complete title of the book in which two James Beard Award winners recommended the restaurant where Ali Khan enjoyed a New Mexican staple in his cost-conscious TV show that started in 2015?,41,1,0,,,,,,,,,,,,
-1,43,How many at bats did the Yankee with the most walks in the 1977,15,1,0,,1,,,,,,,,,,
-1,44,"In Audre Lordeís poem ìFather Son and Holy Ghostî, what is the number of the stanza in which some lines are indented?",10,1,0,,1,,,,,,,,,,first stanza glued with the previous line of the page and missed
-1,45,"Hi, I was out sick from my classes on Friday, so I'm trying to figure out what I need to study for my Calculus mid-term next week",6,1,1,,,,,,,,,,,,
-1,46,"On June 6, 2023, an article by Carolyn Collins Petersen was published in Universe Today.",12,1,1,,,,,,,,,,,,
-1,47,What was the actual enrollment count of the clinical trial on H. pylori in acne vulgaris patients from Jan-May 2018 as listed on the NIH website?,20,0,0,,,,,1,,,,,,,"stuck in repeated searches, lack of reflection"
-1,48,Where were the Vietnamese specimens described by Kuznetzov in Nedoshivina's 2010 paper eventually deposited? Just give me the city name without abbreviations.,15,1,0,,,,,,,,,,1,,
-1,49,"A standard Rubikís cube has been broken into cubes making up its sides. The cubes are jumbled, and one is removed. There are 6 cubes with one colored face, 12 edge cubes with two colored faces, and 8 corner cubes with three colored faces. All blue cubes have been found. All cubes directly left, right, above, and below the orange center cube have been found, along with the center cube. The green corners have all been found, along with all green that borders yellow. For all orange cubes found, the opposite faceís cubes have been found. The removed cube has two colors on its faces. What are they? Answer using a comma separated list, with the colors ordered alphabetically.",6,1,0,,,,,,,,1,,,,
-1,50,What country had the least number of athletes at the 1928 Summer Olympics?,35,1,1,,,,,,,,,,,,
-1,51,Who are the pitchers with the number before and after Taish? Tamai's number as of July 2023? ,19,1,0,,,,,1,,,,,,,"current team different from july 2023, faield to find old one"
-1,52,The attached Excel file contains the sales of menu items for a local fast-food chain.,9,1,1,,,,,,,,,,,,
-1,53,What is the first name of the only Malko Competition recipient from the 20th Century (after 1977) whose nationality on record is a country that no longer exists?,10,1,1,,,,,,,,,,,,
-,,,13.26415094,0.905660377,0.452830189,1,6,0,2,2,4,3,9,1,1,0,
-2,1,A paper about AI regulation that was originally submitted to arXiv.org in June 2022 shows,12,1,0,,,,,,,,,,1,,
-2,2,Iím researching species that became invasive after,13,1,0,,,,,,1,,,,,,hallucinated zip code instead of lookup
-2,3,If we assume all articles published by Nature in 2020,17,1,0,,,,,,,,1,,,,incorrectly rounded 41.48 to 42
-2,4,"In Unlambda, what exact charcter or text needs to be added",10,1,0,,,,,,,,1,,,,
-2,5,The attached spreadsheet shows the inventory for a movie,8,1,1,,,,,,,,,,,,
-2,6,"The object in the British Museum's collection with a museum number of 2012,5015",21,1,1,,,,,,,,,,,,
-2,7,"According to github, when was Regression added to the oldest closed numpy.polynomial",14,1,0,1,,,,,,,,,,,
-2,8,"Using the Biopython library in Python, parse the PDB file",16,0,0,,,,,,,1,,,,,
-2,9,What are the EC numbers of the two most commonly used chemicals,30,1,0,,,,,,,,,,,,
-2,10,"In April of 1977, who was the Prime Minister of the first place",14,1,0,,,,,,1,,,,,,
-2,11,What's the last line of the rhyme under the flavor name,13,1,0,,,,,,,1,,,,,
-2,12,Use density measures from the chemistry materials,24,1,0,,,,,,,,1,,,,
-2,13,When you take the average of the standard population deviation of the red numbers,26,1,0,,1,,,,,,,,,,
-2,14,In terms of geographical distance between capital cities,24,1,0,,,,,,,1,,,,,
-2,15,I need to fact-check a citation. This is the citation from the bibliography,15,0,0,,,,,,1,,,,,,failed to get full PDF
-2,16,Which contributor to the version of OpenCV where support was added,21,1,1,,,,,,,,,,,,
-2,17,What is the maximum length in meters of #9 in the first National Geographic short,21,0,0,,,,,,,1,,,,,
-2,18,What two-word type of model did Manash Pratim Kashyap's,13,1,0,,,,,,,,1,,,,
-2,19,How many High Energy Physics - Lattice articles listed ,17,1,0,,,,,,,1,,,,,need step action plans
-2,20,The photograph in the Whitney Museum of American Art's collection,25,1,1,,,,,,,,,,,,
-2,21,What is the minimum number of page links a person must click,38,1,0,,,,,,,1,,,,,need step action plans
-2,22,I went to Virtue restaurant & bar in Chicago for my birthday,21,1,0,,,,,,,1,,,,,need step action plans
-2,23,"It is 1999. Before you party like it is 1999, please assist me in settling a bet.",23,1,0,,,,,,,,1,,,,lack of work on subtask
-2,24,"In the 2018 VSCode blog post on replit.com, what was the command",14,1,1,,,,,,,,,,,,
-2,25,Compute the check digit the Tropicos ID for the Order,14,1,1,,,,,,,,,,,,
-2,26,What time was the Tri-Rail train that carried the most passengers on May 27,58,1,0,,,,,,,1,,,,,stuck in repeated searches
-2,27,Could you help me out with this assignment? Our professor sprung,9,1,0,,,,,,,1,,,,,
-2,28,How many applicants for the job in the PDF are only missing a single qualification?,9,1,0,,,,,,,,1,,,,
-2,29,"In Valentina Reís contribution to the 2017 book ìWorld Building: Transmedia, Fans, Industriesî",61,0,0,,1,,,,,,,,,1,"failed to read whole PDF book, too long"
-2,30,The Metropolitan Museum of Art has a portrait in its collection,20,0,0,,,,,1,,,,,,,
-2,31,The attached file contains a list of vendors in the Liminal Springs mall,39,1,0,,,,,,,1,,,,,
-2,32,"According to Google Finance, when was the first year",13,1,0,,,,,1,1,,,,,,
-2,33,"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 ",17,1,0,,,,,,,,,,,,different results when using different plan even as a human!
-2,34,How many pages if the 2023 IPCC report (85 pages version) mentions nuclear energy?,18,1,1,,,,,,,,,,,,
-2,35,How many images are there in the latest 2022 Lego english wikipedia article?,15,1,0,,1,,,,,,,,,,
-2,36,The attached file shows a list of books in the collection of Scribe County,11,1,0,,1,,,,,,,,,,
-2,37,"On a leap day before the year 2008, a joke was removed from the Wikipedia page for ìDragonî",61,0,0,,,,,1,,,,,,,stuck in repeated searches
-2,38,Find the value of x to the nearest tenth: Lx = (d/dx * (A * x-squared)) + 4-thousand'n'ninety-7 minus C,21,1,0,,,,,,,,1,,,,
-2,39,In the endnote found in the second-to-last paragraph of page 11 of the book,14,1,0,,,,,1,,,,,,,
-2,40,"Using bass clef notes, what is the age of someone who has experienced",26,1,0,,1,,,,,,,,,,
-2,41,"On July 15, 2008, Phys.org published an article about a catastrophe.",17,1,1,,,1,,,,,,,,,failed to extract notes from the image
-2,42,The attached file lists accommodations in the resort town of Seahorse Island.,9,1,0,,1,,,,,,,,,,failed to parse table in pdf
-2,43,How many edits were made to the Wikipedia page on Antidisestablishmentarianism,19,0,0,,,,,1,,,,,,,
-2,44,How many nonindigenous crocodiles were found in Florida from,29,1,0,,,,,1,,,,,,,
-2,45,The work referenced in footnote 397 of Federico Lauria's 2014 dissertation,17,1,0,,,,,,1,,,,,,"failed to access full pdf, lack of reflection during reading"
-2,46,"As of the 2020 census, what was the population difference between the largest county seat and smallest",41,1,0,,,,,,1,,,,,,
-2,47,"Given $x_0 = -5$ and $f(x) = x^3 + 4x^2 - 3x + 8$, what is the smallest $n$ where using Newton",30,1,0,,,,,,,,1,,,,
-2,48,The attached file shows the locomotives in the collection of a North American railroad museum.,9,1,0,1,,,,,,,1,,,,
-2,49,This is a secret message my friend gave me. It says where we should meet,8,1,0,,,,,,,,1,,,,failed to check its own result
-2,50,What is the area of the green polygon in the attached file?,12,1,0,,,1,,,,,,,,,"image is complex, probably need replanning to solve succesfully"
-2,51,The attached spreadsheet contains the sales of menu items for a regional fast-food chain,8,1,1,,,,,,,,,,,,
-2,52,Who composed the song that was performed by a rooster and a hamster in separate animated videos,8,1,0,,,,,,,,1,,,,
-2,53,"According to the World Bank, which countries had gross savings of over 35%",13,0,0,,,,,1,,,,,,,
-2,54,"Iím thinking about selling my home, so I want to learn more about how homes in my area sold recentl",11,1,0,,,,,,,,1,,,,failed to search for the older sale price
-2,55,"On ScienceDirect, what is the difference to 3 decimal places in the sample standard deviations",61,0,0,,,,,,,1,,,,,stuck in repeated searches
-2,56,What is the last word before the second chorus of the King of Pop's fifth single,19,1,0,,,,,,1,,,,,,
-2,57,Look at the attached image. The quiz is scored as follows,9,1,0,,,,,,,1,,,,,
-2,58,The attached image contains a Python script. Run the Python code against an array of strings,12,1,1,,,,,,,,,,,,"solved my miracle, skipping many of required complex steps"
-2,59,"I have the Standard plan in the image below, and I just uploaded 60 equally sized files",18,1,1,,,,,,,,,,,,
-2,60,The attached PDF lists accommodations in the resort community of Seahorse Island.,14,1,0,,1,,,,,,,,,,failed to parse table in pdf
-2,61,"It's May 2023, and I'm about to drive across the U.S. from California to Maine",17,1,0,,,,,,,,1,,,,"found wrong info, did not accounted for the details of task"
-2,62,What is the latest chronological year date written in the image,14,1,0,,,,,,1,,,,,,
-2,63,The YouTube channel Game Grumps began a Letís Play of the game Sonic the Hedgehog,30,1,0,,,,1,,,,,,,,
-2,64,This spreadsheet contains a list of clients for a retractable awning company.,9,1,0,,,,,,,1,,,,,
-2,65,The book with the doi 10.1353/book.24372 concerns a certain neurologist.,20,0,0,,,,,1,,,,,,,
-2,66,The longest-lived vertebrate is named after an island.,11,1,0,,,,,,1,,,,,,
-2,67,"On the DeepFruits fruit detection graph on Connected Papers from 2016, what feature",20,1,0,,,,,,,,,1,,,js required for reading the graph
-2,68,"During the first week of August 2015, one of the NASA Astronomy Pictures of the Day shows the lights",14,1,1,,,,,,,,,,,,
-2,69,All of the individuals who formally held the position of United States secretary of homeland security ,68,1,0,,,,,1,,,,,,,
-2,70,Consider the following symbols:,13,1,0,,,,,,,,1,,,,
-2,71,"According to the USGS, in what year was the American Alligator first found west of Texas (not including Texas",16,1,0,,,,,1,,,,,,,
-2,72,"As of August 2023, who is the only winner of the US version of Survivor to be born in the month of May?",22,1,1,,,,,,,,,,,,
-2,73,The cover of the August 2021 issue of Vogue shows a famous landmark in the background behind some trees,18,1,1,,,,,,,,,,,,"was able to extract info without looking at the image, by chain of the web searches"
-2,74,I'm curious about how much information is available for popular video games before their release.,46,1,0,1,,,,,,,,,,,task asks for 2019 game not the 2019 awards
-2,75,The attached spreadsheet lists the locomotives owned by a local railroad museum.,9,1,1,,,,,,,,,,,,
-2,76,What is the absolute difference in tens of thousands between the population of chinstrap penguins on the Wikipedia,25,1,0,,,,,,1,,,,,,hallucinated individuals instead of pairs in article
-2,77,The attached file lists the locomotives owned by a local railroad museum.,8,1,1,,,,,,,,,,,,
-2,78,When was a picture of St. Thomas Aquinas first added to the Wikipedia page on the Principle of double effect,15,0,0,,,,,1,,,,,,,
-2,79,"According to Openreview.net, at the NeurIPS 2022 Conference, how many papers by an author named Yuri",23,0,0,,,,,1,,,,,,,need to use search page on a field fo succeed
-2,80,"If this whole pint is made up of ice cream, how many percent above or below the US federal standards",14,1,1,,,,,,,,,,1,,
-2,81,Take the gender split from the 2011 Bulgarian census about those who have completed tertiary education,12,1,1,,,,,,,,,,,,
-2,82,I'd like to learn more about some popular reality television competition shows.,44,1,0,,,,,,1,,,,,,cannot properly count names on a page
-2,83,"In the film Goldfinger, what color was the object that James Bond concealed himself and his companion",25,1,0,,,,,1,,,,,,,
-2,84,"As of May 2023, how many stops are between South Station and Windsor Gardens",19,1,0,,,,,1,,,,,,,found different info on another website
-2,85,In the 2015 Metropolitan Museum of Art exhibition titled after the Chinese zodiac animal ,16,0,0,,,,,,1,,,,,,cannot identify relevant search result
-2,86,"At the two-minute mark in the YouTube video uploaded by the channel ìGameGrumpsî on May 14, 2017",23,1,0,,,,1,,,,1,,,,
-,,,20.59302326,0.848837209,0.209302326,3,7,2,2,14,12,13,15,1,2,1,
-3,1,"In July 2, 1959 United States standards for grades of processed fruits",23,1,0,,,,,,,1,,,,,
-3,2,What is the average number of pre-2020 works on the open researcher and contributor identification pages,7,0,0,,1,,,,,,,,,,
-3,3,Assuming scientists in the famous youtube video The Thinking Machine (Artificial Intelligence in the 1960s),28,1,0,,,,,,,1,,,,,
-3,4,In the NCATS PubChem compound database for Food Additive Status classification,32,1,0,,,,,,,1,,,,,needs better browser
-3,5,What integer-rounded percentage of the total length of the harlequin shrimp,20,0,0,,,,,1,,,,,,,
-3,6,What animals that were mentioned in both Ilias Lagkouvardos's and Olga Tapia's papers,30,1,0,,,,,,1,,,,,,failed to extract pdf from page
-3,7,Which of the text elements under CATEGORIES in the XML would contain the one food ,12,1,0,,,,,,,,1,,,,
-3,8,"The following numbers function similarly to ISBN 13 numbers, however",9,1,0,,,,,,,,1,,,,
-3,9,I was trying to remember how well the Cheater Beater performed,19,1,0,,,,1,,,,,,,,partial data leak from https://huggingface.co/datasets/Jofthomas/Gaia-links
-3,10,What is the volume in milliliters of a system comprised of 0.312 kg,14,1,0,1,,,,,,,1,,,,
-3,11,"The Latin root of the Yola word ""gimlie"" shares a spelling with a Spanish",16,1,0,,,,,,,1,,,,,
-3,12,In the NIH translation of the original 1913 Michaelis-Menten Paper,9,1,0,1,,,,,,,,,,,
-3,13,"I was referencing each of the tables in the file from papers that were cited by the ""Trans fatty acid",18,1,0,,,,,,,,1,,,,
-3,14,What percentage of the total penguin population according to the upper estimates,13,1,0,,,,,,,,1,,,,
-3,15,"According to wikipedia, how many Asian countries still have a monarchy",42,1,0,,,,,,1,,,,,,
-3,16,I thought we could try a fun word puzzle together :),61,0,0,,,,,,,,,,,1,
-3,17,How many times was a Twitter/X post cited as a reference on the english,30,0,0,1,,,,,,,,,,,
-3,18,"Which of the fruits shown in the 2008 painting ""Embroidery from Uzbekistan"" were served as part",32,1,0,,,1,,,1,1,,,,,
-3,19,The year is 2022. I am at the National Air and Space Museum east of the Potomac River,22,1,0,,,,,,,,1,,,,hallucinated answer
-3,20,The attached spreadsheet contains a list of books I read in the year 2022,20,1,0,1,,,,,,,1,,,,hallucinations
-3,21,Eva Draconis has a personal website which can be accessed on her YouTube page,13,0,0,,,1,,,,,,,,,
-3,22,The brand that makes these harnesses the dogs are wearing in the attached pic shares stories from,20,0,0,,,,,,,,1,,,,
-3,23,"A 5-man group made up of one tank, one healer, and three DPS is doing a dungeon that was just released in World of Warcraft",6,1,0,,,,,,,,1,,,,hallucinations
-3,24,I read a paper about multiwavelength observations of fast radio bursts back in March 2021,29,0,0,,,,,1,,,,,,,
-3,25,In the YouTube 360 VR video from March 2018 narrated by the voice actor of Lord of the Rings,16,0,0,,,,1,,,,,,,,
-3,26,"In NASA's Astronomy Picture of the Day on 2006 January 21, two astronauts are visible, with one appearing",35,1,0,,,,,,,1,1,,,,
-,,,22.15384615,0.692307692,0,4,1,2,2,2,3,6,10,0,0,1,
-TOTAL,,,18.48484848,0.842424242,0.254545455,8,14,4,6,18,19,22,34,2,3,2,
+What does Teal'c say in response to the question ""Isn't that hot?""",16,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,9d191bce-651d-4746-be2d-7ef8ecadb9c2
+1,28,You are given this Excel file as a map.,20,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,65afbc8a-89ca-4ad5-8d62-355bb401f61d
+1,29,What is the surname of the equine veterinarian mentioned in 1.E Exercises from the chemistry materials licensed by Marisa Alviar-Agnew & Henry Agnew under the CK-12 license in LibreText's Introductory Chemistry materials as compiled 08/21/2023?,19,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,cabe07ed-9eca-40ea-8ead-410ef5e83f91
+1,30,"I'm making a grocery list for my mom, but she's a professor of botany",6,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,3cef3a44-215e-4aed-8e3b-b1e3f08063b7
+1,31,"Hi, I'm making a pie but I could use some help with my shopping list",9,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,99c9cc74-fdc8-46c6-8f8d-3ce2d3bfeea3
+1,32,"In the Scikit-Learn July 2017 changelog, what other predictor base command received a bug fix? Just give the name, not a path.",26,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,"stuck in repeated searches, lack of reflection",d0633230-7067-47a9-9dbf-ee11e0a2cdd6
+1,33,Who did the actor who played Ray in the Polish-language version of Everybody Loves Raymond play in Magda M.? Give only the first name.,14,0,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,search returned empty result,305ac316-eef6-4446-960a-92d80d542f82
+1,34,"On the BBC Earth YouTube video of the Top 5 Silliest Animal Moments, what species of bird is featured?",12,0,0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0383a3ee-47a7-41a4-b493-519bdefe0488
+1,35,What is the final numeric output from the attached Python code?,8,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,f918266a-b3e0-4914-865d-4faa564f1aef
+1,36,How many more blocks (also denoted as layers) in BERT base encoder than the encoder from the architecture proposed in Attention is All You Need?,13,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,11af4e1a-5f45-467d-9aeb-46f4bb0bf034
+1,37,"Bob was invited to participate in a game show, and he advanced to the final round.",11,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,code could help,e142056d-56ab-4352-b091-b56054bd1359
+1,38,Pull out the sentence in the following 5x7 block of text.,5,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,code could help,50ad0280-0819-4bd9-b275-5de32d3b5bcb
+1,39,On Cornell Law School website's legal information institute,22,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,,7673d772-ef80-4f0f-a602-1bf4485c9b43
+1,40,Of the cities within the United States where U.S. presidents were born,24,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,c365c1c7-a3db-4d5e-a9a1-66f56eae7865
+1,41,"According to Girls Who Code, how long did it take in years",17,1,0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,7d4a7d1d-cac6-44a8-96e8-ea9584a70825
+1,42,What was the complete title of the book in which two James Beard Award winners recommended the restaurant where Ali Khan enjoyed a New Mexican staple in his cost-conscious TV show that started in 2015?,41,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,dc22a632-937f-4e6a-b72f-ba0ff3f5ff97
+1,43,How many at bats did the Yankee with the most walks in the 1977,15,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,3f57289b-8c60-48be-bd80-01f8099ca449
+1,44,"In Audre Lorde’s poem “Father Son and Holy Ghost”, what is the number of the stanza in which some lines are indented?",10,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,first stanza glued with the previous line of the page and missed,23dd907f-1261-4488-b21c-e9185af91d5e
+1,45,"Hi, I was out sick from my classes on Friday, so I'm trying to figure out what I need to study for my Calculus mid-term next week",6,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,1f975693-876d-457b-a649-393859e79bf3
+1,46,"On June 6, 2023, an article by Carolyn Collins Petersen was published in Universe Today.",12,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,840bfca7-4f7b-481a-8794-c560c340185d
+1,47,What was the actual enrollment count of the clinical trial on H. pylori in acne vulgaris patients from Jan-May 2018 as listed on the NIH website?,20,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,"stuck in repeated searches, lack of reflection",a0068077-79f4-461a-adfe-75c1a4148545
+1,48,Where were the Vietnamese specimens described by Kuznetzov in Nedoshivina's 2010 paper eventually deposited? Just give me the city name without abbreviations.,15,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,,bda648d7-d618-4883-88f4-3466eabd860e
+1,49,"A standard Rubik’s cube has been broken into cubes making up its sides. The cubes are jumbled, and one is removed. There are 6 cubes with one colored face, 12 edge cubes with two colored faces, and 8 corner cubes with three colored faces. All blue cubes have been found. All cubes directly left, right, above, and below the orange center cube have been found, along with the center cube. The green corners have all been found, along with all green that borders yellow. For all orange cubes found, the opposite face’s cubes have been found. The removed cube has two colors on its faces. What are they? Answer using a comma separated list, with the colors ordered alphabetically.",6,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,50ec8903-b81f-4257-9450-1085afd2c319
+1,50,What country had the least number of athletes at the 1928 Summer Olympics?,35,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,cf106601-ab4f-4af9-b045-5295fe67b37d
+1,51,Who are the pitchers with the number before and after Taishō Tamai's number as of July 2023? ,19,1,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,"current team different from july 2023, faield to find old one",a0c07678-e491-4bbc-8f0b-07405144218f
+1,52,The attached Excel file contains the sales of menu items for a local fast-food chain.,9,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,7bd855d8-463d-4ed5-93ca-5fe35145f733
+1,53,What is the first name of the only Malko Competition recipient from the 20th Century (after 1977) whose nationality on record is a country that no longer exists?,10,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,5a0c1adf-205e-4841-a666-7c3ef95def9d
+2,1,A paper about AI regulation that was originally submitted to arXiv.org in June 2022 shows,12,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,,c61d22de-5f6c-4958-a7f6-5e9707bd3466
+2,2,I’m researching species that became invasive after,13,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,hallucinated zip code instead of lookup,17b5a6a3-bc87-42e8-b0fb-6ab0781ef2cc
+2,3,If we assume all articles published by Nature in 2020,17,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,incorrectly rounded 41.48 to 42,04a04a9b-226c-43fd-b319-d5e89743676f
+2,4,"In Unlambda, what exact charcter or text needs to be added",10,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,14569e28-c88c-43e4-8c32-097d35b9a67d
+2,5,The attached spreadsheet shows the inventory for a movie,8,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,32102e3e-d12a-4209-9163-7b3a104efe5d
+2,6,"The object in the British Museum's collection with a museum number of 2012,5015",21,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,3627a8be-a77f-41bb-b807-7e1bd4c0ebdf
+2,7,"According to github, when was Regression added to the oldest closed numpy.polynomial",14,1,0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,7619a514-5fa8-43ef-9143-83b66a43d7a4
+2,8,"Using the Biopython library in Python, parse the PDB file",16,0,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,7dd30055-0198-452e-8c25-f73dbe27dcb8
+2,9,What are the EC numbers of the two most commonly used chemicals,30,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,2a649bb1-795f-4a01-b3be-9a01868dae73
+2,10,"In April of 1977, who was the Prime Minister of the first place",14,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,,87c610df-bef7-4932-b950-1d83ef4e282b
+2,11,What's the last line of the rhyme under the flavor name,13,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,624cbf11-6a41-4692-af9c-36b3e5ca3130
+2,12,Use density measures from the chemistry materials,24,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,dd3c7503-f62a-4bd0-9f67-1b63b94194cc
+2,13,When you take the average of the standard population deviation of the red numbers,26,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,df6561b2-7ee5-4540-baab-5095f742716a
+2,14,In terms of geographical distance between capital cities,24,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,f0f46385-fc03-4599-b5d3-f56496c3e69f
+2,15,I need to fact-check a citation. This is the citation from the bibliography,15,0,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,failed to get full PDF,e4e91f1c-1dcd-439e-9fdd-cb976f5293fd
+2,16,Which contributor to the version of OpenCV where support was added,21,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,56137764-b4e0-45b8-9c52-1866420c3df5
+2,17,What is the maximum length in meters of #9 in the first National Geographic short,21,0,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,8b3379c0-0981-4f5b-8407-6444610cb212
+2,18,What two-word type of model did Manash Pratim Kashyap's,13,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,0ff53813-3367-4f43-bcbd-3fd725c1bf4b
+2,19,How many High Energy Physics - Lattice articles listed ,17,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,need step action plans,a7feb290-76bb-4cb7-8800-7edaf7954f2f
+2,20,The photograph in the Whitney Museum of American Art's collection,25,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,b4cc024b-3f5e-480e-b96a-6656493255b5
+2,21,What is the minimum number of page links a person must click,38,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,need step action plans,33d8ea3b-6c6b-4ff1-803d-7e270dea8a57
+2,22,I went to Virtue restaurant & bar in Chicago for my birthday,21,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,need step action plans,e8cb5b03-41e0-4086-99e5-f6806cd97211
+2,23,"It is 1999. Before you party like it is 1999, please assist me in settling a bet.",23,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,lack of work on subtask,f46b4380-207e-4434-820b-f32ce04ae2a4
+2,24,"In the 2018 VSCode blog post on replit.com, what was the command",14,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,05407167-39ec-4d3a-a234-73a9120c325d
+2,25,Compute the check digit the Tropicos ID for the Order,14,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,b9763138-c053-4832-9f55-86200cb1f99c
+2,26,What time was the Tri-Rail train that carried the most passengers on May 27,58,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,stuck in repeated searches,16d825ff-1623-4176-a5b5-42e0f5c2b0ac
+2,27,Could you help me out with this assignment? Our professor sprung,9,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,2b3ef98c-cc05-450b-a719-711aee40ac65
+2,28,How many applicants for the job in the PDF are only missing a single qualification?,9,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,bfcd99e1-0690-4b53-a85c-0174a8629083
+2,29,"In Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”",61,0,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,"failed to read whole PDF book, too long",544b7f0c-173a-4377-8d56-57b36eb26ddf
+2,30,The Metropolitan Museum of Art has a portrait in its collection,20,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,6b078778-0b90-464d-83f6-59511c811b01
+2,31,The attached file contains a list of vendors in the Liminal Springs mall,39,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,076c8171-9b3b-49b9-a477-244d2a532826
+2,32,"According to Google Finance, when was the first year",13,1,0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,,08cae58d-4084-4616-b6dd-dd6534e4825b
+2,33,"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 ",17,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,different results when using different plan even as a human!,2dfc4c37-fec1-4518-84a7-10095d30ad75
+2,34,How many pages if the 2023 IPCC report (85 pages version) mentions nuclear energy?,18,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,9f41b083-683e-4dcf-9185-ccfeaa88fa45
+2,35,How many images are there in the latest 2022 Lego english wikipedia article?,15,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,ecbc4f94-95a3-4cc7-b255-6741a458a625
+2,36,The attached file shows a list of books in the collection of Scribe County,11,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,e9a2c537-8232-4c3f-85b0-b52de6bcba99
+2,37,"On a leap day before the year 2008, a joke was removed from the Wikipedia page for “Dragon”",61,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,stuck in repeated searches,71345b0a-9c7d-4b50-b2bf-937ec5879845
+2,38,Find the value of x to the nearest tenth: Lx = (d/dx * (A * x-squared)) + 4-thousand'n'ninety-7 minus C,21,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,7b5377b0-3f38-4103-8ad2-90fe89864c04
+2,39,In the endnote found in the second-to-last paragraph of page 11 of the book,14,1,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,114d5fd0-e2ae-4b6d-a65a-870da2d19c08
+2,40,"Using bass clef notes, what is the age of someone who has experienced",26,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,8f80e01c-1296-4371-9486-bb3d68651a60
+2,41,"On July 15, 2008, Phys.org published an article about a catastrophe.",17,1,1,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,failed to extract notes from the image,ad37a656-079a-49f9-a493-7b739c9167d1
+2,42,The attached file lists accommodations in the resort town of Seahorse Island.,9,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,failed to parse table in pdf,366e2f2b-8632-4ef2-81eb-bc3877489217
+2,43,How many edits were made to the Wikipedia page on Antidisestablishmentarianism,19,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,f3917a3d-1d17-4ee2-90c5-683b072218fe
+2,44,How many nonindigenous crocodiles were found in Florida from,29,1,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,48eb8242-1099-4c26-95d4-ef22b002457a
+2,45,The work referenced in footnote 397 of Federico Lauria's 2014 dissertation,17,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,"failed to access full pdf, lack of reflection during reading",c8b7e059-c60d-472e-ad64-3b04ae1166dc
+2,46,"As of the 2020 census, what was the population difference between the largest county seat and smallest",41,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,,d1af70ea-a9a4-421a-b9cc-94b5e02f1788
+2,47,"Given $x_0 = -5$ and $f(x) = x^3 + 4x^2 - 3x + 8$, what is the smallest $n$ where using Newton",30,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,08f3a05f-5947-4089-a4c4-d4bcfaa6b7a0
+2,48,The attached file shows the locomotives in the collection of a North American railroad museum.,9,1,0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,54612da3-fd56-4941-80f4-5eb82330de25
+2,49,This is a secret message my friend gave me. It says where we should meet,8,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,failed to check its own result,ded28325-3447-4c56-860f-e497d6fb3577
+2,50,What is the area of the green polygon in the attached file?,12,1,0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"image is complex, probably need replanning to solve succesfully",6359a0b1-8f7b-499b-9336-840f9ab90688
+2,51,The attached spreadsheet contains the sales of menu items for a regional fast-food chain,8,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,7cc4acfa-63fd-4acc-a1a1-e8e529e0a97f
+2,52,Who composed the song that was performed by a rooster and a hamster in separate animated videos,8,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,d700d50d-c707-4dca-90dc-4528cddd0c80
+2,53,"According to the World Bank, which countries had gross savings of over 35%",13,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,0a3cd321-3e76-4622-911b-0fda2e5d6b1a
+2,54,"I’m thinking about selling my home, so I want to learn more about how homes in my area sold recentl",11,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,failed to search for the older sale price,f2feb6a4-363c-4c09-a804-0db564eafd68
+2,55,"On ScienceDirect, what is the difference to 3 decimal places in the sample standard deviations",61,0,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,stuck in repeated searches,0b260a57-3f3a-4405-9f29-6d7a1012dbfb
+2,56,What is the last word before the second chorus of the King of Pop's fifth single,19,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,,ed58682d-bc52-4baa-9eb0-4eb81e1edacc
+2,57,Look at the attached image. The quiz is scored as follows,9,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,cca70ce6-1952-45d2-acd4-80c903b0bc49
+2,58,The attached image contains a Python script. Run the Python code against an array of strings,12,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"solved my miracle, skipping many of required complex steps",b7f857e4-d8aa-4387-af2a-0e844df5b9d8
+2,59,"I have the Standard plan in the image below, and I just uploaded 60 equally sized files",18,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,d8152ad6-e4d5-4c12-8bb7-8d57dc10c6de
+2,60,The attached PDF lists accommodations in the resort community of Seahorse Island.,14,1,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,failed to parse table in pdf,67e8878b-5cef-4375-804e-e6291fdbe78a
+2,61,"It's May 2023, and I'm about to drive across the U.S. from California to Maine",17,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,"found wrong info, did not accounted for the details of task",023e9d44-96ae-4eed-b912-244ee8c3b994
+2,62,What is the latest chronological year date written in the image,14,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,,0e9e85b8-52b9-4de4-b402-5f635ab9631f
+2,63,The YouTube channel Game Grumps began a Let’s Play of the game Sonic the Hedgehog,30,1,0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,20194330-9976-4043-8632-f8485c6c71b2
+2,64,This spreadsheet contains a list of clients for a retractable awning company.,9,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,4d51c4bf-4b0e-4f3d-897b-3f6687a7d9f2
+2,65,The book with the doi 10.1353/book.24372 concerns a certain neurologist.,20,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,65638e28-7f37-4fa7-b7b9-8c19bb609879
+2,66,The longest-lived vertebrate is named after an island.,11,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,,3ff6b7a9-a5bd-4412-ad92-0cd0d45c0fee
+2,67,"On the DeepFruits fruit detection graph on Connected Papers from 2016, what feature",20,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,js required for reading the graph,708b99c5-e4a7-49cb-a5cf-933c8d46470d
+2,68,"During the first week of August 2015, one of the NASA Astronomy Pictures of the Day shows the lights",14,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0a65cb96-cb6e-4a6a-8aae-c1084f613456
+2,69,All of the individuals who formally held the position of United States secretary of homeland security ,68,1,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,65da0822-a48a-4a68-bbad-8ed1b835a834
+2,70,Consider the following symbols:,13,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,0bb3b44a-ede5-4db5-a520-4e844b0079c5
+2,71,"According to the USGS, in what year was the American Alligator first found west of Texas (not including Texas",16,1,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,73c1b9fe-ee1d-4cf4-96ca-35c08f97b054
+2,72,"As of August 2023, who is the only winner of the US version of Survivor to be born in the month of May?",22,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,e2d69698-bc99-4e85-9880-67eaccd66e6c
+2,73,The cover of the August 2021 issue of Vogue shows a famous landmark in the background behind some trees,18,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,"was able to extract info without looking at the image, by chain of the web searches",a56f1527-3abf-41d6-91f8-7296d6336c3f
+2,74,I'm curious about how much information is available for popular video games before their release.,46,1,0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,task asks for 2019 game not the 2019 awards,42d4198c-5895-4f0a-b0c0-424a66465d83
+2,75,The attached spreadsheet lists the locomotives owned by a local railroad museum.,9,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,edd4d4f2-1a58-45c4-b038-67337af4e029
+2,76,What is the absolute difference in tens of thousands between the population of chinstrap penguins on the Wikipedia,25,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,hallucinated individuals instead of pairs in article,a26649c6-1cb2-470a-871e-6910c64c3e53
+2,77,The attached file lists the locomotives owned by a local railroad museum.,8,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,4d0aa727-86b1-406b-9b33-f870dd14a4a5
+2,78,When was a picture of St. Thomas Aquinas first added to the Wikipedia page on the Principle of double effect,15,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,d5141ca5-e7a0-469f-bf3e-e773507c86e2
+2,79,"According to Openreview.net, at the NeurIPS 2022 Conference, how many papers by an author named Yuri",23,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,need to use search page on a field fo succeed,1dcc160f-c187-48c2-b68e-319bd4354f3d
+2,80,"If this whole pint is made up of ice cream, how many percent above or below the US federal standards",14,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,,b2c257e0-3ad7-4f05-b8e3-d9da973be36e
+2,81,Take the gender split from the 2011 Bulgarian census about those who have completed tertiary education,12,1,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,e0c10771-d627-4fd7-9694-05348e54ee36
+2,82,I'd like to learn more about some popular reality television competition shows.,44,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,cannot properly count names on a page,e29834fd-413a-455c-a33e-c3915b07401c
+2,83,"In the film Goldfinger, what color was the object that James Bond concealed himself and his companion",25,1,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,08c0b6e9-1b43-4c2e-ae55-4e3fce2c2715
+2,84,"As of May 2023, how many stops are between South Station and Windsor Gardens",19,1,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,found different info on another website,db4fd70a-2d37-40ea-873f-9433dc5e301f
+2,85,In the 2015 Metropolitan Museum of Art exhibition titled after the Chinese zodiac animal ,16,0,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,cannot identify relevant search result,853c8244-429e-46ca-89f2-addf40dfb2bd
+2,86,"At the two-minute mark in the YouTube video uploaded by the channel “GameGrumps” on May 14, 2017",23,1,0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,7a4a336d-dcfa-45a0-b014-824c7619e8de
+3,1,"In July 2, 1959 United States standards for grades of processed fruits",23,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,676e5e31-a554-4acc-9286-b60d90a92d26
+3,2,What is the average number of pre-2020 works on the open researcher and contributor identification pages,7,0,0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,bec74516-02fc-48dc-b202-55e78d0e17cf
+3,3,Assuming scientists in the famous youtube video The Thinking Machine (Artificial Intelligence in the 1960s),28,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,00d579ea-0889-4fd9-a771-2c8d79835c8d
+3,4,In the NCATS PubChem compound database for Food Additive Status classification,32,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,needs better browser,384d0dd8-e8a4-4cfe-963c-d37f256e7662
+3,5,What integer-rounded percentage of the total length of the harlequin shrimp,20,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,de9887f5-ead8-4727-876f-5a4078f8598c
+3,6,What animals that were mentioned in both Ilias Lagkouvardos's and Olga Tapia's papers,30,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,failed to extract pdf from page,983bba7c-c092-455f-b6c9-7857003d48fc
+3,7,Which of the text elements under CATEGORIES in the XML would contain the one food ,12,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,9b54f9d9-35ee-4a14-b62f-d130ea00317f
+3,8,"The following numbers function similarly to ISBN 13 numbers, however",9,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,56db2318-640f-477a-a82f-bc93ad13e882
+3,9,I was trying to remember how well the Cheater Beater performed,19,1,0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,partial data leak from https://huggingface.co/datasets/Jofthomas/Gaia-links,8131e2c0-0083-4265-9ce7-78c2d568425d
+3,10,What is the volume in milliliters of a system comprised of 0.312 kg,14,1,0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,72c06643-a2fa-4186-aa5c-9ec33ae9b445
+3,11,"The Latin root of the Yola word ""gimlie"" shares a spelling with a Spanish",16,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,,ebbc1f13-d24d-40df-9068-adcf735b4240
+3,12,In the NIH translation of the original 1913 Michaelis-Menten Paper,9,1,0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,c526d8d6-5987-4da9-b24c-83466fa172f3
+3,13,"I was referencing each of the tables in the file from papers that were cited by the ""Trans fatty acid",18,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,3da89939-209c-4086-8520-7eb734e6b4ef
+3,14,What percentage of the total penguin population according to the upper estimates,13,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,8d46b8d6-b38a-47ff-ac74-cda14cf2d19b
+3,15,"According to wikipedia, how many Asian countries still have a monarchy",42,1,0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,,e961a717-6b25-4175-8a68-874d28190ee4
+3,16,I thought we could try a fun word puzzle together :),61,0,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,,851e570a-e3de-4d84-bcfa-cc85578baa59
+3,17,How many times was a Twitter/X post cited as a reference on the english,30,0,0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,50f58759-7bd6-406f-9b0d-5692beb2a926
+3,18,"Which of the fruits shown in the 2008 painting ""Embroidery from Uzbekistan"" were served as part",32,1,0,0.0,0.0,1.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,,872bfbb1-9ccf-49f6-8c5f-aa22818ccd66
+3,19,The year is 2022. I am at the National Air and Space Museum east of the Potomac River,22,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,hallucinated answer,c3a79cfe-8206-451f-aca8-3fec8ebe51d3
+3,20,The attached spreadsheet contains a list of books I read in the year 2022,20,1,0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,hallucinations,da52d699-e8d2-4dc5-9191-a2199e0b6a9b
+3,21,Eva Draconis has a personal website which can be accessed on her YouTube page,13,0,0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,ad2b4d70-9314-4fe6-bfbe-894a45f6055f
+3,22,The brand that makes these harnesses the dogs are wearing in the attached pic shares stories from,20,0,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,,5b2a14e8-6e59-479c-80e3-4696e8980152
+3,23,"A 5-man group made up of one tank, one healer, and three DPS is doing a dungeon that was just released in World of Warcraft",6,1,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,hallucinations,9e1fc53b-46ff-49a1-9d05-9e6faac34cc5
+3,24,I read a paper about multiwavelength observations of fast radio bursts back in March 2021,29,0,0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,,5f982798-16b9-4051-ab57-cfc7ebdb2a91
+3,25,In the YouTube 360 VR video from March 2018 narrated by the voice actor of Lord of the Rings,16,0,0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0512426f-4d28-49f0-be77-06d05daec096
+3,26,"In NASA's Astronomy Picture of the Day on 2006 January 21, two astronauts are visible, with one appearing",35,1,0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,,0bdb7c40-671d-4ad1-9ce3-986b159c0ddc
