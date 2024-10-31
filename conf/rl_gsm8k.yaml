@@ -40,3 +40,11 @@ hydra:
   job_logging:
     root:
       level: DEBUG
+    handlers:
+      node_errors:
+        class: logging.FileHandler
+        filename: ${output_dir}/node_errors.log    
+    loggers:
+      tapeagents.nodes:
+        handlers: [node_errors]
+        propagate: no      
