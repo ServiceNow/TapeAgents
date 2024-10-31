@@ -154,33 +154,6 @@ def test_create_with_dict_llms_and_templates():
     assert agent.templates == templates
 
 
-def test_select_node():
-    class MockTapeViewStack:
-        class MockTapeView:
-            def __init__(self, next_node):
-                self.next_node = next_node
-
-        def __init__(self, next_node):
-            self.top = self.MockTapeView(next_node)
-
-        @staticmethod
-        def compute(tape):
-            return MockTapeViewStack(1)
-
-    class MockAgent(Agent):
-        def compute_view(self, tape):
-            return MockTapeViewStack.compute(tape)
-
-    node0 = Node(name="node1")
-    node1 = Node(name="node2")
-    agent = MockAgent(nodes=[node0, node1])
-    tape = MockTape()
-
-    selected_node = agent.select_node(tape)
-
-    assert selected_node == node1
-
-
 def test_make_prompt():
     class NodeMockPrompt(Prompt):
         pass
@@ -303,3 +276,85 @@ def test_run_iteration_with_agent_step():
     assert isinstance(steps[0], AgentStep)
     assert steps[0].metadata.prompt_id is not None
     assert steps[0].metadata.node == "node1"
+
+
+def test_select_node_explicit_next_node():
+    class MockView:
+        next_node = "node2"
+        last_node = None
+
+    class MockTapeViewStack:
+        top = MockView()
+
+    class MockAgent(Agent):
+        def compute_view(self, tape):
+            return MockTapeViewStack()
+
+        def find_node(self, name):
+            return Node(name=name)
+
+    agent = MockAgent(nodes=[Node(name="node1"), Node(name="node2")])
+    tape = MockTape()
+
+    selected_node = agent.select_node(tape)
+
+    assert selected_node.name == "node2"
+
+
+def test_select_node_no_nodes_run_yet():
+    class MockView:
+        next_node = None
+        last_node = None
+
+    class MockTapeViewStack:
+        top = MockView()
+
+    class MockAgent(Agent):
+        def compute_view(self, tape):
+            return MockTapeViewStack()
+
+    agent = MockAgent(nodes=[Node(name="node1"), Node(name="node2")])
+    tape = MockTape()
+
+    selected_node = agent.select_node(tape)
+
+    assert selected_node.name == "node1"
+
+
+def test_select_node_select_next_node():
+    class MockView:
+        next_node = None
+        last_node = "node1"
+
+    class MockTapeViewStack:
+        top = MockView()
+
+    class MockAgent(Agent):
+        def compute_view(self, tape):
+            return MockTapeViewStack()
+
+    agent = MockAgent(nodes=[Node(name="node1"), Node(name="node2")])
+    tape = MockTape()
+
+    selected_node = agent.select_node(tape)
+
+    assert selected_node.name == "node2"
+
+
+def test_select_node_next_node_not_found():
+    class MockView:
+        next_node = None
+        last_node = "node2"
+
+    class MockTapeViewStack:
+        top = MockView()
+
+    class MockAgent(Agent):
+        def compute_view(self, tape):
+            return MockTapeViewStack()
+
+    agent = MockAgent(nodes=[Node(name="node1"), Node(name="node2")])
+    tape = MockTape()
+
+    with pytest.raises(ValueError, match="Next node not found"):
+        agent.select_node(tape)

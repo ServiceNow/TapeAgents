@@ -62,7 +62,7 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
         raise ValueError(f"Unsupported file extension: {file_extension}")
     if os.path.isdir(path):
         logger.info(f"Loading tapes from dir {path}")
-        paths = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(file_extension)]
+        paths = sorted([os.path.join(path, f) for f in os.listdir(path) if f.endswith(file_extension)])
     else:
         paths = [path]
         file_extension = os.path.splitext(path)[-1]

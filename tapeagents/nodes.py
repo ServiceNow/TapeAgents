@@ -36,7 +36,7 @@ class MonoNode(Node):
     system_prompt: str = ""
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_step_cls: Any = Field(exclude=True)
-    next_node: int | None = None
+    next_node: str = ""
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         cleaned_tape = self.prepare_tape(tape)
@@ -88,7 +88,7 @@ class MonoNode(Node):
         except FatalError:
             raise
 
-        if self.next_node is not None and not isinstance(new_steps[-1], StopStep):
+        if self.next_node and not isinstance(new_steps[-1], StopStep):
             yield SetNextNode(next_node=self.next_node)
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
@@ -135,7 +135,7 @@ class ControlFlowNode(Node):
     ControlFlowNode is a Node that selects another node to run based on the tape.
 
     Methods:
-        choose_next_node(tape: Tape) -> int:
+        select_node(tape: Tape) -> int:
             Abstract method to choose the next node based on the tape. Must be implemented in a subclass.
     """
 
@@ -144,7 +144,7 @@ class ControlFlowNode(Node):
     ) -> Generator[Step | PartialStep, None, None]:
         yield SetNextNode(next_node=self.select_node(tape))
 
-    def select_node(self, tape: Tape) -> int:
+    def select_node(self, tape: Tape) -> str:
         raise NotImplementedError("Implement this method in the subclass to set the next node according to your logic")
 
 
@@ -153,10 +153,10 @@ class ObservationControlNode(ControlFlowNode):
     ObservationControlNode is a ControlFlowNode that selects the next node based on the last observation in the tape.
     """
 
-    observation_to_node: dict[Type, int] = {}
-    default_node: int = -1  # jump to the last node by default
+    observation_to_node: dict[Type, str] = {}
+    default_node: str = ""  # jump to the last node by default
 
-    def select_node(self, tape: Tape) -> int:
+    def select_node(self, tape: Tape) -> str:
         observations = [step for step in tape.steps if isinstance(step, Observation)]
         last_observation = observations[-1] if observations else None
         return self.observation_to_node.get(type(last_observation), self.default_node)

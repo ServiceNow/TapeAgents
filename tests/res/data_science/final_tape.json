@@ -72,7 +72,7 @@
         "other": {}
       },
       "kind": "set_next_node",
-      "next_node": 0
+      "next_node": "broadcast_last_message"
     },
     {
       "metadata": {
@@ -164,7 +164,7 @@
         "other": {}
       },
       "kind": "set_next_node",
-      "next_node": 0
+      "next_node": "broadcast_last_message"
     },
     {
       "metadata": {
@@ -215,7 +215,7 @@
         "other": {}
       },
       "kind": "set_next_node",
-      "next_node": 0
+      "next_node": "broadcast_last_message"
     },
     {
       "metadata": {
@@ -266,7 +266,7 @@
         "other": {}
       },
       "kind": "set_next_node",
-      "next_node": 0
+      "next_node": "broadcast_last_message"
     },
     {
       "metadata": {
@@ -353,7 +353,7 @@
         "other": {}
       },
       "kind": "set_next_node",
-      "next_node": 0
+      "next_node": "broadcast_last_message"
     },
     {
       "metadata": {

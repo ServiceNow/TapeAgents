@@ -135,7 +135,7 @@ class MathAgent(Agent):
                     steps_prompt=ALLOWED_STEPS,
                     agent_step_cls=MathAgentStep,
                     guidance=HINTS,
-                    next_node=-1,
+                    next_node="default",
                 ),
             ],
             max_iterations=2,
