@@ -320,13 +320,3 @@ def launch_training(config_dir, config_name, accelerate_cfg_path):
         raise RuntimeError(error_msg) from e
     except Exception as e:
         raise RuntimeError(f"Unexpected error during training: {str(e)}") from e
-
-import hydra
-from omegaconf import DictConfig
-@hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
-def main(cfg: DictConfig):
-    finetune_config_path = "/home/toolkit/TapeAgents/outputs/rl_gsm8k_adamw_fixed_llm_calls_8gpus_70b_lr_0_000005_clip_1_0_wd_0_1_gap_1024_max_agent_forks_1024_attempts_64_algo_reinforce/conf/"
-    launch_training(finetune_config_path, "0", "conf/deepspeed/accelerate_local.yaml")
-
-if __name__ == "__main__":
-    main()
