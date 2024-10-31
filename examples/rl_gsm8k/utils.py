@@ -39,6 +39,7 @@ class VLLMServiceManager:
         self.process: Optional[subprocess.Popen] = None
         self.stdout_file: Optional[TextIO] = None
         self.stderr_file: Optional[TextIO] = None
+        self.stats = {}
 
     def _terminate_with_children(self, process_id: int) -> None:
         try:
@@ -127,11 +128,14 @@ class VLLMServiceManager:
         vllm_url = f"http://{self.host}:{self.port}/health"
         headers = {"User-Agent": "vLLM Client"}
 
+        start_waiting = time.time()
         if self._wait_for_service(self.process, vllm_url, headers=headers, timeout=8000):
             logger.info(f"Student {self.model_name_or_path} model loaded on port {self.port}")
         else:
             self._cleanup()
             raise Exception("Failed to start the service")
+        end_waiting = time.time()
+        self.stats["starting_time"] = end_waiting - start_waiting
 
     def _cleanup(self) -> None:
         if self.process and self.process.pid:
@@ -149,6 +153,9 @@ class VLLMServiceManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self._cleanup()
+    
+    def get_stats(self):
+        return self.stats
 
 
 def setup_logging(output_dir):

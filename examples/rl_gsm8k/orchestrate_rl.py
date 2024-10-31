@@ -321,7 +321,7 @@ def main(cfg: DictConfig):
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **cfg.vllm_config.vllm_kwargs,
-            ):
+            ) as vllm_service_manager:
                 for dataset_name, agent, tapes in datasets:
                     tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
                     new_tapes, training_samples, stats = generate_training_data(
@@ -338,6 +338,7 @@ def main(cfg: DictConfig):
                     logger.info(f"{dataset_name.capitalize()} Results:")
                     for stat_name, stat_value in stats.items():
                         logger.info(f"{stat_name}: {stat_value}")
+                assistant_vllm_stats = vllm_service_manager.get_stats()
 
         except Exception as e:
             logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -380,7 +381,7 @@ def main(cfg: DictConfig):
                     verbose=True,
                     cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                     **cfg.vllm_config.vllm_kwargs,
-                ):
+                ) as vllm_service_manager:
                     # FIXME: more than 1 worker causes the LLM to run OOM
                     with ThreadPoolExecutor(max_workers=1) as executor:
                         futures = [
@@ -391,6 +392,7 @@ def main(cfg: DictConfig):
                             trace = future.result()
                             if trace:
                                 new_training_samples.append(trace)
+                    refmodel_vllm_stats = vllm_service_manager.get_stats()
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
@@ -400,6 +402,8 @@ def main(cfg: DictConfig):
         wandb.log(
             {
                 "execution_time/populating_ref_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
+                "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
+                "execution_time/starting_refmodel_vllm": assistant_vllm_stats["starting_time"],
             },
             step=state["iteration"],
         )
