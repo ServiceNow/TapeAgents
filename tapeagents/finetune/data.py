@@ -17,7 +17,7 @@ from tapeagents.core import TrainingText
 
 from .context import accelerator, logger
 from .logging_ import log_time
-from .rl.grpo import RL_DATA_COLUMNS, prepare_rl_fields
+from .rl import RL_DATA_COLUMNS, prepare_rl_fields
 from .types import DataArgs, DataPartArgs
 
 datasets.builder.has_sufficient_disk_space = (
@@ -131,15 +131,12 @@ def preprocess_fn(
         encoding["offset_mapping"],  # type: ignore
         predicted_spans,
     )
-    if "rewards" in entry:
+    if "reward" in entry:
         encoding = prepare_rl_fields(
             encoding,
-            entry["rewards"],
-            entry["old_logprobs"],
+            entry["reward"],
+            entry["logprobs"],
             entry["ref_logprobs"],
-            predicted_spans,
-            seq_length,
-            tokenizer,
         )
     return encoding
 
@@ -160,6 +157,8 @@ def collate(
         padded_sequences = []
         pad_value = label_mask_value if k == "labels" else (0.0 if k in RL_DATA_COLUMNS else 0)
         for seq in seq_list:
+            if not isinstance(seq, list):
+                seq = [seq]
             padding = [pad_value] * (seq_length - len(seq))
             padded = (seq + padding) if tokenizer.padding_side == "right" else (padding + seq)
             padded_sequences.append(padded)

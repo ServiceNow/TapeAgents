@@ -6,8 +6,9 @@ from pydantic import Field, TypeAdapter, ValidationError
 
 from .agent import Node
 from .core import (
-    AgentResponseParsingFailureAction,
+    LLMOutputParsingFailureAction,
     AgentStep,
+    StepMetadata,
     LLMOutput,
     Observation,
     PartialStep,
@@ -100,7 +101,7 @@ class MonoNode(Node):
                 step_dicts = [step_dicts]
         except Exception as e:
             logger.exception(f"Failed to parse agent output: {completion}\n\nError: {e}")
-            yield AgentResponseParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
+            yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
             return
         try:
             steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
@@ -110,13 +111,14 @@ class MonoNode(Node):
                 loc = ".".join([str(loc) for loc in err["loc"]])
                 err_text += f"{loc}: {err['msg']}\n"
             logger.exception(f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}")
-            yield AgentResponseParsingFailureAction(
-                error=f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}"
+            yield LLMOutputParsingFailureAction(
+                error=f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}",
+                metadata=StepMetadata(other={"completion": completion}),
             )
             return
         except Exception as e:
             logger.exception(f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}")
-            yield AgentResponseParsingFailureAction(
+            yield LLMOutputParsingFailureAction(
                 error=f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}"
             )
             return

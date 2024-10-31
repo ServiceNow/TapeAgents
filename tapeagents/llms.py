@@ -7,7 +7,7 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Generator, Type
+from typing import Any, Callable, Generator
 
 import litellm
 import openai
@@ -73,6 +73,7 @@ class LLM(BaseModel, ABC):
     context_size: int = 32000
     tokenizer_name: str = ""
     tokenizer: Any = None
+
     token_count: int = 0
     _log: list = []
 
@@ -324,6 +325,123 @@ class TrainableLLM(CachedLLM):
         self.load_tokenizer()
         return trainable_llm_make_training_text(prompt, output, self.tokenizer)
 
+    def get_log_probs_complete(self, prompt: str, output: str) -> list[float]:
+        if not self.tokenizer:
+            self.load_tokenizer()
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+
+        if self.tokenizer.bos_token and prompt.startswith(self.tokenizer.bos_token):
+            prompt = prompt[len(self.tokenizer.bos_token) :]
+
+        prompt_text = prompt + output
+        generation_args = {
+            "model": self.model_name,
+            "prompt": prompt_text,
+            "temperature": 0.0,
+            "max_tokens": 0,
+            "logprobs": 1,
+            "echo": True,
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output,
+            "skip_special_tokens": False,
+            "n": 1,  # number of completions to generate
+            "stream": False,  # return a single completion and not a stream of lines
+        }
+        url = f"{self.base_url}/v1/completions"
+        logger.debug(f"POST request to {url}")
+        r = requests.post(url, json=generation_args, headers=headers, verify=False)
+        r.raise_for_status()  # raise exception if status code is not in the 200s
+        try:
+            response = r.json()
+            log_probs = response["choices"][0]["logprobs"]["token_logprobs"]
+            prompt_encoded = self.tokenizer.encode(prompt, add_special_tokens=True)
+            prompt_completion_encoded = self.tokenizer.encode(prompt + output, add_special_tokens=True)
+            log_probs = log_probs[len(prompt_encoded) : len(prompt_completion_encoded)]
+            tokens = response["choices"][0]["logprobs"]["tokens"]
+            tokens = tokens[len(prompt_encoded) : len(prompt_completion_encoded)]
+            assert "".join(tokens) == output, f"Tokens do not match completion: {''.join(tokens)} != {output}"
+        except Exception as e:
+            raise RuntimeError(f"Generation API wrong response: {r.text}", e)
+        return log_probs
+
+    def get_log_probs_chat_complete(self, prompt: Prompt, output: LLMOutput) -> list[float]:
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+
+        time_t0 = time.time()
+        prompt_text = self.tokenizer.apply_chat_template(prompt.messages, tokenize=False)
+        completion = output.content or ""
+        messages = prompt.messages + [output.model_dump()]
+        prompt_text = self.tokenizer.apply_chat_template(prompt.messages, tokenize=False, add_generation_prompt=True)
+        prompt_completion_text = self.tokenizer.apply_chat_template(messages, tokenize=False)
+        if self.tokenizer.bos_token and prompt_text.startswith(self.tokenizer.bos_token):
+            prompt_text = prompt_text[len(self.tokenizer.bos_token) :]
+            prompt_completion_text = prompt_completion_text[len(self.tokenizer.bos_token) :]
+
+        prompt_encoded = self.tokenizer.encode(prompt_text, add_special_tokens=True)
+        prompt_completion_encoded = self.tokenizer.encode(prompt_completion_text, add_special_tokens=True)
+
+        generation_args = {
+            "model": self.model_name,
+            "messages": messages,
+            "temperature": 0.0,
+            "max_tokens": 1,
+            "logprobs": 1,
+            "echo": True,
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output,
+            "skip_special_tokens": False,
+            "n": 1,  # number of completions to generate
+            "stream": False,  # return a single completion and not a stream of lines
+        }
+        r = requests.post(
+            url=f"{self.base_url}/v1/chat/completions",
+            json=generation_args,
+            headers=headers,
+            verify=False,
+        )
+        r.raise_for_status()
+
+        try:
+            response = r.json()
+            log_probs = []
+            decoded_tokens = []
+            for log_prob in response["prompt_logprobs"]:
+                if log_prob:
+                    token_key = next(iter(log_prob))
+                    token_info = log_prob[token_key]
+                    log_probs.append(token_info["logprob"])
+                    decoded_tokens.append(token_info["decoded_token"])
+                else:
+                    log_probs.append(0.0)
+                    decoded_tokens.append("")
+
+            log_probs = log_probs[len(prompt_encoded) : len(prompt_completion_encoded)]
+            decoded_tokens = decoded_tokens[len(prompt_encoded) : len(prompt_completion_encoded)]
+            reconstructed_completion = "".join(decoded_tokens)
+            if self.tokenizer.eos_token in reconstructed_completion:
+                reconstructed_completion = reconstructed_completion[: -len(self.tokenizer.eos_token)]
+            assert (
+                reconstructed_completion == completion
+            ), f"Tokens do not match completion: {reconstructed_completion} != {completion}"
+        except Exception as e:
+            raise RuntimeError(f"Generation API wrong response: {r.text}", e)
+
+        logger.debug(f"Log likelihood calculation took {time.time() - time_t0:.2f} seconds")
+        logger.debug(f"Tokens per second: {len(log_probs) / (time.time() - time_t0):.2f}")
+
+        return log_probs
+
+    def get_log_probs(self, prompt: str | Prompt, output: str | LLMOutput) -> list[float]:
+        if isinstance(prompt, str) and isinstance(output, str):
+            return self.get_log_probs_complete(prompt=prompt, output=output)
+        elif isinstance(prompt, Prompt) and isinstance(output, LLMOutput):
+            return self.get_log_probs_chat_complete(prompt=prompt, output=output)
+        else:
+            raise ValueError("Invalid input types")
+
     def count_tokens(self, messages: list[dict] | str) -> int:
         self.load_tokenizer()
         if isinstance(messages, str):
@@ -424,14 +542,19 @@ class MockLLM(LLM):
         return 42
 
     def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
-        return TrainingText(text="mock trace", n_predicted=10)
+        return TrainingText(text="mock trace", n_predicted=10, seq_num_tokens=3)
 
 
 def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
-    prompt_text = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=False)
-    output_text = tokenizer.apply_chat_template([{"role": "assistant", "content": output.content}], tokenize=False)
-    if tokenizer.bos_token and output_text.startswith(tokenizer.bos_token):
-        output_text = output_text[len(tokenizer.bos_token) :]
-    text = f"{prompt_text}{output_text}"
+    prompt_text = tokenizer.apply_chat_template(
+        conversation=prompt.messages, tokenize=False, add_generation_prompt=True
+    )
+    text = tokenizer.apply_chat_template(
+        prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=False
+    )
+    output_text = text[len(prompt_text) :]
+    tokenized_text = tokenizer.apply_chat_template(
+        prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True
+    )
 
-    return TrainingText(text=text, n_predicted=len(output_text))
+    return TrainingText(text=text, n_predicted=len(output_text), seq_num_tokens=len(tokenized_text))

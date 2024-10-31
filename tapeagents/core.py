@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar
+from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar, List
 from uuid import uuid4
 
 import litellm
@@ -13,10 +13,21 @@ from typing_extensions import Self
 class TrainingText(BaseModel):
     """
     Data sample to finetune a language model
+    A training sample for finetuning a language model. Contains:
+    - text: The full text sequence (prompt + completion)
+    - n_predicted: Number of tokens in the completion
+    - reward: Reward value for the completion
+    - logprobs: Log probabilities of the completion tokens from the assistant model
+    - ref_logprobs: Log probabilities of the completion tokens from the reference model
+    - group_id: ID of the group. It is used by the RL finetuning script to normalize rewards.
     """
 
     text: str
     n_predicted: int
+    reward: float = 0.0
+    logprobs: List[float] = Field(default_factory=list)
+    ref_logprobs: List[float] = Field(default_factory=list)
+    group_id: str | None = None
 
     @property
     def prompt_text(self) -> str:
@@ -80,12 +91,12 @@ class Action(AgentStep):
     pass
 
 
-class AgentResponseParsingFailureAction(Action):
+class LLMOutputParsingFailureAction(Action):
     """
-    Action produced automatically when the agent response parsing failed
+    Action produced automatically when the LLM output parsing failed
     """
 
-    kind: Literal["agent_response_parsing_failure_action"] = "agent_response_parsing_failure_action"
+    kind: Literal["llm_output_parsing_failure_action"] = "llm_output_parsing_failure_action"
     error: str
 
 
@@ -126,6 +137,7 @@ class Respond(Thought):
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
 
+
 class TapeMetadata(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     parent_id: str | None = None
@@ -134,6 +146,7 @@ class TapeMetadata(BaseModel):
     n_added_steps: int = 0
     error: Any | None = None
     result: Any = {}
+    
 
 
 ContextType = TypeVar("ContextType")
@@ -144,9 +157,9 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
     A sequence of steps produced by agents and environments
     """
 
-    metadata: TapeMetadata = TapeMetadata()
+    metadata: TapeMetadata = Field(default_factory=TapeMetadata)
     context: ContextType | None = None
-    steps: list[StepType] = []
+    steps: List[StepType] = Field(default_factory=list)
 
     def __iter__(self) -> Iterator[StepType]:  # type: ignore
         return iter(self.steps)
