@@ -150,6 +150,9 @@ def generate_training_data(
         if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
             # LLM produced a step that was unparsable. Negative reward.
             no_error, reward, success = 0, -1, 0
+        elif len(new_tape.steps) >= 15:
+            # Too many steps. Negative reward.
+            no_error, reward, success = 1, -1, 0
         else:
             no_error = 1
             if (
