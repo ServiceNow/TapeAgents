@@ -3,7 +3,7 @@ defaults:
   - override finetune: rl_llama31_70b_lora
   - _self_
 
-model_path: meta-llama/Meta-Llama-3.1-70B-Instruct
+model_path: /mnt/llmd/base_models/Meta-Llama-3.1-70B-Instruct
 
 vllm_config:
   vllm_kwargs:

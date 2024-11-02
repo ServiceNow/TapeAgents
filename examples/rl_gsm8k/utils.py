@@ -308,16 +308,26 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
 
     if num_gpus > 1:
         #TODO: better handling of multi-gpu training: accelerate or deepspeed
-        base_cmd[2:2] = [
-            #"--use_deepspeed",
-            "--multi_gpu",
-            "--num_processes",
-            str(num_gpus),
-            "--deepspeed_config_file",
-            deepspeed_cfg_path,
-        ]
+        if False:
+            base_cmd[2:2] = [
+                "--use_deepspeed",
+                "--num_processes",
+                str(num_gpus),
+                "--deepspeed_config_file",
+                deepspeed_cfg_path,
+            ]
+        else:
+            base_cmd[2:2] = [
+                #"--use_deepspeed",
+                "--multi_gpu",
+                "--num_processes",
+                str(num_gpus),
+                #"--deepspeed_config_file",
+                #deepspeed_cfg_path,
+            ]
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
+    print(f"Launching training with command: {' '.join(base_cmd)}")
     try:
         result = subprocess.run(
             base_cmd,
