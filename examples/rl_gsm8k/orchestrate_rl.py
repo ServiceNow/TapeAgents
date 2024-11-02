@@ -174,14 +174,17 @@ def generate_training_data(
             # - Create a training sample from the prompt and output
             # - Get log probabilities of the output tokens
             # - Set group ID for tracking
-            for llm_call in sub_llm_calls:
+            sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
+            for i, llm_call in enumerate(sub_llm_calls[::-1]):
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.reward = reward * (0.9 ** len(new_tape.steps))
-                trace.group_id = new_tape.metadata.parent_id
+                trace.reward = reward * (0.9**i)
+                trace.group_id = f"{new_tape.metadata.parent_id}_{i}"
                 tape_prompt_tokens += llm_call.prompt_length_tokens
                 tape_output_tokens += llm_call.output_length_tokens
-                if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length:
+                if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
+                    trace.logprobs
+                ) == llm_call.output_length_tokens:
                     training_samples.append(trace)
                     discarded.append(0)
                 else:
