@@ -10,6 +10,8 @@ max_agent_forks: 1024
 attempts: 64
 force_restart: false
 max_iterations: 100
+disc: 0.99
+max_steps: 100
 llm:
   parameters:
     max_tokens: 1024

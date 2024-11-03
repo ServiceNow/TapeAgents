@@ -150,6 +150,9 @@ def generate_training_data(
         if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
             # LLM produced a step that was unparsable. Negative reward.
             no_error, reward, success = 0, -1, 0
+        elif len(new_tape.steps) > cfg.max_steps:
+            # Too many steps. Negative reward.
+            no_error, reward, success = 0, -1, 0
         else:
             no_error = 1
             if (
@@ -178,7 +181,7 @@ def generate_training_data(
             for i, llm_call in enumerate(sub_llm_calls[::-1]):
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.reward = reward * (0.9**i)
+                trace.reward = reward * (cfg.discount**i)
                 trace.group_id = new_tape.metadata.parent_id #f"{new_tape.metadata.parent_id}_{i}"
                 tape_prompt_tokens += llm_call.prompt_length_tokens
                 tape_output_tokens += llm_call.output_length_tokens
