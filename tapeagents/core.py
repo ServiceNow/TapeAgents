@@ -165,7 +165,7 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
     def __iter__(self) -> Iterator[StepType]:  # type: ignore
         return iter(self.steps)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.steps)
 
     def __getitem__(self, key: int | slice) -> StepType | Self:
@@ -187,7 +187,7 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
 
     def append(self, step: StepType) -> Self:
         """
-        Add a step to the tape
+        Add a step to the tape and increment metadata.n_added_steps
         """
         metadata = self.metadata.model_copy(update=dict(n_added_steps=self.metadata.n_added_steps + 1))
         return self.model_copy(update=dict(steps=self.steps + [step], metadata=metadata))
