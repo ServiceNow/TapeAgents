@@ -95,7 +95,8 @@ def test_append_single_step():
     assert len(result.steps) == 2
     assert result.steps[-1] == new_step
     assert isinstance(result, Tape)
-    assert result.metadata.n_added_steps == 1
+    # check that metadata is the same as a brand new one
+    assert result.metadata == TapeMetadata(id=result.metadata.id)
 
 
 def test_append_multiple_steps():
@@ -109,7 +110,8 @@ def test_append_multiple_steps():
     assert result.steps[-2] == new_step1
     assert result.steps[-1] == new_step2
     assert isinstance(result, Tape)
-    assert result.metadata.n_added_steps == 1  # Only the last append's metadata is considered
+    # check that metadata is the same as a brand new one
+    assert result.metadata == TapeMetadata(id=result.metadata.id)
 
 
 def test_append_to_empty_tape():
@@ -121,7 +123,8 @@ def test_append_to_empty_tape():
     assert len(result.steps) == 1
     assert result.steps[0] == new_step
     assert isinstance(result, Tape)
-    assert result.metadata.n_added_steps == 1
+    # check that metadata is the same as a brand new one
+    assert result.metadata == TapeMetadata(id=result.metadata.id)
 
 
 def test_with_new_id():

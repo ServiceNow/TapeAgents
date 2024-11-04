@@ -1,10 +1,11 @@
+import copy
 import re
 
 import pytest
 from pydantic import SerializeAsAny
 
 from tapeagents.agent import DEFAULT, Agent, AgentEvent, AgentStream, Node
-from tapeagents.core import Action, AgentStep, PartialStep, Prompt, StepMetadata, Tape
+from tapeagents.core import Action, AgentStep, PartialStep, Prompt, StepMetadata, Tape, Thought
 from tapeagents.llms import LLMStream, MockLLM
 
 MockTape = Tape[None, Action]
@@ -358,3 +359,36 @@ def test_select_node_next_node_not_found():
 
     with pytest.raises(ValueError, match="Next node not found"):
         agent.select_node(tape)
+
+
+def test_run_metadata():
+    class MockNode(Node):
+        def generate_steps(self, agent, tape, llm_stream):
+            yield Thought()
+            yield Action()
+
+    class MockAgent(Agent):
+        def select_node(self, tape):
+            return MockNode()
+
+    agent = MockAgent(llms={DEFAULT: EmptyLLM()})
+    tape = MockTape()
+
+    initial_tape_metadata = copy.deepcopy(tape.metadata)
+    assert initial_tape_metadata.n_added_steps == 0
+
+    final_tape = agent.run(tape).get_final_tape()
+
+    # check that the original tape metadata is the same
+    assert tape.metadata == initial_tape_metadata
+    # check that the new tape metadata is updated correclty
+    assert final_tape.metadata.id != initial_tape_metadata.id
+    assert final_tape.metadata.parent_id == initial_tape_metadata.id
+    assert final_tape.metadata.n_added_steps == 2
+    assert final_tape.metadata.author == agent.name
+    # assert that the rest is the same, except for id, parent_id, n_added_steps, and author
+    initial_tape_metadata.id, final_tape.metadata.id = None, None
+    initial_tape_metadata.parent_id, final_tape.metadata.parent_id = None, None
+    initial_tape_metadata.n_added_steps, final_tape.metadata.n_added_steps = 0, 0
+    initial_tape_metadata.author, final_tape.metadata.author = None, None
+    assert initial_tape_metadata == final_tape.metadata
