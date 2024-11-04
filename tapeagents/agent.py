@@ -9,9 +9,10 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
 
+from tapeagents.core import LLMOutputParsingFailureAction
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
-from tapeagents.core import LLMOutputParsingFailureAction
+
 from .core import (
     Action,
     AgentEvent,
@@ -220,7 +221,7 @@ class Agent(BaseModel, Generic[TapeType]):
             templates = {DEFAULT: templates}
         if templates:
             kwargs["templates"] = templates
-        
+
         return cls(llms=llms or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
@@ -353,6 +354,7 @@ class Agent(BaseModel, Generic[TapeType]):
         def _run_implementation():
             nonlocal tape
             n_iterations = 0
+            input_tape_length = len(tape)
             stop = False
             while n_iterations < max_iterations and not stop:
                 current_subagent = self.delegate(tape)
@@ -368,11 +370,14 @@ class Agent(BaseModel, Generic[TapeType]):
                     else:
                         raise ValueError("Agent can only generate steps or partial steps")
                 n_iterations += 1
-            updated_metadata = tape.metadata.model_copy(update=dict(
-                id=str(uuid4()),
-                parent_id=tape.metadata.id,
-                author=self.name,
-            ))
+            updated_metadata = tape.metadata.model_copy(
+                update=dict(
+                    id=str(uuid4()),
+                    parent_id=tape.metadata.id,
+                    author=self.name,
+                    n_added_steps=len(tape) - input_tape_length,
+                )
+            )
             final_tape = tape.model_copy(update=dict(metadata=updated_metadata))
             yield AgentEvent(final_tape=final_tape)
 
@@ -458,7 +463,6 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
     and hence can be tricky to compare across steps. This function deserializes known fields like that before comparison..
 
     """
-
 
     def just_data(step: Step) -> dict:
         if isinstance(step, LLMOutputParsingFailureAction):
