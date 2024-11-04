@@ -399,6 +399,8 @@ def main(cfg: DictConfig):
                         for future in as_completed(futures):
                             trace = future.result()
                             if trace:
+                                if cfg.implicit_kl:
+                                    trace.reward -= cfg.finetune.rl.kl_coef * (trace.ref_logprobs - trace.logprobs)
                                 new_training_samples.append(trace)
 
             except Exception as e:
