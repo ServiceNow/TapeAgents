@@ -377,11 +377,8 @@ def test_run_metadata():
     initial_tape_metadata = copy.deepcopy(tape.metadata)
     assert initial_tape_metadata.n_added_steps == 0
 
-    final_tape: MockTape = None
-    for event in agent.run(tape):
-        if event.final_tape:
-            final_tape = event.final_tape
-            break
+    final_tape = agent.run(tape).get_final_tape()
+
     # check that the original tape metadata is the same
     assert tape.metadata == initial_tape_metadata
     # check that the new tape metadata is updated correclty

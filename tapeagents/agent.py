@@ -355,6 +355,7 @@ class Agent(BaseModel, Generic[TapeType]):
             nonlocal tape
             n_iterations = 0
             input_tape_length = len(tape)
+            input_tape_id = tape.metadata.id
             stop = False
             while n_iterations < max_iterations and not stop:
                 current_subagent = self.delegate(tape)
@@ -372,8 +373,7 @@ class Agent(BaseModel, Generic[TapeType]):
                 n_iterations += 1
             updated_metadata = tape.metadata.model_copy(
                 update=dict(
-                    id=str(uuid4()),
-                    parent_id=tape.metadata.id,
+                    parent_id=input_tape_id,
                     author=self.name,
                     n_added_steps=len(tape) - input_tape_length,
                 )
