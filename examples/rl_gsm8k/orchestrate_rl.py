@@ -146,10 +146,13 @@ def generate_training_data(
             - Dictionary with statistics (reward, steps, success, no_errors)
         """
         discarded = []
-        prompt_tokens = 0
-        output_tokens = 0
+        tape_prompt_tokens = 0
+        tape_output_tokens = 0
         if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
             # LLM produced a step that was unparsable. Negative reward.
+            no_error, reward, success = 0, -1, 0
+        elif len(new_tape.steps) > cfg.max_steps:
+            # Too many steps. Negative reward.
             no_error, reward, success = 0, -1, 0
         else:
             no_error = 1
@@ -175,14 +178,17 @@ def generate_training_data(
             # - Create a training sample from the prompt and output
             # - Get log probabilities of the output tokens
             # - Set group ID for tracking
-            for llm_call in sub_llm_calls:
+            sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
+            for i, llm_call in enumerate(sub_llm_calls[::-1]):
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.reward = reward
-                trace.group_id = new_tape.metadata.parent_id
-                prompt_tokens += llm_call.prompt_length_tokens
-                output_tokens += llm_call.output_length_tokens
-                if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length:
+                trace.reward = reward * (cfg.discount**i)
+                trace.group_id = new_tape.metadata.parent_id #f"{new_tape.metadata.parent_id}_{i}"
+                tape_prompt_tokens += llm_call.prompt_length_tokens
+                tape_output_tokens += llm_call.output_length_tokens
+                if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
+                    trace.logprobs
+                ) == llm_call.output_length_tokens:
                     training_samples.append(trace)
                     discarded.append(0)
                 else:
@@ -193,8 +199,8 @@ def generate_training_data(
             "success": success,
             "no_error": no_error,
             "discarded": np.mean(discarded) if discarded else 0,
-            "prompt_tokens": prompt_tokens,
-            "output_tokens": output_tokens,
+            "prompt_tokens": tape_prompt_tokens,
+            "output_tokens": tape_output_tokens,
         }
         return new_tape, training_samples, tape_stats
 
@@ -237,9 +243,9 @@ def generate_training_data(
             f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
             f"execution_time/{dataset_name}_output_tokens_per_second": output_tokens
-            / (end_make_data - start_make_data),
+            / (end_sampling_from_llm - start_sampling_from_llm),
             f"execution_time/{dataset_name}_prompt_tokens_per_second": prompt_tokens
-            / (end_make_data - start_make_data),
+            / (end_sampling_from_llm - start_sampling_from_llm),
             f"{dataset_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
         },
     }
@@ -277,6 +283,7 @@ def main(cfg: DictConfig):
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
     while state["iteration"] <= cfg.max_iterations:
+        start_iteration = time.time()
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
         else:
@@ -348,6 +355,9 @@ def main(cfg: DictConfig):
         stats = all_results["train"]["stats"]
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
             stats.update(all_results["test"]["stats"])
+            time_evaluation = stats["execution_time/test_make_data"]
+        else:
+            time_evaluation = 0
         wandb.log(
             stats,
             step=state["iteration"],
@@ -391,6 +401,8 @@ def main(cfg: DictConfig):
                         for future in as_completed(futures):
                             trace = future.result()
                             if trace:
+                                if cfg.implicit_kl:
+                                    trace.reward -= cfg.finetune.rl.kl_coef * (trace.ref_logprobs - trace.logprobs)
                                 new_training_samples.append(trace)
                     refmodel_vllm_stats = vllm_service_manager.get_stats()
 
@@ -398,10 +410,10 @@ def main(cfg: DictConfig):
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
                 raise e
 
-        end_basemodel_logprobs = time.time()
+        time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
         wandb.log(
             {
-                "execution_time/populating_ref_logprobs": end_basemodel_logprobs - start_basemodel_logprobs,
+                "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
                 "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
                 "execution_time/starting_refmodel_vllm": assistant_vllm_stats["starting_time"],
             },
@@ -428,10 +440,17 @@ def main(cfg: DictConfig):
 
         start_finetune = time.time()
         launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path, cfg.deepspeed_cfg_path)
-        end_finetune = time.time()
+        time_finetune = time.time() - start_finetune
+        time_iteration = time.time() - start_iteration
         wandb.log(
             {
-                "execution_time/finetune": end_finetune - start_finetune,
+                "execution_time/finetune": time_finetune,
+                "execution_time/iteration": time_iteration,
+                "execution_time/overhead": time_iteration
+                - time_finetune
+                - time_populating_ref_logprobs
+                - time_evaluation
+                - stats["execution_time/train_make_data"],
             },
             step=state["iteration"],
         )
