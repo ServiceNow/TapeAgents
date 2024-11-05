@@ -26,9 +26,9 @@ from .checkpoints import (
     save_training_state,
 )
 from .context import accelerator, logger
-from .data import create_dataloader, prepare_dataloaders
+from .data import create_dataloader, prepare_dataloaders, get_dataset_stats
 from .eval import evaluate_and_get_metrics
-from .logging_ import log_metrics, log_time, setup_logging, get_dataset_stats
+from .logging_ import log_metrics, log_time, setup_logging
 from .optim import get_optimizer
 from .rl import RLConfig, rl_step, make_rl_data_callback
 from .rl.utils import get_avg_rl_stats
