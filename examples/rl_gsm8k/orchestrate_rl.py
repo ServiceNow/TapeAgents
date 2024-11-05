@@ -100,12 +100,12 @@ def extract_tape_training_samples(
     tape_output_tokens = 0
     if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
         # LLM produced a step that was unparsable. Negative reward.
-        no_error, reward, success = 0, -1, 0
+        no_error, reward, success, no_overflow = 0, -1, 0, 1
     elif len(new_tape.steps) > cfg.max_steps:
         # Too many steps. Negative reward.
-        no_error, reward, success = 0, -1, 0
+        no_error, reward, success, no_overflow = 1, -1, 0, 0
     else:
-        no_error = 1
+        no_error, no_overflow = 1, 1
         if (
             isinstance(new_tape.steps[-1], AnswerAction)
             and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
@@ -148,6 +148,7 @@ def extract_tape_training_samples(
         "steps": len(new_tape.steps),
         "success": success,
         "no_error": no_error,
+        "no_overflow": no_overflow,
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
@@ -186,6 +187,7 @@ def generate_training_data(
     reward_stats = defaultdict(list)
     step_stats = defaultdict(list)
     no_errors_stats = defaultdict(list)
+    no_overflow_stats = defaultdict(list)
     success_stats = defaultdict(list)
     discarded_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
@@ -212,9 +214,9 @@ def generate_training_data(
     # FIXME: 1 worker is a workaround to avoid OOM errors
     with ThreadPoolExecutor(max_workers=1) as executor:
         extract_tape_training_samples_partial = partial(
-            extract_tape_training_samples, 
-            agent=agent, 
-            dataset_name=dataset_name, 
+            extract_tape_training_samples,
+            agent=agent,
+            dataset_name=dataset_name,
             tapes_dir=tapes_dir,
             cfg=cfg,
             llm_calls=llm_calls,
@@ -227,6 +229,7 @@ def generate_training_data(
             step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
+            no_overflow_stats[new_tape.metadata.parent_id].append(tape_stats["no_overflow"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
@@ -242,6 +245,7 @@ def generate_training_data(
         **{f"{dataset_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{dataset_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{dataset_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+        **{f"{dataset_name}_{k}_no_overflow": v for k, v in calculate_stats(no_overflow_stats).items()},
         **{
             f"execution_time/{dataset_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
             f"execution_time/{dataset_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
@@ -375,7 +379,7 @@ def main(cfg: DictConfig):
         training_samples = all_results["train"]["training_samples"]
         new_training_samples: list[TrainingText] = []
         if assistant_model_path == cfg.model_path:
-            refmodel_start_time = 0
+            refmodel_starting_time = 0
             # At the first itetration, Ref logprobs are the same as logprobs
             for trace in training_samples:
                 trace.ref_logprobs = trace.logprobs
@@ -412,7 +416,7 @@ def main(cfg: DictConfig):
                             if trace:
                                 new_training_samples.append(trace)
                     refmodel_vllm_stats = vllm_service_manager.get_stats()
-                    refmodel_start_time = refmodel_vllm_stats["starting_time"]
+                    refmodel_starting_time = refmodel_vllm_stats["starting_time"]
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
@@ -423,7 +427,7 @@ def main(cfg: DictConfig):
             {
                 "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
                 "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
-                "execution_time/starting_refmodel_vllm": refmodel_start_time,
+                "execution_time/starting_refmodel_vllm": refmodel_starting_time,
             },
             step=state["iteration"],
         )
