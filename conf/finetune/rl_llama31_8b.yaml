@@ -24,7 +24,7 @@ seq_length: 4096
 load_as_bf16: True
 max_train_steps: 100000
 save_checkpoint_steps: ???
-optim: adafactor
+optim: adafactor # FIXME: adamw runs OOM with accelerate
 objective: rl
 log_each_n_steps: 1
 resume_dataloader: false
@@ -33,6 +33,7 @@ use_safetensors: true
 weight_decay: 0.1
 gradient_clipping_threshold: 1
 rl:
-  kl_coef: 0.05
+  kl_coef: 0.0
+  implicit_kl_coef: 0.05
   use_advantages: true
   algo: reinforce
