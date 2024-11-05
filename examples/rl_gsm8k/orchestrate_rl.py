@@ -95,7 +95,7 @@ def extract_tape_training_samples(
         Tuple containing:
         - Processed MathTape
         - List of training samples with rewards and logprobs
-        - Dictionary with statistics (reward, steps, success, no_errors)
+        - Dictionary with statistics (reward, steps, success, no_errors, no_overflow)
     """
     discarded = []
     tape_prompt_tokens = 0
