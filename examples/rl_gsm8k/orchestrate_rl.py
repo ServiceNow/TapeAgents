@@ -77,6 +77,84 @@ def convert_samples_to_tapes(samples: list) -> list[MathTape]:
     return tapes
 
 
+def extract_tape_training_samples(
+    new_tape: MathTape, agent: MathAgent, dataset_name: str, tapes_dir: str | Path, cfg: DictConfig, llm_calls: list
+) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
+    """
+    Process a single tape to extract training samples and statistics.
+
+    Args:
+        new_tape: The tape to process containing math problem steps
+        agent: MathAgent
+        dataset_name: Name of dataset ('train' or 'test')
+        tapes_dir: Directory to save processed tapes
+
+    Returns:
+        Tuple containing:
+        - Processed MathTape
+        - List of training samples with rewards and logprobs
+        - Dictionary with statistics (reward, steps, success, no_errors)
+    """
+    discarded = []
+    tape_prompt_tokens = 0
+    tape_output_tokens = 0
+    if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
+        # LLM produced a step that was unparsable. Negative reward.
+        no_error, reward, success = 0, -1, 0
+    elif len(new_tape.steps) > cfg.max_steps:
+        # Too many steps. Negative reward.
+        no_error, reward, success = 0, -1, 0
+    else:
+        no_error = 1
+        if (
+            isinstance(new_tape.steps[-1], AnswerAction)
+            and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
+        ):
+            # Correct answer
+            reward, success = 1, 1
+        else:
+            # Incorrect answer or no answer
+            reward, success = 0, 0
+
+    save_json_tape(new_tape, os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"))
+
+    training_samples: list[TrainingText] = []
+    if dataset_name == "train":
+        prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
+        sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
+        # Sort sub_llm_calls to match the order of prompt_ids
+        # Process LLM calls in reverse order to apply reward discounting
+        # For each LLM interaction in the tape:
+        # - Create a training sample from the prompt and output
+        # - Get log probabilities of the output tokens
+        # - Set group ID for tracking
+        sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
+        for i, llm_call in enumerate(sub_llm_calls[::-1]):
+            trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
+            trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
+            trace.reward = reward * (cfg.discount**i)
+            trace.group_id = new_tape.metadata.parent_id  # f"{new_tape.metadata.parent_id}_{i}"
+            tape_prompt_tokens += llm_call.prompt_length_tokens
+            tape_output_tokens += llm_call.output_length_tokens
+            if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
+                trace.logprobs
+            ) == llm_call.output_length_tokens:
+                training_samples.append(trace)
+                discarded.append(0)
+            else:
+                discarded.append(1)
+    tape_stats = {
+        "reward": reward,
+        "steps": len(new_tape.steps),
+        "success": success,
+        "no_error": no_error,
+        "discarded": np.mean(discarded) if discarded else 0,
+        "prompt_tokens": tape_prompt_tokens,
+        "output_tokens": tape_output_tokens,
+    }
+    return new_tape, training_samples, tape_stats
+
+
 def generate_training_data(
     agent: MathAgent,
     tapes: list[MathTape],
@@ -127,83 +205,6 @@ def generate_training_data(
         llm_calls = []
     end_reading_sqlite = time.time()
 
-    def extract_tape_training_samples(
-        new_tape: MathTape, agent: MathAgent, dataset_name: str, tapes_dir: str | Path
-    ) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
-        """
-        Process a single tape to extract training samples and statistics.
-
-        Args:
-            new_tape: The tape to process containing math problem steps
-            agent: MathAgent
-            dataset_name: Name of dataset ('train' or 'test')
-            tapes_dir: Directory to save processed tapes
-
-        Returns:
-            Tuple containing:
-            - Processed MathTape
-            - List of training samples with rewards and logprobs
-            - Dictionary with statistics (reward, steps, success, no_errors)
-        """
-        discarded = []
-        tape_prompt_tokens = 0
-        tape_output_tokens = 0
-        if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
-            # LLM produced a step that was unparsable. Negative reward.
-            no_error, reward, success = 0, -1, 0
-        elif len(new_tape.steps) > cfg.max_steps:
-            # Too many steps. Negative reward.
-            no_error, reward, success = 0, -1, 0
-        else:
-            no_error = 1
-            if (
-                isinstance(new_tape.steps[-1], AnswerAction)
-                and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
-            ):
-                # Correct answer
-                reward, success = 1, 1
-            else:
-                # Incorrect answer or no answer
-                reward, success = 0, 0
-
-        save_json_tape(new_tape, os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"))
-
-        training_samples: list[TrainingText] = []
-        if dataset_name == "train":
-            prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
-            sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
-            # Sort sub_llm_calls to match the order of prompt_ids
-            # Process LLM calls in reverse order to apply reward discounting
-            # For each LLM interaction in the tape:
-            # - Create a training sample from the prompt and output
-            # - Get log probabilities of the output tokens
-            # - Set group ID for tracking
-            sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
-            for i, llm_call in enumerate(sub_llm_calls[::-1]):
-                trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
-                trace.reward = reward * (cfg.discount**i)
-                trace.group_id = new_tape.metadata.parent_id #f"{new_tape.metadata.parent_id}_{i}"
-                tape_prompt_tokens += llm_call.prompt_length_tokens
-                tape_output_tokens += llm_call.output_length_tokens
-                if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
-                    trace.logprobs
-                ) == llm_call.output_length_tokens:
-                    training_samples.append(trace)
-                    discarded.append(0)
-                else:
-                    discarded.append(1)
-        tape_stats = {
-            "reward": reward,
-            "steps": len(new_tape.steps),
-            "success": success,
-            "no_error": no_error,
-            "discarded": np.mean(discarded) if discarded else 0,
-            "prompt_tokens": tape_prompt_tokens,
-            "output_tokens": tape_output_tokens,
-        }
-        return new_tape, training_samples, tape_stats
-
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
     prompt_tokens = 0
@@ -211,7 +212,12 @@ def generate_training_data(
     # FIXME: 1 worker is a workaround to avoid OOM errors
     with ThreadPoolExecutor(max_workers=1) as executor:
         extract_tape_training_samples_partial = partial(
-            extract_tape_training_samples, agent=agent, dataset_name=dataset_name, tapes_dir=tapes_dir
+            extract_tape_training_samples, 
+            agent=agent, 
+            dataset_name=dataset_name, 
+            tapes_dir=tapes_dir,
+            cfg=cfg,
+            llm_calls=llm_calls,
         )
         futures = [executor.submit(extract_tape_training_samples_partial, new_tape) for new_tape in new_tapes]
         # Wrap futures with tqdm for progress tracking
@@ -318,8 +324,8 @@ def main(cfg: DictConfig):
 
             datasets = [("train", train_agent, train_tapes)]
             if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                #datasets.append(("test", test_agent, test_tapes))
-                #TODO: for debugging purposes, remove before merging
+                # datasets.append(("test", test_agent, test_tapes))
+                # TODO: for debugging purposes, remove before merging
                 datasets.append(("test", test_agent, train_tapes[:1000]))
             all_results = {}
             with VLLMServiceManager(
@@ -369,6 +375,7 @@ def main(cfg: DictConfig):
         training_samples = all_results["train"]["training_samples"]
         new_training_samples: list[TrainingText] = []
         if assistant_model_path == cfg.model_path:
+            refmodel_start_time = 0
             # At the first itetration, Ref logprobs are the same as logprobs
             for trace in training_samples:
                 trace.ref_logprobs = trace.logprobs
@@ -403,10 +410,9 @@ def main(cfg: DictConfig):
                         for future in as_completed(futures):
                             trace = future.result()
                             if trace:
-                                if cfg.implicit_kl:
-                                    trace.reward -= cfg.finetune.rl.kl_coef * (trace.ref_logprobs - trace.logprobs)
                                 new_training_samples.append(trace)
                     refmodel_vllm_stats = vllm_service_manager.get_stats()
+                    refmodel_start_time = refmodel_vllm_stats["starting_time"]
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
@@ -417,7 +423,7 @@ def main(cfg: DictConfig):
             {
                 "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
                 "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
-                "execution_time/starting_refmodel_vllm": refmodel_vllm_stats["starting_time"],
+                "execution_time/starting_refmodel_vllm": refmodel_start_time,
             },
             step=state["iteration"],
         )
