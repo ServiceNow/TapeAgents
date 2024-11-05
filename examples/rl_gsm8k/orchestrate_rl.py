@@ -213,8 +213,7 @@ def generate_training_data(
     start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
-    # FIXME: 1 worker is a workaround to avoid OOM errors
-    with ThreadPoolExecutor(max_workers=1) as executor:
+    with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
             agent=agent,
@@ -408,7 +407,7 @@ def main(cfg: DictConfig):
                     **cfg.vllm_config.vllm_kwargs,
                 ) as vllm_service_manager:
                     # FIXME: more than 1 worker causes the LLM to run OOM
-                    with ThreadPoolExecutor(max_workers=1) as executor:
+                    with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
                         futures = [
                             executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
                             for trace in training_samples

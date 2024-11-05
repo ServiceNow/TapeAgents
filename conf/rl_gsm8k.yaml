@@ -3,6 +3,7 @@ defaults:
   - _self_
 
 n_workers: 32
+get_log_probs_workers: 1
 max_loops: 10
 test_every_n_iterations: 5
 model_path: meta-llama/Meta-Llama-3.1-8B-Instruct
