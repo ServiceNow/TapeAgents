@@ -8,9 +8,10 @@ from typing import Any, Callable, Generator, Generic
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
 
+from tapeagents.core import LLMOutputParsingFailureAction
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
-from tapeagents.core import LLMOutputParsingFailureAction
+
 from .core import (
     Action,
     AgentEvent,
@@ -219,7 +220,7 @@ class Agent(BaseModel, Generic[TapeType]):
             templates = {DEFAULT: templates}
         if templates:
             kwargs["templates"] = templates
-        
+
         return cls(llms=llms or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
@@ -392,6 +393,11 @@ class Agent(BaseModel, Generic[TapeType]):
             if self.is_agent_step(step):
                 current_agent = self.delegate(past_tape)
                 prompt = current_agent.make_prompt(past_tape)
+                if not prompt:
+                    logger.debug("Skipping step because agent did not call the llm")
+                    reused_steps.append(step)
+                    i += 1
+                    continue
                 output = current_agent.make_llm_output(tape, i)
                 llm_call = LLMCall(prompt=prompt, output=output, cached=True)
                 observe_llm_call(llm_call)
@@ -456,7 +462,6 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
     and hence can be tricky to compare across steps. This function deserializes known fields like that before comparison..
 
     """
-
 
     def just_data(step: Step) -> dict:
         if isinstance(step, LLMOutputParsingFailureAction):

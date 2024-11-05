@@ -52,7 +52,16 @@ class MonoNode(Node):
         return tape.model_copy(update=dict(steps=steps_without_control_flow))
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
-        return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
+        steps = []
+        i = index
+        first_prompt_id = tape.steps[i].metadata.prompt_id
+        while i < len(tape) and tape.steps[i].metadata.prompt_id == first_prompt_id:
+            if not isinstance(tape.steps[i], SetNextNode):
+                steps.append(tape.steps[i])
+            i += 1
+
+        content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
+        return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 
     def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
         messages: list[dict] = [
