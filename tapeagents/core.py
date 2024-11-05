@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar, List
+from typing import Any, Generic, Iterable, Iterator, List, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import litellm
@@ -52,7 +52,7 @@ class StepMetadata(BaseModel):
 
 class Step(BaseModel):
     metadata: StepMetadata = StepMetadata()
-    kind: Literal["define_me"] = "define_me" # This is a placeholder value, it should be overwritten in subclasses
+    kind: Literal["define_me"] = "define_me"  # This is a placeholder value, it should be overwritten in subclasses
 
     def llm_dict(self) -> dict[str, Any]:
         """Dump step data only, drop the metadata"""
@@ -99,6 +99,7 @@ class LLMOutputParsingFailureAction(Action):
 
     kind: Literal["llm_output_parsing_failure_action"] = "llm_output_parsing_failure_action"
     error: str
+    llm_output: str
 
 
 class StopStep(Action):
@@ -138,7 +139,6 @@ class Respond(Thought):
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
 
-
 class TapeMetadata(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     parent_id: str | None = None
@@ -147,7 +147,6 @@ class TapeMetadata(BaseModel):
     n_added_steps: int = 0
     error: Any | None = None
     result: Any = {}
-    
 
 
 ContextType = TypeVar("ContextType")
