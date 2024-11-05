@@ -1,10 +1,11 @@
+import json
 from pprint import pprint
 
-from litellm.utils import ChatCompletionMessageToolCall
+from litellm.types.utils import ChatCompletionMessageToolCall
 from pydantic import TypeAdapter
 
 from tapeagents.agent import Agent
-from tapeagents.core import Prompt
+from tapeagents.core import Action, Prompt
 from tapeagents.dialog_tape import (
     AssistantStep,
     DialogContext,
@@ -15,12 +16,53 @@ from tapeagents.dialog_tape import (
     UserStep,
 )
 from tapeagents.environment import (
+    Environment,
     ExternalObservationNeeded,
-    MockToolEnvironment,
 )
 from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.orchestrator import main_loop
 from tapeagents.prompting import tape_to_messages
+
+MOCK_TOOL_ENV_PROMPT_TEMPLATE = """You will generate result of the following function call
+
+{function_call}
+
+You will output JSON of the following structure:
+{{
+    "result": ...
+}}
+
+You will output just the JSON and nothing else. Go!
+"""
+
+
+class MockToolEnvironment(Environment):
+    def __init__(self, llm: LiteLLM):
+        self.llm = llm
+
+    def react(self, tape: DialogTape) -> DialogTape:
+        # TODO: move prompting to a separate agent?
+        action = tape.steps[-1]
+        assert isinstance(action, Action)
+        if isinstance(action, ToolCalls):
+            for tc in action.tool_calls:
+                prompt_text = MOCK_TOOL_ENV_PROMPT_TEMPLATE.format(function_call=tc.function)
+                messages = [{"role": "user", "content": prompt_text}]
+                for event in self.llm.generate(Prompt(messages=messages)):
+                    completion = event.output
+                    if completion and not isinstance(completion, str):
+                        completion = completion.content
+                    if completion:
+                        result_json = json.loads(completion)
+                        if "result" not in result_json:
+                            raise ValueError("Result JSON should have 'result' key")
+                        observation = ToolResult(content=json.dumps(result_json["result"]), tool_call_id=tc.id)
+                        tape = tape.append(observation)
+        elif isinstance(action, AssistantStep):
+            self.raise_external_observation_needed(action)
+        else:
+            self.raise_unexpected_action(action)
+        return tape
 
 
 class FunctionCallingAgent(Agent[DialogTape]):
