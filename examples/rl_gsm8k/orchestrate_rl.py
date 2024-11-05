@@ -56,12 +56,12 @@ def annotate_trace_with_ref_log_probs(agent: MathAgent, trace: TrainingText) -> 
         return None
 
 
-def convert_samples_to_tapes(samples: list) -> list[MathTape]:
+def convert_problems_to_tapes(problems: list) -> list[MathTape]:
     """
-    Creates MathTape objects from a list of sample dictionaries.
+    Creates MathTape objects from a list of math problem dictionaries.
 
     Args:
-        samples (list[dict]): List of dictionaries containing math problems, where each dict
+        problems (list[dict]): List of dictionaries containing math problems, where each dict
             has 'question' and expected answer value. The list is created from a dataset.
 
     Returns:
@@ -70,8 +70,8 @@ def convert_samples_to_tapes(samples: list) -> list[MathTape]:
             stored in metadata.
     """
     tapes: list[MathTape] = []
-    for sample in samples:
-        start_step = Task(task=sample["question"], metadata=StepMetadata(other=extract_result_value(sample)))
+    for problem in problems:
+        start_step = Task(task=problem["question"], metadata=StepMetadata(other=extract_result_value(problem)))
         tape = MathTape(steps=[start_step], context=None)
         tapes.append(tape)
     return tapes
@@ -321,9 +321,9 @@ def main(cfg: DictConfig):
 
         try:
             sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
-            train_tapes = convert_samples_to_tapes(sub_samples)
+            train_tapes = convert_problems_to_tapes(sub_samples)
             train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
-            test_tapes = convert_samples_to_tapes(test_samples)
+            test_tapes = convert_problems_to_tapes(test_samples)
             train_agent = MathAgent.create(llm=llm)
             test_agent = MathAgent.create(llm=test_llm)
 
