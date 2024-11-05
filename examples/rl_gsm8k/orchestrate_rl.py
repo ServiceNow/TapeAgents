@@ -88,6 +88,8 @@ def extract_tape_training_samples(
         agent: MathAgent
         dataset_name: Name of dataset ('train' or 'test')
         tapes_dir: Directory to save processed tapes
+        cfg: Configuration
+        llm_calls: List of LLM calls
 
     Returns:
         Tuple containing:
