@@ -38,7 +38,6 @@ from examples.rl_gsm8k.utils import (
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
-from tapeagents.finetune.finetune import run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
@@ -329,9 +328,7 @@ def main(cfg: DictConfig):
 
             datasets = [("train", train_agent, train_tapes)]
             if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                # datasets.append(("test", test_agent, test_tapes))
-                # TODO: for debugging purposes, remove before merging
-                datasets.append(("test", test_agent, train_tapes[:1000]))
+                datasets.append(("test", test_agent, test_tapes))
             all_results = {}
             with VLLMServiceManager(
                 model_name_or_path=assistant_model_path,
