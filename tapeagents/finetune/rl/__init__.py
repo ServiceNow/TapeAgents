@@ -2,14 +2,21 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Callable, Dict, List, Mapping, Optional
+from typing import Callable, Dict, Mapping, Optional
 
-import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
 from datasets import Dataset
-from transformers import AutoTokenizer, BatchEncoding
+from transformers import BatchEncoding
+
+from .utils import (
+    StepConfig,
+    calculate_advantage,
+    calculate_reward_with_implicit_kl,
+    masked_mean,
+    replace_dataset_column,
+)
 
 # FIXME: remove a warnings, but might be worth investigating
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -27,15 +34,6 @@ RL_DATA_COLUMNS = [
 
 
 @dataclass
-class StepConfig(object):
-    def to_dict(self):
-        output_dict = {}
-        for key, value in self.__dict__.items():
-            output_dict[key] = value
-        return flatten_dict(output_dict)
-
-
-@dataclass
 class RLConfig(StepConfig):
     algo: Optional[str] = field(
         default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]}
@@ -48,7 +46,7 @@ class RLConfig(StepConfig):
     implicit_kl_coef: Optional[float] = field(
         default=0.1,
         # https://arxiv.org/abs/2402.14740
-        metadata={"help": "Implicit KL coefficient similar to the RLOO paper"}, 
+        metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
     )
     kl_coef: Optional[float] = field(
         default=0.1,
@@ -60,22 +58,6 @@ class RLConfig(StepConfig):
     )
 
 
-def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
-    """Compute sum of tensor with a masked values."""
-    if axis is not None:
-        return (values * mask).sum(axis=axis)  # type: ignore
-    else:
-        return (values * mask).sum()
-
-
-def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
-    """Compute mean of tensor with a masked values."""
-    if axis is not None:
-        return (values * mask).sum(axis=axis) / mask.sum(axis=axis)  # type: ignore
-    else:
-        return (values * mask).sum() / mask.sum()
-
-
 def make_rl_data_callback(args, current_dir, rl_config, model):
     if rl_config:
         populate_rl_data_ = partial(
@@ -85,23 +67,6 @@ def make_rl_data_callback(args, current_dir, rl_config, model):
     else:
         populate_rl_data_ = None
     return populate_rl_data_
-
-
-def flatten_dict(nested: Dict, sep: str = "/") -> Dict:
-    """Flatten dictionary and concatenate nested keys with separator."""
-
-    def recurse(nest: Dict, prefix: str, into: Dict) -> None:
-        for k, v in nest.items():
-            if sep in k:
-                raise ValueError(f"separator '{sep}' not allowed to be in key '{k}'")
-            if isinstance(v, Mapping):
-                recurse(v, prefix + k + sep, into)
-            else:
-                into[prefix + k] = v
-
-    flat = {}
-    recurse(nested, "", flat)
-    return flat
 
 
 def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, float]]:
@@ -201,18 +166,13 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     """
     df = dataset.to_pandas()
-    
-    def calculate_reward_with_implicit_kl(row):
-        reward = row["reward"]
-        old_logprobs = row["old_logprobs"]
-        ref_logprobs = row["ref_logprobs"]
-        log_ratio_ref_old = ref_logprobs - old_logprobs
-        kl = (np.exp(log_ratio_ref_old) - log_ratio_ref_old - 1).sum()  # Schulman KL approx
-        return reward - config.implicit_kl_coef * kl
 
     if config.implicit_kl_coef > 0:
         logger.info("Updating Reward with Implicit KL")
-        df["reward"] = df.apply(calculate_reward_with_implicit_kl, axis=1) 
+        calculate_reward_with_implicit_kl_ = partial(
+            calculate_reward_with_implicit_kl, implicit_kl_coef=config.implicit_kl_coef
+        )
+        df["reward"] = df.apply(calculate_reward_with_implicit_kl_, axis=1)
 
     # Group by group_id and compute mean and std of reward
     grouped = df.groupby("group_id")["reward"].agg(["mean", "std", "count"]).reset_index()
@@ -222,12 +182,6 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     # Merge the computed statistics back to the original dataset
     df_with_stats = pd.merge(df, grouped, on="group_id", how="left")
-
-    def calculate_advantage(row):
-        rewards = row["rewards"]
-        mean = row["reward_mean"]
-        std = row["reward_std"]
-        return [(reward - mean) / (np.nan_to_num(std) + 1e-4) for reward in rewards]
 
     df_with_stats["advantages"] = df_with_stats.apply(calculate_advantage, axis=1)
 
@@ -264,17 +218,6 @@ def populate_rl_data(
     dataset = update_rewards_and_advantages(dataset, config)
 
     logger.info("Finish Populate RL Data")
-    return dataset
-
-
-def replace_dataset_column(dataset: Dataset, column_name: str, new_column: List[List[float]]) -> Dataset:
-    """
-    Replace a column in the dataset with a new column.
-    """
-    if column_name in dataset.features:
-        dataset = dataset.map(remove_columns=[column_name])
-    dataset = dataset.add_column(name=column_name, column=new_column)  # type: ignore
-
     return dataset
 
 
