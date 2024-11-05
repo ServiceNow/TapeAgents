@@ -11,7 +11,7 @@ attempts: 64
 force_restart: false
 max_iterations: 100
 discount: 0.99
-implicit_kl: false
+implicit_kl: 0.0
 max_steps: 100
 llm:
   parameters:
@@ -39,8 +39,7 @@ vllm_config:
     --enable-chunked-prefill: ""
 
 output_dir: outputs/rl_gsm8k
-accelerate_cfg_path: conf/deepspeed/accelerate_local.yaml
-deepspeed_cfg_path: conf/deepspeed/deepspeed_stage3_bf16.json
+accelerate_cfg_path: conf/deepspeed/accelerate_base.yaml
 
 hydra:
   run:

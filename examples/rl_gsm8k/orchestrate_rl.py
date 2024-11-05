@@ -318,7 +318,9 @@ def main(cfg: DictConfig):
 
             datasets = [("train", train_agent, train_tapes)]
             if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                datasets.append(("test", test_agent, test_tapes))
+                #datasets.append(("test", test_agent, test_tapes))
+                #TODO: for debugging purposes, remove before merging
+                datasets.append(("test", test_agent, train_tapes[:1000]))
             all_results = {}
             with VLLMServiceManager(
                 model_name_or_path=assistant_model_path,
@@ -415,7 +417,7 @@ def main(cfg: DictConfig):
             {
                 "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
                 "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
-                "execution_time/starting_refmodel_vllm": assistant_vllm_stats["starting_time"],
+                "execution_time/starting_refmodel_vllm": refmodel_vllm_stats["starting_time"],
             },
             step=state["iteration"],
         )
@@ -439,7 +441,7 @@ def main(cfg: DictConfig):
         OmegaConf.save(finetune_cfg, config_path)
 
         start_finetune = time.time()
-        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path, cfg.deepspeed_cfg_path)
+        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path)
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
         wandb.log(
