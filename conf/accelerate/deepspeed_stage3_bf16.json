@@ -5,10 +5,10 @@
     "zero_optimization": {
         "stage": 3,
         "offload_optimizer": {
-            "device": "none"
+            "device": "cpu"
         },
         "offload_param": {
-            "device": "none"
+            "device": "cpu"
         },
         "overlap_comm": true,
         "contiguous_gradients": true,

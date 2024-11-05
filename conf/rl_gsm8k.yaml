@@ -39,7 +39,7 @@ vllm_config:
     --enable-chunked-prefill: ""
 
 output_dir: outputs/rl_gsm8k
-accelerate_cfg_path: conf/deepspeed/accelerate_base.yaml
+accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 
 hydra:
   run:
