@@ -28,7 +28,7 @@ from .checkpoints import (
 from .context import accelerator, logger
 from .data import create_dataloader, prepare_dataloaders
 from .eval import evaluate_and_get_metrics
-from .logging_ import log_metrics, log_time, setup_logging
+from .logging_ import log_metrics, log_time, setup_logging, get_dataset_stats
 from .optim import get_optimizer
 from .rl import RLConfig, rl_step, make_rl_data_callback
 from .rl.utils import get_avg_rl_stats
@@ -130,6 +130,10 @@ def run_finetuning_loop(
             dataloader_rng,
             is_rl=is_rl,
         )
+    dataset_stats = get_dataset_stats(train_dataloader)
+    if accelerator.is_main_process:
+        log_metrics(logger, 0, dataset_stats)
+
     accelerator.wait_for_everyone()
     dt = log_time(dt, "finetune/data_load")
 

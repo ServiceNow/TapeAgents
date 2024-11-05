@@ -202,7 +202,6 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
     """
     df = dataset.to_pandas()
     
-    logging.info("Update Reward with Implicit KL")
     def calculate_reward_with_implicit_kl(row):
         reward = row["reward"]
         old_logprobs = row["old_logprobs"]
@@ -211,7 +210,9 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
         kl = (np.exp(log_ratio_ref_old) - log_ratio_ref_old - 1).sum()  # Schulman KL approx
         return reward - config.implicit_kl_coef * kl
 
-    df["reward"] = df.apply(calculate_reward_with_implicit_kl, axis=1) 
+    if config.implicit_kl_coef > 0:
+        logger.info("Updating Reward with Implicit KL")
+        df["reward"] = df.apply(calculate_reward_with_implicit_kl, axis=1) 
 
     # Group by group_id and compute mean and std of reward
     grouped = df.groupby("group_id")["reward"].agg(["mean", "std", "count"]).reset_index()

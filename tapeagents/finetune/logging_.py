@@ -6,9 +6,12 @@ from pathlib import Path
 from typing import Any
 
 import datasets
+import torch
 import transformers
-import wandb
 from omegaconf import DictConfig
+from torch.utils.data.dataloader import DataLoader
+
+import wandb
 from wandb.sdk import wandb_run
 
 from .context import accelerator, logger
@@ -44,7 +47,7 @@ def init_wandb(
         )
 
     run = wandb.init(
-        name=wandb_name[:128], # wandb limits name to 128 characters
+        name=wandb_name[:128],  # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
         project=cfg.finetune.wandb_project_name,
         config=config_for_wandb,  # type: ignore
@@ -84,7 +87,7 @@ def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None =
         wandb_config = {}
         if run is not None:
             wandb_config = {
-                "name": run.name[:128], # wandb limits name to 128 characters
+                "name": run.name[:128],  # wandb limits name to 128 characters
                 "entity": run.entity,
                 "project": run.project_name(),
                 "id": run.id,
@@ -127,3 +130,33 @@ def flatten_dict_config(d: DictConfig, separator=".") -> dict:
         else:
             result[k] = v
     return result
+
+
+def get_dataset_stats(dataloader: DataLoader) -> dict:
+    if not dataloader:
+        return {}
+
+    total_seqs = 0
+    total_length = 0
+    max_length = 0
+    min_length = float("inf")
+
+    for batch in dataloader:
+        batch_size = batch["input_ids"].size(0)
+        for i in range(batch_size):
+            # Get actual sequence length by finding last non-padding token
+            seq_length = torch.sum(batch["attention_mask"][i]).item()
+
+            total_seqs += 1
+            total_length += seq_length
+            max_length = max(max_length, seq_length)
+            min_length = min(min_length, seq_length)
+
+    stats = {
+        "dataset_stats/num_sequences": total_seqs,
+        "dataset_stats/max_seq_length": max_length,
+        "dataset_stats/min_seq_length": min_length,
+        "dataset_stats/avg_seq_length": total_length / total_seqs if total_seqs > 0 else 0,
+    }
+
+    return stats
