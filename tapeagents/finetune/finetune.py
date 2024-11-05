@@ -130,8 +130,8 @@ def run_finetuning_loop(
             dataloader_rng,
             is_rl=is_rl,
         )
-    dataset_stats = get_dataset_stats(train_dataloader)
     if accelerator.is_main_process:
+        dataset_stats = get_dataset_stats(train_dataloader)
         log_metrics(logger, 0, dataset_stats)
 
     accelerator.wait_for_everyone()
