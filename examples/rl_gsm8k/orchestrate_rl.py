@@ -297,9 +297,6 @@ def main(cfg: DictConfig):
             use_cache=False,
         )
 
-        tapes_dir = exp_path / "tapes" / str(state["iteration"])
-        os.makedirs(tapes_dir, exist_ok=True)
-
         try:
             sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
             train_tapes = convert_samples_to_tapes(sub_samples)

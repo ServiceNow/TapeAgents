@@ -54,7 +54,9 @@ class TapeBrowser:
         return tapes
 
     def load_llm_calls(self):
+        logger.info("Loading LLM calls")
         self.llm_calls = retrieve_tape_llm_calls(self.tapes)
+        logger.info(f"Loaded {len(self.llm_calls)} LLM calls")
 
     def get_steps(self, tape: Tape) -> list:
         return tape.steps

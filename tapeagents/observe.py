@@ -169,14 +169,15 @@ def observe_tape(tape: Tape):
 
 
 def retrieve_tape_llm_calls(tapes: Tape | list[Tape]) -> dict[str, LLMCall]:
+    logger.info(f"Retrieving LLM calls")
     if isinstance(tapes, Tape):
         tapes = [tapes]
     result = {}
-    for tape in tapes:
-        for step in tape:
-            if prompt_id := step.metadata.prompt_id:
-                if call := retrieve_llm_call(prompt_id):
-                    result[prompt_id] = call
+    prompt_ids = set([step.metadata.prompt_id for tape in tapes for step in tape if step.metadata.prompt_id])
+    for prompt_id in prompt_ids:
+        if call := retrieve_llm_call(prompt_id):
+            result[prompt_id] = call
+    logger.info(f"Retrieved {len(result)} LLM calls")
     return result
 
 
