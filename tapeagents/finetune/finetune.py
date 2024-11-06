@@ -130,9 +130,6 @@ def run_finetuning_loop(
             dataloader_rng,
             is_rl=is_rl,
         )
-    if accelerator.is_main_process:
-        dataset_stats = get_dataset_stats(train_dataloader)
-        log_metrics(logger, 0, dataset_stats)
 
     accelerator.wait_for_everyone()
     dt = log_time(dt, "finetune/data_load")
@@ -158,6 +155,10 @@ def run_finetuning_loop(
         training_metrics.lr = optimizer.param_groups[0]["lr"]
         logger.info("LR after loading training state: %.2E" % training_metrics.lr)
         dt = log_time(dt, "finetune/training_state_load")
+
+    if accelerator.is_main_process:
+        dataset_stats = get_dataset_stats(train_dataloader)
+        log_metrics(logger, training_metrics.completed_steps, dataset_stats)
 
     @contextlib.contextmanager
     def toggle_sync(sync: bool):
