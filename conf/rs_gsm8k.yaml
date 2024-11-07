@@ -1,0 +1,6 @@
+defaults:
+  - rl_llama31_8b
+  - override finetune: rs_llama31_8b
+  - _self_
+
+use_rejection_sampling: true

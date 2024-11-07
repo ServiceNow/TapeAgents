@@ -140,7 +140,12 @@ def extract_tape_training_samples(
             if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
                 trace.logprobs
             ) == llm_call.output_length_tokens:
-                training_samples.append(trace)
+                if cfg.use_rejection_sampling:
+                    if trace.reward > 0:
+                        training_samples.append(trace)
+                    pass
+                else:
+                    training_samples.append(trace)
                 discarded.append(0)
             else:
                 discarded.append(1)
