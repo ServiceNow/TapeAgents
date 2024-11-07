@@ -1,5 +1,5 @@
 defaults:
-  - rl_llama31_8b
+  - rl_gsm8k
   - override finetune: rs_llama31_8b
   - _self_
 
