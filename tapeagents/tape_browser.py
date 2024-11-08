@@ -223,4 +223,4 @@ class TapeBrowser:
             app = gr.mount_gradio_app(app, blocks, path="/")
             uvicorn.run(app, host=server_name, port=port)
         else:
-            blocks.launch(server_name=server_name, debug=debug)
+            blocks.launch(server_name=server_name, server_port=port, debug=debug)
