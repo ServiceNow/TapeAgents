@@ -1,8 +1,11 @@
 # read json files from a folder, create new json with the same name that contains all the content
 
+import sys
 import json
 import os
-from pathlib import Path
+
+from tapeagents.io import load_tapes
+from examples.gsm8k_tuning.math_agent import MathTape
 
 def gather_jsons(folder: str):
     all_jsons = []
@@ -12,9 +15,11 @@ def gather_jsons(folder: str):
                 with open(os.path.join(root, file)) as f:
                     all_jsons.append(json.load(f))
     
-    dst_name = f"{folder}.json"
+    dst_dir = f"{folder}/all"
+    os.makedirs(dst_dir, exist_ok=True)
+    dst_name = f"{dst_dir}/tapes.json"
     with open(dst_name, "w") as f:
         json.dump(all_jsons, f, indent=4)
 
 
-gather_jsons("outputs/rl_debug_v6/tapes/train/0")
+gather_jsons(sys.argv[1])
