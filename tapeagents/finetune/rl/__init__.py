@@ -45,6 +45,11 @@ class RLConfig(StepConfig):
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
     )
     epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
+    implicit_kl_coef: Optional[float] = field(
+        default=0.1,
+        # https://arxiv.org/abs/2402.14740
+        metadata={"help": "Implicit KL coefficient similar to the RLOO paper"}, 
+    )
     kl_coef: Optional[float] = field(
         default=0.1,
         metadata={"help": "Initial KL penalty coefficient (used for adaptive and linear control)"},
@@ -58,7 +63,7 @@ class RLConfig(StepConfig):
 def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
     """Compute sum of tensor with a masked values."""
     if axis is not None:
-        return (values * mask).sum(axis=axis) # type: ignore
+        return (values * mask).sum(axis=axis)  # type: ignore
     else:
         return (values * mask).sum()
 
@@ -66,7 +71,7 @@ def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = 
 def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
     """Compute mean of tensor with a masked values."""
     if axis is not None:
-        return (values * mask).sum(axis=axis) / mask.sum(axis=axis) # type: ignore
+        return (values * mask).sum(axis=axis) / mask.sum(axis=axis)  # type: ignore
     else:
         return (values * mask).sum() / mask.sum()
 
@@ -184,7 +189,7 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
     return loss, stats
 
 
-def update_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
+def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
     """
     Updates the advantages column in the given dataset based on reward statistics.
 
@@ -196,6 +201,17 @@ def update_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
 
     """
     df = dataset.to_pandas()
+    
+    logging.info("Update Reward with Implicit KL")
+    def calculate_reward_with_implicit_kl(row):
+        reward = row["reward"]
+        old_logprobs = row["old_logprobs"]
+        ref_logprobs = row["ref_logprobs"]
+        log_ratio_ref_old = ref_logprobs - old_logprobs
+        kl = (np.exp(log_ratio_ref_old) - log_ratio_ref_old - 1).sum()  # Schulman KL approx
+        return reward - config.implicit_kl_coef * kl
+
+    df["reward"] = df.apply(calculate_reward_with_implicit_kl, axis=1) 
 
     # Group by group_id and compute mean and std of reward
     grouped = df.groupby("group_id")["reward"].agg(["mean", "std", "count"]).reset_index()
@@ -244,8 +260,7 @@ def populate_rl_data(
     """
     logger.info("Populate RL Data")
 
-    # TODO: make it an option if using advantage or reward
-    dataset = update_advantages(dataset, config)
+    dataset = update_rewards_and_advantages(dataset, config)
 
     logger.info("Finish Populate RL Data")
     return dataset

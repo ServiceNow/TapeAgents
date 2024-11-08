@@ -3,6 +3,7 @@ defaults:
   - _self_
 
 n_workers: 32
+get_log_probs_workers: 1
 max_loops: 10
 test_every_n_iterations: 5
 model_path: meta-llama/Meta-Llama-3.1-8B-Instruct
@@ -10,6 +11,8 @@ max_agent_forks: 1024
 attempts: 64
 force_restart: false
 max_iterations: 100
+discount: 0.99
+max_steps: 100
 llm:
   parameters:
     max_tokens: 1024
@@ -31,12 +34,12 @@ finetune:
 vllm_config:
   vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 
-    --max-model-len: 8000
     --gpu-memory-utilization: 0.9
     # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
     --enable-chunked-prefill: ""
 
 output_dir: outputs/rl_gsm8k
+accelerate_cfg_path: conf/deepspeed/accelerate_base.yaml
 
 hydra:
   run:
