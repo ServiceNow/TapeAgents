@@ -15,7 +15,7 @@ from .core import LLMCall, LLMOutput, Prompt, Tape
 logger = logging.getLogger(__name__)
 
 _checked_sqlite = False
-_ACTIVE_MANAGER: Optional["SQLiteQueueManager"] = None
+_ACTIVE_MANAGER: Optional["SQLiteWriterThread"] = None
 
 LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
@@ -249,7 +249,7 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
     return calls
 
 
-class SQLiteQueueManager:
+class SQLiteWriterThread:
     def __init__(self):
         self.write_queue: Optional[queue.Queue] = None
         self.writer_thread: Optional[threading.Thread] = None
