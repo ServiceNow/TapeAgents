@@ -207,7 +207,7 @@ def flatten_axtree(
                 node_value = None
 
             attributes = []
-            bid = None
+            bid = node.get("browsergym_id", None)
             for property in node.get("properties", []):
                 if "value" not in property:
                     continue
