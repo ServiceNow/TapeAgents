@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import multiprocessing
 import os
@@ -42,7 +43,7 @@ from tapeagents.finetune.finetune import run_finetuning_loop
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import SQLiteQueueManager, retrieve_all_llm_calls
+from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ def convert_problems_to_tapes(problems: list) -> list[MathTape]:
 
 
 def extract_tape_training_samples(
-    new_tape: MathTape, agent: MathAgent, dataset_name: str, tapes_dir: str | Path, cfg: DictConfig, llm_calls: list
+    new_tape: MathTape, agent: MathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
 ) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -117,8 +118,6 @@ def extract_tape_training_samples(
         else:
             # Incorrect answer or no answer
             reward, success = 0, 0
-
-    save_json_tape(new_tape, os.path.join(tapes_dir, f"{new_tape.metadata.id}.json"))
 
     training_samples: list[TrainingText] = []
     if dataset_name == "train":
@@ -197,14 +196,16 @@ def generate_training_data(
     logger.info(f"Starting {dataset_name} main loop")
     start_sampling_from_llm = time.time()
 
-    with SQLiteQueueManager():
+    with SQLiteWriterThread():
         main_loops = batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers)
         new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
+    with open(tapes_dir / "tapes.json", "w") as f:
+        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
 
     end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
     if dataset_name == "train":
-        llm_calls = retrieve_all_llm_calls(os.environ["TAPEAGENTS_SQLITE_DB"])
+        llm_calls = retrieve_all_llm_calls()
     else:
         llm_calls = []
     end_reading_sqlite = time.time()
@@ -218,7 +219,6 @@ def generate_training_data(
             extract_tape_training_samples,
             agent=agent,
             dataset_name=dataset_name,
-            tapes_dir=tapes_dir,
             cfg=cfg,
             llm_calls=llm_calls,
         )
