@@ -15,7 +15,7 @@ from .core import LLMCall, LLMOutput, Prompt, Tape
 logger = logging.getLogger(__name__)
 
 _checked_sqlite = False
-_ACTIVE_MANAGER: Optional["SQLiteQueueManager"] = None
+_ACTIVE_MANAGER: Optional["SQLiteWriterThread"] = None
 
 LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
@@ -143,24 +143,33 @@ def observe_llm_call(call: LLMCall):
         listener(call)
 
 
-def retrieve_llm_call(prompt_id: str) -> LLMCall | None:
+def retrieve_llm_calls(prompt_ids: str | list[str]) -> list[LLMCall]:
+    if isinstance(prompt_ids, str):
+        prompt_ids = [prompt_ids]
     init_sqlite_if_not_exists()
+    llm_calls = []
     with sqlite3.connect(sqlite_db_path()) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM LLMCalls WHERE prompt_id = ?", (prompt_id,))
-        row = cursor.fetchone()
+        for i in range(0, len(prompt_ids), 100):
+            prompts = prompt_ids[i:i + 100]
+            cursor.execute(
+                f"SELECT * FROM LLMCalls WHERE prompt_id IN ({','.join(['?'] * len(prompts))})",
+                prompts,
+            )
+            rows = cursor.fetchall()
+            for row in rows:
+                llm_calls.append(
+                    LLMCall(
+                        timestamp=row[1],
+                        prompt=Prompt.model_validate_json(row[2]),
+                        output=LLMOutput.model_validate_json(row[3]),
+                        prompt_length_tokens=row[4],
+                        output_length_tokens=row[5],
+                        cached=row[6],
+                    )
+                )
         cursor.close()
-        if row is None:
-            return None
-        # ignore row[0] cause it is alredy in row[2]
-        return LLMCall(
-            timestamp=row[1],
-            prompt=Prompt.model_validate_json(row[2]),
-            output=LLMOutput.model_validate_json(row[3]),
-            prompt_length_tokens=row[4],
-            output_length_tokens=row[5],
-            cached=row[6],
-        )
+    return llm_calls
 
 
 def observe_tape(tape: Tape):
@@ -169,14 +178,13 @@ def observe_tape(tape: Tape):
 
 
 def retrieve_tape_llm_calls(tapes: Tape | list[Tape]) -> dict[str, LLMCall]:
+    logger.info(f"Retrieving LLM calls")
     if isinstance(tapes, Tape):
         tapes = [tapes]
     result = {}
-    for tape in tapes:
-        for step in tape:
-            if prompt_id := step.metadata.prompt_id:
-                if call := retrieve_llm_call(prompt_id):
-                    result[prompt_id] = call
+    prompt_ids = list(set([step.metadata.prompt_id for tape in tapes for step in tape if step.metadata.prompt_id]))
+    result = {call.prompt.id: call for call in retrieve_llm_calls(prompt_ids)}
+    logger.info(f"Retrieved {len(result)} LLM calls")
     return result
 
 
@@ -241,7 +249,7 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
     return calls
 
 
-class SQLiteQueueManager:
+class SQLiteWriterThread:
     def __init__(self):
         self.write_queue: Optional[queue.Queue] = None
         self.writer_thread: Optional[threading.Thread] = None
