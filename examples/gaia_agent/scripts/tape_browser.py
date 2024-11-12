@@ -22,7 +22,11 @@ class GaiaTapeBrowser(TapeBrowser):
     def load_tapes(self, name: str) -> list:
         _, fname, postfix = name.split("/", maxsplit=2)
         tapes_path = os.path.join(self.tapes_folder, fname, "tapes")
-        all_tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_path, file_extension=".json")  # type: ignore
+        try:
+            all_tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_path, file_extension=".json")  # type: ignore
+        except Exception as e:
+            logger.error(f"Failed to load tapes from {tapes_path}: {e}")
+            return []
         tapes = []
         for tape in all_tapes:
             if postfix == "all" or str(tape.metadata.level) == postfix:
@@ -44,7 +48,10 @@ class GaiaTapeBrowser(TapeBrowser):
         pass
 
     def update_tape_view(self, tape_id: int) -> tuple[str, str]:
-        tape: GaiaTape = self.tapes[tape_id]  # type: ignore
+        try:
+            tape: GaiaTape = self.tapes[tape_id]  # type: ignore
+        except IndexError:
+            return "", "Tape not found"
         label = self.get_tape_label(tape)
         steps = self.get_steps(tape)
         step_views = []

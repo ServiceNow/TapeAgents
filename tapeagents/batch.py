@@ -10,10 +10,10 @@ from pydantic import BaseModel
 from .agent import Agent, Annotator, ObservationMaker
 from .config import is_debug_mode
 from .core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadata, TapeType
-from .environment import Environment, ExternalObservationNeeded
+from .environment import Environment
 from .io import stream_yaml_tapes
-from .parallel_processing import lazy_thread_pool_processor, sequential_processor
 from .orchestrator import main_loop
+from .parallel_processing import lazy_thread_pool_processor, sequential_processor
 
 logger = logging.getLogger(__name__)
 
