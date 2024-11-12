@@ -20,9 +20,9 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
-from examples.gsm8k_tuning.math_agent import (
+from examples.rl_gsm8k.cot_math_agent import (
     AnswerAction,
-    MathAgent,
+    COTMathAgent,
     MathEnvironment,
     MathTape,
     Task,
@@ -47,7 +47,7 @@ from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls
 logger = logging.getLogger(__name__)
 
 
-def annotate_trace_with_ref_log_probs(agent: MathAgent, trace: TrainingText) -> TrainingText | None:
+def annotate_trace_with_ref_log_probs(agent: COTMathAgent, trace: TrainingText) -> TrainingText | None:
     try:
         trace.ref_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
         return trace
@@ -78,14 +78,14 @@ def convert_problems_to_tapes(problems: list) -> list[MathTape]:
 
 
 def extract_tape_training_samples(
-    new_tape: MathTape, agent: MathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
+    new_tape: MathTape, agent: COTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
 ) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
 
     Args:
         new_tape: The tape to process containing math problem steps
-        agent: MathAgent
+        agent: COTMathAgent
         dataset_name: Name of dataset ('train' or 'test')
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
@@ -132,10 +132,7 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
             # Check if we will need the KL
-            if (
-                hasattr(cfg.finetune, "rl")
-                and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.implicit_kl_coef > 0)
-            ):
+            if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.implicit_kl_coef > 0):
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
             else:
                 trace.logprobs = [0] * llm_call.output_length_tokens
@@ -170,7 +167,7 @@ def extract_tape_training_samples(
 
 
 def generate_training_data(
-    agent: MathAgent,
+    agent: COTMathAgent,
     tapes: list[MathTape],
     cfg: DictConfig,
     env: MathEnvironment,
@@ -333,8 +330,8 @@ def main(cfg: DictConfig):
             train_tapes = convert_problems_to_tapes(sub_samples)
             train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
             test_tapes = convert_problems_to_tapes(test_samples)
-            train_agent = MathAgent.create(llm=llm)
-            test_agent = MathAgent.create(llm=test_llm)
+            train_agent = COTMathAgent.create(llm=llm)
+            test_agent = COTMathAgent.create(llm=test_llm)
 
             datasets = [("train", train_agent, train_tapes)]
             if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
@@ -387,10 +384,7 @@ def main(cfg: DictConfig):
         training_samples = all_results["train"]["training_samples"]
         new_training_samples: list[TrainingText] = []
         refmodel_starting_time = 0
-        if (
-            hasattr(cfg.finetune, "rl")
-            and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.implicit_kl_coef > 0)
-        ):
+        if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.implicit_kl_coef > 0):
             logging.info("Populating reference log probabilities")
             if assistant_model_path == cfg.model_path:
                 # At the first itetration, Ref logprobs are the same as logprobs
@@ -407,7 +401,7 @@ def main(cfg: DictConfig):
                         parameters=dict(temperature=0.7),
                     )
 
-                    basemodel_agent = MathAgent.create(llm=basemodel_llm)
+                    basemodel_agent = COTMathAgent.create(llm=basemodel_llm)
 
                     with VLLMServiceManager(
                         model_name_or_path=cfg.model_path,
