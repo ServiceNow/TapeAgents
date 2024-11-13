@@ -8,7 +8,6 @@ from ..eval import majority_vote, tape_correct
 
 
 def main(root: str, runs: list[str]):
-    assert len(runs) == 3
     by_level_by_run = defaultdict(lambda: defaultdict(list))
     for run in runs:
         tapes_dir = os.path.join(root, run, "tapes")
@@ -44,7 +43,13 @@ def main(root: str, runs: list[str]):
 
 
 if __name__ == "__main__":
-    runs = ["gpt4o_mini_val_batch32_5", "gpt4o_mini_val_batch32_6", "gpt4o_mini_val_batch32_7"]
+    runs = [
+        "gpt4o_mini_val_batch32_5",
+        "gpt4o_mini_val_batch32_6",
+        "gpt4o_mini_val_batch32_7",
+        "gpt4o_mini_val_batch32_t0_2",
+        "gpt4o_mini_val_batch32_t05",
+    ]
     main(root="../gaia/runs/", runs=runs)
 
 
