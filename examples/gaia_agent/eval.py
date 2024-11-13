@@ -91,7 +91,7 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
     previous_plans: list[str] = []
     while len(tapes) < n_attempts:
         predicted = None
-        tries = 1
+        tries = 3
         while not predicted and tries:
             tape = GaiaTape(steps=[question])
             logger.info(colored(f"Attempt {len(tapes)+1}", "green"))
@@ -117,9 +117,9 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
                 if discard_attempt:
                     continue
             except Exception as e:
-                logger.exception(f"Failed to solve task: {e}")
                 tape.metadata.error = str(e)
-                break
+                logger.exception(f"Failed to solve task: {e}")
+                continue
             predicted = step.answer if isinstance(step, GaiaAnswer) else None
             tries -= 1
         predicted = str(predicted)
