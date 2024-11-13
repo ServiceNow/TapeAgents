@@ -411,10 +411,10 @@ class SimpleTextBrowser:
     def _add_to_cache(self, k: str, value: Any) -> None:
         self._cache[k] = value
         self._log[k] = value
-        self._cache_writes += 1
-        if self._cache_writes % 10 == 0:
-            with open(self._cache_filename, "w") as f:
-                json.dump(self._cache, f, indent=2, ensure_ascii=False)
+
+    def save_cache(self):
+        with open(self._cache_filename, "w") as f:
+            json.dump(self._cache, f, indent=2, ensure_ascii=False)
 
     def get_page(self, url: str) -> tuple[str, int, int]:
         """
