@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import threading
 import time
 
 import hydra
@@ -9,7 +10,7 @@ from omegaconf import DictConfig
 
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.llms import TrainableLLM
-from tapeagents.parallel_processing import lazy_thread_pool_processor
+from tapeagents.parallel_processing import choose_processor, lazy_thread_pool_processor
 
 from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
@@ -19,6 +20,8 @@ from ..tape import GaiaTape
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
+
+output_lock = threading.Lock()
 
 
 @hydra.main(
@@ -57,32 +60,24 @@ def main(cfg: DictConfig) -> None:
             logger.info(f"Loaded {len(items)} cached queries from browser log")
 
     dt = time.perf_counter()
-    if cfg.batch > 1:
-        logger.info(f"Using batch processing with {cfg.batch} workers")
-        inputs = [
-            (agent, env, i, task, cfg.n_attempts, tapes_dir, browser_log_path, level)
-            for level, level_tasks in tasks.items()
-            for i, task in enumerate(level_tasks)
-        ]
-        for tape_ready in lazy_thread_pool_processor(inputs, task_worker, cfg.batch):
-            if isinstance(tape_ready, Exception):
-                raise tape_ready
-    else:
-        for level, level_tasks in tasks.items():
-            done = 0
-            logger.info(f"Start level {level} with {len(level_tasks)} tasks")
-            for i, task in enumerate(level_tasks):
-                tape_ready = task_worker((agent, env, i, task, cfg.n_attempts, tapes_dir, browser_log_path, level))
-                done += tape_ready
-            logger.info(f"Level {level} done, {done} tapes produced")
-
-    save_browser_log(browser_log_path, env)
+    n_workers = cfg.batch or 1
+    processor = choose_processor(n_workers)
+    logger.info(f"Evaluate using {n_workers} workers")
+    args = [
+        (agent, llm, cfg.env, i, task, cfg.n_attempts, tapes_dir, browser_log_path, level)
+        for level, level_tasks in tasks.items()
+        for i, task in enumerate(level_tasks)
+    ]
+    for tape_ready in processor(args, task_worker):
+        if isinstance(tape_ready, Exception):
+            raise tape_ready
     dt = time.perf_counter() - dt
     logger.info(f"Done, elapsed time: {dt:.2f} sec")
 
 
-def task_worker(inputs: tuple) -> int:
-    agent, env, i, task, n_attempts, tapes_dir, browser_log_path, level = inputs
+def task_worker(args: tuple) -> int:
+    agent, llm, cfg_env, i, task, n_attempts, tapes_dir, browser_log_path, level = args
+    env = GaiaEnvironment(vision_lm=llm, **cfg_env)
     tape_name = f"l{level}_task{i:03d}"
     tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
     if os.path.exists(tape_path):
@@ -96,15 +91,17 @@ def task_worker(inputs: tuple) -> int:
     tape.metadata.level = level
     save_json_tape(tape, tapes_dir, tape_name)
     logger.info(f"Task {tape_name} solved, saved to {tape_path}")
-    save_browser_log(browser_log_path, env)
+    with output_lock:
+        flush_browser_log(browser_log_path, env)
     return 1
 
 
-def save_browser_log(browser_log_path: str, env: GaiaEnvironment):
+def flush_browser_log(browser_log_path: str, env: GaiaEnvironment):
     if len(env.browser._log):
-        with open(browser_log_path, "w") as wf:
+        with open(browser_log_path, "a") as wf:
             for k, v in env.browser._log.copy().items():
                 wf.write(json.dumps({"k": k, "v": v}) + "\n")
+        env.browser._log = {}
 
 
 if __name__ == "__main__":

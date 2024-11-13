@@ -1,7 +1,6 @@
 import logging
 import random
 import traceback
-from functools import partial
 from pathlib import Path
 from typing import Generator, Generic, Sequence
 
@@ -13,19 +12,11 @@ from .core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadat
 from .environment import Environment
 from .io import stream_yaml_tapes
 from .orchestrator import main_loop
-from .parallel_processing import lazy_thread_pool_processor, sequential_processor
+from .parallel_processing import choose_processor
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_N_WORKERS = 16
-
-
-def _choose_processor(n_workers: int):
-    return (
-        partial(lazy_thread_pool_processor, n_workers=n_workers)
-        if n_workers > 0 and not is_debug_mode()
-        else partial(sequential_processor, n_workers=1)
-    )
 
 
 def batch_main_loop(
@@ -54,7 +45,7 @@ def batch_main_loop(
         result.metadata.parent_id = start_tape.metadata.id
         return result
 
-    processor = _choose_processor(n_workers=n_workers)
+    processor = choose_processor(n_workers=n_workers)
     for smth in processor(zip(tapes, environments), worker_func):
         if isinstance(smth, Tape):
             yield smth
@@ -103,7 +94,7 @@ def batch_add_observations(
             # TODO: not fully deterministic because of obs_maker.can_continue()
             chosen_tapes = [possible_tapes[i % len(possible_tapes)] for i in range(count)]
 
-        processor = _choose_processor(n_workers=n_workers)
+        processor = choose_processor(n_workers=n_workers)
         for smth in processor(zip(chosen_tapes, [obs_maker] * count), worker_func):
             if isinstance(smth, tuple):
                 yield smth
@@ -128,7 +119,7 @@ def batch_annotate(
             result.metadata.error = str(e)
             return result
 
-    processor = _choose_processor(n_workers=n_workers)
+    processor = choose_processor(n_workers=n_workers)
     for smth in processor(zip(tapes, [annotator] * len(tapes)), worker_func):
         if isinstance(smth, Tape):
             yield smth
