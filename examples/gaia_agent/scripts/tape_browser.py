@@ -1,7 +1,9 @@
 import logging
 import os
 import sys
+from collections import defaultdict
 
+from tapeagents.core import Action
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.rendering import GuidedAgentRender
@@ -71,27 +73,28 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
         acc, n_solved = calculate_accuracy(tapes)
-        parsing_errors = 0
-        page_errors = 0
+        errors = defaultdict(int)
         tokens_num = 0
-        other_failures = 0
         for tape in tapes:
+            last_action = None
             for step in tape:
+                if isinstance(step, Action):
+                    last_action = step
                 prompt_id = step.metadata.prompt_id
                 if prompt_id and prompt_id in self.llm_calls:
                     tokens_num += (
                         self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
                     )
                 if step.kind == "page_observation" and step.error:
-                    page_errors += 1
+                    errors["browser"] += 1
                 elif step.kind == "llm_output_parsing_failure_action":
-                    parsing_errors += 1
-                elif "failure" in step.kind:
-                    other_failures += 1
-        html = f"""<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}
-        <br>Step parsing errors: {parsing_errors}
-        <br>Page loading errors: {page_errors}
-        <br>Other failures: {other_failures}"""
+                    errors["parsing"] += 1
+                elif step.kind == "action_execution_failure":
+                    errors[f"{last_action.kind}"] += 1
+        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}"
+        if errors:
+            errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
+            html += f"<h2>Errors</h2>{errors_str}"
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
