@@ -75,7 +75,7 @@ class ReasoningNode(MonoNode):
         try:
             step = ReasoningThought(reasoning=completion)
         except Exception as e:
-            logger.error(f"Failed to parse completion: {e}")
+            logger.info(f"Failed to parse completion: {e}")
             yield LLMOutputParsingFailureAction(prompt_id=prompt_id)
             return
         yield step
@@ -86,7 +86,7 @@ class AnswerNode(MonoNode):
         try:
             step = AnswerAction(text=completion, value=float(completion))
         except Exception as e:
-            logger.error(f"Failed to parse completion: {e}")
+            logger.info(f"Failed to parse completion: {e}")
             yield LLMOutputParsingFailureAction(prompt_id=prompt_id)
             return
         yield step
