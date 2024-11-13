@@ -118,6 +118,7 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
                     continue
             except Exception as e:
                 logger.exception(f"Failed to solve task: {e}")
+                tape.metadata.error = str(e)
                 break
             predicted = step.answer if isinstance(step, GaiaAnswer) else None
             tries -= 1

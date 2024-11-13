@@ -76,6 +76,8 @@ class GaiaTapeBrowser(TapeBrowser):
         errors = defaultdict(int)
         tokens_num = 0
         for tape in tapes:
+            if tape.metadata.error:
+                errors["fatal"] += 1
             last_action = None
             for step in tape:
                 if isinstance(step, Action):
@@ -137,6 +139,8 @@ class GaiaTapeBrowser(TapeBrowser):
             <div class="result-success">Finished successfully: {success}</div>
             <div>LLM Calls: {llm_calls_num}, tokens: {tokens_num}</div>
             <div class="result-overview">Overview:<br>{overview}</div>"""
+        if tape.metadata.error:
+            label += f"<div class='result-error'>Error: {tape.metadata.error}</div>"
         return label
 
     def get_tape_files(self) -> list[str]:

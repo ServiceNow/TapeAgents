@@ -95,7 +95,7 @@ class MockToolEnvironment(Environment):
                         completion = completion.content
                     if completion:
                         result_json = json.loads(completion)
-                        if not "result" in result_json:
+                        if "result" not in result_json:
                             raise ValueError("Result JSON should have 'result' key")
                         observation = ToolResult(content=json.dumps(result_json["result"]), tool_call_id=tc.id)
                         tape = tape.append(observation)
