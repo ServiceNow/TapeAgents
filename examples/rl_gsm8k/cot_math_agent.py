@@ -75,8 +75,8 @@ class ReasoningNode(MonoNode):
         try:
             step = ReasoningThought(reasoning=completion)
         except Exception as e:
-            logger.info(f"Failed to parse completion: {e}")
-            yield LLMOutputParsingFailureAction(prompt_id=prompt_id)
+            logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
+            yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
             return
         yield step
 
@@ -86,8 +86,8 @@ class AnswerNode(MonoNode):
         try:
             step = AnswerAction(text=completion, value=float(completion))
         except Exception as e:
-            logger.info(f"Failed to parse completion: {e}")
-            yield LLMOutputParsingFailureAction(prompt_id=prompt_id)
+            logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
+            yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
             return
         yield step
 
@@ -99,13 +99,6 @@ class COTMathAgent(Agent):
         return super().create(
             llm,
             nodes=[
-                #MonoNode(
-                #    name="start",
-                #    system_prompt=SYSTEM_PROMPT,
-                #    steps_prompt=STEP_PROMPT,
-                #    agent_step_cls=MathAgentStep,
-                #    guidance=START_TASK_GUIDANCE,
-                #),
                 ReasoningNode(
                     name="cot",
                     system_prompt=SYSTEM_PROMPT,
@@ -119,7 +112,7 @@ class COTMathAgent(Agent):
                     steps_prompt=STEP_PROMPT,
                     agent_step_cls=MathAgentStep,
                     guidance=ANSWER_GUIDANCE,
+                    next_node=-1,
                 ),
             ],
-            max_iterations=1,
         )

@@ -4,7 +4,7 @@ defaults:
 
 n_workers: 32
 get_log_probs_workers: 1
-max_loops: 10
+max_loops: 1
 test_every_n_iterations: 5
 model_path: meta-llama/Meta-Llama-3.1-8B-Instruct
 max_agent_forks: 1024
@@ -19,8 +19,8 @@ llm:
     max_tokens: 4096
     temperature: 0.7
 test_llm:
-  parameters:
-    max_tokens: 4096
+  parameters: 
+    max_tokens: ${...llm.parameters.max_tokens}
     temperature: 0.
 
 finetune:

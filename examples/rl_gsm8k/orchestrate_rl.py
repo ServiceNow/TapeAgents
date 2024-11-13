@@ -171,7 +171,7 @@ def generate_training_data(
     tapes: list[MathTape],
     cfg: DictConfig,
     env: MathEnvironment,
-    tapes_dir: str | Path,
+    tapes_dir: Path,
     dataset_name: str,
 ) -> Tuple[List[MathTape], List[TrainingText], Dict[str, float]]:
     """
