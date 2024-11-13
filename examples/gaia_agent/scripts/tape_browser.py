@@ -87,19 +87,25 @@ class GaiaTapeBrowser(TapeBrowser):
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
-        error = False
+        error = "F" if tape.metadata.error else None
+        last_action = None
         for step in tape:
-            if "failure" in step.kind or (step.kind == "page_observation" and step.error):
-                error = True
-                break
+            if isinstance(step, Action):
+                last_action = step
+            if step.kind == "page_observation" and step.error:
+                error = "br"
+            elif step.kind == "llm_output_parsing_failure_action":
+                error = "pa"
+            elif step.kind == "action_execution_failure" and last_action:
+                error = last_action.kind[:2]
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
         if tape.metadata.task["file_name"]:
             mark += "📁"
         if error:
-            mark += "⚠"
+            mark += f"[{error}]"
         if mark:
             mark += " "
-        return f"{mark}{i+1}: {tape[0].content[:32]}"  # type: ignore
+        return f"{i+1} {mark}{tape[0].content[:32]}"  # type: ignore
 
     def get_tape_label(self, tape: GaiaTape) -> str:
         llm_calls_num = 0
@@ -127,7 +133,7 @@ class GaiaTapeBrowser(TapeBrowser):
             <div>LLM Calls: {llm_calls_num}, tokens: {tokens_num}</div>
             <div class="result-overview">Overview:<br>{overview}</div>"""
         if tape.metadata.error:
-            label += f"<div class='result-error'>Error: {tape.metadata.error}</div>"
+            label += f"<div class='result-error'><b>Error</b>: {tape.metadata.error}</div>"
         return label
 
     def get_tape_files(self) -> list[str]:
