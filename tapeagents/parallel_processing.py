@@ -1,10 +1,14 @@
 from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from functools import partial
 from queue import Empty, Full, Queue
 from threading import Event, Thread
 from typing import Any, Callable, Generator, Iterable, Literal, TypeVar
 
+from .config import is_debug_mode
+
 InputType = TypeVar("InputType")
 OutputType = TypeVar("OutputType")
+
 
 def sequential_processor(
     stream: Iterable[InputType],
@@ -158,6 +162,7 @@ def lazy_thread_pool_processor(
 
             try:
                 # Main (consumer) thread
+                producer_was_done_before_get = None
                 while True:
                     try:
                         # Get the next completed future
@@ -168,7 +173,7 @@ def lazy_thread_pool_processor(
                         except Exception as e:
                             yield e
                     except Empty:
-                        # If queue is empty and producer was done before we checked the queue, 
+                        # If queue is empty and producer was done before we checked the queue,
                         # break out of loop
                         if producer_was_done_before_get:
                             break
@@ -180,3 +185,11 @@ def lazy_thread_pool_processor(
 
                 if producer_thread.is_alive():
                     raise RuntimeError("Producer thread is still alive after timeout")
+
+
+def choose_processor(n_workers: int):
+    return (
+        partial(lazy_thread_pool_processor, n_workers=n_workers)
+        if n_workers > 0 and not is_debug_mode()
+        else partial(sequential_processor, n_workers=1)
+    )

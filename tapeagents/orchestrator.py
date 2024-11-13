@@ -111,10 +111,10 @@ def main_loop(
                 return
             try:
                 tape = environment.react(agent_tape)
-            except NoActionsToReactTo as e:
+            except NoActionsToReactTo:
                 yield MainLoopEvent(status=MainLoopStatus.NO_ACTIONS)
                 return
-            except ExternalObservationNeeded as e:
+            except ExternalObservationNeeded:
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:

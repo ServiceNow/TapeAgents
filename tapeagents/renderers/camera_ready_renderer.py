@@ -4,7 +4,7 @@ import json
 import yaml
 
 from tapeagents.container_executor import CodeBlock
-from tapeagents.core import Action, Observation, SetNextNode, Step, Thought
+from tapeagents.core import Action, Error, Observation, SetNextNode, Step, Thought
 from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
@@ -23,7 +23,7 @@ class CameraReadyRenderer(BasicRenderer):
         return super().style + (
             "<style>"
             f".observation {{ background-color: {GREEN} ;}}"
-            f".error_observation {{ background-color: {RED}; }}"
+            f".error {{ background-color: {RED} !important; }}"
             f".action {{ background-color: {BLUE}; }}"
             f".thought {{ background-color: {PURPLE}; }}"
             f".call {{ background-color: {LIGHT_YELLOW}; }}"
@@ -86,16 +86,19 @@ class CameraReadyRenderer(BasicRenderer):
             class_ = "action"
         elif isinstance(step, CodeExecutionResult):
             role = "Observation"
-            class_ = "error_observation" if step.result.exit_code != 0 else "observation"
+            class_ = "error" if step.result.exit_code != 0 else "observation"
         elif isinstance(step, ToolResult):
             role = "Observation"
             class_ = "observation"
             dump.pop("tool_call_id", None)
         elif isinstance(step, Observation):
             role = "Observation"
-            class_ = "observation"
+            class_ = "error" if getattr(step, "error", False) else "observation"
         else:
             raise ValueError(f"Unknown object type: {type(step)}")
+
+        if isinstance(step, Error):
+            class_ += " error"
 
         ##### Render text #####
         def pretty_yaml(d: dict):
@@ -139,6 +142,9 @@ class CameraReadyRenderer(BasicRenderer):
                     text += f"\n {maybe_fold(step.result.output)}"
         elif (content := getattr(step, "content", None)) is not None:
             del dump["content"]
+            text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
+        elif (content := getattr(step, "text", None)) is not None:
+            del dump["text"]
             text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
         else:
             text = pretty_yaml(dump)

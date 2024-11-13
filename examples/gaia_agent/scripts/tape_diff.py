@@ -1,6 +1,6 @@
 import sys
 
-from tapeagents.rendering import GuidedAgentRender
+from tapeagents.rendering import BasicRenderer
 from tapeagents.tape_diff import TapeDiffGUI
 
 from ..eval import load_results, tape_correct
@@ -28,5 +28,5 @@ def tape_name_fn(n: int, tape: dict, tape2: dict | None) -> str:
 
 if __name__ == "__main__":
     assert len(sys.argv) == 3, "Usage: python -m scripts.tape_diff <fname1> <fname2>"
-    gui = TapeDiffGUI(GuidedAgentRender(), loader_fn, tape_name_fn, sys.argv[1], sys.argv[2])
+    gui = TapeDiffGUI(BasicRenderer(), loader_fn, tape_name_fn, sys.argv[1], sys.argv[2])
     gui.launch()
