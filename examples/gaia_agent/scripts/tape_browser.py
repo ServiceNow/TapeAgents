@@ -6,7 +6,7 @@ from collections import defaultdict
 from tapeagents.core import Action
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_all_llm_calls
-from tapeagents.rendering import GuidedAgentRender
+from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
 from ..eval import calculate_accuracy, get_exp_config_dict, tape_correct
@@ -55,20 +55,7 @@ class GaiaTapeBrowser(TapeBrowser):
         except IndexError:
             return "", "Tape not found"
         label = self.get_tape_label(tape)
-        steps = self.get_steps(tape)
-        step_views = []
-        last_prompt_id = None
-        for i, step in enumerate(steps):
-            prompt_id = step.metadata.prompt_id
-            view = self.renderer.render_step(step, i)  # type: ignore
-            if prompt_id in self.llm_calls and prompt_id != last_prompt_id:
-                prompt_view = self.renderer.render_llm_call(self.llm_calls[prompt_id])
-                view = prompt_view + view
-            step_views.append(view)
-            last_prompt_id = prompt_id
-        steps_html = "".join(step_views)
-        html = f"{self.renderer.style}"
-        html += f"{self.renderer.steps_header}{steps_html}"
+        html = f"{self.renderer.style}<style>.thought {{ background-color: #ffffba !important; }};</style>{self.renderer.render_tape(tape, self.llm_calls)}"
         return html, label
 
     def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
@@ -153,7 +140,6 @@ class GaiaTapeBrowser(TapeBrowser):
         for postfix in ["1", "2", "3", "all"]:
             for r in raw_exps:
                 exp_dir = os.path.join(self.tapes_folder, r)
-                logger.info(f"Exp dir {exp_dir}")
                 cfg = get_exp_config_dict(exp_dir)
                 parts = cfg["data_dir"].split("/")
                 set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
@@ -162,8 +148,7 @@ class GaiaTapeBrowser(TapeBrowser):
 
 
 def main(dirname: str):
-    renderer = GuidedAgentRender()
-    browser = GaiaTapeBrowser(dirname, renderer)
+    browser = GaiaTapeBrowser(dirname, CameraReadyRenderer())
     browser.launch(port=7861)
 
 
