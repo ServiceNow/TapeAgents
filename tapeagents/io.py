@@ -3,7 +3,7 @@ import logging
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator, Type
+from typing import Generator, Type, TypeVar
 
 import yaml
 from pydantic import TypeAdapter
@@ -54,8 +54,9 @@ def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
     with open(fpath, "w") as f:
         f.write(tape.model_dump_json(indent=4))
 
+T = TypeVar("T", bound=Tape)  # Any subclass of a Tape
 
-def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension: str = ".yaml") -> list[Tape]:
+def load_tapes(tape_class: Type[T], path: Path | str, file_extension: str = ".yaml") -> list[T]:
     if not os.path.exists(path):
         raise FileNotFoundError(f"File not found: {path}")
     if file_extension not in (".yaml", ".json"):
