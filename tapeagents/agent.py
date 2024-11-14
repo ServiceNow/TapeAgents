@@ -401,6 +401,10 @@ class Agent(BaseModel, Generic[TapeType]):
             if self.is_agent_step(step):
                 current_agent = self.delegate(past_tape)
                 prompt = current_agent.make_prompt(past_tape)
+                if not prompt:
+                    reused_steps.append(step)
+                    i += 1
+                    continue
                 output = current_agent.make_llm_output(tape, i)
                 llm_call = LLMCall(prompt=prompt, output=output, cached=True)
                 observe_llm_call(llm_call)

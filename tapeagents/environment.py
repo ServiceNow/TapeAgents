@@ -5,16 +5,14 @@ from typing import Callable, Generic, Literal
 
 from langchain_core.tools import BaseTool, tool
 from langchain_core.utils.function_calling import convert_to_openai_tool
-from litellm.utils import Function
 from pydantic import TypeAdapter
 
 from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 
 from .agent import TapeType
-from .core import Action, Observation, Prompt, Tape
+from .core import Action, Observation, Tape
 from .dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
-from .llms import LiteLLM
 
 logger = logging.getLogger(__name__)
 
@@ -53,19 +51,6 @@ class Environment(ABC, Generic[TapeType]):
         raise ValueError(f"Unexpected action type: {action}")
 
 
-MOCK_TOOL_ENV_PROMPT_TEMPLATE = """You will generate result of the following function call
-
-{function_call}
-
-You will output JSON of the following structure:
-{{
-    "result": ...
-}}
-
-You will output just the JSON and nothing else. Go!
-"""
-
-
 class EmptyEnvironment(Environment):
     def react(self, tape: Tape) -> list[Observation]:
         # TOOD: move prompting to a separate agent?
@@ -77,38 +62,9 @@ class EmptyEnvironment(Environment):
         return []
 
 
-class MockToolEnvironment(Environment):
-    def __init__(self, llm: LiteLLM):
-        self.llm = llm
-
-    def react(self, tape: DialogTape) -> DialogTape:
-        # TODO: move prompting to a separate agent?
-        action = tape.steps[-1]
-        assert isinstance(action, Action)
-        if isinstance(action, ToolCalls):
-            for tc in action.tool_calls:
-                prompt_text = MOCK_TOOL_ENV_PROMPT_TEMPLATE.format(function_call=tc.function)
-                messages = [{"role": "user", "content": prompt_text}]
-                for event in self.llm.generate(Prompt(messages=messages)):
-                    completion = event.output
-                    if completion and not isinstance(completion, str):
-                        completion = completion.content
-                    if completion:
-                        result_json = json.loads(completion)
-                        if "result" not in result_json:
-                            raise ValueError("Result JSON should have 'result' key")
-                        observation = ToolResult(content=json.dumps(result_json["result"]), tool_call_id=tc.id)
-                        tape = tape.append(observation)
-        elif isinstance(action, AssistantStep):
-            self.raise_external_observation_needed(action)
-        else:
-            self.raise_unexpected_action(action)
-        return tape
-
-
 class ToolEnvironment(Environment):
     def __init__(self, tools: list[BaseTool | Callable]):
-        self.tools = [t if isinstance(t, BaseTool) else tool(t) for t in tools]
+        self.tools: list[BaseTool] = [t if isinstance(t, BaseTool) else tool(t) for t in tools]  # type: ignore
         self._name2tool = {t.name: t for t in self.tools}
 
     def get_tool_schemas(self) -> list[ToolSpec]:
@@ -130,7 +86,7 @@ class ToolEnvironment(Environment):
             if isinstance(action, ToolCalls):
                 for tc in action.tool_calls:
                     if not isinstance(tc.function, FunctionCall) or not isinstance(tc.function.name, str):
-                        raise ValueError(f"Tool call must be Function and must have a name")
+                        raise ValueError("Tool call must be Function and must have a name")
                     tool = self._name2tool[tc.function.name]
                     args = tc.function.arguments
                     if isinstance(args, str):
