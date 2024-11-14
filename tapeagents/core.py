@@ -99,6 +99,7 @@ class LLMOutputParsingFailureAction(Action, Error):
 
     kind: Literal["llm_output_parsing_failure_action"] = "llm_output_parsing_failure_action"
     error: str
+    llm_output: str
 
 
 class StopStep(Action):

@@ -6,15 +6,15 @@ from pydantic import Field, TypeAdapter, ValidationError
 
 from .agent import Node
 from .core import (
-    LLMOutputParsingFailureAction,
     AgentStep,
-    StepMetadata,
     LLMOutput,
+    LLMOutputParsingFailureAction,
     Observation,
     PartialStep,
     Prompt,
     SetNextNode,
     Step,
+    StepMetadata,
     StopStep,
     Tape,
 )
@@ -52,7 +52,20 @@ class MonoNode(Node):
         return tape.model_copy(update=dict(steps=steps_without_control_flow))
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
-        return LLMOutput(role="assistant", content=tape.steps[index].llm_view())
+        """
+        Make output from steps produced by the single llm call (having the same prompt_id), except for SetNextNode steps.
+        """
+        steps = []
+        i = index
+        first_prompt_id = tape.steps[i].metadata.prompt_id
+        while i < len(tape) and tape.steps[i].metadata.prompt_id == first_prompt_id:
+            if not isinstance(tape.steps[i], SetNextNode):
+                steps.append(tape.steps[i])
+            i += 1
+
+        # if there is only one step, return it as a single dict, not a list
+        content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
+        return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 
     def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
         messages: list[dict] = [
@@ -94,14 +107,14 @@ class MonoNode(Node):
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         return step
 
-    def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
+    def parse_completion(self, llm_output: str, prompt_id: str) -> Generator[Step, None, None]:
         try:
-            step_dicts = json.loads(sanitize_json_completion(completion))
+            step_dicts = json.loads(sanitize_json_completion(llm_output))
             if isinstance(step_dicts, dict):
                 step_dicts = [step_dicts]
         except Exception as e:
-            logger.exception(f"Failed to parse agent output: {completion}\n\nError: {e}")
-            yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
+            logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
+            yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
             return
         try:
             steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
@@ -110,17 +123,14 @@ class MonoNode(Node):
             for err in e.errors():
                 loc = ".".join([str(loc) for loc in err["loc"]])
                 err_text += f"{loc}: {err['msg']}\n"
-            logger.exception(f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}")
+            logger.exception(f"Failed to validate LLM output: {step_dicts}\n\nErrors:\n{err_text}")
             yield LLMOutputParsingFailureAction(
-                error=f"Failed to validate agent output: {step_dicts}\n\nErrors:\n{err_text}",
-                metadata=StepMetadata(other={"completion": completion}),
+                error=f"Failed to validate LLM output: {err_text}", llm_output=llm_output
             )
             return
         except Exception as e:
-            logger.exception(f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}")
-            yield LLMOutputParsingFailureAction(
-                error=f"Failed to parse agent output dict: {step_dicts}\n\nError: {e}"
-            )
+            logger.exception(f"Failed to parse LLM output dict: {step_dicts}\n\nError: {e}")
+            yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output dict: {e}", llm_output=llm_output)
             return
         for step in steps:
             step.metadata.prompt_id = prompt_id
