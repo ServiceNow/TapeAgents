@@ -5,6 +5,7 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 from pydantic import BaseModel, Field
 
 from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
+from tapeagents.dialog_tape import AssistantStep
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -59,6 +60,30 @@ class PlanThought(GaiaThought):
     plan: list[str] = Field(description="list of steps to follow to answer the question")
 
 
+class PlanStep(BaseModel):
+    number: int
+    description: str
+    list_of_tools: list[str] = Field(description="list of tools to use to complete the step")
+    prerequisites: list[str] = Field(
+        description="list of results of the previous steps that are needed to start working on this step",
+        default_factory=list,
+    )
+    expected_artifacts: list[str] = Field(
+        description="expected concrete artifacts at the end of the step. Usually facts, files, papers, documents or data to be produced",
+        default_factory=list,
+    )
+
+
+# TODO : remove StopStep later
+class PlanThoughtV2(GaiaThought, StopStep):
+    """
+    Thought that contains the plan to follow to answer the question
+    """
+
+    kind: Literal["detailed_plan_thought"] = "detailed_plan_thought"
+    plan: list[PlanStep] = Field(description="list of steps to follow to answer the question")
+
+
 class SourcesThought(GaiaThought):
     """
     Thought that contains the sources to use to answer the question. It could be web search, wikipedia, local document path and so on
@@ -90,6 +115,30 @@ class ListOfFactsThought(GaiaThought):
     )
     facts_to_guess: list[FactSchema] = Field(
         description="list of facts that need to be guessed from the given facts, documents and reasoning",
+        default=[],
+    )
+
+
+class ListOfFactsThoughtV2(GaiaThought):
+    """
+    Thought that contains the list of facts that are needed to answer the question
+    """
+
+    kind: Literal["list_of_facts_thought_v2"] = "list_of_facts_thought_v2"
+    given_facts: list[FactSchemaWithValue] = Field(
+        description="list of facts that are already given in the question",
+        default=[],
+    )
+    facts_to_lookup: list[FactSchema] = Field(
+        description="list of facts that need to be looked up on the web or in documents",
+        default=[],
+    )
+    facts_to_derive: list[FactSchema] = Field(
+        description="list of facts that need to be derived from the given facts using reasoning or calculations",
+        default=[],
+    )
+    educated_guesses: list[FactSchema] = Field(
+        description="list of facts guessed from the given task and documents",
         default=[],
     )
 
@@ -338,6 +387,9 @@ GaiaStep = Union[
     ActionExecutionFailure,
     LLMOutputParsingFailureAction,
     SetNextNode,
+    PlanThoughtV2,
+    ListOfFactsThoughtV2,
+    AssistantStep,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[

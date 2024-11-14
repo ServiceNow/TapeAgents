@@ -77,7 +77,7 @@ def sanitize_json_completion(completion: str) -> str:
 
 
 def without(d: dict, key: str) -> dict:
-    d.pop(key)
+    d.pop(key, None)
     return d
 
 
@@ -85,11 +85,17 @@ def get_step_schemas_from_union_type(cls) -> str:
     schema = TypeAdapter(cls).json_schema()
     dereferenced_schema: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
     clean_schema = []
-    for step in dereferenced_schema["oneOf"]:
+    for step in dereferenced_schema.get("oneOf", [dereferenced_schema]):
+        if "$defs" in step:
+            step["$defs"] = without(step["$defs"], "StepMetadata")
+            if not len(step["$defs"]):
+                step = without(step, "$defs")
         step = without(step, "title")
         step["properties"] = without(step["properties"], "metadata")
         for prop in step["properties"]:
             step["properties"][prop] = without(step["properties"][prop], "title")
         step["properties"]["kind"] = {"const": step["properties"]["kind"]["const"]}
         clean_schema.append(step)
+    if len(clean_schema) == 1:
+        clean_schema = clean_schema[0]
     return json.dumps(clean_schema, ensure_ascii=False)
