@@ -5,7 +5,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from tapeagents.rendering import GuidedAgentRender
+from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.studio import Studio
 
 from ..agent import GaiaAgent
@@ -33,7 +33,7 @@ def main(cfg: DictConfig) -> None:
     env = GaiaEnvironment(vision_lm=llm)
     agent = GaiaAgent.create(llm, **cfg.agent)
     tape = GaiaTape(steps=[GaiaQuestion(content="How many calories in 2 teaspoons of hummus")])
-    Studio(agent, tape, GuidedAgentRender(), env).launch(server_name="0.0.0.0")
+    Studio(agent, tape, CameraReadyRenderer(), env).launch(server_name="0.0.0.0")
 
 
 if __name__ == "__main__":

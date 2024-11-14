@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 
 from examples.gaia_agent.tape import GaiaTape
 from tapeagents.io import load_tapes
@@ -6,64 +7,50 @@ from tapeagents.io import load_tapes
 from ..eval import majority_vote, tape_correct
 
 
-def main(root: str, model: str, runs: list[str]):
-    assert len(runs) == 3
-    lvl1 = []
-    lvl2 = []
-    lvl3 = []
+def main(root: str, runs: list[str]):
+    by_level_by_run = defaultdict(lambda: defaultdict(list))
     for run in runs:
         tapes_dir = os.path.join(root, run, "tapes")
         tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_dir, file_extension=".json")  # type: ignore
         for tape in tapes:
-            if tape.metadata.level == 1:
-                lvl1.append(tape)
-            elif tape.metadata.level == 2:
-                lvl2.append(tape)
-            elif tape.metadata.level == 3:
-                lvl3.append(tape)
+            by_level_by_run[tape.metadata.level][run].append(tape)
 
-    avg = [[]] + [[] for _ in runs]
+    maj_name = f"maj@{len(runs)}"
+    avg = {run: [] for run in runs} | {maj_name: []}
     print("Accuracy")
-    for lvl_name, lvl in enumerate([lvl1, lvl2, lvl3]):
-        acc1 = []
-        acc2 = []
-        acc3 = []
+    for lvl_name, lvl_runs in by_level_by_run.items():
+        acc_by_run = defaultdict(list)
         avg_acc = []
-        for i, tape1 in enumerate(lvl[0].tapes):
-            tape2 = lvl[1].tapes[i]
-            tape3 = lvl[2].tapes[i]
-            result1 = tape1["metadata"]["result"]
-            result2 = tape2["metadata"]["result"]
-            result3 = tape3["metadata"]["result"]
-            tapes = [tape1, tape2, tape3]
-            best_idx = majority_vote([result1, result2, result3])
+        run_names = []
+        run_tapes = []
+        for run_name, tapes in lvl_runs.items():
+            run_names.append(run_name)
+            run_tapes.append(tapes)
+            acc_by_run[run_name] = [int(tape_correct(tape)) for tape in tapes]
+            avg[run_name] += acc_by_run[run_name]
+        for tapes in zip(*run_tapes):
+            best_idx = majority_vote([tape.metadata.result for tape in tapes])
             best_tape = tapes[best_idx]
-            acc1.append(int(tape_correct(tape1)))
-            acc2.append(int(tape_correct(tape2)))
-            acc3.append(int(tape_correct(tape3)))
             avg_acc.append(int(tape_correct(best_tape)))
-        print(f"L{lvl_name+1} {runs[0]}: {sum(acc1) / len(acc1):.3f} ({sum(acc1)} of {len(acc1)})")
-        print(f"L{lvl_name+1} {runs[1]}: {sum(acc2) / len(acc2):.3f} ({sum(acc2)} of {len(acc2)})")
-        print(f"L{lvl_name+1} {runs[2]}: {sum(acc3) / len(acc3):.3f} ({sum(acc3)} of {len(acc3)})")
-        print(f"L{lvl_name+1} maj@3: {sum(avg_acc) / len(avg_acc):.3f} ({sum(avg_acc)} of {len(avg_acc)})")
+        avg[maj_name] += avg_acc
+        for run_name, acc in acc_by_run.items():
+            print(f"L{lvl_name} {run_name}: {sum(acc) / len(acc):.3f} ({sum(acc)} of {len(acc)})")
+        print(f"L{lvl_name} {maj_name}: {sum(avg_acc) / len(avg_acc):.3f} ({sum(avg_acc)} of {len(avg_acc)})")
         print()
-        avg[0] += acc1
-        avg[1] += acc2
-        avg[2] += acc3
-        avg[3] += avg_acc
 
-    print(f"Avg. {runs[0]}: {sum(avg[0]) / len(avg[0]):.3f} ({sum(avg[0])} of {len(avg[0])})")
-    print(f"Avg. {runs[1]}: {sum(avg[1]) / len(avg[1]):.3f} ({sum(avg[1])} of {len(avg[1])})")
-    print(f"Avg. {runs[2]}: {sum(avg[2]) / len(avg[2]):.3f} ({sum(avg[2])} of {len(avg[2])})")
-    print(f"Avg. maj@3: {sum(avg[3]) / len(avg[3]):.3f} ({sum(avg[3])} of {len(avg[3])})")
+    for run, acc in avg.items():
+        print(f"Avg. {run}: {sum(acc) / len(acc):.3f} ({sum(acc)} of {len(acc)})")
 
 
 if __name__ == "__main__":
-    main(
-        root="../gaia/runs/",
-        model="gpt-4o-mini-2024-07-18",
-        runs=["gpt4o_mini_t02", "gpt4o_mini_t02_3", "gpt4o_mini_t05"],
-    )
+    runs = [
+        "gpt4o_mini_val_batch32_5",
+        "gpt4o_mini_val_batch32_6",
+        "gpt4o_mini_val_batch32_7",
+        "gpt4o_mini_val_batch32_t0_2",
+        "gpt4o_mini_val_batch32_t05",
+    ]
+    main(root="../gaia/runs/", runs=runs)
 
 
 # gp4o-mini, 3 runs

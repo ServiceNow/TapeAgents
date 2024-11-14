@@ -20,6 +20,7 @@ import mimetypes
 import os
 import pathlib
 import re
+import threading
 import time
 import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -43,6 +44,8 @@ from .document_converters import (
 )
 
 logger = logging.getLogger(__name__)
+
+search_lock = threading.Lock()
 
 
 def get_tavily_key():
@@ -290,10 +293,12 @@ class SimpleTextBrowser:
             serp = self.tavily.search(query=query, search_depth="basic", max_results=max_results) or {"results": []}
             results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
         else:
-            results = [
-                {"title": r.title, "url": r.url, "content": r.description}
-                for r in search(query, advanced=True, num_results=max_results)
-            ]
+            with search_lock:
+                results = [
+                    {"title": r.title, "url": r.url, "content": r.description}
+                    for r in search(query, advanced=True, num_results=max_results)
+                ]
+                time.sleep(2)  # Avoid rate limiting of the search engine
         self._add_to_cache(key, results)
         return results[:max_results]
 
@@ -411,10 +416,10 @@ class SimpleTextBrowser:
     def _add_to_cache(self, k: str, value: Any) -> None:
         self._cache[k] = value
         self._log[k] = value
-        self._cache_writes += 1
-        if self._cache_writes % 10 == 0:
-            with open(self._cache_filename, "w") as f:
-                json.dump(self._cache, f, indent=2, ensure_ascii=False)
+
+    def save_cache(self):
+        with open(self._cache_filename, "w") as f:
+            json.dump(self._cache, f, indent=2, ensure_ascii=False)
 
     def get_page(self, url: str) -> tuple[str, int, int]:
         """

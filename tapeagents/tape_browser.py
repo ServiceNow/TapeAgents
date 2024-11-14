@@ -148,21 +148,7 @@ class TapeBrowser:
             return f"<h1>Failed to load tape {tape_id}</h1>", ""
         tape = self.tapes[tape_id]
         label = self.get_tape_label(tape)
-        steps = self.get_steps(tape)
-        step_views = []
-        last_prompt_id = None
-        for i, step in enumerate(steps):
-            view = self.renderer.render_step(step, i)
-            prompt_id = step.metadata.prompt_id
-            if prompt_id in self.llm_calls and prompt_id != last_prompt_id:
-                prompt_view = self.renderer.render_llm_call(self.llm_calls[prompt_id])
-                view = prompt_view + view
-            step_views.append(view)
-            last_prompt_id = prompt_id
-        steps_html = "".join(step_views)
-        context_html = "".join(self.renderer.render_step(s, j) for j, s in enumerate(self.get_context(tape)))
-        html = f"{self.renderer.style}{self.renderer.context_header}{context_html}"
-        html += f"{self.renderer.steps_header}{steps_html}"
+        html = f"{self.renderer.style}{self.renderer.render_tape(tape, self.llm_calls)}"
         return html, label
 
     def reload_tapes(self, selected_file: str):
@@ -187,6 +173,7 @@ class TapeBrowser:
                 logger.info(f"Selected tape {selected_file}/{j} from query params")
             return self.update_view(selected_file)
 
+        gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
         with gr.Blocks(analytics_enabled=False) as blocks:
             with gr.Row():
                 with gr.Column(scale=4):
