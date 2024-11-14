@@ -65,7 +65,7 @@ SYSTEM_PROMPT = ""
 
 START_TASK_GUIDANCE = ""
 STEP_PROMPT = ""
-COT_GUIDANCE = "Think step by step. When you know the answer to the question, provide it in the following format: The answer is: <number>. RETURN ONLY THE NUMBER. DO NOT RETURN ANY UNIT OR SYMBOLS."
+COT_GUIDANCE = "Think step by step. When you know the answer to the question, provide it in the following format: The answer is: <number>"
 
 
 class ReasoningThoughtwithValue(Thought):
@@ -104,7 +104,6 @@ class COTMathAgent(Agent):
                     steps_prompt=STEP_PROMPT,
                     agent_step_cls=MathAgentStep,
                     guidance=COT_GUIDANCE,
-                    next_node=-1,
                 ),
             ],
         )
