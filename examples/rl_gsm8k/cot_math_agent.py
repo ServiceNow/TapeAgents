@@ -63,6 +63,9 @@ COT_GUIDANCE = "Think step by step. When you know the answer to the question, pr
 
 class ReasoningNode(MonoNode):
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
+        if "The answer is" not in completion:
+            yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}")
+            return
         try:
             value = completion.split("The answer is")[-1]
             value = value.replace(",", "")
