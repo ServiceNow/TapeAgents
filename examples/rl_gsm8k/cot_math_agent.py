@@ -82,7 +82,7 @@ class ReasoningNode(MonoNode):
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
         try:
             value = completion.split("The answer is:")[-1]
-            value = value.strip().strip("\n")
+            value = value.strip().strip("\n").strip("$").strip("€")
             step = ReasoningThoughtwithValue(reasoning=completion, value=float(value))
         except Exception as e:
             logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
