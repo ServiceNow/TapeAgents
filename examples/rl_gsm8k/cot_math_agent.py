@@ -39,10 +39,7 @@ class ReasoningThoughtwithValue(Thought):
 
 
 MathAgentStep: TypeAlias = Annotated[
-    Union[
-        ReasoningThoughtwithValue,
-        AnswerAction,
-    ],
+    ReasoningThoughtwithValue,
     Field(discriminator="kind"),
 ]
 
@@ -51,9 +48,7 @@ MathTape = Tape[
     Union[
         Task,
         ReasoningThoughtwithValue,
-        ActionExecutionFailure,
         LLMOutputParsingFailureAction,
-        SetNextNode,
     ],
 ]
 
@@ -68,13 +63,14 @@ COT_GUIDANCE = "Think step by step. When you know the answer to the question, pr
 
 class ReasoningNode(MonoNode):
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
+        value = ""
         try:
             value = completion.split("The answer is:")[-1]
             value = value.replace(",", "")
             value = value.strip().strip("\n").strip("$").strip("€")
             step = ReasoningThoughtwithValue(reasoning=completion, value=float(value))
         except Exception as e:
-            logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
+            logger.info(f"Failed to parse agent output: {value}\n\nError: {e}")
             yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
             return
         yield step
@@ -93,7 +89,6 @@ class COTMathAgent(Agent):
                     steps_prompt=STEP_PROMPT,
                     agent_step_cls=MathAgentStep,
                     guidance=COT_GUIDANCE,
-                    next_node=-1,
                 ),
             ],
             max_iterations=1,
