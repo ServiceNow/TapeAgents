@@ -63,7 +63,6 @@ COT_GUIDANCE = "Think step by step. When you know the answer to the question, pr
 
 class ReasoningNode(MonoNode):
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
-        value = ""
         try:
             value = completion.split("The answer is")[-1]
             value = value.replace(",", "")
@@ -74,7 +73,7 @@ class ReasoningNode(MonoNode):
             value = value.strip()
             step = ReasoningThoughtwithValue(reasoning=completion, value=float(value))
         except Exception as e:
-            logger.info(f"Failed to parse agent output: {value}\n\nError: {e}")
+            logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
             yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
             return
         yield step
