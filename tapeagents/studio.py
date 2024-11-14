@@ -28,8 +28,8 @@ class Studio:
         )
         self.environment = environment
         self.transforms = transforms or {}
-        self.agent = agent
-        self.tape = tape
+        self.original_agent = agent
+        self.original_tape = tape
 
         gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
         with gr.Blocks(title="TapeAgent Studio") as blocks:
@@ -72,7 +72,7 @@ class Studio:
             # Tape controls
             tape_data.submit(
                 lambda data: tape.model_validate(yaml.safe_load(data)).with_new_id(), [tape_data], [tape_state]
-            ).then(*render_tape).then(lambda tape: observe_tape(self.validate_tape(tape)), [tape_state], [])
+            ).then(*render_tape).then(lambda tape_dict: observe_tape(self.validate_tape(tape_dict)), [tape_state], [])
             pop.submit(self.pop_n_steps, [tape_state, pop], [tape_state]).then(*render_tape)
             keep.submit(self.keep_n_steps, [tape_state, keep], [tape_state]).then(*render_tape)
             load.submit(self.load_tape, [tape_state, load], [tape_state]).then(*render_tape)
@@ -101,7 +101,7 @@ class Studio:
         self.blocks = blocks
 
     def validate_tape(self, tape_dict: dict) -> Tape:
-        return self.tape.model_validate(tape_dict)
+        return self.original_tape.model_validate(tape_dict)
 
     def pop_n_steps(self, tape_dict: dict, n: int) -> Tape:
         tape = self.validate_tape(tape_dict)
@@ -137,7 +137,7 @@ class Studio:
         return (yaml.dump(tape.model_dump(), sort_keys=False), renderer.style + renderer.render_tape(tape, llm_calls))
 
     def validate_agent(self, agent_dict: dict) -> Agent:
-        return self.agent.update(agent_dict)
+        return self.original_agent.update(agent_dict)
 
     def render_agent(self, agent_dict: dict) -> str:
         agent = self.validate_agent(agent_dict)
