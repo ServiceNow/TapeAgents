@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 import wandb
 from examples.rl_gsm8k.cot_math_agent import (
-    AnswerAction,
+    ReasoningThoughtwithValue,
     COTMathAgent,
     MathEnvironment,
     MathTape,
@@ -109,7 +109,7 @@ def extract_tape_training_samples(
     else:
         no_error, no_overflow = 1, 1
         if (
-            isinstance(new_tape.steps[-1], AnswerAction)
+            isinstance(new_tape.steps[-1], ReasoningThoughtwithValue)
             and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
         ):
             # Correct answer

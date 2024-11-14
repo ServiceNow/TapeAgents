@@ -65,26 +65,25 @@ SYSTEM_PROMPT = ""
 
 START_TASK_GUIDANCE = ""
 STEP_PROMPT = ""
-COT_GUIDANCE = "Think step by step"
-ANSWER_GUIDANCE = "What is the answer? RETURN ONLY THE NUMBER. DO NOT RETURN ANY UNIT OR SYMBOLS."
+COT_GUIDANCE = "Think step by step. When you know the answer to the question, provide it in the following format: The answer is: <number>. RETURN ONLY THE NUMBER. DO NOT RETURN ANY UNIT OR SYMBOLS."
 
+
+class ReasoningThoughtwithValue(Thought):
+    """
+    Thoughts produced by the agent during the reasoning process.
+    """
+
+    kind: Literal["reasoning_thought"] = "reasoning_thought"
+    reasoning: str = Field(description="chain of thoughts")
+    value: float = Field(description="value of the reasoning")
 
 
 class ReasoningNode(MonoNode):
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
         try:
-            step = ReasoningThought(reasoning=completion)
-        except Exception as e:
-            logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
-            yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
-            return
-        yield step
-
-
-class AnswerNode(MonoNode):
-    def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
-        try:
-            step = AnswerAction(text=completion, value=float(completion))
+            value = completion.split("The answer is:")[-1]
+            value = value.strip().strip("\n")
+            step = ReasoningThoughtwithValue(reasoning=completion, value=float(value))
         except Exception as e:
             logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
             yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
@@ -105,13 +104,6 @@ class COTMathAgent(Agent):
                     steps_prompt=STEP_PROMPT,
                     agent_step_cls=MathAgentStep,
                     guidance=COT_GUIDANCE,
-                ),
-                AnswerNode(
-                    name="answer",
-                    system_prompt=SYSTEM_PROMPT,
-                    steps_prompt=STEP_PROMPT,
-                    agent_step_cls=MathAgentStep,
-                    guidance=ANSWER_GUIDANCE,
                     next_node=-1,
                 ),
             ],
