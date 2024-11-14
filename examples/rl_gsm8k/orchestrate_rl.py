@@ -108,7 +108,6 @@ def extract_tape_training_samples(
         no_error, reward, success, no_overflow = 1, -1, 0, 0
     else:
         no_error, no_overflow = 1, 1
-        #FIXME hack
         if (
             isinstance(new_tape.steps[-1], ReasoningThoughtwithValue)
             and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
