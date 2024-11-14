@@ -62,14 +62,15 @@ class PlanThought(GaiaThought):
 
 class PlanStep(BaseModel):
     number: int
+    name: str
     description: str
     list_of_tools: list[str] = Field(description="list of tools to use to complete the step")
-    prerequisites: list[str] = Field(
-        description="list of results of the previous steps that are needed to start working on this step",
+    prerequisites: list[tuple[int, str]] = Field(
+        description="list of pairs (previous_step_number, previous_step_result) that are needed to start working on this step",
         default_factory=list,
     )
-    expected_artifacts: list[str] = Field(
-        description="expected concrete artifacts at the end of the step. Usually facts, files, papers, documents or data to be produced",
+    expected_results: list[str] = Field(
+        description="expected results after succesfull execution of the step. Usually facts, files, papers, documents, code or data",
         default_factory=list,
     )
 
