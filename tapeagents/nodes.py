@@ -52,6 +52,9 @@ class MonoNode(Node):
         return tape.model_copy(update=dict(steps=steps_without_control_flow))
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
+        """
+        Make output from steps produced by the single llm call (having the same prompt_id), except for SetNextNode steps.
+        """
         steps = []
         i = index
         first_prompt_id = tape.steps[i].metadata.prompt_id
@@ -60,6 +63,7 @@ class MonoNode(Node):
                 steps.append(tape.steps[i])
             i += 1
 
+        # if there is only one step, return it as a single dict, not a list
         content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
         return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 

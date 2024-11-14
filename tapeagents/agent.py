@@ -400,7 +400,6 @@ class Agent(BaseModel, Generic[TapeType]):
                 current_agent = self.delegate(past_tape)
                 prompt = current_agent.make_prompt(past_tape)
                 if not prompt:
-                    logger.debug("Skipping step because agent did not call the llm")
                     reused_steps.append(step)
                     i += 1
                     continue
