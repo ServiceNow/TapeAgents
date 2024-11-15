@@ -47,7 +47,7 @@ class MonoNode(Node):
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
             cleaned_tape = self.trim_tape(cleaned_tape)
-        messages = self.tape_to_messages(cleaned_tape, steps_description)
+            messages = self.tape_to_messages(cleaned_tape, steps_description)
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
@@ -150,9 +150,9 @@ class MonoNode(Node):
         return tape
 
 
-class PlainTextNode(Node):
+class ThinkingNode(Node):
     """
-    Node that expects a plain text response from the LLM
+    Produce plain text thought
     """
 
     system_prompt: str
@@ -166,7 +166,7 @@ class PlainTextNode(Node):
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
-        # skip informal steps and control flow steps
+        # skip other plain text steps and control flow steps
         clean_steps = [step for step in tape.steps if not isinstance(step, (SetNextNode, AssistantStep))]
         return tape.model_copy(update=dict(steps=clean_steps))
 
@@ -213,13 +213,18 @@ class ControlFlowNode(Node):
             Abstract method to choose the next node based on the tape. Must be implemented in a subclass.
     """
 
+    next_node: str = ""
+    predicate: Callable[[Tape], bool] = lambda tape: True
+
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
-        yield SetNextNode(next_node=self.select_node(tape))
+        next_node = self.select_node(tape)
+        if next_node:
+            yield SetNextNode(next_node=next_node)
 
     def select_node(self, tape: Tape) -> str:
-        raise NotImplementedError("Implement this method in the subclass to set the next node according to your logic")
+        return self.next_node if self.predicate(tape) else ""
 
 
 class ObservationControlNode(ControlFlowNode):

@@ -29,9 +29,9 @@ MLM = """Write a detailed caption for this image. Pay special attention to any d
 {prompt}
 """
 
-FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability. 
+FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability.
 Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
-For each fact provide the description, expected json-compatible format and, if possible, measurement unit. 
+For each fact provide the description, expected json-compatible format and, if possible, measurement unit.
 The fact name should be short and in lowercase. The description should be detailed, self-sustained and informative.
 Here is the pre-survey:
 
@@ -93,7 +93,7 @@ PLAN_V2 = """To address this request we have following tools:
 
 Web search, web surfing, python code execution, reading local files, reasoning.
 
-Based on the available tools and known and unknown facts, please reason step by step and produce shor draft of the plan to solve this task.
+Based on the available tools and known and unknown facts, please reason step by step and produce short draft of the plan to solve this task.
 After initial reasoning and drafting, produce more detailed bullet-point plan for addressing the original request. For each step of the plan, provide the following:
 - detailed description of things to do
 - list of tools and expected outcomes like concrete artifacts at the end of the step: facts, files, documents, or data to be produced
@@ -123,10 +123,88 @@ DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes
 START_EXECUTION_V2 = """
 Let's start executing given task, using allowed steps described earlier.
 Briefly describe required steps.
+After that think what to do next.
 """
 
 TODO_NEXT = """
 Let's think what to do next.
+"""
+
+REFLECT_PLAN_STEP_RESULT = """
+Reflect on the results of executing the subtask solving the plan step:
+- If the subtask was successfully completed, compare the result with the expected outcome. If the expected outcome was not achieved, reflect on the reasons for the discrepancy.
+- If the subtask was failed, reflect on the reasons for the failure. Think out loud how should we change the plan to be able to complete the task anyway.
+"""
+
+REFLECT_PLAN_STATUS = """
+Reflect on the current state of the plan execution:
+- If all the steps are completed, reflect on the overall success of the plan.
+- If some steps are failed, reflect on the reasons for the failure. Think out loud how should we change the plan to be able to complete the task anyway.
+
+"""
+
+PLAN_STATUS = """
+Current plan status:
+Total steps: {total_steps}
+Completed steps: {completed_steps}
+Remaining steps: {remaining_steps}
+"""
+
+REPLAN = """Our previous attempt to solve task failed.
+Our previous plan:
+{plan}
+Description of the failure:
+{failure}
+
+
+Please reason step by step and produce short draft of the new plan to solve this task. It should be different from the previous one.
+Produce detailed bullet-point plan for addressing the original request. For each step of the plan, provide the following:
+- detailed description of things to do
+- list of tools and expected outcomes like concrete artifacts at the end of the step: facts, files, documents, or data to be produced
+- prerequisites, a list of the results of the previous steps, or known facts needed to start working on this step.
+"""
+
+FINAL_ANSWER = """
+Read the above messages and output a FINAL ANSWER to the question. The question is repeated here for convenience:
+
+{task}
+
+To output the final answer, use the following template: FINAL ANSWER: [YOUR FINAL ANSWER]
+Your FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
+ADDITIONALLY, your FINAL ANSWER MUST adhere to any formatting instructions specified in the original question (e.g., alphabetization, sequencing, units, rounding, decimal places, etc.)
+If you are asked for a number, express it numerically (i.e., with digits rather than words), don't use commas, and DO NOT INCLUDE UNITS such as $ or USD or percent signs unless specified otherwise.
+If you are asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
+If you are asked for a comma separated list, apply the above rules depending on whether the elements are numbers or strings.
+If you are unable to determine the final answer, output empty result.
+"""
+
+REFLECT_OBSERVATION = """
+Reflect on the results of the recent observation.
+Check if the expected outcome was achieved.
+Check if the observation was sufficient or not.
+Check if the observation was inconclusive.
+If the was some error, reflect on the reasons for the error and its content.
+"""
+
+FACTS_SURVEY_UPDATE = """
+As a reminder, we are working to solve the following task:
+
+{task}
+
+It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned that may be helpful. Example edits can include (but are not limited to) adding new guesses, moving educated guesses to verified facts if appropriate, etc. Updates may be made to any section of the fact sheet, and more than one section of the fact sheet can be edited. This is an especially good time to update educated guesses, so please at least add or update one educated guess or hunch, and explain your reasoning.
+
+Here is the old fact sheet:
+
+1. GIVEN OR VERIFIED FACTS
+    {given}
+2. FACTS TO LOOK UP
+    {lookup}
+3. FACTS TO DERIVE
+    {derive}
+4. EDUCATED GUESSES
+    {guesses}
+
+Respond with updated facts sheet.
 """
 
 
@@ -155,3 +233,10 @@ class PromptRegistry:
     formalize_format = FORMALIZE_FORMAT
     start_execution_v2 = START_EXECUTION_V2
     todo_next = TODO_NEXT
+    reflect_plan_step_result = REFLECT_PLAN_STEP_RESULT
+    reflect_plan_status = REFLECT_PLAN_STATUS
+    plan_status = PLAN_STATUS
+    replan = REPLAN
+    final_answer = FINAL_ANSWER
+    reflect_observation = REFLECT_OBSERVATION
+    facts_survey_update = FACTS_SURVEY_UPDATE

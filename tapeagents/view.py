@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Generic, Literal
+from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -156,3 +156,20 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         for step in tape.steps:
             stack.update(step)
         return stack  # type: ignore
+
+
+T = TypeVar("T")
+
+
+def all_steps(tape: Tape, step_cls: type[T]) -> list[T]:
+    return [step for step in tape if isinstance(step, step_cls)]
+
+
+def first_step(tape: Tape, step_cls: type[T]) -> T | None:
+    steps = all_steps(tape, step_cls)
+    return steps[0] if steps else None
+
+
+def last_step(tape: Tape, step_cls: type[T]) -> T | None:
+    steps = all_steps(tape, step_cls)
+    return steps[-1] if steps else None

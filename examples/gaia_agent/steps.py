@@ -165,19 +165,6 @@ class StartSubtask(GaiaThought):
     plan_step: str = Field(description="plan step description")
 
 
-class FinishSubtask(GaiaThought):
-    """
-    Thought that indicates that you've finished working on the subtask from the plan. You cannot produce that step right after the start subtask, there MUST be some steps in between
-    """
-
-    kind: Literal["finish_subtask_thought"] = "finish_subtask_thought"
-    plan_step: str = Field(description="plan step description")
-    success: bool = Field(description="True if the subtask was successful, False otherwise")
-    overview: str = Field(
-        description="overview of the subtask. If the subtask was successful, describe the result. If the subtask was unsuccessful, describe the reason for failure"
-    )
-
-
 class NewFactThought(GaiaThought):
     """
     Thought that outputs new fact value, extracted from the previous steps. Value must follow the format described in list_of_facts_thought. If the fact has units that need to be converted, use convert_fact_action after this thought.
@@ -364,21 +351,37 @@ class ActionExecutionFailure(GaiaObservation, Error):
 
 class CurrentPlanStep(GaiaThought):
     kind: Literal["current_plan_step"] = "current_plan_step"
+    number: int
     name: str
     description: str
 
 
+class FinishSubtask(GaiaThought):
+    """
+    Thought that indicates that you've finished working on the subtask from the plan. You cannot produce that step right after the start subtask, there MUST be some steps in between
+    """
+
+    kind: Literal["finish_subtask_thought"] = "finish_subtask_thought"
+    success: bool = Field(description="True if the subtask was successful, False otherwise")
+    results: list[str] = Field(description="achieved results")
+    execution_summary: str = Field(description="overview of the subtask execution process and achieved results")
+    failure_overview: str = Field(
+        description="detailed description of reasons of the subtask failure, if applicable", default=""
+    )
+
+
 class PlanStepReflection(GaiaThought):
     kind: Literal["plan_step_reflection"] = "plan_step_reflection"
-    plan_step_success: bool
-    execution_summary: str = ""
+    plan_step_number: int
+    success: bool
+    achieved_result: str = ""
     failure_overview: str = ""
-    occured_errors: list[str] = Field(default=[])
 
 
 class PlanReflection(GaiaThought):
     kind: Literal["plan_reflection"] = "plan_reflection"
     plan_success: bool
+    plan_result: str = ""
     failed_step_number: int = -1
     failed_step_overview: str = ""
 
@@ -449,13 +452,17 @@ GaiaAgentStep: TypeAlias = Annotated[
     Field(discriminator="kind"),
 ]
 
-actions = [
-    SearchAction,
-    ReadDocumentAction,
-    NextPageAction,
-    ConvertFactAction,
-    UseCalculatorAction,
-    GaiaAnswer,
+ExecutorStep: TypeAlias = Annotated[
+    Union[
+        ReadingResultThought,
+        ReasoningThought,
+        FinishSubtask,
+        SearchAction,
+        ReadDocumentAction,
+        NextPageAction,
+        PythonCodeAction,
+    ],
+    Field(discriminator="kind"),
 ]
 
 

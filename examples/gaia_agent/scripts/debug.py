@@ -36,11 +36,12 @@ def main():
                 llm_call = retrieve_llm_call(step.metadata.prompt_id)
                 assert llm_call
                 print("PROMPT:")
-                for m in llm_call.prompt.messages:
+                for i, m in enumerate(llm_call.prompt.messages):
+                    print(f"M{i+1}")
                     pprint(m, width=140)
-                print(f"OUTPUT: {llm_call.output.content}")
-                print(f"STEP: {step.llm_view()}")
+                print(f"{len(tape)} STEP: {step.llm_view()}")
                 print("=" * 80)
+                input("Press Enter to continue...")
     finally:
         tape.metadata = metadata
         save_json_tape(tape, tapes_dir, tape_name)
