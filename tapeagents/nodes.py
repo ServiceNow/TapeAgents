@@ -11,12 +11,12 @@ from .agent import Node
 from .core import (
     AgentStep,
     Call,
+    ConditionCheck,
     LLMOutput,
     LLMOutputParsingFailureAction,
     Observation,
     PartialStep,
     Prompt,
-    Respond,
     SetNextNode,
     Step,
     StopStep,
@@ -80,7 +80,8 @@ class MonoNode(Node):
         ]
         view = TapeViewStack.compute(tape).top
         for step in view.steps:
-            logger.info(f"STEP {step.kind}")
+            if isinstance(step, (SetNextNode, ConditionCheck)):  # skip control flow steps
+                continue
             if isinstance(step, (AssistantStep, UserStep)):
                 message = {"role": step.kind, "content": step.content}
             else:
@@ -98,20 +99,21 @@ class MonoNode(Node):
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
         new_steps = []
-        try:
-            cnt = 0
-            for event in llm_stream:
-                if event.output:
-                    cnt += 1
-                    assert event.output.content
+        cnt = 0
+        for event in llm_stream:
+            if event.output:
+                cnt += 1
+                assert event.output.content
+                try:
                     for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
                         step = self.postprocess_step(tape, new_steps, step)
                         new_steps.append(step)
                         yield step
-            if not cnt:
-                raise FatalError("No completions!")
-        except FatalError:
-            raise
+                except Exception as e:
+                    yield SetNextNode(next_node=self.name)  # stay in the same node when parsing fails
+                    raise e
+        if not cnt:
+            raise FatalError("No completions!")
 
         if self.next_node and not isinstance(new_steps[-1], StopStep):
             yield SetNextNode(next_node=self.next_node)
@@ -170,14 +172,8 @@ class ThinkingNode(Node):
     next_agent: str = ""
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        cleaned_tape = self.prepare_tape(tape)
-        messages = self.tape_to_messages(cleaned_tape)
+        messages = self.tape_to_messages(tape)
         return Prompt(messages=messages)
-
-    def prepare_tape(self, tape: Tape) -> Tape:
-        # skip control flow steps
-        clean_steps = [step for step in tape.steps if not isinstance(step, (SetNextNode, Call, Respond))]
-        return tape.model_copy(update=dict(steps=clean_steps))
 
     def tape_to_messages(self, tape: Tape) -> list[dict]:
         messages = [{"role": "system", "content": self.system_prompt}]
@@ -187,9 +183,14 @@ class ThinkingNode(Node):
         else:
             view = TapeViewStack.compute(tape).top
             for step in view.steps:
-                logger.info(f"STEP {step.kind}")
-                role = "assistant" if isinstance(step, AgentStep) else "user"
-                messages.append({"role": role, "content": step.llm_view()})
+                if isinstance(step, (SetNextNode, ConditionCheck)):  # skip control flow steps
+                    continue
+                if isinstance(step, (AssistantStep, UserStep)):
+                    message = {"role": step.kind, "content": step.content}
+                else:
+                    role = "assistant" if isinstance(step, AgentStep) else "user"
+                    message = {"role": role, "content": step.llm_view()}
+                messages.append(message)
         messages.append({"role": "user", "content": self.guidance})
         return messages
 
@@ -233,6 +234,8 @@ class ControlFlowNode(Node):
         next_node = self.select_node(tape)
         if next_node:
             yield SetNextNode(next_node=next_node)
+        else:
+            yield ConditionCheck()  # we should put a step into tape to know last executed node
 
     def select_node(self, tape: Tape) -> str:
         return self.next_node if self.predicate(tape) else ""
@@ -269,6 +272,7 @@ class ConditionalNode(Node):
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
+        yield ConditionCheck()  # we should put a step into tape to know last executed node
         if self.predicate(tape):
             for step in self.steps:
                 yield step

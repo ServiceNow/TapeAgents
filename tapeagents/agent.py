@@ -35,7 +35,7 @@ from .llms import LLM, LLMEvent, LLMStream
 DEFAULT = "default"
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 class AgentStream(Generic[TapeType]):

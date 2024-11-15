@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from tapeagents.core import (
     Action,
     Call,
+    ConditionCheck,
     Error,
     LLMOutputParsingFailureAction,
     Observation,
@@ -399,8 +400,10 @@ class PlanReflection(GaiaThought):
 class ActionReflection(GaiaThought):
     kind: Literal["step_reflection"] = "step_reflection"
     step_success: bool
-    execution_summary: str = ""
-    failure_overview: str = ""
+    execution_summary: str = Field(description="brief overview of the result of action execution")
+    failure_overview: str = Field(
+        description="detailed description of reasons of the action failure, if applicable, otherwise empty", default=""
+    )
 
 
 GaiaStep = Union[
@@ -438,6 +441,7 @@ GaiaStep = Union[
     ActionReflection,
     Call,
     Respond,
+    ConditionCheck,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[

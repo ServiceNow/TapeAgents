@@ -128,13 +128,17 @@ class Call(Thought):
     kind: Literal["call"] = "call"
     content: str = ""
     agent_name: str
-    task: dict | None = None
+    args: dict | None = None
 
 
 class Respond(Thought):
     content: str = ""
     kind: Literal["respond"] = "respond"
     copy_output: bool = False
+
+
+class ConditionCheck(Thought):
+    kind: Literal["condition_check"] = "condition_check"
 
 
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)

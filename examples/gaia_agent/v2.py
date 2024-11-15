@@ -67,6 +67,17 @@ class PlanView:
         self.success = bool(self.plan_reflection and self.plan_reflection.plan_success)
 
 
+class CallManager(Node):
+    agent_name: str
+
+    def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
+        task = first_step(tape, GaiaQuestion)
+        plan = last_step(tape, PlanThoughtV2)
+        assert task, "No task found!"
+        assert plan, "No plan found!"
+        yield Call(agent_name=self.agent_name, args=dict(task=task.llm_dict(), plan=plan.llm_dict()))
+
+
 class ChooseAndExecutePlanStep(Node):
     """
     Choose current plan step, add `current_plan_step` step to the tape, call subagent to work on a step
@@ -85,7 +96,7 @@ class ChooseAndExecutePlanStep(Node):
         logger.info(f"Choosing step plan {step.number}:\n{step.llm_view()}")
         yield step
         logger.info(f"Call subagent {self.next_agent}")
-        yield Call(agent_name=self.next_agent, task=step.llm_dict())
+        yield Call(agent_name=self.next_agent, args=dict(task=step.llm_dict()))
 
 
 class ReflectPlan(ThinkingNode):
@@ -183,7 +194,8 @@ class GaiaPlanner(Agent):
             ),
             Formalize(name="FormalizeSurvey", agent_step_cls=ListOfFactsThoughtV2),
             ThinkingNode(name="Plan", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.plan_v2),
-            Formalize(name="FormalizePlan", agent_step_cls=PlanThoughtV2, next_agent="GaiaManager"),
+            Formalize(name="FormalizePlan", agent_step_cls=PlanThoughtV2),
+            CallManager(agent_name="GaiaManager"),
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
 

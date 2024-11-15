@@ -121,13 +121,11 @@ DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes
 """
 
 START_EXECUTION_V2 = """
-Let's start executing given task, using allowed steps described earlier.
-Briefly describe required steps.
-After that think what to do next.
+Let's start executing given task. Briefly describe required steps. After that think what to do next.
 """
 
 TODO_NEXT = """
-Let's think what to do next.
+Describe single immediate next step to be done.
 """
 
 REFLECT_PLAN_STEP_RESULT = """
