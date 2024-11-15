@@ -52,6 +52,7 @@ def main(dataset_path, exp_dir, level):
                             v = json.dumps(v, indent=2)
                         logger.info(f"{k}: {v}")
                 input("Press Enter to continue...")
+                print("-" * 140)
     finally:
         tape.metadata = metadata
         save_json_tape(tape, tapes_dir, tape_name)

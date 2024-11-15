@@ -4,7 +4,7 @@ from typing import Any, Callable, Generator, Type
 
 from pydantic import Field, TypeAdapter, ValidationError
 
-from tapeagents.dialog_tape import AssistantStep
+from tapeagents.dialog_tape import AssistantStep, UserStep
 from tapeagents.view import TapeViewStack
 
 from .agent import Node
@@ -16,6 +16,7 @@ from .core import (
     Observation,
     PartialStep,
     Prompt,
+    Respond,
     SetNextNode,
     Step,
     StopStep,
@@ -80,8 +81,12 @@ class MonoNode(Node):
         view = TapeViewStack.compute(tape).top
         for step in view.steps:
             logger.info(f"STEP {step.kind}")
-            role = "assistant" if isinstance(step, AgentStep) else "user"
-            messages.append({"role": role, "content": step.llm_view()})
+            if isinstance(step, (AssistantStep, UserStep)):
+                message = {"role": step.kind, "content": step.content}
+            else:
+                role = "assistant" if isinstance(step, AgentStep) else "user"
+                message = {"role": role, "content": step.llm_view()}
+            messages.append(message)
         if self.guidance:
             messages.append({"role": "user", "content": self.guidance})
         return messages
@@ -170,8 +175,8 @@ class ThinkingNode(Node):
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
-        # skip other plain text steps and control flow steps
-        clean_steps = [step for step in tape.steps if not isinstance(step, (SetNextNode, AssistantStep))]
+        # skip control flow steps
+        clean_steps = [step for step in tape.steps if not isinstance(step, (SetNextNode, Call, Respond))]
         return tape.model_copy(update=dict(steps=clean_steps))
 
     def tape_to_messages(self, tape: Tape) -> list[dict]:

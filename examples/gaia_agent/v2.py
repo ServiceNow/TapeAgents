@@ -20,7 +20,6 @@ from .steps import (
     PlanReflection,
     PlanStepReflection,
     PlanThoughtV2,
-    ReasoningThought,
     Subtask,
 )
 
@@ -247,8 +246,14 @@ class GaiaExecutor(Agent):
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.start_execution_v2,
             ),
-            Formalize(name="FormalizeStart", agent_step_cls=ReasoningThought),
-            MonoNode(name="Act", system_prompt=PromptRegistry.system_prompt, agent_step_cls=ExecutorStep),
+            MonoNode(
+                name="Act",
+                system_prompt=PromptRegistry.system_prompt,
+                steps_prompt=PromptRegistry.allowed_steps_v2.format(
+                    schema=get_step_schemas_from_union_type(ExecutorStep)
+                ),
+                agent_step_cls=ExecutorStep,
+            ),
             ConditionalNode(
                 name="ReturnIfFinished",
                 predicate=lambda tape: bool(last_step(tape, FinishSubtask)),
@@ -260,7 +265,11 @@ class GaiaExecutor(Agent):
                 guidance=PromptRegistry.reflect_observation,
             ),
             Formalize(name="FormalizeReflectObservation", agent_step_cls=ActionReflection),
-            ThinkingNode(name="Todo", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.todo_next),
-            Formalize(name="FormalizeTodo", agent_step_cls=ReasoningThought, next_node="Act"),
+            ThinkingNode(
+                name="Todo",
+                system_prompt=PromptRegistry.system_prompt,
+                guidance=PromptRegistry.todo_next,
+                next_node="Act",
+            ),
         )
         return super().create(llm, nodes=nodes, max_iterations=2)
