@@ -124,7 +124,7 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = -masked_mean(new_log_probs * weights, masks_)
+            loss = -masked_mean(new_log_probs * weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
