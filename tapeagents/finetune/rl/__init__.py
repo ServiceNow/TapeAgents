@@ -56,6 +56,11 @@ class RLConfig(StepConfig):
         default=10.1,
         metadata={"help": "Skip mini-batches with high PPO ratios that can cause loss spike"},
     )
+    relu_weights: Optional[bool] = field(
+        default=False,
+        metadata={"help": "ReLU the weights before updating the model"},
+    )
+
 
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
@@ -98,6 +103,7 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
     log_ratio_new_old = new_log_probs - old_logprobs
     ratio_new_old = torch.exp(log_ratio_new_old)
     weights = advantages if config.use_advantages else rewards
+    weights = torch.clamp(weights, min=0) if config.relu_weights else weights
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
     approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
