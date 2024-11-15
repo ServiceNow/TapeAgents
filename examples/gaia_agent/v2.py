@@ -259,15 +259,15 @@ class GaiaExecutor(Agent):
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.start_execution_v2,
             ),
-            Formalize(agent_step_cls=ReasoningThought),
+            Formalize(name="formalize_start", agent_step_cls=ReasoningThought),
             Act(),
             ThinkingNode(
                 name="reflect_observation",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.reflect_observation,
             ),
-            Formalize(agent_step_cls=ActionReflection),
-            ThinkingNode(name="think", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.todo_next),
-            Formalize(agent_step_cls=ReasoningThought, next_node="Act"),
+            Formalize(name="formalize_reflect_observation", agent_step_cls=ActionReflection),
+            ThinkingNode(name="todo", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.todo_next),
+            Formalize(name="formalize_todo", agent_step_cls=ReasoningThought, next_node="Act"),
         )
         return super().create(llm, nodes=nodes, max_iterations=2)
