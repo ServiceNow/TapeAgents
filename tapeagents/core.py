@@ -128,7 +128,7 @@ class Call(Thought):
     kind: Literal["call"] = "call"
     content: str = ""
     agent_name: str
-    args: dict | None = None
+    args: list[int] | None = None  # references to previous steps in the tape
 
 
 class Respond(Thought):

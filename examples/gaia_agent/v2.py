@@ -7,7 +7,7 @@ from tapeagents.dialog_tape import AssistantStep
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.nodes import ConditionalNode, ControlFlowNode, MonoNode, ThinkingNode
 from tapeagents.utils import get_step_schemas_from_union_type
-from tapeagents.view import all_steps, first_step, last_step
+from tapeagents.view import all_steps, first_position, first_step, last_position, last_step
 
 from .prompts import PromptRegistry
 from .steps import (
@@ -71,19 +71,31 @@ class CallManager(Node):
     agent_name: str
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
-        task = first_step(tape, GaiaQuestion)
-        plan = last_step(tape, PlanThoughtV2)
-        assert task, "No task found!"
-        assert plan, "No plan found!"
-        yield Call(agent_name=self.agent_name, args=dict(task=task.llm_dict(), plan=plan.llm_dict()))
+        task = first_position(tape, GaiaQuestion)
+        plan = last_position(tape, PlanThoughtV2)
+        facts = last_position(tape, ListOfFactsThoughtV2)
+        assert task is not None, "No task found!"
+        assert plan is not None, "No plan found!"
+        assert facts is not None, "No facts found!"
+        yield Call(agent_name=self.agent_name, args=[task, facts, plan])
 
 
-class ChooseAndExecutePlanStep(Node):
+class CallExecutor(Node):
+    agent_name: str
+
+    def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
+        task = last_position(tape, Subtask)
+        facts = last_position(tape, ListOfFactsThoughtV2)
+        # TODO: facts distract executor, it starts to execute another subtasks, fix
+        assert task is not None, "No task found!"
+        assert facts is not None, "No facts found!"
+        yield Call(agent_name=self.agent_name, args=[task, facts])
+
+
+class ChoosePlanStep(Node):
     """
     Choose current plan step, add `current_plan_step` step to the tape, call subagent to work on a step
     """
-
-    executor_name: str
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         plan = PlanView(tape)
@@ -95,8 +107,6 @@ class ChooseAndExecutePlanStep(Node):
         )
         logger.info(f"Choosing step plan {step.number}:\n{step.llm_view()}")
         yield step
-        logger.info(f"Call subagent {self.executor_name}")
-        yield Call(agent_name=self.executor_name, args=dict(task=step.llm_dict()))
 
 
 class ReflectPlan(ThinkingNode):
@@ -211,7 +221,8 @@ class GaiaManager(Agent):
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (
             # add `current_plan_step` step to the tape, call subagent to work on a step
-            ChooseAndExecutePlanStep(executor_name="GaiaExecutor"),
+            ChoosePlanStep(),
+            CallExecutor(agent_name="GaiaExecutor"),
             # receive the result of the subagent from the last step and reflect on it
             ThinkingNode(
                 name="ReflectPlanStep",

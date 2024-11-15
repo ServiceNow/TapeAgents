@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Generic, Literal, TypeVar
+from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -80,6 +80,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     """
 
     stack: list[TapeView[StepType]]
+    steps: list[StepType] = Field(default_factory=list)
     messages_by_agent: dict[str, list[Call | Respond | Broadcast]] = Field(default_factory=lambda: defaultdict(list))
 
     @property
@@ -87,10 +88,12 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         return self.stack[-1]
 
     def update(self, step: StepType):
+        self.steps.append(step)
         top = self.stack[-1]
         match step:
             case Call():
-                self.put_new_view_on_stack(step)
+                args = [self.steps[i] for i in step.args] if step.args else []
+                self.put_new_view_on_stack(step, arg_steps=args)
             case Broadcast():
                 self.broadcast(step)
             case Respond():
@@ -135,7 +138,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
             receiver = f"{step.metadata.agent}/{to}"
             self.messages_by_agent[receiver].append(step)
 
-    def put_new_view_on_stack(self, step):
+    def put_new_view_on_stack(self, step, arg_steps: list):
         top = self.stack[-1]
         top.add_step(step)
         self.stack.append(
@@ -145,6 +148,8 @@ class TapeViewStack(BaseModel, Generic[StepType]):
             )
         )
         self.stack[-1].add_step(step)
+        for arg_step in arg_steps:  # put argument steps to the new view
+            self.stack[-1].add_step(arg_step)
         receiver = f"{step.metadata.agent}/{step.agent_name}"
         self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)
@@ -165,11 +170,25 @@ def all_steps(tape: Tape, step_cls: type[T]) -> list[T]:
     return [step for step in tape if isinstance(step, step_cls)]
 
 
+def all_positions(tape: Tape, step_cls: type[T]) -> list[int]:
+    return [i for i, step in enumerate(tape) if isinstance(step, step_cls)]
+
+
 def first_step(tape: Tape, step_cls: type[T]) -> T | None:
     steps = all_steps(tape, step_cls)
     return steps[0] if steps else None
 
 
+def first_position(tape: Tape, step_cls: type[T]) -> int | None:
+    positions = all_positions(tape, step_cls)
+    return positions[0] if positions else None
+
+
 def last_step(tape: Tape, step_cls: type[T]) -> T | None:
     steps = all_steps(tape, step_cls)
     return steps[-1] if steps else None
+
+
+def last_position(tape: Tape, step_cls: type[T]) -> int | None:
+    positions = all_positions(tape, step_cls)
+    return positions[-1] if positions else None
