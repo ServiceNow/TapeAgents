@@ -187,7 +187,7 @@ class GaiaPlanner(Agent):
         cls,
         llm: LLM,
     ):
-        subagents = [GaiaManager()]
+        subagents = [GaiaManager.create(llm)]
         nodes = (
             ThinkingNode(
                 name="facts_survey",
@@ -207,7 +207,7 @@ class GaiaManager(Agent):
         cls,
         llm: LLM,
     ):
-        subagents = [GaiaExecutor()]
+        subagents = [GaiaExecutor.create(llm)]
 
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (

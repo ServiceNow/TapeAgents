@@ -4,7 +4,6 @@ import json
 import logging
 from abc import abstractmethod
 from typing import Any, Callable, Generator, Generic
-from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
@@ -18,16 +17,12 @@ from .core import (
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
-    Call,
     LLMCall,
     LLMOutput,
     MakeObservation,
     ObservationMakerTapeType,
     PartialStep,
-    Pass,
     Prompt,
-    Respond,
-    SetNextNode,
     Step,
     Tape,
     TapeMetadata,
@@ -336,6 +331,7 @@ class Agent(BaseModel, Generic[TapeType]):
         reuses a tape.
 
         """
+        logger.debug(f"RUN {self.full_name}, Nodes:{[node.name for node in self.nodes]}")
         if llm_stream is None:
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:

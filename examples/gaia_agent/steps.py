@@ -4,7 +4,17 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
+from tapeagents.core import (
+    Action,
+    Call,
+    Error,
+    LLMOutputParsingFailureAction,
+    Observation,
+    Respond,
+    SetNextNode,
+    StopStep,
+    Thought,
+)
 from tapeagents.dialog_tape import AssistantStep
 from tapeagents.utils import get_step_schemas_from_union_type
 
@@ -426,6 +436,8 @@ GaiaStep = Union[
     PlanStepReflection,
     PlanReflection,
     ActionReflection,
+    Call,
+    Respond,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[
