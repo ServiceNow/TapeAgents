@@ -1,8 +1,10 @@
 import json
 import logging
-from typing import Any, Generator, Type
+from typing import Any, Callable, Generator, Type
 
 from pydantic import Field, TypeAdapter, ValidationError
+
+from tapeagents.dialog_tape import AssistantStep
 
 from .agent import Node
 from .core import (
@@ -146,6 +148,60 @@ class MonoNode(Node):
 
     def trim_tape(self, tape: Tape) -> Tape:
         return tape
+
+
+class PlainTextNode(Node):
+    """
+    Node that expects a plain text response from the LLM
+    """
+
+    system_prompt: str
+    guidance: str
+    next_node: str = ""
+    next_agent: str = ""
+
+    def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
+        cleaned_tape = self.prepare_tape(tape)
+        messages = self.tape_to_messages(cleaned_tape)
+        return Prompt(messages=messages)
+
+    def prepare_tape(self, tape: Tape) -> Tape:
+        # skip informal steps and control flow steps
+        clean_steps = [step for step in tape.steps if not isinstance(step, (SetNextNode, AssistantStep))]
+        return tape.model_copy(update=dict(steps=clean_steps))
+
+    def tape_to_messages(self, tape: Tape) -> list[dict]:
+        messages = [{"role": "system", "content": self.system_prompt}]
+        tape_view = self.tape_view(tape)
+        if tape_view:
+            messages.append({"role": "user", "content": tape_view})
+        else:
+            for step in tape:
+                role = "assistant" if isinstance(step, AgentStep) else "user"
+                messages.append({"role": role, "content": step.llm_view()})
+        messages.append({"role": "user", "content": self.guidance})
+        return messages
+
+    def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
+        new_steps = []
+        for event in llm_stream:
+            if event.output:
+                assert event.output.content
+                step = AssistantStep(content=event.output.content)
+                new_steps.append(step)
+                yield step
+
+        if self.next_node:
+            yield SetNextNode(next_node=self.next_node)
+        if self.next_agent:
+            yield Call(agent_name=self.next_agent, task=self.set_subagent_task(tape, new_steps))
+
+    def set_subagent_task(self, tape: Tape, new_steps: list[Step]) -> dict:
+        steps = tape.steps + new_steps
+        return steps[-1].llm_dict()
+
+    def tape_view(self, tape: Tape) -> str:
+        return ""
 
 
 class ControlFlowNode(Node):
