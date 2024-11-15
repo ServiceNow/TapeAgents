@@ -83,7 +83,7 @@ class ChooseAndExecutePlanStep(Node):
     Choose current plan step, add `current_plan_step` step to the tape, call subagent to work on a step
     """
 
-    next_agent: str
+    executor_name: str
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         plan = PlanView(tape)
@@ -95,8 +95,8 @@ class ChooseAndExecutePlanStep(Node):
         )
         logger.info(f"Choosing step plan {step.number}:\n{step.llm_view()}")
         yield step
-        logger.info(f"Call subagent {self.next_agent}")
-        yield Call(agent_name=self.next_agent, args=dict(task=step.llm_dict()))
+        logger.info(f"Call subagent {self.executor_name}")
+        yield Call(agent_name=self.executor_name, args=dict(task=step.llm_dict()))
 
 
 class ReflectPlan(ThinkingNode):
@@ -211,7 +211,7 @@ class GaiaManager(Agent):
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (
             # add `current_plan_step` step to the tape, call subagent to work on a step
-            ChooseAndExecutePlanStep(next_agent="GaiaExecutor"),
+            ChooseAndExecutePlanStep(executor_name="GaiaExecutor"),
             # receive the result of the subagent from the last step and reflect on it
             ThinkingNode(
                 name="ReflectPlanStep",

@@ -17,6 +17,7 @@ from .core import (
     Observation,
     PartialStep,
     Prompt,
+    Respond,
     SetNextNode,
     Step,
     StopStep,
@@ -42,7 +43,6 @@ class MonoNode(Node):
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_step_cls: Any = Field(exclude=True)
     next_node: str = ""
-    next_agent: str = ""
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         cleaned_tape = self.prepare_tape(tape)
@@ -80,9 +80,9 @@ class MonoNode(Node):
         ]
         view = TapeViewStack.compute(tape).top
         for step in view.steps:
-            if isinstance(step, (SetNextNode, ConditionCheck)):  # skip control flow steps
+            if isinstance(step, (SetNextNode, ConditionCheck, Respond)):  # skip control flow steps
                 continue
-            if isinstance(step, (AssistantStep, UserStep)):
+            elif isinstance(step, (AssistantStep, UserStep)):
                 message = {"role": step.kind, "content": step.content}
             else:
                 role = "assistant" if isinstance(step, AgentStep) else "user"
@@ -117,13 +117,6 @@ class MonoNode(Node):
 
         if self.next_node and not isinstance(new_steps[-1], StopStep):
             yield SetNextNode(next_node=self.next_node)
-
-        if self.next_agent and not isinstance(new_steps[-1], StopStep):
-            yield Call(agent_name=self.next_agent, task=self.set_subagent_task(tape, new_steps))
-
-    def set_subagent_task(self, tape: Tape, new_steps: list[Step]) -> dict:
-        steps = tape.steps + new_steps
-        return steps[-1].llm_dict()
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         return step
@@ -169,7 +162,6 @@ class ThinkingNode(Node):
     system_prompt: str
     guidance: str
     next_node: str = ""
-    next_agent: str = ""
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         messages = self.tape_to_messages(tape)
@@ -183,9 +175,9 @@ class ThinkingNode(Node):
         else:
             view = TapeViewStack.compute(tape).top
             for step in view.steps:
-                if isinstance(step, (SetNextNode, ConditionCheck)):  # skip control flow steps
+                if isinstance(step, (SetNextNode, ConditionCheck, Respond)):  # skip control flow steps
                     continue
-                if isinstance(step, (AssistantStep, UserStep)):
+                elif isinstance(step, (AssistantStep, UserStep)):
                     message = {"role": step.kind, "content": step.content}
                 else:
                     role = "assistant" if isinstance(step, AgentStep) else "user"
@@ -205,8 +197,6 @@ class ThinkingNode(Node):
 
         if self.next_node:
             yield SetNextNode(next_node=self.next_node)
-        if self.next_agent:
-            yield Call(agent_name=self.next_agent, task=self.set_subagent_task(tape, new_steps))
 
     def set_subagent_task(self, tape: Tape, new_steps: list[Step]) -> dict:
         steps = tape.steps + new_steps
@@ -272,7 +262,8 @@ class ConditionalNode(Node):
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
-        yield ConditionCheck()  # we should put a step into tape to know last executed node
         if self.predicate(tape):
             for step in self.steps:
                 yield step
+        else:
+            yield ConditionCheck()  # we should put a step into tape to know last executed node
