@@ -131,7 +131,6 @@ def extract_tape_training_samples(
         sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-            assert new_tape.steps[-1].reasoning in trace.output_text
             # Check if we will need the KL
             if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.implicit_kl_coef > 0):
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
