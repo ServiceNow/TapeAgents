@@ -359,8 +359,8 @@ class ActionExecutionFailure(GaiaObservation, Error):
     error: str
 
 
-class CurrentPlanStep(GaiaThought):
-    kind: Literal["current_plan_step"] = "current_plan_step"
+class Subtask(GaiaThought):
+    kind: Literal["subtask"] = "subtask"
     number: int
     name: str
     description: str
@@ -432,7 +432,7 @@ GaiaStep = Union[
     PlanThoughtV2,
     ListOfFactsThoughtV2,
     AssistantStep,
-    CurrentPlanStep,
+    Subtask,
     PlanStepReflection,
     PlanReflection,
     ActionReflection,

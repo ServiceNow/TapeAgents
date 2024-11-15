@@ -1,20 +1,18 @@
+import logging
 from typing import Any, Union
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Call, Prompt, Respond, SetNextNode, Tape
+from tapeagents.core import Call, Prompt, Respond, Tape
 from tapeagents.dialog_tape import AssistantStep
 from tapeagents.llms import LLM, LLMStream
-from tapeagents.nodes import ControlFlowNode, MonoNode, ThinkingNode
+from tapeagents.nodes import ConditionalNode, ControlFlowNode, MonoNode, ThinkingNode
 from tapeagents.utils import get_step_schemas_from_union_type
 from tapeagents.view import all_steps, first_step, last_step
 
-from .agent import GaiaNode
 from .prompts import PromptRegistry
 from .steps import (
     ActionReflection,
-    CurrentPlanStep,
     ExecutorStep,
-    FactSchema,
     FinishSubtask,
     GaiaAnswer,
     GaiaQuestion,
@@ -23,7 +21,11 @@ from .steps import (
     PlanStepReflection,
     PlanThoughtV2,
     ReasoningThought,
+    Subtask,
 )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class Formalize(MonoNode):
@@ -56,10 +58,10 @@ class PlanView:
         step = first_step(tape, PlanThoughtV2)
         assert step is not None, "No plan found!"
         self.steps = {step.number: step for step in step.plan}
-        self.completed_steps = {step.number for step in all_steps(tape, CurrentPlanStep)}
+        self.completed_steps = {step.number for step in all_steps(tape, Subtask)}
         self.remaining_steps = sorted(list(self.steps.keys() - self.completed_steps))
         self.next_step = self.steps[self.remaining_steps[0]] if len(self.remaining_steps) else None
-        self.last_step = last_step(tape, CurrentPlanStep)
+        self.last_step = last_step(tape, Subtask)
         self.last_step_result = last_step(tape, PlanStepReflection)
         self.can_continue = bool(self.last_step_result and self.last_step_result.success and len(self.remaining_steps))
         self.plan_reflection = last_step(tape, PlanReflection)
@@ -73,15 +75,17 @@ class ChooseAndExecutePlanStep(Node):
 
     next_agent: str
 
-    def generate_steps(self, tape: Tape, **kwargs):
+    def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         plan = PlanView(tape)
         assert plan.next_step, "No remained steps left!"
-        step = CurrentPlanStep(
+        step = Subtask(
             number=plan.next_step.number,
             name=plan.next_step.name,
             description=plan.next_step.description,
         )
+        logger.info(f"Choosing step plan {step.number}:\n{step.llm_view()}")
         yield step
+        logger.info(f"Call subagent {self.next_agent}")
         yield Call(agent_name=self.next_agent, task=step.llm_dict())
 
 
@@ -165,22 +169,6 @@ class ProduceAnswer(Formalize):
         return super().make_prompt(agent, tape)
 
 
-class Act(MonoNode):
-    """
-    Act or return to the upper level agent if finished.
-    """
-
-    system_prompt: str = PromptRegistry.system_prompt
-    agent_step_cls: Any = ExecutorStep
-
-    def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
-        for step in super().generate_steps(agent, tape, llm_stream):
-            yield step
-            if isinstance(step, FinishSubtask):
-                yield Respond(copy_output=True)
-                break
-
-
 class GaiaPlanner(Agent):
     @classmethod
     def create(
@@ -224,7 +212,7 @@ class GaiaManager(Agent):
             Formalize(name="FormalizeSurvey", agent_step_cls=ListOfFactsThoughtV2),
             # go to the next step or finish the plan
             ControlFlowNode(
-                name="loop",
+                name="Loop",
                 next_node="ChooseAndExecutePlanStep",
                 predicate=lambda tape: PlanView(tape).can_continue,
             ),
@@ -232,7 +220,7 @@ class GaiaManager(Agent):
             Formalize(name="FormalizePlanReflection", agent_step_cls=PlanReflection),
             # either executed all the steps successfully or failed on some step
             ControlFlowNode(
-                name="is_finished",
+                name="IsFinished",
                 next_node="ProduceAnswer",
                 predicate=lambda tape: PlanView(tape).success,
             ),
@@ -260,7 +248,12 @@ class GaiaExecutor(Agent):
                 guidance=PromptRegistry.start_execution_v2,
             ),
             Formalize(name="FormalizeStart", agent_step_cls=ReasoningThought),
-            Act(),
+            MonoNode(name="Act", system_prompt=PromptRegistry.system_prompt, agent_step_cls=ExecutorStep),
+            ConditionalNode(
+                name="ReturnIfFinished",
+                predicate=lambda tape: bool(last_step(tape, FinishSubtask)),
+                steps=[Respond(copy_output=True)],
+            ),
             ThinkingNode(
                 name="ReflectObservation",
                 system_prompt=PromptRegistry.system_prompt,

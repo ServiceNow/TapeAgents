@@ -5,6 +5,7 @@ from typing import Any, Callable, Generator, Type
 from pydantic import Field, TypeAdapter, ValidationError
 
 from tapeagents.dialog_tape import AssistantStep
+from tapeagents.view import TapeViewStack
 
 from .agent import Node
 from .core import (
@@ -24,6 +25,7 @@ from .llms import LLMStream
 from .utils import FatalError, sanitize_json_completion
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class MonoNode(Node):
@@ -75,7 +77,9 @@ class MonoNode(Node):
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": steps_description},
         ]
-        for step in tape:
+        view = TapeViewStack.compute(tape).top
+        for step in view.steps:
+            logger.info(f"STEP {step.kind}")
             role = "assistant" if isinstance(step, AgentStep) else "user"
             messages.append({"role": role, "content": step.llm_view()})
         if self.guidance:
@@ -176,7 +180,9 @@ class ThinkingNode(Node):
         if tape_view:
             messages.append({"role": "user", "content": tape_view})
         else:
-            for step in tape:
+            view = TapeViewStack.compute(tape).top
+            for step in view.steps:
+                logger.info(f"STEP {step.kind}")
                 role = "assistant" if isinstance(step, AgentStep) else "user"
                 messages.append({"role": role, "content": step.llm_view()})
         messages.append({"role": "user", "content": self.guidance})
@@ -249,3 +255,15 @@ class FixedStepsNode(Node):
     ) -> Generator[Step | PartialStep, None, None]:
         for step in self.steps:
             yield step
+
+
+class ConditionalNode(Node):
+    steps: list[Step]
+    predicate: Callable[[Tape], bool] = lambda tape: True
+
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        if self.predicate(tape):
+            for step in self.steps:
+                yield step
