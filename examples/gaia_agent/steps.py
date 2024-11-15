@@ -76,7 +76,7 @@ class PlanStep(BaseModel):
 
 
 # TODO : remove StopStep later
-class PlanThoughtV2(GaiaThought, StopStep):
+class PlanThoughtV2(GaiaThought):
     """
     Thought that contains the plan to follow to answer the question
     """
@@ -362,6 +362,34 @@ class ActionExecutionFailure(GaiaObservation, Error):
     error: str
 
 
+class CurrentPlanStep(GaiaThought):
+    kind: Literal["current_plan_step"] = "current_plan_step"
+    name: str
+    description: str
+
+
+class PlanStepReflection(GaiaThought):
+    kind: Literal["plan_step_reflection"] = "plan_step_reflection"
+    plan_step_success: bool
+    execution_summary: str = ""
+    failure_overview: str = ""
+    occured_errors: list[str] = Field(default=[])
+
+
+class PlanReflection(GaiaThought):
+    kind: Literal["plan_reflection"] = "plan_reflection"
+    plan_success: bool
+    failed_step_number: int = -1
+    failed_step_overview: str = ""
+
+
+class ActionReflection(GaiaThought):
+    kind: Literal["step_reflection"] = "step_reflection"
+    step_success: bool
+    execution_summary: str = ""
+    failure_overview: str = ""
+
+
 GaiaStep = Union[
     PlanThought,
     ListOfFactsThought,
@@ -391,6 +419,10 @@ GaiaStep = Union[
     PlanThoughtV2,
     ListOfFactsThoughtV2,
     AssistantStep,
+    CurrentPlanStep,
+    PlanStepReflection,
+    PlanReflection,
+    ActionReflection,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[

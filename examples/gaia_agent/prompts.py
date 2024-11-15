@@ -120,6 +120,15 @@ Do not reproduce schema fields when producing the step, use it only as a referen
 DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
 """
 
+START_EXECUTION_V2 = """
+Let's start executing given task, using allowed steps described earlier.
+Briefly describe required steps.
+"""
+
+TODO_NEXT = """
+Let's think what to do next.
+"""
+
 
 class PromptRegistry:
     system_prompt = SYSTEM_PROMPT
@@ -144,3 +153,5 @@ class PromptRegistry:
     formalize_guidance = FORMALIZE_GUIDANCE
     formalize_input = FORMALIZE_INPUT
     formalize_format = FORMALIZE_FORMAT
+    start_execution_v2 = START_EXECUTION_V2
+    todo_next = TODO_NEXT
