@@ -220,8 +220,7 @@ class GaiaManager(Agent):
 
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (
-            # add `current_plan_step` step to the tape, call subagent to work on a step
-            ChoosePlanStep(),
+            ChoosePlanStep(),  # adds subtask with the current plan step to the tape
             CallExecutor(agent_name="GaiaExecutor"),
             # receive the result of the subagent from the last step and reflect on it
             ThinkingNode(
@@ -235,7 +234,7 @@ class GaiaManager(Agent):
             # go to the next step or finish the plan
             ControlFlowNode(
                 name="Loop",
-                next_node="ChooseAndExecutePlanStep",
+                next_node="ChoosePlanStep",
                 predicate=lambda tape: PlanView(tape).can_continue,
             ),
             ReflectPlan(),
@@ -247,7 +246,7 @@ class GaiaManager(Agent):
                 predicate=lambda tape: PlanView(tape).success,
             ),
             Replan(),
-            Formalize(name="FormalizePlan", agent_step_cls=PlanThoughtV2, next_node="ChooseAndExecutePlanStep"),
+            Formalize(name="FormalizePlan", agent_step_cls=PlanThoughtV2, next_node="ChoosePlanStep"),
             ProduceAnswer(),  # produce the final answer
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
