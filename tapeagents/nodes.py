@@ -7,6 +7,7 @@ from pydantic import Field, TypeAdapter, ValidationError
 from .agent import Node
 from .core import (
     AgentStep,
+    Call,
     LLMOutput,
     LLMOutputParsingFailureAction,
     Observation,
@@ -36,6 +37,7 @@ class MonoNode(Node):
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_step_cls: Any = Field(exclude=True)
     next_node: str = ""
+    next_agent: str = ""
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         cleaned_tape = self.prepare_tape(tape)
@@ -102,6 +104,13 @@ class MonoNode(Node):
 
         if self.next_node and not isinstance(new_steps[-1], StopStep):
             yield SetNextNode(next_node=self.next_node)
+
+        if self.next_agent and not isinstance(new_steps[-1], StopStep):
+            yield Call(agent_name=self.next_agent, task=self.set_subagent_task(tape, new_steps))
+
+    def set_subagent_task(self, tape: Tape, new_steps: list[Step]) -> dict:
+        steps = tape.steps + new_steps
+        return steps[-1].llm_dict()
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         return step

@@ -15,6 +15,10 @@ from .tape import GaiaTape
 
 
 class GaiaPlainTextNode(GaiaNode):
+    """
+    Node that expects a plaint text response from the LLM
+    """
+
     tape_view: Callable[[GaiaTape], str] = Field(exclude=True, default=lambda tape: None)
 
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
@@ -51,6 +55,10 @@ class GaiaPlainTextNode(GaiaNode):
 
 
 class Formalize(GaiaNode):
+    """
+    Node that translates plain text response in the last step of the tape into a structured thought of given type.
+    """
+
     system_prompt: str = PromptRegistry.formalize_system_prompt
     guidance: str = PromptRegistry.formalize_guidance
     input: str = PromptRegistry.formalize_input

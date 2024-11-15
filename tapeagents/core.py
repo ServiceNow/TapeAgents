@@ -128,6 +128,7 @@ class Call(Thought):
     kind: Literal["call"] = "call"
     content: str = ""
     agent_name: str
+    task: dict | None = None
 
 
 class Respond(Thought):
