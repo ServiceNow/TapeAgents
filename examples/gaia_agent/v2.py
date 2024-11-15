@@ -190,13 +190,13 @@ class GaiaPlanner(Agent):
         subagents = [GaiaManager.create(llm)]
         nodes = (
             ThinkingNode(
-                name="facts_survey",
+                name="FactsSurvey",
                 system_prompt=PromptRegistry.facts_survey_v2_system,
                 guidance=PromptRegistry.facts_survey_v2,
             ),
-            Formalize(name="formalize_survey", agent_step_cls=ListOfFactsThoughtV2),
-            ThinkingNode(name="plan", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.plan_v2),
-            Formalize(name="formalize_plan", agent_step_cls=PlanThoughtV2, next_agent="GaiaManager"),
+            Formalize(name="FormalizeSurvey", agent_step_cls=ListOfFactsThoughtV2),
+            ThinkingNode(name="Plan", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.plan_v2),
+            Formalize(name="FormalizePlan", agent_step_cls=PlanThoughtV2, next_agent="GaiaManager"),
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
 
@@ -215,13 +215,13 @@ class GaiaManager(Agent):
             ChooseAndExecutePlanStep(next_agent="GaiaExecutor"),
             # receive the result of the subagent from the last step and reflect on it
             ThinkingNode(
-                name="reflect_plan_step",
+                name="ReflectPlanStep",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.reflect_plan_step_result,
             ),
-            Formalize(name="formalize_plan_step_reflection", agent_step_cls=PlanStepReflection),
+            Formalize(name="FormalizePlanStepReflection", agent_step_cls=PlanStepReflection),
             FactSurveyUpdate(),
-            Formalize(name="formalize_survey", agent_step_cls=ListOfFactsThoughtV2),
+            Formalize(name="FormalizeSurvey", agent_step_cls=ListOfFactsThoughtV2),
             # go to the next step or finish the plan
             ControlFlowNode(
                 name="loop",
@@ -229,7 +229,7 @@ class GaiaManager(Agent):
                 predicate=lambda tape: PlanView(tape).can_continue,
             ),
             ReflectPlan(),
-            Formalize(name="formalize_plan_reflection", agent_step_cls=PlanReflection),
+            Formalize(name="FormalizePlanReflection", agent_step_cls=PlanReflection),
             # either executed all the steps successfully or failed on some step
             ControlFlowNode(
                 name="is_finished",
@@ -237,7 +237,7 @@ class GaiaManager(Agent):
                 predicate=lambda tape: PlanView(tape).success,
             ),
             Replan(),
-            Formalize(name="formalize_plan", agent_step_cls=PlanThoughtV2, next_node="ChooseAndExecutePlanStep"),
+            Formalize(name="FormalizePlan", agent_step_cls=PlanThoughtV2, next_node="ChooseAndExecutePlanStep"),
             ProduceAnswer(),  # produce the final answer
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
@@ -255,19 +255,19 @@ class GaiaExecutor(Agent):
     ):
         nodes = (
             ThinkingNode(
-                name="start_execution",
+                name="StartExecution",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.start_execution_v2,
             ),
-            Formalize(name="formalize_start", agent_step_cls=ReasoningThought),
+            Formalize(name="FormalizeStart", agent_step_cls=ReasoningThought),
             Act(),
             ThinkingNode(
-                name="reflect_observation",
+                name="ReflectObservation",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.reflect_observation,
             ),
-            Formalize(name="formalize_reflect_observation", agent_step_cls=ActionReflection),
-            ThinkingNode(name="todo", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.todo_next),
-            Formalize(name="formalize_todo", agent_step_cls=ReasoningThought, next_node="Act"),
+            Formalize(name="FormalizeReflectObservation", agent_step_cls=ActionReflection),
+            ThinkingNode(name="Todo", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.todo_next),
+            Formalize(name="FormalizeTodo", agent_step_cls=ReasoningThought, next_node="Act"),
         )
         return super().create(llm, nodes=nodes, max_iterations=2)
