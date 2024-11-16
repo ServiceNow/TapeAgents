@@ -556,5 +556,7 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
     tokenized_text = tokenizer.apply_chat_template(
         prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True
     )
+    if text.startswith(tokenizer.bos_token):
+        text = text[len(tokenizer.bos_token) :]
 
     return TrainingText(text=text, n_predicted=len(output_text))

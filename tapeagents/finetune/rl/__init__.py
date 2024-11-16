@@ -245,6 +245,6 @@ def prepare_rl_fields(
 
     encoding["rewards"] = [reward] * len(encoding["labels"])
     encoding["advantages"] = [0.0] * len(encoding["labels"])  # place holder
-    encoding["old_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
-    encoding["ref_logprobs"] = [0.0] * (len(encoding["labels"]) - len(ref_logprobs)) + ref_logprobs
+    encoding["old_logprobs"] = [0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
+    encoding["ref_logprobs"] = [0] * (len(encoding["labels"]) - len(ref_logprobs)) + ref_logprobs
     return encoding
