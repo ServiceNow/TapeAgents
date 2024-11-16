@@ -72,6 +72,7 @@ class ReasoningNode(MonoNode):
             value = value.replace(" ", "")
             value = value.replace(":", "")
             value = value.replace("$", "")
+            value = value.replace("%", "")
             value = value.replace("€", "")
             value = value.strip()
             step = ReasoningThoughtwithValue(reasoning=completion, value=float(value))
