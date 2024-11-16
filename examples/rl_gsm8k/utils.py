@@ -12,7 +12,7 @@ import psutil
 import requests
 import torch
 from tenacity import retry, stop_after_attempt, wait_exponential
-
+import multiprocessing
 logger = logging.getLogger(__name__)
 
 
@@ -272,7 +272,7 @@ def calculate_stats(stats):
     }
 
 
-def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str):
+def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str, use_accelerate: bool = False) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
 
@@ -330,3 +330,12 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str)
         raise RuntimeError(error_msg) from e
     except Exception as e:
         raise RuntimeError(f"Unexpected error during training: {str(e)}") from e
+
+
+def run_finetuning_loop(finetune_cfg):
+    p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
+    p.start()  # Start the subprocess
+    p.join()  # Wait for the process to complete
+    # Check if the subprocess exited with an error
+    if p.exitcode != 0:
+        raise RuntimeError(f"Finetuning subprocess failed with exit code {p.exitcode}")

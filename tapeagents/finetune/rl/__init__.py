@@ -44,7 +44,7 @@ class RLConfig(StepConfig):
     )
     epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
     implicit_kl_coef: Optional[float] = field(
-        default=0.1,
+        default=0.,
         # https://arxiv.org/abs/2402.14740
         metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
     )
@@ -143,6 +143,8 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
         "min_reward": rewards[masks_].min().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
+        "mean_new_logprobs_positive_weights": masked_mean(new_log_probs[weights > 0], masks_[weights > 0]).item() if (weights > 0).any() else 0,
+        "mean_new_logprobs_negative_weights": masked_mean(new_log_probs[weights < 0], masks_[weights < 0]).item() if (weights < 0).any() else 0,
         "mean_ref_logprobs": masked_mean(ref_logprobs, masks_).item(),
         "advantage": masked_mean(advantages, masks_).item(),
         "max_advantage": advantages[masks_].max().item(),

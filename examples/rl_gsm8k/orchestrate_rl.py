@@ -36,6 +36,7 @@ from examples.rl_gsm8k.utils import (
     load_state,
     save_state,
     setup_logging,
+    run_finetuning_loop
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
@@ -457,7 +458,8 @@ def main(cfg: DictConfig):
         OmegaConf.save(finetune_cfg, config_path)
 
         start_finetune = time.time()
-        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path)
+        #launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path)
+        run_finetuning_loop(finetune_cfg)
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
         wandb.log(
