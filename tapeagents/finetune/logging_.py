@@ -44,6 +44,7 @@ def init_wandb(
             f"Truncating to 128 characters. wandb_id: {wandb_id}, wandb_name: {wandb_name}"
         )
 
+    logging.info(f"Initializing W&B with id: {wandb_id[:128]}, name: {wandb_name[:128]}, resume: {resume}")
     run = wandb.init(
         name=wandb_name[:128],  # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
@@ -128,4 +129,3 @@ def flatten_dict_config(d: DictConfig, separator=".") -> dict:
         else:
             result[k] = v
     return result
-

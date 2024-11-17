@@ -57,8 +57,9 @@ class MonoNode(Node):
     def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
         messages: list[dict] = [
             {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": steps_description},
         ]
+        if steps_description:
+            messages.append({"role": "assistant", "content": steps_description})
         for step in tape:
             role = "assistant" if isinstance(step, AgentStep) else "user"
             messages.append({"role": role, "content": step.llm_view()})

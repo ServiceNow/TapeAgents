@@ -1,32 +1,39 @@
 import logging
-import os
-from typing import Annotated, Any, Generator, Literal, Type, TypeAlias, Union
+from typing import Annotated, Generator, Literal, TypeAlias, Union
+import json
 
-from pydantic import Field, TypeAdapter, ValidationError
+from pydantic import Field
 from tapeagents.environment import Environment
-from examples.gsm8k_tuning.math_agent import (
-    ActionExecutionFailure,
-    AnswerAction,
-    Task,
-    extract_result_value,
-)
+
 from tapeagents.agent import Agent
 from tapeagents.core import (
     Action,
-    FinalStep,
     LLMOutputParsingFailureAction,
     Observation,
-    SetNextNode,
     Step,
     Tape,
     Thought,
 )
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
-from tapeagents.utils import get_step_schemas_from_union_type
+from examples.gsm8k_tuning.math_agent import extract_result_value
 
 logger = logging.getLogger(__name__)
 
+#### Prompts ####
+
+SYSTEM_PROMPT = ""
+
+START_TASK_GUIDANCE = ""
+STEP_PROMPT = ""
+COT_GUIDANCE = "Think step by step. When you know the answer to the question, provide it in the following format: The answer is: <number>"
+
+class Task(Observation):
+    kind: Literal["task"] = "task"
+    task: str
+
+    def llm_view(self, indent: int | None = 2) -> str:
+        return f"{self.task} {COT_GUIDANCE}"
 
 class ReasoningThoughtwithValue(Thought):
     """
@@ -52,13 +59,6 @@ MathTape = Tape[
     ],
 ]
 
-#### Prompts ####
-
-SYSTEM_PROMPT = ""
-
-START_TASK_GUIDANCE = ""
-STEP_PROMPT = ""
-COT_GUIDANCE = "Think step by step. When you know the answer to the question, provide it in the following format: The answer is: <number>"
 
 
 class ReasoningNode(MonoNode):
@@ -92,10 +92,7 @@ class COTMathAgent(Agent):
             nodes=[
                 ReasoningNode(
                     name="cot",
-                    system_prompt=SYSTEM_PROMPT,
-                    steps_prompt=STEP_PROMPT,
                     agent_step_cls=MathAgentStep,
-                    guidance=COT_GUIDANCE,
                 ),
             ],
             max_iterations=1,
