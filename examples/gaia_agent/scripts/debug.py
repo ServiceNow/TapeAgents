@@ -51,14 +51,14 @@ def main(dataset_path, exp_dir, level):
                     if isinstance(v, (list, dict)):
                         v = json.dumps(v, indent=2)
                     logger.info(f"{k}: {v}")
-                input("Press Enter to continue...")
+                # input("Press Enter to continue...")
                 print("-" * 140)
             elif event.observation:
                 step = event.observation
                 tape = tape.append(step)
                 save_json_tape(tape, tapes_dir, tape_name)
                 logger.info(f"OBSERVATION: {step.kind}")
-                input("Press Enter to continue...")
+                # input("Press Enter to continue...")
                 print("-" * 140)
             elif event.agent_event and event.agent_event.final_tape is not None:
                 logger.info("RUN END")

@@ -131,14 +131,18 @@ class ListOfFactsThought(GaiaThought):
     )
 
 
-class ListOfFactsThoughtV2(GaiaThought):
+class Facts(GaiaThought):
     """
     Thought that contains the list of facts that are needed to answer the question
     """
 
-    kind: Literal["list_of_facts_thought_v2"] = "list_of_facts_thought_v2"
-    available_facts: list[str] = Field(
-        description="list of facts that are already given in the question or found during previous steps",
+    kind: Literal["facts_ledger_thought"] = "facts_ledger_thought"
+    given_facts: list[str] = Field(
+        description="list of facts that are already given in the question",
+        default=[],
+    )
+    found_facts: list[str] = Field(
+        description="list of facts that are found during previous steps",
         default=[],
     )
     facts_to_lookup: list[str] = Field(
@@ -146,7 +150,7 @@ class ListOfFactsThoughtV2(GaiaThought):
         default=[],
     )
     facts_to_derive: list[str] = Field(
-        description="list of facts that need to be derived from the given facts using reasoning or calculations",
+        description="list of facts that need to be derived from the given facts using reasoning or computations",
         default=[],
     )
     educated_guesses: list[str] = Field(
@@ -392,6 +396,7 @@ class PlanReflection(GaiaThought):
     task_solved: bool
     plan_finished: bool
     failed_step_number: int = -1
+    failure_overview: str = ""
 
 
 class ActionReflection(GaiaThought):
@@ -426,7 +431,7 @@ GaiaStep = Union[
     LLMOutputParsingFailureAction,
     SetNextNode,
     PlanThoughtV2,
-    ListOfFactsThoughtV2,
+    Facts,
     AssistantStep,
     Subtask,
     PlanReflection,

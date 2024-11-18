@@ -68,7 +68,7 @@ Here is the pre-survey:
 
 When answering this survey, keep in mind that "facts" will typically be specific names, dates, statistics, etc. Your answer should use headings:
 
-    1. GIVEN OR VERIFIED FACTS
+    1. GIVEN FACTS
     2. FACTS TO LOOK UP
     3. FACTS TO DERIVE
     4. EDUCATED GUESSES
@@ -179,22 +179,24 @@ We've completeed another step in the task, here is the results:
 
 {last_results}
 
-Please rewrite the following fact sheet, updating it to include anything new we have learned that may be helpful.
-Example edits can include (but are not limited to) adding new guesses, moving educated guesses to verified facts if appropriate, etc.
-Updates may be made to any section of the fact sheet, and more than one section of the fact sheet can be edited.
-Remember to remove educated guesses that have been proven false or replaced with verified facts.
-Do not remove verified facts!
+Please update the following fact sheet to include any new information we have learned that may be helpful. Update rules:
+- Edit should update found facts if new facts have been reported in results.
+- Edit can include adding new guesses, moving educated guesses to found facts where applicable, etc.
+- You can update any section of the fact sheet, with multiple sections edited if necessary.
+- Remove educated guesses that have been proven false or replaced by found facts.
+- Do not remove previously found facts!
 
-Here is the old fact sheet:
-
-1. VERIFIED FACTS
-    {available}
-2. FACTS TO LOOK UP
-    {lookup}
-3. FACTS TO DERIVE
-    {derive}
-4. EDUCATED GUESSES
-    {guesses}
+Here is the current fact sheet:
+GIVEN FACTS:
+{given}
+FOUND FACTS:
+{found}
+FACTS TO LOOK UP:
+{lookup}
+FACTS TO DERIVE:
+{derive}
+EDUCATED GUESSES:
+{guesses}
 
 Respond with updated facts sheet.
 """

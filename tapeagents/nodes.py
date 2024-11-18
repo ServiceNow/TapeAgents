@@ -182,7 +182,8 @@ class ThinkingNode(Node):
                     role = "assistant" if isinstance(step, AgentStep) else "user"
                     message = {"role": role, "content": step.llm_view()}
                 messages.append(message)
-        messages.append({"role": "user", "content": self.guidance})
+        if self.guidance:
+            messages.append({"role": "user", "content": self.guidance})
         return messages
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):

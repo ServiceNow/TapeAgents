@@ -13,9 +13,9 @@ from .prompts import PromptRegistry
 from .steps import (
     ActionReflection,
     ExecutorStep,
+    Facts,
     GaiaAnswer,
     GaiaQuestion,
-    ListOfFactsThoughtV2,
     PlanReflection,
     PlanThoughtV2,
     PreviousFacts,
@@ -39,7 +39,7 @@ class PlanView:
         self.last_step_result = last_step(tape, SubtaskResult)
         self.can_continue = bool(self.last_step_result and self.last_step_result.success and len(self.remaining_steps))
         self.plan_reflection = last_step(tape, PlanReflection)
-        self.success = bool(self.plan_reflection and self.plan_reflection.plan_success)
+        self.success = bool(self.plan_reflection and self.plan_reflection.task_solved)
 
 
 class CallManager(Node):
@@ -48,7 +48,7 @@ class CallManager(Node):
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         task = first_position(tape, GaiaQuestion)
         plan = last_position(tape, PlanThoughtV2)
-        facts = last_position(tape, ListOfFactsThoughtV2)
+        facts = last_position(tape, Facts)
         assert task is not None, "No task found!"
         assert plan is not None, "No plan found!"
         assert facts is not None, "No facts found!"
@@ -113,23 +113,24 @@ class FactSurveyUpdate(ThinkingNode):
 
     system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.facts_survey_update
-    output_cls: Any = ListOfFactsThoughtV2
+    output_cls: Any = Facts
 
     def tape_view(self, tape: Tape) -> str:
         last_results_step = tape.steps[-4]
         assert isinstance(last_results_step, SubtaskResult), f"wrong subtask result: {last_results_step.kind}"
         last_results_thought = tape.steps[-2]
         assert isinstance(last_results_thought, AssistantStep), f"wrong subtask reflection: {last_results_thought.kind}"
-        last_results = f"{last_results_step.llm_view()}\n{last_results_thought.llm_view()}"
+        last_results = f"{last_results_step.llm_view()}\n{last_results_thought.content}"
         start_step = tape[0]
         assert isinstance(start_step, GaiaQuestion)
-        facts_step = first_step(tape, ListOfFactsThoughtV2)
+        facts_step = first_step(tape, Facts)
         assert facts_step, "No facts found!"
         assert isinstance(start_step, GaiaQuestion)
         return PromptRegistry.facts_survey_update.format(
             task=start_step.content,
             last_results=last_results,
-            available="\n".join(facts_step.available_facts),
+            given="\n".join(facts_step.given_facts),
+            found="\n".join(facts_step.found_facts),
             lookup="\n".join(facts_step.facts_to_lookup),
             derive="\n".join(facts_step.facts_to_derive),
             guesses="\n".join(facts_step.educated_guesses),
@@ -151,18 +152,18 @@ class Replan(ThinkingNode):
         plan_text = "\n".join([f"{step.number}. {step.name}\n{step.description}" for step in plan.steps.values()])
         plan_result = last_step(tape, PlanReflection)
         assert plan_result
-        failure_text = f"Failed step: {plan_result.failed_step_number}\n{plan_result.failed_step_overview}"
+        failure_text = f"Failed step: {plan_result.failed_step_number}\n{plan_result.failure_overview}"
         self.guidance = PromptRegistry.replan.format(plan=plan_text, failure=failure_text)
         return super().make_prompt(agent, tape)
 
 
-class ChooseSubtaskFacts(ThinkingNode):
+class ChooseSubtaskArgs(ThinkingNode):
     system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.choose_facts
     output_cls: Any = PreviousFacts
 
     def tape_view(self, tape: Tape) -> str:
-        facts = last_step(tape, ListOfFactsThoughtV2)
+        facts = last_step(tape, Facts)
         subtask = last_step(tape, Subtask)
         assert facts, "No facts found!"
         assert subtask, "No subtask found!"
@@ -182,7 +183,7 @@ class ProduceAnswer(ThinkingNode):
         steps = [
             first_step(tape, GaiaQuestion),
             last_step(tape, PlanThoughtV2),
-            last_step(tape, ListOfFactsThoughtV2),
+            last_step(tape, Facts),
             last_step(tape, PlanReflection),
         ]
         steps = [s for s in steps if s]  # remove None
@@ -202,7 +203,7 @@ class GaiaPlanner(Agent):
                 name="FactsSurvey",
                 system_prompt=PromptRegistry.facts_survey_v2_system,
                 guidance=PromptRegistry.facts_survey_v2,
-                output_cls=ListOfFactsThoughtV2,
+                output_cls=Facts,
             ),
             ThinkingNode(
                 name="Plan",
@@ -226,7 +227,7 @@ class GaiaManager(Agent):
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (
             ChoosePlanStep(),  # adds subtask with the current plan step to the tape
-            ChooseSubtaskFacts(),  # choose facts relevant for the subtask
+            ChooseSubtaskArgs(),  # choose facts relevant for the subtask
             CallExecutor(agent_name="GaiaExecutor"),
             # reflect on the subtask result
             FactSurveyUpdate(),
