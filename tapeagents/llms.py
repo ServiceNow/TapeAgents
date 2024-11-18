@@ -554,7 +554,7 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
     )
     output_text = text[len(prompt_text) :]
 
-    if text.startswith(tokenizer.bos_token):
+    if tokenizer.bos_token and text.startswith(tokenizer.bos_token):
         text = text[len(tokenizer.bos_token) :]
 
     return TrainingText(text=text, n_predicted=len(output_text))
