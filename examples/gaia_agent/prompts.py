@@ -1,7 +1,8 @@
-SYSTEM_PROMPT = """You are an expert AI Agent trained to assist user with complex information processing tasks.
-Your role is to understand user queries and respond in a helpful and accurate manner.
+SYSTEM_PROMPT = """You are an expert AI Agent trained to help user by solving complex information-processing tasks.
+Your role is to solve the task using the best of your abilities and knowledge.
 Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
-Do not express your emotions or opinions about the user question."""
+Do not express your emotions or opinions about the task.
+"""
 
 short_format_instruction = (
     "DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output."
@@ -54,17 +55,17 @@ IS_SUBTASK_FINISHED = """Assess if the subtask objective has been fully achieved
 If the objective has not been achieved, produce the next step.
 """
 
-FACTS_SURVEY_V2_SYSTEM = """Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
-
-Here is the request:"""
+FACTS_SURVEY_V2_SYSTEM = """
+You are an expert AI Agent trained to assist user with complex information processing tasks. 
+Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
+"""
 
 FACTS_SURVEY_V2_GUIDANCE = """
-Here is the pre-survey:
-
-    1. Please list any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.
-    2. Please list any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
-    3. Please list any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
-    4. Please list any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
+Please answer the following pre-survey to the best of your ability:
+    1. List any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.
+    2. List any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
+    3. List any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
+    4. List any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
 
 When answering this survey, keep in mind that "facts" will typically be specific names, dates, statistics, etc. Your answer should use headings:
 
@@ -73,6 +74,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
     3. FACTS TO DERIVE
     4. EDUCATED GUESSES
 
+Sometimes, the request will not contain any given facts, facts to look up, or facts to derive. In such cases, you may leave those sections blank.
 DO NOT include any other headings or sections in your response. DO NOT list next steps or plans until asked to do so.
 """
 
@@ -97,8 +99,8 @@ PLAN_V2 = """To address this request, the following tools are available:
 - Reasoning
 
 Using these tools and considering the known and unknown facts:
-- Reason step-by-step to produce a brief draft of the plan to solve the task.
-- Expand the draft into a detailed, bullet-point plan for addressing the original request.
+- First reason step-by-step to produce a brief draft of the plan to solve the task.
+- Then expand the draft into a detailed, bullet-point plan for addressing the original request.
 
 For each step in the plan, include:
 - A detailed description of the tasks to perform.
@@ -108,7 +110,14 @@ For each step in the plan, include:
 """
 
 START_EXECUTION_V2 = """
-What steps should I do to solve the subtask? Be specific about how each step should be done.
+I have the following tools:
+- Web search
+- Web surfing
+- Python code execution
+- Reading local files
+- Reasoning
+
+What steps should I take to solve the subtask? Be specific about how each step should be done.
 """
 
 TODO_NEXT = """
@@ -117,7 +126,7 @@ Describe single immediate next step to be done.
 
 REFLECT_SUBTASK = """
 Evaluate the execution of the subtask in the plan step:
-- If the subtask was successfully completed, compare the actual result to the expected outcome. If there is a difference, provide a detailed explanation.
+- If the subtask was successfully completed, describe the achieved result.
 - If the subtask failed, analyze the reasons for the failure and suggest adjustments to the plan to enable successful task completion.
 """
 
@@ -135,6 +144,9 @@ Current plan status:
 Total steps: {total_steps}
 Completed steps: {completed_steps}
 Remaining steps: {remaining_steps}
+
+Facts found:
+{facts}
 """
 
 REPLAN = """Our previous attempt to solve task failed.
@@ -175,7 +187,7 @@ As a reminder, we are working to solve the following task:
 
 {task}
 
-We've completeed another step in the task, here is the results:
+We've completed another step in the task, here is the results:
 
 {last_results}
 
@@ -187,28 +199,9 @@ Please update the following fact sheet to include any new information we have le
 - Do not remove previously found facts!
 
 Here is the current fact sheet:
-GIVEN FACTS:
-{given}
-FOUND FACTS:
-{found}
-FACTS TO LOOK UP:
-{lookup}
-FACTS TO DERIVE:
-{derive}
-EDUCATED GUESSES:
-{guesses}
+{facts}
 
 Respond with updated facts sheet.
-"""
-
-CHOOSE_FACTS = "Choose facts relevant for the subtask. If there is no directly relevant facts, return empty list."
-
-CURRENT_FACTS = """
-Subtask: {subtask.name}: {subtask.description}
-
-Facts:
-
-{facts.available_facts}
 """
 
 
@@ -240,5 +233,3 @@ class PromptRegistry:
     final_answer = FINAL_ANSWER
     reflect_observation = REFLECT_OBSERVATION
     facts_survey_update = FACTS_SURVEY_UPDATE
-    choose_facts = CHOOSE_FACTS
-    current_facts = CURRENT_FACTS

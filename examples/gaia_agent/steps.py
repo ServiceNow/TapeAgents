@@ -11,6 +11,7 @@ from tapeagents.core import (
     Error,
     LLMOutputParsingFailureAction,
     Observation,
+    ReferenceStep,
     Respond,
     SetNextNode,
     StopStep,
@@ -87,7 +88,7 @@ class PlanStep(BaseModel):
 
 
 # TODO : remove StopStep later
-class PlanThoughtV2(GaiaThought):
+class Plan(GaiaThought):
     """
     Thought that contains the plan to follow to answer the question
     """
@@ -340,11 +341,6 @@ class PreviousFactsObservation(GaiaObservation):
     facts: dict[str, Any]
 
 
-class PreviousFacts(GaiaThought):
-    kind: Literal["previous_facts_thought"] = "previous_facts_thought"
-    facts: list[str]
-
-
 class GaiaAnswer(GaiaAction, StopStep):
     """
     Action that indicates that the agent has finished the plan and contains answer or the decsription of failure.
@@ -374,6 +370,9 @@ class Subtask(GaiaThought):
     number: int
     name: str
     description: str
+    prerequisites: list[str]
+    list_of_tools: list[str]
+    expected_results: list[str]
 
 
 class SubtaskResult(GaiaThought):
@@ -430,7 +429,7 @@ GaiaStep = Union[
     ActionExecutionFailure,
     LLMOutputParsingFailureAction,
     SetNextNode,
-    PlanThoughtV2,
+    Plan,
     Facts,
     AssistantStep,
     Subtask,
@@ -439,7 +438,7 @@ GaiaStep = Union[
     Call,
     Respond,
     ConditionCheck,
-    PreviousFacts,
+    ReferenceStep,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[

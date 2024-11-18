@@ -2,10 +2,10 @@ import logging
 from typing import Any
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Call, Prompt, Respond, Tape
+from tapeagents.core import Call, Prompt, ReferenceStep, Tape
 from tapeagents.dialog_tape import AssistantStep
 from tapeagents.llms import LLM, LLMStream
-from tapeagents.nodes import ControlFlowNode, FixedStepsNode, MonoNode, ThinkingNode
+from tapeagents.nodes import ControlFlowNode, MonoNode, Return, ThinkingNode
 from tapeagents.utils import get_step_schemas_from_union_type
 from tapeagents.view import all_steps, first_position, first_step, last_position, last_step
 
@@ -16,9 +16,8 @@ from .steps import (
     Facts,
     GaiaAnswer,
     GaiaQuestion,
+    Plan,
     PlanReflection,
-    PlanThoughtV2,
-    PreviousFacts,
     Subtask,
     SubtaskResult,
 )
@@ -27,19 +26,33 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class PlanView:
+class ManagerView:
     def __init__(self, tape: Tape):
-        step = first_step(tape, PlanThoughtV2)
-        assert step is not None, "No plan found!"
-        self.steps = {step.number: step for step in step.plan}
-        self.completed_steps = {step.number for step in all_steps(tape, Subtask)}
-        self.remaining_steps = sorted(list(self.steps.keys() - self.completed_steps))
+        last_plan_position = last_position(tape, Plan)
+        assert last_plan_position is not None, "No plan found!"
+        plan: Plan = tape[last_plan_position]  # type: ignore
+
+        self.steps = {step.number: step for step in plan.plan}
+        self.completed_steps = {step.number: step for step in all_steps(tape, SubtaskResult)}
+        self.remaining_steps = sorted([n for n in self.steps.keys() if n not in self.completed_steps])
         self.next_step = self.steps[self.remaining_steps[0]] if len(self.remaining_steps) else None
-        self.last_step = last_step(tape, Subtask)
-        self.last_step_result = last_step(tape, SubtaskResult)
-        self.can_continue = bool(self.last_step_result and self.last_step_result.success and len(self.remaining_steps))
+
+        self.last_subtask_result = last_step(tape, SubtaskResult)
+        self.can_continue = bool(
+            self.last_subtask_result and self.last_subtask_result.success and len(self.remaining_steps)
+        )
         self.plan_reflection = last_step(tape, PlanReflection)
         self.success = bool(self.plan_reflection and self.plan_reflection.task_solved)
+        fact_ledgers = [step for step in all_steps(tape, Facts) if step]
+        if fact_ledgers:
+            self.facts = fact_ledgers[-1]
+            self.facts.found_facts = [fact for ledger in fact_ledgers for fact in ledger.found_facts]
+            self.known_facts = self.facts.given_facts + self.facts.found_facts
+            self.known_facts_str = "\n".join([f"- {f}" for f in self.known_facts])
+        else:
+            self.facts = None
+            self.known_facts = []
+            self.known_facts_str = "No facts found"
 
 
 class CallManager(Node):
@@ -47,42 +60,37 @@ class CallManager(Node):
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         task = first_position(tape, GaiaQuestion)
-        plan = last_position(tape, PlanThoughtV2)
+        plan = last_position(tape, Plan)
         facts = last_position(tape, Facts)
         assert task is not None, "No task found!"
         assert plan is not None, "No plan found!"
         assert facts is not None, "No facts found!"
-        yield Call(agent_name=self.agent_name, args=[task, facts, plan])
+        yield Call(agent_name=self.agent_name)
+        yield ReferenceStep(step_number=task)
+        yield ReferenceStep(step_number=facts)
+        yield ReferenceStep(step_number=plan)
 
 
 class CallExecutor(Node):
     agent_name: str
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
-        task = last_position(tape, Subtask)
-        facts = last_position(tape, PreviousFacts)
+        view = ManagerView(tape)
+        assert view.next_step, "No remained steps left!"
+        prerequisites = []
+        for step_number, _ in view.next_step.prerequisites:
+            assert step_number in view.completed_steps, f"Prerequisite result {step_number} not found!"
+            prerequisites += view.completed_steps[step_number].results
 
-        assert task is not None, "No task found!"
-        assert facts is not None, "No facts found!"
-        args = [task, facts] if tape[facts].facts else [task]  # type: ignore
-        yield Call(agent_name=self.agent_name, args=args)
-
-
-class ChoosePlanStep(Node):
-    """
-    Choose current plan step, add `current_plan_step` step to the tape, call subagent to work on a step
-    """
-
-    def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
-        plan = PlanView(tape)
-        assert plan.next_step, "No remained steps left!"
-        step = Subtask(
-            number=plan.next_step.number,
-            name=plan.next_step.name,
-            description=plan.next_step.description,
+        yield Call(agent_name=self.agent_name)
+        yield Subtask(
+            number=view.next_step.number,
+            name=view.next_step.name,
+            description=view.next_step.description,
+            prerequisites=prerequisites,
+            list_of_tools=view.next_step.list_of_tools,
+            expected_results=view.next_step.expected_results,
         )
-        logger.info(f"Choosing step plan {step.number}:\n{step.llm_view()}")
-        yield step
 
 
 class ReflectPlan(ThinkingNode):
@@ -96,23 +104,24 @@ class ReflectPlan(ThinkingNode):
 
     def tape_to_messages(self, tape: Tape) -> list[dict]:
         messages = super().tape_to_messages(tape)
-        plan = PlanView(tape)
+        view = ManagerView(tape)
         plan_status = PromptRegistry.plan_status.format(
-            completed_steps=len(plan.completed_steps),
-            total_steps=len(plan.steps),
-            remained_steps=len(plan.remaining_steps),
+            completed_steps=len(view.completed_steps),
+            total_steps=len(view.steps),
+            remaining_steps=len(view.remaining_steps),
+            facts=view.known_facts_str,
         )
         messages = messages[:-1] + [{"role": "user", "content": plan_status}] + messages[-1:]
         return messages
 
 
-class FactSurveyUpdate(ThinkingNode):
+class UpdateFacts(ThinkingNode):
     """
     Updates the list of facts based on the subtask results
     """
 
     system_prompt: str = PromptRegistry.system_prompt
-    guidance: str = PromptRegistry.facts_survey_update
+    guidance: str = ""
     output_cls: Any = Facts
 
     def tape_view(self, tape: Tape) -> str:
@@ -123,17 +132,12 @@ class FactSurveyUpdate(ThinkingNode):
         last_results = f"{last_results_step.llm_view()}\n{last_results_thought.content}"
         start_step = tape[0]
         assert isinstance(start_step, GaiaQuestion)
-        facts_step = first_step(tape, Facts)
-        assert facts_step, "No facts found!"
-        assert isinstance(start_step, GaiaQuestion)
+        facts = last_step(tape, Facts)
+        assert facts, "No facts found!"
         return PromptRegistry.facts_survey_update.format(
             task=start_step.content,
             last_results=last_results,
-            given="\n".join(facts_step.given_facts),
-            found="\n".join(facts_step.found_facts),
-            lookup="\n".join(facts_step.facts_to_lookup),
-            derive="\n".join(facts_step.facts_to_derive),
-            guesses="\n".join(facts_step.educated_guesses),
+            facts=facts.llm_view(),
         )
 
 
@@ -144,30 +148,16 @@ class Replan(ThinkingNode):
 
     system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.replan
-    output_cls: Any = PlanThoughtV2
-    next_node: str = "ChoosePlanStep"
+    output_cls: Any = Plan
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        plan = PlanView(tape)
-        plan_text = "\n".join([f"{step.number}. {step.name}\n{step.description}" for step in plan.steps.values()])
+        view = ManagerView(tape)
+        plan_text = "\n".join([f"{step.number}. {step.name}\n{step.description}" for step in view.steps.values()])
         plan_result = last_step(tape, PlanReflection)
         assert plan_result
         failure_text = f"Failed step: {plan_result.failed_step_number}\n{plan_result.failure_overview}"
         self.guidance = PromptRegistry.replan.format(plan=plan_text, failure=failure_text)
         return super().make_prompt(agent, tape)
-
-
-class ChooseSubtaskArgs(ThinkingNode):
-    system_prompt: str = PromptRegistry.system_prompt
-    guidance: str = PromptRegistry.choose_facts
-    output_cls: Any = PreviousFacts
-
-    def tape_view(self, tape: Tape) -> str:
-        facts = last_step(tape, Facts)
-        subtask = last_step(tape, Subtask)
-        assert facts, "No facts found!"
-        assert subtask, "No subtask found!"
-        return PromptRegistry.current_facts.format(subtask=subtask, facts=facts)
 
 
 class ProduceAnswer(ThinkingNode):
@@ -182,7 +172,7 @@ class ProduceAnswer(ThinkingNode):
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         steps = [
             first_step(tape, GaiaQuestion),
-            last_step(tape, PlanThoughtV2),
+            last_step(tape, Plan),
             last_step(tape, Facts),
             last_step(tape, PlanReflection),
         ]
@@ -209,9 +199,17 @@ class GaiaPlanner(Agent):
                 name="Plan",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.plan_v2,
-                output_cls=PlanThoughtV2,
+                output_cls=Plan,
             ),
             CallManager(agent_name="GaiaManager"),
+            # either executed all the steps successfully or failed on some step
+            ControlFlowNode(
+                name="IsFinished",
+                next_node="ProduceAnswer",
+                predicate=lambda tape: ManagerView(tape).success,
+            ),
+            Replan(next_node="CallManager"),
+            ProduceAnswer(),  # produce the final answer
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
 
@@ -226,26 +224,17 @@ class GaiaManager(Agent):
 
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (
-            ChoosePlanStep(),  # adds subtask with the current plan step to the tape
-            ChooseSubtaskArgs(),  # choose facts relevant for the subtask
             CallExecutor(agent_name="GaiaExecutor"),
             # reflect on the subtask result
-            FactSurveyUpdate(),
+            UpdateFacts(),
             # go to the next step or finish the plan
             ControlFlowNode(
                 name="Loop",
-                next_node="ChoosePlanStep",
-                predicate=lambda tape: PlanView(tape).can_continue,
+                predicate=lambda tape: ManagerView(tape).can_continue,
+                next_node="CallExecutor",
             ),
             ReflectPlan(),
-            # either executed all the steps successfully or failed on some step
-            ControlFlowNode(
-                name="IsFinished",
-                next_node="ProduceAnswer",
-                predicate=lambda tape: PlanView(tape).success,
-            ),
-            Replan(),
-            ProduceAnswer(),  # produce the final answer
+            Return(),
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
 
@@ -268,6 +257,7 @@ class GaiaExecutor(Agent):
             ),
             # ----LOOP----
             MonoNode(
+                # TODO: 1. unify ThinkingNode and MonoNode. 2. add flag to use function calling for actions instead schema in prompt
                 name="Act",
                 system_prompt=PromptRegistry.system_prompt,
                 steps_prompt=PromptRegistry.allowed_steps_v2.format(
@@ -298,6 +288,6 @@ class GaiaExecutor(Agent):
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.reflect_subtask,
             ),
-            FixedStepsNode(name="Return", steps=[Respond(copy_output=True)]),
+            Return(),
         )
         return super().create(llm, nodes=nodes, max_iterations=2)

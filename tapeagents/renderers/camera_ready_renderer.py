@@ -8,7 +8,7 @@ from tapeagents.core import Action, Error, Observation, SetNextNode, Step, Thoug
 from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
-from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer
+from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer, to_pretty_str
 from tapeagents.view import Broadcast, Call, Respond
 
 
@@ -102,7 +102,7 @@ class CameraReadyRenderer(BasicRenderer):
 
         ##### Render text #####
         def pretty_yaml(d: dict):
-            return yaml.dump(d, sort_keys=False, indent=2) if d else ""
+            return to_pretty_str(d)
 
         def maybe_fold(content: str, len_max: int = 60):
             content = str(content)
