@@ -318,7 +318,7 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
     try:
-        result = subprocess.run(
+        subprocess.run(
             base_cmd,
             check=True,  # Raises CalledProcessError if return code != 0
             text=True,
@@ -333,12 +333,3 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
         raise RuntimeError(error_msg) from e
     except Exception as e:
         raise RuntimeError(f"Unexpected error during training: {str(e)}") from e
-
-
-def run_finetuning_loop_in_process(finetune_cfg):
-    p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
-    p.start()  # Start the subprocess
-    p.join()  # Wait for the process to complete
-    # Check if the subprocess exited with an error
-    if p.exitcode != 0:
-        raise RuntimeError(f"Finetuning subprocess failed with exit code {p.exitcode}")

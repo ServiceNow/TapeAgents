@@ -459,7 +459,6 @@ def main(cfg: DictConfig):
 
         start_finetune = time.time()
         launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path)
-        #run_finetuning_loop_in_process(finetune_cfg)
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
         wandb.log(
