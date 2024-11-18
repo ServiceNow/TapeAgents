@@ -389,7 +389,8 @@ class SubtaskResult(GaiaThought):
 
 class PlanReflection(GaiaThought):
     kind: Literal["plan_reflection"] = "plan_reflection"
-    plan_success: bool
+    task_solved: bool
+    plan_finished: bool
     failed_step_number: int = -1
 
 
@@ -462,8 +463,6 @@ GaiaAgentStep: TypeAlias = Annotated[
 
 ExecutorStep: TypeAlias = Annotated[
     Union[
-        ReadingResultThought,
-        ReasoningThought,
         SubtaskResult,
         SearchAction,
         ReadDocumentAction,

@@ -77,7 +77,7 @@ DO NOT include any other headings or sections in your response. DO NOT list next
 """
 
 ALLOWED_STEPS_V2 = """
-Produce answer with the following json schema:
+You are allowed to produce ONLY steps described in this json schema:
 {schema}
 Do not reproduce schema when producing the step, use it only as a reference!
 DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
@@ -89,20 +89,26 @@ Coder: A helpful and general-purpose AI programmer that has strong language skil
 FileSurfer: An agent that can handle reading of local files only, could be helpful to read documents attached to the task or downloaded from the web by WebSurfer. Proficient with PDF, DOCX, XLSX, CSV, PPTX and other common formats.
 """
 
-PLAN_V2 = """To address this request we have following tools:
+PLAN_V2 = """To address this request, the following tools are available:
+- Web search
+- Web surfing
+- Python code execution
+- Reading local files
+- Reasoning
 
-Web search, web surfing, python code execution, reading local files, reasoning.
+Using these tools and considering the known and unknown facts:
+- Reason step-by-step to produce a brief draft of the plan to solve the task.
+- Expand the draft into a detailed, bullet-point plan for addressing the original request.
 
-Based on the available tools and known and unknown facts, please reason step by step and produce short draft of the plan to solve this task.
-After initial reasoning and drafting, produce more detailed bullet-point plan for addressing the original request. For each step of the plan, provide the following:
-- detailed description of things to do
-- list of tools and expected outcomes like concrete artifacts at the end of the step: facts, files, documents, or data to be produced
-- prerequisites, a list of the results of the previous steps, or known facts needed to start working on this step.
+For each step in the plan, include:
+- A detailed description of the tasks to perform.
+- A list of required tools.
+- A list of expected outcomes, such as facts, files, documents, or data.
+- Prerequisites, including any results from previous steps or known facts necessary to proceed.
 """
 
 START_EXECUTION_V2 = """
-Let's start executing given task. Briefly describe required steps. Do not guess facts that you can find on the web or in the documents.
-After that think what to do next.
+What steps should I do to solve the subtask? Be specific about how each step should be done.
 """
 
 TODO_NEXT = """
@@ -110,16 +116,18 @@ Describe single immediate next step to be done.
 """
 
 REFLECT_SUBTASK = """
-Reflect on the results of executing the subtask solving the plan step:
-- If the subtask was successfully completed, compare the result with the expected outcome. If the expected outcome was not achieved, reflect on the reasons for the discrepancy.
-- If the subtask was failed, reflect on the reasons for the failure. Think out loud how should we change the plan to be able to complete the task anyway.
+Evaluate the execution of the subtask in the plan step:
+- If the subtask was successfully completed, compare the actual result to the expected outcome. If there is a difference, provide a detailed explanation.
+- If the subtask failed, analyze the reasons for the failure and suggest adjustments to the plan to enable successful task completion.
 """
 
 REFLECT_PLAN_STATUS = """
-Reflect on the current state of the plan execution:
-- If all the steps are completed, reflect on the overall success of the plan.
-- If some steps are failed, reflect on the reasons for the failure. Think out loud how should we change the plan to be able to complete the task anyway.
+Assess the current state of plan execution:
 
+Determine whether the produced results contain all the necessary information to answer the question.
+Evaluate the progress of plan completion.
+Assess whether the task has been successfully solved or remains incomplete.
+If any steps have failed, analyze the reasons for the failure and suggest adjustments to the plan to ensure the task can still be completed.
 """
 
 PLAN_STATUS = """
@@ -158,8 +166,8 @@ If you are unable to determine the final answer, output empty result.
 """
 
 REFLECT_OBSERVATION = """
-Reflect on the results of the recent observation and summarize the findings.
-If the was some error, reflect on the reasons for the error and its content.
+Evaluate the results of the recent observation and summarize the findings.
+If an error occurred, explain its causes and describe its nature in detail.
 """
 
 FACTS_SURVEY_UPDATE = """
@@ -167,16 +175,19 @@ As a reminder, we are working to solve the following task:
 
 {task}
 
-It's clear we aren't making as much progress as we would like, but we may have learned something new.
+We've completeed another step in the task, here is the results:
+
+{last_results}
+
 Please rewrite the following fact sheet, updating it to include anything new we have learned that may be helpful.
 Example edits can include (but are not limited to) adding new guesses, moving educated guesses to verified facts if appropriate, etc.
 Updates may be made to any section of the fact sheet, and more than one section of the fact sheet can be edited.
 Remember to remove educated guesses that have been proven false or replaced with verified facts.
-This is an especially good time to update educated guesses, so please at least add or update one educated guess or hunch, and explain your reasoning.
+Do not remove verified facts!
 
 Here is the old fact sheet:
 
-1. GIVEN OR VERIFIED FACTS
+1. VERIFIED FACTS
     {available}
 2. FACTS TO LOOK UP
     {lookup}

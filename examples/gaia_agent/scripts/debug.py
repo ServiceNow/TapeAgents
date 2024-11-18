@@ -37,7 +37,7 @@ def main(dataset_path, exp_dir, level):
     metadata.task = task
     metadata.level = level
     try:
-        for event in main_loop(planner, tape, env, max_loops=30):
+        for event in main_loop(planner, tape, env, max_loops=50):
             if event.agent_event and event.agent_event.step:
                 step = event.agent_event.step
                 tape = tape.append(step)
@@ -51,13 +51,21 @@ def main(dataset_path, exp_dir, level):
                     if isinstance(v, (list, dict)):
                         v = json.dumps(v, indent=2)
                     logger.info(f"{k}: {v}")
+                input("Press Enter to continue...")
+                print("-" * 140)
             elif event.observation:
                 step = event.observation
                 tape = tape.append(step)
                 save_json_tape(tape, tapes_dir, tape_name)
                 logger.info(f"OBSERVATION: {step.kind}")
-            # input("Press Enter to continue...")
-            print("-" * 140)
+                input("Press Enter to continue...")
+                print("-" * 140)
+            elif event.agent_event and event.agent_event.final_tape is not None:
+                logger.info("RUN END")
+            elif event.env_tape is not None:
+                logger.info("ENV END")
+            else:
+                logger.info(f"EVENT: {event.status}")
     finally:
         tape.metadata = metadata
         save_json_tape(tape, tapes_dir, tape_name)

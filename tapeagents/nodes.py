@@ -186,15 +186,14 @@ class ThinkingNode(Node):
         return messages
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
-        new_steps = []
         for event in llm_stream:
             if event.output:
                 assert event.output.content
                 step = AssistantStep(content=event.output.content)
-                if self.output_cls:
-                    step = self.formalize(step, agent.llm)
-                new_steps.append(step)
                 yield step
+                if self.output_cls:
+                    formal_step = self.formalize(step, agent.llm)
+                    yield formal_step
 
         if self.next_node:
             yield SetNextNode(next_node=self.next_node)

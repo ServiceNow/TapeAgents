@@ -86,11 +86,7 @@ class BasicRenderer:
         )
 
     def render_as_box(self, data: Any):
-        if isinstance(data, dict):
-            str_ = yaml.dump(data, indent=2)
-        else:
-            str_ = str(data)
-        return f"<div class='basic-renderer-box'>{str_}</div>"
+        return f"<div class='basic-renderer-box'>{to_pretty_str(data)}</div>"
 
     def render_metadata(self, tape: Tape):
         return f"<details> <summary>id: {tape.metadata.id}</summary> {self.render_as_box(tape.metadata.model_dump())} </details>"

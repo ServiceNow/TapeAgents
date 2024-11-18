@@ -3,6 +3,7 @@ from typing import Any
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Call, Prompt, Respond, Tape
+from tapeagents.dialog_tape import AssistantStep
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.nodes import ControlFlowNode, FixedStepsNode, MonoNode, ThinkingNode
 from tapeagents.utils import get_step_schemas_from_union_type
@@ -60,10 +61,11 @@ class CallExecutor(Node):
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         task = last_position(tape, Subtask)
         facts = last_position(tape, PreviousFacts)
-        # TODO: facts distract executor, it starts to execute another subtasks, fix
+
         assert task is not None, "No task found!"
         assert facts is not None, "No facts found!"
-        yield Call(agent_name=self.agent_name, args=[task, facts])
+        args = [task, facts] if tape[facts].facts else [task]  # type: ignore
+        yield Call(agent_name=self.agent_name, args=args)
 
 
 class ChoosePlanStep(Node):
@@ -113,21 +115,25 @@ class FactSurveyUpdate(ThinkingNode):
     guidance: str = PromptRegistry.facts_survey_update
     output_cls: Any = ListOfFactsThoughtV2
 
-    def tape_to_messages(self, tape: Tape) -> list[dict]:
-        messages = super().tape_to_messages(tape)
+    def tape_view(self, tape: Tape) -> str:
+        last_results_step = tape.steps[-4]
+        assert isinstance(last_results_step, SubtaskResult), f"wrong subtask result: {last_results_step.kind}"
+        last_results_thought = tape.steps[-2]
+        assert isinstance(last_results_thought, AssistantStep), f"wrong subtask reflection: {last_results_thought.kind}"
+        last_results = f"{last_results_step.llm_view()}\n{last_results_thought.llm_view()}"
         start_step = tape[0]
         assert isinstance(start_step, GaiaQuestion)
         facts_step = first_step(tape, ListOfFactsThoughtV2)
         assert facts_step, "No facts found!"
         assert isinstance(start_step, GaiaQuestion)
-        messages[-1]["content"] = PromptRegistry.facts_survey_update.format(
+        return PromptRegistry.facts_survey_update.format(
             task=start_step.content,
+            last_results=last_results,
             available="\n".join(facts_step.available_facts),
             lookup="\n".join(facts_step.facts_to_lookup),
             derive="\n".join(facts_step.facts_to_derive),
             guesses="\n".join(facts_step.educated_guesses),
         )
-        return messages
 
 
 class Replan(ThinkingNode):
