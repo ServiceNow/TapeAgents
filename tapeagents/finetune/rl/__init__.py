@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 from datasets import Dataset
-from transformers import BatchEncoding
+from transformers import BatchEncoding, PreTrainedModel
 
 from .utils import (
     StepConfig,
@@ -70,9 +70,17 @@ def make_rl_data_callback(args, current_dir, rl_config, model):
     return populate_rl_data_
 
 
-def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, float]]:
+def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torch.Tensor, dict[str, float]]:
     """
-    model: model that is updated
+    Perform a single RL step on the model using the given batch and config.
+
+    Args:
+        model (PreTrainedModel): The model to train
+        batch (dict): Batch of data containing rewards, advantages, masks, input_ids etc.
+        config (RLConfig): Configuration for the RL training
+
+    Returns:
+        tuple[torch.Tensor, dict[str, float]]: Loss tensor and metrics dictionary
 
     """
     rewards = batch.pop("rewards")[:, 1:]
