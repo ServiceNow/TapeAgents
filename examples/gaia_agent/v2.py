@@ -1,11 +1,10 @@
 import logging
-from typing import Any, Union
+from typing import Any
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Call, Prompt, Respond, Tape
-from tapeagents.dialog_tape import AssistantStep
 from tapeagents.llms import LLM, LLMStream
-from tapeagents.nodes import ConditionalNode, ControlFlowNode, MonoNode, ThinkingNode
+from tapeagents.nodes import ControlFlowNode, FixedStepsNode, MonoNode, ThinkingNode
 from tapeagents.utils import get_step_schemas_from_union_type
 from tapeagents.view import all_steps, first_position, first_step, last_position, last_step
 
@@ -13,43 +12,18 @@ from .prompts import PromptRegistry
 from .steps import (
     ActionReflection,
     ExecutorStep,
-    FinishSubtask,
     GaiaAnswer,
     GaiaQuestion,
     ListOfFactsThoughtV2,
     PlanReflection,
-    PlanStepReflection,
     PlanThoughtV2,
+    PreviousFacts,
     Subtask,
+    SubtaskResult,
 )
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class Formalize(MonoNode):
-    """
-    Node that translates plain text response in the last step of the tape into a structured thought of given type.
-    """
-
-    system_prompt: str = PromptRegistry.formalize_system_prompt
-    guidance: str = PromptRegistry.formalize_guidance
-    input: str = PromptRegistry.formalize_input
-    format: str = PromptRegistry.formalize_format
-
-    def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        assert isinstance(tape[-1], AssistantStep)
-        content: str = tape[-1].content  # type: ignore
-        messages = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": self.input.format(content=content)},
-            {"role": "user", "content": self.guidance},
-            {
-                "role": "user",
-                "content": self.format.format(schema=get_step_schemas_from_union_type(Union[self.agent_step_cls])),
-            },
-        ]
-        return Prompt(messages=messages)
 
 
 class PlanView:
@@ -61,7 +35,7 @@ class PlanView:
         self.remaining_steps = sorted(list(self.steps.keys() - self.completed_steps))
         self.next_step = self.steps[self.remaining_steps[0]] if len(self.remaining_steps) else None
         self.last_step = last_step(tape, Subtask)
-        self.last_step_result = last_step(tape, PlanStepReflection)
+        self.last_step_result = last_step(tape, SubtaskResult)
         self.can_continue = bool(self.last_step_result and self.last_step_result.success and len(self.remaining_steps))
         self.plan_reflection = last_step(tape, PlanReflection)
         self.success = bool(self.plan_reflection and self.plan_reflection.plan_success)
@@ -85,7 +59,7 @@ class CallExecutor(Node):
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         task = last_position(tape, Subtask)
-        facts = last_position(tape, ListOfFactsThoughtV2)
+        facts = last_position(tape, PreviousFacts)
         # TODO: facts distract executor, it starts to execute another subtasks, fix
         assert task is not None, "No task found!"
         assert facts is not None, "No facts found!"
@@ -116,6 +90,7 @@ class ReflectPlan(ThinkingNode):
 
     system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.reflect_plan_status
+    output_cls: Any = PlanReflection
 
     def tape_to_messages(self, tape: Tape) -> list[dict]:
         messages = super().tape_to_messages(tape)
@@ -136,6 +111,7 @@ class FactSurveyUpdate(ThinkingNode):
 
     system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.facts_survey_update
+    output_cls: Any = ListOfFactsThoughtV2
 
     def tape_to_messages(self, tape: Tape) -> list[dict]:
         messages = super().tape_to_messages(tape)
@@ -146,15 +122,12 @@ class FactSurveyUpdate(ThinkingNode):
         assert isinstance(start_step, GaiaQuestion)
         messages[-1]["content"] = PromptRegistry.facts_survey_update.format(
             task=start_step.content,
-            given=self.facts_list(facts_step.given_facts),
-            lookup=self.facts_list(facts_step.facts_to_lookup),
-            derive=self.facts_list(facts_step.facts_to_derive),
-            guesses=self.facts_list(facts_step.educated_guesses),
+            available="\n".join(facts_step.available_facts),
+            lookup="\n".join(facts_step.facts_to_lookup),
+            derive="\n".join(facts_step.facts_to_derive),
+            guesses="\n".join(facts_step.educated_guesses),
         )
         return messages
-
-    def facts_list(self, facts: list) -> str:
-        return "\n".join([f" - {fact.name}\n{fact.description}" for fact in facts])
 
 
 class Replan(ThinkingNode):
@@ -164,6 +137,8 @@ class Replan(ThinkingNode):
 
     system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.replan
+    output_cls: Any = PlanThoughtV2
+    next_node: str = "ChoosePlanStep"
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         plan = PlanView(tape)
@@ -175,18 +150,38 @@ class Replan(ThinkingNode):
         return super().make_prompt(agent, tape)
 
 
-class ProduceAnswer(Formalize):
+class ChooseSubtaskFacts(ThinkingNode):
+    system_prompt: str = PromptRegistry.system_prompt
+    guidance: str = PromptRegistry.choose_facts
+    output_cls: Any = PreviousFacts
+
+    def tape_view(self, tape: Tape) -> str:
+        facts = last_step(tape, ListOfFactsThoughtV2)
+        subtask = last_step(tape, Subtask)
+        assert facts, "No facts found!"
+        assert subtask, "No subtask found!"
+        return PromptRegistry.current_facts.format(subtask=subtask, facts=facts)
+
+
+class ProduceAnswer(ThinkingNode):
     """
     Produces the final answer out of the final plan reflection.
     """
 
-    agent_step_cls: Any = GaiaAnswer
+    system_prompt: str = PromptRegistry.system_prompt
+    guidance: str = PromptRegistry.final_answer
+    output_cls: Any = GaiaAnswer
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        start_step = tape[0]
-        assert isinstance(start_step, GaiaQuestion)
-        self.guidance = PromptRegistry.final_answer.format(task=start_step.content)
-        return super().make_prompt(agent, tape)
+        steps = [
+            first_step(tape, GaiaQuestion),
+            last_step(tape, PlanThoughtV2),
+            last_step(tape, ListOfFactsThoughtV2),
+            last_step(tape, PlanReflection),
+        ]
+        steps = [s for s in steps if s]  # remove None
+        self.guidance = PromptRegistry.final_answer.format(task=steps[0].content)
+        return super().make_prompt(agent, tape.model_copy(update=dict(steps=steps)))
 
 
 class GaiaPlanner(Agent):
@@ -201,10 +196,14 @@ class GaiaPlanner(Agent):
                 name="FactsSurvey",
                 system_prompt=PromptRegistry.facts_survey_v2_system,
                 guidance=PromptRegistry.facts_survey_v2,
+                output_cls=ListOfFactsThoughtV2,
             ),
-            Formalize(name="FormalizeSurvey", agent_step_cls=ListOfFactsThoughtV2),
-            ThinkingNode(name="Plan", system_prompt=PromptRegistry.system_prompt, guidance=PromptRegistry.plan_v2),
-            Formalize(name="FormalizePlan", agent_step_cls=PlanThoughtV2),
+            ThinkingNode(
+                name="Plan",
+                system_prompt=PromptRegistry.system_prompt,
+                guidance=PromptRegistry.plan_v2,
+                output_cls=PlanThoughtV2,
+            ),
             CallManager(agent_name="GaiaManager"),
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
@@ -221,16 +220,10 @@ class GaiaManager(Agent):
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (
             ChoosePlanStep(),  # adds subtask with the current plan step to the tape
+            ChooseSubtaskFacts(),  # choose facts relevant for the subtask
             CallExecutor(agent_name="GaiaExecutor"),
-            # receive the result of the subagent from the last step and reflect on it
-            ThinkingNode(
-                name="ReflectPlanStep",
-                system_prompt=PromptRegistry.system_prompt,
-                guidance=PromptRegistry.reflect_plan_step_result,
-            ),
-            Formalize(name="FormalizePlanStepReflection", agent_step_cls=PlanStepReflection),
+            # reflect on the subtask result
             FactSurveyUpdate(),
-            Formalize(name="FormalizeSurvey", agent_step_cls=ListOfFactsThoughtV2),
             # go to the next step or finish the plan
             ControlFlowNode(
                 name="Loop",
@@ -238,7 +231,6 @@ class GaiaManager(Agent):
                 predicate=lambda tape: PlanView(tape).can_continue,
             ),
             ReflectPlan(),
-            Formalize(name="FormalizePlanReflection", agent_step_cls=PlanReflection),
             # either executed all the steps successfully or failed on some step
             ControlFlowNode(
                 name="IsFinished",
@@ -246,7 +238,6 @@ class GaiaManager(Agent):
                 predicate=lambda tape: PlanView(tape).success,
             ),
             Replan(),
-            Formalize(name="FormalizePlan", agent_step_cls=PlanThoughtV2, next_node="ChoosePlanStep"),
             ProduceAnswer(),  # produce the final answer
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
@@ -268,6 +259,7 @@ class GaiaExecutor(Agent):
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.start_execution_v2,
             ),
+            # ----LOOP----
             MonoNode(
                 name="Act",
                 system_prompt=PromptRegistry.system_prompt,
@@ -276,22 +268,29 @@ class GaiaExecutor(Agent):
                 ),
                 agent_step_cls=ExecutorStep,
             ),
-            ConditionalNode(
+            ControlFlowNode(
                 name="ReturnIfFinished",
-                predicate=lambda tape: bool(last_step(tape, FinishSubtask)),
-                steps=[Respond(copy_output=True)],
+                predicate=lambda tape: bool(isinstance(tape[-1], SubtaskResult)),
+                next_node="ReflectSubtask",
             ),
             ThinkingNode(
                 name="ReflectObservation",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.reflect_observation,
+                output_cls=ActionReflection,
             ),
-            Formalize(name="FormalizeReflectObservation", agent_step_cls=ActionReflection),
             ThinkingNode(
-                name="Todo",
+                name="ProposeNextStep",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.todo_next,
                 next_node="Act",
             ),
+            # ----END LOOP----
+            ThinkingNode(
+                name="ReflectSubtask",
+                system_prompt=PromptRegistry.system_prompt,
+                guidance=PromptRegistry.reflect_subtask,
+            ),
+            FixedStepsNode(name="Return", steps=[Respond(copy_output=True)]),
         )
         return super().create(llm, nodes=nodes, max_iterations=2)

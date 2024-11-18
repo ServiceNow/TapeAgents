@@ -100,35 +100,16 @@ After initial reasoning and drafting, produce more detailed bullet-point plan fo
 - prerequisites, a list of the results of the previous steps, or known facts needed to start working on this step.
 """
 
-FORMALIZE_SYSTEM_PROMPT = """
-You are an expert AI Agent trained to produce complex json structure from the plain text input.
-"""
-
-FORMALIZE_INPUT = """
-Plain text input to be converted into json structure:
-{content}
-"""
-
-FORMALIZE_GUIDANCE = """
-Please produce the json structure from the plain text input in the previous message.
-"""
-
-FORMALIZE_FORMAT = """
-Produce step using the following json schema:
-{schema}
-Do not reproduce schema fields when producing the step, use it only as a reference!
-DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
-"""
-
 START_EXECUTION_V2 = """
-Let's start executing given task. Briefly describe required steps. After that think what to do next.
+Let's start executing given task. Briefly describe required steps. Do not guess facts that you can find on the web or in the documents.
+After that think what to do next.
 """
 
 TODO_NEXT = """
 Describe single immediate next step to be done.
 """
 
-REFLECT_PLAN_STEP_RESULT = """
+REFLECT_SUBTASK = """
 Reflect on the results of executing the subtask solving the plan step:
 - If the subtask was successfully completed, compare the result with the expected outcome. If the expected outcome was not achieved, reflect on the reasons for the discrepancy.
 - If the subtask was failed, reflect on the reasons for the failure. Think out loud how should we change the plan to be able to complete the task anyway.
@@ -177,10 +158,7 @@ If you are unable to determine the final answer, output empty result.
 """
 
 REFLECT_OBSERVATION = """
-Reflect on the results of the recent observation.
-Check if the expected outcome was achieved.
-Check if the observation was sufficient or not.
-Check if the observation was inconclusive.
+Reflect on the results of the recent observation and summarize the findings.
 If the was some error, reflect on the reasons for the error and its content.
 """
 
@@ -189,12 +167,17 @@ As a reminder, we are working to solve the following task:
 
 {task}
 
-It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned that may be helpful. Example edits can include (but are not limited to) adding new guesses, moving educated guesses to verified facts if appropriate, etc. Updates may be made to any section of the fact sheet, and more than one section of the fact sheet can be edited. This is an especially good time to update educated guesses, so please at least add or update one educated guess or hunch, and explain your reasoning.
+It's clear we aren't making as much progress as we would like, but we may have learned something new.
+Please rewrite the following fact sheet, updating it to include anything new we have learned that may be helpful.
+Example edits can include (but are not limited to) adding new guesses, moving educated guesses to verified facts if appropriate, etc.
+Updates may be made to any section of the fact sheet, and more than one section of the fact sheet can be edited.
+Remember to remove educated guesses that have been proven false or replaced with verified facts.
+This is an especially good time to update educated guesses, so please at least add or update one educated guess or hunch, and explain your reasoning.
 
 Here is the old fact sheet:
 
 1. GIVEN OR VERIFIED FACTS
-    {given}
+    {available}
 2. FACTS TO LOOK UP
     {lookup}
 3. FACTS TO DERIVE
@@ -203,6 +186,16 @@ Here is the old fact sheet:
     {guesses}
 
 Respond with updated facts sheet.
+"""
+
+CHOOSE_FACTS = "Choose facts relevant for the subtask. If there is no directly relevant facts, return empty list."
+
+CURRENT_FACTS = """
+Subtask: {subtask.name}: {subtask.description}
+
+Facts:
+
+{facts.available_facts}
 """
 
 
@@ -225,16 +218,14 @@ class PromptRegistry:
     facts_survey_v2 = FACTS_SURVEY_V2_GUIDANCE
     allowed_steps_v2 = ALLOWED_STEPS_V2
     plan_v2 = PLAN_V2
-    formalize_system_prompt = FORMALIZE_SYSTEM_PROMPT
-    formalize_guidance = FORMALIZE_GUIDANCE
-    formalize_input = FORMALIZE_INPUT
-    formalize_format = FORMALIZE_FORMAT
     start_execution_v2 = START_EXECUTION_V2
     todo_next = TODO_NEXT
-    reflect_plan_step_result = REFLECT_PLAN_STEP_RESULT
+    reflect_subtask = REFLECT_SUBTASK
     reflect_plan_status = REFLECT_PLAN_STATUS
     plan_status = PLAN_STATUS
     replan = REPLAN
     final_answer = FINAL_ANSWER
     reflect_observation = REFLECT_OBSERVATION
     facts_survey_update = FACTS_SURVEY_UPDATE
+    choose_facts = CHOOSE_FACTS
+    current_facts = CURRENT_FACTS

@@ -13,7 +13,6 @@ from .prompts import PromptRegistry
 from .steps import (
     ActionExecutionFailure,
     CalculationResultObservation,
-    FinishSubtask,
     GaiaAgentStep,
     GaiaQuestion,
     ListOfFactsThought,
@@ -84,9 +83,7 @@ class GaiaNode(MonoNode):
         """
         Make tape shorter to fit llm context size limits
         """
-        finish_subtask_positions = [i for i, step in enumerate(tape) if isinstance(step, FinishSubtask)]
-        # trim either after last finished subtask or at 2/3 of the tape
-        summarization_border = (finish_subtask_positions[-1] + 1) if finish_subtask_positions else int(len(tape) * 0.66)
+        summarization_border = int(len(tape) * 0.66)  # trim at 2/3 of the tape
         short_tape = tape.model_copy(update=dict(steps=[]))
         pre_tape: GaiaTape = tape[:summarization_border]  # type: ignore
         for step in pre_tape.steps:

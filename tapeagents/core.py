@@ -141,6 +141,8 @@ class ConditionCheck(Thought):
     kind: Literal["condition_check"] = "condition_check"
 
 
+CONTROL_FLOW_STEPS = (SetNextNode, ConditionCheck, Respond)
+
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
 

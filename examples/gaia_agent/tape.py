@@ -9,12 +9,10 @@ from tapeagents.utils import json_value_from_str
 from .steps import (
     CalculationResultObservation,
     CodeResultObservation,
-    FinishSubtask,
     GaiaStep,
     ListOfFactsThought,
     NewFactThought,
     PlanThought,
-    StartSubtask,
 )
 
 
@@ -28,29 +26,6 @@ class GaiaMetadata(TapeMetadata):
 class GaiaTape(Tape[DialogContext, GaiaStep]):
     metadata: GaiaMetadata = GaiaMetadata()
     context: DialogContext = DialogContext(tools=[])
-
-    def next_subtask(self) -> str:
-        plan = self.plan()
-        started_tasks = []
-        finished_tasks = []
-        for step in self.steps:
-            if isinstance(step, FinishSubtask):
-                finished_tasks.append(step.plan_step)
-            elif isinstance(step, StartSubtask):
-                started_tasks.append(step.plan_step)
-        next_tasks = [task for task in plan if task not in started_tasks]
-        return next_tasks[0] if next_tasks else ""
-
-    def current_subtask(self) -> str:
-        started_tasks = []
-        finished_tasks = []
-        for step in self.steps:
-            if isinstance(step, FinishSubtask):
-                finished_tasks.append(step.plan_step)
-            elif isinstance(step, StartSubtask):
-                started_tasks.append(step.plan_step)
-        not_finished = [task for task in started_tasks if task not in finished_tasks]
-        return not_finished[0] if not_finished else ""
 
     def has_fact_schemas(self) -> bool:
         for step in self.steps:

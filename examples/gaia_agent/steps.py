@@ -137,19 +137,19 @@ class ListOfFactsThoughtV2(GaiaThought):
     """
 
     kind: Literal["list_of_facts_thought_v2"] = "list_of_facts_thought_v2"
-    given_facts: list[FactSchemaWithValue] = Field(
-        description="list of facts that are already given in the question",
+    available_facts: list[str] = Field(
+        description="list of facts that are already given in the question or found during previous steps",
         default=[],
     )
-    facts_to_lookup: list[FactSchema] = Field(
+    facts_to_lookup: list[str] = Field(
         description="list of facts that need to be looked up on the web or in documents",
         default=[],
     )
-    facts_to_derive: list[FactSchema] = Field(
+    facts_to_derive: list[str] = Field(
         description="list of facts that need to be derived from the given facts using reasoning or calculations",
         default=[],
     )
-    educated_guesses: list[FactSchema] = Field(
+    educated_guesses: list[str] = Field(
         description="list of facts guessed from the given task and documents",
         default=[],
     )
@@ -336,6 +336,11 @@ class PreviousFactsObservation(GaiaObservation):
     facts: dict[str, Any]
 
 
+class PreviousFacts(GaiaThought):
+    kind: Literal["previous_facts_thought"] = "previous_facts_thought"
+    facts: list[str]
+
+
 class GaiaAnswer(GaiaAction, StopStep):
     """
     Action that indicates that the agent has finished the plan and contains answer or the decsription of failure.
@@ -367,43 +372,30 @@ class Subtask(GaiaThought):
     description: str
 
 
-class FinishSubtask(GaiaThought):
+class SubtaskResult(GaiaThought):
     """
     Thought that indicates that you've finished working on the subtask from the plan. You cannot produce that step right after the start subtask, there MUST be some steps in between
     """
 
     kind: Literal["finish_subtask_thought"] = "finish_subtask_thought"
+    number: int = Field(description="subtask number")
     success: bool = Field(description="True if the subtask was successful, False otherwise")
     results: list[str] = Field(description="achieved results")
-    execution_summary: str = Field(description="overview of the subtask execution process and achieved results")
+    execution_summary: str = Field(description="overview of the subtask execution process")
     failure_overview: str = Field(
         description="detailed description of reasons of the subtask failure, if applicable", default=""
     )
 
 
-class PlanStepReflection(GaiaThought):
-    kind: Literal["plan_step_reflection"] = "plan_step_reflection"
-    plan_step_number: int
-    success: bool
-    achieved_result: str = ""
-    failure_overview: str = ""
-
-
 class PlanReflection(GaiaThought):
     kind: Literal["plan_reflection"] = "plan_reflection"
     plan_success: bool
-    plan_result: str = ""
     failed_step_number: int = -1
-    failed_step_overview: str = ""
 
 
 class ActionReflection(GaiaThought):
-    kind: Literal["step_reflection"] = "step_reflection"
+    kind: Literal["action_reflection"] = "action_reflection"
     step_success: bool
-    execution_summary: str = Field(description="brief overview of the result of action execution")
-    failure_overview: str = Field(
-        description="detailed description of reasons of the action failure, if applicable, otherwise empty", default=""
-    )
 
 
 GaiaStep = Union[
@@ -415,7 +407,7 @@ GaiaStep = Union[
     NewFactThought,
     ReasoningThought,
     StartSubtask,
-    FinishSubtask,
+    SubtaskResult,
     SearchAction,
     ReadDocumentAction,
     NextPageAction,
@@ -436,12 +428,12 @@ GaiaStep = Union[
     ListOfFactsThoughtV2,
     AssistantStep,
     Subtask,
-    PlanStepReflection,
     PlanReflection,
     ActionReflection,
     Call,
     Respond,
     ConditionCheck,
+    PreviousFacts,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[
@@ -455,7 +447,7 @@ GaiaAgentStep: TypeAlias = Annotated[
         NewFactThought,
         ReasoningThought,
         StartSubtask,
-        FinishSubtask,
+        SubtaskResult,
         # actions
         SearchAction,
         ReadDocumentAction,
@@ -472,7 +464,7 @@ ExecutorStep: TypeAlias = Annotated[
     Union[
         ReadingResultThought,
         ReasoningThought,
-        FinishSubtask,
+        SubtaskResult,
         SearchAction,
         ReadDocumentAction,
         NextPageAction,
@@ -498,7 +490,7 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
                 UseCalculatorAction,
                 GaiaAnswer,
                 StartSubtask,
-                FinishSubtask,
+                SubtaskResult,
             ]
         else:
             steps = Union[

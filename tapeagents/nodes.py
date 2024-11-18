@@ -1,30 +1,30 @@
 import json
 import logging
-from typing import Any, Callable, Generator, Type
+from typing import Any, Callable, Generator, Type, Union, get_origin
 
 from pydantic import Field, TypeAdapter, ValidationError
 
 from tapeagents.dialog_tape import AssistantStep, UserStep
+from tapeagents.prompting import FORMALIZE_FORMAT, FORMALIZE_GUIDANCE, FORMALIZE_INPUT, FORMALIZE_SYSTEM_PROMPT
 from tapeagents.view import TapeViewStack
 
 from .agent import Node
 from .core import (
+    CONTROL_FLOW_STEPS,
     AgentStep,
-    Call,
     ConditionCheck,
     LLMOutput,
     LLMOutputParsingFailureAction,
     Observation,
     PartialStep,
     Prompt,
-    Respond,
     SetNextNode,
     Step,
     StopStep,
     Tape,
 )
-from .llms import LLMStream
-from .utils import FatalError, sanitize_json_completion
+from .llms import LLM, LLMStream
+from .utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -54,8 +54,7 @@ class MonoNode(Node):
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
-        steps_without_control_flow = [step for step in tape.steps if not isinstance(step, SetNextNode)]
-        return tape.model_copy(update=dict(steps=steps_without_control_flow))
+        return tape
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         """
@@ -65,7 +64,7 @@ class MonoNode(Node):
         i = index
         first_prompt_id = tape.steps[i].metadata.prompt_id
         while i < len(tape) and tape.steps[i].metadata.prompt_id == first_prompt_id:
-            if not isinstance(tape.steps[i], SetNextNode):
+            if not isinstance(tape.steps[i], CONTROL_FLOW_STEPS):
                 steps.append(tape.steps[i])
             i += 1
 
@@ -80,7 +79,7 @@ class MonoNode(Node):
         ]
         view = TapeViewStack.compute(tape).top
         for step in view.steps:
-            if isinstance(step, (SetNextNode, ConditionCheck, Respond)):  # skip control flow steps
+            if isinstance(step, CONTROL_FLOW_STEPS):
                 continue
             elif isinstance(step, (AssistantStep, UserStep)):
                 message = {"role": step.kind, "content": step.content}
@@ -105,7 +104,7 @@ class MonoNode(Node):
                 cnt += 1
                 assert event.output.content
                 try:
-                    for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
+                    for step in parse_completion(event.output.content, llm_stream.prompt.id, self.agent_step_cls):
                         step = self.postprocess_step(tape, new_steps, step)
                         new_steps.append(step)
                         yield step
@@ -121,37 +120,36 @@ class MonoNode(Node):
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         return step
 
-    def parse_completion(self, llm_output: str, prompt_id: str) -> Generator[Step, None, None]:
-        try:
-            step_dicts = json.loads(sanitize_json_completion(llm_output))
-            if isinstance(step_dicts, dict):
-                step_dicts = [step_dicts]
-        except Exception as e:
-            logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
-            yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
-            return
-        try:
-            steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
-        except ValidationError as e:
-            err_text = ""
-            for err in e.errors():
-                loc = ".".join([str(loc) for loc in err["loc"]])
-                err_text += f"{loc}: {err['msg']}\n"
-            logger.exception(f"Failed to validate LLM output: {step_dicts}\n\nErrors:\n{err_text}")
-            yield LLMOutputParsingFailureAction(
-                error=f"Failed to validate LLM output: {err_text}", llm_output=llm_output
-            )
-            return
-        except Exception as e:
-            logger.exception(f"Failed to parse LLM output dict: {step_dicts}\n\nError: {e}")
-            yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output dict: {e}", llm_output=llm_output)
-            return
-        for step in steps:
-            step.metadata.prompt_id = prompt_id
-            yield step
-
     def trim_tape(self, tape: Tape) -> Tape:
         return tape
+
+
+def parse_completion(llm_output: str, prompt_id: str, agent_step_cls: Any) -> Generator[Step, None, None]:
+    try:
+        step_dicts = json.loads(sanitize_json_completion(llm_output))
+        if isinstance(step_dicts, dict):
+            step_dicts = [step_dicts]
+    except Exception as e:
+        logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
+        yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
+        return
+    try:
+        steps = [TypeAdapter(agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
+    except ValidationError as e:
+        err_text = ""
+        for err in e.errors():
+            loc = ".".join([str(loc) for loc in err["loc"]])
+            err_text += f"{loc}: {err['msg']}\n"
+        logger.exception(f"Failed to validate LLM output: {step_dicts}\n\nErrors:\n{err_text}")
+        yield LLMOutputParsingFailureAction(error=f"Failed to validate LLM output: {err_text}", llm_output=llm_output)
+        return
+    except Exception as e:
+        logger.exception(f"Failed to parse LLM output dict: {step_dicts}\n\nError: {e}")
+        yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output dict: {e}", llm_output=llm_output)
+        return
+    for step in steps:
+        step.metadata.prompt_id = prompt_id
+        yield step
 
 
 class ThinkingNode(Node):
@@ -162,6 +160,7 @@ class ThinkingNode(Node):
     system_prompt: str
     guidance: str
     next_node: str = ""
+    output_cls: Any = None
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         messages = self.tape_to_messages(tape)
@@ -175,7 +174,7 @@ class ThinkingNode(Node):
         else:
             view = TapeViewStack.compute(tape).top
             for step in view.steps:
-                if isinstance(step, (SetNextNode, ConditionCheck, Respond)):  # skip control flow steps
+                if isinstance(step, CONTROL_FLOW_STEPS):
                     continue
                 elif isinstance(step, (AssistantStep, UserStep)):
                     message = {"role": step.kind, "content": step.content}
@@ -192,6 +191,8 @@ class ThinkingNode(Node):
             if event.output:
                 assert event.output.content
                 step = AssistantStep(content=event.output.content)
+                if self.output_cls:
+                    step = self.formalize(step, agent.llm)
                 new_steps.append(step)
                 yield step
 
@@ -204,6 +205,27 @@ class ThinkingNode(Node):
 
     def tape_view(self, tape: Tape) -> str:
         return ""
+
+    def formalize(self, step: AssistantStep, llm: LLM) -> Step:
+        messages = [
+            {"role": "system", "content": FORMALIZE_SYSTEM_PROMPT},
+            {"role": "user", "content": FORMALIZE_INPUT.format(content=step.content)},
+            {"role": "user", "content": FORMALIZE_GUIDANCE},
+            {
+                "role": "user",
+                "content": FORMALIZE_FORMAT.format(
+                    schema=get_step_schemas_from_union_type(
+                        Union[self.output_cls] if not get_origin(self.output_cls) == Union else self.output_cls
+                    ),
+                ),
+            },
+        ]
+        llm_stream = llm.generate(Prompt(messages=messages))
+        for event in llm_stream:
+            if event.output:
+                assert event.output.content
+                return next(parse_completion(event.output.content, llm_stream.prompt.id, self.output_cls))
+        raise FatalError("No completions!")
 
 
 class ControlFlowNode(Node):

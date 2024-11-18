@@ -3,6 +3,26 @@ from tapeagents.core import AgentStep, Call, Observation, Pass, Prompt, Respond,
 from tapeagents.dialog_tape import SystemStep, ToolResult
 from tapeagents.view import TapeView
 
+FORMALIZE_SYSTEM_PROMPT = """
+You are an expert AI Agent trained to produce complex json structure from the plain text input.
+"""
+
+FORMALIZE_INPUT = """
+Plain text input to be converted into json structure:
+{content}
+"""
+
+FORMALIZE_GUIDANCE = """
+Please produce the json structure from the plain text input in the previous message.
+"""
+
+FORMALIZE_FORMAT = """
+Produce step using the following json schema:
+{schema}
+Do not reproduce schema fields when producing the step, use it only as a reference!
+DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
+"""
+
 
 def step_to_message(step: Step, agent: Agent | None = None) -> dict[str, str]:
     if agent is None and isinstance(step, (Call, Respond)):
