@@ -7,7 +7,6 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
-from itertools import zip_longest
 from typing import Any, Callable, Generator
 
 import litellm
@@ -497,9 +496,7 @@ class ReplayLLM(LLM):
                 known_prompts = list(self.outputs.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
                 if score >= 0.7:
-                    logger.warning(f"Closest prompt score {score:.3f}")
-                    for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
-                        logger.warning(f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n")
+                    logger.warning(f"Closest prompt score {score:.3f}:\n{diff_strings(closest, prompt_key)}")
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 
@@ -545,7 +542,7 @@ class MockLLM(LLM):
         return 42
 
     def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
-        return TrainingText(text="mock trace", n_predicted=10, seq_num_tokens=3)
+        return TrainingText(text="mock trace", n_predicted=10)
 
 
 def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
@@ -556,8 +553,8 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
         prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=False
     )
     output_text = text[len(prompt_text) :]
-    tokenized_text = tokenizer.apply_chat_template(
-        prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True
-    )
 
-    return TrainingText(text=text, n_predicted=len(output_text), seq_num_tokens=len(tokenized_text))
+    if tokenizer.bos_token and text.startswith(tokenizer.bos_token):
+        text = text[len(tokenizer.bos_token) :]
+
+    return TrainingText(text=text, n_predicted=len(output_text))
