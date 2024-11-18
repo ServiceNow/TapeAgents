@@ -36,7 +36,6 @@ from examples.rl_gsm8k.utils import (
     load_state,
     save_state,
     setup_logging,
-    run_finetuning_loop_in_process
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
