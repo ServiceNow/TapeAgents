@@ -4,7 +4,7 @@ import sys
 
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
-from examples.gsm8k_tuning.math_agent import MathTape
+from examples.rl_gsm8k.cot_math_agent import MathTape
 
 # comment this code out if loading the prompt and completions takes too long for you
 tape_dir = Path(sys.argv[1])

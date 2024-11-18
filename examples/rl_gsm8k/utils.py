@@ -1,5 +1,6 @@
 import json
 import logging
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -12,6 +13,8 @@ import psutil
 import requests
 import torch
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+from tapeagents.finetune.finetune import run_finetuning_loop
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +156,7 @@ class VLLMServiceManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self._cleanup()
-    
+
     def get_stats(self):
         return self.stats
 
@@ -272,7 +275,7 @@ def calculate_stats(stats):
     }
 
 
-def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str):
+def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str, use_accelerate: bool = False) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
 
@@ -330,3 +333,12 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str)
         raise RuntimeError(error_msg) from e
     except Exception as e:
         raise RuntimeError(f"Unexpected error during training: {str(e)}") from e
+
+
+def run_finetuning_loop_in_process(finetune_cfg):
+    p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
+    p.start()  # Start the subprocess
+    p.join()  # Wait for the process to complete
+    # Check if the subprocess exited with an error
+    if p.exitcode != 0:
+        raise RuntimeError(f"Finetuning subprocess failed with exit code {p.exitcode}")

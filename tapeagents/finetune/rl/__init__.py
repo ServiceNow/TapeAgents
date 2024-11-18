@@ -44,18 +44,19 @@ class RLConfig(StepConfig):
     )
     epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
     implicit_kl_coef: Optional[float] = field(
-        default=0.1,
+        default=0.,
         # https://arxiv.org/abs/2402.14740
         metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
     )
     kl_coef: Optional[float] = field(
         default=0.1,
-        metadata={"help": "Initial KL penalty coefficient (used for adaptive and linear control)"},
+        metadata={"help": "KL penalty coefficient with reference policy"},
     )
-    ratio_threshold: Optional[float] = field(
-        default=10.1,
-        metadata={"help": "Skip mini-batches with high PPO ratios that can cause loss spike"},
+    relu_weights: Optional[bool] = field(
+        default=False,
+        metadata={"help": "ReLU the weights before updating the model"},
     )
+
 
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
@@ -98,6 +99,7 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
     log_ratio_new_old = new_log_probs - old_logprobs
     ratio_new_old = torch.exp(log_ratio_new_old)
     weights = advantages if config.use_advantages else rewards
+    weights = torch.clamp(weights, min=0) if config.relu_weights else weights
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
     approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
@@ -118,15 +120,10 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = -masked_mean(new_log_probs * weights, masks_)
+            loss = -masked_mean(new_log_probs * weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
-
-    if (
-        masked_mean(ratio_new_old, masks_) > config.ratio_threshold
-    ):  # https://github.com/huggingface/trl/blob/main/trl/trainer/ppo_trainer.py#L1236
-        loss = loss * 0
 
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
@@ -137,6 +134,8 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
         "min_reward": rewards[masks_].min().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
+        "mean_new_logprobs_positive_weights": masked_mean(new_log_probs[weights > 0], masks_[weights > 0]).item() if (weights > 0).any() else 0,
+        "mean_new_logprobs_negative_weights": masked_mean(new_log_probs[weights < 0], masks_[weights < 0]).item() if (weights < 0).any() else 0,
         "mean_ref_logprobs": masked_mean(ref_logprobs, masks_).item(),
         "advantage": masked_mean(advantages, masks_).item(),
         "max_advantage": advantages[masks_].max().item(),
@@ -237,6 +236,6 @@ def prepare_rl_fields(
 
     encoding["rewards"] = [reward] * len(encoding["labels"])
     encoding["advantages"] = [0.0] * len(encoding["labels"])  # place holder
-    encoding["old_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
-    encoding["ref_logprobs"] = [0.0] * (len(encoding["labels"]) - len(ref_logprobs)) + ref_logprobs
+    encoding["old_logprobs"] = [0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
+    encoding["ref_logprobs"] = [0] * (len(encoding["labels"]) - len(ref_logprobs)) + ref_logprobs
     return encoding

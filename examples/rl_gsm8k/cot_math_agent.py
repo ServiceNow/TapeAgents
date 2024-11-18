@@ -1,0 +1,110 @@
+import logging
+from typing import Annotated, Generator, Literal, TypeAlias, Union
+import json
+
+from pydantic import Field
+from tapeagents.environment import Environment
+
+from tapeagents.agent import Agent
+from tapeagents.core import (
+    Action,
+    LLMOutputParsingFailureAction,
+    Observation,
+    Step,
+    Tape,
+    Thought,
+)
+from tapeagents.llms import LLM
+from tapeagents.nodes import MonoNode
+from examples.gsm8k_tuning.math_agent import extract_result_value
+
+logger = logging.getLogger(__name__)
+
+#### Prompts ####
+
+SYSTEM_PROMPT = ""
+
+START_TASK_GUIDANCE = ""
+STEP_PROMPT = ""
+COT_GUIDANCE = "Think step by step. When you know the answer to the question, provide it in the following format: The answer is: <number>"
+
+class Task(Observation):
+    kind: Literal["task"] = "task"
+    task: str
+
+    def llm_view(self, indent: int | None = 2) -> str:
+        return f"{self.task} {COT_GUIDANCE}"
+
+class ReasoningThoughtwithValue(Thought):
+    """
+    Thoughts produced by the agent during the reasoning process.
+    """
+
+    kind: Literal["reasoning_thought_with_value"] = "reasoning_thought_with_value"
+    reasoning: str = Field(description="chain of thoughts")
+    value: float = Field(description="value of the reasoning")
+
+
+MathAgentStep: TypeAlias = Annotated[
+    ReasoningThoughtwithValue,
+    Field(discriminator="kind"),
+]
+
+MathTape = Tape[
+    None,
+    Union[
+        Task,
+        ReasoningThoughtwithValue,
+        LLMOutputParsingFailureAction,
+    ],
+]
+
+
+
+class ReasoningNode(MonoNode):
+    def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
+        if "The answer is" not in completion:
+            yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}")
+            return
+        try:
+            value = completion.split("The answer is")[-1]
+            value = value.replace(",", "")
+            value = value.replace(" ", "")
+            value = value.replace(":", "")
+            value = value.replace("$", "")
+            value = value.replace("%", "")
+            value = value.replace("€", "")
+            value = value.strip()
+            step = ReasoningThoughtwithValue(reasoning=completion, value=float(value))
+        except Exception as e:
+            logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
+            yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output: {completion}\n\nError: {e}")
+            return
+        yield step
+
+
+#### Agent and Environment ####
+class COTMathAgent(Agent):
+    @classmethod
+    def create(cls, llm: LLM):
+        return super().create(
+            llm,
+            nodes=[
+                ReasoningNode(
+                    name="cot",
+                    agent_step_cls=MathAgentStep,
+                ),
+            ],
+            max_iterations=1,
+        )
+
+class MathEnvironment(Environment):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def react(self, tape: MathTape) -> MathTape:
+        actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
+        for action in actions:
+            if isinstance(action, LLMOutputParsingFailureAction):
+                continue
+        return tape
