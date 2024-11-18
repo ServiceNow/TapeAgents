@@ -18,6 +18,7 @@ from .core import (
     Observation,
     PartialStep,
     Prompt,
+    Respond,
     SetNextNode,
     Step,
     StopStep,
@@ -158,7 +159,7 @@ class ThinkingNode(Node):
     """
 
     system_prompt: str
-    guidance: str
+    guidance: str = ""
     next_node: str = ""
     output_cls: Any = None
 
@@ -224,7 +225,9 @@ class ThinkingNode(Node):
         for event in llm_stream:
             if event.output:
                 assert event.output.content
-                return next(parse_completion(event.output.content, llm_stream.prompt.id, self.output_cls))
+                formal_step = next(parse_completion(event.output.content, llm_stream.prompt.id, self.output_cls))
+                formal_step.metadata.prompt_id = llm_stream.prompt.id
+                return formal_step
         raise FatalError("No completions!")
 
 
@@ -289,3 +292,7 @@ class ConditionalNode(Node):
                 yield step
         else:
             yield ConditionCheck()  # we should put a step into tape to know last executed node
+
+
+class Return(FixedStepsNode):
+    steps: list[Step] = [Respond(copy_output=True)]

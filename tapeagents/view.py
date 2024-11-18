@@ -5,7 +5,7 @@ from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Call, Observation, Respond, SetNextNode, StepType, Tape, Thought
+from tapeagents.core import AgentStep, Call, Observation, ReferenceStep, Respond, SetNextNode, StepType, Tape, Thought
 
 
 class Broadcast(Thought):
@@ -92,8 +92,10 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         top = self.stack[-1]
         match step:
             case Call():
-                args = [self.steps[i] for i in step.args] if step.args else []
-                self.put_new_view_on_stack(step, arg_steps=args)
+                self.put_new_view_on_stack(step)
+            case ReferenceStep():
+                referenced_step = self.steps[step.step_number]
+                top.add_step(referenced_step)
             case Broadcast():
                 self.broadcast(step)
             case Respond():
@@ -138,7 +140,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
             receiver = f"{step.metadata.agent}/{to}"
             self.messages_by_agent[receiver].append(step)
 
-    def put_new_view_on_stack(self, step, arg_steps: list):
+    def put_new_view_on_stack(self, step):
         top = self.stack[-1]
         top.add_step(step)
         self.stack.append(
@@ -148,8 +150,6 @@ class TapeViewStack(BaseModel, Generic[StepType]):
             )
         )
         self.stack[-1].add_step(step)
-        for arg_step in arg_steps:  # put argument steps to the new view
-            self.stack[-1].add_step(arg_step)
         receiver = f"{step.metadata.agent}/{step.agent_name}"
         self.messages_by_agent[step.metadata.agent].append(step)
         self.messages_by_agent[receiver].append(step)

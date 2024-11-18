@@ -128,7 +128,6 @@ class Call(Thought):
     kind: Literal["call"] = "call"
     content: str = ""
     agent_name: str
-    args: list[int] | None = None  # references to previous steps in the tape
 
 
 class Respond(Thought):
@@ -141,7 +140,12 @@ class ConditionCheck(Thought):
     kind: Literal["condition_check"] = "condition_check"
 
 
-CONTROL_FLOW_STEPS = (SetNextNode, ConditionCheck, Respond)
+class ReferenceStep(Thought):
+    kind: Literal["reference_step"] = "reference_step"
+    step_number: int
+
+
+CONTROL_FLOW_STEPS = (SetNextNode, ConditionCheck, Respond, ReferenceStep)
 
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
