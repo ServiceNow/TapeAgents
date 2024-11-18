@@ -32,7 +32,6 @@ def main(dataset_path, exp_dir, level):
     env = GaiaEnvironment(vision_lm=llm, safe_calculator=False)
     planner = GaiaPlanner.create(llm)
     tape = GaiaTape(steps=[task_to_question_step(task, env)])
-    logger.info(tape[0].content)
     metadata = tape.metadata
     metadata.task = task
     metadata.level = level
