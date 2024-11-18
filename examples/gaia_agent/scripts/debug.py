@@ -46,13 +46,18 @@ def main(dataset_path, exp_dir, level):
                 if llm_call:
                     for i, m in enumerate(llm_call.prompt.messages):
                         logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
-                    logger.info(f"{len(tape)} STEP:")
-                    for k, v in step.llm_dict().items():
-                        if isinstance(v, (list, dict)):
-                            v = json.dumps(v, indent=2)
-                        logger.info(f"{k}: {v}")
-                input("Press Enter to continue...")
-                print("-" * 140)
+                logger.info(f"{len(tape)} STEP of {step.metadata.agent}:{step.metadata.node}")
+                for k, v in step.llm_dict().items():
+                    if isinstance(v, (list, dict)):
+                        v = json.dumps(v, indent=2)
+                    logger.info(f"{k}: {v}")
+            elif event.observation:
+                step = event.observation
+                tape = tape.append(step)
+                save_json_tape(tape, tapes_dir, tape_name)
+                logger.info(f"OBSERVATION: {step.kind}")
+            # input("Press Enter to continue...")
+            print("-" * 140)
     finally:
         tape.metadata = metadata
         save_json_tape(tape, tapes_dir, tape_name)

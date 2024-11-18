@@ -44,6 +44,7 @@ from .document_converters import (
 )
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 search_lock = threading.Lock()
 
@@ -111,16 +112,18 @@ class SimpleTextBrowser:
         self.use_web_cache = use_web_cache
         self.only_cached_webpages = only_cached_webpages
         self._cache = {}
-        self._log = {}
-        self._cache_writes = 0
-        self._cache_filename = "web_cache.json"
+        self._log = []
+        self._cache_buffer = []
+        self._cache_filename = "web_cache.jsonl"
         if _FORCE_CACHE_PATH:
             self._cache_filename = _FORCE_CACHE_PATH
             self.only_cached_webpages = True
             assert os.path.exists(self._cache_filename), "Forced cache file not found"
         if os.path.exists(self._cache_filename):
             with open(self._cache_filename) as f:
-                self._cache = json.load(f)
+                for line in f:
+                    data = json.loads(line)
+                    self._cache[data["k"]] = data["v"]
             logger.info(f"Loaded {len(self._cache)} web results from cache")
 
     @property
@@ -277,12 +280,15 @@ class SimpleTextBrowser:
 
         """
         key = query.lower().strip()
+        logger.info(colored(f"Searching for {query}", "green"))
+        logger.info(f"Cache size: {len(self._cache)}, use cache: {self.use_web_cache}")
         if self.use_web_cache and (key in self._cache or query in self._cache):
             if query in self._cache:
                 key = query
             logger.info(colored(f"Cache hit for search {query}", "green"))
-            self._log[query] = self._cache[key]
+            self._log.append({"k": query, "v": self._cache[key]})
             return self._cache[key][:max_results]
+        logger.info(colored(f"Search {query} not in cache", "red"))
         if self.only_cached_webpages:
             ratios = [(k, ratio(key, k, score_cutoff=0.5)) for k in self._cache.keys()]
             if not len(ratios):
@@ -413,13 +419,17 @@ class SimpleTextBrowser:
     def set_web_cache(self, cache: dict) -> None:
         self._cache = cache
 
-    def _add_to_cache(self, k: str, value: Any) -> None:
-        self._cache[k] = value
-        self._log[k] = value
+    def _add_to_cache(self, key: str, value: Any) -> None:
+        self._cache[key] = value
+        self._log.append({"k": key, "v": value})
+        self._cache_buffer.append({"k": key, "v": value})
+        self.flush_cache()
 
-    def save_cache(self):
-        with open(self._cache_filename, "w") as f:
-            json.dump(self._cache, f, indent=2, ensure_ascii=False)
+    def flush_cache(self):
+        with open(self._cache_filename, "a") as f:
+            for item in self._cache_buffer:
+                f.write(json.dumps(item) + "\n")
+        self._cache_buffer = []
 
     def get_page(self, url: str) -> tuple[str, int, int]:
         """
@@ -431,7 +441,7 @@ class SimpleTextBrowser:
             url = f"file://{url}"
         if self.use_web_cache and url in self._cache:
             logger.info(colored(f"Cache hit {url}", "green"))
-            self._log[url] = self._cache[url]
+            self._log.append({"k": url, "v": self._cache[url]})
             content, title = self._cache[url]
             self.history.append((url, time.time()))
             self.page_title = title

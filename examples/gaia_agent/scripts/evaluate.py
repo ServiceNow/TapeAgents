@@ -99,9 +99,9 @@ def task_worker(args: tuple) -> int:
 def flush_browser_log(browser_log_path: str, env: GaiaEnvironment):
     if len(env.browser._log):
         with open(browser_log_path, "a") as wf:
-            for k, v in env.browser._log.copy().items():
-                wf.write(json.dumps({"k": k, "v": v}) + "\n")
-        env.browser._log = {}
+            for line in env.browser._log:
+                wf.write(json.dumps(line) + "\n")
+        env.browser._log = []
 
 
 if __name__ == "__main__":
