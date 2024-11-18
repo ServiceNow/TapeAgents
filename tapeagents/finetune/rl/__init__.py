@@ -50,11 +50,7 @@ class RLConfig(StepConfig):
     )
     kl_coef: Optional[float] = field(
         default=0.1,
-        metadata={"help": "Initial KL penalty coefficient (used for adaptive and linear control)"},
-    )
-    ratio_threshold: Optional[float] = field(
-        default=10.1,
-        metadata={"help": "Skip mini-batches with high PPO ratios that can cause loss spike"},
+        metadata={"help": "KL penalty coefficient with reference policy"},
     )
     relu_weights: Optional[bool] = field(
         default=False,
@@ -128,11 +124,6 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
-
-    if (
-        masked_mean(ratio_new_old, masks_) > config.ratio_threshold
-    ):  # https://github.com/huggingface/trl/blob/main/trl/trainer/ppo_trainer.py#L1236
-        loss = loss * 0
 
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
