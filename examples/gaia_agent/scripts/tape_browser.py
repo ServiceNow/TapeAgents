@@ -115,9 +115,10 @@ class GaiaTapeBrowser(TapeBrowser):
             prompt_id = step.metadata.prompt_id
             if prompt_id:
                 llm_calls_num += 1
-                tokens_num += (
-                    self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
-                )
+                if prompt_id in self.llm_calls:
+                    tokens_num += (
+                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
+                    )
         failure_count = len(
             [step for step in tape if "failure" in step.kind or (step.kind == "page_observation" and step.error)]
         )
