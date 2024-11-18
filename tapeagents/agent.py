@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import json
+import logging
 from abc import abstractmethod
 from typing import Any, Callable, Generator, Generic
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
 
+from tapeagents.core import LLMOutputParsingFailureAction
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
-from tapeagents.core import LLMOutputParsingFailureAction
+
 from .core import (
     Action,
     AgentEvent,
@@ -35,6 +38,8 @@ from .core import (
 from .llms import LLM, LLMEvent, LLMStream
 
 DEFAULT = "default"
+
+logger = logging.getLogger(__name__)
 
 
 class AgentStream(Generic[TapeType]):
@@ -216,7 +221,7 @@ class Agent(BaseModel, Generic[TapeType]):
             templates = {DEFAULT: templates}
         if templates:
             kwargs["templates"] = templates
-        
+
         return cls(llms=llms or {}, **kwargs)
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
@@ -235,9 +240,11 @@ class Agent(BaseModel, Generic[TapeType]):
             subagent.model_validate(subagent.update(subagent_obj))
             for subagent, subagent_obj in zip(self.subagents, agent_config["subagents"])
         ]
+        nodes = [node.model_validate(node_obj) for node, node_obj in zip(self.nodes, agent_config["nodes"])]
         config_copy = agent_config.copy()
         config_copy["llms"] = llms
         config_copy["subagents"] = subagents
+        config_copy["nodes"] = nodes
         return type(self).model_validate(config_copy)
 
     def compute_view(self, tape: TapeType) -> TapeViewStack:
@@ -250,8 +257,23 @@ class Agent(BaseModel, Generic[TapeType]):
         :param tape: the tape to make the decision on
         :return: the node to run next
         """
-        node = self.compute_view(tape).top.next_node
-        return self.nodes[node]
+        view = self.compute_view(tape).top
+        if view.next_node:
+            logger.debug(f"{self.name}: Next node was set explicitly in the tape: {view.next_node}")
+            return self.find_node(view.next_node)
+
+        if not view.last_node:
+            logger.debug(f"{self.name}: No nodes have been run yet, select node 0: {self.nodes[0].name}")
+            return self.nodes[0]
+
+        # Select the next node that stored after the last node found in the tape
+        logger.debug(f"{self.name}: Last node in view: {view.last_node}")
+        logger.debug(f"{self.name}: Known nodes: {[node.name for node in self.nodes]}")
+        for i, node in enumerate(self.nodes):
+            if node.name == view.last_node and i + 1 < len(self.nodes):
+                logger.debug(f"{self.name}: Select immediate next node: {self.nodes[i + 1].name}")
+                return self.nodes[i + 1]
+        raise ValueError("Next node not found")
 
     def make_prompt(self, tape: TapeType) -> Prompt:
         """Make the prompt for the next iteration of the agent.
@@ -270,7 +292,11 @@ class Agent(BaseModel, Generic[TapeType]):
         :param llm_stream: the stream of tokens from the LLM
         :return: a generator of steps (or partial steps) to append to the tape
         """
-        yield from self.select_node(tape).generate_steps(self, tape, llm_stream)
+        node = self.select_node(tape)
+        for step in node.generate_steps(self, tape, llm_stream):
+            if isinstance(step, AgentStep):
+                step.metadata.node = node.name
+            yield step
 
     def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
         return self.select_node(tape[:index]).make_llm_output(self, tape, index)
@@ -286,6 +312,7 @@ class Agent(BaseModel, Generic[TapeType]):
         subagent = self
         for view in views.stack[1:]:
             subagent = subagent.find_subagent(view.agent_name)
+        logger.debug(f"{self.full_name}: Delegating to subagent: {subagent.full_name}")
         return subagent
 
     def is_agent_step(self, step: Step) -> bool:
@@ -295,14 +322,6 @@ class Agent(BaseModel, Generic[TapeType]):
     def should_stop(self, tape: TapeType) -> bool:
         """Check if the agent should stop its turn and wait for observations."""
         return isinstance(tape.steps[-1], Action)
-
-    def get_node_name(self, tape: TapeType) -> str:
-        idx = self.compute_view(tape).top.next_node
-        try:
-            name = self.nodes[idx].name
-        except IndexError:
-            name = ""
-        return name
 
     def run_iteration(
         self, tape: TapeType, llm_stream: LLMStream | None = None
@@ -317,7 +336,6 @@ class Agent(BaseModel, Generic[TapeType]):
         reuses a tape.
 
         """
-        node_name = self.get_node_name(tape)
         if llm_stream is None:
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:
@@ -326,10 +344,7 @@ class Agent(BaseModel, Generic[TapeType]):
         for step in self.generate_steps(tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.prompt_id = llm_stream.prompt.id
-                step.metadata.node = node_name
-                yield step
-            else:
-                yield step
+            yield step
 
     def run(self, tape: TapeType, max_iterations: int | None = None) -> AgentStream[TapeType]:
         """
@@ -342,6 +357,7 @@ class Agent(BaseModel, Generic[TapeType]):
             nonlocal tape
             n_iterations = 0
             input_tape_length = len(tape)
+            input_tape_id = tape.metadata.id
             stop = False
             while n_iterations < max_iterations and not stop:
                 current_subagent = self.delegate(tape)
@@ -357,10 +373,14 @@ class Agent(BaseModel, Generic[TapeType]):
                     else:
                         raise ValueError("Agent can only generate steps or partial steps")
                 n_iterations += 1
-            final_tape = tape
-            final_tape.metadata = TapeMetadata(
-                n_added_steps=len(tape) - input_tape_length, parent_id=tape.metadata.id, author=self.name
+            updated_metadata = tape.metadata.model_copy(
+                update=dict(
+                    parent_id=input_tape_id,
+                    author=self.name,
+                    n_added_steps=len(tape) - input_tape_length,
+                )
             )
+            final_tape = tape.model_copy(update=dict(metadata=updated_metadata))
             yield AgentEvent(final_tape=final_tape)
 
         return AgentStream(_run_implementation())
@@ -381,6 +401,10 @@ class Agent(BaseModel, Generic[TapeType]):
             if self.is_agent_step(step):
                 current_agent = self.delegate(past_tape)
                 prompt = current_agent.make_prompt(past_tape)
+                if not prompt:
+                    reused_steps.append(step)
+                    i += 1
+                    continue
                 output = current_agent.make_llm_output(tape, i)
                 llm_call = LLMCall(prompt=prompt, output=output, cached=True)
                 observe_llm_call(llm_call)
@@ -445,7 +469,6 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
     and hence can be tricky to compare across steps. This function deserializes known fields like that before comparison..
 
     """
-
 
     def just_data(step: Step) -> dict:
         if isinstance(step, LLMOutputParsingFailureAction):

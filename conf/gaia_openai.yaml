@@ -2,10 +2,11 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_test_1
+exp_name: gpt4o_mini_val_batch32_6
 exp_path: ../gaia/runs/${exp_name}
-data_dir: ../gaia/dataset/test/
+data_dir: ../gaia/dataset/validation/
 n_attempts: 1
+batch: 32
 agent:
   planning_mode: simple
   subtasks: false

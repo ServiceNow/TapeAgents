@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import threading
+import time
 
 import hydra
 from hydra.utils import instantiate
@@ -8,6 +10,7 @@ from omegaconf import DictConfig
 
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.llms import TrainableLLM
+from tapeagents.parallel_processing import choose_processor, lazy_thread_pool_processor
 
 from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
@@ -17,6 +20,8 @@ from ..tape import GaiaTape
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
+
+output_lock = threading.Lock()
 
 
 @hydra.main(
@@ -54,36 +59,48 @@ def main(cfg: DictConfig) -> None:
                 env.browser._add_to_cache(item["k"], item["v"])
             logger.info(f"Loaded {len(items)} cached queries from browser log")
 
-    for level, level_tasks in tasks.items():
-        outfile = os.path.join(cfg.exp_path, f"l{level}_{llm.model_name.split('/')[-1]}_run.json")
-        logger.info(f"Start level {level} with {len(level_tasks)} tasks, save to {outfile}")
-        new_tapes = []
-        for i, task in enumerate(level_tasks):
-            tape_name = f"l{level}_task{i}"
-            tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
-            if os.path.exists(tape_path):
-                tape: GaiaTape = load_tapes(GaiaTape, tape_path)[0]  # type: ignore
-                last_step = tape.steps[-1]
-                model_answer = last_step.answer if last_step.kind == "gaia_answer_action" else None
-                if model_answer:
-                    logger.info(f"Skip task {tape_name}, already solved")
-                    continue
-            tape = solve_task(task, agent, env, cfg.n_attempts)
-            tape.metadata.level = level
-            new_tapes.append(tape)
-            save_json_tape(tape, tapes_dir, tape_name)
-            logger.info(f"Task {tape_name} solved, saved to {tape_path}")
-            flush_browser_log(browser_log_path, env)
-        logger.info(f"Level {level} done, {len(new_tapes)} tapes saved")
+    dt = time.perf_counter()
+    n_workers = cfg.batch or 1
+    processor = choose_processor(n_workers)
+    logger.info(f"Evaluate using {n_workers} workers")
+    args = [
+        (agent, llm, cfg.env, i, task, cfg.n_attempts, tapes_dir, browser_log_path, level)
+        for level, level_tasks in tasks.items()
+        for i, task in enumerate(level_tasks)
+    ]
+    for tape_ready in processor(args, task_worker):
+        if isinstance(tape_ready, Exception):
+            raise tape_ready
+    dt = time.perf_counter() - dt
+    logger.info(f"Done, elapsed time: {dt:.2f} sec")
 
-    flush_browser_log(browser_log_path, env)
-    logger.info("Done")
+
+def task_worker(args: tuple) -> int:
+    agent, llm, cfg_env, i, task, n_attempts, tapes_dir, browser_log_path, level = args
+    tape_name = f"l{level}_task{i:03d}"
+    tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
+    if os.path.exists(tape_path):
+        tape: GaiaTape = load_tapes(GaiaTape, tape_path)[0]  # type: ignore
+        last_step = tape.steps[-1]
+        model_answer = last_step.answer if last_step.kind == "gaia_answer_action" else None
+        if model_answer:
+            logger.info(f"Skip task {tape_name}, already solved")
+            return 0
+    env = GaiaEnvironment(vision_lm=llm, **cfg_env)
+    tape = solve_task(task, agent, env, n_attempts)
+    tape.metadata.level = level
+    save_json_tape(tape, tapes_dir, tape_name)
+    logger.info(f"Task {tape_name} solved, saved to {tape_path}")
+    with output_lock:
+        flush_browser_log(browser_log_path, env)
+    return 1
 
 
 def flush_browser_log(browser_log_path: str, env: GaiaEnvironment):
-    with open(browser_log_path, "w") as wf:
-        for k, v in env.browser._log.items():
-            wf.write(json.dumps({"k": k, "v": v}) + "\n")
+    if len(env.browser._log):
+        with open(browser_log_path, "a") as wf:
+            for k, v in env.browser._log.copy().items():
+                wf.write(json.dumps({"k": k, "v": v}) + "\n")
         env.browser._log = {}
 
 

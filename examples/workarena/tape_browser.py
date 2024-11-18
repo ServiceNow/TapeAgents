@@ -5,9 +5,9 @@ import sys
 
 from pydantic import BaseModel
 
-from tapeagents.core import LLMCall, Step, Tape
+from tapeagents.core import Step
 from tapeagents.observe import retrieve_all_llm_calls
-from tapeagents.rendering import GuidedAgentRender
+from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
 logging.basicConfig(level=logging.INFO)
@@ -168,14 +168,10 @@ class WorkarenaTapeBrowser(TapeBrowser):
         return html, label
 
 
-class WorkArenaRender(GuidedAgentRender):
+class WorkArenaRender(CameraReadyRenderer):
     def __init__(self, exp_dir: str) -> None:
         self.exp_dir = exp_dir
         super().__init__()
-
-    def render_tape(self, tape: Tape, llm_calls: dict[str, LLMCall] = {}) -> str:
-        steps_html = self.render_steps(tape, llm_calls)
-        return f"{self.context_header}{self.steps_header}{steps_html}"
 
     def render_step(self, step: Step | dict, index: int, folded: bool = True, **kwargs) -> str:
         step_dict = step.model_dump() if isinstance(step, Step) else step

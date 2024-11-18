@@ -48,7 +48,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 1,
+      "next_node": "act",
       "metadata": {
         "agent": "Agent",
         "node": "",
@@ -85,7 +85,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 1,
+      "next_node": "act",
       "metadata": {
         "agent": "Agent",
         "node": "",
@@ -122,7 +122,7 @@
     },
     {
       "kind": "set_next_node",
-      "next_node": 1,
+      "next_node": "act",
       "metadata": {
         "agent": "Agent",
         "node": "",

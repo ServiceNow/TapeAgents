@@ -69,7 +69,7 @@ class TeamAgent(Agent[TeamTape]):
             name=name,
             templates={"system": system_prompt} if system_prompt else {},
             llms={DEFAULT: llm} if llm else {},
-            nodes=([ExecuteCodeNode()] if execute_code else []) + [RespondNode()],
+            nodes=([ExecuteCodeNode()] if execute_code else []) + [RespondNode()],  # type: ignore
         )
 
     @classmethod
@@ -90,7 +90,7 @@ class TeamAgent(Agent[TeamTape]):
             nodes=[
                 BroadcastLastMessageNode(),
                 SelectAndCallNode(),
-                RespondOrRepeatNode(),
+                RespondOrRepeatNode(next_node="broadcast_last_message"),
             ],
             max_calls=max_calls,
             templates={
@@ -114,6 +114,11 @@ class TeamAgent(Agent[TeamTape]):
         """
         Create an agent that sets the team's initial message and calls the team manager
         """
+        nodes = []
+        if execute_code:
+            nodes = [ExecuteCodeNode(), CallNode(), TerminateOrRepeatNode(next_node="execute_code")]
+        else:
+            nodes = [CallNode(), TerminateOrRepeatNode(next_node="call")]
         return cls(
             name=name,
             templates={
@@ -121,7 +126,7 @@ class TeamAgent(Agent[TeamTape]):
             },
             llms={DEFAULT: llm} if llm else {},
             subagents=[teammate],
-            nodes=([ExecuteCodeNode()] if execute_code else []) + [CallNode(), TerminateOrRepeatNode()],  # type: ignore
+            nodes=nodes,
             max_calls=max_calls,
             init_message=init_message,
         )
@@ -250,6 +255,7 @@ class RespondNode(Node):
 
 class TerminateOrRepeatNode(Node):
     name: str = "terminate_or_repeat"
+    next_node: str
 
     def generate_steps(
         self, agent: TeamAgent, tape: TeamTape, llm_stream: LLMStream
@@ -259,11 +265,12 @@ class TerminateOrRepeatNode(Node):
         if view.should_stop:
             yield FinalStep(reason="Termination message received")
         else:
-            yield SetNextNode(next_node=0)
+            yield SetNextNode(next_node=self.next_node)
 
 
 class RespondOrRepeatNode(Node):
     name: str = "respond_or_repeat"
+    next_node: str
 
     def generate_steps(
         self, agent: TeamAgent, tape: TeamTape, llm_stream: LLMStream
@@ -272,7 +279,7 @@ class RespondOrRepeatNode(Node):
         if view.should_stop:
             yield Respond()
         else:
-            yield SetNextNode(next_node=0)
+            yield SetNextNode(next_node=self.next_node)
 
 
 def _exec_result_message(agent: TeamAgent, tape: TeamTape) -> str:

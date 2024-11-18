@@ -145,7 +145,7 @@ def improver_tape_view(tape: Tape) -> str:
         data[-1]["index"] = index
         if isinstance(step, AgentStep):
             data[-1]["metadata"] = {"agent": step.metadata.agent}
-    return json.dumps(data, indent=2)
+    return json.dumps(data, indent=2, sort_keys=True)
 
 
 ### Agents ###

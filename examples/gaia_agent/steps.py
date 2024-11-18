@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
+from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -307,7 +307,7 @@ class GaiaAnswer(GaiaAction, StopStep):
     answer: Any = Field(description="short final answer")
 
 
-class ActionExecutionFailure(GaiaObservation):
+class ActionExecutionFailure(GaiaObservation, Error):
     kind: Literal["action_execution_failure"] = "action_execution_failure"
     error: str
 

@@ -1,10 +1,11 @@
+import copy
 import re
 
 import pytest
 from pydantic import SerializeAsAny
 
 from tapeagents.agent import DEFAULT, Agent, AgentEvent, AgentStream, Node
-from tapeagents.core import Action, AgentStep, PartialStep, Prompt, StepMetadata, Tape
+from tapeagents.core import Action, AgentStep, PartialStep, Prompt, StepMetadata, Tape, Thought
 from tapeagents.llms import LLMStream, MockLLM
 
 MockTape = Tape[None, Action]
@@ -154,33 +155,6 @@ def test_create_with_dict_llms_and_templates():
     assert agent.templates == templates
 
 
-def test_select_node():
-    class MockTapeViewStack:
-        class MockTapeView:
-            def __init__(self, next_node):
-                self.next_node = next_node
-
-        def __init__(self, next_node):
-            self.top = self.MockTapeView(next_node)
-
-        @staticmethod
-        def compute(tape):
-            return MockTapeViewStack(1)
-
-    class MockAgent(Agent):
-        def compute_view(self, tape):
-            return MockTapeViewStack.compute(tape)
-
-    node0 = Node(name="node1")
-    node1 = Node(name="node2")
-    agent = MockAgent(nodes=[node0, node1])
-    tape = MockTape()
-
-    selected_node = agent.select_node(tape)
-
-    assert selected_node == node1
-
-
 def test_make_prompt():
     class NodeMockPrompt(Prompt):
         pass
@@ -303,3 +277,118 @@ def test_run_iteration_with_agent_step():
     assert isinstance(steps[0], AgentStep)
     assert steps[0].metadata.prompt_id is not None
     assert steps[0].metadata.node == "node1"
+
+
+def test_select_node_explicit_next_node():
+    class MockView:
+        next_node = "node2"
+        last_node = None
+
+    class MockTapeViewStack:
+        top = MockView()
+
+    class MockAgent(Agent):
+        def compute_view(self, tape):
+            return MockTapeViewStack()
+
+        def find_node(self, name):
+            return Node(name=name)
+
+    agent = MockAgent(nodes=[Node(name="node1"), Node(name="node2")])
+    tape = MockTape()
+
+    selected_node = agent.select_node(tape)
+
+    assert selected_node.name == "node2"
+
+
+def test_select_node_no_nodes_run_yet():
+    class MockView:
+        next_node = None
+        last_node = None
+
+    class MockTapeViewStack:
+        top = MockView()
+
+    class MockAgent(Agent):
+        def compute_view(self, tape):
+            return MockTapeViewStack()
+
+    agent = MockAgent(nodes=[Node(name="node1"), Node(name="node2")])
+    tape = MockTape()
+
+    selected_node = agent.select_node(tape)
+
+    assert selected_node.name == "node1"
+
+
+def test_select_node_select_next_node():
+    class MockView:
+        next_node = None
+        last_node = "node1"
+
+    class MockTapeViewStack:
+        top = MockView()
+
+    class MockAgent(Agent):
+        def compute_view(self, tape):
+            return MockTapeViewStack()
+
+    agent = MockAgent(nodes=[Node(name="node1"), Node(name="node2")])
+    tape = MockTape()
+
+    selected_node = agent.select_node(tape)
+
+    assert selected_node.name == "node2"
+
+
+def test_select_node_next_node_not_found():
+    class MockView:
+        next_node = None
+        last_node = "node2"
+
+    class MockTapeViewStack:
+        top = MockView()
+
+    class MockAgent(Agent):
+        def compute_view(self, tape):
+            return MockTapeViewStack()
+
+    agent = MockAgent(nodes=[Node(name="node1"), Node(name="node2")])
+    tape = MockTape()
+
+    with pytest.raises(ValueError, match="Next node not found"):
+        agent.select_node(tape)
+
+
+def test_run_metadata():
+    class MockNode(Node):
+        def generate_steps(self, agent, tape, llm_stream):
+            yield Thought()
+            yield Action()
+
+    class MockAgent(Agent):
+        def select_node(self, tape):
+            return MockNode()
+
+    agent = MockAgent(llms={DEFAULT: EmptyLLM()})
+    tape = MockTape()
+
+    initial_tape_metadata = copy.deepcopy(tape.metadata)
+    assert initial_tape_metadata.n_added_steps == 0
+
+    final_tape = agent.run(tape).get_final_tape()
+
+    # check that the original tape metadata is the same
+    assert tape.metadata == initial_tape_metadata
+    # check that the new tape metadata is updated correclty
+    assert final_tape.metadata.id != initial_tape_metadata.id
+    assert final_tape.metadata.parent_id == initial_tape_metadata.id
+    assert final_tape.metadata.n_added_steps == 2
+    assert final_tape.metadata.author == agent.name
+    # assert that the rest is the same, except for id, parent_id, n_added_steps, and author
+    initial_tape_metadata.id, final_tape.metadata.id = None, None
+    initial_tape_metadata.parent_id, final_tape.metadata.parent_id = None, None
+    initial_tape_metadata.n_added_steps, final_tape.metadata.n_added_steps = 0, 0
+    initial_tape_metadata.author, final_tape.metadata.author = None, None
+    assert initial_tape_metadata == final_tape.metadata

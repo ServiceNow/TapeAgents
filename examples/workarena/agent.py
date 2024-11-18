@@ -107,13 +107,13 @@ class WorkArenaNode(MonoNode):
 
 class WorkArenaAgent(Agent):
     @classmethod
-    def create(cls, llm: LLM):
+    def create(cls, llm: LLM, max_iterations: int = 4):
         return super().create(
             llm,
             nodes=[
                 WorkArenaNode(name="set_goal", guidance=PromptRegistry.start),
                 WorkArenaNode(name="reflect", guidance=PromptRegistry.reflect),
-                WorkArenaNode(name="act", guidance=PromptRegistry.act, next_node=1),
+                WorkArenaNode(name="act", guidance=PromptRegistry.act, next_node="reflect"),
             ],
-            max_iterations=2,
+            max_iterations=max_iterations,
         )

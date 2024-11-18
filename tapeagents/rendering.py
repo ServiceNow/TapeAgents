@@ -282,9 +282,10 @@ class PrettyRenderer(BasicRenderer):
 
         def pretty_yaml(d: dict):
             return yaml.dump(d, sort_keys=False, indent=2) if d else ""
+
         def maybe_fold(content: Any):
             content = str(content)
-            summary = f"{len(content)} characters ..." 
+            summary = f"{len(content)} characters ..."
             if len(content) > 1000:
                 return f"<details><summary>{summary}</summary>{content}</details>"
             return content
@@ -317,110 +318,6 @@ class PrettyRenderer(BasicRenderer):
             f"<pre class='step-text'>{text}</pre>"
             f"</div>"
         )
-
-
-class GuidedAgentRender(BasicRenderer):
-    @property
-    def style(self) -> str:
-        return (
-            "<style>"
-            ".basic-renderer-box { margin: 0 4px 4px 4px; padding: 10px; background: lavender; } "
-            ".basic-prompt-box { margin: 4px; padding: 0 10px; background: lavender;}"
-            ".episode-row { display: flex; align-items: end; } "
-            ".agent-column { width: 70%; } "
-            ".user-column { width: 15%; } "
-            ".annotator-column { width: 15%; } "
-            ".inner-tape-container { display: flex }"
-            ".inner-tape-indent { width: 10%; }"
-            ".inner-tape { width: 90%; }"
-            ".prompt { margin-top: 1em; padding: 0 10px 0 10px;} "
-            "table.diff { border: none !important; padding: 0 !important; } "
-            "tr.diff { border: none !important; padding: 0 !important; } "
-            "td.diff { border: none !important; padding: 0 !important; vertical-align: top !important;} "
-            "td.diff_highlight { border: 0 none red !important; border-left: 5px solid red !important; padding: 0 !important; vertical-align: top !important;} "
-            "</style>"
-        )
-
-    def render_step(
-        self, step: Step | dict, index: int, folded: bool = True, min_fold_lines: int = 20, **kwargs
-    ) -> str:
-        step_dict = step.model_dump() if isinstance(step, Step) else step
-        if not step_dict:
-            return ""
-        step_dict.pop("metadata", None)
-        title = get_step_title(step_dict)
-        text = get_step_text(step_dict, exclude_fields={"kind", "role", "metadata"})
-        role = "Agent Action"
-        color = YELLOW
-
-        if step_dict["kind"] == "question":
-            role = "Question"
-            color = BLUE
-            text = step_dict.get("content", step_dict.get("question", ""))
-            title = ""
-            folded = False
-        elif step_dict["kind"] == "task":
-            role = "Task"
-            color = BLUE
-            text = ""
-            title = step_dict["task"]
-            folded = False
-        elif step_dict["kind"].endswith("_subtask_thought"):
-            role = "Agent Thought"
-            color = SAND
-        elif step_dict["kind"].endswith("_answer_action"):
-            role = "Answer"
-            color = BLUE
-            title = ""
-        elif step_dict["kind"].endswith("_failure"):
-            role = "Failure"
-            color = RED
-        elif step_dict["kind"].endswith("_observation"):
-            role = "Observation"
-            color = GREEN
-        elif step_dict["kind"].endswith("_thought"):
-            role = "Agent Thought"
-            color = LIGHT_YELLOW
-
-        # fold when too long or too many lines
-        max_len = min_fold_lines * 100
-        fold = folded and (text.count("\n") > min_fold_lines or len(text) > max_len)
-        if not fold:
-            if len(text) > max_len + 100:
-                text = text[:max_len] + "\n" + ("=" * 100) + f"\n ... and {len(text[max_len:])} more characters"
-        text = self.wrap_urls_in_anchor_tag(text)
-        if fold:
-            html = f"""<div class='basic-renderer-box' style='background-color:{color};'><details>
-                <summary><b>{role}: {title}</b></summary>
-                <pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{text}</pre>
-            </details></div>"""
-        else:
-            html = f"""<div class='basic-renderer-box' style='background-color:{color};'>
-                <h4 style='margin: 2pt 2pt 2pt 0 !important;font-size: 1em;'>{role}: {title}</h4>
-                <pre style='font-size: 12px; white-space: pre-wrap;word-wrap: break-word;'>{text}</pre>
-            </div>"""
-        return html
-
-    def render_context(self, tape: Tape):
-        if isinstance(tape.context, Tape):
-            return (
-                "<div class=inner-tape-container>"
-                "<div class=inner-tape-indent> </div>"
-                f"<div class=inner-tape> {self.render_tape(tape.context)} </div>"
-                "</div>"
-            )
-        else:
-            context_str = tape.context.model_dump() if isinstance(tape.context, BaseModel) else tape.context
-            return self.render_as_box(context_str)
-
-    def wrap_urls_in_anchor_tag(self, text: str) -> str:
-        url_pattern = re.compile(r"(https?://\S+)")
-
-        def replace_url(match):
-            url = match.group(0)
-            return f'<a target="_blank" href="{url}">{url}</a>'
-
-        return url_pattern.sub(replace_url, text)
 
 
 def step_view(step: Step, trim: bool = False) -> str:

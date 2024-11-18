@@ -8,11 +8,11 @@ from tapeagents.utils import FatalError
 
 from .steps import (
     ActionExecutionFailure,
-    LLMOutputParsingFailureAction,
     CalculationResultObservation,
     CodeResultObservation,
     ConvertFactAction,
     GaiaAction,
+    LLMOutputParsingFailureAction,
     NextPageAction,
     PageObservation,
     PythonCodeAction,
@@ -41,7 +41,10 @@ class GaiaEnvironment(Environment):
                         if "web" not in action.source and "wiki" not in action.source:
                             raise ValueError(f"Supported sources are 'web' and 'wiki', got {action.source}")
                         query = f"site:wikipedia.org {action.query}" if "wiki" in action.source else action.query
-                        serp = self.browser.get_search_results(query)
+                        try:
+                            serp = self.browser.get_search_results(query)
+                        except Exception as e:
+                            raise FatalError(f"Failed to get search results: {e}")
                         tape = tape.append(SearchResultsObservation(query=action.query, serp=serp))
                     case ReadDocumentAction():
                         text, total_pages, error = self.browser.get_page(action.url)

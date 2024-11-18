@@ -118,7 +118,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {
@@ -148,7 +148,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {
@@ -173,7 +173,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {
@@ -196,7 +196,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {
@@ -257,7 +257,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {
@@ -320,7 +320,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {
@@ -353,7 +353,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {
@@ -399,7 +399,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {
@@ -446,7 +446,7 @@
                 "other": {}
             },
             "kind": "set_next_node",
-            "next_node": 3
+            "next_node": "default"
         },
         {
             "metadata": {

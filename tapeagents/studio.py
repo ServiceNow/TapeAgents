@@ -8,8 +8,8 @@ from tapeagents.agent import Agent
 from tapeagents.core import Tape
 from tapeagents.environment import Environment
 from tapeagents.observe import get_latest_tape_id, observe_tape, retrieve_tape, retrieve_tape_llm_calls
-from tapeagents.rendering import BasicRenderer, render_agent_tree
 from tapeagents.orchestrator import MainLoopEvent, main_loop
+from tapeagents.rendering import BasicRenderer, render_agent_tree
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +23,18 @@ class Studio:
         environment: Environment | None = None,
         transforms: Mapping[str, Callable[[Tape], Tape]] | None = None,
     ):
-        self.renderers = {"renderer": renderers} if isinstance(renderers, BasicRenderer) else renderers
+        self.renderers = (
+            {renderers.__class__.__name__: renderers} if isinstance(renderers, BasicRenderer) else renderers
+        )
         self.environment = environment
         self.transforms = transforms or {}
+        self.original_agent = agent
+        self.original_tape = tape
 
         gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
         with gr.Blocks(title="TapeAgent Studio") as blocks:
-            tape_state = gr.State(tape)
-            agent_state = gr.State(agent)
+            tape_state = gr.State(tape.model_dump())
+            agent_state = gr.State(agent.model_dump())
             with gr.Row():
                 with gr.Column(scale=1):
                     tape_data = gr.Textbox(
@@ -68,7 +72,7 @@ class Studio:
             # Tape controls
             tape_data.submit(
                 lambda data: tape.model_validate(yaml.safe_load(data)).with_new_id(), [tape_data], [tape_state]
-            ).then(*render_tape).then(lambda tape: observe_tape(tape), [tape_state], [])
+            ).then(*render_tape).then(lambda tape_dict: observe_tape(self.validate_tape(tape_dict)), [tape_state], [])
             pop.submit(self.pop_n_steps, [tape_state, pop], [tape_state]).then(*render_tape)
             keep.submit(self.keep_n_steps, [tape_state, keep], [tape_state]).then(*render_tape)
             load.submit(self.load_tape, [tape_state, load], [tape_state]).then(*render_tape)
@@ -96,43 +100,57 @@ class Studio:
 
         self.blocks = blocks
 
-    def pop_n_steps(self, tape: Tape, n: int) -> Tape:
+    def validate_tape(self, tape_dict: dict) -> Tape:
+        return self.original_tape.model_validate(tape_dict)
+
+    def pop_n_steps(self, tape_dict: dict, n: int) -> Tape:
+        tape = self.validate_tape(tape_dict)
         if n > len(tape):
             raise gr.Error(f"Cannot pop {n} steps from tape with {len(tape)} steps")
         return tape[:-n]
 
-    def keep_n_steps(self, tape: Tape, n: int) -> Tape:
+    def keep_n_steps(self, tape_dict: dict, n: int) -> Tape:
+        tape = self.validate_tape(tape_dict)
         if n > len(tape):
             raise gr.Error(f"Cannot keep {n} steps from tape with {len(tape)} steps")
         return tape[:n]
 
-    def transform_tape(self, transform: str, tape: Tape) -> Tape:
+    def transform_tape(self, transform: str, tape_dict: dict) -> Tape:
+        tape = self.validate_tape(tape_dict)
         result = self.transforms[transform](tape)
         observe_tape(result)
         return result
 
-    def load_tape(self, cur_tape: Tape, tape_id: str) -> Tape:
+    def load_tape(self, tape_dict: dict, tape_id: str) -> Tape:
+        tape = self.validate_tape(tape_dict)
         if not tape_id:
             tape_id = get_latest_tape_id()
-        result = retrieve_tape(type(cur_tape), tape_id)
+        result = retrieve_tape(type(tape), tape_id)
         if not result:
             raise gr.Error(f"No tape found with id {tape_id}")
         return result
 
-    def render_tape(self, renderer_name: str, tape: Tape) -> tuple[str, str]:
+    def render_tape(self, renderer_name: str, tape_dict: dict) -> tuple[str, str]:
+        tape = self.validate_tape(tape_dict)
         renderer = self.renderers[renderer_name]
         llm_calls = retrieve_tape_llm_calls(tape)
         return (yaml.dump(tape.model_dump(), sort_keys=False), renderer.style + renderer.render_tape(tape, llm_calls))
 
-    def render_agent(self, agent: Agent) -> str:
+    def validate_agent(self, agent_dict: dict) -> Agent:
+        return self.original_agent.update(agent_dict)
+
+    def render_agent(self, agent_dict: dict) -> str:
+        agent = self.validate_agent(agent_dict)
         return yaml.dump(agent.model_dump(), sort_keys=False)
 
     def update_agent(self, config: str, agent: Agent) -> Agent:
         return agent.update(yaml.safe_load(config))
 
     def run_agent(
-        self, renderer_name: str, agent: Agent, start_tape: Tape
+        self, renderer_name: str, agent_dict: dict, tape_dict: dict
     ) -> Generator[tuple[Tape, str, str], None, None]:
+        agent = self.validate_agent(agent_dict)
+        start_tape = self.validate_tape(tape_dict)
         for event in agent.run(start_tape):
             if tape := event.partial_tape or event.final_tape:
                 observe_tape(tape)
@@ -143,9 +161,11 @@ class Studio:
         return self.environment.react(tape)
 
     def run_main_loop(
-        self, renderer_name: str, agent: Agent, start_tape: Tape
+        self, renderer_name: str, agent_dict: dict, tape_dict: dict
     ) -> Generator[tuple[Tape, str, str], None, None]:
         assert self.environment
+        agent = self.validate_agent(agent_dict)
+        start_tape = self.validate_tape(tape_dict)
         last_tape = start_tape
         for event in main_loop(agent, start_tape, self.environment):
             if ae := event.agent_event:

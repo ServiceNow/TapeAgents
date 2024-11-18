@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, Literal, TypeAlias, TypeVar, List
+from typing import Any, Generic, Iterable, Iterator, List, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import litellm
@@ -52,7 +52,7 @@ class StepMetadata(BaseModel):
 
 class Step(BaseModel):
     metadata: StepMetadata = StepMetadata()
-    kind: Literal["define_me"] = "define_me" # This is a placeholder value, it should be overwritten in subclasses
+    kind: Literal["define_me"] = "define_me"  # This is a placeholder value, it should be overwritten in subclasses
 
     def llm_dict(self) -> dict[str, Any]:
         """Dump step data only, drop the metadata"""
@@ -76,7 +76,7 @@ class Observation(Step):
     pass
 
 
-class Error(Observation):
+class Error(Step):
     pass
 
 
@@ -92,13 +92,14 @@ class Action(AgentStep):
     pass
 
 
-class LLMOutputParsingFailureAction(Action):
+class LLMOutputParsingFailureAction(Action, Error):
     """
     Action produced automatically when the LLM output parsing failed
     """
 
     kind: Literal["llm_output_parsing_failure_action"] = "llm_output_parsing_failure_action"
     error: str
+    llm_output: str
 
 
 class StopStep(Action):
@@ -116,7 +117,7 @@ class FinalStep(StopStep):
 
 class SetNextNode(Thought):
     kind: Literal["set_next_node"] = "set_next_node"
-    next_node: int
+    next_node: str
 
 
 class Pass(Thought):
@@ -138,7 +139,6 @@ class Respond(Thought):
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
 
-
 class TapeMetadata(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     parent_id: str | None = None
@@ -147,7 +147,6 @@ class TapeMetadata(BaseModel):
     n_added_steps: int = 0
     error: Any | None = None
     result: Any = {}
-    
 
 
 ContextType = TypeVar("ContextType")
@@ -165,7 +164,7 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
     def __iter__(self) -> Iterator[StepType]:  # type: ignore
         return iter(self.steps)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.steps)
 
     def __getitem__(self, key: int | slice) -> StepType | Self:
@@ -187,9 +186,9 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
 
     def append(self, step: StepType) -> Self:
         """
-        Add a step to the tape
+        Add a step to the tape and creates new metadata (new tape id, etc...).
         """
-        return self.model_copy(update=dict(steps=self.steps + [step], metadata=TapeMetadata(n_added_steps=1)))
+        return self.model_copy(update=dict(steps=self.steps + [step], metadata=TapeMetadata()))
 
     def with_new_id(self) -> Self:
         return self.model_copy(update=dict(metadata=TapeMetadata()))
