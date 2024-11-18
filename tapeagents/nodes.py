@@ -59,7 +59,7 @@ class MonoNode(Node):
             {"role": "system", "content": self.system_prompt},
         ]
         if steps_description:
-            messages.append({"role": "assistant", "content": steps_description})
+            messages.append({"role": "user", "content": steps_description})
         for step in tape:
             role = "assistant" if isinstance(step, AgentStep) else "user"
             messages.append({"role": role, "content": step.llm_view()})
