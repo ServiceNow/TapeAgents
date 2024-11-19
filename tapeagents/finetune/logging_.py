@@ -120,7 +120,7 @@ def log_time(start_time, msg):
     return t
 
 
-def flatten_dict_config(d: DictConfig, separator=".") -> dict:
+def flatten_dict_config(d: DictConfig | dict, separator=".") -> dict:
     result = {}
     for k, v in d.items():
         if isinstance(v, DictConfig):
