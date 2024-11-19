@@ -35,4 +35,3 @@ class TrainingMetrics:
     lr: float = 0.0
     max_seq_len: int = 0
     min_seq_len: int = 0
-    mean_seq_len: float = 0.0
