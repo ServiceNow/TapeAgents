@@ -153,36 +153,42 @@ def parse_completion(llm_output: str, prompt_id: str, agent_step_cls: Any) -> Ge
         yield step
 
 
-class ThinkingNode(Node):
-    """
-    Produce plain text thought
-    """
-
+class MonoNodeV2(Node):
+    # TODO: 1. unify ThinkingNode and MonoNode. 2. add flag to use function calling for actions instead schema in prompt
     system_prompt: str
     guidance: str = ""
     next_node: str = ""
     output_cls: Any = None
+    formalize_prompt: str = FORMALIZE_FORMAT
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        messages = self.tape_to_messages(tape)
+        steps = self.tape_to_steps(tape)
+        steps = self.filter_steps(steps)
+        messages = self.steps_to_messages(steps)
         return Prompt(messages=messages)
 
-    def tape_to_messages(self, tape: Tape) -> list[dict]:
-        messages = [{"role": "system", "content": self.system_prompt}]
+    def tape_to_steps(self, tape: Tape) -> list[Step]:
         tape_view = self.tape_view(tape)
         if tape_view:
-            messages.append({"role": "user", "content": tape_view})
+            return [UserStep(content=tape_view)]
         else:
             view = TapeViewStack.compute(tape).top
-            for step in view.steps:
-                if isinstance(step, CONTROL_FLOW_STEPS):
-                    continue
-                elif isinstance(step, (AssistantStep, UserStep)):
-                    message = {"role": step.kind, "content": step.content}
-                else:
-                    role = "assistant" if isinstance(step, AgentStep) else "user"
-                    message = {"role": role, "content": step.llm_view()}
-                messages.append(message)
+            return view.steps
+
+    def filter_steps(self, steps: list[Step]) -> list[Step]:
+        return steps
+
+    def steps_to_messages(self, steps: list[Step]) -> list[dict]:
+        messages = [{"role": "system", "content": self.system_prompt}]
+        for step in steps:
+            if isinstance(step, CONTROL_FLOW_STEPS):
+                continue
+            elif isinstance(step, (AssistantStep, UserStep)):
+                message = {"role": step.kind, "content": step.content}
+            else:
+                role = "assistant" if isinstance(step, AgentStep) else "user"
+                message = {"role": role, "content": step.llm_view()}
+            messages.append(message)
         if self.guidance:
             messages.append({"role": "user", "content": self.guidance})
         return messages
@@ -214,7 +220,7 @@ class ThinkingNode(Node):
             {"role": "user", "content": FORMALIZE_GUIDANCE},
             {
                 "role": "user",
-                "content": FORMALIZE_FORMAT.format(
+                "content": self.formalize_prompt.format(
                     schema=get_step_schemas_from_union_type(
                         Union[self.output_cls] if not get_origin(self.output_cls) == Union else self.output_cls
                     ),

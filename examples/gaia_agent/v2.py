@@ -2,20 +2,23 @@ import logging
 from typing import Any
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Call, Prompt, ReferenceStep, Tape
-from tapeagents.dialog_tape import AssistantStep
+from tapeagents.core import Call, Prompt, ReferenceStep, Step, Tape
+from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import LLM, LLMStream
-from tapeagents.nodes import ControlFlowNode, MonoNode, Return, ThinkingNode
+from tapeagents.nodes import ControlFlowNode, MonoNode, MonoNodeV2, Return
 from tapeagents.utils import get_step_schemas_from_union_type
-from tapeagents.view import all_steps, first_position, first_step, last_position, last_step
+from tapeagents.view import all_positions, all_steps, first_position, first_step, last_position, last_step
 
 from .prompts import PromptRegistry
 from .steps import (
-    ActionReflection,
+    ActionExecutionFailure,
     ExecutorStep,
     Facts,
+    GaiaAction,
     GaiaAnswer,
+    GaiaObservation,
     GaiaQuestion,
+    PageObservation,
     Plan,
     PlanReflection,
     Subtask,
@@ -29,7 +32,6 @@ logger = logging.getLogger(__name__)
 class ManagerView:
     def __init__(self, tape: Tape):
         last_plan_position = last_position(tape, Plan)
-        assert last_plan_position is not None, "No plan found!"
         plan: Plan = tape[last_plan_position]  # type: ignore
 
         self.steps = {step.number: step for step in plan.plan}
@@ -37,22 +39,13 @@ class ManagerView:
         self.remaining_steps = sorted([n for n in self.steps.keys() if n not in self.completed_steps])
         self.next_step = self.steps[self.remaining_steps[0]] if len(self.remaining_steps) else None
 
-        self.last_subtask_result = last_step(tape, SubtaskResult)
+        self.last_subtask_result = last_step(tape, SubtaskResult, allow_none=True)
         self.can_continue = bool(
             self.last_subtask_result and self.last_subtask_result.success and len(self.remaining_steps)
         )
-        self.plan_reflection = last_step(tape, PlanReflection)
+        self.plan_reflection = last_step(tape, PlanReflection, allow_none=True)
         self.success = bool(self.plan_reflection and self.plan_reflection.task_solved)
-        fact_ledgers = [step for step in all_steps(tape, Facts) if step]
-        if fact_ledgers:
-            self.facts = fact_ledgers[-1]
-            self.facts.found_facts = [fact for ledger in fact_ledgers for fact in ledger.found_facts]
-            self.known_facts = self.facts.given_facts + self.facts.found_facts
-            self.known_facts_str = "\n".join([f"- {f}" for f in self.known_facts])
-        else:
-            self.facts = None
-            self.known_facts = []
-            self.known_facts_str = "No facts found"
+        self.facts = last_step(tape, Facts, allow_none=True)
 
 
 class CallManager(Node):
@@ -62,9 +55,6 @@ class CallManager(Node):
         task = first_position(tape, GaiaQuestion)
         plan = last_position(tape, Plan)
         facts = last_position(tape, Facts)
-        assert task is not None, "No task found!"
-        assert plan is not None, "No plan found!"
-        assert facts is not None, "No facts found!"
         yield Call(agent_name=self.agent_name)
         yield ReferenceStep(step_number=task)
         yield ReferenceStep(step_number=facts)
@@ -93,7 +83,7 @@ class CallExecutor(Node):
         )
 
 
-class ReflectPlan(ThinkingNode):
+class ReflectPlan(MonoNodeV2):
     """
     Reflects on the whole plan success
     """
@@ -102,20 +92,23 @@ class ReflectPlan(ThinkingNode):
     guidance: str = PromptRegistry.reflect_plan_status
     output_cls: Any = PlanReflection
 
-    def tape_to_messages(self, tape: Tape) -> list[dict]:
-        messages = super().tape_to_messages(tape)
+    def tape_to_steps(self, tape: Tape) -> list[Step]:
+        steps = super().tape_to_steps(tape)
         view = ManagerView(tape)
+        known_facts_str = ""
+        if view.facts:
+            known_facts_str = "\n".join(view.facts.given_facts + view.facts.found_facts)
         plan_status = PromptRegistry.plan_status.format(
             completed_steps=len(view.completed_steps),
             total_steps=len(view.steps),
             remaining_steps=len(view.remaining_steps),
-            facts=view.known_facts_str,
+            facts=known_facts_str,
         )
-        messages = messages[:-1] + [{"role": "user", "content": plan_status}] + messages[-1:]
-        return messages
+        steps.append(UserStep(content=plan_status))
+        return steps
 
 
-class UpdateFacts(ThinkingNode):
+class UpdateFacts(MonoNodeV2):
     """
     Updates the list of facts based on the subtask results
     """
@@ -124,24 +117,15 @@ class UpdateFacts(ThinkingNode):
     guidance: str = ""
     output_cls: Any = Facts
 
-    def tape_view(self, tape: Tape) -> str:
-        last_results_step = tape.steps[-4]
-        assert isinstance(last_results_step, SubtaskResult), f"wrong subtask result: {last_results_step.kind}"
-        last_results_thought = tape.steps[-2]
-        assert isinstance(last_results_thought, AssistantStep), f"wrong subtask reflection: {last_results_thought.kind}"
-        last_results = f"{last_results_step.llm_view()}\n{last_results_thought.content}"
-        start_step = tape[0]
-        assert isinstance(start_step, GaiaQuestion)
-        facts = last_step(tape, Facts)
-        assert facts, "No facts found!"
-        return PromptRegistry.facts_survey_update.format(
-            task=start_step.content,
-            last_results=last_results,
-            facts=facts.llm_view(),
-        )
+    def filter_steps(self, steps: list[Step]) -> list[Step]:
+        steps = super().filter_steps(steps)
+        all_observation_positions = all_positions(steps, GaiaObservation)
+        for position in all_observation_positions[:-1]:
+            steps[position] = steps[position].model_copy(update=dict(text=""))
+        return steps
 
 
-class Replan(ThinkingNode):
+class Replan(MonoNodeV2):
     """
     Produces a new plan based on the reflection of the failed one.
     """
@@ -154,13 +138,12 @@ class Replan(ThinkingNode):
         view = ManagerView(tape)
         plan_text = "\n".join([f"{step.number}. {step.name}\n{step.description}" for step in view.steps.values()])
         plan_result = last_step(tape, PlanReflection)
-        assert plan_result
         failure_text = f"Failed step: {plan_result.failed_step_number}\n{plan_result.failure_overview}"
         self.guidance = PromptRegistry.replan.format(plan=plan_text, failure=failure_text)
         return super().make_prompt(agent, tape)
 
 
-class ProduceAnswer(ThinkingNode):
+class ProduceAnswer(MonoNodeV2):
     """
     Produces the final answer out of the final plan reflection.
     """
@@ -181,6 +164,43 @@ class ProduceAnswer(ThinkingNode):
         return super().make_prompt(agent, tape.model_copy(update=dict(steps=steps)))
 
 
+class ReflectObservation(MonoNodeV2):
+    system_prompt: str = PromptRegistry.system_prompt
+    guidance: str = PromptRegistry.reflect_observation
+
+    def filter_steps(self, steps: list[Step]) -> list[Step]:
+        steps = super().filter_steps(steps)
+        all_observation_positions = all_positions(steps, GaiaObservation)
+        for position in all_observation_positions[:-1]:
+            steps[position] = steps[position].model_copy(update=dict(text=""))
+        return steps
+
+
+class Act(MonoNode):
+    system_prompt: str = PromptRegistry.system_prompt
+    steps_prompt: str = PromptRegistry.allowed_steps_v2.format(schema=get_step_schemas_from_union_type(ExecutorStep))
+    agent_step_cls: Any = ExecutorStep
+
+    def prepare_tape(self, tape: Tape, max_chars: int = 200) -> Tape:
+        """
+        Trim long observations except for the last 3 steps
+        """
+        tape = super().prepare_tape(tape)  # type: ignore
+        steps = []
+        for step in tape.steps[:-3]:
+            if isinstance(step, PageObservation):
+                short_text = f"{step.text[:max_chars]}\n..." if len(step.text) > max_chars else step.text
+                new_step = step.model_copy(update=dict(text=short_text))
+            elif isinstance(step, ActionExecutionFailure):
+                short_error = f"{step.error[:max_chars]}\n..." if len(step.error) > max_chars else step.error
+                new_step = step.model_copy(update=dict(error=short_error))
+            else:
+                new_step = step
+            steps.append(new_step)
+        trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[-3:]))
+        return trimmed_tape
+
+
 class GaiaPlanner(Agent):
     @classmethod
     def create(
@@ -189,13 +209,13 @@ class GaiaPlanner(Agent):
     ):
         subagents = [GaiaManager.create(llm)]
         nodes = (
-            ThinkingNode(
+            MonoNodeV2(
                 name="FactsSurvey",
                 system_prompt=PromptRegistry.facts_survey_v2_system,
                 guidance=PromptRegistry.facts_survey_v2,
                 output_cls=Facts,
             ),
-            ThinkingNode(
+            MonoNodeV2(
                 name="Plan",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.plan_v2,
@@ -225,8 +245,6 @@ class GaiaManager(Agent):
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (
             CallExecutor(agent_name="GaiaExecutor"),
-            # reflect on the subtask result
-            UpdateFacts(),
             # go to the next step or finish the plan
             ControlFlowNode(
                 name="Loop",
@@ -250,44 +268,27 @@ class GaiaExecutor(Agent):
         llm: LLM,
     ):
         nodes = (
-            ThinkingNode(
+            MonoNodeV2(
                 name="StartExecution",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.start_execution_v2,
             ),
-            # ----LOOP----
-            MonoNode(
-                # TODO: 1. unify ThinkingNode and MonoNode. 2. add flag to use function calling for actions instead schema in prompt
-                name="Act",
-                system_prompt=PromptRegistry.system_prompt,
-                steps_prompt=PromptRegistry.allowed_steps_v2.format(
-                    schema=get_step_schemas_from_union_type(ExecutorStep)
-                ),
-                agent_step_cls=ExecutorStep,
-            ),
+            Act(),
+            ReflectObservation(),
             ControlFlowNode(
                 name="ReturnIfFinished",
-                predicate=lambda tape: bool(isinstance(tape[-1], SubtaskResult)),
-                next_node="ReflectSubtask",
-            ),
-            ThinkingNode(
-                name="ReflectObservation",
-                system_prompt=PromptRegistry.system_prompt,
-                guidance=PromptRegistry.reflect_observation,
-                output_cls=ActionReflection,
-            ),
-            ThinkingNode(
-                name="ProposeNextStep",
-                system_prompt=PromptRegistry.system_prompt,
-                guidance=PromptRegistry.todo_next,
+                predicate=lambda tape: bool(
+                    not isinstance(last_step(tape, GaiaAction, allow_none=True), SubtaskResult)
+                ),
                 next_node="Act",
             ),
-            # ----END LOOP----
-            ThinkingNode(
+            MonoNodeV2(
                 name="ReflectSubtask",
                 system_prompt=PromptRegistry.system_prompt,
                 guidance=PromptRegistry.reflect_subtask,
             ),
+            # reflect on the subtask result
+            UpdateFacts(),
             Return(),
         )
         return super().create(llm, nodes=nodes, max_iterations=2)

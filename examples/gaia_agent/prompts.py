@@ -56,7 +56,7 @@ If the objective has not been achieved, produce the next step.
 """
 
 FACTS_SURVEY_V2_SYSTEM = """
-You are an expert AI Agent trained to assist user with complex information processing tasks. 
+You are an expert AI Agent trained to assist user with complex information processing tasks.
 Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
 """
 
@@ -78,6 +78,15 @@ Sometimes, the request will not contain any given facts, facts to look up, or fa
 DO NOT include any other headings or sections in your response. DO NOT list next steps or plans until asked to do so.
 """
 
+tools = """You can use the following tools:
+- Wikipedia search
+- Web search
+- Web browsing
+- Reading local documents
+- Extracting fact from the web page or document
+- Python code execution
+- Reasoning"""
+
 ALLOWED_STEPS_V2 = """
 You are allowed to produce ONLY steps described in this json schema:
 {schema}
@@ -91,16 +100,9 @@ Coder: A helpful and general-purpose AI programmer that has strong language skil
 FileSurfer: An agent that can handle reading of local files only, could be helpful to read documents attached to the task or downloaded from the web by WebSurfer. Proficient with PDF, DOCX, XLSX, CSV, PPTX and other common formats.
 """
 
-PLAN_V2 = """To address this request, the following tools are available:
-- Web search
-- Web surfing
-- Python code execution
-- Reading local files
-- Reasoning
+PLAN_V2 = f"""What steps should I do to answer the question above? Be specific about how each step should be done.
 
-Using these tools and considering the known and unknown facts:
-- First reason step-by-step to produce a brief draft of the plan to solve the task.
-- Then expand the draft into a detailed, bullet-point plan for addressing the original request.
+{tools}
 
 For each step in the plan, include:
 - A detailed description of the tasks to perform.
@@ -110,18 +112,7 @@ For each step in the plan, include:
 """
 
 START_EXECUTION_V2 = """
-I have the following tools:
-- Web search
-- Web surfing
-- Python code execution
-- Reading local files
-- Reasoning
-
-What steps should I take to solve the subtask? Be specific about how each step should be done.
-"""
-
-TODO_NEXT = """
-Describe single immediate next step to be done.
+Briefly describe how to solve this task.
 """
 
 REFLECT_SUBTASK = """
@@ -178,8 +169,7 @@ If you are unable to determine the final answer, output empty result.
 """
 
 REFLECT_OBSERVATION = """
-Evaluate the results of the recent observation and summarize the findings.
-If an error occurred, explain its causes and describe its nature in detail.
+Provide reasoning about the current state of the task after the last observation.
 """
 
 FACTS_SURVEY_UPDATE = """
@@ -225,7 +215,6 @@ class PromptRegistry:
     allowed_steps_v2 = ALLOWED_STEPS_V2
     plan_v2 = PLAN_V2
     start_execution_v2 = START_EXECUTION_V2
-    todo_next = TODO_NEXT
     reflect_subtask = REFLECT_SUBTASK
     reflect_plan_status = REFLECT_PLAN_STATUS
     plan_status = PLAN_STATUS

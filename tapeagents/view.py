@@ -5,7 +5,18 @@ from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Call, Observation, ReferenceStep, Respond, SetNextNode, StepType, Tape, Thought
+from tapeagents.core import (
+    AgentStep,
+    Call,
+    Observation,
+    ReferenceStep,
+    Respond,
+    SetNextNode,
+    Step,
+    StepType,
+    Tape,
+    Thought,
+)
 
 
 class Broadcast(Thought):
@@ -166,29 +177,35 @@ class TapeViewStack(BaseModel, Generic[StepType]):
 T = TypeVar("T")
 
 
-def all_steps(tape: Tape, step_cls: type[T]) -> list[T]:
+def all_steps(tape: Tape | list[Step], step_cls: type[T]) -> list[T]:
     return [step for step in tape if isinstance(step, step_cls)]
 
 
-def all_positions(tape: Tape, step_cls: type[T]) -> list[int]:
+def all_positions(tape: Tape | list[Step], step_cls: type[T]) -> list[int]:
     return [i for i, step in enumerate(tape) if isinstance(step, step_cls)]
 
 
-def first_step(tape: Tape, step_cls: type[T]) -> T | None:
+def first_step(tape: Tape | list[Step], step_cls: type[T]) -> T:
     steps = all_steps(tape, step_cls)
-    return steps[0] if steps else None
+    assert steps, f"No steps of type {step_cls} found in the tape"
+    return steps[0]
 
 
-def first_position(tape: Tape, step_cls: type[T]) -> int | None:
+def first_position(tape: Tape | list[Step], step_cls: type[T]) -> int:
     positions = all_positions(tape, step_cls)
-    return positions[0] if positions else None
+    assert positions, f"No steps of type {step_cls} found in the tape"
+    return positions[0]
 
 
-def last_step(tape: Tape, step_cls: type[T]) -> T | None:
+def last_step(tape: Tape | list[Step], step_cls: type[T], allow_none: bool = False) -> T:
     steps = all_steps(tape, step_cls)
-    return steps[-1] if steps else None
+    if allow_none and not steps:
+        return None  # type: ignore
+    assert steps, f"No steps of type {step_cls} found in the tape"
+    return steps[-1]
 
 
-def last_position(tape: Tape, step_cls: type[T]) -> int | None:
+def last_position(tape: Tape | list[Step], step_cls: type[T]) -> int:
     positions = all_positions(tape, step_cls)
-    return positions[-1] if positions else None
+    assert positions, f"No steps of type {step_cls} found in the tape"
+    return positions[-1]

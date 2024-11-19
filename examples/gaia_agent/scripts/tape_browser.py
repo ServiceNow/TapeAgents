@@ -99,7 +99,7 @@ class GaiaTapeBrowser(TapeBrowser):
             elif step.kind == "action_execution_failure" and last_action:
                 error = last_action.kind[:2]
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
-        if tape.metadata.task["file_name"]:
+        if tape.metadata.task.get("file_name"):
             mark += "📁"
         if error:
             mark += f"[{error}]"
@@ -123,7 +123,7 @@ class GaiaTapeBrowser(TapeBrowser):
             [step for step in tape if "failure" in step.kind or (step.kind == "page_observation" and step.error)]
         )
         label = f"""<h2>Tape Result</h2>
-            <div class="result-label expected">Golden Answer: <b>{tape.metadata.task['Final answer']}</b></div>
+            <div class="result-label expected">Golden Answer: <b>{tape.metadata.task.get('Final answer', '')}</b></div>
             <div class="result-label">Agent Answer: <b>{tape.metadata.result}</b></div>
             <div class="result-label">Steps: {len(tape)}</div>
             <div class="result-label">Failures: {failure_count}</div>"""

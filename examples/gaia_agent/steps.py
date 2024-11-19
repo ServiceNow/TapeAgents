@@ -216,7 +216,9 @@ class ReadingResultThought(GaiaThought):
 ################### Actions ###################
 class SearchAction(GaiaAction):
     """
-    Action that provides parameters for a search function call. Could search in the web_search or wikipedia. Search results will be ordered by relevance from top to bottom
+    Action that provides parameters for a search function call.
+    Search results will be ordered by relevance from top to bottom.
+    If you want more information about the search result, read the url using read_document_action
     """
 
     kind: Literal["search_action"] = "search_action"
@@ -398,11 +400,6 @@ class PlanReflection(GaiaThought):
     failure_overview: str = ""
 
 
-class ActionReflection(GaiaThought):
-    kind: Literal["action_reflection"] = "action_reflection"
-    step_success: bool
-
-
 GaiaStep = Union[
     PlanThought,
     ListOfFactsThought,
@@ -434,7 +431,6 @@ GaiaStep = Union[
     AssistantStep,
     Subtask,
     PlanReflection,
-    ActionReflection,
     Call,
     Respond,
     ConditionCheck,
@@ -472,6 +468,7 @@ ExecutorStep: TypeAlias = Annotated[
         ReadDocumentAction,
         NextPageAction,
         PythonCodeAction,
+        ReasoningThought,
     ],
     Field(discriminator="kind"),
 ]
