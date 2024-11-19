@@ -15,7 +15,7 @@ from .core import LLMCall, LLMOutput, Prompt, Tape
 logger = logging.getLogger(__name__)
 
 _checked_sqlite = False
-_ACTIVE_MANAGER: Optional["SQLiteWriterThread"] = None
+_WRITER_THREAD: Optional["SQLiteWriterThread"] = None
 
 LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
