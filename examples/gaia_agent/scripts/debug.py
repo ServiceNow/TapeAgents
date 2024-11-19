@@ -16,13 +16,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def main(dataset_path, exp_dir, level):
+def main(dataset_path, exp_dir, level, task_num):
     dset = load_dataset(dataset_path)
     tapes_dir = f"{exp_dir}/tapes"
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_dir, "tapedata.sqlite")
-    tape_name = "debug"
+    tape_name = f"debug_{level}_{task_num}"
     tasks = dset[level]
-    task = tasks[0]
+    task = tasks[task_num]
     llm = LiteLLM(
         model_name="gpt-4o-mini-2024-07-18",
         context_size=128000,
@@ -75,4 +75,5 @@ if __name__ == "__main__":
     dataset_path = "../gaia/dataset/validation/"
     exp_dir = "../gaia/runs/v2_debug/"
     level = 1
-    main(dataset_path, exp_dir, level)
+    task = 2
+    main(dataset_path, exp_dir, level, task)
