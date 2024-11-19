@@ -83,7 +83,9 @@ class CallExecutor(Node):
             results = [f"Step {result.number} result: {result.name} {result.answer} {result.answer_unit}"]
             prerequisites += results
         agent_name = self.agent_name
-        if not view.next_step.list_of_tools:
+        if (not view.next_step.list_of_tools) or (
+            len(view.next_step.list_of_tools) == 1 and view.next_step.list_of_tools[0] == "Reasoning"
+        ):
             agent_name = "Reasoner"
         task = first_position(tape, GaiaQuestion)
         plan = last_position(tape, Plan)
