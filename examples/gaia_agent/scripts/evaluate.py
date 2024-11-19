@@ -64,7 +64,7 @@ def main(cfg: DictConfig) -> None:
     processor = choose_processor(n_workers)
     logger.info(f"Evaluate using {n_workers} workers")
     args = [
-        (agent, llm, cfg.env, i, task, cfg.n_attempts, tapes_dir, browser_log_path, level)
+        (agent, llm, cfg.env, i, task, tapes_dir, browser_log_path, level)
         for level, level_tasks in tasks.items()
         for i, task in enumerate(level_tasks)
     ]
@@ -76,7 +76,7 @@ def main(cfg: DictConfig) -> None:
 
 
 def task_worker(args: tuple) -> int:
-    agent, llm, cfg_env, i, task, n_attempts, tapes_dir, browser_log_path, level = args
+    agent, llm, cfg_env, i, task, tapes_dir, browser_log_path, level = args
     tape_name = f"l{level}_task{i:03d}"
     tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
     if os.path.exists(tape_path):
@@ -87,7 +87,7 @@ def task_worker(args: tuple) -> int:
             logger.info(f"Skip task {tape_name}, already solved")
             return 0
     env = GaiaEnvironment(vision_lm=llm, **cfg_env)
-    tape = solve_task(task, agent, env, n_attempts)
+    tape = solve_task(task, agent, env)
     tape.metadata.level = level
     save_json_tape(tape, tapes_dir, tape_name)
     logger.info(f"Task {tape_name} solved, saved to {tape_path}")

@@ -48,7 +48,7 @@ class GaiaNode(MonoNode):
         Allow different subset of steps based on the agent's configuration
         """
         plan_thoughts = not tape.has_fact_schemas()
-        allowed_steps = get_allowed_steps(agent.subtasks, plan_thoughts)
+        allowed_steps = get_allowed_steps(plan_thoughts)
         return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def prepare_tape(self, tape: GaiaTape, max_chars: int = 200) -> GaiaTape:
@@ -97,22 +97,19 @@ class GaiaNode(MonoNode):
 
 
 class GaiaAgent(Agent):
-    subtasks: bool
-
     @classmethod
     def create(
         cls,
         llm: LLM,
         planning_mode: PlanningMode = PlanningMode.simple,
-        subtasks: bool = False,
     ):
-        nodes = cls.prepare_guidance(planning_mode, subtasks)
-        return super().create(llm, nodes=nodes, max_iterations=2, subtasks=subtasks)
+        nodes = cls.prepare_guidance(planning_mode)
+        return super().create(llm, nodes=nodes, max_iterations=2)
 
     @classmethod
-    def prepare_guidance(cls, planning_mode: PlanningMode, subtasks: bool) -> list[GaiaNode]:
+    def prepare_guidance(cls, planning_mode: PlanningMode) -> list[GaiaNode]:
         """
-        Prepare mononodes based on the planning mode and subtasks flag
+        Prepare mononodes based on the planning mode
         """
         guidance_nodes = []
         if planning_mode == PlanningMode.simple:
@@ -176,6 +173,4 @@ class GaiaAgent(Agent):
             ]
         else:
             raise ValueError(f"Unknown planning mode: {planning_mode}")
-        if subtasks:
-            guidance_nodes.append(GaiaNode(name="check_subtask_finished", guidance=PromptRegistry.is_subtask_finished))
         return guidance_nodes
