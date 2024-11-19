@@ -4,18 +4,26 @@ import json
 import yaml
 
 from tapeagents.container_executor import CodeBlock
-from tapeagents.core import Action, Error, Observation, SetNextNode, Step, Thought
+from tapeagents.core import Action, ConditionCheck, Error, Observation, SetNextNode, Step, Thought
 from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
-from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer, to_pretty_str
+from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, YELLOW, BasicRenderer, to_pretty_str
 from tapeagents.view import Broadcast, Call, Respond
 
 
 class CameraReadyRenderer(BasicRenderer):
-    def __init__(self, show_metadata=False, render_agent_node=True, show_content=True, **kwargs):
+    def __init__(
+        self,
+        show_metadata=False,
+        render_agent_node=True,
+        show_content=True,
+        fold_length: int = 300,
+        **kwargs,
+    ):
         self.show_metadata = show_metadata
         self.show_content = show_content
+        self.fold_length = fold_length
         super().__init__(render_agent_node=render_agent_node, **kwargs)
 
     @property
@@ -25,10 +33,9 @@ class CameraReadyRenderer(BasicRenderer):
             f".observation {{ background-color: {GREEN} ;}}"
             f".error {{ background-color: {RED} !important; }}"
             f".action {{ background-color: {BLUE}; }}"
-            f".thought {{ background-color: {PURPLE}; }}"
-            f".call {{ background-color: {LIGHT_YELLOW}; }}"
-            f".respond {{ background-color: {LIGHT_YELLOW}; }}"
-            f".broadcast {{ background-color: {LIGHT_YELLOW}; }}"
+            f".thought {{ background-color: {YELLOW}; }}"
+            f".free_form {{ background-color: {LIGHT_YELLOW}; }}"
+            f".control {{ background-color: {PURPLE}; }}"
             ".step-header { margin: 2pt 2pt 2pt 0 !important; }"
             ".step-text { font-size: 12px; white-space: pre-wrap; word-wrap: break-word;}"
             "</style>"
@@ -51,32 +58,36 @@ class CameraReadyRenderer(BasicRenderer):
             title = ""
             class_ = "observation"
         elif isinstance(step, AssistantStep):
-            role = "Assistant"
+            role = "Free-Form Thought"
             title = ""
-            class_ = "action"
+            class_ = "free_form"
         elif isinstance(step, DialogContext):
             role = ""
             class_ = "observation"
+        elif isinstance(step, (ConditionCheck)):
+            role = "Condition Check"
+            title = step.metadata.node
+            class_ = "control"
         elif isinstance(step, Call):
             role = ""
             title = f"{step.metadata.agent.split('/')[-1]} calls {step.agent_name}"
-            class_ = "call"
+            class_ = "control"
             dump.pop("agent_name", None)
         elif isinstance(step, Respond):
             role = ""
             parts = step.metadata.agent.split("/")
             title = f"{parts[-1]} responds to {parts[-2]}" if len(parts) > 1 else f"{step.metadata.agent} responds"
-            class_ = "respond"
+            class_ = "control"
             dump.pop("copy_output", None)
         elif isinstance(step, Broadcast):
             role = ""
             parts = step.metadata.agent.split("/")
             title = f"{step.metadata.agent.split('/')[-1]} broadcasts"
-            class_ = "broadcast"
+            class_ = "control"
         elif isinstance(step, SetNextNode):
             role = ""
             title = f"Set Next Node: {step.next_node}"
-            class_ = "thought"
+            class_ = "control"
             dump.pop("next_node", None)
         elif isinstance(step, Thought):
             role = "Thought"
@@ -104,10 +115,12 @@ class CameraReadyRenderer(BasicRenderer):
         def pretty_yaml(d: dict):
             return to_pretty_str(d)
 
-        def maybe_fold(content: str, len_max: int = 60):
+        def maybe_fold(content: str, len_max: int | None = None, preview_length: int = 60):
             content = str(content)
+            if len_max is None:
+                len_max = self.fold_length
             if len(content) > len_max:
-                summary = f"{content[:len_max]}...".replace("\n", "\\n")
+                summary = f"{content[:preview_length]}...".replace("\n", "\\n")
                 return f"<details><summary>{summary}</summary>---<br>{content}</details>"
             return content
 
@@ -145,9 +158,9 @@ class CameraReadyRenderer(BasicRenderer):
             text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
         elif (content := getattr(step, "text", None)) is not None:
             del dump["text"]
-            text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
+            text = pretty_yaml(dump) + ("\n" + maybe_fold(content, 60) if content else "")
         else:
-            text = pretty_yaml(dump)
+            text = pretty_yaml(dump) if dump else ""
 
         if not self.show_content:
             text = ""

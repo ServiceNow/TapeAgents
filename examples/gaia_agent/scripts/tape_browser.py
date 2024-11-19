@@ -155,7 +155,7 @@ class GaiaTapeBrowser(TapeBrowser):
 
 
 def main(dirname: str):
-    browser = GaiaTapeBrowser(dirname, CameraReadyRenderer())
+    browser = GaiaTapeBrowser(dirname, CameraReadyRenderer(fold_length=3000))
     browser.launch(port=7861)
 
 
