@@ -44,11 +44,11 @@ def main(root: str, runs: list[str]):
 
 if __name__ == "__main__":
     runs = [
-        "gpt4o_mini_val_batch32_5",
-        "gpt4o_mini_val_batch32_6",
-        "gpt4o_mini_val_batch32_7",
-        "gpt4o_mini_val_batch32_t0_2",
-        "gpt4o_mini_val_batch32_t05",
+        "gpt4o_mini_val_changes1",
+        "gpt4o_mini_val_changes_t00",
+        "gpt4o_mini_val_changes_t02",
+        "gpt4o_mini_val_changes_t05",
+        "gpt4o_mini_val_changes_t05_2",
     ]
     main(root="../gaia/runs/", runs=runs)
 

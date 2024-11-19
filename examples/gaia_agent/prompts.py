@@ -125,8 +125,8 @@ REFLECT_PLAN_STATUS = """
 Assess the current state of plan execution:
 
 Determine whether the produced results contain all the necessary information to answer the question.
-Evaluate the progress of plan completion.
-Assess whether the task has been successfully solved or remains incomplete.
+If there is enough information to answer the question, mark task as solved and plan as finished.
+If plan is not finished solved, evaluate the progress of plan completion.
 If any steps have failed, analyze the reasons for the failure and suggest adjustments to the plan to ensure the task can still be completed.
 """
 
@@ -177,7 +177,14 @@ As a reminder, we are working to solve the following task:
 
 {task}
 
-We've completed another step in the task, here is the results:
+We're executing the following plan:
+
+{plan}
+
+Here is the current fact sheet:
+{facts}
+
+We've completed another step in the plan, here is the results:
 
 {last_results}
 
@@ -188,11 +195,10 @@ Please update the following fact sheet to include any new information we have le
 - Remove educated guesses that have been proven false or replaced by found facts.
 - Do not remove previously found facts!
 
-Here is the current fact sheet:
-{facts}
-
 Respond with updated facts sheet.
 """
+
+REASON = "Let's think step by step"
 
 
 class PromptRegistry:
@@ -222,3 +228,4 @@ class PromptRegistry:
     final_answer = FINAL_ANSWER
     reflect_observation = REFLECT_OBSERVATION
     facts_survey_update = FACTS_SURVEY_UPDATE
+    reason = REASON

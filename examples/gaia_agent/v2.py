@@ -1,8 +1,9 @@
 import logging
 from typing import Any
 
+from examples.gaia_agent.agent import GaiaNode
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Call, Prompt, ReferenceStep, Step, Tape
+from tapeagents.core import Call, Prompt, ReferenceStep, SetNextNode, Step, Tape
 from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.nodes import ControlFlowNode, MonoNode, MonoNodeV2, Return
@@ -33,18 +34,26 @@ class ManagerView:
     def __init__(self, tape: Tape):
         last_plan_position = last_position(tape, Plan)
         plan: Plan = tape[last_plan_position]  # type: ignore
-
+        last_subtask = None
+        for step in tape:
+            if isinstance(step, Subtask):
+                last_subtask = step
+            if isinstance(step, SubtaskResult) and last_subtask:
+                step.number = last_subtask.number
         self.steps = {step.number: step for step in plan.plan}
         self.completed_steps = {step.number: step for step in all_steps(tape, SubtaskResult)}
         self.remaining_steps = sorted([n for n in self.steps.keys() if n not in self.completed_steps])
         self.next_step = self.steps[self.remaining_steps[0]] if len(self.remaining_steps) else None
 
         self.last_subtask_result = last_step(tape, SubtaskResult, allow_none=True)
-        self.can_continue = bool(
-            self.last_subtask_result and self.last_subtask_result.success and len(self.remaining_steps)
-        )
         self.plan_reflection = last_step(tape, PlanReflection, allow_none=True)
         self.success = bool(self.plan_reflection and self.plan_reflection.task_solved)
+        self.can_continue = bool(
+            (not self.success)
+            and self.last_subtask_result
+            and self.last_subtask_result.success
+            and len(self.remaining_steps)
+        )
         self.facts = last_step(tape, Facts, allow_none=True)
 
 
@@ -70,9 +79,19 @@ class CallExecutor(Node):
         prerequisites = []
         for step_number, _ in view.next_step.prerequisites:
             assert step_number in view.completed_steps, f"Prerequisite result {step_number} not found!"
-            prerequisites += view.completed_steps[step_number].results
-
-        yield Call(agent_name=self.agent_name)
+            result = view.completed_steps[step_number]
+            results = [f"Step {result.number} result: {result.name} {result.answer} {result.answer_unit}"]
+            prerequisites += results
+        agent_name = self.agent_name
+        if not view.next_step.list_of_tools:
+            agent_name = "Reasoner"
+        task = first_position(tape, GaiaQuestion)
+        plan = last_position(tape, Plan)
+        facts = last_position(tape, Facts)
+        yield Call(agent_name=agent_name)
+        yield ReferenceStep(step_number=task)
+        yield ReferenceStep(step_number=facts)
+        yield ReferenceStep(step_number=plan)
         yield Subtask(
             number=view.next_step.number,
             name=view.next_step.name,
@@ -85,7 +104,7 @@ class CallExecutor(Node):
 
 class ReflectPlan(MonoNodeV2):
     """
-    Reflects on the whole plan success
+    Reflects on the plan progress
     """
 
     system_prompt: str = PromptRegistry.system_prompt
@@ -117,12 +136,15 @@ class UpdateFacts(MonoNodeV2):
     guidance: str = ""
     output_cls: Any = Facts
 
-    def filter_steps(self, steps: list[Step]) -> list[Step]:
-        steps = super().filter_steps(steps)
-        all_observation_positions = all_positions(steps, GaiaObservation)
-        for position in all_observation_positions[:-1]:
-            steps[position] = steps[position].model_copy(update=dict(text=""))
-        return steps
+    def tape_view(self, tape: Tape) -> str:
+        last_results_step = ManagerView(tape).last_subtask_result
+        task = first_step(tape, GaiaQuestion)
+        plan = last_step(tape, Plan)
+        facts = last_step(tape, Facts)
+        assert facts, "No facts found!"
+        return PromptRegistry.facts_survey_update.format(
+            task=task.content, plan=plan.llm_view(), last_results=last_results_step.llm_view(), facts=facts.llm_view()
+        )
 
 
 class Replan(MonoNodeV2):
@@ -240,33 +262,58 @@ class GaiaManager(Agent):
         cls,
         llm: LLM,
     ):
-        subagents = [GaiaExecutor.create(llm)]
+        subagents = [GaiaOld.create(llm), Reasoner.create(llm)]
 
         # Yes, it looks like ancient asm code listing with jumps
         nodes = (
-            CallExecutor(agent_name="GaiaExecutor"),
+            CallExecutor(agent_name="GaiaOld"),
             # go to the next step or finish the plan
+            UpdateFacts(),
+            ReflectPlan(),
             ControlFlowNode(
                 name="Loop",
                 predicate=lambda tape: ManagerView(tape).can_continue,
                 next_node="CallExecutor",
             ),
-            ReflectPlan(),
             Return(),
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
 
 
-class GaiaExecutor(Agent):
-    """
-    Follows the plan, manages the execution of the subtasks, reflects on subtask results.
-    """
-
+class Reasoner(Agent):
     @classmethod
-    def create(
-        cls,
-        llm: LLM,
-    ):
+    def create(cls, llm: LLM):
+        nodes = [
+            MonoNodeV2(
+                name="Reason",
+                system_prompt=PromptRegistry.system_prompt,
+                guidance=PromptRegistry.reason,
+                output_cls=SubtaskResult,
+            ),
+            Return(),
+        ]
+        return super().create(llm, nodes=nodes, max_iterations=2)
+
+
+class GaiaOld(Agent):
+    @classmethod
+    def create(cls, llm: LLM):
+        nodes = [
+            GaiaNode(name="StartExecution", guidance=PromptRegistry.start_execution),
+            GaiaNode(name="Act", guidance="Produce step with kind subtask_result when the current subtask is solved"),
+            ControlFlowNode(
+                name="ReturnIfFinished",
+                predicate=lambda tape: bool(not isinstance(tape[-1], SubtaskResult)),
+                next_node="Act",
+            ),
+            Return(),
+        ]
+        return super().create(llm, nodes=nodes, max_iterations=2)
+
+
+class GaiaExecutor(Agent):
+    @classmethod
+    def create(cls, llm: LLM):
         nodes = (
             MonoNodeV2(
                 name="StartExecution",

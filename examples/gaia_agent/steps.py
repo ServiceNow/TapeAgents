@@ -379,16 +379,25 @@ class Subtask(GaiaThought):
 
 class SubtaskResult(GaiaThought):
     """
-    Thought that indicates that you've finished working on the subtask from the plan. You cannot produce that step right after the start subtask, there MUST be some steps in between
+    Thought that indicates that you've finished working on the task. You cannot produce that step right after the start, there MUST be some steps in between
+    The answer should use already determined facts without any additional conversion!
+    Your final answer should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
+    ADDITIONALLY, your final answer MUST adhere to any formatting instructions specified in the original question (e.g., alphabetization, sequencing, units, rounding, decimal places, etc.)
+    If you are asked for a number, express it numerically, don't use commas, do not add anything after the number, don't include units such as $ or percent signs unless specified in question otherwise.
+    If you are asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
+    If you are asked for a comma separated list, apply the above rules depending on whether the elements are numbers or strings.
+    If you are unable to determine the final answer, output empty string
     """
 
-    kind: Literal["finish_subtask_thought"] = "finish_subtask_thought"
-    number: int = Field(description="subtask number")
-    success: bool = Field(description="True if the subtask was successful, False otherwise")
-    results: list[str] = Field(description="achieved results")
-    execution_summary: str = Field(description="overview of the subtask execution process")
+    kind: Literal["subtask_result"] = "subtask_result"
+    number: int = Field(description="task number")
+    success: bool = Field(description="True if the task was successful, False otherwise")
+    name: str = Field(description="result name")
+    answer_unit: str = Field(description="unit of the answer, if applicable, otherwise empty string")
+    answer: Any = Field(description="short final answer")
+    execution_summary: str = Field(description="overview of the task execution process in few lines")
     failure_overview: str = Field(
-        description="detailed description of reasons of the subtask failure, if applicable", default=""
+        description="detailed description of reasons of the task failure, if applicable", default=""
     )
 
 
@@ -461,6 +470,21 @@ GaiaAgentStep: TypeAlias = Annotated[
     Field(discriminator="kind"),
 ]
 
+GaiaOldStep: TypeAlias = Annotated[
+    Union[
+        ReadingResultThought,
+        NewFactThought,
+        ReasoningThought,
+        SearchAction,
+        ReadDocumentAction,
+        NextPageAction,
+        ConvertFactAction,
+        UseCalculatorAction,
+        SubtaskResult,
+    ],
+    Field(discriminator="kind"),
+]
+
 ExecutorStep: TypeAlias = Annotated[
     Union[
         SubtaskResult,
@@ -474,35 +498,10 @@ ExecutorStep: TypeAlias = Annotated[
 ]
 
 
-def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
-    if plan_thoughts:
+def get_allowed_steps(plan_thoughts: bool) -> str:
+    if False:  # plan_thoughts:
         steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
+        steps_alias = Annotated[steps, Field(discriminator="kind")]
     else:
-        if subtasks:
-            steps = Union[
-                ReadingResultThought,
-                NewFactThought,
-                ReasoningThought,
-                SearchAction,
-                ReadDocumentAction,
-                NextPageAction,
-                ConvertFactAction,
-                UseCalculatorAction,
-                GaiaAnswer,
-                StartSubtask,
-                SubtaskResult,
-            ]
-        else:
-            steps = Union[
-                ReadingResultThought,
-                NewFactThought,
-                ReasoningThought,
-                SearchAction,
-                ReadDocumentAction,
-                NextPageAction,
-                ConvertFactAction,
-                UseCalculatorAction,
-                GaiaAnswer,
-            ]
-    steps_alias = Annotated[steps, Field(discriminator="kind")]
+        steps_alias = GaiaOldStep
     return get_step_schemas_from_union_type(steps_alias)
