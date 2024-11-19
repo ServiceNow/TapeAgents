@@ -11,8 +11,6 @@ max_agent_forks: 1024
 attempts: 64
 force_restart: false
 max_iterations: 1000
-discount: 0.9
-max_steps: 100
 use_rejection_sampling: false
 llm:
   parameters:

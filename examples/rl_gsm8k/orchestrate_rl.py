@@ -94,19 +94,16 @@ def extract_tape_training_samples(
         Tuple containing:
         - Processed MathTape
         - List of training samples with rewards and logprobs
-        - Dictionary with statistics (reward, steps, success, no_errors, no_overflow)
+        - Dictionary with statistics (reward, steps, success, no_errors)
     """
     discarded = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
         # LLM produced a step that was unparsable. Negative reward.
-        no_error, reward, success, no_overflow = 0, -1, 0, 1
-    elif len(new_tape.steps) > cfg.max_steps:
-        # Too many steps. Negative reward.
-        no_error, reward, success, no_overflow = 1, -1, 0, 0
+        no_error, reward, success = 0, -1, 0
     else:
-        no_error, no_overflow = 1, 1
+        no_error = 1
         if (
             isinstance(new_tape.steps[-1], ReasoningThoughtwithValue)
             and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
@@ -122,7 +119,6 @@ def extract_tape_training_samples(
         prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
         sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
         # Sort sub_llm_calls to match the order of prompt_ids
-        # Process LLM calls in reverse order to apply reward discounting
         # For each LLM interaction in the tape:
         # - Create a training sample from the prompt and output
         # - Get log probabilities of the output tokens
@@ -132,12 +128,12 @@ def extract_tape_training_samples(
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
             # Check if we will need the KL
             if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.implicit_kl_coef > 0):
-                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)
+                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text) # type: ignore
             else:
                 trace.logprobs = [0] * llm_call.output_length_tokens
                 trace.ref_logprobs = [0] * llm_call.output_length_tokens
-            trace.reward = reward * (cfg.discount**i)
-            trace.group_id = new_tape.metadata.parent_id  # f"{new_tape.metadata.parent_id}_{i}"
+            trace.reward = reward
+            trace.group_id = new_tape.metadata.parent_id 
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
             if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
@@ -156,7 +152,6 @@ def extract_tape_training_samples(
         "steps": len(new_tape.steps),
         "success": success,
         "no_error": no_error,
-        "no_overflow": no_overflow,
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
@@ -195,7 +190,6 @@ def generate_training_data(
     reward_stats = defaultdict(list)
     step_stats = defaultdict(list)
     no_errors_stats = defaultdict(list)
-    no_overflow_stats = defaultdict(list)
     success_stats = defaultdict(list)
     discarded_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
@@ -237,7 +231,6 @@ def generate_training_data(
             step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
-            no_overflow_stats[new_tape.metadata.parent_id].append(tape_stats["no_overflow"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
@@ -253,7 +246,6 @@ def generate_training_data(
         **{f"{dataset_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{dataset_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{dataset_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
-        **{f"{dataset_name}_{k}_no_overflow": v for k, v in calculate_stats(no_overflow_stats).items()},
         **{
             f"execution_time/{dataset_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
             f"execution_time/{dataset_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,

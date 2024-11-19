@@ -123,7 +123,7 @@ def log_time(start_time, msg):
 def flatten_dict_config(d: DictConfig | dict, separator=".") -> dict:
     result = {}
     for k, v in d.items():
-        if isinstance(v, DictConfig):
+        if isinstance(v, DictConfig) or isinstance(v, dict):
             for sub_k, sub_v in flatten_dict_config(v).items():
                 result[str(k) + separator + str(sub_k)] = sub_v
         else:
