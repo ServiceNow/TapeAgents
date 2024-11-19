@@ -34,6 +34,6 @@ weight_decay: 0.1
 gradient_clipping_threshold: 1
 rl:
   kl_coef: 0.0
-  implicit_kl_coef: 0.0
+  reward_minus_kl_coef: 0.0
   use_advantages: true
   algo: reinforce

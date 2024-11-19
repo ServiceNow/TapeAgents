@@ -33,3 +33,6 @@ class TrainingMetrics:
     best_eval_loss: float = 1e9
     best_completed_steps: int = 0
     lr: float = 0.0
+    max_seq_len: int = 0
+    min_seq_len: int = 0
+    mean_seq_len: float = 0.0

@@ -103,10 +103,10 @@ def sqlite_store_llm_call(call: LLMCall):
     Will use the queue if available (within context manager),
     otherwise falls back to single-threaded mode.
     """
-    if _ACTIVE_MANAGER is not None and _ACTIVE_MANAGER.queue is not None:
+    if _WRITER_THREAD is not None and _WRITER_THREAD.queue is not None:
         # We're in a context manager, use the queue
         logger.debug("Using SQLite queue writing mode")
-        _ACTIVE_MANAGER.queue.put(call)
+        _WRITER_THREAD.queue.put(call)
     else:
         # We're not in a context manager, use single-threaded mode
         logger.debug("Using single-threaded SQLite writing mode")
@@ -264,8 +264,8 @@ class SQLiteWriterThread:
         self.writer_thread.start()
 
         # Set the global reference
-        global _ACTIVE_MANAGER
-        _ACTIVE_MANAGER = self
+        global _WRITER_THREAD
+        _WRITER_THREAD = self
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -278,8 +278,8 @@ class SQLiteWriterThread:
             self.writer_thread = None
 
             # Clear the global reference
-            global _ACTIVE_MANAGER
-            _ACTIVE_MANAGER = None
+            global _WRITER_THREAD
+            _WRITER_THREAD = None
 
     def _queue_sqlite_writer(self):
         """The worker function that processes the queue."""

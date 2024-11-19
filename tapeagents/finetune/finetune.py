@@ -26,7 +26,7 @@ from .checkpoints import (
     save_training_state,
 )
 from .context import accelerator, logger
-from .data import create_dataloader, prepare_dataloaders, get_dataset_stats
+from .data import create_dataloader, prepare_dataloaders
 from .eval import evaluate_and_get_metrics
 from .logging_ import log_metrics, log_time, setup_logging
 from .optim import get_optimizer
@@ -156,10 +156,6 @@ def run_finetuning_loop(
         logger.info("LR after loading training state: %.2E" % training_metrics.lr)
         dt = log_time(dt, "finetune/training_state_load")
 
-    if accelerator.is_main_process:
-        dataset_stats = get_dataset_stats(train_dataloader)
-        log_metrics(logger, training_metrics.completed_steps, dataset_stats)
-
     @contextlib.contextmanager
     def toggle_sync(sync: bool):
         """Wrap accelerate.no_sync() if sync is False."""
@@ -207,6 +203,8 @@ def run_finetuning_loop(
                         rl_metrics[k].append(v)
                     training_metrics.train_loss = loss.item()
                     training_metrics.lr = optimizer.param_groups[0]["lr"]
+                    training_metrics.max_seq_len = max(batch["input_ids"].shape[1], training_metrics.max_seq_len)
+                    training_metrics.min_seq_len = min(batch["input_ids"].shape[1], training_metrics.min_seq_len)
                     accelerator.backward(loss / args.gradient_accumulation_passes)
 
             if not do_optimizer_step:

@@ -127,7 +127,7 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
             # Check if we will need the KL
-            if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.implicit_kl_coef > 0):
+            if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.reward_minus_kl_coef > 0):
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text) # type: ignore
             else:
                 trace.logprobs = [0] * llm_call.output_length_tokens
@@ -374,7 +374,7 @@ def main(cfg: DictConfig):
         training_samples = all_results["train"]["training_samples"]
         new_training_samples: list[TrainingText] = []
         refmodel_starting_time = 0
-        if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.implicit_kl_coef > 0):
+        if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.reward_minus_kl_coef > 0):
             logging.info("Populating reference log probabilities")
             if assistant_model_path == cfg.model_path:
                 # At the first itetration, Ref logprobs are the same as logprobs

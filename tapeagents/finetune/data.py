@@ -288,32 +288,3 @@ def prepare_dataloaders(
     )
 
     return train_dataloader, eval_dataloader, dev_dataloader
-
-def get_dataset_stats(dataloader: DataLoader) -> dict:
-    if not dataloader:
-        return {}
-
-    total_seqs = 0
-    total_length = 0
-    max_length = 0
-    min_length = float("inf")
-
-    for batch in dataloader:
-        batch_size = batch["input_ids"].size(0)
-        for i in range(batch_size):
-            # Get actual sequence length by finding last non-padding token
-            seq_length = torch.sum(batch["attention_mask"][i]).item()
-
-            total_seqs += 1
-            total_length += seq_length
-            max_length = max(max_length, seq_length)
-            min_length = min(min_length, seq_length)
-
-    stats = {
-        "dataset_stats/num_sequences": total_seqs,
-        "dataset_stats/max_seq_length": max_length,
-        "dataset_stats/min_seq_length": min_length,
-        "dataset_stats/avg_seq_length": total_length / total_seqs if total_seqs > 0 else 0,
-    }
-
-    return stats

@@ -43,7 +43,7 @@ class RLConfig(StepConfig):
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
     )
     epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
-    implicit_kl_coef: Optional[float] = field(
+    reward_minus_kl_coef: Optional[float] = field(
         default=0.,
         # https://arxiv.org/abs/2402.14740
         metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
@@ -52,7 +52,7 @@ class RLConfig(StepConfig):
         default=0.1,
         metadata={"help": "KL penalty coefficient with reference policy"},
     )
-    relu_weights: Optional[bool] = field(
+    relu_log_p_weights: Optional[bool] = field(
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
@@ -106,19 +106,19 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     # First compute the PPO surrogate loss, see https://arxiv.org/pdf/2402.03300 eq 3
     log_ratio_new_old = new_log_probs - old_logprobs
     ratio_new_old = torch.exp(log_ratio_new_old)
-    weights = advantages if config.use_advantages else rewards
-    weights = torch.clamp(weights, min=0) if config.relu_weights else weights
+    log_p_weights = advantages if config.use_advantages else rewards
+    log_p_weights = torch.clamp(log_p_weights, min=0) if config.relu_log_p_weights else log_p_weights
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
     approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
     match config.algo:
         case "grpo":
             # GRPO is based on https://arxiv.org/pdf/2402.03300
-            surr1 = ratio_new_old * weights
+            surr1 = ratio_new_old * log_p_weights
 
             clamped_ratio = torch.clamp(ratio_new_old, 1 - config.epsilon, 1 + config.epsilon)
 
-            surr2 = clamped_ratio * weights
+            surr2 = clamped_ratio * log_p_weights
 
             surrogate_loss = torch.min(surr1, surr2)
 
@@ -128,7 +128,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = -masked_mean(new_log_probs * weights - config.kl_coef * approx_kl, masks_)
+            loss = -masked_mean(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
@@ -142,8 +142,8 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "min_reward": rewards[masks_].min().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
-        "mean_new_logprobs_positive_weights": masked_mean(new_log_probs[weights > 0], masks_[weights > 0]).item() if (weights > 0).any() else 0,
-        "mean_new_logprobs_negative_weights": masked_mean(new_log_probs[weights < 0], masks_[weights < 0]).item() if (weights < 0).any() else 0,
+        "mean_new_logprobs_positive_weights": masked_mean(new_log_probs[log_p_weights > 0], masks_[log_p_weights > 0]).item() if (log_p_weights > 0).any() else 0,
+        "mean_new_logprobs_negative_weights": masked_mean(new_log_probs[log_p_weights < 0], masks_[log_p_weights < 0]).item() if (log_p_weights < 0).any() else 0,
         "mean_ref_logprobs": masked_mean(ref_logprobs, masks_).item(),
         "advantage": masked_mean(advantages, masks_).item(),
         "max_advantage": advantages[masks_].max().item(),
@@ -174,10 +174,10 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
     """
     df = dataset.to_pandas()
 
-    if config.implicit_kl_coef > 0:
+    if config.reward_minus_kl_coef > 0:
         logger.info("Updating Reward with Implicit KL")
         calculate_reward_with_implicit_kl_ = partial(
-            calculate_reward_with_implicit_kl, implicit_kl_coef=config.implicit_kl_coef
+            calculate_reward_with_implicit_kl, reward_minus_kl_coef=config.reward_minus_kl
         )
         df["reward"] = df.apply(calculate_reward_with_implicit_kl_, axis=1)
 
@@ -206,20 +206,18 @@ def populate_rl_data(
     config: RLConfig,
 ) -> Dataset:
     """
-    Prepares the dataset for RL by performing forward passes and updating the dataset.
+    Populates a dataset with reinforcement learning specific data columns.
 
     Args:
-        dataset (Dataset): Rollout dataset
-        config (StepConfig): The configuration settings for the RL config.
+        dataset (Dataset): The input dataset to populate with RL data
+        columns (list[str]): List of column names to include in the dataset
+        collate_fn (Callable): Function to collate/batch the data
+        config (RLConfig): Configuration object containing RL training parameters
 
     Returns:
-        Dataset: The prepared dataset with added columns for advantages and updated advantages.
-
-    Note:
-        The function performs SFT and RL forward passes, updates the dataset, and calculates advantages for RL. If the
-        RL weights are different from the SFT weights, it loads the RL weights before the RL forward passes. The function
-        then drops unnecessary columns from the dataset and adds a new column for advantages.
+        Dataset: The dataset populated with RL-specific columns including rewards and advantages
     """
+
     logger.info("Populate RL Data")
 
     dataset = update_rewards_and_advantages(dataset, config)
