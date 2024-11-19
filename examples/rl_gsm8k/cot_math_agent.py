@@ -3,6 +3,7 @@ from typing import Annotated, Generator, Literal, TypeAlias, Union
 
 from pydantic import Field
 
+from examples.gsm8k_tuning import extract_result_value  # noqa
 from tapeagents.agent import Agent
 from tapeagents.core import (
     Action,
