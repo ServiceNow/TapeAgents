@@ -1,8 +1,12 @@
 defaults:
   - llm: gpt4o_mini
   - _self_
-  
-exp_name: gpt4o_mini_val_changes_t0
+
+llm:
+  parameters:
+    temperature: 0.0
+
+exp_name: gpt4o_mini_val_v2_1
 exp_path: ../gaia/runs/${exp_name}
 data_dir: ../gaia/dataset/validation/
 batch: 32
