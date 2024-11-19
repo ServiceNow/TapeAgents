@@ -70,7 +70,7 @@ def get_training_samples_from_tapes(tapes_path: str) -> list[TrainingText]:
 
 
 def main(exp_path: str):
-    train_samples_file = "gsm8k/tuning/llama31_70b_train_t02/training_samples_3k.jsonl"
+    train_samples_file = "gsm8k/tuning/llama31_70b_train/training_samples_3k.jsonl"
     if os.path.exists(train_samples_file):
         training_samples = load_samples(train_samples_file)
     else:

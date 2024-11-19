@@ -7,14 +7,15 @@ We built a basic math agent that uses the LLama 3.1 70B model equipped with reas
 Steps to distill the math agent:
 - [run it as a teacher](produce_teacher_tapes.py), collect the tapes of the successful solutions, and produce training data for the Math Agent from them. How to run: `python -m examples.gsm8k_tuning.produce_teacher_tapes`
 - [fine-tune smaller LLama 3.1 8B model](finetune_student.py) on the training data to get a tuned Math Agent. How to run: `python -m examples.gsm8k_tuning.finetune_student`
+- merge the lora weights `python -m tapeagents.finetune.lora PATH/TO/WEIGHTS`
 - [evaluate the tuned Math Agent](evaluate_student.py) on the subset of GSM8K test set, comparing the accuracy of the teacher agent, student agent before tuning, and student agent after tuning. How to run: `python -m examples.gsm8k_tuning.evaluate_student`
 
-<img width="526" alt="image" src="https://github.com/user-attachments/assets/a7aa2908-2a86-4b85-92d2-8c133e9ac0ff">
+<img width="526" alt="image" src="https://github.com/user-attachments/assets/55d099ab-ff5c-480b-b5b3-504b4206e677">
 
 | Model | Test accuracy |
 | ----- | ------------- |
 | 8B student before tuning | 0.662 |
-| 8B student after tuning | 0.775 |
+| 8B student after tuning | 0.785 |
 | 70B teacher | 0.931 |
 
 RL tuning on both successful and unsuccessful solutions is coming soon. Stay tuned!
