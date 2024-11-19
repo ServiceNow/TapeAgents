@@ -21,10 +21,10 @@ from tqdm import tqdm
 
 import wandb
 from examples.rl_gsm8k.cot_math_agent import (
-    ReasoningThoughtwithValue,
-    COTMathAgent,
+    CoTMathAgent,
     MathEnvironment,
     MathTape,
+    ReasoningThoughtwithValue,
     Task,
     extract_result_value,
 )
@@ -40,14 +40,13 @@ from examples.rl_gsm8k.utils import (
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
 from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls
 
 logger = logging.getLogger(__name__)
 
 
-def annotate_trace_with_ref_log_probs(agent: COTMathAgent, trace: TrainingText) -> TrainingText | None:
+def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText | None:
     try:
         trace.ref_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
         return trace
@@ -78,14 +77,14 @@ def convert_problems_to_tapes(problems: list) -> list[MathTape]:
 
 
 def extract_tape_training_samples(
-    new_tape: MathTape, agent: COTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
+    new_tape: MathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
 ) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
 
     Args:
         new_tape: The tape to process containing math problem steps
-        agent: COTMathAgent
+        agent: CoTMathAgent
         dataset_name: Name of dataset ('train' or 'test')
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
@@ -166,7 +165,7 @@ def extract_tape_training_samples(
 
 
 def generate_training_data(
-    agent: COTMathAgent,
+    agent: CoTMathAgent,
     tapes: list[MathTape],
     cfg: DictConfig,
     env: MathEnvironment,
@@ -329,8 +328,8 @@ def main(cfg: DictConfig):
             train_tapes = convert_problems_to_tapes(sub_samples)
             train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
             test_tapes = convert_problems_to_tapes(test_samples)
-            train_agent = COTMathAgent.create(llm=llm)
-            test_agent = COTMathAgent.create(llm=test_llm)
+            train_agent = CoTMathAgent.create(llm=llm)
+            test_agent = CoTMathAgent.create(llm=test_llm)
 
             datasets = [("train", train_agent, train_tapes)]
             if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
@@ -400,7 +399,7 @@ def main(cfg: DictConfig):
                         parameters=dict(temperature=0.7),
                     )
 
-                    basemodel_agent = COTMathAgent.create(llm=basemodel_llm)
+                    basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
                     with VLLMServiceManager(
                         model_name_or_path=cfg.model_path,

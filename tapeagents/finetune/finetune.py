@@ -98,7 +98,7 @@ def run_finetuning_loop(
     dt = log_time(dt, "finetune/startup")
 
     tokenizer = load_tokenizer(args.config_name)
-    model = load_model(args, model_class, current_dir, is_rl)
+    model = load_model(args, model_class, current_dir)
 
     dt = log_time(dt, "finetune/model_load")
 

@@ -50,7 +50,7 @@ def load_tokenizer(config_name):
     return tokenizer
 
 
-def load_model(args, model_class, current_dir, is_rl=False):
+def load_model(args, model_class, current_dir):
     accelerator.wait_for_everyone()
 
     assert not (
