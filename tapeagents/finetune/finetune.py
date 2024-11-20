@@ -243,8 +243,8 @@ def run_finetuning_loop(
                         "throughput/steps_per_sec": 1 / args.gradient_accumulation_passes / step_took,
                         "throughput/sec_per_step": step_took / args.gradient_accumulation_passes,
                         "loss/train": training_metrics.train_loss,
-                        "dataset_stats/max_seq_len": training_metrics.max_batch_len,
-                        "dataset_stats/min_seq_len": training_metrics.min_batch_len,
+                        "dataset_stats/max_batch_len": training_metrics.max_batch_len,
+                        "dataset_stats/min_batch_len": training_metrics.min_batch_len,
                     }
                 )
                 
