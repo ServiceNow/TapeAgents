@@ -36,7 +36,6 @@ def init_wandb(
         resume = not cfg.finetune.force_restart
     else:
         raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
-    breakpoint()
     wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
 
     if len(wandb_name) > 128:
