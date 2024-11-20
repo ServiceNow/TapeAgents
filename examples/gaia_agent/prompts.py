@@ -108,7 +108,7 @@ For each step in the plan, include:
 - A detailed description of the tasks to perform.
 - A list of required tools.
 - A list of expected outcomes, such as facts, files, documents, or data.
-- Prerequisites, including any results from previous steps or known facts necessary to proceed.
+- A list of prerequisites, including any results from previous steps or known facts necessary to proceed. First step should not have prerequisites.
 """
 
 START_EXECUTION_V2 = """
