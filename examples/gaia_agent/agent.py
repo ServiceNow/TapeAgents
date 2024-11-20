@@ -8,12 +8,14 @@ from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode, ObservationControlNode
+from tapeagents.utils import get_step_schemas_from_union_type
 
 from .prompts import PromptRegistry
 from .steps import (
     ActionExecutionFailure,
     CalculationResultObservation,
     GaiaAgentStep,
+    GaiaAgentStepV2,
     GaiaQuestion,
     ListOfFactsThought,
     PageObservation,
@@ -94,6 +96,14 @@ class GaiaNode(MonoNode):
             short_tape.steps.append(step)
         logger.info(f"Tape reduced from {len(tape)} to {len(short_tape)} steps")
         return short_tape
+
+
+class GaiaNodeV2(MonoNode):
+    agent_step_cls: Any = GaiaAgentStepV2
+
+    def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
+        schema = get_step_schemas_from_union_type(self.agent_step_cls)
+        return self.steps_prompt.format(allowed_steps=schema)
 
 
 class GaiaAgent(Agent):

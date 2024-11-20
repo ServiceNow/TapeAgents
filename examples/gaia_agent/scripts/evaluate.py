@@ -39,8 +39,8 @@ def main(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     llm: TrainableLLM = instantiate(cfg.llm)
     env = GaiaEnvironment(vision_lm=llm, **cfg.env)
-    # agent = GaiaAgent.create(llm, **cfg.agent)
-    agent = GaiaPlanner.create(llm)
+    agent = GaiaAgent.create(llm, **cfg.agent)
+    # agent = GaiaPlanner.create(llm)
     tasks = load_dataset(cfg.data_dir)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     if os.path.exists(tapes_dir):

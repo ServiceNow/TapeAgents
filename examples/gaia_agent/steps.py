@@ -509,7 +509,7 @@ GaiaAgentStep: TypeAlias = Annotated[
         NextPageAction,
         ConvertFactAction,
         UseCalculatorAction,
-        # PythonCodeAction,
+        PythonCodeAction,
         GaiaAnswer,
     ],
     Field(discriminator="kind"),
@@ -527,21 +527,27 @@ ExecutorStep: TypeAlias = Annotated[
     Field(discriminator="kind"),
 ]
 
+GaiaAgentStepV2: TypeAlias = Annotated[
+    Union[
+        ReadingResultThought,
+        NewFactThought,
+        ReasoningThought,
+        SearchAction,
+        ReadDocumentAction,
+        NextPageAction,
+        ConvertFactAction,
+        # UseCalculatorAction,
+        PythonCodeAction,
+        GaiaAnswer,
+    ],
+    Field(discriminator="kind"),
+]
+
 
 def get_allowed_steps(plan_thoughts: bool) -> str:
     if plan_thoughts:
         steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
     else:
-        steps = Union[
-            ReadingResultThought,
-            NewFactThought,
-            ReasoningThought,
-            SearchAction,
-            ReadDocumentAction,
-            NextPageAction,
-            ConvertFactAction,
-            UseCalculatorAction,
-            GaiaAnswer,
-        ]
+        steps = GaiaAgentStepV2
     steps_alias = Annotated[steps, Field(discriminator="kind")]
     return get_step_schemas_from_union_type(steps_alias)

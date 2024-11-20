@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from examples.gaia_agent.agent import GaiaNode
+from examples.gaia_agent.agent import GaiaNode, GaiaNodeV2
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Call, Prompt, ReferenceStep, Step, Tape
 from tapeagents.dialog_tape import UserStep
@@ -302,8 +302,8 @@ class GaiaOld(Agent):
     @classmethod
     def create(cls, llm: LLM):
         nodes = [
-            GaiaNode(name="StartExecution", guidance=PromptRegistry.start_execution),
-            GaiaNode(name="Act", guidance=PromptRegistry.act),
+            GaiaNodeV2(name="StartExecution", guidance=PromptRegistry.start_execution),
+            GaiaNodeV2(name="Act", guidance=PromptRegistry.act),
             ControlFlowNode(
                 name="ReturnIfFinished",
                 predicate=lambda tape: bool(not isinstance(tape[-1], SubtaskResult)),
