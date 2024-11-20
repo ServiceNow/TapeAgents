@@ -203,8 +203,8 @@ def run_finetuning_loop(
                         rl_metrics[k].append(v)
                     training_metrics.train_loss = loss.item()
                     training_metrics.lr = optimizer.param_groups[0]["lr"]
-                    training_metrics.max_seq_len = max(batch["input_ids"].shape[1], training_metrics.max_seq_len)
-                    training_metrics.min_seq_len = min(batch["input_ids"].shape[1], training_metrics.min_seq_len)
+                    training_metrics.max_batch_len = max(batch["input_ids"].shape[1], training_metrics.max_batch_len)
+                    training_metrics.min_batch_len = min(batch["input_ids"].shape[1], training_metrics.min_batch_len)
                     accelerator.backward(loss / args.gradient_accumulation_passes)
 
             if not do_optimizer_step:
