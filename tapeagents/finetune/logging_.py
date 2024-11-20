@@ -41,15 +41,15 @@ def init_wandb(
 
     if len(wandb_name) > 128:
         logger.warning(
-            f"wandb_name is longer than 128 characters. "
-            f"Truncating to 128 characters."
+            f"wandb_name: {wandb_name} is longer than 128 characters. "
+            "Truncating to 128 characters."
         )
 
     logging.info(f"Initializing W&B with name: {wandb_name[:128]}, resume: {resume}")
     run = wandb.init(
         name=wandb_name[:128],  # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
-        project="test_tape_agents",#cfg.finetune.wandb_project_name,
+        project=cfg.finetune.wandb_project_name,
         config=config_for_wandb,  # type: ignore
         resume=resume,
         id=wandb_id,
