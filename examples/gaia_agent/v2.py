@@ -76,15 +76,16 @@ class CallExecutor(Node):
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         view = ManagerView(tape)
         assert view.next_step, "No remained steps left!"
-        prerequisites = []
+        known_facts = []
         for step_number, _ in view.next_step.prerequisites:
-            assert step_number in view.completed_steps, f"Prerequisite result {step_number} not found!"
-            result = view.completed_steps[step_number]
-            results = [f"Step {result.number} result: {result.name} {result.answer} {result.answer_unit}"]
-            prerequisites += results
+            if step_number not in view.completed_steps:
+                logger.warning(f"Prerequisite result {step_number} not found!")
+                continue
+            result = str(view.completed_steps[step_number].result)
+            known_facts.append(result)
         agent_name = self.agent_name
         if (not view.next_step.list_of_tools) or (
-            len(view.next_step.list_of_tools) == 1 and view.next_step.list_of_tools[0] == "Reasoning"
+            len(view.next_step.list_of_tools) == 1 and "reasoning" in view.next_step.list_of_tools[0].lower()
         ):
             agent_name = "Reasoner"
         task = first_position(tape, GaiaQuestion)
@@ -98,7 +99,7 @@ class CallExecutor(Node):
             number=view.next_step.number,
             name=view.next_step.name,
             description=view.next_step.description,
-            prerequisites=prerequisites,
+            known_facts=known_facts,
             list_of_tools=view.next_step.list_of_tools,
             expected_results=view.next_step.expected_results,
         )
@@ -302,7 +303,7 @@ class GaiaOld(Agent):
     def create(cls, llm: LLM):
         nodes = [
             GaiaNode(name="StartExecution", guidance=PromptRegistry.start_execution),
-            GaiaNode(name="Act", guidance="Produce step with kind subtask_result when the current subtask is solved"),
+            GaiaNode(name="Act", guidance=PromptRegistry.act),
             ControlFlowNode(
                 name="ReturnIfFinished",
                 predicate=lambda tape: bool(not isinstance(tape[-1], SubtaskResult)),

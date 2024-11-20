@@ -198,7 +198,8 @@ Please update the following fact sheet to include any new information we have le
 Respond with updated facts sheet.
 """
 
-REASON = "Let's think step by step"
+REASON = "Let's think step by step."
+ACT = "Work only on the current subtask! Produce result step when the current subtask is solved."
 
 
 class PromptRegistry:
@@ -229,3 +230,4 @@ class PromptRegistry:
     reflect_observation = REFLECT_OBSERVATION
     facts_survey_update = FACTS_SURVEY_UPDATE
     reason = REASON
+    act = ACT
