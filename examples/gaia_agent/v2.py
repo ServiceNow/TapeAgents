@@ -3,7 +3,7 @@ from typing import Any
 
 from examples.gaia_agent.agent import GaiaNode
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Call, Prompt, ReferenceStep, SetNextNode, Step, Tape
+from tapeagents.core import Call, Prompt, ReferenceStep, Step, Tape
 from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.nodes import ControlFlowNode, MonoNode, MonoNodeV2, Return
@@ -119,7 +119,7 @@ class ReflectPlan(MonoNodeV2):
         view = ManagerView(tape)
         known_facts_str = ""
         if view.facts:
-            known_facts_str = "\n".join(view.facts.given_facts + view.facts.found_facts)
+            known_facts_str = "\n".join([str(fact) for fact in view.facts.given_facts + view.facts.found_facts])
         plan_status = PromptRegistry.plan_status.format(
             completed_steps=len(view.completed_steps),
             total_steps=len(view.steps),
