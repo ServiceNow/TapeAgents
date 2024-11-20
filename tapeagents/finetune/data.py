@@ -112,6 +112,7 @@ def preprocess_fn(
     entry: dict[str, Any],
     tokenizer: transformers.PreTrainedTokenizerBase,
     seq_length: int,
+    is_rl: bool = False,
 ) -> BatchEncoding:
     encoding = tokenizer(
         entry["text"],
@@ -131,7 +132,7 @@ def preprocess_fn(
         encoding["offset_mapping"],  # type: ignore
         predicted_spans,
     )
-    if "reward" in entry:
+    if is_rl:
         encoding = prepare_rl_fields(
             encoding,
             entry["reward"],
@@ -177,7 +178,7 @@ def create_dataloader(
     rl_data_callback: Callable | None = None,
     n_examples: int | None = None,
 ) -> DataLoader:
-    preprocess = partial(preprocess_fn, seq_length=seq_length, tokenizer=tokenizer)
+    preprocess = partial(preprocess_fn, seq_length=seq_length, tokenizer=tokenizer, is_rl=is_rl)
     columns = ["input_ids", "labels", "attention_mask"]
     if is_rl:
         columns += RL_DATA_COLUMNS

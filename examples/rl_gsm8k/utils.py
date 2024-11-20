@@ -1,17 +1,20 @@
 import json
 import logging
+import multiprocessing
 import os
 import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, Optional, TextIO, Tuple, Union
+from typing import Dict, Optional, TextIO, Union
 
 import numpy as np
 import psutil
 import requests
+import torch
 from tenacity import retry, stop_after_attempt, wait_exponential
-from termcolor import cprint
+
+from tapeagents.finetune.finetune import run_finetuning_loop
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +42,7 @@ class VLLMServiceManager:
         self.process: Optional[subprocess.Popen] = None
         self.stdout_file: Optional[TextIO] = None
         self.stderr_file: Optional[TextIO] = None
+        self.stats = {}
 
     def _terminate_with_children(self, process_id: int) -> None:
         try:
@@ -127,11 +131,14 @@ class VLLMServiceManager:
         vllm_url = f"http://{self.host}:{self.port}/health"
         headers = {"User-Agent": "vLLM Client"}
 
+        start_waiting = time.time()
         if self._wait_for_service(self.process, vllm_url, headers=headers, timeout=8000):
             logger.info(f"Student {self.model_name_or_path} model loaded on port {self.port}")
         else:
             self._cleanup()
             raise Exception("Failed to start the service")
+        end_waiting = time.time()
+        self.stats["starting_time"] = end_waiting - start_waiting
 
     def _cleanup(self) -> None:
         if self.process and self.process.pid:
@@ -149,6 +156,9 @@ class VLLMServiceManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self._cleanup()
+
+    def get_stats(self):
+        return self.stats
 
 
 def setup_logging(output_dir):
@@ -263,3 +273,63 @@ def calculate_stats(stats):
         "var": np.mean([np.var(stats) for stats in stats.values() if stats]),
         "mean": np.mean([np.mean(stats) for stats in stats.values() if stats]),
     }
+
+
+def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str, use_accelerate: bool = False) -> None:
+    """
+    Launch training process with proper GPU configuration and error handling.
+
+    Args:
+        config_path (str): Path to the training config file
+        cfg: Configuration object containing accelerate_cfg_path
+
+    Returns:
+        float: Training duration in seconds
+
+    Raises:
+        ValueError: If no GPUs are available
+        RuntimeError: If training process fails
+    """
+    # Check GPU availability
+    num_gpus = torch.cuda.device_count()
+    if num_gpus == 0:
+        raise ValueError("No GPUs available for finetuning")
+
+    # Construct command based on GPU count
+    base_cmd = [
+        "accelerate",
+        "launch",
+        "--mixed_precision=bf16",
+        "--config_file",
+        accelerate_cfg_path,
+        "examples/rl_gsm8k/run_finetune.py",
+        "--config-dir",
+        config_dir,
+        "--config-name",
+        config_name,
+    ]
+
+    if num_gpus > 1:
+        base_cmd[2:2] = [
+            "--multi_gpu",
+            "--num_processes",
+            str(num_gpus),
+        ]
+
+    logger.info(f"Launching training with command: {' '.join(base_cmd)}")
+    try:
+        subprocess.run(
+            base_cmd,
+            check=True,  # Raises CalledProcessError if return code != 0
+            text=True,
+            capture_output=False,
+        )
+
+    except subprocess.CalledProcessError as e:
+        # Capture both stdout and stderr for debugging
+        error_msg = (
+            f"Training process failed with exit code {e.returncode}\n" f"stdout: {e.stdout}\n" f"stderr: {e.stderr}"
+        )
+        raise RuntimeError(error_msg) from e
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error during training: {str(e)}") from e
