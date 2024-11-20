@@ -3,7 +3,7 @@ import logging
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator, Type
+from typing import Callable, Generator, Type
 
 import yaml
 from pydantic import TypeAdapter
@@ -55,7 +55,7 @@ def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
         f.write(tape.model_dump_json(indent=4))
 
 
-def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension: str = ".yaml") -> list[Tape]:
+def load_tape_dicts(path: Path | str, file_extension: str = ".yaml") -> list[dict]:
     if not os.path.exists(path):
         raise FileNotFoundError(f"File not found: {path}")
     if file_extension not in (".yaml", ".json"):
@@ -66,7 +66,6 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
     else:
         paths = [path]
         file_extension = os.path.splitext(path)[-1]
-    loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
     tapes = []
     for path in paths:
         with open(path) as f:
@@ -76,6 +75,29 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
                 data = json.load(f)
         if not isinstance(data, list):
             data = [data]
-        for tape in data:
-            tapes.append(loader(tape))
+        tapes.extend(data)
+    return tapes
+
+
+def load_tapes(
+    tape_class: Type | TypeAdapter,
+    path: Path | str,
+    file_extension: str = ".yaml",
+    unknown_steps_loader: Callable | None = None,
+) -> list[Tape]:
+    tapes = []
+    loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
+    data = load_tape_dicts(path, file_extension)
+    for tape_dict in data:
+        try:
+            tape = loader(tape_dict)
+        except Exception as e:
+            if unknown_steps_loader is None:
+                logger.error(f"Failed to load tape: {e}")
+                raise e
+            step_dicts = tape_dict["steps"]
+            tape_dict["steps"] = []
+            tape = loader(tape_dict)
+            tape.steps = [unknown_steps_loader(step_dict) for step_dict in step_dicts]
+        tapes.append(tape)
     return tapes

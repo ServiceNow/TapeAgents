@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 from typing import Annotated, Any, Literal, TypeAlias, Union
@@ -442,6 +443,54 @@ GaiaStep = Union[
     ReferenceStep,
 ]
 
+_step_list = [
+    PlanThought,
+    ListOfFactsThought,
+    SourcesThought,
+    DraftPlansThought,
+    ReadingResultThought,
+    NewFactThought,
+    ReasoningThought,
+    StartSubtask,
+    SubtaskResult,
+    SearchAction,
+    ReadDocumentAction,
+    NextPageAction,
+    ConvertFactAction,
+    UseCalculatorAction,
+    PythonCodeAction,
+    GaiaQuestion,
+    SearchResultsObservation,
+    PageObservation,
+    CalculationResultObservation,
+    CodeResultObservation,
+    PreviousFactsObservation,
+    GaiaAnswer,
+    ActionExecutionFailure,
+    LLMOutputParsingFailureAction,
+    SetNextNode,
+    Plan,
+    Facts,
+    AssistantStep,
+    Subtask,
+    PlanReflection,
+    Call,
+    Respond,
+    ConditionCheck,
+    ReferenceStep,
+]
+
+_kind_to_step = {step.__fields__["kind"].default: step for step in _step_list}
+
+
+def load_step(step_dict: dict) -> GaiaStep:
+    return (
+        _kind_to_step[step_dict["kind"]](**step_dict)
+        if step_dict["kind"] in _kind_to_step
+        else AssistantStep(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
+    )
+
+
 GaiaAgentStep: TypeAlias = Annotated[
     Union[
         # thoughts
@@ -466,21 +515,6 @@ GaiaAgentStep: TypeAlias = Annotated[
     Field(discriminator="kind"),
 ]
 
-GaiaOldStep: TypeAlias = Annotated[
-    Union[
-        ReadingResultThought,
-        NewFactThought,
-        ReasoningThought,
-        SearchAction,
-        ReadDocumentAction,
-        NextPageAction,
-        ConvertFactAction,
-        UseCalculatorAction,
-        SubtaskResult,
-    ],
-    Field(discriminator="kind"),
-]
-
 ExecutorStep: TypeAlias = Annotated[
     Union[
         SubtaskResult,
@@ -495,9 +529,19 @@ ExecutorStep: TypeAlias = Annotated[
 
 
 def get_allowed_steps(plan_thoughts: bool) -> str:
-    if False:  # plan_thoughts:
+    if plan_thoughts:
         steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
-        steps_alias = Annotated[steps, Field(discriminator="kind")]
     else:
-        steps_alias = GaiaOldStep
+        steps = Union[
+            ReadingResultThought,
+            NewFactThought,
+            ReasoningThought,
+            SearchAction,
+            ReadDocumentAction,
+            NextPageAction,
+            ConvertFactAction,
+            UseCalculatorAction,
+            GaiaAnswer,
+        ]
+    steps_alias = Annotated[steps, Field(discriminator="kind")]
     return get_step_schemas_from_union_type(steps_alias)
