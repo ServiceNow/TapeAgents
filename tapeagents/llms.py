@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 import time
 from abc import ABC, abstractmethod
 from itertools import zip_longest
@@ -28,6 +29,8 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
+
+cache_write_lock = threading.Lock()
 
 
 class LLMEvent(BaseModel):
@@ -153,11 +156,12 @@ class CachedLLM(LLM):
     def _add_to_cache(self, key: str, event_dict: dict):
         if not self.use_cache:
             return
-        if key not in self._cache:
-            self._cache[key] = []
-        self._cache[key].append(event_dict)
-        with open(self._cache_file, "a") as f:
-            f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
+        with cache_write_lock:
+            if key not in self._cache:
+                self._cache[key] = []
+            self._cache[key].append(event_dict)
+            with open(self._cache_file, "a") as f:
+                f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 
     def get_prompt_key(self, prompt: Prompt) -> str:
         prompt_text = json.dumps(prompt.model_dump(exclude={"id"}), ensure_ascii=False, sort_keys=True)
