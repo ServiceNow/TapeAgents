@@ -1,5 +1,6 @@
 import logging
 
+from tapeagents.container_executor import ContainerExecutor, extract_code_blocks
 from tapeagents.environment import Environment
 from tapeagents.tools.calculator import calculate
 from tapeagents.tools.python_interpreter import python_calculate, run_python_code
@@ -27,8 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 class GaiaEnvironment(Environment):
-    def __init__(self, safe_calculator: bool = True, **kwargs) -> None:
+    def __init__(
+        self,
+        safe_calculator: bool = True,
+        code_sandbox: ContainerExecutor | None = None,
+        **kwargs,
+    ) -> None:
         super().__init__()
+        self.code_sandbox = code_sandbox
         self.browser = SimpleTextBrowser(**kwargs)
         self.calculate = calculate if safe_calculator else python_calculate
 
@@ -76,10 +83,29 @@ class GaiaEnvironment(Environment):
                         result = self.calculate(action.expression, action.facts or {})
                         tape = tape.append(CalculationResultObservation(name=action.fact_name, result=result))
                     case PythonCodeAction():
-                        result, stdout, stderr = run_python_code(action.code, action.facts or {})
-                        tape = tape.append(
-                            CodeResultObservation(name=action.fact_name, result=result, stdout=stdout, stderr=stderr)
-                        )
+                        if self.code_sandbox is not None:
+                            code_blocks = extract_code_blocks(action.code)
+                            result = self.code_sandbox.execute_code_blocks(code_blocks)
+                            obs = CodeResultObservation(
+                                name=action.fact_name,
+                                result=result.output,
+                                stdout=f"Exit code: {result.exit_code}",
+                                stderr="",
+                            )
+                        else:
+                            # TODO: remove this option and permutations crutch
+                            logger.warning(f"Code sandbox is not provided, running code locally!\n{action.code}")
+                            if "permutations" in action.code:
+                                result, stdout, stderr = "", "", "Execution timeout"
+                            else:
+                                result, stdout, stderr = run_python_code(action.code, action.facts or {})
+                            obs = CodeResultObservation(
+                                name=action.fact_name,
+                                result=result,
+                                stdout=stdout,
+                                stderr=stderr,
+                            )
+                        tape = tape.append(obs)
                     case LLMOutputParsingFailureAction():
                         pass
                     case _:

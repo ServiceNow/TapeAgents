@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 search_lock = threading.Lock()
+flush_lock = threading.Lock()
 
 
 def get_tavily_key():
@@ -430,6 +431,14 @@ class SimpleTextBrowser:
             for item in self._cache_buffer:
                 f.write(json.dumps(item) + "\n")
         self._cache_buffer = []
+
+    def flush_log(self, browser_log_path: str):
+        with flush_lock:
+            if len(self._log):
+                with open(browser_log_path, "a") as wf:
+                    for line in self._log:
+                        wf.write(json.dumps(line) + "\n")
+            self._log = []
 
     def get_page(self, url: str) -> tuple[str, int, int]:
         """

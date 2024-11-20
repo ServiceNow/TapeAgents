@@ -81,10 +81,9 @@ def load_dataset(data_dir):
     return tasks
 
 
-def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment) -> GaiaTape:
+def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, tries: int = 3) -> GaiaTape:
     question = task_to_question_step(task, env)
     predicted = None
-    tries = 3
     tape = GaiaTape(steps=[question])
     while not predicted and tries:
         tape = GaiaTape(steps=[question])
@@ -103,6 +102,7 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment) -> GaiaTape:
     predicted = str(predicted)
     logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
     tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "result": predicted})
+    tape.metadata.level = level
     return tape
 
 
