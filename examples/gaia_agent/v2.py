@@ -89,7 +89,7 @@ class AssignTask(Node):
             result = view.completed_steps[step_number].llm_dict()
             known_facts.append(result)
 
-        agent_name = view.next_step.list_of_tools[0]
+        agent_name = view.next_step.list_of_tools[0] if view.next_step.list_of_tools else "Reasoner"
         assert agent_name in ["Coder", "WebSurfer", "Reasoner"], f"Unknown agent name: {agent_name}"
         yield Call(agent_name=agent_name)
         yield Subtask(
