@@ -18,7 +18,6 @@ from tapeagents.core import (
     StopStep,
     Thought,
 )
-from tapeagents.dialog_tape import AssistantStep
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -88,7 +87,6 @@ class PlanStep(BaseModel):
     )
 
 
-# TODO : remove StopStep later
 class Plan(GaiaThought):
     """
     Thought that contains the plan to follow to answer the question
@@ -162,6 +160,11 @@ class Facts(GaiaThought):
 
 
 ################### Thoughts ###################
+
+
+class Reflection(GaiaThought):
+    kind: Literal["reflection"] = "reflection"
+    content: str
 
 
 class ReasoningThought(GaiaThought):
@@ -390,6 +393,12 @@ class SubtaskResult(GaiaThought):
     number: int = Field(description="task number")
     success: bool = Field(description="True if the task was successful, False otherwise")
     result: Any = Field(description="full final answer")
+    result_facts: list[str] = Field(
+        description="list of facts found during the task execution that are parts of the final answer"
+    )
+    result_docs: list[str] = Field(
+        description="if the task requested to find a specific document, list of urls of documents or pages that represent the final answer"
+    )
     execution_summary: str = Field(
         description="overview of the task execution process in few lines, with notable thougts, guesses and observations"
     )
@@ -403,6 +412,7 @@ class PlanReflection(GaiaThought):
     task_solved: bool
     plan_finished: bool
     failed_step_number: int = -1
+    full_reflection_text: str
     failure_overview: str = ""
 
 
@@ -434,7 +444,7 @@ GaiaStep = Union[
     SetNextNode,
     Plan,
     Facts,
-    AssistantStep,
+    Reflection,
     Subtask,
     PlanReflection,
     Call,
@@ -471,7 +481,7 @@ _step_list = [
     SetNextNode,
     Plan,
     Facts,
-    AssistantStep,
+    Reflection,
     Subtask,
     PlanReflection,
     Call,
@@ -487,7 +497,7 @@ def load_step(step_dict: dict) -> GaiaStep:
     return (
         _kind_to_step[step_dict["kind"]](**step_dict)
         if step_dict["kind"] in _kind_to_step
-        else AssistantStep(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
+        else Reflection(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
     )
 
 
@@ -523,6 +533,9 @@ ExecutorStep: TypeAlias = Annotated[
         NextPageAction,
         PythonCodeAction,
         ReasoningThought,
+        ReadingResultThought,
+        NewFactThought,
+        ConvertFactAction,
     ],
     Field(discriminator="kind"),
 ]

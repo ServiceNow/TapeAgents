@@ -154,10 +154,11 @@ def parse_completion(llm_output: str, prompt_id: str, agent_step_cls: Any) -> Ge
 
 
 class MonoNodeV2(Node):
-    # TODO: 1. unify ThinkingNode and MonoNode. 2. add flag to use function calling for actions instead schema in prompt
+    # TODO: 1. unify this and MonoNode. 2. add flag to use function calling for actions instead schema in prompt
     system_prompt: str
     guidance: str = ""
     next_node: str = ""
+    plaintext_cls: Any = AssistantStep
     output_cls: Any = None
     formalize_prompt: str = FORMALIZE_FORMAT
 
@@ -183,8 +184,8 @@ class MonoNodeV2(Node):
         for step in steps:
             if isinstance(step, CONTROL_FLOW_STEPS):
                 continue
-            elif isinstance(step, (AssistantStep, UserStep)):
-                message = {"role": step.kind, "content": step.content}
+            elif isinstance(step, (AssistantStep, self.plaintext_cls)):
+                message = {"role": "assistant", "content": step.content}  # type: ignore
             else:
                 role = "assistant" if isinstance(step, AgentStep) else "user"
                 message = {"role": role, "content": step.llm_view()}
@@ -197,7 +198,7 @@ class MonoNodeV2(Node):
         for event in llm_stream:
             if event.output:
                 assert event.output.content
-                step = AssistantStep(content=event.output.content)
+                step = self.plaintext_cls(content=event.output.content)
                 yield step
                 if self.output_cls:
                     formal_step = self.formalize(step, agent.llm)

@@ -14,8 +14,8 @@ from .prompts import PromptRegistry
 from .steps import (
     ActionExecutionFailure,
     CalculationResultObservation,
+    ExecutorStep,
     GaiaAgentStep,
-    GaiaAgentStepV2,
     GaiaQuestion,
     ListOfFactsThought,
     PageObservation,
@@ -98,8 +98,8 @@ class GaiaNode(MonoNode):
         return short_tape
 
 
-class GaiaNodeV2(MonoNode):
-    agent_step_cls: Any = GaiaAgentStepV2
+class GaiaNodeV2(GaiaNode):
+    agent_step_cls: Any = ExecutorStep
 
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
         schema = get_step_schemas_from_union_type(self.agent_step_cls)

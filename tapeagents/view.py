@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from tapeagents.core import (
     AgentStep,
     Call,
+    ConditionCheck,
     Observation,
     ReferenceStep,
     Respond,
@@ -132,7 +133,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 # - exclude Observation steps
                 # - among the remaining steps pick the last one
                 if not self.top.is_step_by_active_agent(top_step) and not isinstance(
-                    top_step, (Call, Respond, Observation)
+                    top_step, (Call, Respond, Observation, ConditionCheck)
                 ):
                     new_top.add_step(top_step)
                     new_top.outputs_by_subagent[top.agent_name] = top_step

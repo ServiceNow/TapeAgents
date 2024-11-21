@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from examples.gaia_agent.agent import GaiaNode, GaiaNodeV2
+from examples.gaia_agent.agent import GaiaNodeV2
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Call, Prompt, ReferenceStep, Step, Tape
 from tapeagents.dialog_tape import UserStep
@@ -22,6 +22,7 @@ from .steps import (
     PageObservation,
     Plan,
     PlanReflection,
+    Reflection,
     Subtask,
     SubtaskResult,
 )
@@ -92,9 +93,9 @@ class CallExecutor(Node):
         plan = last_position(tape, Plan)
         facts = last_position(tape, Facts)
         yield Call(agent_name=agent_name)
-        yield ReferenceStep(step_number=task)
-        yield ReferenceStep(step_number=facts)
-        yield ReferenceStep(step_number=plan)
+        # yield ReferenceStep(step_number=task)
+        # yield ReferenceStep(step_number=facts)
+        # yield ReferenceStep(step_number=plan)
         yield Subtask(
             number=view.next_step.number,
             name=view.next_step.name,
@@ -105,13 +106,18 @@ class CallExecutor(Node):
         )
 
 
-class ReflectPlan(MonoNodeV2):
+class Think(MonoNodeV2):
+    system_prompt: str = PromptRegistry.system_prompt
+    plaintext_cls: Any = Reflection
+
+
+class ReflectPlan(Think):
     """
     Reflects on the plan progress
     """
 
-    system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.reflect_plan_status
+
     output_cls: Any = PlanReflection
 
     def tape_to_steps(self, tape: Tape) -> list[Step]:
@@ -130,12 +136,11 @@ class ReflectPlan(MonoNodeV2):
         return steps
 
 
-class UpdateFacts(MonoNodeV2):
+class UpdateFacts(Think):
     """
     Updates the list of facts based on the subtask results
     """
 
-    system_prompt: str = PromptRegistry.system_prompt
     guidance: str = ""
     output_cls: Any = Facts
 
@@ -150,12 +155,11 @@ class UpdateFacts(MonoNodeV2):
         )
 
 
-class Replan(MonoNodeV2):
+class Replan(Think):
     """
     Produces a new plan based on the reflection of the failed one.
     """
 
-    system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.replan
     output_cls: Any = Plan
 
@@ -168,12 +172,11 @@ class Replan(MonoNodeV2):
         return super().make_prompt(agent, tape)
 
 
-class ProduceAnswer(MonoNodeV2):
+class ProduceAnswer(Think):
     """
     Produces the final answer out of the final plan reflection.
     """
 
-    system_prompt: str = PromptRegistry.system_prompt
     guidance: str = PromptRegistry.final_answer
     output_cls: Any = GaiaAnswer
 
@@ -189,8 +192,7 @@ class ProduceAnswer(MonoNodeV2):
         return super().make_prompt(agent, tape.model_copy(update=dict(steps=steps)))
 
 
-class ReflectObservation(MonoNodeV2):
-    system_prompt: str = PromptRegistry.system_prompt
+class ReflectObservation(Think):
     guidance: str = PromptRegistry.reflect_observation
 
     def filter_steps(self, steps: list[Step]) -> list[Step]:
@@ -234,18 +236,8 @@ class GaiaPlanner(Agent):
     ):
         subagents = [GaiaManager.create(llm)]
         nodes = (
-            MonoNodeV2(
-                name="FactsSurvey",
-                system_prompt=PromptRegistry.facts_survey_v2_system,
-                guidance=PromptRegistry.facts_survey_v2,
-                output_cls=Facts,
-            ),
-            MonoNodeV2(
-                name="Plan",
-                system_prompt=PromptRegistry.system_prompt,
-                guidance=PromptRegistry.plan_v2,
-                output_cls=Plan,
-            ),
+            Think(name="FactsSurvey", guidance=PromptRegistry.facts_survey_v2, output_cls=Facts),
+            Think(name="Plan", guidance=PromptRegistry.plan_v2, output_cls=Plan),
             CallManager(agent_name="GaiaManager"),
             # either executed all the steps successfully or failed on some step
             ControlFlowNode(
@@ -287,12 +279,7 @@ class Reasoner(Agent):
     @classmethod
     def create(cls, llm: LLM):
         nodes = [
-            MonoNodeV2(
-                name="Reason",
-                system_prompt=PromptRegistry.system_prompt,
-                guidance=PromptRegistry.reason,
-                output_cls=SubtaskResult,
-            ),
+            Think(guidance=PromptRegistry.reason, output_cls=SubtaskResult),
             Return(),
         ]
         return super().create(llm, nodes=nodes, max_iterations=2)
@@ -302,7 +289,7 @@ class GaiaOld(Agent):
     @classmethod
     def create(cls, llm: LLM):
         nodes = [
-            GaiaNodeV2(name="StartExecution", guidance=PromptRegistry.start_execution),
+            Think(name="StartExecution", guidance=PromptRegistry.start_execution_v2),
             GaiaNodeV2(name="Act", guidance=PromptRegistry.act),
             ControlFlowNode(
                 name="ReturnIfFinished",
@@ -318,11 +305,7 @@ class GaiaExecutor(Agent):
     @classmethod
     def create(cls, llm: LLM):
         nodes = (
-            MonoNodeV2(
-                name="StartExecution",
-                system_prompt=PromptRegistry.system_prompt,
-                guidance=PromptRegistry.start_execution_v2,
-            ),
+            Think(name="StartExecution", guidance=PromptRegistry.start_execution_v2),
             Act(),
             ReflectObservation(),
             ControlFlowNode(
@@ -332,11 +315,7 @@ class GaiaExecutor(Agent):
                 ),
                 next_node="Act",
             ),
-            MonoNodeV2(
-                name="ReflectSubtask",
-                system_prompt=PromptRegistry.system_prompt,
-                guidance=PromptRegistry.reflect_subtask,
-            ),
+            Think(name="ReflectSubtask", guidance=PromptRegistry.reflect_subtask),
             # reflect on the subtask result
             UpdateFacts(),
             Return(),

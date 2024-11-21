@@ -42,6 +42,7 @@ def main(dataset_path, exp_dir, level, task_num):
                 tape = tape.append(step)
                 save_json_tape(tape, tapes_dir, tape_name)
                 llm_call = retrieve_llm_call(step.metadata.prompt_id)
+                logger.info(f"{len(tape)} RUN {step.metadata.agent}:{step.metadata.node}")
                 if llm_call:
                     for i, m in enumerate(llm_call.prompt.messages):
                         logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")

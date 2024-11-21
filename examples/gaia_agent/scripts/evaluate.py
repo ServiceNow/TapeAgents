@@ -6,6 +6,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+from examples.gaia_agent.v2 import GaiaPlanner
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
@@ -36,8 +37,8 @@ def main(cfg: DictConfig) -> None:
     os.makedirs(code_path, exist_ok=True)
 
     llm: TrainableLLM = instantiate(cfg.llm)
-    agent = GaiaAgent.create(llm, **cfg.agent)
-    # agent = GaiaPlanner.create(llm)
+    # agent = GaiaAgent.create(llm, **cfg.agent)
+    agent = GaiaPlanner.create(llm)
     tasks = load_dataset(cfg.data_dir)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     validate_config(cfg, llm, tapes_dir)
