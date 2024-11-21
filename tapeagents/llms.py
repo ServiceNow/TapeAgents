@@ -94,7 +94,11 @@ class LLM(BaseModel, ABC):
         pass
 
     def get_info(self) -> dict:
-        return {}
+        return {
+            "model_name": self.model_name,
+            "parameters": self.parameters,
+            "context_size": self.context_size,
+        }
     
     def get_token_costs(self) -> dict:
         """Returns prices for different kinds of tokens. 
