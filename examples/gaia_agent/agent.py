@@ -8,20 +8,17 @@ from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode, ObservationControlNode
-from tapeagents.utils import get_step_schemas_from_union_type
 
 from .prompts import PromptRegistry
 from .steps import (
     ActionExecutionFailure,
     CalculationResultObservation,
-    ExecutorStep,
     GaiaAgentStep,
     GaiaQuestion,
     ListOfFactsThought,
     PageObservation,
     PlanThought,
     PreviousFactsObservation,
-    PythonCodeAction,
     SearchResultsObservation,
     SourcesThought,
     UseCalculatorAction,
@@ -43,9 +40,9 @@ class PlanningMode(str, Enum):
 class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = Field(exclude=True, default=GaiaAgentStep)
+    output_cls: Any = Field(exclude=True, default=GaiaAgentStep)
 
-    def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
+    def get_steps_description(self, tape: GaiaTape) -> str:
         """
         Allow different subset of steps based on the agent's configuration
         """
@@ -76,7 +73,7 @@ class GaiaNode(MonoNode):
         if isinstance(step, ListOfFactsThought):
             # remove empty facts produced by the model
             step.given_facts = [fact for fact in step.given_facts if fact.value is not None and fact.value != ""]
-        elif isinstance(step, (UseCalculatorAction, PythonCodeAction)):
+        elif isinstance(step, (UseCalculatorAction)):
             # if calculator or code action is used, add the facts to the action call
             step.facts = tape.model_copy(update=dict(steps=tape.steps + new_steps)).facts()
         return step
@@ -96,14 +93,6 @@ class GaiaNode(MonoNode):
             short_tape.steps.append(step)
         logger.info(f"Tape reduced from {len(tape)} to {len(short_tape)} steps")
         return short_tape
-
-
-class GaiaNodeV2(GaiaNode):
-    agent_step_cls: Any = ExecutorStep
-
-    def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
-        schema = get_step_schemas_from_union_type(self.agent_step_cls)
-        return self.steps_prompt.format(allowed_steps=schema)
 
 
 class GaiaAgent(Agent):

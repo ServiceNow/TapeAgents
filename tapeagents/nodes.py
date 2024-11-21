@@ -24,7 +24,7 @@ from .core import (
     StopStep,
     Tape,
 )
-from .llms import LLM, LLMStream
+from .llms import LLMStream
 from .utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
 
 logger = logging.getLogger(__name__)
@@ -39,22 +39,91 @@ class MonoNode(Node):
     - Parses the llm output into provided step classes (class provided in a form of annotated union).
     """
 
-    guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
-    agent_step_cls: Any = Field(exclude=True)
+    guidance: str = ""  # guidance text that is attached to the end of the prompt
+    output_cls: Any = Field(exclude=True, default=None)
     next_node: str = ""
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        cleaned_tape = self.prepare_tape(tape)
-        steps_description = self.get_steps_description(tape, agent)
-        messages = self.tape_to_messages(cleaned_tape, steps_description)
+        clean_tape = self.prepare_tape(tape)
+        messages = self.tape_to_messages(clean_tape)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
-            cleaned_tape = self.trim_tape(cleaned_tape)
-            messages = self.tape_to_messages(cleaned_tape, steps_description)
+            clean_tape = self.trim_tape(clean_tape)
+            messages = self.tape_to_messages(clean_tape)
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
+        return tape
+
+    def tape_to_steps(self, tape: Tape) -> list[Step]:
+        tape_view = self.tape_view(tape)
+        if tape_view:
+            return [UserStep(content=tape_view)]
+        else:
+            view = TapeViewStack.compute(tape).top
+            return view.steps
+
+    def tape_to_messages(self, tape: Tape) -> list[dict]:
+        messages: list[dict] = [{"role": "system", "content": self.system_prompt}]
+        if self.output_cls is not None:
+            steps_description = self.get_steps_description(tape)
+            messages.append({"role": "user", "content": steps_description})
+        for step in self.tape_to_steps(tape):
+            if isinstance(step, CONTROL_FLOW_STEPS):
+                continue
+            if isinstance(step, (AssistantStep, UserStep)):
+                step_role = step.kind
+                step_content = step.content
+            else:
+                step_role = "assistant" if isinstance(step, AgentStep) else "user"
+                step_content = step.llm_view()
+            messages.append({"role": step_role, "content": step_content})
+        if self.guidance:
+            messages.append({"role": "user", "content": self.guidance})
+        return messages
+
+    def tape_view(self, tape: Tape) -> str:
+        return ""
+
+    def get_steps_description(self, tape: Tape) -> str:
+        text = self.steps_prompt
+        if self.output_cls:
+            schema = get_step_schemas_from_union_type(self.output_cls)
+            text = self.steps_prompt.format(schema=schema)
+        return text
+
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        new_steps = []
+        cnt = 0
+        for event in llm_stream:
+            if event.output:
+                cnt += 1
+                assert event.output.content
+                if self.output_cls is None:
+                    yield AssistantStep(content=event.output.content)
+                else:
+                    try:
+                        for step in parse_completion(event.output.content, llm_stream.prompt.id, self.output_cls):
+                            step = self.postprocess_step(tape, new_steps, step)
+                            new_steps.append(step)
+                            yield step
+                    except Exception as e:
+                        step = SetNextNode(next_node=self.name)  # stay in the same node when parsing fails
+                        step = self.postprocess_step(tape, new_steps, step)
+                        raise e
+        if not cnt:
+            raise FatalError("No completions!")
+
+        if self.next_node and not isinstance(new_steps[-1], StopStep):
+            yield SetNextNode(next_node=self.next_node)
+
+    def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
+        return step
+
+    def trim_tape(self, tape: Tape) -> Tape:
         return tape
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
@@ -73,59 +142,8 @@ class MonoNode(Node):
         content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
         return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 
-    def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
-        messages: list[dict] = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": steps_description},
-        ]
-        view = TapeViewStack.compute(tape).top
-        for step in view.steps:
-            if isinstance(step, CONTROL_FLOW_STEPS):
-                continue
-            elif isinstance(step, (AssistantStep, UserStep)):
-                message = {"role": step.kind, "content": step.content}
-            else:
-                role = "assistant" if isinstance(step, AgentStep) else "user"
-                message = {"role": role, "content": step.llm_view()}
-            messages.append(message)
-        if self.guidance:
-            messages.append({"role": "user", "content": self.guidance})
-        return messages
 
-    def get_steps_description(self, tape: Tape, agent: Any) -> str:
-        return self.steps_prompt
-
-    def generate_steps(
-        self, agent: Any, tape: Tape, llm_stream: LLMStream
-    ) -> Generator[Step | PartialStep, None, None]:
-        new_steps = []
-        cnt = 0
-        for event in llm_stream:
-            if event.output:
-                cnt += 1
-                assert event.output.content
-                try:
-                    for step in parse_completion(event.output.content, llm_stream.prompt.id, self.agent_step_cls):
-                        step = self.postprocess_step(tape, new_steps, step)
-                        new_steps.append(step)
-                        yield step
-                except Exception as e:
-                    yield SetNextNode(next_node=self.name)  # stay in the same node when parsing fails
-                    raise e
-        if not cnt:
-            raise FatalError("No completions!")
-
-        if self.next_node and not isinstance(new_steps[-1], StopStep):
-            yield SetNextNode(next_node=self.next_node)
-
-    def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
-        return step
-
-    def trim_tape(self, tape: Tape) -> Tape:
-        return tape
-
-
-def parse_completion(llm_output: str, prompt_id: str, agent_step_cls: Any) -> Generator[Step, None, None]:
+def parse_completion(llm_output: str, prompt_id: str, output_cls: Any) -> Generator[Step, None, None]:
     try:
         step_dicts = json.loads(sanitize_json_completion(llm_output))
         if isinstance(step_dicts, dict):
@@ -135,7 +153,7 @@ def parse_completion(llm_output: str, prompt_id: str, agent_step_cls: Any) -> Ge
         yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
         return
     try:
-        steps = [TypeAdapter(agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
+        steps = [TypeAdapter(output_cls).validate_python(step_dict) for step_dict in step_dicts]
     except ValidationError as e:
         err_text = ""
         for err in e.errors():
@@ -153,71 +171,16 @@ def parse_completion(llm_output: str, prompt_id: str, agent_step_cls: Any) -> Ge
         yield step
 
 
-class MonoNodeV2(Node):
-    # TODO: 1. unify this and MonoNode. 2. add flag to use function calling for actions instead schema in prompt
-    system_prompt: str
-    guidance: str = ""
-    next_node: str = ""
-    plaintext_cls: Any = AssistantStep
-    output_cls: Any = None
+class Formalize(Node):
     formalize_prompt: str = FORMALIZE_FORMAT
+    output_cls: Any
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
-        steps = self.tape_to_steps(tape)
-        steps = self.filter_steps(steps)
-        messages = self.steps_to_messages(steps)
-        return Prompt(messages=messages)
-
-    def tape_to_steps(self, tape: Tape) -> list[Step]:
-        tape_view = self.tape_view(tape)
-        if tape_view:
-            return [UserStep(content=tape_view)]
-        else:
-            view = TapeViewStack.compute(tape).top
-            return view.steps
-
-    def filter_steps(self, steps: list[Step]) -> list[Step]:
-        return steps
-
-    def steps_to_messages(self, steps: list[Step]) -> list[dict]:
-        messages = [{"role": "system", "content": self.system_prompt}]
-        for step in steps:
-            if isinstance(step, CONTROL_FLOW_STEPS):
-                continue
-            elif isinstance(step, (AssistantStep, self.plaintext_cls)):
-                message = {"role": "assistant", "content": step.content}  # type: ignore
-            else:
-                role = "assistant" if isinstance(step, AgentStep) else "user"
-                message = {"role": role, "content": step.llm_view()}
-            messages.append(message)
-        if self.guidance:
-            messages.append({"role": "user", "content": self.guidance})
-        return messages
-
-    def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
-        for event in llm_stream:
-            if event.output:
-                assert event.output.content
-                step = self.plaintext_cls(content=event.output.content)
-                yield step
-                if self.output_cls:
-                    formal_step = self.formalize(step, agent.llm)
-                    yield formal_step
-
-        if self.next_node:
-            yield SetNextNode(next_node=self.next_node)
-
-    def set_subagent_task(self, tape: Tape, new_steps: list[Step]) -> dict:
-        steps = tape.steps + new_steps
-        return steps[-1].llm_dict()
-
-    def tape_view(self, tape: Tape) -> str:
-        return ""
-
-    def formalize(self, step: AssistantStep, llm: LLM) -> Step:
+        step = tape[-1]
+        assert hasattr(step, "content")
         messages = [
             {"role": "system", "content": FORMALIZE_SYSTEM_PROMPT},
-            {"role": "user", "content": FORMALIZE_INPUT.format(content=step.content)},
+            {"role": "user", "content": FORMALIZE_INPUT.format(content=step.content)},  # type: ignore
             {"role": "user", "content": FORMALIZE_GUIDANCE},
             {
                 "role": "user",
@@ -228,7 +191,13 @@ class MonoNodeV2(Node):
                 ),
             },
         ]
-        llm_stream = llm.generate(Prompt(messages=messages))
+        return Prompt(messages=messages)
+
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        step = tape[-1]
+        assert hasattr(step, "content")
         for event in llm_stream:
             if event.output:
                 assert event.output.content
@@ -236,7 +205,8 @@ class MonoNodeV2(Node):
                 if hasattr(formal_step, "text"):
                     formal_step.text = step.content  # type: ignore
                 formal_step.metadata.prompt_id = llm_stream.prompt.id
-                return formal_step
+                yield formal_step
+                return
         raise FatalError("No completions!")
 
 

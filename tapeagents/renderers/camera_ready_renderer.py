@@ -113,6 +113,8 @@ class CameraReadyRenderer(BasicRenderer):
 
         ##### Render text #####
         def pretty_yaml(d: dict):
+            if not d:
+                return ""
             return to_pretty_str(d)
 
         def maybe_fold(content: str, len_max: int | None = None, preview_length: int = 60):

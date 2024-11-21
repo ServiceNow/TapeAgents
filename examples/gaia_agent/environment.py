@@ -88,7 +88,6 @@ class GaiaEnvironment(Environment):
                                 [CodeBlock(code=print_last_line(action.code), language="python")]
                             )
                             obs = CodeResultObservation(
-                                name=action.fact_name,
                                 result=result.output.strip(),
                                 stdout=f"Exit code: {result.exit_code}",
                                 stderr="",
@@ -99,9 +98,8 @@ class GaiaEnvironment(Environment):
                             if "permutations" in action.code:
                                 result, stdout, stderr = "", "", "Execution timeout"
                             else:
-                                result, stdout, stderr = run_python_code(action.code, action.facts or {})
+                                result, stdout, stderr = run_python_code(action.code, {})
                             obs = CodeResultObservation(
-                                name=action.fact_name,
                                 result=result,
                                 stdout=stdout,
                                 stderr=stderr,

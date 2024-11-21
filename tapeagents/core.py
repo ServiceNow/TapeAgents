@@ -145,7 +145,7 @@ class ReferenceStep(Thought):
     step_number: int
 
 
-CONTROL_FLOW_STEPS = (SetNextNode, ConditionCheck, Respond, ReferenceStep)
+CONTROL_FLOW_STEPS = (SetNextNode, ConditionCheck, Call, Respond, ReferenceStep)
 
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
