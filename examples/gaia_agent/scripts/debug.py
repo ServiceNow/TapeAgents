@@ -76,5 +76,5 @@ if __name__ == "__main__":
     dataset_path = "../gaia/dataset/validation/"
     exp_dir = "../gaia/runs/v2_debug/"
     level = 1
-    task = 2
+    task = 0
     main(dataset_path, exp_dir, level, task)

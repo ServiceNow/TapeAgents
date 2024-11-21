@@ -412,8 +412,8 @@ class PlanReflection(GaiaThought):
     task_solved: bool
     plan_finished: bool
     failed_step_number: int = -1
-    full_reflection_text: str
     failure_overview: str = ""
+    text: str = Field(description="leave this field empty", default="")
 
 
 GaiaStep = Union[

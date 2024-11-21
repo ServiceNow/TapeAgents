@@ -233,6 +233,8 @@ class MonoNodeV2(Node):
             if event.output:
                 assert event.output.content
                 formal_step = next(parse_completion(event.output.content, llm_stream.prompt.id, self.output_cls))
+                if hasattr(formal_step, "text"):
+                    formal_step.text = step.content  # type: ignore
                 formal_step.metadata.prompt_id = llm_stream.prompt.id
                 return formal_step
         raise FatalError("No completions!")

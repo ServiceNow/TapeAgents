@@ -1,6 +1,6 @@
 import logging
 
-from tapeagents.container_executor import ContainerExecutor, extract_code_blocks
+from tapeagents.container_executor import CodeBlock, ContainerExecutor
 from tapeagents.environment import Environment
 from tapeagents.tools.calculator import calculate
 from tapeagents.tools.python_interpreter import python_calculate, run_python_code
@@ -84,8 +84,9 @@ class GaiaEnvironment(Environment):
                         tape = tape.append(CalculationResultObservation(name=action.fact_name, result=result))
                     case PythonCodeAction():
                         if self.code_sandbox is not None:
-                            code_blocks = extract_code_blocks(action.code)
-                            result = self.code_sandbox.execute_code_blocks(code_blocks)
+                            result = self.code_sandbox.execute_code_blocks(
+                                [CodeBlock(code=action.code, language="python")]
+                            )
                             obs = CodeResultObservation(
                                 name=action.fact_name,
                                 result=result.output,

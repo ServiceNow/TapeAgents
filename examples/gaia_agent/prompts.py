@@ -78,15 +78,6 @@ Sometimes, the request will not contain any given facts, facts to look up, or fa
 DO NOT include any other headings or sections in your response. DO NOT list next steps or plans until asked to do so.
 """
 
-tools = """You can use the following tools:
-- Wikipedia search
-- Web search
-- Web browsing
-- Reading local documents
-- Extracting fact from the web page or document
-- Python code execution
-- Reasoning"""
-
 ALLOWED_STEPS_V2 = """
 You are allowed to produce ONLY steps described in this json schema:
 {schema}
@@ -100,13 +91,16 @@ Coder: A helpful and general-purpose AI programmer that has strong language skil
 FileSurfer: An agent that can handle reading of local files only, could be helpful to read documents attached to the task or downloaded from the web by WebSurfer. Proficient with PDF, DOCX, XLSX, CSV, PPTX and other common formats.
 """
 
-PLAN_V2 = f"""What steps should I do to answer the question above? Be specific about how each step should be done.
+PLAN_V2 = """What steps should I do to answer the question above? Be specific about how each step should be done.
 
-{tools}
+You can use the following tools:
+- WebSurfer: does wikipedia search, web search, web browsing, reading local documents, extracting fact from the web page or document
+- Coder: Python code execution
+- Reasoner: Reasoning
 
 For each step in the plan, include:
-- A detailed description of the tasks to perform.
-- A list of required tools.
+- A detailed description of the tasks to perform. DO NOT mention previous steps or the overall task!
+- A list of required tools (only WebSurfer, Coder, Reasoner are valid names).
 - A list of expected outcomes, such as facts, files, documents, or data.
 - A list of prerequisites, including any results from previous steps or known facts necessary to proceed. First step should not have prerequisites.
 """

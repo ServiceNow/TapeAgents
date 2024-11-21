@@ -86,16 +86,10 @@ class CallExecutor(Node):
             known_facts.append(result)
         agent_name = self.agent_name
         if (not view.next_step.list_of_tools) or (
-            len(view.next_step.list_of_tools) == 1 and "reasoning" in view.next_step.list_of_tools[0].lower()
+            len(view.next_step.list_of_tools) == 1 and view.next_step.list_of_tools[0].lower() == "reasoner"
         ):
             agent_name = "Reasoner"
-        task = first_position(tape, GaiaQuestion)
-        plan = last_position(tape, Plan)
-        facts = last_position(tape, Facts)
         yield Call(agent_name=agent_name)
-        # yield ReferenceStep(step_number=task)
-        # yield ReferenceStep(step_number=facts)
-        # yield ReferenceStep(step_number=plan)
         yield Subtask(
             number=view.next_step.number,
             name=view.next_step.name,
