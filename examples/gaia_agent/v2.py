@@ -73,7 +73,7 @@ class CallManager(Node):
 
 
 class CallExecutor(Node):
-    agent_name: str
+    agent_name: str = "Executor"
 
     def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
         view = ManagerView(tape)
@@ -258,12 +258,10 @@ class GaiaManager(Agent):
         cls,
         llm: LLM,
     ):
-        subagents = [GaiaOld.create(llm), Reasoner.create(llm)]
+        subagents = [Executor.create(llm), Reasoner.create(llm)]
 
-        # Yes, it looks like ancient asm code listing with jumps
         nodes = (
-            CallExecutor(agent_name="GaiaOld"),
-            # go to the next step or finish the plan
+            CallExecutor(),
             UpdateFacts(),
             ReflectPlan(),
             ControlFlowNode(
@@ -291,12 +289,13 @@ class Reasoner(Agent):
         return super().create(llm, nodes=nodes, max_iterations=2)
 
 
-class GaiaOld(Agent):
+class Executor(Agent):
     @classmethod
     def create(cls, llm: LLM):
         nodes = [
             Think(name="StartExecution", guidance=PromptRegistry.start_execution_v2),
             GaiaNodeV2(name="Act", guidance=PromptRegistry.act),
+            # ReflectObservation(),
             ControlFlowNode(
                 name="ReturnIfFinished",
                 predicate=lambda tape: bool(not isinstance(tape[-1], SubtaskResult)),
@@ -304,26 +303,4 @@ class GaiaOld(Agent):
             ),
             Return(),
         ]
-        return super().create(llm, nodes=nodes, max_iterations=2)
-
-
-class GaiaExecutor(Agent):
-    @classmethod
-    def create(cls, llm: LLM):
-        nodes = (
-            Think(name="StartExecution", guidance=PromptRegistry.start_execution_v2),
-            Act(),
-            ReflectObservation(),
-            ControlFlowNode(
-                name="ReturnIfFinished",
-                predicate=lambda tape: bool(
-                    not isinstance(last_step(tape, GaiaAction, allow_none=True), SubtaskResult)
-                ),
-                next_node="Act",
-            ),
-            Think(name="ReflectSubtask", guidance=PromptRegistry.reflect_subtask),
-            # reflect on the subtask result
-            UpdateFacts(),
-            Return(),
-        )
         return super().create(llm, nodes=nodes, max_iterations=2)

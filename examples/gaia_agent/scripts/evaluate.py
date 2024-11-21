@@ -37,6 +37,11 @@ def main(cfg: DictConfig) -> None:
     os.makedirs(code_path, exist_ok=True)
 
     llm: TrainableLLM = instantiate(cfg.llm)
+    try:
+        code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
+    except Exception as e:
+        logger.error(f"Failed to create code sandbox: {e}")
+        code_sandbox = None
     # agent = GaiaAgent.create(llm, **cfg.agent)
     agent = GaiaPlanner.create(llm)
     tasks = load_dataset(cfg.data_dir)
@@ -47,7 +52,7 @@ def main(cfg: DictConfig) -> None:
     n_workers = cfg.batch or 0
     processor = choose_processor(n_workers)
     args = [
-        (agent, llm, cfg.env, task, cfg.exp_path, i, level)
+        (agent, llm, cfg.env, code_sandbox, task, cfg.exp_path, i, level)
         for level, level_tasks in tasks.items()
         for i, task in enumerate(level_tasks)
         if not task_already_solved(i, level, tapes_dir)
@@ -58,6 +63,8 @@ def main(cfg: DictConfig) -> None:
             raise tape_ready
     dt = time.perf_counter() - dt
     logger.info(f"Done, elapsed time: {dt:.2f} sec")
+    if code_sandbox:
+        code_sandbox.stop()
 
 
 def validate_config(cfg, llm, tapes_dir):
@@ -79,14 +86,9 @@ def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
 
 
 def task_worker(args: tuple) -> int:
-    agent, llm, cfg_env, task, exp_path, i, level = args
+    agent, llm, cfg_env, code_sandbox, task, exp_path, i, level = args
     tapes_dir = os.path.join(exp_path, "tapes")
     tape_name = f"l{level}_task{i:03d}"
-    try:
-        code_sandbox = ContainerExecutor(work_dir=os.path.join(exp_path, "code"))
-    except Exception as e:
-        logger.error(f"Failed to create code sandbox: {e}")
-        code_sandbox = None
     env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox, **cfg_env)
 
     tape = solve_task(task, agent, env, level)

@@ -85,11 +85,11 @@ class GaiaEnvironment(Environment):
                     case PythonCodeAction():
                         if self.code_sandbox is not None:
                             result = self.code_sandbox.execute_code_blocks(
-                                [CodeBlock(code=action.code, language="python")]
+                                [CodeBlock(code=print_last_line(action.code), language="python")]
                             )
                             obs = CodeResultObservation(
                                 name=action.fact_name,
-                                result=result.output,
+                                result=result.output.strip(),
                                 stdout=f"Exit code: {result.exit_code}",
                                 stderr="",
                             )
@@ -118,3 +118,13 @@ class GaiaEnvironment(Environment):
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape
+
+
+def print_last_line(python_code: str) -> str:
+    lines = python_code.splitlines()
+    if " = " in lines[-1]:
+        name = lines[-1].split("=")[0].strip()
+        lines.append(f"print({name})")
+    else:
+        lines[-1] = f"print({lines[-1]})"
+    return "\n".join(lines)
