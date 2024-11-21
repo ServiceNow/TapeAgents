@@ -22,6 +22,7 @@ from .steps import (
     PageObservation,
     Plan,
     PlanReflection,
+    ReasonerStep,
     Reflection,
     Subtask,
     SubtaskResult,
@@ -78,11 +79,17 @@ class CallExecutor(Node):
         view = ManagerView(tape)
         assert view.next_step, "No remained steps left!"
         known_facts = []
-        for step_number, _ in view.next_step.prerequisites:
+        for p in view.next_step.prerequisites:
+            if len(p) == 2:
+                step_number, _ = p
+            elif view.next_step.number:
+                step_number = view.next_step.number - 1
+            else:
+                continue
             if step_number not in view.completed_steps:
                 logger.warning(f"Prerequisite result {step_number} not found!")
                 continue
-            result = str(view.completed_steps[step_number].result)
+            result = view.completed_steps[step_number].llm_dict()
             known_facts.append(result)
         agent_name = self.agent_name
         if (not view.next_step.list_of_tools) or (
@@ -273,7 +280,12 @@ class Reasoner(Agent):
     @classmethod
     def create(cls, llm: LLM):
         nodes = [
-            Think(guidance=PromptRegistry.reason, output_cls=SubtaskResult),
+            GaiaNodeV2(name="Reason", guidance=PromptRegistry.reason, agent_step_cls=ReasonerStep),
+            ControlFlowNode(
+                name="ReturnIfFinished",
+                predicate=lambda tape: bool(not isinstance(tape[-1], SubtaskResult)),
+                next_node="Reason",
+            ),
             Return(),
         ]
         return super().create(llm, nodes=nodes, max_iterations=2)

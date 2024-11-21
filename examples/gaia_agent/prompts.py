@@ -102,7 +102,7 @@ For each step in the plan, include:
 - A detailed description of the tasks to perform. DO NOT mention previous steps or the overall task!
 - A list of required tools (only WebSurfer, Coder, Reasoner are valid names).
 - A list of expected outcomes, such as facts, files, documents, or data.
-- A list of prerequisites, including any results from previous steps or known facts necessary to proceed. First step should not have prerequisites.
+- A list of prerequisites, including any results from previous steps or known facts necessary to proceed. First step should not have prerequisites. Each prerequisite should have the number of the step where it was produced.
 """
 
 START_EXECUTION_V2 = """

@@ -77,7 +77,7 @@ class PlanStep(BaseModel):
     name: str
     description: str
     list_of_tools: list[str] = Field(description="list of tools to use to complete the step")
-    prerequisites: list[tuple[int, str]] = Field(
+    prerequisites: list[Any] = Field(
         description="list of pairs (previous_step_number, previous_step_result) that are needed to start working on this step",
         default_factory=list,
     )
@@ -376,7 +376,7 @@ class Subtask(GaiaThought):
     number: int
     name: str
     description: str
-    known_facts: list[str]
+    known_facts: list[str | dict]
     list_of_tools: list[str]
     expected_results: list[str]
 
@@ -532,6 +532,19 @@ ExecutorStep: TypeAlias = Annotated[
         ReadDocumentAction,
         NextPageAction,
         PythonCodeAction,
+        ReasoningThought,
+        ReadingResultThought,
+        NewFactThought,
+        ConvertFactAction,
+    ],
+    Field(discriminator="kind"),
+]
+
+ReasonerStep: TypeAlias = Annotated[
+    Union[
+        SubtaskResult,
+        ReadDocumentAction,
+        NextPageAction,
         ReasoningThought,
         ReadingResultThought,
         NewFactThought,
