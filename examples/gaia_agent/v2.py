@@ -15,7 +15,6 @@ from .steps import (
     ActionExecutionFailure,
     ExecutorStep,
     Facts,
-    GaiaAction,
     GaiaAnswer,
     GaiaObservation,
     GaiaQuestion,
@@ -278,7 +277,8 @@ class Reasoner(Agent):
     @classmethod
     def create(cls, llm: LLM):
         nodes = [
-            GaiaNodeV2(name="Reason", guidance=PromptRegistry.reason, agent_step_cls=ReasonerStep),
+            GaiaNodeV2(name="Start", guidance=PromptRegistry.reason, agent_step_cls=ReasonerStep),
+            GaiaNodeV2(name="Reason", agent_step_cls=ReasonerStep),
             ControlFlowNode(
                 name="ReturnIfFinished",
                 predicate=lambda tape: bool(not isinstance(tape[-1], SubtaskResult)),
