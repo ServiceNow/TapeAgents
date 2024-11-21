@@ -373,51 +373,41 @@ def main(cfg: DictConfig):
         start_basemodel_logprobs = time.time()
         training_samples = all_results["train"]["training_samples"]
         new_training_samples: list[TrainingText] = []
-        refmodel_starting_time = 0
-        if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.reward_minus_kl_coef > 0):
-            logging.info("Populating reference log probabilities")
-            if assistant_model_path == cfg.model_path:
-                # At the first itetration, Ref logprobs are the same as logprobs
-                for trace in training_samples:
-                    trace.ref_logprobs = trace.logprobs
-                    new_training_samples.append(trace)
-            else:
-                # Load the base model to get the reference log probabilities
-                try:
-                    basemodel_llm = TrainableLLM(
-                        base_url="http://127.0.0.1:8080",
-                        model_name=cfg.model_path,
-                        tokenizer_name=cfg.model_path,
-                        parameters=dict(temperature=0.7),
-                    )
+        try:
+            basemodel_llm = TrainableLLM(
+                base_url="http://127.0.0.1:8081",
+                model_name=cfg.model_path,
+                tokenizer_name=cfg.model_path,
+                parameters=dict(temperature=0.7),
+            )
 
-                    basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
+            basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
-                    with VLLMServiceManager(
-                        model_name_or_path=cfg.model_path,
-                        stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
-                        stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
-                        port=8080,
-                        verbose=True,
-                        cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                        **cfg.vllm_config.vllm_kwargs,
-                    ) as vllm_service_manager:
-                        # FIXME: more than 1 worker causes the LLM to run OOM
-                        with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
-                            futures = [
-                                executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
-                                for trace in training_samples
-                            ]
-                            for future in as_completed(futures):
-                                trace = future.result()
-                                if trace:
-                                    new_training_samples.append(trace)
-                        refmodel_vllm_stats = vllm_service_manager.get_stats()
-                        refmodel_starting_time = refmodel_vllm_stats["starting_time"]
+            with VLLMServiceManager(
+                model_name_or_path=cfg.model_path,
+                stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
+                stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
+                port=8081,
+                verbose=True,
+                cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+                **cfg.vllm_config.vllm_kwargs,
+            ) as vllm_service_manager:
+                # FIXME: more than 1 worker causes the LLM to run OOM
+                with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
+                    futures = [
+                        executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
+                        for trace in training_samples
+                    ]
+                    for future in as_completed(futures):
+                        trace = future.result()
+                        if trace:
+                            new_training_samples.append(trace)
+                refmodel_vllm_stats = vllm_service_manager.get_stats()
+                refmodel_starting_time = refmodel_vllm_stats["starting_time"]
 
-                except Exception as e:
-                    logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
-                    raise e
+        except Exception as e:
+            logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
+            raise e
 
         time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
         wandb.log(
@@ -430,7 +420,7 @@ def main(cfg: DictConfig):
         )
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
-        for trace in training_samples:
+        for trace in new_training_samples:
             with open(rollout_dir / f"{trace.group_id}.jsonl", "a") as f:
                 f.write(trace.model_dump_json() + "\n")
                 f.flush()
