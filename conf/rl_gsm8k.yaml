@@ -2,6 +2,7 @@ defaults:
   - finetune: rl_llama31_8b
   - _self_
 
+dataset: openai/gsm8k
 n_workers: 32
 get_log_probs_workers: 1
 max_loops: 1

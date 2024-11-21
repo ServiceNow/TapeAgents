@@ -70,7 +70,13 @@ def convert_problems_to_tapes(problems: list) -> list[MathTape]:
     """
     tapes: list[MathTape] = []
     for problem in problems:
-        start_step = Task(task=problem["question"], metadata=StepMetadata(other=extract_result_value(problem)))
+        if "question" in problem:
+            task = problem["question"]
+        elif "problem" in problem:
+            task = problem["problem"]
+        else:
+            raise ValueError("Problem does not contain 'question' or 'problem' key")
+        start_step = Task(task=task, metadata=StepMetadata(other=extract_result_value(problem)))
         tape = MathTape(steps=[start_step], context=None)
         tapes.append(tape)
     return tapes
@@ -78,7 +84,7 @@ def convert_problems_to_tapes(problems: list) -> list[MathTape]:
 
 def extract_tape_training_samples(
     new_tape: MathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
-) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
+) -> Tuple[List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
 
@@ -92,7 +98,6 @@ def extract_tape_training_samples(
 
     Returns:
         Tuple containing:
-        - Processed MathTape
         - List of training samples with rewards and logprobs
         - Dictionary with statistics (reward, steps, success, no_errors)
     """
@@ -126,14 +131,9 @@ def extract_tape_training_samples(
         sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-            # Check if we will need the KL
-            if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.reward_minus_kl_coef > 0):
-                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text) # type: ignore
-            else:
-                trace.logprobs = [0] * llm_call.output_length_tokens
-                trace.ref_logprobs = [0] * llm_call.output_length_tokens
+            trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text) # type: ignore
             trace.reward = reward
-            trace.group_id = new_tape.metadata.parent_id 
+            trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
             if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
@@ -156,7 +156,7 @@ def extract_tape_training_samples(
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
     }
-    return new_tape, training_samples, tape_stats
+    return training_samples, tape_stats
 
 
 def generate_training_data(
@@ -226,15 +226,14 @@ def generate_training_data(
         futures = [executor.submit(extract_tape_training_samples_partial, new_tape) for new_tape in new_tapes]
         # Wrap futures with tqdm for progress tracking
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
-            new_tape, tape_training_samples, tape_stats = future.result()
-            reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
-            step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
-            success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
-            no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
-            discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
+            tape_training_samples, tape_stats = future.result()
+            reward_stats[tape_training_samples[0].group_id].append(tape_stats["reward"])
+            step_stats[tape_training_samples[0].group_id].append(tape_stats["steps"])
+            success_stats[tape_training_samples[0].group_id].append(tape_stats["success"])
+            no_errors_stats[tape_training_samples[0].group_id].append(tape_stats["no_error"])
+            discarded_stats[tape_training_samples[0].group_id].append(tape_stats["discarded"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
-            new_tapes.append(new_tape)
             training_samples.extend(tape_training_samples)
 
     end_annotate_tape = time.time()
@@ -279,9 +278,9 @@ def main(cfg: DictConfig):
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
 
-    train_dataset = load_dataset("openai/gsm8k", "main", split="train")
+    train_dataset = load_dataset(cfg.dataset, "main", split="train")
     train_samples = [s for s in train_dataset]
-    test_dataset = load_dataset("openai/gsm8k", "main", split="test")
+    test_dataset = load_dataset(cfg.dataset, "main", split="test")
     test_samples = [s for s in test_dataset]
     logging.info(f"Loaded {len(train_samples)} training samples")
     logging.info(f"Loaded {len(test_samples)} test samples")
