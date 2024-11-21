@@ -131,7 +131,7 @@ def extract_tape_training_samples(
         sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-            trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text) # type: ignore
+            trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
             trace.reward = reward
             trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
@@ -227,14 +227,17 @@ def generate_training_data(
         # Wrap futures with tqdm for progress tracking
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
             tape_training_samples, tape_stats = future.result()
-            reward_stats[tape_training_samples[0].group_id].append(tape_stats["reward"])
-            step_stats[tape_training_samples[0].group_id].append(tape_stats["steps"])
-            success_stats[tape_training_samples[0].group_id].append(tape_stats["success"])
-            no_errors_stats[tape_training_samples[0].group_id].append(tape_stats["no_error"])
-            discarded_stats[tape_training_samples[0].group_id].append(tape_stats["discarded"])
-            prompt_tokens += tape_stats["prompt_tokens"]
-            output_tokens += tape_stats["output_tokens"]
-            training_samples.extend(tape_training_samples)
+            if tape_training_samples:
+                for trace in tape_training_samples:
+                    reward_stats[trace.group_id].append(tape_stats["reward"])
+                    step_stats[trace.group_id].append(tape_stats["steps"])
+                    success_stats[trace.group_id].append(tape_stats["success"])
+                    no_errors_stats[trace.group_id].append(tape_stats["no_error"])
+                    discarded_stats[trace.group_id].append(tape_stats["discarded"])
+                training_samples.extend(tape_training_samples)
+            if tape_stats:
+                prompt_tokens += tape_stats["prompt_tokens"]
+                output_tokens += tape_stats["output_tokens"]
 
     end_annotate_tape = time.time()
 
@@ -370,8 +373,6 @@ def main(cfg: DictConfig):
         )
 
         start_basemodel_logprobs = time.time()
-        training_samples = all_results["train"]["training_samples"]
-        new_training_samples: list[TrainingText] = []
         try:
             basemodel_llm = TrainableLLM(
                 base_url="http://127.0.0.1:8081",
@@ -395,12 +396,12 @@ def main(cfg: DictConfig):
                 with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
                     futures = [
                         executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
-                        for trace in training_samples
+                        for trace in all_results["train"]["training_samples"]
                     ]
-                    for future in as_completed(futures):
-                        trace = future.result()
-                        if trace:
-                            new_training_samples.append(trace)
+                    training_samples: List[TrainingText] = [
+                        future.result()
+                        for future in tqdm(as_completed(futures), total=len(futures), desc="Annotating traces")  # type: ignore
+                    ]
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
 
@@ -419,7 +420,15 @@ def main(cfg: DictConfig):
         )
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
-        for trace in new_training_samples:
+        for trace in training_samples:
+            if len(trace.logprobs) != len(trace.ref_logprobs):
+                logger.error(
+                    colored(
+                        f"Logprobs and ref logprobs have different lengths: {len(trace.logprobs)} vs {len(trace.ref_logprobs)}",
+                        "red",
+                    )
+                )
+                continue
             with open(rollout_dir / f"{trace.group_id}.jsonl", "a") as f:
                 f.write(trace.model_dump_json() + "\n")
                 f.flush()
