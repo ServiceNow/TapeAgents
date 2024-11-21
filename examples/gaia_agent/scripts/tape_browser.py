@@ -67,7 +67,9 @@ class GaiaTapeBrowser(TapeBrowser):
     def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
         acc, n_solved = calculate_accuracy(tapes)
         errors = defaultdict(int)
-        tokens_num = 0
+        prompt_tokens_num = 0
+        output_tokens_num = 0
+        total_cost = 0.
         for tape in tapes:
             if tape.metadata.error:
                 errors["fatal"] += 1
@@ -77,16 +79,18 @@ class GaiaTapeBrowser(TapeBrowser):
                     last_action = step
                 prompt_id = step.metadata.prompt_id
                 if prompt_id and prompt_id in self.llm_calls:
-                    tokens_num += (
-                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
-                    )
+                    llm_call = self.llm_calls[prompt_id]
+                    prompt_tokens_num += llm_call.prompt_length_tokens
+                    output_tokens_num += llm_call.output_length_tokens
+                    total_cost += llm_call.cost
                 if step.kind == "page_observation" and step.error:
                     errors["browser"] += 1
                 elif step.kind == "llm_output_parsing_failure_action":
                     errors["parsing"] += 1
                 elif step.kind == "action_execution_failure":
                     errors[f"{last_action.kind}"] += 1
-        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}"
+        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}"
+        html += f"</h2>Prompts tokens total: {prompt_tokens_num}, output tokens total: {output_tokens_num}, cost total: {total_cost:.2f}"
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
             html += f"<h2>Errors</h2>{errors_str}"
@@ -115,16 +119,19 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_tape_label(self, tape: GaiaTape) -> str:
         llm_calls_num = 0
-        tokens_num = 0
+        input_tokens_num = 0
+        output_tokens_num = 0
+        cost = 0
 
         for step in tape:
             prompt_id = step.metadata.prompt_id
             if prompt_id:
                 llm_calls_num += 1
                 if prompt_id in self.llm_calls:
-                    tokens_num += (
-                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
-                    )
+                    llm_call = self.llm_calls[prompt_id]
+                    input_tokens_num += llm_call.prompt_length_tokens
+                    output_tokens_num += llm_call.output_length_tokens
+                    cost += llm_call.cost
         failure_count = len(
             [step for step in tape if "failure" in step.kind or (step.kind == "page_observation" and step.error)]
         )
@@ -137,7 +144,7 @@ class GaiaTapeBrowser(TapeBrowser):
         overview = tape[-1].overview if hasattr(tape[-1], "overview") else ""  # type: ignore
         label += f"""
             <div class="result-success">Finished successfully: {success}</div>
-            <div>LLM Calls: {llm_calls_num}, tokens: {tokens_num}</div>
+            <div>LLM Calls: {llm_calls_num}, input_tokens: {input_tokens_num}, output_tokens {output_tokens_num}, cost {cost:.2f}</div>
             <div class="result-overview">Overview:<br>{overview}</div>"""
         if tape.metadata.error:
             label += f"<div class='result-error'><b>Error</b>: {tape.metadata.error}</div>"
