@@ -3,7 +3,7 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import Any, Counter
+from typing import Any, Counter, Generator
 
 import yaml
 from termcolor import colored
@@ -82,7 +82,7 @@ def load_dataset(data_dir):
     return tasks
 
 
-def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, tries: int = 1) -> GaiaTape:
+def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, tries: int = 1) -> Generator[GaiaTape, None, None]:
     question = task_to_question_step(task, env)
     result = None
     tape = GaiaTape(steps=[question])
@@ -90,10 +90,9 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, t
         tape = GaiaTape(steps=[question])
         try:
             for event in main_loop(agent, tape, env, max_loops=60):
-                if event.agent_event and event.agent_event.step:
-                    tape = tape.append(event.agent_event.step)  # type: ignore
-                if event.observation:
-                    tape = tape.append(event.observation)  # type: ignore
+                if partial_tape := (event.agent_tape or event.env_tape):
+                    tape = partial_tape
+                    yield tape
                 if event.status == MainLoopStatus.TERMINATED:
                     tape = tape.append(TerminationStep())
                     tape.metadata.terminated = True
@@ -107,7 +106,7 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, t
     logger.info(f"Expected: {task['Final answer']}, Agent produced: {result}")
     tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "result": str(result)})
     tape.metadata.level = level
-    return tape
+    yield tape
 
 
 def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int = 8000) -> GaiaQuestion:
