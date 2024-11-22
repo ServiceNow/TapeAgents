@@ -260,7 +260,7 @@ class GaiaManager(Agent):
             ControlFlowNode(
                 name="Loop",
                 predicate=lambda tape: ManagerView(tape).can_continue,
-                next_node="AssignTask",
+                next_node="CallWorker",
             ),
             Return(),
         )
