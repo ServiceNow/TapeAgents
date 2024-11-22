@@ -24,10 +24,19 @@ from examples.rl_gsm8k.cot_math_agent import (
     CoTMathAgent,
     MathEnvironment,
     MathTape,
-    ReasoningThoughtwithValue,
+    ReasoningThought,
     Task,
-    extract_result_value,
 )
+from examples.rl_gsm8k.process_utils import process_gsm8k_test, process_math_test
+from examples.rl_gsm8k.eval_utils import (
+    eval_last_single_answer,
+    eval_math,
+    parse_ground_truth,
+    parse_question,
+    extract_math_answer,
+    extract_last_single_answer,
+)
+
 from examples.rl_gsm8k.utils import (
     VLLMServiceManager,
     calculate_stats,
@@ -46,16 +55,15 @@ from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls
 logger = logging.getLogger(__name__)
 
 
-def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText | None:
+def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
     try:
         trace.ref_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
         return trace
     except Exception as e:
-        logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
-        return None
+        raise e
 
 
-def convert_problems_to_tapes(problems: list) -> list[MathTape]:
+def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[MathTape]:
     """
     Creates MathTape objects from a list of math problem dictionaries.
 
@@ -69,14 +77,17 @@ def convert_problems_to_tapes(problems: list) -> list[MathTape]:
             stored in metadata.
     """
     tapes: list[MathTape] = []
+
     for problem in problems:
-        if "question" in problem:
-            task = problem["question"]
-        elif "problem" in problem:
-            task = problem["problem"]
-        else:
-            raise ValueError("Problem does not contain 'question' or 'problem' key")
-        start_step = Task(task=task, metadata=StepMetadata(other=extract_result_value(problem)))
+        _, answer = parse_ground_truth(problem, cfg.dataset_name)
+        start_step = Task(
+            task=problem["task"],
+            metadata=StepMetadata(
+                other={
+                    "value": answer,
+                }
+            ),
+        )
         tape = MathTape(steps=[start_step], context=None)
         tapes.append(tape)
     return tapes
@@ -84,7 +95,7 @@ def convert_problems_to_tapes(problems: list) -> list[MathTape]:
 
 def extract_tape_training_samples(
     new_tape: MathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
-) -> Tuple[List[TrainingText], Dict[str, int]]:
+) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
 
@@ -104,19 +115,38 @@ def extract_tape_training_samples(
     discarded = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
+    match cfg.dataset_name:
+        case "math":
+            eval_fn = eval_math
+            extract_fn = extract_math_answer
+        case "gsm8k":
+            eval_fn = eval_last_single_answer
+            extract_fn = extract_last_single_answer
+        case _:
+            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+
     if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
         # LLM produced a step that was unparsable. Negative reward.
         no_error, reward, success = 0, -1, 0
     else:
         no_error = 1
-        if (
-            isinstance(new_tape.steps[-1], ReasoningThoughtwithValue)
-            and new_tape.steps[-1].value == new_tape.steps[0].metadata.other["value"]
+        prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")
+        if isinstance(prediction, List):
+            prediction = prediction[0]
+            if len(prediction) > 0:
+                print(prediction)
+        answer = new_tape.steps[0].metadata.other["value"]
+        if isinstance(new_tape.steps[-1], ReasoningThought) and eval_fn(
+            {
+                "prediction": prediction,
+                "answer": answer,
+            }
         ):
             # Correct answer
             reward, success = 1, 1
         else:
             # Incorrect answer or no answer
+            print(prediction, answer)
             reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
@@ -139,11 +169,7 @@ def extract_tape_training_samples(
             if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
                 trace.logprobs
             ) == llm_call.output_length_tokens:
-                if cfg.use_rejection_sampling:
-                    if trace.reward > 0:
-                        training_samples.append(trace)
-                else:
-                    training_samples.append(trace)
+                training_samples.append(trace)
                 discarded.append(0)
             else:
                 discarded.append(1)
@@ -156,7 +182,7 @@ def extract_tape_training_samples(
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
     }
-    return training_samples, tape_stats
+    return new_tape, training_samples, tape_stats
 
 
 def generate_training_data(
@@ -226,15 +252,13 @@ def generate_training_data(
         futures = [executor.submit(extract_tape_training_samples_partial, new_tape) for new_tape in new_tapes]
         # Wrap futures with tqdm for progress tracking
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
-            tape_training_samples, tape_stats = future.result()
-            if tape_training_samples:
-                for trace in tape_training_samples:
-                    reward_stats[trace.group_id].append(tape_stats["reward"])
-                    step_stats[trace.group_id].append(tape_stats["steps"])
-                    success_stats[trace.group_id].append(tape_stats["success"])
-                    no_errors_stats[trace.group_id].append(tape_stats["no_error"])
-                    discarded_stats[trace.group_id].append(tape_stats["discarded"])
-                training_samples.extend(tape_training_samples)
+            new_tape, tape_training_samples, tape_stats = future.result()
+            reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
+            step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
+            success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
+            no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
+            discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
+            training_samples.extend(tape_training_samples)
             if tape_stats:
                 prompt_tokens += tape_stats["prompt_tokens"]
                 output_tokens += tape_stats["output_tokens"]
@@ -281,9 +305,21 @@ def main(cfg: DictConfig):
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
 
-    train_dataset = load_dataset(cfg.dataset, "main", split="train")
+    match cfg.dataset_name:
+        case "math":
+            dataset_long_name = "hendrycks/competition_math"
+            process_fn = process_math_test
+        case "gsm8k":
+            dataset_long_name = "openai/gsm8k"
+            process_fn = process_gsm8k_test
+        case _:
+            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+
+    train_dataset = load_dataset(dataset_long_name, "main", split="train")
+    train_dataset = train_dataset.map(process_fn)
     train_samples = [s for s in train_dataset]
-    test_dataset = load_dataset(cfg.dataset, "main", split="test")
+    test_dataset = load_dataset(dataset_long_name, "main", split="test")
+    test_dataset = test_dataset.map(process_fn)
     test_samples = [s for s in test_dataset]
     logging.info(f"Loaded {len(train_samples)} training samples")
     logging.info(f"Loaded {len(test_samples)} test samples")
@@ -319,15 +355,15 @@ def main(cfg: DictConfig):
 
         try:
             sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
-            train_tapes = convert_problems_to_tapes(sub_samples)
+            train_tapes = convert_problems_to_tapes(sub_samples, cfg)
             train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
-            test_tapes = convert_problems_to_tapes(test_samples)
-            train_agent = CoTMathAgent.create(llm=llm)
-            test_agent = CoTMathAgent.create(llm=test_llm)
+            train_agent = CoTMathAgent.create(dataset_name=cfg.dataset_name, llm=llm)
 
-            datasets = [("train", train_agent, train_tapes)]
+            splits = [("train", train_agent, train_tapes)]
             if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                datasets.append(("test", test_agent, test_tapes))
+                test_tapes = convert_problems_to_tapes(test_samples, cfg)
+                test_agent = CoTMathAgent.create(dataset_name=cfg.dataset_name, llm=test_llm)
+                splits.append(("test", test_agent, test_tapes))
             all_results = {}
             with VLLMServiceManager(
                 model_name_or_path=assistant_model_path,
@@ -338,20 +374,20 @@ def main(cfg: DictConfig):
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **cfg.vllm_config.vllm_kwargs,
             ) as vllm_service_manager:
-                for dataset_name, agent, tapes in datasets:
-                    tapes_dir = exp_path / "tapes" / dataset_name / str(state["iteration"])
+                for split_name, agent, tapes in splits:
+                    tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
                     new_tapes, training_samples, stats = generate_training_data(
-                        agent, tapes, cfg, env, tapes_dir, dataset_name
+                        agent, tapes, cfg, env, tapes_dir, split_name
                     )
 
-                    all_results[dataset_name] = {
+                    all_results[split_name] = {
                         "new_tapes": new_tapes,
                         "training_samples": training_samples,
                         "stats": stats,
                     }
 
                     # Log results
-                    logger.info(f"{dataset_name.capitalize()} Results:")
+                    logger.info(f"{cfg.dataset_name} {split_name.capitalize()} Results:")
                     for stat_name, stat_value in stats.items():
                         logger.info(f"{stat_name}: {stat_value}")
                 assistant_vllm_stats = vllm_service_manager.get_stats()
@@ -381,7 +417,7 @@ def main(cfg: DictConfig):
                 parameters=dict(temperature=0.7),
             )
 
-            basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
+            basemodel_agent = CoTMathAgent.create(dataset_name=cfg.dataset_name, llm=basemodel_llm)
 
             with VLLMServiceManager(
                 model_name_or_path=cfg.model_path,
@@ -400,7 +436,7 @@ def main(cfg: DictConfig):
                     ]
                     training_samples: List[TrainingText] = [
                         future.result()
-                        for future in tqdm(as_completed(futures), total=len(futures), desc="Annotating traces")  # type: ignore
+                        for future in tqdm(as_completed(futures), total=len(futures), desc="Annotating traces")
                     ]
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
@@ -421,13 +457,7 @@ def main(cfg: DictConfig):
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
         for trace in training_samples:
-            if len(trace.logprobs) != len(trace.ref_logprobs):
-                logger.error(
-                    colored(
-                        f"Logprobs and ref logprobs have different lengths: {len(trace.logprobs)} vs {len(trace.ref_logprobs)}",
-                        "red",
-                    )
-                )
+            if cfg.use_rejection_sampling and trace.reward <= 0:
                 continue
             with open(rollout_dir / f"{trace.group_id}.jsonl", "a") as f:
                 f.write(trace.model_dump_json() + "\n")

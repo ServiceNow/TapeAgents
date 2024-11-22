@@ -1,0 +1,3 @@
+[submodule "third_party/deepseek-math"]
+	path = third_party/deepseek-math
+	url = https://github.com/deepseek-ai/DeepSeek-Math
