@@ -4,7 +4,7 @@ import json
 import yaml
 
 from tapeagents.container_executor import CodeBlock
-from tapeagents.core import Action, ConditionCheck, Error, Observation, SetNextNode, Step, Thought
+from tapeagents.core import Action, ConditionCheck, Error, Observation, SetNextNode, Step, TerminationStep, Thought
 from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
@@ -108,7 +108,7 @@ class CameraReadyRenderer(BasicRenderer):
         else:
             raise ValueError(f"Unknown object type: {type(step)}")
 
-        if isinstance(step, Error):
+        if isinstance(step, (Error, TerminationStep)):
             class_ += " error"
 
         ##### Render text #####

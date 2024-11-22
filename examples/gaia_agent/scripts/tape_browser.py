@@ -72,6 +72,8 @@ class GaiaTapeBrowser(TapeBrowser):
         for tape in tapes:
             if tape.metadata.error:
                 errors["fatal"] += 1
+            if tape.metadata.terminated:
+                errors["terminated"] += 1
             last_action = None
             for step in tape:
                 if isinstance(step, Action):
@@ -95,11 +97,13 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
         error = "F" if tape.metadata.error else None
+        if tape.metadata.terminated:
+            error = "T"
         last_action = None
         for step in tape:
             if isinstance(step, Action):
                 last_action = step
-            if step.kind == "page_observation" and step.error:
+            elif step.kind == "page_observation" and step.error:
                 error = "br"
             elif step.kind == "llm_output_parsing_failure_action":
                 error = "pa"
