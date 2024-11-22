@@ -191,15 +191,10 @@ def solve_task(agent: Agent, env: Environment, task: dict, tape_file: str = "") 
 
 def extract_result_value(sample) -> dict:
     sample = dict(sample)
-    if "answer" in sample:
-        expected_result = str(sample["answer"]).rsplit("####", maxsplit=1)[-1].strip().replace(",", "")
-        if expected_result.isdigit():
-            expected_result = int(expected_result)
-        else:
-            expected_result = float(expected_result)
-    elif "solution" in sample:
-        expected_result = sample["solution"]
+    expected_result = str(sample["answer"]).rsplit("####", maxsplit=1)[-1].strip().replace(",", "")
+    if expected_result.isdigit():
+        expected_result = int(expected_result)
     else:
-        raise ValueError("No answer or solution in the sample")
+        expected_result = float(expected_result)
     sample["value"] = expected_result
     return sample
