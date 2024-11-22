@@ -33,3 +33,5 @@ class TrainingMetrics:
     best_eval_loss: float = 1e9
     best_completed_steps: int = 0
     lr: float = 0.0
+    max_batch_len: int = 0
+    min_batch_len: int = int(1e9)

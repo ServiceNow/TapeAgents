@@ -98,7 +98,7 @@ def run_finetuning_loop(
     dt = log_time(dt, "finetune/startup")
 
     tokenizer = load_tokenizer(args.config_name)
-    model = load_model(args, model_class, current_dir, is_rl)
+    model = load_model(args, model_class, current_dir)
 
     dt = log_time(dt, "finetune/model_load")
 
@@ -130,6 +130,7 @@ def run_finetuning_loop(
             dataloader_rng,
             is_rl=is_rl,
         )
+
     accelerator.wait_for_everyone()
     dt = log_time(dt, "finetune/data_load")
 
@@ -202,6 +203,8 @@ def run_finetuning_loop(
                         rl_metrics[k].append(v)
                     training_metrics.train_loss = loss.item()
                     training_metrics.lr = optimizer.param_groups[0]["lr"]
+                    training_metrics.max_batch_len = max(batch["input_ids"].shape[1], training_metrics.max_batch_len)
+                    training_metrics.min_batch_len = min(batch["input_ids"].shape[1], training_metrics.min_batch_len)
                     accelerator.backward(loss / args.gradient_accumulation_passes)
 
             if not do_optimizer_step:
@@ -240,6 +243,8 @@ def run_finetuning_loop(
                         "throughput/steps_per_sec": 1 / args.gradient_accumulation_passes / step_took,
                         "throughput/sec_per_step": step_took / args.gradient_accumulation_passes,
                         "loss/train": training_metrics.train_loss,
+                        "dataset_stats/max_batch_len": training_metrics.max_batch_len,
+                        "dataset_stats/min_batch_len": training_metrics.min_batch_len,
                     }
                 )
                 
