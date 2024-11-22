@@ -124,8 +124,10 @@ def extract_tape_training_samples(
     else:
         no_error = 1
         prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")
-        if isinstance(prediction, List):
+        if prediction and isinstance(prediction, List):
             prediction = prediction[0]
+        else:
+            prediction = ""
         answer = new_tape.steps[0].metadata.other["value"]
         if eval_fn(
             {
