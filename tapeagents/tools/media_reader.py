@@ -105,8 +105,8 @@ def generate_contact_sheets_from_video(
     # Return existing contact sheets if they exist
     output_paths = []
     for file in os.listdir(output_dir):
-        base_file_name, _ = os.path.splitext(file)  # file without extension
-        if file.startswith(base_file_name) and re.search(r"{}\d+".format(output_suffix), file):
+        file_base_path, _ = os.path.splitext(file)  # file without extension
+        if file.startswith(file_base_path) and re.search(r"{}\d+".format(output_suffix), file):
             output_paths.append(os.path.join(output_dir, file))
     if len(output_paths) > 0:
         return output_paths
@@ -140,10 +140,10 @@ def generate_contact_sheets_from_video(
 
     logger.info("Generating contact sheet from video")
     output_paths = []
-    _, video_ext = os.path.splitext(video_path)
+    video_base_path, _ = os.path.splitext(video_path)
     for i in range(total_contact_sheets):
         start_frame = i * nb_frames * frames_per_contact_sheet
-        output_path = video_path.replace(f".{video_ext}", f"{output_suffix}{i+1}.{format}")
+        output_path = f"{video_base_path}{output_suffix}{i+1}.{format}"
         try:
             ffmpeg.input(video_path).output(
                 output_path,
@@ -162,8 +162,8 @@ def extract_audio(
     video_path: str, audio_path: Optional[str] = None, audio_bitrate: str = "128k", acodec: str = "mp3"
 ) -> str:
     if not audio_path:
-        _, video_ext = os.path.splitext(video_path)
-        audio_path = video_path.replace(video_ext, acodec)
+        video_base_path, _ = os.path.splitext(video_path)
+        audio_path = f"{video_base_path}.{acodec}"
 
     if os.path.exists(audio_path):
         return audio_path
