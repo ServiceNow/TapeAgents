@@ -237,7 +237,10 @@ class LiteLLM(CachedLLM):
             return litellm.token_counter(model=self.model_name, messages=messages)
         
     def get_token_costs(self):
-        costs = litellm.model_cost[self.model_name]
+        costs = litellm.model_cost.get(self.model_name)
+        if costs is None:
+            logger.info(f"Model {self.model_name} not found in the LiteLLM cost database")
+            return {'input': 0, 'output': 0}
         return {'input': costs["input_cost_per_token"], 'output': costs["output_cost_per_token"]}
 
     def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
