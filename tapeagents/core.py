@@ -231,7 +231,7 @@ class LLMCall(BaseModel):
     prompt_length_tokens: int = -1
     output_length_tokens: int = -1
     cached: bool
-    llm_info: dict
+    llm_info: dict = {}
     cost: float = 0
 
 
