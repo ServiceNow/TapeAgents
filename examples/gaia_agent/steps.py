@@ -16,6 +16,7 @@ from tapeagents.core import (
     Respond,
     SetNextNode,
     StopStep,
+    TerminationStep,
     Thought,
 )
 from tapeagents.dialog_tape import AssistantStep
@@ -447,6 +448,7 @@ GaiaStep = Union[
     Respond,
     ConditionCheck,
     ReferenceStep,
+    TerminationStep,
 ]
 
 _step_list = [

@@ -115,6 +115,11 @@ class FinalStep(StopStep):
     reason: str = ""
 
 
+class TerminationStep(StopStep):
+    kind: Literal["termination_step"] = "termination_step"
+    error: str = "terminated"
+
+
 class SetNextNode(Thought):
     kind: Literal["set_next_node"] = "set_next_node"
     next_node: str
@@ -158,6 +163,7 @@ class TapeMetadata(BaseModel):
     n_added_steps: int = 0
     error: Any | None = None
     result: Any = {}
+    terminated: bool = False
 
 
 ContextType = TypeVar("ContextType")
