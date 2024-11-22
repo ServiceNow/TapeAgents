@@ -126,7 +126,7 @@ def generate_contact_sheets_from_video(
     total_contact_sheets = math.ceil(total_frames / (nb_frames * frames_per_contact_sheet))
 
     # Generate contact sheets
-    vf = """drawtext=text='%{pts\:hms}'
+    vf = """drawtext=text='%{pts\\:hms}'
             :x='(main_w-text_w)/2'
             :y='(main_h-text_h)'
             :fontcolor='Yellow'
