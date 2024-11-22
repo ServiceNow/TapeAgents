@@ -250,7 +250,7 @@ class ContainerExecutor:
                 output += "\n" + "Timeout"
             outputs.append(output)
             if file_output := _get_file_name_from_output(output, self._work_dir):
-                output_files.append(file_output)
+                output_files.extend(file_output)
 
             last_exit_code = exit_code
             if exit_code != 0:
@@ -392,9 +392,8 @@ def _get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str
     return None
 
 
-def _get_file_name_from_output(output: str, workspace_path: Path) -> Optional[str]:
-    # TODO support more file types
-    pattern = r"\S+\.png|jpg|jpeg"
+def _get_file_name_from_output(output: str, workspace_path: Path) -> Optional[list[str]]:
+    pattern = r"\S+\.png|jpg|jpeg"  # TODO support more file types
     compiled_pattern = re.compile(pattern)
     matches = compiled_pattern.findall(output)
     filenames = []
@@ -403,7 +402,7 @@ def _get_file_name_from_output(output: str, workspace_path: Path) -> Optional[st
         if not path.is_absolute():
             path = workspace_path / path
         filenames.append(str(path))
-    return ", ".join(filenames) if len(filenames) > 0 else None
+    return filenames if len(filenames) > 0 else None
 
 
 def silence_pip(code: str, lang: str) -> str:

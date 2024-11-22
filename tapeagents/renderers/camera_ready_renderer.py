@@ -3,6 +3,7 @@ import json
 import os
 
 import yaml
+
 from tapeagents.container_executor import CodeBlock
 from tapeagents.core import Action, Error, Observation, SetNextNode, Step, Thought
 from tapeagents.dialog_tape import (
@@ -149,9 +150,8 @@ class CameraReadyRenderer(BasicRenderer):
             text = maybe_fold(pretty_yaml(dump["result"]))
             if step.result.exit_code == 0:
                 if step.result.output_files:
-                    for output_file in step.result.output_files:
-                        for file in output_file.split(","):
-                            text += render_image(file)
+                    for file in step.result.output_files:
+                        text += render_image(file)
                 elif step.result.output:
                     text += f"\n {maybe_fold(step.result.output)}"
         else:
@@ -281,4 +281,4 @@ def render_image(image_path: str, image_caption: str | None = None) -> str:
 
 
 def path_to_static(path: str) -> str:
-    return os.path.join("static", path.split("/")[-1])
+    return os.path.join("static", os.path.basename(path))
