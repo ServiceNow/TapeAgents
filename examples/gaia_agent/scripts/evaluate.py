@@ -93,6 +93,7 @@ def task_worker(args: tuple) -> int:
 
     tape = solve_task(task, agent, env, level)
     save_json_tape(tape, tapes_dir, tape_name)
+    logger.info(f"Task {tape_name} solved, saved to {tapes_dir}")
     env.browser.flush_log(os.path.join(exp_path, "browser_log.jsonl"))
     return 1
 

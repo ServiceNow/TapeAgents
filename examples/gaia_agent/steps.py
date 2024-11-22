@@ -16,8 +16,10 @@ from tapeagents.core import (
     Respond,
     SetNextNode,
     StopStep,
+    TerminationStep,
     Thought,
 )
+from tapeagents.dialog_tape import AssistantStep
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -286,10 +288,6 @@ class PythonCodeAction(GaiaAction):
 
     kind: Literal["python_code_action"] = "python_code_action"
     code: str = Field(description="snippet of python code with escaped newlines and quotes to fit json format")
-    fact_name: str = Field(
-        description="fact name to save code execution result, should be unique, lowercase, snake_case, without spaces and special characters"
-    )
-    facts: dict | None = None
 
 
 ################### Observations ###################
@@ -335,7 +333,6 @@ class CalculationResultObservation(GaiaObservation):
 
 class CodeResultObservation(GaiaObservation):
     kind: Literal["code_result_observation"] = "code_result_observation"
-    name: str
     result: str
     stdout: str
     stderr: str
@@ -376,7 +373,7 @@ class Subtask(GaiaThought):
     number: int
     name: str
     description: str
-    known_facts: list[str | dict]
+    previous_results: list[str | dict | list[str]]
     list_of_tools: list[str]
     expected_results: list[str]
 
@@ -394,7 +391,7 @@ class SubtaskResult(GaiaThought):
     success: bool = Field(description="True if the task was successful, False otherwise")
     result: Any = Field(description="full final answer")
     result_facts: list[str] = Field(
-        description="list of facts found during the task execution that are parts of the final answer"
+        description="list of facts found during the task execution that are parts of the final answer."
     )
     result_docs: list[str] = Field(
         description="if the task requested to find a specific document, list of urls of documents or pages that represent the final answer"
@@ -451,6 +448,7 @@ GaiaStep = Union[
     Respond,
     ConditionCheck,
     ReferenceStep,
+    TerminationStep,
 ]
 
 _step_list = [
@@ -488,17 +486,18 @@ _step_list = [
     Respond,
     ConditionCheck,
     ReferenceStep,
+    AssistantStep,
 ]
 
 _kind_to_step = {step.__fields__["kind"].default: step for step in _step_list}
 
 
 def load_step(step_dict: dict) -> GaiaStep:
-    return (
-        _kind_to_step[step_dict["kind"]](**step_dict)
-        if step_dict["kind"] in _kind_to_step
-        else Reflection(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
-    )
+    try:
+        step = _kind_to_step[step_dict["kind"]](**step_dict)
+    except Exception:
+        step = Reflection(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
+    return step
 
 
 GaiaAgentStep: TypeAlias = Annotated[
@@ -534,6 +533,17 @@ ExecutorStep: TypeAlias = Annotated[
         PythonCodeAction,
         ReasoningThought,
         ReadingResultThought,
+        NewFactThought,
+        ConvertFactAction,
+    ],
+    Field(discriminator="kind"),
+]
+
+CoderStep: TypeAlias = Annotated[
+    Union[
+        SubtaskResult,
+        PythonCodeAction,
+        ReasoningThought,
         NewFactThought,
         ConvertFactAction,
     ],

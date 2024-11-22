@@ -20,6 +20,7 @@ class MainLoopStatus(enum.Enum):
     NO_ACTIONS = "no_actions"
     EXTERNAL_INPUT_NEEDED = "external_input_needed"
     UNKNOWN_ACTION = "unknown_action"
+    TERMINATED = "terminated"
 
 
 class MainLoopEvent(BaseModel, Generic[TapeType]):
@@ -124,6 +125,7 @@ def main_loop(
 
             # --- REPEAT ---
             n_loops += 1
+        yield MainLoopEvent(status=MainLoopStatus.TERMINATED)
 
     return MainLoopStream(_implementation())
 

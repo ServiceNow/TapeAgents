@@ -53,7 +53,6 @@ def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
     fpath = os.path.join(tapes_dir, fname) if name else tapes_dir
     with open(fpath, "w") as f:
         f.write(tape.model_dump_json(indent=4))
-    logger.info(f"Task {name} solved, saved to {tapes_dir}")
 
 
 def load_tape_dicts(path: Path | str, file_extension: str = ".yaml") -> list[dict]:

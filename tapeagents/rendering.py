@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from tapeagents.agent import Agent
 from tapeagents.container_executor import CodeBlock
-from tapeagents.core import Action, Episode, Observation, Step, Tape, Thought
+from tapeagents.core import Action, Episode, Observation, SetNextNode, Step, Tape, Thought
 from tapeagents.dialog_tape import (
     AssistantStep,
     DialogContext,
@@ -360,12 +360,12 @@ def to_pretty_str(a: Any, prefix: str = "", indent: int = 2) -> str:
                 if "\n" in value_view:
                     value_view = f"\n{value_view}"
                 lines.append(f"{prefix}- " + value_view)
-            view = "\n".join(lines)
+            view = "\n" + "\n".join(lines)
     elif isinstance(a, dict) and len(a):
         lines = []
         for k, v in a.items():
             value_view = to_pretty_str(v, prefix + " " * indent)
-            if "\n" in value_view:
+            if "\n" in value_view and not value_view.startswith("\n"):
                 value_view = f"\n{value_view}"
             lines.append(f"{prefix}{k}: {value_view}")
         view = "\n".join(lines)

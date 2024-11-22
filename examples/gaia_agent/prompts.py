@@ -36,7 +36,7 @@ For each fact provide the description, expected json-compatible format and, if p
 The fact name should be short and in lowercase. The description should be detailed, self-sustained and informative.
 Here is the pre-survey:
 
-    1. Please list any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.
+    1. Please list ALL specific facts, statements or figures given in the request itself. It is possible that there are none.
     2. Please list any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
     3. Please list any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
     4. Please list any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
@@ -47,35 +47,15 @@ When answering this survey, keep in mind that "facts" will typically be specific
     3. Facts to derive
     4. Educated guesses
 
-Respond with list_of_facts_thought.
-{short_format_instruction}
+Rules:
+- Sometimes, the request will not contain any given facts, facts to look up, or facts to derive. In such cases, you may leave those sections blank.
+- DO NOT include any other headings or sections in your response. DO NOT list next steps or plans until asked to do so.
+- Respond with facts_ledger_thought.
+- {short_format_instruction}
 """
 
 IS_SUBTASK_FINISHED = """Assess if the subtask objective has been fully achieved. If the objective has been achieved or if we're stuck, finish working on the subtask by producing finish_subtask_thought with the status and description.
 If the objective has not been achieved, produce the next step.
-"""
-
-FACTS_SURVEY_V2_SYSTEM = """
-You are an expert AI Agent trained to assist user with complex information processing tasks.
-Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
-"""
-
-FACTS_SURVEY_V2_GUIDANCE = """
-Please answer the following pre-survey to the best of your ability:
-    1. List any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.
-    2. List any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
-    3. List any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
-    4. List any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
-
-When answering this survey, keep in mind that "facts" will typically be specific names, dates, statistics, etc. Your answer should use headings:
-
-    1. GIVEN FACTS
-    2. FACTS TO LOOK UP
-    3. FACTS TO DERIVE
-    4. EDUCATED GUESSES
-
-Sometimes, the request will not contain any given facts, facts to look up, or facts to derive. In such cases, you may leave those sections blank.
-DO NOT include any other headings or sections in your response. DO NOT list next steps or plans until asked to do so.
 """
 
 ALLOWED_STEPS_V2 = """
@@ -83,12 +63,6 @@ You are allowed to produce ONLY steps described in this json schema:
 {schema}
 Do not reproduce schema when producing the step, use it only as a reference!
 DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
-"""
-
-TEAM = """
-WebSurfer: A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.) It can also summarize the entire page, or answer questions based on the content of the page. It can also be asked to sleep and wait for pages to load, in cases where the pages seem to be taking a while to load.
-Coder: A helpful and general-purpose AI programmer that has strong language skills, Python skills, and Linux command line skills. Avoid using for reading common file formats, as FileSurfer is more proficient at this. Can be helpful to process previously extracted numerical facts.
-FileSurfer: An agent that can handle reading of local files only, could be helpful to read documents attached to the task or downloaded from the web by WebSurfer. Proficient with PDF, DOCX, XLSX, CSV, PPTX and other common formats.
 """
 
 PLAN_V2 = """What steps should I do to answer the question above? Be specific about how each step should be done.
@@ -103,10 +77,17 @@ For each step in the plan, include:
 - A list of required tools (only WebSurfer, Coder, Reasoner are valid names).
 - A list of expected outcomes, such as facts, files, documents, or data.
 - A list of prerequisites, including any results from previous steps or known facts necessary to proceed. First step should not have prerequisites. Each prerequisite should have the number of the step where it was produced.
+
+If the task is a riddle or puzzle, do not user web surfing! Use only reasoning and coding tools.
 """
 
 START_EXECUTION_V2 = """
-Briefly describe how to solve this task.
+Briefly describe how to solve this task using reasoning_thougt.
+If you need to filter some data by year, date or any other criteria, first search for the data and then filter it afterwards.
+"""
+
+START_EXECUTION_CODER = """
+Briefly describe how to solve this task using reasoning_thougt.
 """
 
 REFLECT_SUBTASK = """
@@ -134,12 +115,18 @@ Facts found:
 {facts}
 """
 
-REPLAN = """Our previous attempt to solve task failed.
+REPLAN = """We tried to solve task:
+{task}
+
+Our attempt to solve task failed.
 Our previous plan:
 {plan}
-Description of the failure:
-{failure}
 
+Execution summary and description of the failure:
+{result}
+
+Facts gathered during the execution:
+{facts}
 
 Please reason step by step and produce short draft of the new plan to solve this task. It should be different from the previous one.
 Produce detailed bullet-point plan for addressing the original request. For each step of the plan, provide the following:
@@ -148,10 +135,20 @@ Produce detailed bullet-point plan for addressing the original request. For each
 - prerequisites, a list of the results of the previous steps, or known facts needed to start working on this step.
 """
 
-FINAL_ANSWER = """
-Read the above messages and output a FINAL ANSWER to the question. The question is repeated here for convenience:
-
+FINAL_ANSWER = """We're solving the task:
 {task}
+
+We've successfully finished the following plan to solve the task:
+{plan}
+
+Facts gathered during the plan execution:
+{facts}
+
+We've got the following result:
+{result}
+
+Based on the facts and result of the plan above, formulate the final answer to the question.
+Pay attention to the exact wording of the question and provide the most accurate and concise response possible.
 
 To output the final answer, use the following template: FINAL ANSWER: [YOUR FINAL ANSWER]
 Your FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
@@ -194,6 +191,22 @@ Respond with updated facts sheet.
 
 REASON = "Let's think step by step."
 ACT = "Work only on the current subtask! Produce result step when the current subtask is solved."
+GUESS = """We tried to solve task:
+{task}
+
+Our attempt to solve task failed.
+Our previous plan:
+{plan}
+
+Execution summary and description of the failure:
+{result}
+
+Facts gathered during the execution:
+{facts}
+
+Please guess from the following facts and execution summary the best possible answer to the question.
+Lets think step by step.
+"""
 
 
 class PromptRegistry:
@@ -211,11 +224,10 @@ class PromptRegistry:
     think_after_observation = THINK_AFTER_OBSERVATION
     think_after_calculation = THINK_AFTER_CALCULATION
 
-    facts_survey_v2_system = FACTS_SURVEY_V2_SYSTEM
-    facts_survey_v2 = FACTS_SURVEY_V2_GUIDANCE
     allowed_steps_v2 = ALLOWED_STEPS_V2
     plan_v2 = PLAN_V2
     start_execution_v2 = START_EXECUTION_V2
+    start_execution_coder = START_EXECUTION_CODER
     reflect_subtask = REFLECT_SUBTASK
     reflect_plan_status = REFLECT_PLAN_STATUS
     plan_status = PLAN_STATUS
@@ -225,3 +237,4 @@ class PromptRegistry:
     facts_survey_update = FACTS_SURVEY_UPDATE
     reason = REASON
     act = ACT
+    guess = GUESS

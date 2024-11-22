@@ -8,8 +8,9 @@ from typing import Any, Counter
 import yaml
 from termcolor import colored
 
+from tapeagents.core import TerminationStep
 from tapeagents.io import load_tapes, save_json_tape
-from tapeagents.orchestrator import main_loop
+from tapeagents.orchestrator import MainLoopStatus, main_loop
 from tapeagents.rendering import step_view
 
 from .agent import GaiaAgent
@@ -81,27 +82,30 @@ def load_dataset(data_dir):
     return tasks
 
 
-def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, tries: int = 3) -> GaiaTape:
+def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, tries: int = 1) -> GaiaTape:
     question = task_to_question_step(task, env)
-    predicted = None
+    result = None
     tape = GaiaTape(steps=[question])
-    while not predicted and tries:
+    while not result and tries:
         tape = GaiaTape(steps=[question])
         try:
-            for event in main_loop(agent, tape, env, max_loops=30):
+            for event in main_loop(agent, tape, env, max_loops=60):
                 if event.agent_event and event.agent_event.step:
                     tape = tape.append(event.agent_event.step)  # type: ignore
                 if event.observation:
                     tape = tape.append(event.observation)  # type: ignore
+                if event.status == MainLoopStatus.TERMINATED:
+                    tape = tape.append(TerminationStep())
+                    tape.metadata.terminated = True
         except Exception as e:
             tape.metadata.error = str(e)
-            logger.exception(f"Failed to solve task: {e}")
+            logger.exception(f"Fatal Error. Failed to solve task: {e}")
             break
-        predicted = tape[-1].answer if hasattr(tape[-1], "answer") else None
+        result = getattr(tape[-1], "answer", None)
         tries -= 1
-    predicted = str(predicted)
-    logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
-    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "result": predicted})
+    result = getattr(tape[-1], "answer", None)
+    logger.info(f"Expected: {task['Final answer']}, Agent produced: {result}")
+    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "result": str(result)})
     tape.metadata.level = level
     return tape
 

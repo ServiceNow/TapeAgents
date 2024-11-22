@@ -3,7 +3,7 @@ import os
 import sys
 from collections import defaultdict
 
-from tapeagents.core import Action
+from tapeagents.core import Action, SetNextNode
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
@@ -61,7 +61,8 @@ class GaiaTapeBrowser(TapeBrowser):
         except IndexError:
             return "", "Tape not found"
         label = self.get_tape_label(tape)
-        html = f"{self.renderer.style}<style>.thought {{ background-color: #ffffba !important; }};</style>{self.renderer.render_tape(tape, self.llm_calls)}"
+        clean_tape = tape.model_copy(update=dict(steps=[s for s in tape.steps if not isinstance(s, SetNextNode)]))
+        html = f"{self.renderer.style}<style>.thought {{ background-color: #ffffba !important; }};</style>{self.renderer.render_tape(clean_tape, self.llm_calls)}"
         return html, label
 
     def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
@@ -73,6 +74,8 @@ class GaiaTapeBrowser(TapeBrowser):
         for tape in tapes:
             if tape.metadata.error:
                 errors["fatal"] += 1
+            if tape.metadata.terminated:
+                errors["terminated"] += 1
             last_action = None
             for step in tape:
                 if isinstance(step, Action):
@@ -98,11 +101,13 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
         error = "F" if tape.metadata.error else None
+        if tape.metadata.terminated:
+            error = "T"
         last_action = None
         for step in tape:
             if isinstance(step, Action):
                 last_action = step
-            if step.kind == "page_observation" and step.error:
+            elif step.kind == "page_observation" and step.error:
                 error = "br"
             elif step.kind == "llm_output_parsing_failure_action":
                 error = "pa"

@@ -19,6 +19,7 @@ from .steps import (
 class GaiaMetadata(TapeMetadata):
     task: dict = Field(default_factory=dict)
     result: Any = None
+    terminated: bool = False
     attempt_number: int = 0
     level: int = 0
 

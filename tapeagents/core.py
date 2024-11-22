@@ -115,6 +115,11 @@ class FinalStep(StopStep):
     reason: str = ""
 
 
+class TerminationStep(StopStep):
+    kind: Literal["termination_step"] = "termination_step"
+    error: str = "terminated"
+
+
 class SetNextNode(Thought):
     kind: Literal["set_next_node"] = "set_next_node"
     next_node: str
@@ -145,7 +150,7 @@ class ReferenceStep(Thought):
     step_number: int
 
 
-CONTROL_FLOW_STEPS = (SetNextNode, ConditionCheck, Respond, ReferenceStep)
+CONTROL_FLOW_STEPS = (SetNextNode, ConditionCheck, Call, Respond, ReferenceStep)
 
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 
@@ -158,6 +163,7 @@ class TapeMetadata(BaseModel):
     n_added_steps: int = 0
     error: Any | None = None
     result: Any = {}
+    terminated: bool = False
 
 
 ContextType = TypeVar("ContextType")
