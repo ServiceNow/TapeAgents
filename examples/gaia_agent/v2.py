@@ -176,7 +176,7 @@ class Guess(GaiaNodeV2):
 
     def tape_view(self, tape: Tape) -> str:
         view = ManagerView(tape)
-        return PromptRegistry.fail_and_guess.format(
+        return PromptRegistry.guess.format(
             task=view.task.content,
             plan=view.plan.llm_view(),
             result=view.plan_reflection.llm_view(),

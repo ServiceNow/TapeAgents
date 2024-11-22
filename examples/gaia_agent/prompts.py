@@ -191,17 +191,17 @@ Respond with updated facts sheet.
 
 REASON = "Let's think step by step."
 ACT = "Work only on the current subtask! Produce result step when the current subtask is solved."
-FAIL_AND_GUESS = """We tried to solve task:
+GUESS = """We tried to solve task:
 {task}
 
 Our attempt to solve task failed.
-Our last plan:
+Our previous plan:
 {plan}
 
-Description of the failure:
-{failure}
+Execution summary and description of the failure:
+{result}
 
-Current facts sheet:
+Facts gathered during the execution:
 {facts}
 
 Please guess from the following facts and execution summary the best possible answer to the question.
@@ -237,4 +237,4 @@ class PromptRegistry:
     facts_survey_update = FACTS_SURVEY_UPDATE
     reason = REASON
     act = ACT
-    fail_and_guess = FAIL_AND_GUESS
+    guess = GUESS
