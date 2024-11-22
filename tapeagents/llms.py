@@ -93,6 +93,21 @@ class LLM(BaseModel, ABC):
     def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         pass
 
+    def get_info(self) -> dict:
+        return {
+            "model_name": self.model_name,
+            "parameters": self.parameters,
+            "context_size": self.context_size,
+        }
+    
+    def get_token_costs(self) -> dict:
+        """Returns prices for different kinds of tokens. 
+        
+        See `result['input']` for the price of input tokens and 
+        `result['output']` for the price of output tokens respectively.        
+        """
+        return {'input': 0, 'output': 0}
+
     def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
@@ -101,6 +116,11 @@ class LLM(BaseModel, ABC):
             prompt_length_tokens=self.count_tokens(prompt.messages),
             output_length_tokens=self.count_tokens(message.content) if message.content else 0,
             cached=cached,
+            llm_info=self.get_info()
+        )
+        token_costs = self.get_token_costs()
+        llm_call.cost = (
+            token_costs['input'] * llm_call.prompt_length_tokens + token_costs['output'] * llm_call.output_length_tokens
         )
         self._log.append(llm_call.model_dump())
         observe_llm_call(llm_call)
@@ -215,6 +235,13 @@ class LiteLLM(CachedLLM):
             return litellm.token_counter(model=self.model_name, text=messages)
         else:
             return litellm.token_counter(model=self.model_name, messages=messages)
+        
+    def get_token_costs(self):
+        costs = litellm.model_cost.get(self.model_name)
+        if costs is None:
+            logger.info(f"Model {self.model_name} not found in the LiteLLM cost database")
+            return {'input': 0, 'output': 0}
+        return {'input': costs["input_cost_per_token"], 'output': costs["output_cost_per_token"]}
 
     def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
         while True:
