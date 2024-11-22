@@ -28,7 +28,7 @@ from examples.rl_gsm8k.cot_math_agent import (
 )
 from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from examples.rl_gsm8k.deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-from examples.rl_gsm8k.deepseek_math_eval.eval_utils import parse_ground_truth
+
 from examples.rl_gsm8k.deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
 from examples.rl_gsm8k.utils import (
     VLLMServiceManager,
@@ -72,12 +72,11 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[MathTape]
     tapes: list[MathTape] = []
 
     for problem in problems:
-        _, answer = parse_ground_truth(problem, cfg.dataset_name)
         start_step = Task(
             task=problem["task"],
             metadata=StepMetadata(
                 other={
-                    "value": answer,
+                    "value": problem["answer"],
                 }
             ),
         )
@@ -87,7 +86,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[MathTape]
 
 
 def extract_tape_training_samples(
-    new_tape: MathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
+    new_tape: MathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list
 ) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -95,7 +94,7 @@ def extract_tape_training_samples(
     Args:
         new_tape: The tape to process containing math problem steps
         agent: CoTMathAgent
-        dataset_name: Name of dataset ('train' or 'test')
+        split_name: Name of split ('train' or 'test')
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
         llm_calls: List of LLM calls
@@ -124,11 +123,6 @@ def extract_tape_training_samples(
     else:
         no_error = 1
         prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")
-        if isinstance(prediction, List):
-            if prediction:
-                prediction = prediction[0]
-            else:
-                prediction = ""
         answer = new_tape.steps[0].metadata.other["value"]
         if eval_fn(
             {
@@ -143,7 +137,7 @@ def extract_tape_training_samples(
             reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
-    if dataset_name == "train":
+    if split_name == "train":
         prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
         sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
         # Sort sub_llm_calls to match the order of prompt_ids
@@ -159,9 +153,10 @@ def extract_tape_training_samples(
             trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
-            if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(
-                trace.logprobs
-            ) == llm_call.output_length_tokens:
+            if (
+                len(trace.logprobs) == llm_call.output_length_tokens
+                and (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length
+            ):
                 training_samples.append(trace)
                 discarded.append(0)
             else:
@@ -184,7 +179,7 @@ def generate_training_data(
     cfg: DictConfig,
     env: MathEnvironment,
     tapes_dir: Path,
-    dataset_name: str,
+    split_name: str,
 ) -> Tuple[List[MathTape], List[TrainingText], Dict[str, float]]:
     """
     Generate complete tapes and training samples from a list of initialized tapes.
@@ -195,7 +190,7 @@ def generate_training_data(
         cfg: Configuration
         env: Environment with tools
         tapes_dir: Directory to save processed episodes
-        dataset_name: Name of dataset ('train' or other)
+        split_name: Name of split ('train' or other)
 
     Returns:
         Tuple containing:
@@ -213,7 +208,7 @@ def generate_training_data(
     discarded_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
-    logger.info(f"Starting {dataset_name} main loop")
+    logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
     start_sampling_from_llm = time.time()
 
     with SQLiteWriterThread():
@@ -224,7 +219,7 @@ def generate_training_data(
 
     end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
-    if dataset_name == "train":
+    if split_name == "train":
         llm_calls = retrieve_all_llm_calls()
     else:
         llm_calls = []
@@ -238,7 +233,7 @@ def generate_training_data(
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
             agent=agent,
-            dataset_name=dataset_name,
+            split_name=split_name,
             cfg=cfg,
             llm_calls=llm_calls,
         )
@@ -260,21 +255,21 @@ def generate_training_data(
     end_make_data = time.time()
 
     stats = {
-        **{f"{dataset_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
-        **{f"{dataset_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
-        **{f"{dataset_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
-        **{f"{dataset_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+        **{f"{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
+        **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
+        **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
+        **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            f"execution_time/{dataset_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
-            f"execution_time/{dataset_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
-            f"execution_time/{dataset_name}_make_data": end_make_data - start_make_data,
-            f"execution_time/{dataset_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
-            f"execution_time/{dataset_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
-            f"execution_time/{dataset_name}_output_tokens_per_second": output_tokens
+            f"execution_time/{split_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
+            f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
+            f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
+            f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
+            f"execution_time/{split_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
+            f"execution_time/{split_name}_output_tokens_per_second": output_tokens
             / (end_sampling_from_llm - start_sampling_from_llm),
-            f"execution_time/{dataset_name}_prompt_tokens_per_second": prompt_tokens
+            f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
             / (end_sampling_from_llm - start_sampling_from_llm),
-            f"{dataset_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
+            f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
         },
     }
     return new_tapes, training_samples, stats
@@ -308,11 +303,9 @@ def main(cfg: DictConfig):
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
     train_dataset = load_dataset(dataset_long_name, "main", split="train")
-    train_dataset = train_dataset.map(process_fn)
-    train_samples = [s for s in train_dataset]
+    train_samples = [process_fn(s) for s in train_dataset]
     test_dataset = load_dataset(dataset_long_name, "main", split="test")
-    test_dataset = test_dataset.map(process_fn)
-    test_samples = [s for s in test_dataset]
+    test_samples = [process_fn(s) for s in test_dataset]
     logging.info(f"Loaded {len(train_samples)} training samples")
     logging.info(f"Loaded {len(test_samples)} test samples")
 

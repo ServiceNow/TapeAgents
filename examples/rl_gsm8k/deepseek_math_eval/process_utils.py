@@ -2,12 +2,14 @@
 import regex
 
 from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_math_answer, strip_string
+from examples.rl_gsm8k.deepseek_math_eval.eval_utils import parse_ground_truth
 
 def process_gsm8k_test(item):
+    _, answer = parse_ground_truth(item, "gsm8k")
     sample = {
         'dataset': 'gsm8k-cot',
         'task': item['question'],
-        'answer': item['answer'].replace(',', '')
+        'answer': answer
     }
     return sample
 
