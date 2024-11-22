@@ -146,12 +146,12 @@ class UpdateFacts(GaiaNodeV2):
 
     def tape_view(self, tape: Tape) -> str:
         view = ManagerView(tape)
-        return PromptRegistry.facts_survey_update.format(
+        return UserStep(content=PromptRegistry.facts_survey_update.format(
             task=view.task.content,
             plan=view.plan.llm_view(),
             last_results=view.last_subtask_result.llm_view(),
             facts=view.facts.llm_view(),
-        )
+        ))
 
 
 class Replan(GaiaNodeV2):
@@ -163,25 +163,25 @@ class Replan(GaiaNodeV2):
 
     def tape_view(self, tape: Tape) -> str:
         view = ManagerView(tape)
-        return PromptRegistry.replan.format(
+        return UserStep(content=PromptRegistry.replan.format(
             task=view.task.content,
             plan=view.plan.llm_view(),
             result=view.plan_reflection.llm_view(),
             facts=view.facts.llm_view(),
-        )
+        ))
 
 
 class Guess(GaiaNodeV2):
     output_cls: Any = None
 
-    def tape_view(self, tape: Tape) -> str:
+    def tape_to_steps(self, tape: Tape) -> str:
         view = ManagerView(tape)
-        return PromptRegistry.guess.format(
+        return UserStep(content=PromptRegistry.guess.format(
             task=view.task.content,
             plan=view.plan.llm_view(),
             result=view.plan_reflection.llm_view(),
             facts=view.facts.llm_view(),
-        )
+        ))
 
 
 class ProduceAnswer(GaiaNodeV2):
@@ -193,12 +193,12 @@ class ProduceAnswer(GaiaNodeV2):
 
     def tape_view(self, tape: Tape) -> str:
         view = ManagerView(tape)
-        return PromptRegistry.final_answer.format(
+        return UserStep(content=PromptRegistry.final_answer.format(
             task=view.task.content,
             plan=view.plan.llm_view(),
             result=view.plan_reflection.llm_view(),
             facts=view.facts.llm_view(),
-        )
+        ))
 
 
 class ReflectObservation(GaiaNodeV2):

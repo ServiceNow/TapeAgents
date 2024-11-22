@@ -8,7 +8,7 @@ from tapeagents.dialog_tape import AssistantStep, UserStep
 from tapeagents.prompting import FORMALIZE_FORMAT, FORMALIZE_GUIDANCE, FORMALIZE_INPUT, FORMALIZE_SYSTEM_PROMPT
 from tapeagents.view import TapeViewStack
 
-from .agent import Node
+from .agent import Agent, Node
 from .core import (
     CONTROL_FLOW_STEPS,
     AgentStep,
@@ -47,24 +47,26 @@ class MonoNode(Node):
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         clean_tape = self.prepare_tape(tape)
-        messages = self.tape_to_messages(clean_tape)
+        messages = self.tape_to_messages(agent, clean_tape)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
             clean_tape = self.trim_tape(clean_tape)
-            messages = self.tape_to_messages(clean_tape)
+            messages = self.tape_to_messages(agent, clean_tape)
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
+        """Override this method if you want to e.g. shorten content in some steps of the tape."""
         return tape
+    
+    def trim_tape(self, tape: Tape) -> Tape:
+        """Override this method if you want to trim the tape to reduce the prompt size."""
+        return tape    
 
     def tape_to_steps(self, tape: Tape) -> list[Step]:
-        tape_view = self.tape_view(tape)
-        if tape_view:
-            return [UserStep(content=tape_view)]
-        else:
-            view = TapeViewStack.compute(tape).top
-            return view.steps
+        """Override this method if you want to make prompt messages from different steps."""
+        return TapeViewStack.compute(tape).top.steps
 
-    def tape_to_messages(self, tape: Tape) -> list[dict]:
+    def tape_to_messages(self, agent: Agent, tape: Tape) -> list[dict]:
+        """Make prompt messages from the tape."""
         messages: list[dict] = [{"role": "system", "content": self.system_prompt}]
         if self.output_cls is not None:
             steps_description = self.get_steps_description(tape)
@@ -76,15 +78,13 @@ class MonoNode(Node):
                 step_role = step.kind
                 step_content = step.content
             else:
-                step_role = "assistant" if isinstance(step, AgentStep) else "user"
+                agent_own_step = isinstance(step, AgentStep) and step.metadata.agent == agent.full_name
+                step_role = "assistant" if agent_own_step else "user"
                 step_content = step.llm_view()
             messages.append({"role": step_role, "content": step_content})
         if self.guidance:
             messages.append({"role": "user", "content": self.guidance})
         return messages
-
-    def tape_view(self, tape: Tape) -> str:
-        return ""
 
     def get_steps_description(self, tape: Tape) -> str:
         text = self.steps_prompt
@@ -123,8 +123,7 @@ class MonoNode(Node):
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         return step
 
-    def trim_tape(self, tape: Tape) -> Tape:
-        return tape
+
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         """
