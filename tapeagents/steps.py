@@ -4,6 +4,7 @@ import os
 from typing import Literal
 
 from pydantic import Field
+
 from tapeagents.core import Action, Observation, Thought
 
 ################# Actions #################
@@ -83,7 +84,6 @@ def image_base64_message(image_path: str) -> str:
     content_type = f"image/{image_extension}"
     base64_image = encode_image(image_path)
     message = {"type": "image_url", "image_url": {"url": f"data:{content_type};base64,{base64_image}"}}
-    print(message)
     return message
 
 
