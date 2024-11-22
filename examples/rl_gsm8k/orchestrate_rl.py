@@ -133,10 +133,8 @@ def extract_tape_training_samples(
         prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")
         if isinstance(prediction, List):
             prediction = prediction[0]
-            if len(prediction) > 0:
-                print(prediction)
         answer = new_tape.steps[0].metadata.other["value"]
-        if isinstance(new_tape.steps[-1], ReasoningThought) and eval_fn(
+        if eval_fn(
             {
                 "prediction": prediction,
                 "answer": answer,
@@ -146,7 +144,6 @@ def extract_tape_training_samples(
             reward, success = 1, 1
         else:
             # Incorrect answer or no answer
-            print(prediction, answer)
             reward, success = 0, 0
 
     training_samples: list[TrainingText] = []

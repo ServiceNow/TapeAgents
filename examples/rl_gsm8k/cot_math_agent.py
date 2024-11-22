@@ -24,6 +24,7 @@ class Task(Observation):
     task: str
 
     def llm_view(self, indent: int | None = 2) -> str:
+        # Same prompt as https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/run_subset_parallel.py#L28
         return f"{self.task}\nPlease reason step by step, and put your final answer within" + " \\boxed{}."
 
 
