@@ -1,6 +1,7 @@
+# https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/data_processing/process_utils.py
 import regex
 
-from eval_utils import extract_math_answer, strip_string
+from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_math_answer, strip_string
 
 def process_gsm8k_test(item):
     sample = {

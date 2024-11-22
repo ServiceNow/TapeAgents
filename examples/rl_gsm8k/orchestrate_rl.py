@@ -27,16 +27,10 @@ from examples.rl_gsm8k.cot_math_agent import (
     ReasoningThought,
     Task,
 )
-from examples.rl_gsm8k.process_utils import process_gsm8k_test, process_math_test
-from examples.rl_gsm8k.eval_utils import (
-    eval_last_single_answer,
-    eval_math,
-    parse_ground_truth,
-    parse_question,
-    extract_math_answer,
-    extract_last_single_answer,
-)
-
+from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
+from examples.rl_gsm8k.deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
+from examples.rl_gsm8k.deepseek_math_eval.eval_utils import parse_ground_truth
+from examples.rl_gsm8k.deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
 from examples.rl_gsm8k.utils import (
     VLLMServiceManager,
     calculate_stats,
