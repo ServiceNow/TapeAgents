@@ -349,12 +349,12 @@ def main(cfg: DictConfig):
             sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
             train_tapes = convert_problems_to_tapes(sub_samples, cfg)
             train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
-            train_agent = CoTMathAgent.create(dataset_name=cfg.dataset_name, llm=llm)
+            train_agent = CoTMathAgent.create(llm=llm)
 
             splits = [("train", train_agent, train_tapes)]
             if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                 test_tapes = convert_problems_to_tapes(test_samples, cfg)
-                test_agent = CoTMathAgent.create(dataset_name=cfg.dataset_name, llm=test_llm)
+                test_agent = CoTMathAgent.create(llm=test_llm)
                 splits.append(("test", test_agent, test_tapes))
             all_results = {}
             with VLLMServiceManager(
@@ -409,7 +409,7 @@ def main(cfg: DictConfig):
                 parameters=dict(temperature=0.7),
             )
 
-            basemodel_agent = CoTMathAgent.create(dataset_name=cfg.dataset_name, llm=basemodel_llm)
+            basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
             with VLLMServiceManager(
                 model_name_or_path=cfg.model_path,

@@ -53,8 +53,6 @@ MathTape = Tape[
 
 
 class ReasoningNode(MonoNode):
-    dataset_name: str
-
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
         try:
             step = ReasoningThought(reasoning=completion)
@@ -70,13 +68,12 @@ class ReasoningNode(MonoNode):
 #### Agent and Environment ####
 class CoTMathAgent(Agent):
     @classmethod
-    def create(cls, dataset_name: str, llm: LLM):
+    def create(cls, llm: LLM):
         return super().create(
             llm,
             nodes=[
                 ReasoningNode(
                     name="cot",
-                    dataset_name=dataset_name,
                     agent_step_cls=MathAgentStep,
                 ),
             ],
