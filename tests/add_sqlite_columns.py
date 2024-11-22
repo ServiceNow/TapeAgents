@@ -1,9 +1,3 @@
-# Take the directory name of argv[1] 
-# Recursively walk the directory, find all SQLite databases
-# In each database, check that there is a propmt_id column
-# Add columns llm_info TEXT and cost REAL 
-# The default value for llm_info is "{}"
-
 import os
 import sqlite3
 import sys
