@@ -89,7 +89,7 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, t
     while not result and tries:
         tape = GaiaTape(steps=[question])
         try:
-            for event in main_loop(agent, tape, env, max_loops=30):
+            for event in main_loop(agent, tape, env, max_loops=60):
                 if event.agent_event and event.agent_event.step:
                     tape = tape.append(event.agent_event.step)  # type: ignore
                 if event.observation:
