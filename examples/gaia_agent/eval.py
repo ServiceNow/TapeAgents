@@ -95,7 +95,7 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, t
                     tape = tape.append(event.observation)  # type: ignore
         except Exception as e:
             tape.metadata.error = str(e)
-            logger.exception(f"Failed to solve task: {e}")
+            logger.exception(f"Fatal Error. Failed to solve task: {e}")
             break
         predicted = tape[-1].answer if hasattr(tape[-1], "answer") else None
         tries -= 1

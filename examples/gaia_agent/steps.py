@@ -18,6 +18,7 @@ from tapeagents.core import (
     StopStep,
     Thought,
 )
+from tapeagents.dialog_tape import AssistantStep
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -371,7 +372,7 @@ class Subtask(GaiaThought):
     number: int
     name: str
     description: str
-    known_facts: list[str | dict]
+    previous_results: list[str | dict | list[str]]
     list_of_tools: list[str]
     expected_results: list[str]
 
@@ -483,17 +484,18 @@ _step_list = [
     Respond,
     ConditionCheck,
     ReferenceStep,
+    AssistantStep,
 ]
 
 _kind_to_step = {step.__fields__["kind"].default: step for step in _step_list}
 
 
 def load_step(step_dict: dict) -> GaiaStep:
-    return (
-        _kind_to_step[step_dict["kind"]](**step_dict)
-        if step_dict["kind"] in _kind_to_step
-        else Reflection(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
-    )
+    try:
+        step = _kind_to_step[step_dict["kind"]](**step_dict)
+    except Exception:
+        step = Reflection(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
+    return step
 
 
 GaiaAgentStep: TypeAlias = Annotated[

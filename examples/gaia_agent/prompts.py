@@ -36,7 +36,7 @@ For each fact provide the description, expected json-compatible format and, if p
 The fact name should be short and in lowercase. The description should be detailed, self-sustained and informative.
 Here is the pre-survey:
 
-    1. Please list any specific facts or figures that are GIVEN specific value in the request itself. It is possible that there are none.
+    1. Please list ALL specific facts, statements or figures given in the request itself. It is possible that there are none.
     2. Please list any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
     3. Please list any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
     4. Please list any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
@@ -115,12 +115,18 @@ Facts found:
 {facts}
 """
 
-REPLAN = """Our previous attempt to solve task failed.
+REPLAN = """We tried to solve task:
+{task}
+
+Our attempt to solve task failed.
 Our previous plan:
 {plan}
-Description of the failure:
-{failure}
 
+Execution summary and description of the failure:
+{result}
+
+Facts gathered during the execution:
+{facts}
 
 Please reason step by step and produce short draft of the new plan to solve this task. It should be different from the previous one.
 Produce detailed bullet-point plan for addressing the original request. For each step of the plan, provide the following:
@@ -129,10 +135,20 @@ Produce detailed bullet-point plan for addressing the original request. For each
 - prerequisites, a list of the results of the previous steps, or known facts needed to start working on this step.
 """
 
-FINAL_ANSWER = """
-Read the above messages and output a FINAL ANSWER to the question. The question is repeated here for convenience:
-
+FINAL_ANSWER = """We're solving the task:
 {task}
+
+We've successfully finished the following plan to solve the task:
+{plan}
+
+Facts gathered during the plan execution:
+{facts}
+
+We've got the following result:
+{result}
+
+Based on the facts and result of the plan above, formulate the final answer to the question.
+Pay attention to the exact wording of the question and provide the most accurate and concise response possible.
 
 To output the final answer, use the following template: FINAL ANSWER: [YOUR FINAL ANSWER]
 Your FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
@@ -175,7 +191,10 @@ Respond with updated facts sheet.
 
 REASON = "Let's think step by step."
 ACT = "Work only on the current subtask! Produce result step when the current subtask is solved."
-FAIL_AND_GUESS = """Our previous attempts to solve task failed.
+FAIL_AND_GUESS = """We tried to solve task:
+{task}
+
+Our attempt to solve task failed.
 Our last plan:
 {plan}
 
@@ -185,7 +204,8 @@ Description of the failure:
 Current facts sheet:
 {facts}
 
-Please use guessing from the following facts sheet to produce the final answer.
+Please guess from the following facts and execution summary the best possible answer to the question.
+Lets think step by step.
 """
 
 
