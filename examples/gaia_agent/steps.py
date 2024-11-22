@@ -3,8 +3,16 @@ import shutil
 from typing import Annotated, Any, Literal, TypeAlias, Union
 
 from pydantic import BaseModel, Field
-
-from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
+from tapeagents.core import (
+    Action,
+    Error,
+    LLMOutputParsingFailureAction,
+    Observation,
+    SetNextNode,
+    StopStep,
+    Thought,
+)
+from tapeagents.steps import AnalyzeVideoThought, GetVideoAction, VideoObservation
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -318,6 +326,7 @@ GaiaStep = Union[
     SourcesThought,
     DraftPlansThought,
     ReadingResultThought,
+    AnalyzeVideoThought,
     NewFactThought,
     ReasoningThought,
     StartSubtask,
@@ -325,12 +334,14 @@ GaiaStep = Union[
     SearchAction,
     ReadDocumentAction,
     NextPageAction,
+    GetVideoAction,
     ConvertFactAction,
     UseCalculatorAction,
     PythonCodeAction,
     GaiaQuestion,
     SearchResultsObservation,
     PageObservation,
+    VideoObservation,
     CalculationResultObservation,
     CodeResultObservation,
     PreviousFactsObservation,
@@ -348,6 +359,7 @@ GaiaAgentStep: TypeAlias = Annotated[
         SourcesThought,
         DraftPlansThought,
         ReadingResultThought,
+        AnalyzeVideoThought,
         NewFactThought,
         ReasoningThought,
         StartSubtask,
@@ -356,6 +368,7 @@ GaiaAgentStep: TypeAlias = Annotated[
         SearchAction,
         ReadDocumentAction,
         NextPageAction,
+        GetVideoAction,
         ConvertFactAction,
         UseCalculatorAction,
         # PythonCodeAction,
@@ -368,6 +381,7 @@ actions = [
     SearchAction,
     ReadDocumentAction,
     NextPageAction,
+    GetVideoAction,
     ConvertFactAction,
     UseCalculatorAction,
     GaiaAnswer,
@@ -381,11 +395,13 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
         if subtasks:
             steps = Union[
                 ReadingResultThought,
+                AnalyzeVideoThought,
                 NewFactThought,
                 ReasoningThought,
                 SearchAction,
                 ReadDocumentAction,
                 NextPageAction,
+                GetVideoAction,
                 ConvertFactAction,
                 UseCalculatorAction,
                 GaiaAnswer,
@@ -395,11 +411,13 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
         else:
             steps = Union[
                 ReadingResultThought,
+                AnalyzeVideoThought,
                 NewFactThought,
                 ReasoningThought,
                 SearchAction,
                 ReadDocumentAction,
                 NextPageAction,
+                GetVideoAction,
                 ConvertFactAction,
                 UseCalculatorAction,
                 GaiaAnswer,

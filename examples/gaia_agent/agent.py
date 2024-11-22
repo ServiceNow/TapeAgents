@@ -3,11 +3,11 @@ from enum import Enum
 from typing import Any
 
 from pydantic import Field
-
 from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode, ObservationControlNode
+from tapeagents.steps import VideoObservation
 
 from .prompts import PromptRegistry
 from .steps import (
@@ -65,6 +65,8 @@ class GaiaNode(MonoNode):
             elif isinstance(step, ActionExecutionFailure):
                 short_error = f"{step.error[:max_chars]}\n..." if len(step.error) > max_chars else step.error
                 new_step = step.model_copy(update=dict(error=short_error))
+            elif isinstance(step, VideoObservation):
+                new_step = step.model_copy(update=dict(llm_view=step.llm_view_trimmed))
             else:
                 new_step = step
             steps.append(new_step)

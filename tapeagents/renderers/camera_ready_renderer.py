@@ -1,14 +1,29 @@
 import ast
 import json
+import os
 
 import yaml
-
 from tapeagents.container_executor import CodeBlock
 from tapeagents.core import Action, Error, Observation, SetNextNode, Step, Thought
-from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, ToolCalls, ToolResult, UserStep
+from tapeagents.dialog_tape import (
+    AssistantStep,
+    DialogContext,
+    SystemStep,
+    ToolCalls,
+    ToolResult,
+    UserStep,
+)
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
-from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer
+from tapeagents.rendering import (
+    BLUE,
+    GREEN,
+    LIGHT_YELLOW,
+    PURPLE,
+    RED,
+    WHITE,
+    BasicRenderer,
+)
 from tapeagents.view import Broadcast, Call, Respond
 
 
@@ -134,20 +149,31 @@ class CameraReadyRenderer(BasicRenderer):
             text = maybe_fold(pretty_yaml(dump["result"]))
             if step.result.exit_code == 0:
                 if step.result.output_files:
-                    # TODO support more file type
                     for output_file in step.result.output_files:
                         for file in output_file.split(","):
-                            text += f"""<img src='/file={file}' style="max-width: 100%; height: 250px; padding: 4px">"""
+                            text += render_image(file)
                 elif step.result.output:
                     text += f"\n {maybe_fold(step.result.output)}"
-        elif (content := getattr(step, "content", None)) is not None:
-            del dump["content"]
-            text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
-        elif (content := getattr(step, "text", None)) is not None:
-            del dump["text"]
-            text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
         else:
-            text = pretty_yaml(dump)
+            foldable_keys = ["content", "text"]
+            content = ""
+            for key in step.__dict__:
+                for attr in foldable_keys:
+                    if key.endswith(attr):
+                        del dump[key]
+                        content += getattr(step, key, "")
+            text = pretty_yaml(dump) + ("\n" + maybe_fold(content))
+
+        # Augment text with media
+        if (video_path := getattr(step, "video_path", None)) is not None:
+            text += render_video(
+                video_path, getattr(step, "thumbnail_path", None), getattr(step, "subtitle_path", None)
+            )
+            if (image_paths := getattr(step, "video_contact_sheet_paths", None)) is not None:
+                for image_path in image_paths:
+                    text += render_image(image_path)
+        elif (image_path := getattr(step, "image_path", getattr(step, "thumbnail_path", None))) is not None:
+            text += render_image(image_path, getattr(step, "image_caption", None))
 
         if not self.show_content:
             text = ""
@@ -188,13 +214,13 @@ class CameraReadyRenderer(BasicRenderer):
                 <summary>{label}</summary>
                 <div style='display: flex;'>
                     <div style='flex: 1; margin-right: 10px;'>
-                        <pre style='padding-left: 6px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word;'>{prompt_text.strip()}</pre>
+                        <pre style='padding-left: 6px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word;'>{prompt_text.strip()}</pre>
                     </div>"""
 
         if llm_call.output:
             html += f"""
                     <div style='flex: 1;'>
-                        <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word;'>{llm_call.output.content}</pre>
+                        <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word;'>{llm_call.output.content}</pre>
                     </div>"""
 
         html += """
@@ -223,3 +249,36 @@ def str_to_dict(s: str) -> dict:
         return ast.literal_eval(s)
     except (ValueError, SyntaxError):
         raise ValueError("Invalid string representation of a dictionary")
+
+
+def render_video(video_path, thumbnail_path, subtitles_path) -> str:
+    html = ""
+    video_path = path_to_static(video_path)
+    poster_attribute = f"poster='{path_to_static(thumbnail_path)}'" if thumbnail_path else ""
+    subtitles_track = (
+        f"<track kind='subtitles' src='{path_to_static(subtitles_path)}' srclang='en' label='English' default>"
+        if subtitles_path
+        else ""
+    )
+    html = f"""
+    <video controls {poster_attribute}>
+        <source src='{video_path}' type="video/mp4">
+        {subtitles_track}
+    </video>
+    """
+    return html
+
+
+def render_image(image_path: str, image_caption: str | None = None) -> str:
+    html = ""
+    image_path = path_to_static(image_path)
+    figcaption_attribute = f"<pre>{image_caption}</pre>" if image_caption else ""
+    html += f"""
+    <img src='{image_path}' style='max-width: 100%; height: 250px; padding: 4px;'>
+    {figcaption_attribute}
+    """
+    return html
+
+
+def path_to_static(path: str) -> str:
+    return os.path.join("static", path.split("/")[-1])

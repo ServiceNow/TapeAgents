@@ -2,12 +2,19 @@ import logging
 from typing import Callable, Generator, Mapping
 
 import gradio as gr
+import uvicorn
 import yaml
-
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from tapeagents.agent import Agent
 from tapeagents.core import Tape
 from tapeagents.environment import Environment
-from tapeagents.observe import get_latest_tape_id, observe_tape, retrieve_tape, retrieve_tape_llm_calls
+from tapeagents.observe import (
+    get_latest_tape_id,
+    observe_tape,
+    retrieve_tape,
+    retrieve_tape_llm_calls,
+)
 from tapeagents.orchestrator import MainLoopEvent, main_loop
 from tapeagents.rendering import BasicRenderer, render_agent_tree
 
@@ -31,7 +38,6 @@ class Studio:
         self.original_agent = agent
         self.original_tape = tape
 
-        gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
         with gr.Blocks(title="TapeAgent Studio") as blocks:
             tape_state = gr.State(tape.model_dump())
             agent_state = gr.State(agent.model_dump())
@@ -183,5 +189,15 @@ class Studio:
             else:
                 raise ValueError("Unexpected event", event)
 
-    def launch(self, *args, **kwargs):
-        self.blocks.launch(*args, **kwargs)
+    def launch(
+        self, server_name: str = "0.0.0.0", port=7860, debug: bool = False, static_dir: str = "", *args, **kwargs
+    ):
+        if static_dir:
+            logger.info(f"Starting FastAPI server with static dir {static_dir}")
+            # mount Gradio app to FastAPI app
+            app = FastAPI()
+            app.mount("/static", StaticFiles(directory=static_dir), name="static")
+            app = gr.mount_gradio_app(app, self.blocks, path="/")
+            uvicorn.run(app, host=server_name, port=port)
+        else:
+            self.blocks.launch(server_name=server_name, debug=debug, *args, **kwargs)
