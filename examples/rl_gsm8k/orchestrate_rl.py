@@ -24,7 +24,6 @@ from examples.rl_gsm8k.cot_math_agent import (
     CoTMathAgent,
     MathEnvironment,
     MathTape,
-    ReasoningThought,
     Task,
 )
 from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
@@ -250,9 +249,8 @@ def generate_training_data(
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
             training_samples.extend(tape_training_samples)
-            if tape_stats:
-                prompt_tokens += tape_stats["prompt_tokens"]
-                output_tokens += tape_stats["output_tokens"]
+            prompt_tokens += tape_stats["prompt_tokens"]
+            output_tokens += tape_stats["output_tokens"]
 
     end_annotate_tape = time.time()
 
