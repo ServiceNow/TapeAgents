@@ -94,6 +94,9 @@ class Node(BaseModel):
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         return LLMOutput(role="assistant", content=tape.steps[index].content)
+    
+    def update(self, node_config: dict[str, Any]) -> Node:
+        return type(self).model_validate(node_config)
 
 
 class Agent(BaseModel, Generic[TapeType]):
@@ -236,7 +239,7 @@ class Agent(BaseModel, Generic[TapeType]):
             subagent.model_validate(subagent.update(subagent_obj))
             for subagent, subagent_obj in zip(self.subagents, agent_config["subagents"])
         ]
-        nodes = [node.model_validate(node_obj) for node, node_obj in zip(self.nodes, agent_config["nodes"])]
+        nodes = [node.update(node_obj) for node, node_obj in zip(self.nodes, agent_config["nodes"])]
         config_copy = agent_config.copy()
         config_copy["llms"] = llms
         config_copy["subagents"] = subagents

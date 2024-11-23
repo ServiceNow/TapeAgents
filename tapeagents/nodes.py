@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Callable, Generator, Type, Union, get_origin
+from typing import Any, Callable, Generator, Sequence, Type, Union, get_origin
 
 from pydantic import Field, TypeAdapter, ValidationError
 
@@ -123,8 +123,6 @@ class MonoNode(Node):
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         return step
 
-
-
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         """
         Make output from steps produced by the single llm call (having the same prompt_id), except for SetNextNode steps.
@@ -140,6 +138,10 @@ class MonoNode(Node):
         # if there is only one step, return it as a single dict, not a list
         content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
         return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
+    
+    def update(self, node_config: dict[str, Any]) -> Node:
+        node_config["output_cls"] = self.output_cls
+        return super().update(node_config)
 
 
 def parse_completion(llm_output: str, prompt_id: str, output_cls: Any) -> Generator[Step, None, None]:
@@ -273,4 +275,4 @@ class ConditionalNode(Node):
 
 
 class Return(FixedStepsNode):
-    steps: list[Step] = [Respond(copy_output=True)]
+    steps: list[Respond] = [Respond(copy_output=True)]
