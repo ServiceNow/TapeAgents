@@ -124,6 +124,8 @@ def extract_tape_training_samples(
         no_error = 1
         prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")
         answer = new_tape.steps[0].metadata.other["value"]
+        if len(prediction) > 1:
+            logger.warning(f"Multiple answers found: {prediction}")
         if eval_fn(
             {
                 "prediction": prediction,
