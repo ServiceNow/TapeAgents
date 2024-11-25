@@ -1,27 +1,23 @@
-import json
 import logging
 import os
-import threading
 import time
 
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from tapeagents.io import load_tapes, save_json_tape
+from tapeagents.container_executor import ContainerExecutor
+from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
-from tapeagents.parallel_processing import choose_processor, lazy_thread_pool_processor
+from tapeagents.parallel_processing import choose_processor
 
 from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
 from ..eval import get_exp_config_dict, load_dataset, solve_task
-from ..tape import GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
-
-output_lock = threading.Lock()
 
 
 @hydra.main(
@@ -36,11 +32,40 @@ def main(cfg: DictConfig) -> None:
     next run.
     """
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+    code_path = os.path.join(cfg.exp_path, "code")
+    os.makedirs(code_path, exist_ok=True)
+
     llm: TrainableLLM = instantiate(cfg.llm)
-    env = GaiaEnvironment(vision_lm=llm, **cfg.env)
+    try:
+        code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
+    except Exception as e:
+        logger.error(f"Failed to create code sandbox: {e}")
+        code_sandbox = None
     agent = GaiaAgent.create(llm, **cfg.agent)
     tasks = load_dataset(cfg.data_dir)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
+    validate_config(cfg, llm, tapes_dir)
+
+    dt = time.perf_counter()
+    n_workers = cfg.batch or 0
+    processor = choose_processor(n_workers)
+    args = [
+        (agent, llm, cfg.env, code_sandbox, task, cfg.exp_path, i, level)
+        for level, level_tasks in tasks.items()
+        for i, task in enumerate(level_tasks)
+        if not task_already_solved(i, level, tapes_dir)
+    ]
+    logger.info(f"Evaluate {len(args)} unsolved tasks using {n_workers} workers")
+    for tape_ready in processor(args, task_worker):
+        if isinstance(tape_ready, Exception):
+            raise tape_ready
+    dt = time.perf_counter() - dt
+    logger.info(f"Done, elapsed time: {dt:.2f} sec")
+    if code_sandbox:
+        code_sandbox.stop()
+
+
+def validate_config(cfg, llm, tapes_dir):
     if os.path.exists(tapes_dir):
         old_exp_cfg = get_exp_config_dict(cfg.exp_path)
         assert (
@@ -51,57 +76,24 @@ def main(cfg: DictConfig) -> None:
         ), f"Exp dir data: old {old_exp_cfg['data_dir']}, new {cfg.data_dir}"
     os.makedirs(tapes_dir, exist_ok=True)
 
-    browser_log_path = os.path.join(cfg.exp_path, "browser_log.jsonl")
-    if os.path.exists(browser_log_path):
-        with open(browser_log_path) as f:
-            items = [json.loads(line) for line in f]
-            for item in items:
-                env.browser._add_to_cache(item["k"], item["v"])
-            logger.info(f"Loaded {len(items)} cached queries from browser log")
 
-    dt = time.perf_counter()
-    n_workers = cfg.batch or 1
-    processor = choose_processor(n_workers)
-    logger.info(f"Evaluate using {n_workers} workers")
-    args = [
-        (agent, llm, cfg.env, i, task, cfg.n_attempts, tapes_dir, browser_log_path, level)
-        for level, level_tasks in tasks.items()
-        for i, task in enumerate(level_tasks)
-    ]
-    for tape_ready in processor(args, task_worker):
-        if isinstance(tape_ready, Exception):
-            raise tape_ready
-    dt = time.perf_counter() - dt
-    logger.info(f"Done, elapsed time: {dt:.2f} sec")
+def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
+    tape_name = f"l{level}_task{i:03d}"
+    tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
+    return os.path.exists(tape_path)
 
 
 def task_worker(args: tuple) -> int:
-    agent, llm, cfg_env, i, task, n_attempts, tapes_dir, browser_log_path, level = args
+    agent, llm, cfg_env, code_sandbox, task, exp_path, i, level = args
+    tapes_dir = os.path.join(exp_path, "tapes")
     tape_name = f"l{level}_task{i:03d}"
-    tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
-    if os.path.exists(tape_path):
-        tape: GaiaTape = load_tapes(GaiaTape, tape_path)[0]  # type: ignore
-        last_step = tape.steps[-1]
-        model_answer = last_step.answer if last_step.kind == "gaia_answer_action" else None
-        if model_answer:
-            logger.info(f"Skip task {tape_name}, already solved")
-            return 0
-    env = GaiaEnvironment(vision_lm=llm, **cfg_env)
-    tape = solve_task(task, agent, env, n_attempts)
-    tape.metadata.level = level
+    env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox, **cfg_env)
+
+    tape = solve_task(task, agent, env, level)
     save_json_tape(tape, tapes_dir, tape_name)
-    logger.info(f"Task {tape_name} solved, saved to {tape_path}")
-    with output_lock:
-        flush_browser_log(browser_log_path, env)
+    logger.info(f"Task {tape_name} solved, saved to {tapes_dir}")
+    env.browser.flush_log(os.path.join(exp_path, "browser_log.jsonl"))
     return 1
-
-
-def flush_browser_log(browser_log_path: str, env: GaiaEnvironment):
-    if len(env.browser._log):
-        with open(browser_log_path, "a") as wf:
-            for k, v in env.browser._log.copy().items():
-                wf.write(json.dumps({"k": k, "v": v}) + "\n")
-        env.browser._log = {}
 
 
 if __name__ == "__main__":
