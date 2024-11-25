@@ -16,7 +16,7 @@ THINK_AFTER_OBSERVATION = f"""Produce the reasoning thought step with the though
 THINK_AFTER_CALCULATION = f"""Produce the reasoning thought step with the thoughts about plausbility and sensibility of the results of the recent calculation. {short_format_instruction}"""
 
 ALLOWED_STEPS = """
-You can use the following tools: search the web, read web page or document, extract fact from the web page or document, calculator, and reasoning.
+You can use the following tools: search the web, read web page or document, extract fact from the web page or document, python code, and reasoning.
 You are allowed to produce ONLY steps with the following json schemas:
 {allowed_steps}
 Do not reproduce schema when producing the steps, use it as a reference.

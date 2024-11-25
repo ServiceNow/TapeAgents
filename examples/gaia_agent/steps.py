@@ -86,7 +86,7 @@ class ListOfFactsThought(GaiaThought):
         default=[],
     )
     facts_to_derive: list[FactSchema] = Field(
-        description="list of facts that need to be derived from the given facts using reasoning or calculations",
+        description="list of facts that need to be derived from the given facts using reasoning or code execution",
         default=[],
     )
     facts_to_guess: list[FactSchema] = Field(
@@ -223,7 +223,7 @@ class UseCalculatorAction(GaiaAction):
 
 class PythonCodeAction(GaiaAction):
     """
-    Action to execute the python code. The code should be only produced after the reasoning thought. Code has access to all the facts as local variables.
+    Action to execute the python code snippet.
     """
 
     kind: Literal["python_code_action"] = "python_code_action"
@@ -327,12 +327,12 @@ GaiaStep = Union[
     ReadDocumentAction,
     NextPageAction,
     ConvertFactAction,
-    UseCalculatorAction,
+    # UseCalculatorAction,
     PythonCodeAction,
     GaiaQuestion,
     SearchResultsObservation,
     PageObservation,
-    CalculationResultObservation,
+    # CalculationResultObservation,
     CodeResultObservation,
     PreviousFactsObservation,
     GaiaAnswer,
@@ -359,8 +359,8 @@ GaiaAgentStep: TypeAlias = Annotated[
         ReadDocumentAction,
         NextPageAction,
         ConvertFactAction,
-        UseCalculatorAction,
-        # PythonCodeAction,
+        # UseCalculatorAction,
+        PythonCodeAction,
         GaiaAnswer,
     ],
     Field(discriminator="kind"),
@@ -371,7 +371,8 @@ actions = [
     ReadDocumentAction,
     NextPageAction,
     ConvertFactAction,
-    UseCalculatorAction,
+    # UseCalculatorAction,
+    PythonCodeAction,
     GaiaAnswer,
 ]
 
@@ -389,7 +390,8 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
                 ReadDocumentAction,
                 NextPageAction,
                 ConvertFactAction,
-                UseCalculatorAction,
+                # UseCalculatorAction,
+                PythonCodeAction,
                 GaiaAnswer,
                 StartSubtask,
                 FinishSubtask,
@@ -403,7 +405,8 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
                 ReadDocumentAction,
                 NextPageAction,
                 ConvertFactAction,
-                UseCalculatorAction,
+                # UseCalculatorAction,
+                PythonCodeAction,
                 GaiaAnswer,
             ]
     steps_alias = Annotated[steps, Field(discriminator="kind")]
