@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from tapeagents.human import HumanAnnotation
+from tapeagents.annotation import Annotation
 from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.observe import retrieve_tape_llm_calls
 
@@ -178,10 +178,10 @@ class TapeBrowser:
     def save_annotation(self, step: int, annotation: str, tape_id: int):
         tape = self.tapes[tape_id]
         time_now = datetime.datetime.now().isoformat()
-        annotator_tape = Tape[Tape, HumanAnnotation](
-            metadata=TapeMetadata(author="human", other={"made_at": time_now}),
+        annotator_tape = Tape[Tape, Annotation](
+            metadata=TapeMetadata(other={"made_at": time_now}),
             context=tape,
-            steps=[HumanAnnotation(step=step, text=annotation)],
+            steps=[Annotation(step=step, text=annotation)],
         )
         with stream_yaml_tapes(self.annotation_file, "a") as saver:
             saver.save(annotator_tape)
