@@ -448,6 +448,7 @@ GaiaStep = Union[
     Respond,
     ConditionCheck,
     ReferenceStep,
+    AssistantStep,
     TerminationStep,
 ]
 
