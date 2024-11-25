@@ -164,6 +164,7 @@ class TapeMetadata(BaseModel):
     error: Any | None = None
     result: Any = {}
     terminated: bool = False
+    other: Any = None
 
 
 ContextType = TypeVar("ContextType")
