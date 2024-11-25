@@ -1,31 +1,15 @@
+import json
 import logging
 import os
-
-import hydra
-from omegaconf import DictConfig
-
-from tapeagents.io import stream_yaml_tapes
-from tapeagents.optimize import add_demos
-from tapeagents.rendering import PrettyRenderer
-from tapeagents.studio import Studio
-from tapeagents.tape_browser import TapeBrowser
-
-from .func_templates import make_answer_template, make_query_template
-from .load_demos import load_agentic_rag_demos, load_rag_demos
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
-import json
 import pathlib
-import random
 
 import dspy
 import dspy.evaluate
+import hydra
 import tqdm
 from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
+from omegaconf import DictConfig
 
 from tapeagents.agent import Agent, Node
 from tapeagents.batch import batch_main_loop
@@ -41,11 +25,21 @@ from tapeagents.dialog_tape import (
     UserStep,
 )
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llm_function import KindRef, LLMFunctionNode, NodeRef, by_node, by_step
+from tapeagents.io import stream_yaml_tapes
+from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
 from tapeagents.llms import LiteLLM, LLMStream
+from tapeagents.optimize import add_demos
 from tapeagents.orchestrator import main_loop
+from tapeagents.rendering import PrettyRenderer
+from tapeagents.studio import Studio
+from tapeagents.tape_browser import TapeBrowser
 
-res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
+from .func_templates import make_answer_template, make_query_template
+from .load_demos import load_agentic_rag_demos, load_rag_demos
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def make_env(n_paragraphs: int = 3) -> ToolEnvironment:

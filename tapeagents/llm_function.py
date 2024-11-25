@@ -6,7 +6,13 @@ from pydantic import BaseModel
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Prompt, Step, Tape
-from tapeagents.dialog_tape import AssistantStep, AssistantThought, FunctionCall, ToolCall, ToolCalls
+from tapeagents.dialog_tape import (
+    AssistantStep,
+    AssistantThought,
+    FunctionCall,
+    ToolCall,
+    ToolCalls,
+)
 from tapeagents.llms import LLMStream
 
 LLM_FUNCTION_TEMPLATE = """{function_desc}
