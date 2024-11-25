@@ -2,8 +2,12 @@ import json
 import logging
 import os
 
+import hydra
+from hydra.utils import instantiate
+from omegaconf import DictConfig
+
 from tapeagents.io import save_json_tape
-from tapeagents.llms import LiteLLM
+from tapeagents.llms import LiteLLM, TrainableLLM
 from tapeagents.observe import retrieve_llm_call
 from tapeagents.orchestrator import main_loop
 
@@ -16,25 +20,26 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def main(dataset_path, exp_dir, level, task_num):
-    dset = load_dataset(dataset_path)
-    tapes_dir = f"{exp_dir}/tapes"
-    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_dir, "tapedata.sqlite")
-    tape_name = f"debug_{level}_{task_num}"
-    tasks = dset[level]
-    task = tasks[task_num]
-    llm = LiteLLM(
-        model_name="gpt-4o-mini-2024-07-18",
-        context_size=128000,
-        use_cache=True,
-        parameters={"temperature": 0.0},
-    )
+@hydra.main(
+    version_base=None,
+    config_path="../../../conf",
+    config_name="gaia_openai",
+)
+def main(cfg: DictConfig) -> None:
+    dset = load_dataset(cfg.data_dir)
+    tapes_dir = f"{cfg.exp_path}/tapes"
+    os.makedirs(tapes_dir, exist_ok=True)
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+    tape_name = f"debug_{cfg.level}_{cfg.task}"
+    tasks = dset[cfg.level]
+    task = tasks[cfg.task]
+    llm: TrainableLLM = instantiate(cfg.llm)
     env = GaiaEnvironment(vision_lm=llm, safe_calculator=False)
     planner = GaiaPlanner.create(llm)
     tape = GaiaTape(steps=[task_to_question_step(task, env)])
     metadata = tape.metadata
     metadata.task = task
-    metadata.level = level
+    metadata.level = cfg.level
     for event in main_loop(planner, tape, env, max_loops=50):
         if event.agent_event and event.agent_event.step:
             step = event.agent_event.step
@@ -69,8 +74,4 @@ def main(dataset_path, exp_dir, level, task_num):
 
 
 if __name__ == "__main__":
-    dataset_path = "../gaia/dataset/validation/"
-    exp_dir = "../gaia/runs/v2_debug/"
-    level = 1
-    task = 1
-    main(dataset_path, exp_dir, level, task)
+    main()
