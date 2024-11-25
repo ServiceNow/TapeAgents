@@ -78,13 +78,13 @@ class PlanStep(BaseModel):
     number: int
     name: str
     description: str
-    list_of_tools: list[str] = Field(description="list of tools to use to complete the step")
+    worker: str = Field(description="the assistant who will work on this step or ''")
     prerequisites: list[Any] = Field(
         description="list of pairs (previous_step_number, previous_step_result) that are needed to start working on this step",
         default_factory=list,
     )
-    expected_results: list[str] = Field(
-        description="expected results after succesfull execution of the step. Usually facts, files, papers, documents, code or data",
+    expected_result: str = Field(
+        description="result expected from this step",
         default_factory=list,
     )
 
@@ -374,8 +374,7 @@ class Subtask(GaiaThought):
     name: str
     description: str
     previous_results: list[str | dict | list[str]]
-    list_of_tools: list[str]
-    expected_results: list[str]
+    expected_result: str
 
 
 class SubtaskResult(GaiaThought):
@@ -494,6 +493,7 @@ _kind_to_step = {step.__fields__["kind"].default: step for step in _step_list}
 
 
 def load_step(step_dict: dict) -> GaiaStep:
+    raise NotImplementedError("This function is not implemented yet")
     try:
         step = _kind_to_step[step_dict["kind"]](**step_dict)
     except Exception:

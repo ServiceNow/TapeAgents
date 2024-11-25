@@ -4,10 +4,10 @@ from typing import Any
 from pydantic import Field
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Call, ReferenceStep, Step, Tape
+from tapeagents.core import Call, ReferenceStep, SetNextNode, Step, Tape
 from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import LLM, LLMStream
-from tapeagents.nodes import ControlFlowNode, Formalize, Return
+from tapeagents.nodes import ControlFlowNode, FixedStepsNode, Formalize, Return
 from tapeagents.utils import get_step_schemas_from_union_type
 from tapeagents.view import all_positions, all_steps, first_position, first_step, last_position, last_step
 
@@ -23,6 +23,7 @@ from .steps import (
     Plan,
     PlanReflection,
     ReasonerStep,
+    ReasoningThought,
     Subtask,
     SubtaskResult,
 )
@@ -89,16 +90,15 @@ class CallWorker(Node):
             result = view.completed_steps[step_number]
             previous_results.append(result.llm_dict())
 
-        agent_name = view.next_step.list_of_tools[0] if view.next_step.list_of_tools else "Reasoner"
-        assert agent_name in ["Coder", "WebSurfer", "Reasoner"], f"Unknown agent name: {agent_name}"
+        agent_name = view.next_step.worker
+        assert agent_name in ["Coder", "WebSurfer"], f"Unknown agent name: {agent_name}"
         yield Call(agent_name=agent_name)
         yield Subtask(
             number=view.next_step.number,
             name=view.next_step.name,
             description=view.next_step.description,
             previous_results=previous_results,
-            list_of_tools=view.next_step.list_of_tools,
-            expected_results=view.next_step.expected_results,
+            expected_result=view.next_step.expected_result,
         )
 
 
@@ -229,10 +229,31 @@ class GaiaPlanner(Agent):
         max_attempts = 3
         subagents = [GaiaManager.create(llm)]
         nodes = (
+            # TODO: this preprocessing may not be even necessary with models that think well
             GaiaNodeV2(name="FactsSurvey", guidance=PromptRegistry.facts_survey, output_cls=Facts),
             GaiaNodeV2(name="Plan", guidance=PromptRegistry.plan_v2, output_cls=Plan),
+
+            # -- PLANNER LOOP BEGIN ---
+            ControlFlowNode(
+                name="LoopStart",
+                predicate=lambda tape: ManagerView(tape).next_step.worker == "",
+                next_node="Act"
+            ),
+            # Option 1: have the manager orchestrate assistant agents
             CallManager(agent_name="GaiaManager"),
-            # either executed all the steps successfully or failed on some step
+            FixedStepsNode(steps=[SetNextNode(name="Act")]),
+            # Option 2: act yourself
+            GaiaNodeV2(name="Act", output_cls=ReasoningThought | SubtaskResult),
+            ControlFlowNode(
+                name="LoopIfNotDone",
+                predicate=lambda tape: bool(not isinstance(tape[-1], SubtaskResult)),
+                next_node="Act",
+            ),
+            ControlFlowNode(
+                name="ContinuePlan", 
+                predicate=lambda tape: ManagerView(tape).next_step is not None,
+                next_node="LoopStar",
+            ),
             ControlFlowNode(
                 name="IsFinished",
                 predicate=lambda tape: ManagerView(tape).success,
@@ -243,7 +264,9 @@ class GaiaPlanner(Agent):
                 predicate=lambda tape: len(all_steps(tape, Plan)) >= max_attempts,
                 next_node="Guess",
             ),
-            Replan(next_node="CallManager"),
+            Replan(next_node="LoopStart"),
+            # -- PLANNER LOOP END ---
+
             Guess(),  # try to guess the answer if the replan attempts are over
             Formalize(output_cls=PlanReflection),
             ProduceAnswer(),

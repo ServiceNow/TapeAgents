@@ -6,10 +6,10 @@ llm:
   parameters:
     temperature: 0.0
 
-exp_name: gpt4o_mini_val_v2_1
-exp_path: ../gaia/runs/${exp_name}
-data_dir: ../gaia/dataset/validation/
-batch: 32
+exp_name: gpt4o_mini_val
+exp_path: examples/gaia_agent/outputs/${exp_name}
+data_dir: ../gaia_clone/2023/validation
+batch: 1
 agent:
   planning_mode: simple
 
@@ -18,6 +18,10 @@ env:
   use_web_cache: true
   only_cached_webpages: false
 
+studio:
+  tape_path: null
+  port: 7861
+
 hydra:
   run:
-    dir: ../gaia/runs/${exp_name}
+    dir: ${exp_path}

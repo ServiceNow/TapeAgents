@@ -65,20 +65,20 @@ Do not reproduce schema when producing the step, use it only as a reference!
 DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
 """
 
-PLAN_V2 = """What steps should I do to answer the question above? Be specific about how each step should be done.
+PLAN_V2 = """What steps should I take to answer the question above? Be specific about how each step should be done.
 
-You can use the following tools:
-- WebSurfer: does wikipedia search, web search, web browsing, reading local documents, extracting fact from the web page or document
-- Coder: Python code execution
-- Reasoner: Reasoning
+I can ask my assistants to help:
+- WebSurfer: a specialist in finding information. He can search web and reading local documents to find the required information.
+  He expects a clear description of specific information he should find.
+- Coder: can help with processing data or doing calculations using a Python interpreter.
 
 For each step in the plan, include:
-- A detailed description of the tasks to perform. DO NOT mention previous steps or the overall task!
-- A list of required tools (only WebSurfer, Coder, Reasoner are valid names).
-- A list of expected outcomes, such as facts, files, documents, or data.
+- A detailed description of the task. DO NOT mention previous steps or the overall task!
+- The name of the assistant I can delegate the work to (WebSurfer or Coder), or empty string if it is pure thinking that I should do myself.
+- The description of the expected result, such as a fact, document snippet, data or computation result.
 - A list of prerequisites, including any results from previous steps or known facts necessary to proceed. First step should not have prerequisites. Each prerequisite should have the number of the step where it was produced.
 
-If the task is a riddle or puzzle, do not user web surfing! Use only reasoning and coding tools.
+Only plan minimal possible number of steps required to solve this task. 
 """
 
 START_EXECUTION_V2 = """
