@@ -39,16 +39,14 @@ def main(cfg: DictConfig) -> None:
     llm: TrainableLLM = instantiate(cfg.llm)
     env = GaiaEnvironment(vision_lm=llm, **cfg.env)
     agent = GaiaAgent.create(llm, **cfg.agent)
-    tasks = load_dataset(cfg.data_dir)
+    tasks = load_dataset(cfg.split)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     if os.path.exists(tapes_dir):
         old_exp_cfg = get_exp_config_dict(cfg.exp_path)
         assert (
             old_exp_cfg["llm"]["model_name"] == llm.model_name
         ), f"Exp dir model name mismatch: old {old_exp_cfg['llm']['model_name']}, new {llm.model_name}"
-        assert (
-            old_exp_cfg["data_dir"] == cfg.data_dir
-        ), f"Exp dir data: old {old_exp_cfg['data_dir']}, new {cfg.data_dir}"
+        assert old_exp_cfg["split"] == cfg.split, f"Exp split: old {old_exp_cfg['split']}, new {cfg.split}"
     os.makedirs(tapes_dir, exist_ok=True)
 
     browser_log_path = os.path.join(cfg.exp_path, "browser_log.jsonl")

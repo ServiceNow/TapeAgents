@@ -19,33 +19,21 @@ Additionally, the Gaia agent implements the initial planning step, which produce
 
 ## Quickstart
 Perform all the following steps from the top folder of the repo.
-First, you need to install the dependencies for file converters:
+First, you need to install the dependencies for file converters and make folders:
 ```bash
 pip install -r requirements.converters.txt
-```
-And download the dataset (we cannot use `datasets.load_dataset()` because some examples require attached files which are not downloaded that way):
-```bash
 mkdir -p outputs
 mkdir -p data
-git clone https://huggingface.co/datasets/gaia-benchmark/GAIA data/gaia
 ```
-If you see the error `remote: Access to dataset gaia-benchmark/GAIA is restricted. You must have access to it and be authenticated to access it. Please log in.`, you need to log in to the Hugging Face account first:
-```bash
-huggingface-cli login
-```
-Remember to answer `Yes` to the question "Add token as git credential?". Then clone data repo again:
-```bash
-git clone https://huggingface.co/datasets/gaia-benchmark/GAIA data/gaia
-```
-Check that the content is downloaded:
-```bash
-ls -l data/gaia/2023/validation/
-```
-
 Then you can run the agent using the following commands:
 - `python -m examples.gaia_agent.scripts.studio` - Interactive GUI that allows you to set the task for the agent and observe how it solves it step by step.
 - `python -m examples.gaia_agent.scripts.evaluate` - script to run evaluation on the GAIA validation set.
 - `python -m examples.gaia_agent.scripts.tape_browser` - Gradio UI for exploring the tapes and metrics produced during evaluation.
+
+If you see the error `remote: Access to dataset gaia-benchmark/GAIA is restricted. You must have access to it and be authenticated to access it. Please log in.`, you need to log in to the Hugging Face account first:
+```bash
+huggingface-cli login
+```
 
 You can adjust config in [conf/gaia_openai.yaml](../../conf/gaia_openai.yaml).
 
