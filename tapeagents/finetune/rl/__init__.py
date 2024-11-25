@@ -44,7 +44,7 @@ class RLConfig(StepConfig):
     )
     epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
     reward_minus_kl_coef: Optional[float] = field(
-        default=0.,
+        default=0.0,
         # https://arxiv.org/abs/2402.14740
         metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
     )
@@ -56,7 +56,10 @@ class RLConfig(StepConfig):
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
-
+    max_advantage: Optional[float] = field(
+        default=10.0,
+        metadata={"help": "Clip the advantage to this value"},
+    )
 
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
@@ -142,8 +145,16 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "min_reward": rewards[masks_].min().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
-        "mean_new_logprobs_positive_log_p_weights": masked_mean(new_log_probs[log_p_weights > 0], masks_[log_p_weights > 0]).item() if (log_p_weights > 0).any() else 0,
-        "mean_new_logprobs_negative_log_p_weights": masked_mean(new_log_probs[log_p_weights < 0], masks_[log_p_weights < 0]).item() if (log_p_weights < 0).any() else 0,
+        "mean_new_logprobs_positive_log_p_weights": masked_mean(
+            new_log_probs[log_p_weights > 0], masks_[log_p_weights > 0]
+        ).item()
+        if (log_p_weights > 0).any()
+        else 0,
+        "mean_new_logprobs_negative_log_p_weights": masked_mean(
+            new_log_probs[log_p_weights < 0], masks_[log_p_weights < 0]
+        ).item()
+        if (log_p_weights < 0).any()
+        else 0,
         "mean_ref_logprobs": masked_mean(ref_logprobs, masks_).item(),
         "advantage": masked_mean(advantages, masks_).item(),
         "max_advantage": advantages[masks_].max().item(),
@@ -191,6 +202,10 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
     df_with_stats = pd.merge(df, grouped, on="group_id", how="left")
 
     df_with_stats["advantages"] = df_with_stats.apply(calculate_advantage, axis=1)
+
+    # Clip advantages to max_advantage if specified
+    if config.max_advantage is not None:
+        df_with_stats["advantages"] = df_with_stats["advantages"].clip(-config.max_advantage, config.max_advantage)
 
     # replace advantages entry
     dataset = replace_dataset_column(dataset, "advantages", df_with_stats["advantages"].tolist())
