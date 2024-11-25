@@ -1,9 +1,11 @@
 import logging
+import os
+import shutil
 
 from tapeagents.container_executor import CodeBlock, ContainerExecutor
 from tapeagents.environment import Environment
 from tapeagents.tools.calculator import calculate
-from tapeagents.tools.python_interpreter import python_calculate, run_python_code
+from tapeagents.tools.python_interpreter import run_python_code
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.utils import FatalError
 
@@ -13,6 +15,9 @@ from .steps import (
     CodeResultObservation,
     ConvertFactAction,
     GaiaAction,
+    GaiaQuestion,
+    GaiaStep,
+    ImageObservation,
     LLMOutputParsingFailureAction,
     NextPageAction,
     PageObservation,
@@ -30,14 +35,14 @@ logger = logging.getLogger(__name__)
 class GaiaEnvironment(Environment):
     def __init__(
         self,
-        safe_calculator: bool = True,
         code_sandbox: ContainerExecutor | None = None,
+        image_observations: bool = False,
         **kwargs,
     ) -> None:
         super().__init__()
         self.code_sandbox = code_sandbox
+        self.image_observations = image_observations
         self.browser = SimpleTextBrowser(**kwargs)
-        self.calculate = calculate if safe_calculator else python_calculate
 
     def react(self, tape: GaiaTape) -> GaiaTape:
         actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, GaiaAction)]
@@ -74,13 +79,13 @@ class GaiaEnvironment(Environment):
                             )
                         )
                     case ConvertFactAction():
-                        result = self.calculate(
+                        result = calculate(
                             action.expression,
                             {"value": action.fact_value, action.original_fact_name: action.fact_value},
                         )
                         tape = tape.append(CalculationResultObservation(name=action.converted_fact_name, result=result))
                     case UseCalculatorAction():
-                        result = self.calculate(action.expression, action.facts or {})
+                        result = calculate(action.expression, action.facts or {})
                         tape = tape.append(CalculationResultObservation(name=action.fact_name, result=result))
                     case PythonCodeAction():
                         if self.code_sandbox is not None:
@@ -118,6 +123,46 @@ class GaiaEnvironment(Environment):
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape
+
+    def task_to_observations(
+        self,
+        task: dict,
+        max_doc_length: int = 8000,
+    ) -> list[GaiaStep]:
+        question = GaiaQuestion.from_task(task)
+        image = None
+        if question.filename:
+            name, ext = question.filename.rsplit(".", maxsplit=1)
+            ext = ext.lower()
+            if ext == "zip":
+                folder_name = name
+                os.makedirs(folder_name, exist_ok=True)
+                shutil.unpack_archive(question.filename, folder_name)
+                document_text = "\n\nArchive contains the following files:\n"
+                for i, file in enumerate(os.listdir(folder_name)):
+                    file_path = os.path.join(folder_name, file)
+                    content = self.browser.get_whole_document(file_path)
+                    file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
+                    if len(file_text) > max_doc_length:
+                        file_text = ""
+                    file_text += f"{i+1}. Path to the '{file}': {file_path}"
+                    document_text += file_text
+            elif ext in ("png", "jpg", "jpeg") and self.image_observations:
+                image = ImageObservation(
+                    image_path=question.filename,
+                    caption="Attached image",
+                )
+                document_text = ""
+            else:
+                content = self.browser.get_whole_document(question.filename)
+                document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
+                if len(document_text) > max_doc_length:
+                    document_text = ""
+                document_text += f"\nPath to the mentioned document: {question.filename}"
+            question.content += document_text
+        question.filename = None
+        logger.info(f"Question: {question.content}")
+        return [question] if not image else [question, image]
 
 
 def print_last_line(python_code: str) -> str:

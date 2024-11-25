@@ -58,7 +58,7 @@ class Step(BaseModel):
         """Dump step data only, drop the metadata"""
         return self.model_dump(exclude_none=True, exclude={"metadata"})
 
-    def llm_view(self, indent: int | None = 2) -> str:
+    def llm_view(self, indent: int | None = 2) -> str | list[dict]:
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
 
     @classmethod

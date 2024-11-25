@@ -5,6 +5,8 @@ from typing import Any, Callable, Literal, TypeAlias
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
+from tapeagents.utils import image_base64_message
+
 from .agent import Annotator
 from .core import (
     Action,
@@ -41,32 +43,41 @@ class AssistantStep(Action):
     kind: Literal["assistant"] = "assistant"
 
 
+class ImageObservation(Observation):
+    kind: Literal["image"] = "image"
+    image_path: str
+    caption: str = ""
+
+    def llm_view(self) -> list[dict]:
+        return [{"type": "text", "text": self.caption}, image_base64_message(self.image_path)]
+
+
 class FunctionCall(BaseModel):
     name: str
     arguments: Any
-
 
 
 class ToolCall(BaseModel):
     function: FunctionCall
     id: str = ""
     type: str = "function"
-    
-    
+
+
 class ToolCalls(Action):
     """Action that wraps one-or-many tool calls.
-    
+
     We structure this class similar to OpenAI tool calls, but we let function arguments be Any, not just str
     (see `FunctionCall` class)
-    
+
     """
+
     tool_calls: list[ToolCall]
     kind: Literal["assistant"] = "assistant"
-    
+
     @staticmethod
     def from_dicts(dicts: list):
         return ToolCalls.model_validate({"tool_calls": dicts})
-    
+
     @staticmethod
     def from_llm_output(llm_output: LLMOutput) -> ToolCalls:
         if not llm_output.tool_calls:
@@ -79,7 +90,7 @@ class ToolCalls(Action):
             for tc in llm_output.tool_calls
         ]
         return ToolCalls(tool_calls=tool_calls)
-        
+
 
 class ToolResult(Observation):
     content: Any

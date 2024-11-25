@@ -1,16 +1,14 @@
-import datetime
 import json
 import logging
 import os
 import shutil
 import subprocess
-from typing import Any, Counter, Iterable
-from uuid import uuid4
+from typing import Any, Counter
 
 import yaml
-from pydantic import BaseModel, Field
 from termcolor import colored
 
+from tapeagents.dialog_tape import ImageObservation
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.rendering import step_view
@@ -18,7 +16,7 @@ from tapeagents.rendering import step_view
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment
 from .scorer import question_scorer
-from .steps import GaiaAnswer, GaiaQuestion, PlanThought
+from .steps import GaiaAnswer, GaiaQuestion, GaiaStep, PlanThought
 from .tape import GaiaMetadata, GaiaTape
 
 logger = logging.getLogger(__name__)
@@ -85,7 +83,7 @@ def load_dataset(data_dir):
 
 
 def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: int = 1) -> GaiaTape:
-    question = task_to_question_step(task, env)
+    start_steps = env.task_to_observations(task)
     tapes: list[GaiaTape] = []
     results: list[Any] = []
     previous_plans: list[str] = []
@@ -93,7 +91,7 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
         predicted = None
         tries = 3
         while not predicted and tries:
-            tape = GaiaTape(steps=[question])
+            tape = GaiaTape(steps=start_steps)
             logger.info(colored(f"Attempt {len(tapes)+1}", "green"))
             discard_attempt = False
             planned = False
@@ -134,35 +132,6 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: i
         best_tape.metadata.model_dump() | {"task": task, "result": results[best]}
     )
     return best_tape
-
-
-def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int = 8000) -> GaiaQuestion:
-    question = GaiaQuestion.from_task(task)
-    if question.filename:
-        name, ext = question.filename.rsplit(".", maxsplit=1)
-        if ext == "zip":
-            folder_name = name
-            os.makedirs(folder_name, exist_ok=True)
-            shutil.unpack_archive(question.filename, folder_name)
-            document_text = "\n\nArchive contains the following files:\n"
-            for i, file in enumerate(os.listdir(folder_name)):
-                file_path = os.path.join(folder_name, file)
-                content = env.browser.get_whole_document(file_path)
-                file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
-                if len(file_text) > max_doc_length:
-                    file_text = ""
-                file_text += f"{i+1}. Path to the '{file}': {file_path}"
-                document_text += file_text
-        else:
-            content = env.browser.get_whole_document(question.filename)
-            document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
-            if len(document_text) > max_doc_length:
-                document_text = ""
-            document_text += f"\nPath to the mentioned document: {question.filename}"
-        question.content += document_text
-    question.filename = None
-    logger.info(f"Question: {question.content}")
-    return question
 
 
 def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> list[GaiaTape]:
