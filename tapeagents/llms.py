@@ -362,7 +362,9 @@ class TrainableLLM(CachedLLM):
             log_probs = log_probs[len(prompt_encoded) : len(prompt_completion_encoded)]
             tokens = response["choices"][0]["logprobs"]["tokens"]
             tokens = tokens[len(prompt_encoded) : len(prompt_completion_encoded)]
-            assert "".join(tokens) == output, f"Tokens do not match completion: {''.join(tokens)} != {output}"
+            if not "".join(tokens) == output:
+                logger.error(f"Tokens do not match completion: {''.join(tokens)} != {output}")
+                log_probs = [] # empty logprobs to avoid using wrong values
         except Exception as e:
             raise RuntimeError(f"Generation API wrong response: {r.text}", e)
         return log_probs
