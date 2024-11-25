@@ -71,7 +71,4 @@ def main(fname: str, dataset_path: str = ""):
 
 if __name__ == "__main__":
     assert len(sys.argv) > 1, "Provide the path to the results file"
-    main(
-        sys.argv[1],
-        "../gaia/dataset/validation/",
-    )
+    main(sys.argv[1], "outputs/gaia/dataset/validation/")
