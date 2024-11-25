@@ -178,7 +178,9 @@ class LLMFunctionNode(Node):
     input_refs: list[int | NodeRef | KindRef | Step] = []
 
     def get_function(self, agent):
-        template = agent.templates[self.template_name]
+        # TODO: Trying to fix: ValueError: Template query0 is not an LLMFunctionTemplate
+        # template = agent.templates[self.template_name]
+        template = LLMFunctionTemplate.model_validate(agent.templates[self.template_name])
         if not isinstance(template, LLMFunctionTemplate):
             raise ValueError(f"Template {self.template_name} is not an LLMFunctionTemplate")
         return template
