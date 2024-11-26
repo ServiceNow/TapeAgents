@@ -3,7 +3,7 @@ import os
 import sys
 from collections import defaultdict
 
-from tapeagents.core import Action
+from tapeagents.core import Action, Step
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
@@ -24,6 +24,7 @@ class GaiaTapeBrowser(TapeBrowser):
     def load_tapes(self, name: str) -> list:
         _, fname, postfix = name.split("/", maxsplit=2)
         tapes_path = os.path.join(self.tapes_folder, fname, "tapes")
+        image_path = os.path.join(self.tapes_folder, fname, "images")
         try:
             all_tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_path, file_extension=".json")  # type: ignore
         except Exception as e:
@@ -33,6 +34,9 @@ class GaiaTapeBrowser(TapeBrowser):
         for tape in all_tapes:
             if postfix == "all" or str(tape.metadata.level) == postfix:
                 tapes.append(tape)
+            for i in range(len(tape.steps)):
+                tape.steps[i].metadata.other["image_path"] = image_path
+
         self.llm_calls = {}
         sqlite_fpath = os.path.join(self.tapes_folder, fname, "tapedata.sqlite")
         if not os.path.exists(sqlite_fpath):
@@ -100,7 +104,8 @@ class GaiaTapeBrowser(TapeBrowser):
                 error = last_action.kind[:2]
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
         if tape.metadata.task["file_name"]:
-            mark += "📁"
+            ext = tape.metadata.task["file_name"].split(".")[-1]
+            mark += f"({ext})"
         if error:
             mark += f"[{error}]"
         if mark:
@@ -153,9 +158,19 @@ class GaiaTapeBrowser(TapeBrowser):
         return sorted(exps)
 
 
+class GaiaRender(CameraReadyRenderer):
+    def render_step(self, step: Step, index: int, folded: bool = True, **kwargs) -> str:
+        image_path = os.path.join(step.metadata.other["image_path"], f"{step.metadata.id}.png")
+        html = super().render_step(step, folded, **kwargs)
+        if image_path:
+            image_url = os.path.join("static", image_path)
+            html = f"<div class='basic-renderer-box' style='background-color:#baffc9;'><div><img src='{image_url}' style='max-width: 100%;'></div>{html}</div>"
+        return html
+
+
 def main(dirname: str):
-    browser = GaiaTapeBrowser(dirname, CameraReadyRenderer())
-    browser.launch(port=7861)
+    browser = GaiaTapeBrowser(dirname, GaiaRender())
+    browser.launch(static_dir=dirname, port=7861)
 
 
 if __name__ == "__main__":

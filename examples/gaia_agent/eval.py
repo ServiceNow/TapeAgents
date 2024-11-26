@@ -1,14 +1,12 @@
 import json
 import logging
 import os
-import shutil
 import subprocess
 from typing import Any, Counter
 
 import yaml
 from termcolor import colored
 
-from tapeagents.dialog_tape import ImageObservation
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.rendering import step_view
@@ -16,7 +14,7 @@ from tapeagents.rendering import step_view
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment
 from .scorer import question_scorer
-from .steps import GaiaAnswer, GaiaQuestion, GaiaStep, PlanThought, SearchAction
+from .steps import GaiaAnswer, SearchAction
 from .tape import GaiaMetadata, GaiaTape
 
 logger = logging.getLogger(__name__)

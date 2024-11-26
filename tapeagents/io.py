@@ -1,12 +1,15 @@
 import json
 import logging
 import os
+import shutil
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator, Type
 
 import yaml
 from pydantic import TypeAdapter
+
+from tapeagents.dialog_tape import ImageObservation
 
 from .core import Tape
 
@@ -53,6 +56,13 @@ def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
     fpath = os.path.join(tapes_dir, fname) if name else tapes_dir
     with open(fpath, "w") as f:
         f.write(tape.model_dump_json(indent=4))
+
+
+def save_tape_images(tape: Tape, images_dir: str):
+    for i, step in enumerate(tape):
+        if isinstance(step, ImageObservation):
+            image_path = os.path.join(images_dir, f"{step.metadata.id}.png")
+            shutil.copy(step.image_path, image_path)
 
 
 def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension: str = ".yaml") -> list[Tape]:
