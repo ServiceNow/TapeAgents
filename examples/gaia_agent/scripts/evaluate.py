@@ -7,7 +7,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.container_executor import ContainerExecutor
-from tapeagents.io import save_json_tape
+from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
 from tapeagents.parallel_processing import choose_processor
 
@@ -45,6 +45,8 @@ def main(cfg: DictConfig) -> None:
     tasks = load_dataset(cfg.data_dir)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     validate_config(cfg, llm, tapes_dir)
+    images_dir = os.path.join(cfg.exp_path, "images")
+    os.makedirs(images_dir, exist_ok=True)
 
     dt = time.perf_counter()
     n_workers = cfg.batch or 0
@@ -86,11 +88,13 @@ def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
 def task_worker(args: tuple) -> int:
     agent, llm, cfg_env, code_sandbox, task, exp_path, i, level = args
     tapes_dir = os.path.join(exp_path, "tapes")
+    images_dir = os.path.join(exp_path, "images")
     tape_name = f"l{level}_task{i:03d}"
     env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox, **cfg_env)
 
     tape = solve_task(task, agent, env, level)
     save_json_tape(tape, tapes_dir, tape_name)
+    save_tape_images(tape, images_dir)
     logger.info(f"Task {tape_name} solved, saved to {tapes_dir}")
     env.browser.flush_log(os.path.join(exp_path, "browser_log.jsonl"))
     return 1

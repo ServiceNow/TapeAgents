@@ -24,7 +24,7 @@ class GaiaTapeBrowser(TapeBrowser):
     def load_tapes(self, name: str) -> list:
         _, fname, postfix = name.split("/", maxsplit=2)
         tapes_path = os.path.join(self.tapes_folder, fname, "tapes")
-        image_path = os.path.join(self.tapes_folder, fname, "images")
+        image_dir = os.path.join(self.tapes_folder, fname, "images")
         try:
             all_tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_path, file_extension=".json")  # type: ignore
         except Exception as e:
@@ -35,7 +35,11 @@ class GaiaTapeBrowser(TapeBrowser):
             if postfix == "all" or str(tape.metadata.level) == postfix:
                 tapes.append(tape)
             for i in range(len(tape.steps)):
-                tape.steps[i].metadata.other["image_path"] = image_path
+                image_path = os.path.join(image_dir, f"{tape.steps[i].metadata.id}.png")
+                if os.path.exists(image_path):
+                    tape.steps[i].metadata.other["image_path"] = os.path.join(
+                        fname, "images", f"{tape.steps[i].metadata.id}.png"
+                    )
 
         self.llm_calls = {}
         sqlite_fpath = os.path.join(self.tapes_folder, fname, "tapedata.sqlite")
@@ -159,12 +163,12 @@ class GaiaTapeBrowser(TapeBrowser):
 
 
 class GaiaRender(CameraReadyRenderer):
-    def render_step(self, step: Step, index: int, folded: bool = True, **kwargs) -> str:
-        image_path = os.path.join(step.metadata.other["image_path"], f"{step.metadata.id}.png")
-        html = super().render_step(step, folded, **kwargs)
+    def render_step(self, step: Step, index: int, **kwargs) -> str:
+        image_path = step.metadata.other.get("image_path")
+        html = super().render_step(step, index, **kwargs)
         if image_path:
             image_url = os.path.join("static", image_path)
-            html = f"<div class='basic-renderer-box' style='background-color:#baffc9;'><div><img src='{image_url}' style='max-width: 100%;'></div>{html}</div>"
+            html = f"<div class='observation'>{html}<div><img src='{image_url}' style='max-width: 100%;'></div></div>"
         return html
 
 
