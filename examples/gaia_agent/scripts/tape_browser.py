@@ -61,8 +61,7 @@ class GaiaTapeBrowser(TapeBrowser):
         except IndexError:
             return "", "Tape not found"
         label = self.get_tape_label(tape)
-        clean_tape = tape.model_copy(update=dict(steps=[s for s in tape.steps if not isinstance(s, SetNextNode)]))
-        html = f"{self.renderer.style}<style>.thought {{ background-color: #ffffba !important; }};</style>{self.renderer.render_tape(clean_tape, self.llm_calls)}"
+        html = f"{self.renderer.style}<style>.thought {{ background-color: #ffffba !important; }};</style>{self.renderer.render_tape(tape, self.llm_calls)}"
         return html, label
 
     def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
