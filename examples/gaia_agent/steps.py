@@ -332,7 +332,7 @@ GaiaStep = Union[
     GaiaQuestion,
     SearchResultsObservation,
     PageObservation,
-    # CalculationResultObservation,
+    CalculationResultObservation,
     CodeResultObservation,
     PreviousFactsObservation,
     GaiaAnswer,
