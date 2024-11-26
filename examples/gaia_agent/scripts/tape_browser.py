@@ -10,7 +10,6 @@ from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
 from ..eval import calculate_accuracy, get_exp_config_dict, tape_correct
-from ..steps import load_step
 from ..tape import GaiaTape
 
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +29,6 @@ class GaiaTapeBrowser(TapeBrowser):
                 GaiaTape,
                 tapes_path,
                 file_extension=".json",
-                unknown_steps_loader=load_step,
             )  # type: ignore
         except Exception as e:
             logger.error(f"Failed to load tapes from {tapes_path}: {e}")

@@ -405,9 +405,10 @@ class SubtaskResult(GaiaThought):
 
 class PlanReflection(GaiaThought):
     kind: Literal["plan_reflection"] = "plan_reflection"
-    task_solved: bool
-    plan_finished: bool
-    failed_step_number: int = -1
+    failed_step_number: int = Field(
+        description="The number of the failed step, if the worker tried and failed to execute it.",
+        default=-1
+    )
     failure_overview: str = ""
     text: str = Field(description="leave this field empty", default="")
 
@@ -490,15 +491,6 @@ _step_list = [
 ]
 
 _kind_to_step = {step.__fields__["kind"].default: step for step in _step_list}
-
-
-def load_step(step_dict: dict) -> GaiaStep:
-    raise NotImplementedError("This function is not implemented yet")
-    try:
-        step = _kind_to_step[step_dict["kind"]](**step_dict)
-    except Exception:
-        step = Reflection(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
-    return step
 
 
 GaiaAgentStep: TypeAlias = Annotated[

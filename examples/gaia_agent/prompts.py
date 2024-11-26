@@ -101,11 +101,10 @@ Evaluate the execution of the subtask in the plan step:
 REFLECT_PLAN_STATUS = """
 Assess the current state of plan execution:
 
-Determine whether the produced results contain all the necessary information to answer the question.
-If there is enough information to answer the question, mark task as solved and plan as finished.
-If plan is not finished solved, evaluate the progress of plan completion.
 If any steps have failed, analyze the reasons for the failure and suggest adjustments to the plan to ensure the task can still be completed.
 """
+
+REFLECT_PLAN_STATUS_V2 = """Determine if the plan step execution failed"""
 
 PLAN_STATUS = """
 Current plan status:
@@ -232,6 +231,7 @@ class PromptRegistry:
     start_execution_coder = START_EXECUTION_CODER
     reflect_subtask = REFLECT_SUBTASK
     reflect_plan_status = REFLECT_PLAN_STATUS
+    reflect_plan_status_v2 = REFLECT_PLAN_STATUS_V2
     plan_status = PLAN_STATUS
     replan = REPLAN
     final_answer = FINAL_ANSWER

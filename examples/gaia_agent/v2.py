@@ -4,7 +4,7 @@ from typing import Annotated, Any, Union
 from pydantic import Field
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import Call, ReferenceStep, SetNextNode, Step, Tape
+from tapeagents.core import Call, SetNextNode, Step, StepMetadata, Tape, TapeMetadata
 from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.nodes import ControlFlowNode, FixedStepsNode, Formalize, Return
@@ -49,12 +49,14 @@ class ManagerView:
 
         self.last_subtask_result = last_step(tape, SubtaskResult, allow_none=True)
         self.plan_reflection = last_step(tape, PlanReflection, allow_none=True)
-        self.success = bool(self.plan_reflection and self.plan_reflection.task_solved)
         self.can_continue = bool(
-            (not self.success)
-            and self.last_subtask_result
+            self.last_subtask_result
             and self.last_subtask_result.success
             and len(self.remaining_steps)
+        )
+        self.success = (
+            not self.remaining_steps
+            and self.plan_reflection.failed_step_number == -1
         )
         self.facts = last_step(tape, Facts, allow_none=True)
 
@@ -66,10 +68,22 @@ class CallManager(Node):
         task = first_position(tape, GaiaQuestion)
         plan = last_position(tape, Plan)
         facts = last_position(tape, Facts)
-        yield Call(agent_name=self.agent_name)
-        yield ReferenceStep(step_number=task)
-        yield ReferenceStep(step_number=facts)
-        yield ReferenceStep(step_number=plan)
+        question = tape.steps[task]
+        assert isinstance(question, GaiaQuestion), f"Expected GaiaQuestion, got {question}"
+        message = (
+            "Please help me execute the plan to answer the following question.\n\n"
+            f"{question.content}"
+        )
+        if question.filename:
+            message += f"\n\nThe document is available here: {question.filename}"
+        yield Call(
+            agent_name=self.agent_name, 
+            content=message
+        )
+        fact = tape.steps[facts].model_copy(deep=True, update=dict(metadata=StepMetadata()))
+        plan = tape.steps[plan].model_copy(deep=True, update=dict(metadata=StepMetadata()))
+        yield fact
+        yield plan
 
 
 class CallWorker(Node):
@@ -279,9 +293,10 @@ class GaiaPlanner(Agent):
                 next_node="Act",
             ),
             UpdateFacts(),
-            ReflectPlanProgress(),
-            Formalize(name="FormalizePlanReflection", output_cls=PlanReflection),
-            # Continue or quit the planner loop
+            GaiaNodeV2(
+                guidance=PromptRegistry.reflect_plan_status_v2, 
+                output_cls=PlanReflection
+            ),
             ControlFlowNode(
                 name="ContinuePlan", 
                 predicate=lambda tape: ManagerView(tape).next_step is not None,
@@ -319,8 +334,10 @@ class GaiaManager(Agent):
         nodes = (
             CallWorker(),
             UpdateFacts(),
-            ReflectPlanProgress(),
-            Formalize(output_cls=PlanReflection),
+            GaiaNodeV2(
+                guidance=PromptRegistry.reflect_plan_status_v2, 
+                output_cls=PlanReflection
+            ),
             ControlFlowNode(
                 name="Loop",
                 predicate=lambda tape: ManagerView(tape).can_continue,
