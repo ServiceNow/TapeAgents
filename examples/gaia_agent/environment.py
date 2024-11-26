@@ -153,15 +153,21 @@ class GaiaEnvironment(Environment):
                 steps.append(ImageObservation(image_path=filename, image_caption="Attached image"))
                 document_text = ""
             else:
-                content = self.browser.get_whole_document(filename)
-                document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
-                if len(document_text) > max_doc_length:
-                    document_text = ""
-                document_text += f"\nPath to the mentioned document: {filename}"
-                if ext == "pdf":
-                    images = pdf_to_images(filename)
+                attach_doc_text = True
+                if ext == "pdf" and self.image_observations:
+                    images, total_pages = pdf_to_images(filename)
+                    if total_pages <= 3:
+                        attach_doc_text = False
                     for i, img_path in enumerate(images):
                         steps.append(ImageObservation(image_path=img_path, image_caption=f"PDF page {i+1}"))
+                if attach_doc_text:
+                    content = self.browser.get_whole_document(filename)
+                    document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
+                    if len(document_text) > max_doc_length:
+                        document_text = ""
+                    document_text += f"\nPath to the mentioned document: {filename}"
+                else:
+                    document_text = "\nDocument pages attached as images below"
             steps[0].content += document_text  # type: ignore
         steps[0].filename = None  # type: ignore
         return steps

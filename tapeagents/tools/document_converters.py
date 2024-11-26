@@ -799,4 +799,4 @@ def pdf_to_images(filename: str, n_pages: int = 3):
         pm = page.get_pixmap(dpi=100)
         pm.save(page_fname)
         images.append(page_fname)
-    return images[:n_pages]
+    return images[:n_pages], len(images)
