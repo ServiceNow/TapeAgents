@@ -19,8 +19,8 @@ env:
   only_cached_webpages: false
 
 studio:
-  tape_path: null
-  port: 7861
+  tape: null
+  port: null
 
 hydra:
   run:
