@@ -43,7 +43,7 @@ from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls
+from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls, LLMCall
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[MathTape]
 
 
 def extract_tape_training_samples(
-    new_tape: MathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list
+    new_tape: MathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list[LLMCall]
 ) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.

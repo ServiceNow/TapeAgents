@@ -91,12 +91,18 @@ class LLM(BaseModel, ABC):
         pass
 
     def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
+        prompt_length_tokens = self.count_tokens(prompt.messages)
+        if message.content:
+            output_length_tokens = self.count_tokens(prompt.messages + [{"role": "assistant", "content": message.content}]) - prompt_length_tokens
+        else:
+            output_length_tokens = 0
+
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
             prompt=prompt,
             output=message,
-            prompt_length_tokens=self.count_tokens(prompt.messages),
-            output_length_tokens=self.count_tokens(message.content) if message.content else 0,
+            prompt_length_tokens=prompt_length_tokens,
+            output_length_tokens=output_length_tokens,
             cached=cached,
         )
         self._log.append(llm_call.model_dump())
@@ -450,7 +456,8 @@ class TrainableLLM(CachedLLM):
         if isinstance(messages, str):
             return len(self.tokenizer(messages).input_ids)
         else:
-            return len(self.tokenizer.apply_chat_template(messages))
+            add_generation_prompt = False if messages[-1]["role"] == "assistant" else True
+            return len(self.tokenizer.apply_chat_template(messages, add_generation_prompt=add_generation_prompt))
 
 
 class ReplayLLM(LLM):
