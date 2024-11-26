@@ -6,6 +6,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from examples.gaia_agent.v2 import GaiaPlanner
+from tapeagents.io import load_tapes
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.studio import Studio
 
@@ -33,7 +34,10 @@ def main(cfg: DictConfig) -> None:
     llm = instantiate(cfg.llm)
     env = GaiaEnvironment(vision_lm=llm)
     agent = GaiaPlanner.create(llm)
-    tape = GaiaTape(steps=[GaiaQuestion(content="How many calories in 2 teaspoons of hummus")])
+    if cfg.studio.tape:        
+        tape = load_tapes(GaiaTape, cfg.studio.tape, ".json")[0]
+    else:
+        tape = GaiaTape(steps=[GaiaQuestion(content="How many calories in 2 teaspoons of hummus")])        
     Studio(agent, tape, CameraReadyRenderer(), env).launch(server_name="0.0.0.0", server_port=cfg.studio.port)
 
 
