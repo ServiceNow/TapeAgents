@@ -51,7 +51,7 @@ class StepMetadata(BaseModel):
 
 
 class Step(BaseModel):
-    metadata: StepMetadata = StepMetadata()
+    metadata: StepMetadata = Field(default_factory=StepMetadata)
     kind: Literal["define_me"] = "define_me"  # This is a placeholder value, it should be overwritten in subclasses
 
     def llm_dict(self) -> dict[str, Any]:
