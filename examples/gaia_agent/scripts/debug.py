@@ -6,6 +6,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+from tapeagents.container_executor import ContainerExecutor
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LiteLLM, TrainableLLM
 from tapeagents.observe import retrieve_llm_call
@@ -34,7 +35,12 @@ def main(cfg: DictConfig) -> None:
     tasks = dset[cfg.level]
     task = tasks[cfg.task]
     llm: TrainableLLM = instantiate(cfg.llm)
-    env = GaiaEnvironment(vision_lm=llm, safe_calculator=False)
+    try:
+        code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
+    except Exception as e:
+        logger.error(f"Failed to create code sandbox: {e}")
+        code_sandbox = None
+    env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox, safe_calculator=False)
     planner = GaiaPlanner.create(llm)
     tape = GaiaTape(steps=[task_to_question_step(task, env)])
     metadata = tape.metadata
@@ -71,6 +77,9 @@ def main(cfg: DictConfig) -> None:
     tape.metadata = metadata
     save_json_tape(tape, tapes_dir, tape_name)
     logger.info(f"Saved tape to {tapes_dir}/{tape_name}.json")
+
+    if code_sandbox:
+        code_sandbox.stop()
 
 
 if __name__ == "__main__":
