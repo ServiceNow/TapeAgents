@@ -46,10 +46,15 @@ class AssistantStep(Action):
 class ImageObservation(Observation):
     kind: Literal["image"] = "image"
     image_path: str
-    caption: str = ""
+    thumbnail_path: str = ""
+    image_caption: str = ""
+    error: int | None = None
 
     def llm_view(self) -> list[dict]:
-        return [{"type": "text", "text": self.caption}, image_base64_message(self.image_path)]
+        content = [{"type": "text", "text": self.image_caption}]
+        if self.image_path:
+            content.append(image_base64_message(self.image_path))
+        return content
 
 
 class FunctionCall(BaseModel):

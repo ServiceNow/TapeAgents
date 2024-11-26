@@ -150,7 +150,7 @@ class GaiaEnvironment(Environment):
                     file_text += f"{i+1}. Path to the '{file}': {file_path}"
                     document_text += file_text
             elif ext in ("png", "jpg", "jpeg") and self.image_observations:
-                steps.append(ImageObservation(image_path=filename, caption="Attached image"))
+                steps.append(ImageObservation(image_path=filename, image_caption="Attached image"))
                 document_text = ""
             else:
                 content = self.browser.get_whole_document(filename)
@@ -161,7 +161,7 @@ class GaiaEnvironment(Environment):
                 if ext == "pdf":
                     images = pdf_to_images(filename)
                     for i, img_path in enumerate(images):
-                        steps.append(ImageObservation(image_path=img_path, caption=f"PDF page {i+1}"))
+                        steps.append(ImageObservation(image_path=img_path, image_caption=f"PDF page {i+1}"))
             steps[0].content += document_text  # type: ignore
         steps[0].filename = None  # type: ignore
         return steps
