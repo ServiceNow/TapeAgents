@@ -34,6 +34,7 @@ import numpy as np
 import PIL
 import pptx
 import puremagic
+import pymupdf
 import requests
 import speech_recognition as sr
 from bs4 import BeautifulSoup
@@ -784,3 +785,18 @@ class FileConverter:
     def register_page_converter(self, converter: DocumentConverter) -> None:
         """Register a page text converter."""
         self._page_converters.insert(0, converter)
+
+
+def pdf_to_images(filename: str, n_pages: int = 3):
+    doc = pymupdf.open(filename)
+    images = []
+    for i, page in enumerate(doc):  # type: ignore
+        page_index = i + 1
+        page_fname = filename[:-4] + f"_{page_index}.png"
+        if os.path.exists(page_fname):
+            images.append(page_fname)
+            continue
+        pm = page.get_pixmap(dpi=100)
+        pm.save(page_fname)
+        images.append(page_fname)
+    return images[:n_pages]

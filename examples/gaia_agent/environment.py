@@ -5,6 +5,7 @@ import shutil
 from tapeagents.container_executor import CodeBlock, ContainerExecutor
 from tapeagents.environment import Environment
 from tapeagents.tools.calculator import calculate
+from tapeagents.tools.document_converters import pdf_to_images
 from tapeagents.tools.python_interpreter import run_python_code
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.utils import FatalError
@@ -129,15 +130,16 @@ class GaiaEnvironment(Environment):
         task: dict,
         max_doc_length: int = 8000,
     ) -> list[GaiaStep]:
-        question = GaiaQuestion.from_task(task)
-        image = None
-        if question.filename:
-            name, ext = question.filename.rsplit(".", maxsplit=1)
+        logger.info(f"Question: {task['Question']}")
+        steps: list[GaiaStep] = [GaiaQuestion.from_task(task)]
+        filename: str | None = steps[0].filename  # type: ignore
+        if filename:
+            name, ext = filename.rsplit(".", maxsplit=1)
             ext = ext.lower()
             if ext == "zip":
                 folder_name = name
                 os.makedirs(folder_name, exist_ok=True)
-                shutil.unpack_archive(question.filename, folder_name)
+                shutil.unpack_archive(filename, folder_name)
                 document_text = "\n\nArchive contains the following files:\n"
                 for i, file in enumerate(os.listdir(folder_name)):
                     file_path = os.path.join(folder_name, file)
@@ -148,21 +150,21 @@ class GaiaEnvironment(Environment):
                     file_text += f"{i+1}. Path to the '{file}': {file_path}"
                     document_text += file_text
             elif ext in ("png", "jpg", "jpeg") and self.image_observations:
-                image = ImageObservation(
-                    image_path=question.filename,
-                    caption="Attached image",
-                )
+                steps.append(ImageObservation(image_path=filename, caption="Attached image"))
                 document_text = ""
             else:
-                content = self.browser.get_whole_document(question.filename)
+                content = self.browser.get_whole_document(filename)
                 document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
                 if len(document_text) > max_doc_length:
                     document_text = ""
-                document_text += f"\nPath to the mentioned document: {question.filename}"
-            question.content += document_text
-        question.filename = None
-        logger.info(f"Question: {question.content}")
-        return [question] if not image else [question, image]
+                document_text += f"\nPath to the mentioned document: {filename}"
+                if ext == "pdf":
+                    images = pdf_to_images(filename)
+                    for i, img_path in enumerate(images):
+                        steps.append(ImageObservation(image_path=img_path, caption=f"PDF page {i+1}"))
+            steps[0].content += document_text  # type: ignore
+        steps[0].filename = None  # type: ignore
+        return steps
 
 
 def print_last_line(python_code: str) -> str:

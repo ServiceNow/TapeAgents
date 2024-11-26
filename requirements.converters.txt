@@ -8,6 +8,7 @@ pdfminer.six==20240706
 pdfminer==20191125
 puremagic==1.26
 pydub==0.25.1
+PyMuPDF==1.24.14
 pyparsing==3.1.2
 python-pptx==0.6.23
 readability-lxml
