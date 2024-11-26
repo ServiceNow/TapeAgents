@@ -16,7 +16,7 @@ from tapeagents.rendering import step_view
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment
 from .scorer import question_scorer
-from .steps import GaiaAnswer, GaiaQuestion, GaiaStep, PlanThought
+from .steps import GaiaAnswer, GaiaQuestion, GaiaStep, PlanThought, SearchAction
 from .tape import GaiaMetadata, GaiaTape
 
 logger = logging.getLogger(__name__)
@@ -82,56 +82,39 @@ def load_dataset(data_dir):
     return tasks
 
 
-def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: int = 1) -> GaiaTape:
+def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, retries: int = 3) -> GaiaTape:
     start_steps = env.task_to_observations(task)
-    tapes: list[GaiaTape] = []
-    results: list[Any] = []
-    previous_plans: list[str] = []
-    while len(tapes) < n_attempts:
-        predicted = None
-        tries = 3
-        while not predicted and tries:
-            tape = GaiaTape(steps=start_steps)
-            logger.info(colored(f"Attempt {len(tapes)+1}", "green"))
-            discard_attempt = False
-            planned = False
-            step = None
-            try:
-                for event in main_loop(agent, tape, env, max_loops=30):
-                    if event.agent_event and event.agent_event.step:
-                        step = event.agent_event.step
-                        tape = tape.append(step)  # type: ignore
-                        if isinstance(step, PlanThought) and not planned:
-                            plan_dump = "\n".join(step.plan)
-                            if plan_dump in previous_plans:
-                                logger.info("Plan already been used, discard attempt")
-                                discard_attempt = True
-                                break
-                            else:
-                                planned = True
-                                previous_plans.append(plan_dump)
-                    if event.observation:
-                        tape = tape.append(event.observation)  # type: ignore
-                if discard_attempt:
-                    continue
-            except Exception as e:
-                tape.metadata.error = str(e)
-                logger.exception(f"Failed to solve task: {e}")
-                break
-            predicted = step.answer if isinstance(step, GaiaAnswer) else None
-            tries -= 1
-        predicted = str(predicted)
-        tapes.append(tape)
-        results.append(predicted)
-        logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
-    logger.info(f"Produced {len(tapes)} tapes, vote")
-    best = majority_vote(results)
-    logger.info(f"Majority vote best non-empty result: {best}, out of {results}")
-    best_tape = tapes[best]
-    best_tape.metadata = GaiaMetadata.model_validate(
-        best_tape.metadata.model_dump() | {"task": task, "result": results[best]}
+    predicted = None
+    while not predicted and retries:
+        tape = GaiaTape(steps=start_steps)
+        step = None
+        try:
+            for event in main_loop(agent, tape, env, max_loops=30):
+                if event.agent_event and event.agent_event.step:
+                    tape = tape.append(event.agent_event.step)  # type: ignore
+                elif event.observation:
+                    tape = tape.append(event.observation)  # type: ignore
+                if n_search_repetitions(tape) >= 3:
+                    break
+        except Exception as e:
+            tape.metadata.error = str(e)
+            logger.exception(f"Failed to solve task: {e}")
+            break
+        predicted = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
+        retries -= 1
+    logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
+    tape.metadata = GaiaMetadata.model_validate(
+        tape.metadata.model_dump() | {"task": task, "result": str(predicted), "level": level}
     )
-    return best_tape
+    return tape
+
+
+def n_search_repetitions(tape: GaiaTape) -> int:
+    steps_by_query = {}
+    for step in tape:
+        if isinstance(step, SearchAction):
+            steps_by_query[step.query] = steps_by_query.get(step.query, 0) + 1
+    return max(steps_by_query.values(), default=0)
 
 
 def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> list[GaiaTape]:
