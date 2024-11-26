@@ -75,10 +75,12 @@ I can ask my assistants to help:
 For each step in the plan, include:
 - A detailed description of the task. DO NOT mention previous steps or the overall task!
 - The name of the assistant I can delegate the work to (WebSurfer or Coder), or empty string if it is pure thinking that I should do myself.
-- The description of the expected result, such as a fact, document snippet, data or computation result.
+- The description of the expected result, such as a fact, a document snippet, extracted data, computation results.
 - A list of prerequisites, including any results from previous steps or known facts necessary to proceed. First step should not have prerequisites. Each prerequisite should have the number of the step where it was produced.
 
-Only plan minimal possible number of steps required to solve this task. 
+Only plan a minimal possible number of steps required to solve this task. Every step that you step
+must have a concrete expected result. DO NOT plan steps with vague results like 'understanding' or 'analysis' of something.
+
 """
 
 START_EXECUTION_V2 = """

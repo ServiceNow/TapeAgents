@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Annotated, Any, Union
 
 from pydantic import Field
 
@@ -93,6 +93,33 @@ class CallWorker(Node):
         agent_name = view.next_step.worker
         assert agent_name in ["Coder", "WebSurfer"], f"Unknown agent name: {agent_name}"
         yield Call(agent_name=agent_name)
+        yield Subtask(
+            number=view.next_step.number,
+            name=view.next_step.name,
+            description=view.next_step.description,
+            previous_results=previous_results,
+            expected_result=view.next_step.expected_result,
+        )
+
+
+class GiveYourselfSubtask(Node):
+    def generate_steps(self, agent: Any, tape: Tape, llm_stream: LLMStream):
+        view = ManagerView(tape)
+        assert view.next_step, "No remained steps left!"
+        previous_results = view.facts.given_facts
+        for p in view.next_step.prerequisites:
+            if len(p) == 2:
+                step_number, _ = p
+            elif view.next_step.number:
+                step_number = view.next_step.number - 1
+            else:
+                continue
+            if step_number not in view.completed_steps:
+                logger.warning(f"Prerequisite result {step_number} not found!")
+                continue
+            result = view.completed_steps[step_number]
+            previous_results.append(result.llm_dict())
+
         yield Subtask(
             number=view.next_step.number,
             name=view.next_step.name,
@@ -234,25 +261,31 @@ class GaiaPlanner(Agent):
             GaiaNodeV2(name="Plan", guidance=PromptRegistry.plan_v2, output_cls=Plan),
 
             # -- PLANNER LOOP BEGIN ---
+            # Choose whether or not use the help of the manager
             ControlFlowNode(
                 name="LoopStart",
                 predicate=lambda tape: ManagerView(tape).next_step.worker == "",
-                next_node="Act"
+                next_node="StartReasoning",
             ),
             # Option 1: have the manager orchestrate assistant agents
             CallManager(agent_name="GaiaManager"),
-            FixedStepsNode(steps=[SetNextNode(name="Act")]),
+            FixedStepsNode(steps=[SetNextNode(next_node="ContinuePlan")]),
             # Option 2: act yourself
-            GaiaNodeV2(name="Act", output_cls=ReasoningThought | SubtaskResult),
+            GiveYourselfSubtask(name="StartReasoning"),
+            GaiaNodeV2(name="Act", output_cls=Annotated[Union[ReasoningThought, SubtaskResult], Field(discriminator="kind")]),
             ControlFlowNode(
                 name="LoopIfNotDone",
                 predicate=lambda tape: bool(not isinstance(tape[-1], SubtaskResult)),
                 next_node="Act",
             ),
+            UpdateFacts(),
+            ReflectPlanProgress(),
+            Formalize(name="FormalizePlanReflection", output_cls=PlanReflection),
+            # Continue or quit the planner loop
             ControlFlowNode(
                 name="ContinuePlan", 
                 predicate=lambda tape: ManagerView(tape).next_step is not None,
-                next_node="LoopStar",
+                next_node="LoopStart",
             ),
             ControlFlowNode(
                 name="IsFinished",
@@ -270,7 +303,7 @@ class GaiaPlanner(Agent):
             Guess(),  # try to guess the answer if the replan attempts are over
             Formalize(output_cls=PlanReflection),
             ProduceAnswer(),
-            Formalize(name="Answer", output_cls=GaiaAnswer),
+            Formalize(name="FormalizeAnswer", output_cls=GaiaAnswer),
         )
         return super().create(llm, nodes=nodes, subagents=subagents, max_iterations=2)
 

@@ -79,7 +79,7 @@ class PlanStep(BaseModel):
     name: str
     description: str
     worker: str = Field(description="the assistant who will work on this step or ''")
-    prerequisites: list[Any] = Field(
+    prerequisites: list[tuple[int, str]] = Field(
         description="list of pairs (previous_step_number, previous_step_result) that are needed to start working on this step",
         default_factory=list,
     )
