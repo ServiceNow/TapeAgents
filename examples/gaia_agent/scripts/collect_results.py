@@ -60,26 +60,26 @@ if __name__ == "__main__":
         ensemble_files(tape_dirs, out)
 
 
-# gp4o-mini, 3 runs
-# L1 gpt4o_mini_t02: 0.302 (16 of 53)
-# L1 gpt4o_mini_t02_3: 0.453 (24 of 53)
-# L1 gpt4o_mini_t05: 0.377 (20 of 53)
-# L1 maj@3: 0.453 (24 of 53)
+# gp4o-mini, 3 runsq
+# L1 gpt4o_mini_val_image_pdf2: 0.415 (22 of 53)
+# L1 gpt4o_mini_val_image_pdf3: 0.396 (21 of 53)
+# L1 gpt4o_mini_val_image_pdf4: 0.415 (22 of 53)
+# L1 maj@3: 0.472 (25 of 53)
 
-# L2 gpt4o_mini_t02: 0.244 (21 of 86)
-# L2 gpt4o_mini_t02_3: 0.209 (18 of 86)
-# L2 gpt4o_mini_t05: 0.151 (13 of 86)
-# L2 maj@3: 0.267 (23 of 86)
+# L2 gpt4o_mini_val_image_pdf2: 0.302 (26 of 86)
+# L2 gpt4o_mini_val_image_pdf3: 0.244 (21 of 86)
+# L2 gpt4o_mini_val_image_pdf4: 0.186 (16 of 86)
+# L2 maj@3: 0.291 (25 of 86)
 
-# L3 gpt4o_mini_t02: 0.077 (2 of 26)
-# L3 gpt4o_mini_t02_3: 0.000 (0 of 26)
-# L3 gpt4o_mini_t05: 0.038 (1 of 26)
-# L3 maj@3: 0.038 (1 of 26)
+# L3 gpt4o_mini_val_image_pdf2: 0.077 (2 of 26)
+# L3 gpt4o_mini_val_image_pdf3: 0.115 (3 of 26)
+# L3 gpt4o_mini_val_image_pdf4: 0.077 (2 of 26)
+# L3 maj@3: 0.077 (2 of 26)
 
-# Avg. gpt4o_mini_t02: 0.236 (39 of 165)
-# Avg. gpt4o_mini_t02_3: 0.255 (42 of 165)
-# Avg. gpt4o_mini_t05: 0.206 (34 of 165)
-# Avg. maj@3: 0.291 (48 of 165)
+# Avg. gpt4o_mini_val_image_pdf2: 0.303 (50 of 165)
+# Avg. gpt4o_mini_val_image_pdf3: 0.273 (45 of 165)
+# Avg. gpt4o_mini_val_image_pdf4: 0.242 (40 of 165)
+# Avg. maj@3: 0.315 (52 of 165)
 
 
 # gpt4o, 3 runs
