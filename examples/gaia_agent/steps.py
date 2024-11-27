@@ -222,11 +222,9 @@ class PythonCodeAction(GaiaAction):
     """
 
     kind: Literal["python_code_action"] = "python_code_action"
-    code: str = Field(description="snippet of python code with escaped newlines and quotes to fit json format")
-    fact_name: str = Field(
-        description="fact name to save code execution result, should be unique, lowercase, snake_case, without spaces and special characters"
+    code: str = Field(
+        description="snippet of python code with escaped newlines and quotes to fit json format. Last line should print the result"
     )
-    facts: dict | None = None
 
 
 ################### Observations ###################
