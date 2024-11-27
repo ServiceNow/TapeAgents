@@ -38,8 +38,6 @@ MLM = """Write a detailed caption for this image. Pay special attention to any d
 
 FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability. 
 Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
-For each fact provide the description, expected json-compatible format and, if possible, measurement unit. 
-The fact name should be short and in lowercase. The description should be detailed, self-sustained and informative.
 Here is the pre-survey:
 
     1. Please list any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.

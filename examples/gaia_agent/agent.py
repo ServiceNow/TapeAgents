@@ -7,7 +7,7 @@ from pydantic import Field
 from tapeagents.agent import Agent
 from tapeagents.container_executor import extract_code_blocks
 from tapeagents.core import Step
-from tapeagents.environment import ExecuteCode
+from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode, ObservationControlNode
 
@@ -15,10 +15,12 @@ from .prompts import PromptRegistry
 from .steps import (
     ActionExecutionFailure,
     CalculationResultObservation,
+    CodeResultObservation,
     FinishSubtask,
     GaiaAgentStep,
     GaiaQuestion,
     ListOfFactsThought,
+    NewFactThought,
     PageObservation,
     PlanThought,
     PreviousFactsObservation,
@@ -45,14 +47,13 @@ class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
     agent_step_cls: Any = Field(exclude=True, default=GaiaAgentStep)
+    allowed_steps: str = get_allowed_steps()
 
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
         """
         Allow different subset of steps based on the agent's configuration
         """
-        plan_thoughts = not tape.has_fact_schemas()
-        allowed_steps = get_allowed_steps(agent.subtasks, plan_thoughts)
-        return self.steps_prompt.format(allowed_steps=allowed_steps)
+        return self.steps_prompt.format(allowed_steps=self.allowed_steps)
 
     def prepare_tape(self, tape: GaiaTape, max_chars: int = 200) -> GaiaTape:
         """
@@ -73,15 +74,6 @@ class GaiaNode(MonoNode):
         trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[-3:]))
         return trimmed_tape
 
-    def postprocess_step(self, tape: GaiaTape, new_steps: list[Step], step: Step) -> Step:
-        if isinstance(step, ListOfFactsThought):
-            # remove empty facts produced by the model
-            step.given_facts = [fact for fact in step.given_facts if fact.value is not None and fact.value != ""]
-        elif isinstance(step, (UseCalculatorAction, PythonCodeAction)):
-            # if calculator or code action is used, add the facts to the action call
-            step.facts = tape.model_copy(update=dict(steps=tape.steps + new_steps)).facts()
-        return step
-
     def trim_tape(self, tape: GaiaTape) -> GaiaTape:
         """
         Make tape shorter to fit llm context size limits
@@ -92,9 +84,20 @@ class GaiaNode(MonoNode):
         short_tape = tape.model_copy(update=dict(steps=[]))
         pre_tape: GaiaTape = tape[:summarization_border]  # type: ignore
         for step in pre_tape.steps:
-            if isinstance(step, (GaiaQuestion, PlanThought, SourcesThought, ListOfFactsThought)):
+            if isinstance(
+                step,
+                (
+                    GaiaQuestion,
+                    PlanThought,
+                    SourcesThought,
+                    ListOfFactsThought,
+                    NewFactThought,
+                    CalculationResultObservation,
+                    CodeResultObservation,
+                    CodeExecutionResult,
+                ),
+            ):
                 short_tape.steps.append(step)
-        short_tape.steps.append(PreviousFactsObservation(facts=pre_tape.facts()))
         for step in tape.steps[summarization_border:]:
             short_tape.steps.append(step)
         logger.info(f"Tape reduced from {len(tape)} to {len(short_tape)} steps")
@@ -130,8 +133,14 @@ class GaiaAgent(Agent):
         guidance_nodes = []
         if planning_mode == PlanningMode.simple:
             guidance_nodes = [
-                GaiaNode(name="plan", guidance=PromptRegistry.plan),
-                GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey),
+                GaiaNode(
+                    name="plan", guidance=PromptRegistry.plan, allowed_steps=get_allowed_steps(plan_thoughts=True)
+                ),
+                GaiaNode(
+                    name="facts_survey",
+                    guidance=PromptRegistry.facts_survey,
+                    allowed_steps=get_allowed_steps(survey=True),
+                ),
                 GaiaNode(name="start_execution", guidance=PromptRegistry.start_execution),
                 GaiaNode(name="default", next_node="default"),
             ]

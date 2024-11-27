@@ -2,7 +2,7 @@ defaults:
   - llm: gpt4o_mini
   - _self_
 
-exp_name: gpt4o_mini_val_plain_code2
+exp_name: gpt4o_mini_val_simple_facts1
 exp_path: outputs/gaia/runs/${exp_name}
 data_dir: data/gaia/2023/validation/
 n_attempts: 1

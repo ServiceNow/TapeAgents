@@ -78,19 +78,19 @@ class ListOfFactsThought(GaiaThought):
     """
 
     kind: Literal["list_of_facts_thought"] = "list_of_facts_thought"
-    given_facts: list[FactSchemaWithValue] = Field(
+    given_facts: list[str] = Field(
         description="list of facts that are already given in the question",
         default=[],
     )
-    facts_to_lookup: list[FactSchema] = Field(
+    facts_to_lookup: list[str] = Field(
         description="list of facts that need to be looked up on the web or in documents",
         default=[],
     )
-    facts_to_derive: list[FactSchema] = Field(
+    facts_to_derive: list[str] = Field(
         description="list of facts that need to be derived from the given facts using reasoning or code execution",
         default=[],
     )
-    facts_to_guess: list[FactSchema] = Field(
+    facts_to_guess: list[str] = Field(
         description="list of facts that need to be guessed from the given facts, documents and reasoning",
         default=[],
     )
@@ -105,7 +105,7 @@ class ReasoningThought(GaiaThought):
     """
 
     kind: Literal["reasoning_thought"] = "reasoning_thought"
-    reasoning: list[str] = Field(description="reasoning sentences that describe how to move forward with the task")
+    reasoning: str
 
 
 class StartSubtask(GaiaThought):
@@ -132,17 +132,11 @@ class FinishSubtask(GaiaThought):
 
 class NewFactThought(GaiaThought):
     """
-    Thought that outputs new fact value, extracted from the previous steps. Value must follow the format described in list_of_facts_thought. If the fact has units that need to be converted, use convert_fact_action after this thought.
+    Thought that outputs new fact value, extracted from the previous steps.
     """
 
     kind: Literal["new_fact_thought"] = "new_fact_thought"
-    fact_name: str = Field(
-        description="fact name, should be unique, lowercase, snake_case, without spaces and special characters"
-    )
-    unit: str = Field(description="unit of the fact value, if applicable, otherwise empty string")
-    value: Any = Field(
-        description="json-parsable value of the fact without units, using format from the list_of_facts_thought"
-    )
+    fact: str
 
 
 class ReadingResultThought(GaiaThought):
@@ -370,37 +364,23 @@ GaiaAgentStep: TypeAlias = Annotated[
 ]
 
 
-def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
+def get_allowed_steps(plan_thoughts: bool = False, survey: bool = False) -> str:
     if plan_thoughts:
-        steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
+        steps = Union[PlanThought]
+    elif survey:
+        steps = Union[ListOfFactsThought]
     else:
-        if subtasks:
-            steps = Union[
-                ReadingResultThought,
-                NewFactThought,
-                ReasoningThought,
-                SearchAction,
-                ReadDocumentAction,
-                NextPageAction,
-                ConvertFactAction,
-                # UseCalculatorAction,
-                # PythonCodeAction,
-                GaiaAnswer,
-                StartSubtask,
-                FinishSubtask,
-            ]
-        else:
-            steps = Union[
-                ReadingResultThought,
-                NewFactThought,
-                ReasoningThought,
-                SearchAction,
-                ReadDocumentAction,
-                NextPageAction,
-                ConvertFactAction,
-                # UseCalculatorAction,
-                # PythonCodeAction,
-                GaiaAnswer,
-            ]
+        steps = Union[
+            ReadingResultThought,
+            # NewFactThought,
+            ReasoningThought,
+            SearchAction,
+            ReadDocumentAction,
+            NextPageAction,
+            ConvertFactAction,
+            # UseCalculatorAction,
+            # PythonCodeAction,
+            GaiaAnswer,
+        ]
     steps_alias = Annotated[steps, Field(discriminator="kind")]
     return get_step_schemas_from_union_type(steps_alias)
