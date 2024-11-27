@@ -5,7 +5,9 @@ from typing import Any
 from pydantic import Field
 
 from tapeagents.agent import Agent
+from tapeagents.container_executor import extract_code_blocks
 from tapeagents.core import Step
+from tapeagents.environment import ExecuteCode
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode, ObservationControlNode
 
@@ -97,6 +99,14 @@ class GaiaNode(MonoNode):
             short_tape.steps.append(step)
         logger.info(f"Tape reduced from {len(tape)} to {len(short_tape)} steps")
         return short_tape
+
+    def parse_completion(self, llm_output: str, prompt_id: str):
+        if "```" in llm_output:
+            code_blocks = extract_code_blocks(llm_output)
+            yield ExecuteCode(code=code_blocks)
+        else:
+            for step in super().parse_completion(llm_output, prompt_id):
+                yield step
 
 
 class GaiaAgent(Agent):

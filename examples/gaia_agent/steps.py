@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
 from tapeagents.dialog_tape import ImageObservation
+from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -327,7 +328,7 @@ GaiaStep = Union[
     ReadDocumentAction,
     NextPageAction,
     ConvertFactAction,
-    # UseCalculatorAction,
+    UseCalculatorAction,
     PythonCodeAction,
     GaiaQuestion,
     SearchResultsObservation,
@@ -340,6 +341,8 @@ GaiaStep = Union[
     LLMOutputParsingFailureAction,
     SetNextNode,
     ImageObservation,
+    ExecuteCode,
+    CodeExecutionResult,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[
@@ -360,20 +363,10 @@ GaiaAgentStep: TypeAlias = Annotated[
         NextPageAction,
         ConvertFactAction,
         # UseCalculatorAction,
-        PythonCodeAction,
+        # PythonCodeAction,
         GaiaAnswer,
     ],
     Field(discriminator="kind"),
-]
-
-actions = [
-    SearchAction,
-    ReadDocumentAction,
-    NextPageAction,
-    ConvertFactAction,
-    # UseCalculatorAction,
-    PythonCodeAction,
-    GaiaAnswer,
 ]
 
 
@@ -391,7 +384,7 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
                 NextPageAction,
                 ConvertFactAction,
                 # UseCalculatorAction,
-                PythonCodeAction,
+                # PythonCodeAction,
                 GaiaAnswer,
                 StartSubtask,
                 FinishSubtask,
@@ -406,7 +399,7 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
                 NextPageAction,
                 ConvertFactAction,
                 # UseCalculatorAction,
-                PythonCodeAction,
+                # PythonCodeAction,
                 GaiaAnswer,
             ]
     steps_alias = Annotated[steps, Field(discriminator="kind")]

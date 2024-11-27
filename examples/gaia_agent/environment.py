@@ -3,7 +3,8 @@ import os
 import shutil
 
 from tapeagents.container_executor import CodeBlock, ContainerExecutor
-from tapeagents.environment import Environment
+from tapeagents.core import Action
+from tapeagents.environment import CodeExecutionResult, Environment, ExecuteCode
 from tapeagents.tools.calculator import calculate
 from tapeagents.tools.document_converters import pdf_to_images
 from tapeagents.tools.python_interpreter import run_python_code
@@ -15,7 +16,6 @@ from .steps import (
     CalculationResultObservation,
     CodeResultObservation,
     ConvertFactAction,
-    GaiaAction,
     GaiaQuestion,
     GaiaStep,
     ImageObservation,
@@ -46,7 +46,7 @@ class GaiaEnvironment(Environment):
         self.browser = SimpleTextBrowser(**kwargs)
 
     def react(self, tape: GaiaTape) -> GaiaTape:
-        actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, GaiaAction)]
+        actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
         for action in actions:
             try:
                 match action:
@@ -113,6 +113,11 @@ class GaiaEnvironment(Environment):
                                 stderr=stderr,
                             )
                         tape = tape.append(obs)
+                    case ExecuteCode():
+                        assert self.code_sandbox is not None, "Code sandbox is not provided"
+                        result = self.code_sandbox.execute_code_blocks(action.code)
+                        obs = CodeExecutionResult(result=result)
+                        tape = tape.append(obs)
                     case LLMOutputParsingFailureAction():
                         pass
                     case _:
@@ -175,6 +180,8 @@ class GaiaEnvironment(Environment):
 
 def print_last_line(python_code: str) -> str:
     lines = python_code.splitlines()
+    if "print(" in lines[-1]:
+        return python_code
     if " = " in lines[-1]:
         name = lines[-1].split("=")[0].strip()
         lines.append(f"print({name})")

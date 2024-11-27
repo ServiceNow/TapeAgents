@@ -82,10 +82,9 @@ def load_dataset(data_dir):
 
 def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, retries: int = 3) -> GaiaTape:
     start_steps = env.task_to_observations(task)
-    predicted = None
-    while not predicted and retries:
+    solved = None
+    while not solved and retries:
         tape = GaiaTape(steps=start_steps)
-        step = None
         try:
             for event in main_loop(agent, tape, env, max_loops=30):
                 if event.agent_event and event.agent_event.step:
@@ -99,6 +98,7 @@ def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, r
             logger.exception(f"Failed to solve task: {e}")
             break
         predicted = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
+        solved = predicted not in ["", None]
         retries -= 1
     logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
     tape.metadata = GaiaMetadata.model_validate(

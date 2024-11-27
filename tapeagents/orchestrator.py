@@ -5,6 +5,8 @@ from typing import Generator, Generic
 from pydantic import BaseModel, Field
 from termcolor import colored
 
+from tapeagents.config import is_debug_mode
+
 from .agent import Agent
 from .core import AgentEvent, Observation, Step, StopStep, TapeType
 from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
@@ -89,6 +91,8 @@ def main_loop(
     """
 
     def _implementation():
+        if is_debug_mode():
+            logger.setLevel(logging.DEBUG)
         n_loops = 0
         tape = start_tape
         event = None

@@ -12,13 +12,20 @@ PLAN3 = f'What steps should I do to answer the question above? Propose 3 differe
 BETTER_PLAN = f'Now, considering the draft plans, facts, sources and availabe steps, propose a new balanced and more detailed plan to follow. Respond with the thought kind="plan_thought". {short_format_instruction}'
 SOURCES_PLAN = f"For the facts that we need to lookup, create the list of sources where to find them. Respond with the sources_thought. {short_format_instruction}"
 START_EXECUTION = f"""Let's start executing the plan step by step, using allowed steps described earlier. {short_format_instruction}"""
-THINK_AFTER_OBSERVATION = f"""Produce the reasoning thought step with the thoughts about recent observation and the overall state of the task. {short_format_instruction}"""
+THINK_AFTER_OBSERVATION = f""""Lets think step by step about the observation, how it affects the plan and what should be done next. {short_format_instruction}"""
 THINK_AFTER_CALCULATION = f"""Produce the reasoning thought step with the thoughts about plausbility and sensibility of the results of the recent calculation. {short_format_instruction}"""
 
 ALLOWED_STEPS = """
-You can use the following tools: search the web, read web page or document, extract fact from the web page or document, python code, and reasoning.
+You can use the following tools: search the web, read web page or document, python code, and reasoning.
 You are allowed to produce ONLY steps with the following json schemas:
 {allowed_steps}
+If you want to create a python code step, just output python code block inside the backticks, like this:
+```python
+a = 1
+result = a*2
+print(result)
+```
+Note that the last code line should print the result.
 Do not reproduce schema when producing the steps, use it as a reference.
 """
 

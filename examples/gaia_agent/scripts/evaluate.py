@@ -7,6 +7,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+from tapeagents.config import is_debug_mode
 from tapeagents.container_executor import ContainerExecutor
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
@@ -16,9 +17,10 @@ from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
 from ..eval import get_exp_config_dict, load_dataset, solve_task
 
-logging.basicConfig(level=logging.INFO)
-
 logger = logging.getLogger(__name__)
+if is_debug_mode():
+    logging.basicConfig(level=logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 
 
 @hydra.main(
@@ -62,10 +64,12 @@ def main(cfg: DictConfig) -> None:
     for tape_ready in processor(args, task_worker):
         if isinstance(tape_ready, Exception):
             raise tape_ready
+        if is_debug_mode():
+            break
     dt = time.perf_counter() - dt
     logger.info(f"Done, elapsed time: {dt:.2f} sec")
-    if code_sandbox:
-        code_sandbox.stop()
+    # if code_sandbox:
+    #    code_sandbox.stop()
 
 
 def validate_config(cfg, llm, tapes_dir):
