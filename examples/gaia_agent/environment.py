@@ -115,7 +115,9 @@ class GaiaEnvironment(Environment):
                         tape = tape.append(obs)
                     case ExecuteCode():
                         assert self.code_sandbox is not None, "Code sandbox is not provided"
-                        result = self.code_sandbox.execute_code_blocks(action.code)
+                        result = self.code_sandbox.execute_code_blocks(
+                            [c for c in action.code if c.language == "python"]
+                        )
                         obs = CodeExecutionResult(result=result)
                         tape = tape.append(obs)
                     case LLMOutputParsingFailureAction():
