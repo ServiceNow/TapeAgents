@@ -83,6 +83,7 @@ def load_dataset(data_dir):
 def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, retries: int = 3) -> GaiaTape:
     start_steps = env.task_to_observations(task)
     solved = None
+    predicted = None
     while not solved and retries:
         tape = GaiaTape(steps=start_steps)
         try:
