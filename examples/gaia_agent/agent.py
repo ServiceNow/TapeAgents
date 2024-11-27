@@ -26,7 +26,6 @@ from .steps import (
     all_steps,
     nocode_steps,
     plan_steps,
-    survey_steps,
 )
 from .tape import GaiaTape
 
@@ -120,7 +119,7 @@ class GaiaAgent(Agent):
             GaiaNode(
                 name="facts_survey",
                 guidance=PromptRegistry.facts_survey,
-                allowed_steps=survey_steps,
+                allowed_steps=plan_steps,
             ),
             GaiaNode(
                 name="start_execution",

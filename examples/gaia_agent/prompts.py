@@ -8,9 +8,6 @@ short_format_instruction = (
 )
 
 PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {short_format_instruction}'
-PLAN3 = f'What steps should I do to answer the question above? Propose 3 different plans to follow. Be specific about how each step should be done. Respond with the thought kind="draft_plans_thought". {short_format_instruction}'
-BETTER_PLAN = f'Now, considering the draft plans, facts, sources and availabe steps, propose a new balanced and more detailed plan to follow. Respond with the thought kind="plan_thought". {short_format_instruction}'
-SOURCES_PLAN = f"For the facts that we need to lookup, create the list of sources where to find them. Respond with the sources_thought. {short_format_instruction}"
 START_EXECUTION = f"""Let's start executing the plan step by step, using allowed steps described earlier. {short_format_instruction}"""
 THINK_AFTER_OBSERVATION = f""""Lets think step by step about the observation, how it affects the plan and what should be done next. {short_format_instruction}"""
 THINK_AFTER_CALCULATION = f"""Produce the reasoning thought step with the thoughts about plausbility and sensibility of the results of the recent calculation. {short_format_instruction}"""
@@ -70,9 +67,6 @@ If the objective has not been achieved, produce the next step.
 class PromptRegistry:
     system_prompt = SYSTEM_PROMPT
     plan = PLAN
-    plan3 = PLAN3
-    better_plan = BETTER_PLAN
-    sources_plan = SOURCES_PLAN
     start_execution = START_EXECUTION
     filename = FILENAME
     mlm = MLM

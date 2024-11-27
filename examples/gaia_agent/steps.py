@@ -363,8 +363,9 @@ GaiaAgentStep: TypeAlias = Annotated[
     Field(discriminator="kind"),
 ]
 
-plan_steps = get_step_schemas_from_union_type(Annotated[Union[PlanThought], Field(discriminator="kind")])
-survey_steps = get_step_schemas_from_union_type(Annotated[Union[ListOfFactsThought], Field(discriminator="kind")])
+plan_steps = get_step_schemas_from_union_type(
+    Annotated[Union[PlanThought, ListOfFactsThought], Field(discriminator="kind")]
+)
 all_steps = get_step_schemas_from_union_type(
     Annotated[
         Union[
