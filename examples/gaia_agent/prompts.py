@@ -19,6 +19,13 @@ ALLOWED_STEPS = """
 You can use the following tools: search the web, read web page or document, python code, and reasoning.
 You are allowed to produce ONLY steps with the following json schemas:
 {allowed_steps}
+Do not reproduce schema when producing the steps, use it as a reference.
+"""
+
+ALLOWED_STEPS_CODE = """
+You can use the following tools: search the web, read web page or document, python code, and reasoning.
+You are allowed to produce ONLY steps with the following json schemas:
+{allowed_steps}
 If you want to create a python code step, just output python code block inside the backticks, like this:
 ```python
 a = 1
@@ -71,6 +78,7 @@ class PromptRegistry:
     mlm = MLM
     facts_survey = FACTS_SURVEY
     allowed_steps = ALLOWED_STEPS
+    allowed_steps_code = ALLOWED_STEPS_CODE
     is_subtask_finished = IS_SUBTASK_FINISHED
     think_after_observation = THINK_AFTER_OBSERVATION
     think_after_calculation = THINK_AFTER_CALCULATION

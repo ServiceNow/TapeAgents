@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 
-from tapeagents.container_executor import CodeBlock, ContainerExecutor
+from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.core import Action
 from tapeagents.environment import CodeExecutionResult, Environment, ExecuteCode
 from tapeagents.tools.calculator import calculate
@@ -93,12 +93,8 @@ class GaiaEnvironment(Environment):
                             result = self.code_sandbox.execute_code_blocks(
                                 [CodeBlock(code=print_last_line(action.code), language="python")]
                             )
-                            obs = CodeResultObservation(
-                                name=action.fact_name,
-                                result=result.output.strip(),
-                                stdout=f"Exit code: {result.exit_code}",
-                                stderr="",
-                            )
+                            result.output = result.output[:1000].strip()
+                            obs = CodeExecutionResult(result=result)
                         else:
                             # TODO: remove this option and permutations crutch
                             logger.warning(f"Code sandbox is not provided, running code locally!\n{action.code}")
@@ -106,11 +102,12 @@ class GaiaEnvironment(Environment):
                                 result, stdout, stderr = "", "", "Execution timeout"
                             else:
                                 result, stdout, stderr = run_python_code(action.code, {})
-                            obs = CodeResultObservation(
-                                name=action.fact_name,
-                                result=result,
-                                stdout=stdout,
-                                stderr=stderr,
+                            output = f"{result[:1000].strip()}\n\nstdout:\n{stdout}\n\nstderr:\n{stderr}"
+                            obs = CodeExecutionResult(
+                                result=CommandLineCodeResult(
+                                    output=output,
+                                    exit_code=0 if not stderr else 1,
+                                )
                             )
                         tape = tape.append(obs)
                     case ExecuteCode():
