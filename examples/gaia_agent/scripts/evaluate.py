@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -82,7 +83,12 @@ def validate_config(cfg, llm, tapes_dir):
 def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
     tape_name = f"l{level}_task{i:03d}"
     tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
-    return os.path.exists(tape_path)
+    result = None
+    if os.path.exists(tape_path):
+        with open(tape_path) as f:
+            tape_dict = json.load(f)
+        result = tape_dict["metadata"]["result"]
+    return os.path.exists(tape_path) and result not in ["", None]
 
 
 def task_worker(args: tuple) -> int:
