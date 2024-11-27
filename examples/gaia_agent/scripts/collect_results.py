@@ -48,11 +48,11 @@ def main(root: str, runs: list[str]):
 if __name__ == "__main__":
     root = "outputs/gaia/runs/"
     runs = [
-        "gpt4o_mini_val_image_pdf2",
-        "gpt4o_mini_val_image_pdf3",
-        "gpt4o_mini_val_image_pdf4",
+        "gpt4o_mini_val_plain_code1",
+        "gpt4o_mini_val_plain_code2",
+        "gpt4o_mini_val_plain_code3",
     ]
-    ensemble = "gpt4o_mini_val_image_pdf_avg1"
+    ensemble = "gpt4o_mini_val_image_code_avg1"
     main(root, runs)
     if ensemble:
         tape_dirs = [os.path.join(root, run, "tapes") for run in runs]

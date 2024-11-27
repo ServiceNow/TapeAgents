@@ -92,7 +92,7 @@ def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
         with open(tape_path) as f:
             tape_dict = json.load(f)
         result = tape_dict["metadata"]["result"]
-    return os.path.exists(tape_path) and result not in ["", None]
+    return os.path.exists(tape_path)  # and result not in ["", None]
 
 
 def task_worker(args: tuple) -> int:
