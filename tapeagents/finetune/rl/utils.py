@@ -60,7 +60,7 @@ def calculate_reward_with_implicit_kl(row, reward_minus_kl_coef):
     Returns:
         float: Reward value adjusted by implicit KL penalty, calculated as:
             reward - reward_minus_kl_coef * KL(ref||old)
-        
+
         The KL divergence is approximated using the Schulman approximation:
             KL ≈ exp(log_ratio) - log_ratio - 1
         where log_ratio = ref_logprobs - old_logprobs
@@ -73,7 +73,7 @@ def calculate_reward_with_implicit_kl(row, reward_minus_kl_coef):
     return reward - reward_minus_kl_coef * kl
 
 
-def calculate_advantage(row):
+def calculate_advantage(row, max_advantage: None | float = None):
     """
     Calculate advantage values for a row of data.
 
@@ -90,7 +90,10 @@ def calculate_advantage(row):
     rewards = row["rewards"]
     mean = row["reward_mean"]
     std = row["reward_std"]
-    return [(reward - mean) / (np.nan_to_num(std) + 1e-4) for reward in rewards]
+    advantages = [(reward - mean) / (np.nan_to_num(std) + 1e-4) for reward in rewards]
+    if max_advantage is not None:
+        advantages = [np.clip(advantage, -max_advantage, max_advantage) for advantage in advantages]
+    return advantages
 
 
 def replace_dataset_column(dataset: Dataset, column_name: str, new_column: List[List[float]]) -> Dataset:

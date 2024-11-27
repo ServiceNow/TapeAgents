@@ -200,12 +200,12 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     # Merge the computed statistics back to the original dataset
     df_with_stats = pd.merge(df, grouped, on="group_id", how="left")
+    calculate_advantage_ = partial(
+        calculate_advantage,
+        max_advantage=config.max_advantage if config.max_advantage is not None else None,
+    )
 
-    df_with_stats["advantages"] = df_with_stats.apply(calculate_advantage, axis=1)
-
-    # Clip advantages to max_advantage if specified
-    if config.max_advantage is not None:
-        df_with_stats["advantages"] = df_with_stats["advantages"].clip(-config.max_advantage, config.max_advantage)
+    df_with_stats["advantages"] = df_with_stats.apply(calculate_advantage_, axis=1)
 
     # replace advantages entry
     dataset = replace_dataset_column(dataset, "advantages", df_with_stats["advantages"].tolist())
