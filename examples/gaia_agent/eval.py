@@ -154,9 +154,12 @@ def ensemble_files(tape_dirs: list[str], out_dir: str = ""):
     acc, num = calculate_accuracy(ensembled_tapes, show_intermediate=False)
     logger.info(f"Ensembled {len(tape_dirs)} accuracy: {acc:.2f} ({num} of {len(ensembled_tapes)})")
     if out_dir:
-        assert not os.path.exists(out_dir), f"Directory {out_dir} already exists"
+        out_tapes_dir = os.path.join(out_dir, "tapes")
+        os.makedirs(out_tapes_dir)
         for i, tape in enumerate(ensembled_tapes):
-            save_json_tape(tape, out_dir, f"tape{i+1}")
+            save_json_tape(tape, out_tapes_dir, f"tape{i+1:03d}")
+        with open(os.path.join(out_dir, "ensemble_config.json"), "w") as f:
+            json.dump({"sources": tape_dirs, "mode": "majority"}, f, indent=2)
         logger.info(f"Saved to {out_dir}")
 
 

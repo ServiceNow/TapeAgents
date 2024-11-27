@@ -1,10 +1,13 @@
+import logging
 import os
 from collections import defaultdict
 
 from examples.gaia_agent.tape import GaiaTape
 from tapeagents.io import load_tapes
 
-from ..eval import majority_vote, tape_correct
+from ..eval import ensemble_files, majority_vote, tape_correct
+
+logging.basicConfig(level=logging.INFO)
 
 
 def main(root: str, runs: list[str]):
@@ -43,14 +46,18 @@ def main(root: str, runs: list[str]):
 
 
 if __name__ == "__main__":
+    root = "outputs/gaia/runs/"
     runs = [
-        "gpt4o_mini_val_batch32_5",
-        "gpt4o_mini_val_batch32_6",
-        "gpt4o_mini_val_batch32_7",
-        "gpt4o_mini_val_batch32_t0_2",
-        "gpt4o_mini_val_batch32_t05",
+        "gpt4o_mini_val_image_pdf2",
+        "gpt4o_mini_val_image_pdf3",
+        "gpt4o_mini_val_image_pdf4",
     ]
-    main(root="../gaia/runs/", runs=runs)
+    ensemble = "gpt4o_mini_val_image_pdf_avg1"
+    main(root, runs)
+    if ensemble:
+        tape_dirs = [os.path.join(root, run, "tapes") for run in runs]
+        out = os.path.join(root, ensemble)
+        ensemble_files(tape_dirs, out)
 
 
 # gp4o-mini, 3 runs

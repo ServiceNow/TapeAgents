@@ -124,9 +124,10 @@ class GaiaTapeBrowser(TapeBrowser):
             prompt_id = step.metadata.prompt_id
             if prompt_id:
                 llm_calls_num += 1
-                tokens_num += (
-                    self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
-                )
+                if prompt_id in self.llm_calls:
+                    tokens_num += (
+                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
+                    )
         failure_count = len(
             [step for step in tape if "failure" in step.kind or (step.kind == "page_observation" and step.error)]
         )
@@ -155,9 +156,12 @@ class GaiaTapeBrowser(TapeBrowser):
         for postfix in ["1", "2", "3", "all"]:
             for r in raw_exps:
                 exp_dir = os.path.join(self.tapes_folder, r)
-                cfg = get_exp_config_dict(exp_dir)
-                parts = cfg["data_dir"].split("/")
-                set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                try:
+                    cfg = get_exp_config_dict(exp_dir)
+                    parts = cfg["data_dir"].split("/")
+                    set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                except Exception:
+                    set_name = "-"
                 exps.append(f"{set_name}/{r}/{postfix}")
         return sorted(exps)
 
