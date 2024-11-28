@@ -14,13 +14,15 @@ for path in sorted(src.rglob("*.py")):
     doc_path = path.relative_to(src).with_suffix(".md")
     full_doc_path = Path("reference", doc_path)
 
-    parts = tuple(module_path.parts)
+    parts = (project,) + module_path.parts
 
     if parts[-1] == "__init__":
-        continue
+        parts = parts[:-1]
+        doc_path = doc_path.with_name("index.md")
+        full_doc_path = full_doc_path.with_name("index.md")
     elif parts[-1] == "__main__":
         continue
-    elif not doc_path:
+    if not doc_path:
         continue
 
     nav[parts] = doc_path.as_posix()
@@ -28,6 +30,6 @@ for path in sorted(src.rglob("*.py")):
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
         identifier = ".".join(parts)
         if identifier:
-            print(f"::: {project}." + identifier, file=fd)
+            print(f"::: {identifier}", file=fd)
 
     mkdocs_gen_files.set_edit_path(full_doc_path, path.relative_to(root))
