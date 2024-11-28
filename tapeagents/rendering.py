@@ -494,7 +494,7 @@ def to_pretty_str(a: Any, prefix: str = "", indent: int = 2) -> str:
     Returns:
         str: A formatted string representation of the input object.
 
-    Examples:
+    Example:
         ```python
         data = {"foo": [1, 2, {"bar": "baz"}]}
         print(to_pretty_str(data))

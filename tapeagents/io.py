@@ -130,7 +130,7 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
         FileNotFoundError: If the specified path does not exist.
         ValueError: If an unsupported file extension is provided.
 
-    Examples:
+    Example:
         ```python
         tapes = load_tapes(TapeClass, "configs/tapes.yaml")
         tapes = load_tapes(tape_adapter, "configs/tapes", ".json")

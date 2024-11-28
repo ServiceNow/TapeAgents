@@ -176,19 +176,11 @@ class Agent(BaseModel, Generic[TapeType]):
         templates (dict[str, Any]): A dictionary of templates used for generating prompts.
         nodes (list[SerializeAsAny[Node]]): A list of nodes that define the agent's actions and decision points.
         max_iterations (int): The maximum number of iterations the agent will execute before stopping.
+        manager (Agent): Retrieves the manager agent overseeing this agent.
+        llm (LLM): Default language model if only one is configured.
+        template (Template): Default template if only one is configured.
+        full_name (str): Hierarchical name of the agent, including its manager hierarchy.
 
-    Properties:
-        manager:
-            Retrieves the manager agent overseeing this agent.
-
-        llm:
-            Accesses the default language model if only one is configured.
-
-        template:
-            Accesses the default template if only one is configured.
-
-        full_name:
-            Provides the hierarchical name of the agent, including its manager hierarchy.
 
     Raises:
         ValueError:
@@ -406,7 +398,7 @@ class Agent(BaseModel, Generic[TapeType]):
         Returns:
             Self: A new instance of the class initialized with the provided arguments
 
-        Examples:
+        Example:
             ```python
             agent = Agent.create(llm)  # Single LLM
             agent = Agent.create({"gpt": llm1, "claude": llm2})  # Multiple LLMs

@@ -21,10 +21,8 @@ class TrainingText(BaseModel):
         logprobs (List[float]): A list of log probabilities of the completion tokens from the assistant model.
         ref_logprobs (List[float]): A list of reference log probabilities of the completion tokens from the reference model.
         group_id (str, optional): ID of the group. It is used by the RL finetuning script to normalize rewards.
-
-    Properties:
-        prompt_text (str): Returns the portion of the text that serves as the prompt (i.e., the text excluding the predicted tokens).
-        output_text (str): Returns the portion of the text that represents the predicted output (i.e., the last n_predicted tokens).
+        prompt_text (str): Portion of the text that serves as the prompt (i.e., the text excluding the predicted tokens).
+        output_text (str): Portion of the text that represents the predicted output (i.e., the last n_predicted tokens).
     """
 
     text: str

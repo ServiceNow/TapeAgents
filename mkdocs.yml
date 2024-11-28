@@ -16,6 +16,20 @@ plugins:
 - mkdocstrings:
     default_handler: python
     enable_inventory: true
+    handlers:
+      python:
+        options:
+          show_labels: true
+          summary: true
+          docstring_section_style: list
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+          show_root_toc_entry: true
+          show_category_heading: false
+          show_root_full_path: true
+
+extra_css:
+- css/mkdocstrings.css
 
 nav:
 - Home: index.md
