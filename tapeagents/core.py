@@ -8,7 +8,6 @@ from uuid import uuid4
 import litellm
 from pydantic import BaseModel, Field, SerializeAsAny
 from typing_extensions import Self
-from litellm.utils import ChoiceLogprobs
 
 
 class TrainingText(BaseModel):
