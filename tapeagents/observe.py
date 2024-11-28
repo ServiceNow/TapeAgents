@@ -152,20 +152,28 @@ def retrieve_llm_calls(prompt_ids: str | list[str]) -> list[LLMCall]:
     llm_calls = []
     with sqlite3.connect(sqlite_db_path()) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM LLMCalls WHERE prompt_id = ?", (prompt_id,))
-        row = cursor.fetchone()
+        for i in range(0, len(prompt_ids), 100):
+            prompts = prompt_ids[i:i + 100]
+            cursor.execute(
+                f"SELECT * FROM LLMCalls WHERE prompt_id IN ({','.join(['?'] * len(prompts))})",
+                prompts,
+            )
+            rows = cursor.fetchall()
+            for row in rows:
+                llm_calls.append(
+                    LLMCall(
+                        timestamp=row[1],
+                        prompt=Prompt.model_validate_json(row[2]),
+                        output=LLMOutput.model_validate_json(row[3]),
+                        prompt_length_tokens=row[4],
+                        output_length_tokens=row[5],
+                        cached=row[6],
+                        logprobs=LLMOutput.model_validate_json(row[7]) if row[7] is not None else None,
+                    )
+                )
         cursor.close()
-        if row is None:
-            return None
-        # ignore row[0] cause it is alredy in row[2]
-        return LLMCall(
-            timestamp=row[1],
-            prompt=Prompt.model_validate_json(row[2]),
-            output=LLMOutput.model_validate_json(row[3]),
-            prompt_length_tokens=row[4],
-            output_length_tokens=row[5],
-            cached=row[6],
-        )
+    return llm_calls
+
 
 
 def observe_tape(tape: Tape):
