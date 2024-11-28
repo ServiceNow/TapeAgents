@@ -232,7 +232,6 @@ class Agent(BaseModel, Generic[TapeType]):
         """
         if not set(self.llms.keys()) == set(agent_config["llms"].keys()):
             raise ValueError("Agent has different LLMs than the new configuration.")
-        llms = {name: llm.model_validate(agent_config["llms"][name]) for name, llm in self.llms.items()}
         if len(self.subagents) != len(agent_config["subagents"]):
             raise ValueError("Agent has different number of subagents than the new configuration.")
         # recurse into subagents
@@ -240,11 +239,19 @@ class Agent(BaseModel, Generic[TapeType]):
             subagent.model_validate(subagent.update(subagent_obj))
             for subagent, subagent_obj in zip(self.subagents, agent_config["subagents"])
         ]
-        nodes = [node.model_validate(node_obj) for node, node_obj in zip(self.nodes, agent_config["nodes"])]
+        # recurse into llms
+        llms = {name: llm.model_validate(agent_config["llms"][name]) for name, llm in self.llms.items()}
+        # only update templates are str
+        templates = {
+            name: (value if isinstance(value, str) else self.templates[name])
+            for name, value in agent_config["templates"].items()
+        }
         config_copy = agent_config.copy()
         config_copy["llms"] = llms
         config_copy["subagents"] = subagents
-        config_copy["nodes"] = nodes
+        config_copy["templates"] = templates
+        # do not update nodes for now to avoid tricky bugs
+        config_copy["nodes"] = self.nodes
         return type(self).model_validate(config_copy)
 
     def compute_view(self, tape: TapeType) -> TapeViewStack:
