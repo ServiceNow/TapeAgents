@@ -24,7 +24,7 @@ seq_length: 4096
 load_as_bf16: True
 max_train_steps: 100000
 save_checkpoint_steps: ???
-optim: adafactor # FIXME: adamw runs OOM with accelerate
+optim: adamw 
 objective: rl
 log_each_n_steps: 1
 resume_dataloader: false
