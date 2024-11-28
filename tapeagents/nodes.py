@@ -320,7 +320,7 @@ class ControlFlowNode(Node):
         ```python
         class MyControlFlow(ControlFlowNode):
             def select_node(self, tape):
-                if tape.get('condition'):
+                if isinstance(tape[-1], SuccessObservation):
                     return 'node_a'
                 return 'node_b'
         ```
@@ -390,8 +390,8 @@ class FixedStepsNode(Node):
     Example:
         ```python
         fixed_node = FixedStepsNode(steps=[
-            Step(name="step1", instruction="Do something"),
-            Step(name="step2", instruction="Do something else")
+            AssistantStep(text="Hello"),
+            SetNextNode(next_node="node_a")
         ])
         ```
     """
