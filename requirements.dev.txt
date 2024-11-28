@@ -5,3 +5,11 @@ ruff==0.6.6
 nbconvert==7.16.4
 # for testing examples/optimize
 dspy-ai==2.4.10
+# docs generation
+mkdocs==1.6.1
+mkdocs-gen-files==0.5.0
+mkdocs-material==9.5.46
+mkdocstrings==0.27.0
+mkdocstrings-python==1.12.2
+mkdocs-literate-nav==0.6.1
+mkdocs-section-index==0.3.9

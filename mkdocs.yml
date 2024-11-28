@@ -1,0 +1,25 @@
+site_name: TapeAgents Documentation
+site_description: TapeAgents is a framework that facilitates all stages of the LLM Agent development lifecycle
+repo_url: https://github.com/ServiceNow/TapeAgents
+
+theme:
+  name: "material"
+
+plugins:
+- search
+- gen-files:
+    scripts:
+    - docs/gen_ref_pages.py
+- literate-nav:
+    nav_file: SUMMARY.md
+- section-index
+- mkdocstrings:
+    default_handler: python
+    enable_inventory: true
+
+nav:
+- Home: index.md
+- Quickstart: quickstart.md
+# defer to gen-files + literate-nav
+- Reference: reference/  
+# rest of the navigation...
