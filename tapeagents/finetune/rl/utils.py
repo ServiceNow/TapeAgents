@@ -60,10 +60,9 @@ def calculate_reward_with_implicit_kl(row, reward_minus_kl_coef):
     Returns:
         float: Reward value adjusted by implicit KL penalty, calculated as:
             reward - reward_minus_kl_coef * KL(ref||old)
-
-        The KL divergence is approximated using the Schulman approximation:
+            The KL divergence is approximated using the Schulman approximation:
             KL ≈ exp(log_ratio) - log_ratio - 1
-        where log_ratio = ref_logprobs - old_logprobs
+            where log_ratio = ref_logprobs - old_logprobs
     """
     reward = row["reward"]
     old_logprobs = row["old_logprobs"]
@@ -85,7 +84,7 @@ def calculate_advantage(row):
 
     Returns:
         list[float]: List of advantage values calculated as (reward - mean)/(std + eps)
-        where eps=1e-4 is added for numerical stability
+            where eps=1e-4 is added for numerical stability
     """
     rewards = row["rewards"]
     mean = row["reward_mean"]

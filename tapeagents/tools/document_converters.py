@@ -639,8 +639,8 @@ class FileConverter:
     def convert(self, source, **kwargs):
         """
         Args:
-            - source: can be a string representing a path or url, or a requests.response object
-            - extension: specifies the file extension to use when interpreting the file. If None, infer from source (path, uri, content-type, etc.)
+            source (str): can be a string representing a path or url, or a requests.response object
+            **kwargs: additional options to pass to the converters
         """
 
         # Local path or url

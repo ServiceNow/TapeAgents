@@ -31,12 +31,45 @@ TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
 
 
 class LLMEvent(BaseModel):
+    """An event class representing either a chunk of LLM output or the final LLM output.
+
+    This class encapsulates events that occur during LLM processing, handling both
+    intermediate chunks of output and the final complete output.
+
+    Attributes:
+        chunk (str | None): A partial text output from the LLM stream. None if this
+            event represents a complete output.
+        output (LLMOutput | None): The complete output from the LLM. None if this
+            event represents a partial chunk.
+    """
+
     chunk: str | None = None
     output: LLMOutput | None = None
 
 
 class LLMStream:
-    """Wrapper around LLM generator to allow for fast-tracking to the complete message."""
+    """A wrapper class for LLM generators that provides convenient iteration and output extraction.
+
+    This class wraps a generator that yields LLMEvents and provides methods to:
+    - Iterate through events
+    - Extract complete LLM output
+    - Get the assistant's response text
+
+    Attributes:
+        generator: Generator yielding LLMEvents or None if empty
+        prompt: The prompt used to generate the LLM response
+
+    Methods:
+        __bool__: Returns True if generator exists, False otherwise
+        __iter__: Makes the class iterable, returning self
+        __next__: Returns next LLMEvent from generator
+        get_output: Returns first LLMOutput found in events
+        get_text: Returns content of first assistant message found
+
+    Raises:
+        ValueError: When trying to iterate null stream, when no output is produced,
+                   or when output is not an assistant message with content
+    """
 
     def __init__(self, generator: Generator[LLMEvent, None, None] | None, prompt: Prompt):
         self.generator = generator
@@ -69,6 +102,32 @@ class LLMStream:
 
 
 class LLM(BaseModel, ABC):
+    """
+    An abstract base class representing a Language Learning Model (LLM).
+
+    This class defines the interface for interacting with different LLM implementations.
+    It handles basic LLM functionality like token counting, generation, and logging.
+
+    Attributes:
+        model_name (str): Name of the LLM model
+        parameters (dict): Model-specific parameters for generation
+        context_size (int): Maximum context size in tokens (default: 32000)
+        tokenizer_name (str): Name of the tokenizer used
+        tokenizer (Any): Tokenizer instance
+        token_count (int): Running count of tokens processed
+        _log (list): Internal log of LLM calls
+
+    Methods:
+        generate: Generate text from a given prompt
+        count_tokens: Count tokens in messages or text
+        make_training_text: Create training text from prompt and output
+        log_output: Log LLM interaction details
+
+    Note:
+        This is an abstract class and requires implementation of the abstract methods
+        in derived classes.
+    """
+
     model_name: str
     parameters: dict = {}
     context_size: int = 32000
@@ -111,6 +170,34 @@ _MOCK_TOKENIZER: str = ""
 
 
 class CachedLLM(LLM):
+    """A caching wrapper for LLM implementations that stores and retrieves previous LLM responses.
+
+    This class implements caching functionality for LLM responses to avoid redundant API calls
+    and enable replay of previous interactions. It supports both file-based caching and SQLite-based
+    replay functionality for testing purposes.
+
+    Attributes:
+        use_cache (bool): Flag to enable/disable caching functionality. Defaults to False.
+        stream (bool): Flag to enable/disable streaming responses. Defaults to False.
+        _cache (dict): Internal cache storage mapping prompt keys to LLM responses.
+
+    Methods:
+        model_post_init: Initializes the cache from either SQLite replay file or cached jsonl file.
+        reindex_log: Reindexes existing log entries into the cache.
+        generate: Generates LLM response, using cache if available.
+        get_prompt_key: Creates a unique key for a given prompt.
+        _key: Creates a hash key for text (MD5 for normal operation, plain text for replay).
+        _add_to_cache: Adds an LLM response to the cache.
+        _generate: Abstract method to be implemented by concrete LLM classes.
+
+    The cache can be initialized in two modes:
+    1. SQLite replay mode: Used for testing, enforces cache hits only
+    2. File-based cache mode: Stores responses in a jsonl file for persistence
+
+    Cache keys are generated based on the prompt content, excluding the prompt ID.
+    During testing (replay mode), exact text matching is used instead of hashing.
+    """
+
     use_cache: bool = False
     stream: bool = False
     _cache: dict = {}
@@ -143,6 +230,20 @@ class CachedLLM(LLM):
             logger.info("Cache file not found")
 
     def reindex_log(self):
+        """
+        Reindex the log data into cache.
+
+        This method iterates through the log entries, validates each prompt and output,
+        and adds them to the cache using the prompt key as index. Each entry is converted
+        to an LLMEvent model before caching.
+
+        Returns:
+            None
+
+        Side Effects:
+            - Updates the internal cache with log data
+            - Logs the total number of reindexed entries at INFO level
+        """
         cnt = 0
         for log_data in self._log:
             key = self.get_prompt_key(Prompt.model_validate(log_data["prompt"]))
@@ -170,6 +271,28 @@ class CachedLLM(LLM):
         return hashlib.md5(text.encode("utf-8")).hexdigest()
 
     def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
+        """Generate a response stream from the language model based on the given prompt.
+
+        This method handles both cached and new responses, implementing a caching mechanism
+        for LLM responses to avoid redundant API calls.
+
+        Args:
+            prompt (Prompt): The prompt object containing messages to send to the LLM.
+            **kwargs: Additional arguments to pass to the underlying LLM implementation.
+
+        Returns:
+            LLMStream: A stream of LLM events containing the model's response.
+
+        Raises:
+            ValueError: If cache miss occurs when replay mode is enabled (_REPLAY_SQLITE is True).
+
+        Notes:
+            - If caching is enabled and the prompt exists in cache, returns cached response
+            - If generating new response, tokens are counted and added to total token count
+            - All generated events are cached for future use if caching is enabled
+            - Output is logged through the logging system
+        """
+
         def _implementation():
             key = self.get_prompt_key(prompt)
             if self.use_cache and key in self._cache:
@@ -206,6 +329,22 @@ class NoTokenizerError(ValueError):
 
 
 class LiteLLM(CachedLLM):
+    """A LiteLLM implementation of the LLM interface.
+
+    This class provides integration with the LiteLLM library for making LLM API calls.
+    It supports both streaming and non-streaming responses, token counting, and handles API timeouts with retries.
+    Streaming responses are handled by yielding chunks of text as they arrive.
+    Non-streaming responses return complete messages.
+
+    Methods:
+        count_tokens: Count the number of tokens in a message or string.
+        _generate: Generate LLM completions and yield results as LLMEvent objects.
+        make_training_text: Not implemented - raises NotImplementedError.
+
+    Note:
+        Function calling during streaming is not yet implemented and will raise NotImplementedError.
+    """
+
     def count_tokens(self, messages: list[dict] | str) -> int:
         if isinstance(messages, str):
             return litellm.token_counter(model=self.model_name, text=messages)
@@ -253,11 +392,29 @@ class LiteLLM(CachedLLM):
 
 
 class TrainableLLM(CachedLLM):
-    """Talk to TGI or VLLM endpoints serving HF based model (Llama, Mistral, etc.) using OpenAI API.
+    """
+    Class for interacting with trainable language models through OpenAI-compatible API endpoints.
+
+    This class implements functionality for both inference and training-related operations with
+    language models served via Text Generation Inference (TGI) or vLLM endpoints that expose
+    an OpenAI-compatible API interface. It supports both streaming and non-streaming modes,
+    and includes methods for token counting and log probability calculations.
+
+    Attributes:
+        base_url (str): Base URL of the API endpoint
+        api_token (str): Authentication token for API access
+
+    Methods:
+        load_tokenizer: Loads the appropriate tokenizer for the model
+        make_training_text: Creates training text from prompt and output
+        get_log_probs_complete: Calculates log probabilities for completion mode
+        get_log_probs_chat_complete: Calculates log probabilities for chat mode
+        get_log_probs: Generic method for calculating log probabilities
+        count_tokens: Counts tokens in messages or text
+    """
 
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
-    """
 
     base_url: str
     api_token: str = Field(default="", exclude=True)
@@ -452,6 +609,35 @@ class TrainableLLM(CachedLLM):
 
 
 class ReplayLLM(LLM):
+    """
+    Specialized LLM class that replays previously recorded LLM interactions.
+
+    Loads and replays model interactions from a SQLite database, allowing for
+    deterministic replay of previous LLM conversations without making new API calls.
+
+    The class is useful for:
+    - Testing and debugging LLM interactions
+    - Reproducing specific model behaviors
+    - Avoiding repeated API calls during development
+    - Creating deterministic test scenarios
+
+    Attributes:
+        outputs (dict[str, str]): Dictionary mapping prompt strings to their recorded outputs
+        llm_calls (list[LLMCall]): List of recorded LLM call objects
+        count_tokens_fn (Callable): Function to count tokens in prompts/messages
+        make_training_text_fn (Callable): Function to create training text from prompt/output pairs
+
+    Methods:
+        from_llm: Creates a ReplayLLM instance from an existing LLM and recorded data
+        generate: Replays a recorded response for a given prompt
+        make_training_text: Creates training text using the stored function
+        count_tokens: Counts tokens using the stored function
+
+    Raises:
+        FatalError: When a prompt is not found in the recorded outputs
+        AssertionError: When the specified SQLite database file doesn't exist
+    """
+
     outputs: dict[str, str] = Field(default_factory=dict)
     llm_calls: list[LLMCall]
     count_tokens_fn: Callable = lambda x: 0
@@ -522,6 +708,23 @@ def closest_prompt(prompt_key: str, known_prompts: list[str]) -> tuple[str, floa
 
 
 class MockLLM(LLM):
+    """A mock LLM implementation for testing purposes.
+
+    This class simulates an LLM by returning predefined responses in a cyclic manner.
+    It tracks the prompts it receives and maintains a call counter.
+
+    Attributes:
+        model_name (str): Name of the mock model, defaults to "mock"
+        call_number (int): Counter for number of calls made to generate, defaults to 0
+        mock_outputs (list[str]): List of predefined responses to cycle through
+        prompts (list[Prompt]): List of received prompts
+
+    Methods:
+        generate: Simulates LLM response generation
+        count_tokens: Mock token counting that always returns 42
+        make_training_text: Creates mock training text
+    """
+
     model_name: str = "mock"
     call_number: int = 0
     mock_outputs: list[str] = [
@@ -549,6 +752,23 @@ class MockLLM(LLM):
 
 
 def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
+    """
+    Generates training text for LLM fine-tuning by combining prompt and output using tokenizer's chat template.
+
+    Args:
+        prompt (Prompt): The input prompt containing conversation messages.
+        output (LLMOutput): The model's output/response.
+        tokenizer: The tokenizer used to format the conversation.
+
+    Returns:
+        TrainingText: A dataclass containing:
+            - text (str): The formatted conversation text
+            - n_predicted (int): Length of the output text portion
+
+    Note:
+        - Uses tokenizer's chat template to format conversations
+        - Removes BOS token if present in the beginning of the text
+    """
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )
