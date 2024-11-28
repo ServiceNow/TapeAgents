@@ -46,6 +46,7 @@ class MonoNode(Node):
             system_prompt="You are a helpful assistant",
             steps_prompt="Available steps: think, act, finish",
             agent_step_cls=AgentStep
+        )
         ```
     """
 
@@ -346,13 +347,14 @@ class ObservationControlNode(ControlFlowNode):
         default_node (str): Default node to jump to if no matching observation type is found
 
     Example:
-        ```
-        node = ObservationControlNode()
-        node.observation_to_node = {
-            SuccessObservation: "success_node",
-            ErrorObservation: "error_node"
-        }
-        node.default_node = "fallback_node"
+        ```python
+        node = ObservationControlNode(
+            observation_to_node={
+                SuccessObservation: "success_node",
+                ErrorObservation: "error_node"
+            },
+            default_node="fallback_node"
+        )
         ```
     """
 

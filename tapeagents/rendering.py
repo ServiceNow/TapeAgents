@@ -495,8 +495,10 @@ def to_pretty_str(a: Any, prefix: str = "", indent: int = 2) -> str:
         str: A formatted string representation of the input object.
 
     Examples:
-        >>> data = {"foo": [1, 2, {"bar": "baz"}]}
-        >>> print(to_pretty_str(data))
+        ```python
+        data = {"foo": [1, 2, {"bar": "baz"}]}
+        print(to_pretty_str(data))
+        ```
         foo:
           - 1
           - 2
@@ -546,8 +548,7 @@ def render_agent_tree(agent: Agent, show_nodes: bool = True, indent_increment: i
         str: A string containing the ASCII tree representation.
 
     Example:
-        >>> agent = Agent("The Manager")
-        >>> print(render_agent_tree(agent))
+        ```
         > The Manager
             .node1
             .node2
@@ -557,6 +558,7 @@ def render_agent_tree(agent: Agent, show_nodes: bool = True, indent_increment: i
             > His Helper 2
                 .node1
                 .node2
+        ```
     """
 
     def render(agent: Agent, indent: int = 0) -> str:

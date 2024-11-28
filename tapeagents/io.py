@@ -98,9 +98,11 @@ def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
             If provided without .json extension, it will be added automatically. Defaults to "".
 
     Example:
-        >>> tape = Tape(...)
-        >>> save_json_tape(tape, "/path/to/dir", "my_tape")
+        ```python
+        tape = Tape(...)
+        save_json_tape(tape, "/path/to/dir", "my_tape")
         # Saves to /path/to/dir/my_tape.json
+        ```
 
     """
     fname = name if name.endswith(".json") else f"{name}.json"
@@ -128,9 +130,11 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
         FileNotFoundError: If the specified path does not exist.
         ValueError: If an unsupported file extension is provided.
 
-    Example:
-        >>> tapes = load_tapes(TapeClass, "configs/tapes.yaml")
-        >>> tapes = load_tapes(tape_adapter, "configs/tapes", ".json")
+    Examples:
+        ```python
+        tapes = load_tapes(TapeClass, "configs/tapes.yaml")
+        tapes = load_tapes(tape_adapter, "configs/tapes", ".json")
+        ```
     """
     if not os.path.exists(path):
         raise FileNotFoundError(f"File not found: {path}")

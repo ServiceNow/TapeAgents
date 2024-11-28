@@ -407,9 +407,11 @@ class Agent(BaseModel, Generic[TapeType]):
             Self: A new instance of the class initialized with the provided arguments
 
         Examples:
-            >>> agent = Agent.create(llm)  # Single LLM
-            >>> agent = Agent.create({"gpt": llm1, "claude": llm2})  # Multiple LLMs
-            >>> agent = Agent.create(llm, "template")  # LLM with template
+            ```python
+            agent = Agent.create(llm)  # Single LLM
+            agent = Agent.create({"gpt": llm1, "claude": llm2})  # Multiple LLMs
+            agent = Agent.create(llm, "template")  # LLM with template
+            ```
         """
         if isinstance(llms, LLM):
             llms = {DEFAULT: llms}
