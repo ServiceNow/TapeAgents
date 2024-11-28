@@ -58,7 +58,7 @@ def main(cfg: DictConfig) -> None:
             logger.info(f"Loaded {len(items)} cached queries from browser log")
 
     dt = time.perf_counter()
-    n_workers = cfg.batch or 1
+    n_workers = cfg.batch or 0
     processor = choose_processor(n_workers)
     logger.info(f"Evaluate using {n_workers} workers")
     args = [
