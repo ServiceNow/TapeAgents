@@ -139,7 +139,7 @@ class Node(BaseModel):
             llm_stream (LLMStream): The LLM stream to be used for generating steps.
 
         Returns:
-            Generator[Step | PartialStep, None, None]: A generator yielding Step or PartialStep objects.
+            Generator[Union[Step, PartialStep], None, None]: A generator yielding Step or PartialStep objects.
 
         Raises:
             NotImplementedError: If the method is not implemented by the subclass.
@@ -544,9 +544,9 @@ class Agent(BaseModel, Generic[TapeType]):
             llm_stream (LLMStream): Stream interface for the language model output
 
         Yields:
-            Step | PartialStep: Generated steps and other events that can be either complete Steps
-                or partial/incomplete steps (PartialSteps). For AgentSteps, adds metadata about
-                the originating node.
+            Union[Step, PartialStep]: Generated steps and other events that can be either complete Steps
+            or partial/incomplete steps (PartialSteps). For AgentSteps, adds metadata about
+            the originating node.
         """
         # Generate new steps and other events by feeding the prompt to the LLM
         node = self.select_node(tape)
@@ -638,7 +638,7 @@ class Agent(BaseModel, Generic[TapeType]):
             llm_stream (LLMStream): The stream of tokens from the LLM
 
         Yields:
-            Step | PartialStep: The generated steps or partial
+            Union[Step, PartialStep]: The generated steps or partial
 
         Raises:
             NotImplementedError: If the agent has multiple LLMs and no LLM stream is provided
@@ -666,7 +666,7 @@ class Agent(BaseModel, Generic[TapeType]):
 
         Args:
             tape (TapeType): The input tape to process
-            max_iterations (int | None): Maximum number of iterations to run.
+            max_iterations (int, optional): Maximum number of iterations to run.
                 If None, uses self.max_iterations. Defaults to None.
 
         Returns:

@@ -116,8 +116,8 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
     using the specified tape class or type adapter.
 
     Args:
-        tape_class (Type | TypeAdapter): The class or type adapter used to validate and create tape objects.
-        path (Path | str): Path to a file or directory containing tape configurations.
+        tape_class (Union[Type, TypeAdapter]): The class or type adapter used to validate and create tape objects.
+        path (Union[Path, str]): Path to a file or directory containing tape configurations.
         file_extension (str, optional): File extension to filter by when loading from directory.
             Must be either '.yaml' or '.json'. Defaults to '.yaml'.
 

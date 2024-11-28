@@ -689,8 +689,8 @@ class TrainableLLM(CachedLLM):
         Calculate the log probabilities of the given output based on the provided prompt.
 
         Args:
-            prompt (str | Prompt): The input prompt, which can be either a string or a Prompt object.
-            output (str | LLMOutput): The output to evaluate, which can be either a string or an LLMOutput object.
+            prompt (Union[str, Prompt]): The input prompt, which can be either a string or a Prompt object.
+            output (Union[str, LLMOutput]): The output to evaluate, which can be either a string or an LLMOutput object.
 
         Returns:
             list[float]: A list of log probabilities corresponding to the given output.
@@ -855,7 +855,7 @@ class ReplayLLM(LLM):
         Counts the number of tokens in the given messages.
 
         Args:
-            messages (list[dict] | str): A list of message dictionaries or a single string message.
+            messages (Union[list[dict], str]): A list of message dictionaries or a single string message.
 
         Returns:
             int: The total number of tokens in the messages.
