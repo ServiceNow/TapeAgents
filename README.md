@@ -10,7 +10,7 @@
 
 **TapeAgents** is a framework that leverages a structured, replayable log (**Tape**) of the agent session to facilitate all stages of the LLM Agent development lifecycle. In TapeAgents, the agent reasons by processing the tape and the LLM output to produce new thoughts, actions, control flow steps and append them to the tape. The environment then reacts to the agent’s actions by likewise appending observation steps to the tape.
 
-![image](/assets/overview.png)
+![image](https://github.com/ServiceNow/TapeAgents/raw/main/assets/overview.png)
 
 
 Key features:
@@ -30,25 +30,24 @@ The Tape-centric design of TapeAgents will help you at all stages of your projec
 We highly recommend starting with the [introductory Jupyter notebook](/intro.ipynb). The notebook will introduce you to all the core concepts of framework. 
 
 # Installation
+Install the latest release:
+```
+pip install TapeAgents
+```
 
+If you want to install the version from the sources:
 1. Clone the repository:
 ```
 git clone https://github.com/ServiceNow/TapeAgents.git
 cd TapeAgents
 ```
 
-2. Create conda environment and install the package in editable mode:
+2. Create conda environment `tapeagents` and install the package in editable mode inside the environment:
 ```
 make setup
 ```
 
 # Examples
-
-To run the example, first activate the `tapeagents` environment that was created during the setup process:
-```bash
-conda activate tapeagents
-```
-
 The simplest agent just to show the basic structure of the agent:
 ```python
 from tapeagents.agent import Agent, Node
@@ -98,6 +97,7 @@ Feel free to reach out to the team:
 - Dzmitry Bahdanau, dzmitry.bahdanau@servicenow.com
 - Oleh Shliazhko, oleh.shliazhko@servicenow.com
 - Jordan Prince Tremblay, jordanprince.t@servicenow.com
+- Alexandre Piché, alexandre.piche@servicenow.com
 
 # Acknowledgements
 
