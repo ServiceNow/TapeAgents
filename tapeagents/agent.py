@@ -42,24 +42,10 @@ class AgentStream(Generic[TapeType]):
     A wrapper around a generator that produces AgentEvents, representing the result of an agent run.
 
     The generator can be iterated over to get the events, or the final tape can be extracted with get_final_tape.
+    Support iterable protocol and generator protocol.
 
     Attributes:
         generator (Generator[AgentEvent[TapeType], None, None]): The generator that produces AgentEvents.
-
-    Methods:
-        __iter__():
-            Returns the generator to allow iteration over AgentEvents.
-
-        __next__() -> AgentEvent[TapeType]:
-            Returns the next AgentEvent from the generator.
-
-        get_final_tape() -> TapeType:
-            Iterates over the events to extract and return the final tape.
-            Raises:
-                ValueError: If the agent didn't produce a final tape.
-
-        get_steps() -> Generator[Step, None, None]:
-            Iterates over the events to yield steps.
     """
 
     def __init__(self, generator: Generator[AgentEvent[TapeType], None, None]):
@@ -72,12 +58,31 @@ class AgentStream(Generic[TapeType]):
         return next(self.generator)
 
     def get_final_tape(self) -> TapeType:
+        """
+        Retrieve the final tape from the agent's events.
+
+        Iterates through the events of the agent and returns the final tape
+        if it is found. If no final tape is produced by the agent, a ValueError
+        is raised.
+
+        Returns:
+            TapeType: The final tape produced by the agent.
+
+        Raises:
+            ValueError: If the agent did not produce a final tape.
+        """
         for event in self:
             if event.final_tape:
                 return event.final_tape
         raise ValueError("Agent didn't produce final tape")
 
     def get_steps(self) -> Generator[Step, None, None]:
+        """
+        Generator function that yields steps from events.
+
+        Yields:
+            Step: The step associated with each event that has a step.
+        """
         for event in self:
             if event.step:
                 yield event.step
@@ -98,36 +103,61 @@ class Node(BaseModel):
 
     Attributes:
         name (str): The name of the node. Defaults to an empty string.
-
-    Methods:
-        model_post_init(__context: Any) -> None:
-            Initializes the node's name if it is not set, using the class name without type variables.
-
-        make_prompt(agent: Any, tape: Tape) -> Prompt:
-            Creates a prompt based on the given tape.
-
-        generate_steps(agent: Any, tape: Tape, llm_stream: LLMStream) -> Generator[Step | PartialStep, None, None]:
-            Generates steps based on the received llm output. Must be implemented by subclasses.
-
-        make_llm_output(agent: Any, tape: Tape, index: int) -> LLMOutput:
-            Creates an LLM output based on the tape's steps at the given index.
     """
 
     name: str = ""
 
     def model_post_init(self, __context: Any) -> None:
+        """
+        Initializes the node's name if it is not set, using the class name without type variables.
+        """
         if not self.name:
             self.name = self.__class__.__name__.split("[")[0]  # class name without type variables
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
+        """
+        Creates a prompt for the given agent and tape.
+
+        Args:
+            agent (Any): The agent for which the prompt is being created.
+            tape (Tape): The tape associated with the agent.
+
+        Returns:
+            Prompt: The generated prompt.
+        """
         return Prompt()
 
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
+        """
+        Generates steps for the given agent, tape, and LLM stream.
+
+        Args:
+            agent (Any): The agent for which steps are to be generated.
+            tape (Tape): The tape object containing relevant data.
+            llm_stream (LLMStream): The LLM stream to be used for generating steps.
+
+        Returns:
+            Generator[Step | PartialStep, None, None]: A generator yielding Step or PartialStep objects.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by the subclass.
+        """
         raise NotImplementedError("Node must implement generate_steps")
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
+        """
+        Generates an LLMOutput object for a given agent and tape at a specified index.
+
+        Args:
+            agent (Any): The agent for which the LLMOutput is being generated.
+            tape (Tape): The tape containing the steps.
+            index (int): The index of the step in the tape from which to generate the output.
+
+        Returns:
+            LLMOutput: An object containing the role and content for the LLM output.
+        """
         return LLMOutput(role="assistant", content=tape.steps[index].content)
 
 
@@ -146,44 +176,6 @@ class Agent(BaseModel, Generic[TapeType]):
         templates (dict[str, Any]): A dictionary of templates used for generating prompts.
         nodes (list[SerializeAsAny[Node]]): A list of nodes that define the agent's actions and decision points.
         max_iterations (int): The maximum number of iterations the agent will execute before stopping.
-        _manager (Any | None): Reference to the managing agent, if any.
-
-    Methods:
-        run(tape: TapeType, max_iterations: int | None = None) -> AgentStream[TapeType]:
-            Executes the agent's actions on the provided tape until a stop condition is met or the maximum number of iterations is reached.
-
-        make_prompt(tape: TapeType) -> Prompt:
-            Generates a prompt based on the current state of the tape for the LLM to process.
-
-        generate_steps(tape: TapeType, llm_stream: LLMStream) -> Generator[Step | PartialStep, None, None]:
-            Produces new steps by processing the LLM's output stream.
-
-        select_node(tape: TapeType) -> Node:
-            Selects the next node to execute based on the current state of the tape.
-
-        delegate(tape: TapeType) -> Agent[TapeType]:
-            Delegates execution to the appropriate subagent based on the tape's state.
-
-        clone() -> Self:
-            Creates a deep copy of the agent without assigning it a manager.
-
-        create(cls, llms: dict[str, LLM] | LLM | None = None, templates: dict[str, Any] | str | None = None, **kwargs) -> Self:
-            Factory method to create a new agent instance with optional LLMs and templates.
-
-        update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
-            Updates the agent's configuration based on a new configuration dictionary.
-
-        reuse(self, tape: TapeType) -> tuple[TapeType, list[LLMCall]]:
-            Reuses an existing tape by reconstructing steps and validating against the current agent configuration.
-
-        make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
-            Generates an LLM output for a specific step in the tape.
-
-        make_training_text(self, llm_call: LLMCall) -> TrainingText:
-            Generates training text from an LLM call for model training purposes.
-
-        make_training_data(self, tape: TapeType) -> list[TrainingText]:
-            Constructs training data by reusing steps from the tape and generating corresponding training texts.
 
     Properties:
         manager:
@@ -197,28 +189,6 @@ class Agent(BaseModel, Generic[TapeType]):
 
         full_name:
             Provides the hierarchical name of the agent, including its manager hierarchy.
-
-    Utility Methods:
-        find_subagent(name: str):
-            Locates a subagent by its unique name.
-
-        find_node(name: str):
-            Locates a node by its unique name.
-
-        get_subagent_names() -> list[str]:
-            Retrieves a list of all subagent names managed by this agent.
-
-        compute_view(tape: TapeType) -> TapeViewStack:
-            Computes a stack view of the tape for processing.
-
-        is_agent_step(step: Step) -> bool:
-            Determines if a given step was produced by the agent.
-
-        should_stop(tape: TapeType) -> bool:
-            Checks if the agent should halt execution based on the latest tape step.
-
-        get_node_runs(tape: TapeType) -> list[tuple[Node, int]]:
-            Parses the tape to identify the sequence of node executions.
 
     Raises:
         ValueError:

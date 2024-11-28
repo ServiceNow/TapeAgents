@@ -95,7 +95,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
 
     Attributes:
         stack (list[TapeView[StepType]]): The stack of tape views.
-        messages_by_agent (dict[str, list[Call | Respond | Broadcast]]): A dictionary of messages by agent.
+        messages_by_agent (dict[str, list[Union[Call, Respond, Broadcast]]]): A dictionary of messages by agent.
     """
 
     stack: list[TapeView[StepType]]

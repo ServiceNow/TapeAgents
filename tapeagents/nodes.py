@@ -194,7 +194,7 @@ class MonoNode(Node):
             llm_stream (LLMStream): The stream of language model outputs to process.
 
         Yields:
-            Step | PartialStep: Individual steps generated from the LLM stream output.
+            Union[Step, PartialStep]: Individual steps generated from the LLM stream output.
 
         Raises:
             FatalError: If no completions are generated from the LLM stream.
@@ -313,7 +313,7 @@ class ControlFlowNode(Node):
         llm_stream (LLMStream): Stream for language model interaction
 
     Yields:
-        Step | PartialStep: A step indicating which node should be executed next
+        Union[Step, PartialStep]: A step indicating which node should be executed next
 
     Example:
         ```python
@@ -345,11 +345,6 @@ class ObservationControlNode(ControlFlowNode):
         observation_to_node (dict[Type, str]): Mapping of observation types to destination node names
         default_node (str): Default node to jump to if no matching observation type is found
 
-    Methods:
-        select_node(tape: Tape) -> str:
-            Selects the next node based on the type of the last observation in the tape.
-            Returns default_node if no observations exist or no matching type is found.
-
     Example:
         ```
         node = ObservationControlNode()
@@ -365,6 +360,17 @@ class ObservationControlNode(ControlFlowNode):
     default_node: str = ""  # jump to the last node by default
 
     def select_node(self, tape: Tape) -> str:
+        """
+        Selects the next node based on the type of the last observation in the tape.
+
+        Returns default_node if no observations exist or no matching type is found.
+
+        Args:
+            tape (Tape): The tape object containing the context and state
+
+        Returns:
+            str: The name of the next node to execute
+        """
         observations = [step for step in tape.steps if isinstance(step, Observation)]
         last_observation = observations[-1] if observations else None
         return self.observation_to_node.get(type(last_observation), self.default_node)

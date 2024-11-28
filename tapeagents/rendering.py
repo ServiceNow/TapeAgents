@@ -38,7 +38,7 @@ def render_dialog_plain_text(tape: DialogTape | None) -> str:
     with each dialog step on a new line prefixed by the speaker/action type.
 
     Args:
-        tape (DialogTape | None): A DialogTape object containing conversation steps, or None
+        tape (Union[DialogTape, None]): A DialogTape object containing conversation steps, or None
 
     Returns:
         str: A string containing the formatted dialog, with each step on a new line.
@@ -75,7 +75,7 @@ class BasicRenderer:
         annotator_tape_header (str): HTML header for annotator tapes section
 
     Args:
-        filter_steps (tuple[Type, ...] | None): Types of steps to include in rendering. If None, all steps are rendered.
+        filter_steps (Optional[tuple[Type, ...]]): Types of steps to include in rendering. If None, all steps are rendered.
         render_llm_calls (bool): Whether to render LLM calls. Defaults to True.
         render_agent_node (bool): Whether to render agent node information. Defaults to False.
 
@@ -294,17 +294,17 @@ class BasicRenderer:
         the prompt and response.
 
         Args:
-            llm_call (LLMCall | None): An LLM call object containing prompt and output information.
-                If None, returns an empty string.
+            llm_call (Union[LLMCall, None]): An LLM call object containing prompt and output information.
+            If None, returns an empty string.
 
         Returns:
             str: HTML string representation of the LLM call. The HTML contains:
-                - Prompt section with:
-                    - Summary showing token/character count and cache status
-                    - Expandable details with prompt messages
-                - Output section (if output exists) with:
-                    - Summary showing token count
-                    - Expandable details with LLM response
+            - Prompt section with:
+                - Summary showing token/character count and cache status
+                - Expandable details with prompt messages
+            - Output section (if output exists) with:
+                - Summary showing token count
+                - Expandable details with LLM response
 
         The rendered HTML uses collapsible details elements and basic styling for
         readability, with a light yellow background color.
