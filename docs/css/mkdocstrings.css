@@ -12,3 +12,9 @@ h5 {
 .doc-object {
     margin-top: 4em !important;
 }
+
+:root {
+    --md-primary-fg-color: #1f8476;
+    --md-primary-fg-color--light: #80b6a1;
+    --md-primary-fg-color--dark: #293e40;
+}
