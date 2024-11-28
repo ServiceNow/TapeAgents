@@ -60,7 +60,7 @@ if __name__ == "__main__":
         ensemble_files(tape_dirs, out)
 
 
-# gp4o-mini, 3 runsq
+# gp4o-mini, 3 runs
 # L1 gpt4o_mini_val_image_pdf2: 0.415 (22 of 53)
 # L1 gpt4o_mini_val_image_pdf3: 0.396 (21 of 53)
 # L1 gpt4o_mini_val_image_pdf4: 0.415 (22 of 53)

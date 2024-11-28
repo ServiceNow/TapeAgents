@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 from typing import Annotated, Any, Literal, TypeAlias, Union
@@ -5,7 +6,7 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 from pydantic import BaseModel, Field
 
 from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
-from tapeagents.dialog_tape import ImageObservation
+from tapeagents.dialog_tape import AssistantStep, ImageObservation
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.utils import get_step_schemas_from_union_type
 
@@ -335,6 +336,7 @@ GaiaStep = Union[
     ImageObservation,
     ExecuteCode,
     CodeExecutionResult,
+    AssistantStep,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[
@@ -392,3 +394,43 @@ nocode_steps = get_step_schemas_from_union_type(
         Field(discriminator="kind"),
     ]
 )
+
+_step_list = [
+    PlanThought,
+    ListOfFactsThought,
+    SourcesThought,
+    DraftPlansThought,
+    ReadingResultThought,
+    NewFactThought,
+    ReasoningThought,
+    StartSubtask,
+    SearchAction,
+    ReadDocumentAction,
+    NextPageAction,
+    ConvertFactAction,
+    UseCalculatorAction,
+    PythonCodeAction,
+    GaiaQuestion,
+    SearchResultsObservation,
+    PageObservation,
+    CalculationResultObservation,
+    CodeResultObservation,
+    PreviousFactsObservation,
+    GaiaAnswer,
+    ActionExecutionFailure,
+    LLMOutputParsingFailureAction,
+    SetNextNode,
+    AssistantStep,
+]
+
+_kind_to_step = {step.__fields__["kind"].default: step for step in _step_list}
+
+
+def load_step(step_dict: dict) -> GaiaStep:
+    try:
+        step = _kind_to_step[step_dict["kind"]](**step_dict)
+    except Exception:
+        view = step_dict.copy()
+        view.pop("metadata", None)
+        step = AssistantStep(content=json.dumps(view, indent=2, ensure_ascii=False))
+    return step

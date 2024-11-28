@@ -80,14 +80,21 @@ def load_dataset(data_dir):
     return tasks
 
 
-def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, level: int, retries: int = 3) -> GaiaTape:
+def solve_task(
+    task: dict,
+    agent: GaiaAgent,
+    env: GaiaEnvironment,
+    level: int,
+    retries: int = 3,
+    max_loops: int = 50,
+) -> GaiaTape:
     start_steps = env.task_to_observations(task)
     solved = None
     predicted = None
     while not solved and retries:
         tape = GaiaTape(steps=start_steps)
         try:
-            for event in main_loop(agent, tape, env, max_loops=30):
+            for event in main_loop(agent, tape, env, max_loops=max_loops):
                 if event.agent_event and event.agent_event.step:
                     tape = tape.append(event.agent_event.step)  # type: ignore
                 elif event.observation:
