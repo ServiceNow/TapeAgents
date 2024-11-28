@@ -31,6 +31,19 @@ BLUE = "#bae1ff"
 
 
 def render_dialog_plain_text(tape: DialogTape | None) -> str:
+    """
+    Renders a dialog tape into a plain text format.
+
+    Takes a DialogTape object containing conversation steps and formats them into human-readable text,
+    with each dialog step on a new line prefixed by the speaker/action type.
+
+    Args:
+        tape (DialogTape | None): A DialogTape object containing conversation steps, or None
+
+    Returns:
+        str: A string containing the formatted dialog, with each step on a new line.
+            Returns empty string if tape is None.
+    """
     if tape is None:
         return ""
     lines = []
@@ -48,6 +61,39 @@ def render_dialog_plain_text(tape: DialogTape | None) -> str:
 
 
 class BasicRenderer:
+    """A basic renderer for displaying tapes in HTML format.
+
+    This class provides functionality to render tapes and LLM calls in a structured HTML format
+    with customizable styling and filtering options.
+
+    Attributes:
+        metadata_header (str): HTML header for metadata section
+        context_header (str): HTML header for context section
+        steps_header (str): HTML header for steps section
+        agent_tape_header (str): HTML header for agent tape section
+        user_tape_header (str): HTML header for user tapes section
+        annotator_tape_header (str): HTML header for annotator tapes section
+
+    Args:
+        filter_steps (tuple[Type, ...] | None): Types of steps to include in rendering. If None, all steps are rendered.
+        render_llm_calls (bool): Whether to render LLM calls. Defaults to True.
+        render_agent_node (bool): Whether to render agent node information. Defaults to False.
+
+    Example:
+        ```python
+        renderer = BasicRenderer(render_llm_calls=True)
+        html_output = renderer.render_tape(tape)
+        ```
+
+    The renderer supports:
+    - Tape rendering with metadata, context, and steps
+    - Episode rendering with user, agent, and annotator columns
+    - LLM call rendering with prompts and outputs
+    - Custom styling through CSS
+    - Step filtering
+    - Collapsible sections using HTML details tags
+    """
+
     metadata_header = "<h3 style='margin: 2px'>Metadata</h3>"
     context_header = "<h3 style='margin: 2px'>Context</h3>"
     steps_header = "<h3 style='margin: 2px'>Steps</h3>"
@@ -110,10 +156,44 @@ class BasicRenderer:
             return self.render_as_box(context_str)
 
     def render_step(self, step: Step, index: int, **kwargs) -> str:
+        """
+        Renders a single step in the process.
+
+        Args:
+            step (Step): The step object containing the data to be rendered
+            index (int): The index of the current step
+            **kwargs: Additional keyword arguments for rendering customization
+
+        Returns:
+            str: The rendered step as a formatted string in box format
+
+        Note:
+            The step is first converted to a dictionary using model_dump() before rendering.
+            The rendering is done using the render_as_box method.
+        """
         step_dict = step.model_dump()
         return self.render_as_box(step_dict)
 
     def render_steps(self, tape: Tape, llm_calls: dict[str, LLMCall] = {}) -> str:
+        """
+        Renders a sequence of steps from a tape into an HTML string representation.
+
+        This method processes each step in the tape and generates HTML chunks based on various rendering options.
+        It can show agent nodes, LLM calls, and individual steps based on configuration.
+
+        Args:
+            tape (Tape): The tape object containing the sequence of steps to render
+            llm_calls (dict[str, LLMCall], optional): Dictionary mapping prompt IDs to LLM calls. Defaults to {}.
+
+        Returns:
+            str: A concatenated HTML string containing all rendered chunks
+
+        Notes:
+            - If filter_steps is set, only steps matching those types will be rendered
+            - Agent nodes are rendered as dividers with agent/node names if render_agent_node is True
+            - LLM calls are rendered for each unique prompt_id if render_llm_calls is True
+            - Steps from UserStep and Observation are treated as "Environment" agent
+        """
         chunks = []
         last_prompt_id = None
         last_agent_node = None
@@ -141,6 +221,21 @@ class BasicRenderer:
         return "".join(chunks)
 
     def render_tape(self, tape: Tape, llm_calls: dict[str, LLMCall] = {}) -> str:
+        """
+        Render a tape object into HTML representation.
+
+        Args:
+            tape (Tape): The tape object to render.
+            llm_calls (dict[str, LLMCall], optional): Dictionary of LLM calls associated with the tape. Defaults to {}.
+
+        Returns:
+            str: HTML representation of the tape including metadata, context (if present), and steps.
+
+        The rendered HTML includes:
+        - Metadata section with tape metadata
+        - Context section (if tape.context exists)
+        - Steps section with tape execution steps
+        """
         metadata_html = self.render_metadata(tape)
         context_html = self.render_context(tape)
         steps_html = self.render_steps(tape, llm_calls)
@@ -151,6 +246,18 @@ class BasicRenderer:
         )
 
     def render_episode(self, episode: Episode) -> str:
+        """Renders an episode into HTML format.
+
+        Takes an Episode object and converts it into an HTML string representation with three columns:
+        user, agent, and annotator. The rendering includes headers, context, and sequential steps
+        organized in rows.
+
+        Args:
+            episode (Episode): Episode object containing the interaction sequence to be rendered
+
+        Returns:
+            str: HTML string representation of the episode with formatted columns and rows
+        """
         chunks = []
 
         def wrap_agent(html: str) -> str:
@@ -180,6 +287,28 @@ class BasicRenderer:
         return "".join(chunks)
 
     def render_llm_call(self, llm_call: LLMCall | None) -> str:
+        """Renders an LLM call into HTML format.
+
+        This method generates HTML representation of an LLM call, including both the prompt
+        and output (if available). The HTML includes expandable details sections for both
+        the prompt and response.
+
+        Args:
+            llm_call (LLMCall | None): An LLM call object containing prompt and output information.
+                If None, returns an empty string.
+
+        Returns:
+            str: HTML string representation of the LLM call. The HTML contains:
+                - Prompt section with:
+                    - Summary showing token/character count and cache status
+                    - Expandable details with prompt messages
+                - Output section (if output exists) with:
+                    - Summary showing token count
+                    - Expandable details with LLM response
+
+        The rendered HTML uses collapsible details elements and basic styling for
+        readability, with a light yellow background color.
+        """
         if llm_call is None:
             return ""
         if llm_call.prompt.tools:
@@ -352,6 +481,27 @@ def get_step_text(step: Step | dict, trim: bool = False, exclude_fields={"kind",
 
 
 def to_pretty_str(a: Any, prefix: str = "", indent: int = 2) -> str:
+    """Convert any Python object to a pretty formatted string representation.
+
+    This function recursively formats nested data structures (lists and dictionaries)
+    with proper indentation and line breaks for improved readability.
+
+    Args:
+        a (Any): The object to be formatted. Can be a list, dictionary, or any other type.
+        prefix (str, optional): String to prepend to each line. Used for recursive indentation. Defaults to "".
+        indent (int, optional): Number of spaces to use for each level of indentation. Defaults to 2.
+
+    Returns:
+        str: A formatted string representation of the input object.
+
+    Examples:
+        >>> data = {"foo": [1, 2, {"bar": "baz"}]}
+        >>> print(to_pretty_str(data))
+        foo:
+          - 1
+          - 2
+          - bar: baz
+    """
     view = ""
     if isinstance(a, list) and len(a):
         if len(str(a)) < 80:
@@ -378,18 +528,35 @@ def to_pretty_str(a: Any, prefix: str = "", indent: int = 2) -> str:
 
 
 def render_agent_tree(agent: Agent, show_nodes: bool = True, indent_increment: int = 4) -> str:
-    """Draw an ASCII tree of the agent's structure.
+    """
+    Renders an ASCII tree representation of an agent's hierarchical structure.
+
+    This function creates a visual tree diagram showing the relationships between agents,
+    their nodes, and subagents using ASCII characters. Each level is indented to show
+    the hierarchy.
+
+    Args:
+        agent (Agent): The root agent object to render the tree from.
+        show_nodes (bool, optional): Whether to display the agent's nodes in the tree.
+            Defaults to True.
+        indent_increment (int, optional): Number of spaces to indent each level.
+            Defaults to 4.
+
+    Returns:
+        str: A string containing the ASCII tree representation.
 
     Example:
-    > The Manager
-        .node1
-        .node2
-        > His Assistant 1
+        >>> agent = Agent("The Manager")
+        >>> print(render_agent_tree(agent))
+        > The Manager
             .node1
             .node2
-        > His Helper 2
-            .node1
-            .node2
+            > His Assistant 1
+                .node1
+                .node2
+            > His Helper 2
+                .node1
+                .node2
     """
 
     def render(agent: Agent, indent: int = 0) -> str:
@@ -404,5 +571,19 @@ def render_agent_tree(agent: Agent, show_nodes: bool = True, indent_increment: i
 
 
 def render_tape_with_prompts(tape: Tape, renderer: BasicRenderer):
+    """
+    Renders a tape with prompts using the specified renderer.
+
+    This function combines the tape's LLM calls with the renderer's style and rendering
+    to produce a complete rendered output of the tape's content.
+
+    Args:
+        tape (Tape): The tape object to be rendered
+        renderer (BasicRenderer): The renderer to use for rendering the tape
+
+    Returns:
+        str: The rendered tape content with applied styling, combining both
+             the renderer's style and the tape's content with LLM calls
+    """
     llm_calls = retrieve_tape_llm_calls(tape)
     return renderer.style + renderer.render_tape(tape, llm_calls)
