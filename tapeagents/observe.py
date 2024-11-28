@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from .config import sqlite_db_path
 from .core import LLMCall, LLMOutput, Prompt, Tape
+from litellm.utils import ChoiceLogprobs
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ def sqlite_writer(call):
         with sqlite3.connect(sqlite_db_path(), timeout=30) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, logprobs, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached, logprobs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     call.prompt.id,
                     call.timestamp,
@@ -91,7 +92,7 @@ def sqlite_writer(call):
                     call.prompt_length_tokens,
                     call.output_length_tokens,
                     call.cached,
-                    call.logprobs.model_dump_json() if call.logprobs is not None else None,
+                    call.output._logprobs.model_dump_json() if call.output._logprobs.model_dump_json() is not None else None,
                 ),
             )
             cursor.close()
@@ -168,7 +169,7 @@ def retrieve_llm_calls(prompt_ids: str | list[str]) -> list[LLMCall]:
                         prompt_length_tokens=row[4],
                         output_length_tokens=row[5],
                         cached=row[6],
-                        logprobs=LLMOutput.model_validate_json(row[7]) if row[7] is not None else None,
+                        logprobs=ChoiceLogprobs.model_validate_json(row[7]) if row[7] is not None else None,
                     )
                 )
         cursor.close()
@@ -235,7 +236,7 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
 
     conn.row_factory = dict_factory
     cursor = conn.cursor()
-    cursor.execute("SELECT timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached FROM LLMCalls")
+    cursor.execute("SELECT timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached, logprobs FROM LLMCalls")
     rows = cursor.fetchall()
     cursor.close()
     calls: list[LLMCall] = []
@@ -248,6 +249,7 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
                 prompt_length_tokens=row["prompt_length_tokens"],
                 output_length_tokens=row["output_length_tokens"],
                 cached=row["cached"],
+                logprobs=ChoiceLogprobs(**json.loads(row["logprobs"])) if row["logprobs"] is not None else None,
             )
         )
     return calls

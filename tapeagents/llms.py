@@ -14,6 +14,7 @@ import litellm
 import openai
 import requests
 from Levenshtein import ratio
+from litellm.utils import ChatCompletionTokenLogprob, TopLogprob
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
@@ -311,16 +312,20 @@ class TrainableLLM(CachedLLM):
                 content = data["choices"][0]["message"]["content"]
                 if not content:
                     logger.warning(f"Empty completion {data}")
-                
+
                 # Text generated token by token might not be tokenized the same way as the HF tokenizer on sequences
-                log_probs_content = data["choices"][0]["logprobs"]["content"]
-                vllm_tokens = [content["token"] for content in log_probs_content]
+                logprobs_content = data["choices"][0]["logprobs"]["content"]
+                vllm_tokens = [content["token"] for content in logprobs_content]
                 hf_tokens = [self.tokenizer.decode(t) for t in self.tokenizer.encode(content, add_special_tokens=False)]
-                if not all([t1 == t2 for t1, t2 in zip(hf_tokens, vllm_tokens)]):
+                if self.tokenizer.eos_token and content.endswith(self.tokenizer.eos_token):
+                    content = content[: -len(self.tokenizer.eos_token)]
+                if not hf_tokens == vllm_tokens:
                     logprobs = self.get_log_probs(prompt, LLMOutput(content=content))
-                else:
-                    logprobs = [content["logprob"] for content in log_probs_content]
-                output = LLMOutput(content=content, logprobs=logprobs)
+                    logprobs_content = [
+                        ChatCompletionTokenLogprob(token=t, logprob=lp, top_logprobs=[TopLogprob(token=t, logprob=lp)])
+                        for t, lp in zip(vllm_tokens, logprobs)
+                    ]
+                output = LLMOutput(content=content, logprobs={"content": logprobs_content})
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
