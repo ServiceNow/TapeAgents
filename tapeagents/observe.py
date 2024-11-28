@@ -46,7 +46,8 @@ def init_sqlite_if_not_exists(only_once: bool = True):
         output TEXT,
         prompt_length_tokens INTEGER,
         output_length_tokens INTEGER,
-        cached INTEGER
+        cached INTEGER,
+        logprobs TEXT
     )
     """)
     # now create tape table with tape_id index and data column
@@ -81,7 +82,7 @@ def sqlite_writer(call):
         with sqlite3.connect(sqlite_db_path(), timeout=30) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, logprobs, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     call.prompt.id,
                     call.timestamp,
@@ -90,6 +91,7 @@ def sqlite_writer(call):
                     call.prompt_length_tokens,
                     call.output_length_tokens,
                     call.cached,
+                    call.logprobs.model_dump_json() if call.logprobs is not None else None,
                 ),
             )
             cursor.close()
@@ -160,6 +162,7 @@ def retrieve_llm_call(prompt_id: str) -> LLMCall | None:
             prompt_length_tokens=row[4],
             output_length_tokens=row[5],
             cached=row[6],
+            logprobs=LLMOutput.model_validate_json(row[7]) if row[7] is not None else None,
         )
 
 

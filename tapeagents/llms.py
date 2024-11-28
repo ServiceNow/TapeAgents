@@ -275,6 +275,9 @@ class TrainableLLM(CachedLLM):
             "model": self.model_name,
             "messages": prompt.messages,
             "stream": self.stream,
+            "logprobs": 1,
+            "include_stop_str_in_output": True,
+            "skip_special_tokens": False,
         }
         r = requests.post(
             url=f"{self.base_url}/v1/chat/completions",
@@ -308,7 +311,16 @@ class TrainableLLM(CachedLLM):
                 content = data["choices"][0]["message"]["content"]
                 if not content:
                     logger.warning(f"Empty completion {data}")
-                output = LLMOutput(content=content)
+                
+                # Text generated token by token might not be tokenized the same way as the HF tokenizer on sequences
+                log_probs_content = data["choices"][0]["logprobs"]["content"]
+                vllm_tokens = [content["token"] for content in log_probs_content]
+                hf_tokens = [self.tokenizer.decode(t) for t in self.tokenizer.encode(content, add_special_tokens=False)]
+                if not all([t1 == t2 for t1, t2 in zip(hf_tokens, vllm_tokens)]):
+                    logprobs = self.get_log_probs(prompt, LLMOutput(content=content))
+                else:
+                    logprobs = [content["logprob"] for content in log_probs_content]
+                output = LLMOutput(content=content, logprobs=logprobs)
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e

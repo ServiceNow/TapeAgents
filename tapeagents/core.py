@@ -220,6 +220,7 @@ class LLMCall(BaseModel):
     prompt_length_tokens: int = -1
     output_length_tokens: int = -1
     cached: bool
+    logprobs: list[float] = Field(default_factory=list)
 
 
 AnnotatorTape = Tape[TapeType, StepType]
