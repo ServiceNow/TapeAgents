@@ -111,6 +111,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
 
         Args:
             step (StepType): The step to process. Can be one of:
+
                 - Call: Creates and pushes new view onto the stack
                 - Broadcast: Processes broadcast messages
                 - Respond: Removes top view from stack

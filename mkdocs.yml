@@ -35,5 +35,5 @@ nav:
 - Home: index.md
 - Quickstart: quickstart.md
 # defer to gen-files + literate-nav
-- Reference: reference/  
+- Reference: reference/
 # rest of the navigation...

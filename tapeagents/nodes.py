@@ -28,6 +28,7 @@ class MonoNode(Node):
     A node for simple monolithic agents that handles simple prompt generation, and universal LLM output parsing.
 
     This node performs the following functions:
+
     - Renders the entire tape into a prompt, trimming if needed
     - Attaches guidance text to the end of the prompt after rendering the tape
     - Parses the LLM output into provided step classes (class provided as annotated union)
@@ -72,6 +73,7 @@ class MonoNode(Node):
 
         Note:
             The method performs the following steps:
+
             1. Cleans the tape content
             2. Gets steps description
             3. Converts tape to messages
@@ -113,10 +115,10 @@ class MonoNode(Node):
 
         Returns:
             LLMOutput: An output object containing:
+
                 - role: Set to "assistant"
-                - content: JSON string of step data, formatted as either:
-                    - A single dictionary if there is only one step
-                    - A list of dictionaries if there are multiple steps
+                - content: JSON string of step data, formatted as either: a single dictionary
+                if there is only one step, or a list of dictionaries
 
         Note:
             - Only processes steps with matching prompt_id from the starting index

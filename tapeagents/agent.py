@@ -96,8 +96,10 @@ StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | Parti
 class Node(BaseModel):
     """
     A node in the agent, atomic unit of the agent's behavior.
+
     The agent chooses which node to run based on the current tape.
     The node has a name and contains 2 main functions:
+
     - make a prompt out of the tape
     - generate steps out of the received llm output
 
@@ -138,8 +140,8 @@ class Node(BaseModel):
             tape (Tape): The tape object containing relevant data.
             llm_stream (LLMStream): The LLM stream to be used for generating steps.
 
-        Returns:
-            Generator[Union[Step, PartialStep], None, None]: A generator yielding Step or PartialStep objects.
+        Yields:
+            Union[Step, PartialStep]: The generated steps or partial steps.
 
         Raises:
             NotImplementedError: If the method is not implemented by the subclass.
@@ -311,9 +313,7 @@ class Agent(BaseModel, Generic[TapeType]):
         manager, returns just the agent's name.
 
         Returns:
-            str: The full hierarchical name path of the agent. Examples:
-                - "agent_name" (no manager)
-                - "manager_name/agent_name" (with manager)
+            str: The full hierarchical name path of the agent. Examples: "agent_name" (no manager), "manager_name/agent_name" (with manager)
         """
         if self._manager is None:
             return self.name
@@ -386,10 +386,12 @@ class Agent(BaseModel, Generic[TapeType]):
 
         Args:
             llms (Union[Dict[str, LLM], LLM, None]): Language model(s) to use. Can be:
+
                 - A dictionary mapping names to LLM instances
                 - A single LLM instance (will be mapped to default name)
                 - None (empty dict will be used)
             templates (Union[Dict[str, Any], str, None]): Template(s) to use. Can be:
+
                 - A dictionary mapping names to template configurations
                 - A single template string (will be mapped to default name)
                 - None (no templates will be used)
@@ -538,9 +540,7 @@ class Agent(BaseModel, Generic[TapeType]):
             llm_stream (LLMStream): Stream interface for the language model output
 
         Yields:
-            Union[Step, PartialStep]: Generated steps and other events that can be either complete Steps
-            or partial/incomplete steps (PartialSteps). For AgentSteps, adds metadata about
-            the originating node.
+            Union[Step, PartialStep]: Union[Step, PartialStep]: The generated steps or partial steps.
         """
         # Generate new steps and other events by feeding the prompt to the LLM
         node = self.select_node(tape)
@@ -665,6 +665,7 @@ class Agent(BaseModel, Generic[TapeType]):
 
         Returns:
             AgentStream[TapeType]: A stream of AgentEvents containing:
+
                 - partial_step: Intermediate processing steps
                 - step: Completed agent steps with updated tape
                 - final_tape: Final tape with updated metadata after completion
@@ -779,6 +780,7 @@ class Agent(BaseModel, Generic[TapeType]):
 
         Returns:
             list[tuple[Node, int]]: List of tuples containing (node, index) pairs where:
+
                 - node: The Node object that produced the tape fragment
                 - index: The starting index in the tape where this node began execution
         """

@@ -52,6 +52,7 @@ def calculate_reward_with_implicit_kl(row, reward_minus_kl_coef):
 
     Args:
         row (dict): Dictionary containing reward and log probability data with keys:
+
             - reward: Base reward value
             - old_logprobs: Log probabilities from old policy
             - ref_logprobs: Reference log probabilities
@@ -78,6 +79,7 @@ def calculate_advantage(row):
 
     Args:
         row (dict): Dictionary containing rewards and statistics with keys:
+
             - rewards: List of reward values
             - reward_mean: Mean reward value
             - reward_std: Standard deviation of rewards

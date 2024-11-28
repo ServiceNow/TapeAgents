@@ -86,6 +86,7 @@ class BasicRenderer:
         ```
 
     The renderer supports:
+
     - Tape rendering with metadata, context, and steps
     - Episode rendering with user, agent, and annotator columns
     - LLM call rendering with prompts and outputs
@@ -232,6 +233,7 @@ class BasicRenderer:
             str: HTML representation of the tape including metadata, context (if present), and steps.
 
         The rendered HTML includes:
+
         - Metadata section with tape metadata
         - Context section (if tape.context exists)
         - Steps section with tape execution steps
@@ -299,6 +301,7 @@ class BasicRenderer:
 
         Returns:
             str: HTML string representation of the LLM call. The HTML contains:
+
             - Prompt section with:
                 - Summary showing token/character count and cache status
                 - Expandable details with prompt messages
