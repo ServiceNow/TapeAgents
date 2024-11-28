@@ -3,20 +3,22 @@ defaults:
   - _self_
 
 n_workers: 32
-max_loops: 10
+get_log_probs_workers: 1
+max_loops: 1
 test_every_n_iterations: 5
 model_path: meta-llama/Meta-Llama-3.1-8B-Instruct
 max_agent_forks: 1024
 attempts: 64
 force_restart: false
-max_iterations: 100
+max_iterations: 1000
+use_rejection_sampling: false
 llm:
   parameters:
-    max_tokens: 1024
+    max_tokens: 2000
     temperature: 0.7
 test_llm:
-  parameters:
-    max_tokens: 1024
+  parameters: 
+    max_tokens: ${...llm.parameters.max_tokens}
     temperature: 0.
 
 finetune:
@@ -27,16 +29,17 @@ finetune:
   # One step is one weight update. See the finetuning configuration
   # for the info in how many sequences are used for each weight update.
   save_checkpoint_steps: 10
+  seq_length: 2000
 
 vllm_config:
   vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 
-    --max-model-len: 8000
     --gpu-memory-utilization: 0.9
     # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
     --enable-chunked-prefill: ""
 
 output_dir: outputs/rl_gsm8k
+accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 
 hydra:
   run:

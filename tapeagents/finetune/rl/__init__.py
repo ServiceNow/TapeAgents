@@ -2,14 +2,21 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Callable, Dict, List, Mapping, Optional
+from typing import Callable, Dict, Mapping, Optional
 
-import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
 from datasets import Dataset
-from transformers import AutoTokenizer, BatchEncoding
+from transformers import BatchEncoding, PreTrainedModel
+
+from .utils import (
+    StepConfig,
+    calculate_advantage,
+    calculate_reward_with_implicit_kl,
+    masked_mean,
+    replace_dataset_column,
+)
 
 # FIXME: remove a warnings, but might be worth investigating
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -27,15 +34,6 @@ RL_DATA_COLUMNS = [
 
 
 @dataclass
-class StepConfig(object):
-    def to_dict(self):
-        output_dict = {}
-        for key, value in self.__dict__.items():
-            output_dict[key] = value
-        return flatten_dict(output_dict)
-
-
-@dataclass
 class RLConfig(StepConfig):
     algo: Optional[str] = field(
         default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]}
@@ -45,30 +43,20 @@ class RLConfig(StepConfig):
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
     )
     epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
+    reward_minus_kl_coef: Optional[float] = field(
+        default=0.,
+        # https://arxiv.org/abs/2402.14740
+        metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
+    )
     kl_coef: Optional[float] = field(
         default=0.1,
-        metadata={"help": "Initial KL penalty coefficient (used for adaptive and linear control)"},
+        metadata={"help": "KL penalty coefficient with reference policy"},
     )
-    ratio_threshold: Optional[float] = field(
-        default=10.1,
-        metadata={"help": "Skip mini-batches with high PPO ratios that can cause loss spike"},
+    relu_log_p_weights: Optional[bool] = field(
+        default=False,
+        metadata={"help": "ReLU the weights before updating the model"},
     )
 
-
-def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
-    """Compute sum of tensor with a masked values."""
-    if axis is not None:
-        return (values * mask).sum(axis=axis) # type: ignore
-    else:
-        return (values * mask).sum()
-
-
-def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
-    """Compute mean of tensor with a masked values."""
-    if axis is not None:
-        return (values * mask).sum(axis=axis) / mask.sum(axis=axis) # type: ignore
-    else:
-        return (values * mask).sum() / mask.sum()
 
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
@@ -82,26 +70,17 @@ def make_rl_data_callback(args, current_dir, rl_config, model):
     return populate_rl_data_
 
 
-def flatten_dict(nested: Dict, sep: str = "/") -> Dict:
-    """Flatten dictionary and concatenate nested keys with separator."""
-
-    def recurse(nest: Dict, prefix: str, into: Dict) -> None:
-        for k, v in nest.items():
-            if sep in k:
-                raise ValueError(f"separator '{sep}' not allowed to be in key '{k}'")
-            if isinstance(v, Mapping):
-                recurse(v, prefix + k + sep, into)
-            else:
-                into[prefix + k] = v
-
-    flat = {}
-    recurse(nested, "", flat)
-    return flat
-
-
-def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, float]]:
+def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torch.Tensor, dict[str, float]]:
     """
-    model: model that is updated
+    Perform a single RL step on the model using the given batch and config.
+
+    Args:
+        model (PreTrainedModel): The model to train
+        batch (dict): Batch of data containing rewards, advantages, masks, input_ids etc.
+        config (RLConfig): Configuration for the RL training
+
+    Returns:
+        tuple[torch.Tensor, dict[str, float]]: Loss tensor and metrics dictionary
 
     """
     rewards = batch.pop("rewards")[:, 1:]
@@ -127,18 +106,19 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
     # First compute the PPO surrogate loss, see https://arxiv.org/pdf/2402.03300 eq 3
     log_ratio_new_old = new_log_probs - old_logprobs
     ratio_new_old = torch.exp(log_ratio_new_old)
-    weights = advantages if config.use_advantages else rewards
+    log_p_weights = advantages if config.use_advantages else rewards
+    log_p_weights = torch.clamp(log_p_weights, min=0) if config.relu_log_p_weights else log_p_weights
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
     approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
     match config.algo:
         case "grpo":
             # GRPO is based on https://arxiv.org/pdf/2402.03300
-            surr1 = ratio_new_old * weights
+            surr1 = ratio_new_old * log_p_weights
 
             clamped_ratio = torch.clamp(ratio_new_old, 1 - config.epsilon, 1 + config.epsilon)
 
-            surr2 = clamped_ratio * weights
+            surr2 = clamped_ratio * log_p_weights
 
             surrogate_loss = torch.min(surr1, surr2)
 
@@ -148,15 +128,10 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = -masked_mean(new_log_probs * weights, masks_)
+            loss = -masked_mean(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
     assert torch.isfinite(loss).all(), "loss contains NaN or inf"
-
-    if (
-        masked_mean(ratio_new_old, masks_) > config.ratio_threshold
-    ):  # https://github.com/huggingface/trl/blob/main/trl/trainer/ppo_trainer.py#L1236
-        loss = loss * 0
 
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
@@ -167,6 +142,8 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
         "min_reward": rewards[masks_].min().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
+        "mean_new_logprobs_positive_log_p_weights": masked_mean(new_log_probs[log_p_weights > 0], masks_[log_p_weights > 0]).item() if (log_p_weights > 0).any() else 0,
+        "mean_new_logprobs_negative_log_p_weights": masked_mean(new_log_probs[log_p_weights < 0], masks_[log_p_weights < 0]).item() if (log_p_weights < 0).any() else 0,
         "mean_ref_logprobs": masked_mean(ref_logprobs, masks_).item(),
         "advantage": masked_mean(advantages, masks_).item(),
         "max_advantage": advantages[masks_].max().item(),
@@ -184,7 +161,7 @@ def rl_step(model, batch, config: RLConfig) -> tuple[torch.Tensor, dict[str, flo
     return loss, stats
 
 
-def update_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
+def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
     """
     Updates the advantages column in the given dataset based on reward statistics.
 
@@ -197,6 +174,13 @@ def update_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
     """
     df = dataset.to_pandas()
 
+    if config.reward_minus_kl_coef > 0:
+        logger.info("Updating Reward with Implicit KL")
+        calculate_reward_with_implicit_kl_ = partial(
+            calculate_reward_with_implicit_kl, reward_minus_kl_coef=config.reward_minus_kl
+        )
+        df["reward"] = df.apply(calculate_reward_with_implicit_kl_, axis=1)
+
     # Group by group_id and compute mean and std of reward
     grouped = df.groupby("group_id")["reward"].agg(["mean", "std", "count"]).reset_index()
 
@@ -205,12 +189,6 @@ def update_advantages(dataset: Dataset, config: RLConfig) -> Dataset:
 
     # Merge the computed statistics back to the original dataset
     df_with_stats = pd.merge(df, grouped, on="group_id", how="left")
-
-    def calculate_advantage(row):
-        rewards = row["rewards"]
-        mean = row["reward_mean"]
-        std = row["reward_std"]
-        return [(reward - mean) / (np.nan_to_num(std) + 1e-4) for reward in rewards]
 
     df_with_stats["advantages"] = df_with_stats.apply(calculate_advantage, axis=1)
 
@@ -228,37 +206,23 @@ def populate_rl_data(
     config: RLConfig,
 ) -> Dataset:
     """
-    Prepares the dataset for RL by performing forward passes and updating the dataset.
+    Populates a dataset with reinforcement learning specific data columns.
 
     Args:
-        dataset (Dataset): Rollout dataset
-        config (StepConfig): The configuration settings for the RL config.
+        dataset (Dataset): The input dataset to populate with RL data
+        columns (list[str]): List of column names to include in the dataset
+        collate_fn (Callable): Function to collate/batch the data
+        config (RLConfig): Configuration object containing RL training parameters
 
     Returns:
-        Dataset: The prepared dataset with added columns for advantages and updated advantages.
-
-    Note:
-        The function performs SFT and RL forward passes, updates the dataset, and calculates advantages for RL. If the
-        RL weights are different from the SFT weights, it loads the RL weights before the RL forward passes. The function
-        then drops unnecessary columns from the dataset and adds a new column for advantages.
+        Dataset: The dataset populated with RL-specific columns including rewards and advantages
     """
+
     logger.info("Populate RL Data")
 
-    # TODO: make it an option if using advantage or reward
-    dataset = update_advantages(dataset, config)
+    dataset = update_rewards_and_advantages(dataset, config)
 
     logger.info("Finish Populate RL Data")
-    return dataset
-
-
-def replace_dataset_column(dataset: Dataset, column_name: str, new_column: List[List[float]]) -> Dataset:
-    """
-    Replace a column in the dataset with a new column.
-    """
-    if column_name in dataset.features:
-        dataset = dataset.map(remove_columns=[column_name])
-    dataset = dataset.add_column(name=column_name, column=new_column)  # type: ignore
-
     return dataset
 
 
@@ -278,6 +242,6 @@ def prepare_rl_fields(
 
     encoding["rewards"] = [reward] * len(encoding["labels"])
     encoding["advantages"] = [0.0] * len(encoding["labels"])  # place holder
-    encoding["old_logprobs"] = [0.0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
-    encoding["ref_logprobs"] = [0.0] * (len(encoding["labels"]) - len(ref_logprobs)) + ref_logprobs
+    encoding["old_logprobs"] = [0] * (len(encoding["labels"]) - len(old_logprobs)) + old_logprobs
+    encoding["ref_logprobs"] = [0] * (len(encoding["labels"]) - len(ref_logprobs)) + ref_logprobs
     return encoding
