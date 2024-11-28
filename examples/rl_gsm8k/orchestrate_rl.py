@@ -308,7 +308,7 @@ def main(cfg: DictConfig):
     train_dataset = load_dataset(dataset_long_name, "main", split="train")
     train_samples = [process_fn(s) for s in train_dataset]
     test_dataset = load_dataset(dataset_long_name, "main", split="test")
-    test_samples = [process_fn(s) for s in test_dataset]
+    test_samples = [process_fn(s) for s in test_dataset][:500]
     logging.info(f"Loaded {len(train_samples)} training samples")
     logging.info(f"Loaded {len(test_samples)} test samples")
 
