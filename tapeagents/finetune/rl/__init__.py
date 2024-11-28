@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import Callable, Dict, Mapping, Optional
 
+import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
@@ -13,7 +14,7 @@ from transformers import BatchEncoding, PreTrainedModel
 from .utils import (
     StepConfig,
     calculate_advantage,
-    calculate_reward_with_implicit_kl,
+    calculate_rewards_with_implicit_kl,
     masked_mean,
     replace_dataset_column,
 )
@@ -187,10 +188,11 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     if config.reward_minus_kl_coef > 0:
         logger.info("Updating Reward with Implicit KL")
-        calculate_reward_with_implicit_kl_ = partial(
-            calculate_reward_with_implicit_kl, reward_minus_kl_coef=config.reward_minus_kl_coef
+        calculate_rewards_with_implicit_kl_ = partial(
+            calculate_rewards_with_implicit_kl, reward_minus_kl_coef=config.reward_minus_kl_coef
         )
-        df["reward"] = df.apply(calculate_reward_with_implicit_kl_, axis=1)
+        df["rewards"] = df.apply(calculate_rewards_with_implicit_kl_, axis=1)
+        df["reward"] = df["rewards"].apply(lambda x: np.mean(x))
 
     # Group by group_id and compute mean and std of reward
     grouped = df.groupby("group_id")["reward"].agg(["mean", "std", "count"]).reset_index()
@@ -205,7 +207,7 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
         max_advantage=config.max_advantage if config.max_advantage is not None else None,
     )
 
-    df_with_stats["advantages"] = df_with_stats.apply(calculate_advantage_, axis=1)
+    df_with_stats["advantages"] = df_with_stats.apply(calculate_advantage, axis=1)
 
     # replace advantages entry
     dataset = replace_dataset_column(dataset, "advantages", df_with_stats["advantages"].tolist())

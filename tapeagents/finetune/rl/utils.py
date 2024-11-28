@@ -46,7 +46,7 @@ def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] =
         return (values * mask).sum() / mask.sum()
 
 
-def calculate_reward_with_implicit_kl(row, reward_minus_kl_coef):
+def calculate_rewards_with_implicit_kl(row, reward_minus_kl_coef):
     """
     Calculate reward with implicit KL penalty.
 
@@ -65,12 +65,12 @@ def calculate_reward_with_implicit_kl(row, reward_minus_kl_coef):
             KL ≈ exp(log_ratio) - log_ratio - 1
         where log_ratio = ref_logprobs - old_logprobs
     """
-    reward = row["reward"]
+    rewards = row["rewards"]
     old_logprobs = row["old_logprobs"]
     ref_logprobs = row["ref_logprobs"]
     log_ratio_ref_old = ref_logprobs - old_logprobs
     kl = (np.exp(log_ratio_ref_old) - log_ratio_ref_old - 1).sum()  # Schulman KL approx
-    return reward - reward_minus_kl_coef * kl
+    return [reward - reward_minus_kl_coef * kl for reward in rewards]
 
 
 def calculate_advantage(row, max_advantage: None | float = None):
