@@ -50,7 +50,7 @@ def load_tokenizer(config_name):
     return tokenizer
 
 
-def load_model(args, model_class, current_dir, is_rl=False):
+def load_model(args, model_class, current_dir):
     accelerator.wait_for_everyone()
 
     assert not (
@@ -112,8 +112,6 @@ def load_model(args, model_class, current_dir, is_rl=False):
 
         # when LoRA enabled, always preload the original model, the lora weights will be loaded later
         model_to_load = args.config_name if args.lora.enabled else str(current_dir)
-        if is_rl:
-            model_to_load = args.config_name
         logger.info(f"Loading model {model_cls} weights from {current_dir}")
     else:  # from scratch
         logger.info(f"Initializing model {model_cls} from {args.config_name}")
