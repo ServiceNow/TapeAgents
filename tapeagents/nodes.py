@@ -14,7 +14,6 @@ from .core import (
     Prompt,
     SetNextNode,
     Step,
-    StepMetadata,
     StopStep,
     Tape,
 )

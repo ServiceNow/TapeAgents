@@ -43,6 +43,7 @@ class GroundednessAnnotator(DialogAnnotator):
     Annotates the steps of a given dialog tape based on the results of function calls in the tape.
     Produces the binary correctness of the assistant's last message.
     """
+
     def make_prompt(self, tape: DialogAnnotatorTape):
         """
         Creates a prompt for the annotator based on the dialog tape.

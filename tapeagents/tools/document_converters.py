@@ -231,7 +231,7 @@ class YouTubeConverter(DocumentConverter):
                         if attrdesc:
                             metadata["description"] = attrdesc["content"]
                     break
-        except:
+        except Exception:
             pass
 
         # Start preparing the page
@@ -274,7 +274,7 @@ class YouTubeConverter(DocumentConverter):
                     # Alternative formatting:
                     # formatter = TextFormatter()
                     # formatter.format_transcript(transcript)
-                except:
+                except Exception:
                     pass
             if transcript_text:
                 webpage_text += f"\n### Transcript\n{transcript_text}\n"
@@ -383,14 +383,14 @@ class PptxConverter(HtmlConverter):
                     alt_text = ""
                     try:
                         alt_text = shape._element._nvXxPr.cNvPr.attrib.get("descr", "")
-                    except:
+                    except Exception:
                         pass
 
                     # A placeholder name
                     filename = re.sub(r"\W", "", shape.name) + ".jpg"
                     # try:
                     #    filename = shape.image.filename
-                    # except:
+                    # except Exception:
                     #    pass
 
                     md_content += "\n![" + (alt_text if alt_text else shape.name) + "](" + filename + ")\n"
@@ -558,7 +558,7 @@ class ImageConverter(DocumentConverter):
             try:
                 result = subprocess.run([exiftool, "-json", local_path], capture_output=True, text=True).stdout
                 return json.loads(result)[0]
-            except:
+            except Exception:
                 return None
 
     def _get_mlm_description(self, local_path, extension, client, prompt=None):
@@ -732,7 +732,7 @@ class FileConverter:
                 # If we hit an error log it and keep trying
                 try:
                     res = converter.convert(local_path, **_kwargs)
-                except Exception as e:
+                except Exception:
                     error_trace = ("\n\n" + traceback.format_exc()).strip()
 
                 if res is not None:

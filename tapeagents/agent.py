@@ -4,7 +4,6 @@ import json
 import logging
 from abc import abstractmethod
 from typing import Any, Callable, Generator, Generic
-from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
@@ -18,16 +17,12 @@ from .core import (
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
-    Call,
     LLMCall,
     LLMOutput,
     MakeObservation,
     ObservationMakerTapeType,
     PartialStep,
-    Pass,
     Prompt,
-    Respond,
-    SetNextNode,
     Step,
     Tape,
     TapeMetadata,

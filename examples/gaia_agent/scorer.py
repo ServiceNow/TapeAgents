@@ -1,7 +1,6 @@
 import logging
 import re
 import string
-import warnings
 
 logger = logging.getLogger(__name__)
 

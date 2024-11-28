@@ -54,10 +54,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
     )
     org = TeamAgent.create_initiator(
         name="Initiator",
-        init_message=(
-            "Make a plot comparing the stocks of ServiceNow and Salesforce"
-            " since beginning of 2024."
-        ),
+        init_message=("Make a plot comparing the stocks of ServiceNow and Salesforce" " since beginning of 2024."),
         teammate=team,
     )
     start_tape = TeamTape(context=None, steps=[])

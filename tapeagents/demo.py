@@ -106,7 +106,7 @@ class Demo:
                         tape = ae.partial_tape
                     elif ae.final_tape:
                         tape = ae.final_tape
-                        logger.info(f"received final tape")
+                        logger.info("received final tape")
                     else:
                         # TODO: handle partial steps
                         continue

@@ -60,7 +60,7 @@ def calculate_reward_with_implicit_kl(row, reward_minus_kl_coef):
     Returns:
         float: Reward value adjusted by implicit KL penalty, calculated as:
             reward - reward_minus_kl_coef * KL(ref||old)
-        
+
         The KL divergence is approximated using the Schulman approximation:
             KL ≈ exp(log_ratio) - log_ratio - 1
         where log_ratio = ref_logprobs - old_logprobs

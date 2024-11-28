@@ -46,27 +46,27 @@ class FunctionCall(BaseModel):
     arguments: Any
 
 
-
 class ToolCall(BaseModel):
     function: FunctionCall
     id: str = ""
     type: str = "function"
-    
-    
+
+
 class ToolCalls(Action):
     """Action that wraps one-or-many tool calls.
-    
+
     We structure this class similar to OpenAI tool calls, but we let function arguments be Any, not just str
     (see `FunctionCall` class)
-    
+
     """
+
     tool_calls: list[ToolCall]
     kind: Literal["assistant"] = "assistant"
-    
+
     @staticmethod
     def from_dicts(dicts: list):
         return ToolCalls.model_validate({"tool_calls": dicts})
-    
+
     @staticmethod
     def from_llm_output(llm_output: LLMOutput) -> ToolCalls:
         if not llm_output.tool_calls:
@@ -79,7 +79,7 @@ class ToolCalls(Action):
             for tc in llm_output.tool_calls
         ]
         return ToolCalls(tool_calls=tool_calls)
-        
+
 
 class ToolResult(Observation):
     content: Any

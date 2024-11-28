@@ -223,7 +223,7 @@ class LiteLLM(CachedLLM):
                     **self.parameters,
                 )
                 break
-            except openai.APITimeoutError as e:
+            except openai.APITimeoutError:
                 logger.error("API Timeout, retrying in 1 sec")
                 time.sleep(1.0)
         if self.stream:
@@ -237,7 +237,7 @@ class LiteLLM(CachedLLM):
                         yield LLMEvent(chunk=content_delta)
                     tool_delta = part.choices[0].delta.tool_calls
                     if tool_delta:
-                        raise NotImplementedError(f"TODO: streaming with function calls not implemented yet")
+                        raise NotImplementedError("TODO: streaming with function calls not implemented yet")
                 else:
                     raise ValueError(f"Unexpected response {part.model_dump()}")
             output = LLMOutput(content="".join(buffer))

@@ -1,5 +1,4 @@
 import json
-import re
 from typing import Any, Type
 
 import yaml

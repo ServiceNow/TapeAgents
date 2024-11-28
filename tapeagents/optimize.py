@@ -6,9 +6,9 @@ from tapeagents.llm_function import LLMFunctionNode
 
 def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
     """Extract demos for function templates from the given tapes.
-    
+
     When there is too many demos, select random ones.
-    
+
     """
     demos = {template_name: [] for template_name in agent.templates}
     for tape in tapes:
@@ -21,4 +21,3 @@ def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
         k = min(max_n_demos, len(demos[template_name]))
         template.demos = rng.sample(demos[template_name], k)
     return agent_copy
-    
