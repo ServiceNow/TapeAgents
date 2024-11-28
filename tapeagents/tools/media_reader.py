@@ -13,19 +13,27 @@ from whisper.utils import get_writer
 logger = logging.getLogger(__name__)
 
 
-def watch_video(url: str, start_time: str, output_dir: str) -> Tuple[str, str, str, str, str, Optional[str]]:
+def get_video(
+    url: str,
+    output_dir: str,
+    start_time: str = "",
+    end_time: str = "",
+) -> Tuple[str, str, Optional[str], Optional[str], Optional[str], Optional[str]]:
+    os.makedirs(output_dir, exist_ok=True)
+
     try:
         video_path, thumbnail_path = download_video(url, output_dir)
-        # TODO: save video from start_time to stop_time before more processing
-        video_contact_sheet_paths = generate_contact_sheets_from_video(video_path)
-        audio_path = extract_audio(video_path)
-        subtitle_path = transcribe_audio(audio_path)
-        subtitle_text = extract_text_from_vtt(subtitle_path)
+        video_path_trimmed = trim_video(video_path, start_time, end_time)
+        video_contact_sheet_paths = generate_contact_sheets_from_video(
+            video_path, video_path_trimmed=video_path_trimmed, start_time=start_time, end_time=end_time
+        )
+        subtitle_path = transcribe_audio(video_path)
+        subtitle_text = extract_text_from_vtt(subtitle_path, start_time, end_time)
         error = None
     except Exception as e:
         logger.error(f"Error while watching video: {e}")
         raise e
-    return video_path, video_contact_sheet_paths, thumbnail_path, subtitle_path, subtitle_text, error
+    return video_path_trimmed, video_contact_sheet_paths, thumbnail_path, subtitle_path, subtitle_text, error
 
 
 def download_video(url: str, output_dir: str) -> str:
@@ -33,6 +41,39 @@ def download_video(url: str, output_dir: str) -> str:
         return download_video_youtube(url, output_dir)
     else:
         raise NotImplementedError("Only youtube videos are supported at the moment")
+
+
+def trim_video(video_path: str, start_time: str, end_time: str) -> str:
+    if not video_path:
+        raise ValueError("video_path is required")
+
+    if not start_time and not end_time:
+        return video_path
+
+    if not start_time:
+        start_time = "00:00:00"
+
+    if not end_time:
+        probe = ffmpeg.probe(video_path)
+        video_duration = float(probe["streams"][0]["duration"])
+        end_time = str(video_duration)
+
+    if start_time == end_time:
+        start_time = str(float(end_time) - 0.5)
+        end_time = str(float(end_time) + 0.5)
+
+    try:
+        logger.info("Trimming video")
+        video_base_path, ext = os.path.splitext(video_path)
+        trimmed_video_path = f"{video_base_path}_{start_time.replace(':', '-')}_{end_time.replace(':', '-')}{ext}"
+        ffmpeg.input(video_path).output(
+            trimmed_video_path,
+            ss=start_time,
+            to=end_time,
+        ).run(overwrite_output=True)
+    except ffmpeg.Error as e:
+        raise e
+    return trimmed_video_path
 
 
 def download_video_youtube(url: str, output_dir: str) -> str:
@@ -50,12 +91,12 @@ def download_video_youtube(url: str, output_dir: str) -> str:
 
     video_id = get_video_id(url)
     video_path = find_file(output_dir, video_id, (".mp4", ".webm"))
-    thumbnail_path = find_file(output_dir, video_id, ("webp", ".jpg", ".jpeg", ".png"))
+    thumbnail_path = find_file(output_dir, video_id, (".webp", ".jpg", ".jpeg", ".png"), strict=True)
     if not video_path:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download(url)
-            video_path = find_file(output_dir, video_id, (".mp4", ".webm"))
-            thumbnail_path = find_file(output_dir, video_id, ("webp", ".jpg", ".jpeg", ".png"))
+        video_path = find_file(output_dir, video_id, (".mp4", ".webm"))
+        thumbnail_path = find_file(output_dir, video_id, (".webp", ".jpg", ".jpeg", ".png"), strict=True)
     return video_path, thumbnail_path
 
 
@@ -80,7 +121,15 @@ def get_video_id(url: str) -> str:
     return video_id
 
 
-def find_file(dir: str, filename: str, file_extentions: tuple) -> Optional[str]:
+def find_file(dir: str, filename: str, file_extentions: tuple, strict: bool = False) -> Optional[str]:
+    if strict:
+        for file_extention in file_extentions:
+            file = f"{filename}{file_extention}"
+            file_path = os.path.join(dir, file)
+            if os.path.exists(file_path):
+                return file_path
+        return None
+
     for file in os.listdir(dir):
         if file.startswith(filename) and file.endswith(file_extentions):
             return os.path.join(dir, file)
@@ -89,8 +138,10 @@ def find_file(dir: str, filename: str, file_extentions: tuple) -> Optional[str]:
 
 def generate_contact_sheets_from_video(
     video_path: str,
-    output_dir: Optional[str] = None,
+    video_path_trimmed: str,
     frame_interval_seconds: int = 5,
+    start_time: str = "",
+    end_time: str = "",
 ) -> list[str]:
     # Optimized grid for 512px x 512px: https://platform.openai.com/docs/guides/vision
     nb_tile_x = 3
@@ -99,16 +150,15 @@ def generate_contact_sheets_from_video(
     format = "png"
     output_suffix = "_contact-sheet_"
 
-    if not output_dir:
-        output_dir = os.path.dirname(video_path)
-
     # Return existing contact sheets if they exist
     output_paths = []
+    output_dir = os.path.dirname(video_path_trimmed)
+    file_base_path, _ = os.path.splitext(os.path.basename(video_path_trimmed))
     for file in os.listdir(output_dir):
-        file_base_path, _ = os.path.splitext(file)  # file without extension
         if file.startswith(file_base_path) and re.search(r"{}\d+".format(output_suffix), file):
             output_paths.append(os.path.join(output_dir, file))
     if len(output_paths) > 0:
+        logger.info("Use cached contact sheets:", output_paths)
         return output_paths
 
     # Determine the number of frames and contact sheets needed
@@ -119,11 +169,20 @@ def generate_contact_sheets_from_video(
         raise e
     video_duration = float(probe["streams"][0]["duration"])  # Video duration in seconds
     fps = eval(probe["streams"][0]["r_frame_rate"])  # Extract FPS
-    nb_frames = fps * frame_interval_seconds
-    total_frames = int(video_duration * fps)
 
+    start_time_seconds = time_to_seconds(start_time) if start_time else 0
+    end_time_seconds = time_to_seconds(end_time) if end_time else video_duration
+    end_time_seconds = min(end_time_seconds, video_duration)
+
+    duration = end_time_seconds - start_time_seconds
+    if duration <= frame_interval_seconds:
+        frame_interval_seconds = duration
+    frames_per_interval = int(fps * frame_interval_seconds)
+    total_nb_frames = int(duration / frame_interval_seconds)
+    nb_tile_y = min(nb_tile_y, math.ceil(total_nb_frames / nb_tile_x))
+    nb_tile_x = min(nb_tile_x, math.ceil(total_nb_frames / nb_tile_y))
     frames_per_contact_sheet = nb_tile_x * nb_tile_y
-    total_contact_sheets = math.ceil(total_frames / (nb_frames * frames_per_contact_sheet))
+    total_contact_sheets = math.ceil(total_nb_frames / frames_per_contact_sheet)
 
     # Generate contact sheets
     vf = """drawtext=text='%{pts\\:hms}'
@@ -133,21 +192,23 @@ def generate_contact_sheets_from_video(
             :fontsize='(main_h/12)'
             :boxcolor='Black':box=1
             """  # Add a timestamp to each frame
-    vf += f",thumbnail=n={nb_frames}"  # Pick one of the most representative frames in sequences of nb_frames consecutive frames
+    vf += f",thumbnail=n={frames_per_interval}"  # Pick one of the most representative frames in sequences of nb_frames consecutive frames
     vf += f",scale={scale}"  # Resize the frames to a specific size
     vf += ",pad=iw+4:ih+4:2:2:color=black"  # Add borders around each frame
     vf += f",tile={nb_tile_x}x{nb_tile_y}"  # Arrange the frames in a grid
 
     logger.info("Generating contact sheet from video")
     output_paths = []
-    video_base_path, _ = os.path.splitext(video_path)
+    video_base_path, _ = os.path.splitext(video_path_trimmed)
     for i in range(total_contact_sheets):
-        start_frame = i * nb_frames * frames_per_contact_sheet
+        start_frame = i * frame_interval_seconds * frames_per_contact_sheet
+        ss = start_time_seconds + start_frame
+        to = ss + duration
         output_path = f"{video_base_path}{output_suffix}{i+1}.{format}"
         try:
-            ffmpeg.input(video_path).output(
+            ffmpeg.input(video_path, to=to).output(
                 output_path,
-                ss=start_frame / fps,
+                ss=ss,
                 vframes=1,
                 vf=vf,
             ).run(overwrite_output=True)
@@ -155,11 +216,15 @@ def generate_contact_sheets_from_video(
         except ffmpeg.Error as e:
             logger.error(f"ffmpeg error: {e.stderr.decode('utf-8')}")
             raise e
+    logger.info("Generated contact sheets:", output_paths)
     return output_paths
 
 
 def extract_audio(
-    video_path: str, audio_path: Optional[str] = None, audio_bitrate: str = "128k", acodec: str = "mp3"
+    video_path: str,
+    audio_path: Optional[str] = None,
+    audio_bitrate: str = "128k",
+    acodec: str = "mp3",
 ) -> str:
     if not audio_path:
         video_base_path, _ = os.path.splitext(video_path)
@@ -170,7 +235,8 @@ def extract_audio(
 
     try:
         logger.info("Extracting audio from video")
-        ffmpeg.input(video_path).output(
+        ffmpeg_input = ffmpeg.input(video_path)
+        ffmpeg_input.output(
             audio_path,
             audio_bitrate=audio_bitrate,
             acodec=acodec,
@@ -180,12 +246,22 @@ def extract_audio(
     return audio_path
 
 
-def transcribe_audio(audio_path: str) -> str:
-    vtt_path = audio_path.replace(".mp3", ".vtt")
-    if os.path.exists(vtt_path):
-        return vtt_path
+def transcribe_audio(video_path: str) -> str:
+    # Check if a VTT file already exists
+    dir = os.path.dirname(video_path)
+    video_id, _ = os.path.splitext(os.path.basename(video_path))
+    vtt_file = find_file(dir, video_id, (".vtt"))
+    if vtt_file:
+        return vtt_file
 
+    # Check if audio file already exists
+    audio_path = find_file(dir, video_id, (".mp3"))
+    if audio_path is None:
+        audio_path = extract_audio(video_path)
+
+    vtt_path = video_path.replace(".mp3", ".vtt")
     model = whisper.load_model("turbo")
+    # TODO: use trimmed video to transcribe and update vtt timestamp based on video start_time
     result = model.transcribe(audio_path)
     output_directory = os.path.dirname(audio_path)
 
@@ -194,12 +270,53 @@ def transcribe_audio(audio_path: str) -> str:
     return vtt_path
 
 
-def extract_text_from_vtt(vtt_path: str) -> str:
-    vtt = webvtt.read(vtt_path)
+def extract_text_from_vtt(vtt_path: str, start_time: str = "", end_time: str = "") -> str:
+    start_time = ensure_milliseconds(start_time)
+    end_time = ensure_milliseconds(end_time)
     text = []
-    for caption in vtt:
+
+    ensure_vtt_format(vtt_path)
+    vtt = webvtt.read(vtt_path)
+
+    for caption in vtt.iter_slice(start=start_time, end=end_time):
         text.append(f"{str(caption.start)}: {str(caption.text)}")
     return "\n".join(text)
+
+
+def ensure_vtt_format(vtt_path: str) -> None:
+    with open(vtt_path, "r", encoding="utf-8") as file:
+        lines = file.readlines()
+
+    with open(vtt_path, "w", encoding="utf-8") as file:
+        for line in lines:
+            if line.strip() == "" and line.startswith(" "):  # Do not write line that contains only space
+                continue
+            else:
+                file.write(line)
+
+
+def ensure_milliseconds(time: str) -> None:
+    """Ensure that the time string has milliseconds HH:MM:SS.mmm"""
+    # add .mmm if not included
+    if time and time[-4] != ".":
+        time += ".000"
+    else:
+        time = None
+
+
+def time_to_seconds(time_str: str) -> float:
+    """Convert a time string HH.MM.SS.mmm to seconds SS"""
+    parts = list(map(float, re.split("[:.]", time_str)))
+    if len(parts) == 1:
+        return parts[0]
+    elif len(parts) == 2:
+        return int(parts[0]) * 60 + parts[1]
+    elif len(parts) == 3:
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + parts[2]
+    elif len(parts) == 4:
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + parts[2] + parts[3] / 1000
+    else:
+        raise ValueError("Invalid time format")
 
 
 class YTDLogger(object):

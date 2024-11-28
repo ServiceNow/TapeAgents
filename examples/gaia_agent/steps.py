@@ -3,6 +3,7 @@ import shutil
 from typing import Annotated, Any, Literal, TypeAlias, Union
 
 from pydantic import BaseModel, Field
+
 from tapeagents.core import (
     Action,
     Error,
@@ -12,7 +13,7 @@ from tapeagents.core import (
     StopStep,
     Thought,
 )
-from tapeagents.steps import AnalyzeVideoThought, GetVideoAction, VideoObservation
+from tapeagents.steps import VideoObservation, WatchingVideoThought, WatchVideoAction
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -171,11 +172,11 @@ class ReadingResultThought(GaiaThought):
 ################### Actions ###################
 class SearchAction(GaiaAction):
     """
-    Action that provides parameters for a search function call. Could search in the web_search or wikipedia. Search results will be ordered by relevance from top to bottom
+    Action that provides parameters for a search function call. Could search in the web, wikipedia or youtube. Search results will be ordered by relevance from top to bottom
     """
 
     kind: Literal["search_action"] = "search_action"
-    source: str = Field(description="source to search in, could be web_search or wikipedia")
+    source: str = Field(description="source to search in, could be web, wiki or youtube")
     query: str = Field(description="search query")
 
 
@@ -326,7 +327,7 @@ GaiaStep = Union[
     SourcesThought,
     DraftPlansThought,
     ReadingResultThought,
-    AnalyzeVideoThought,
+    WatchingVideoThought,
     NewFactThought,
     ReasoningThought,
     StartSubtask,
@@ -334,7 +335,7 @@ GaiaStep = Union[
     SearchAction,
     ReadDocumentAction,
     NextPageAction,
-    GetVideoAction,
+    WatchVideoAction,
     ConvertFactAction,
     UseCalculatorAction,
     PythonCodeAction,
@@ -359,7 +360,7 @@ GaiaAgentStep: TypeAlias = Annotated[
         SourcesThought,
         DraftPlansThought,
         ReadingResultThought,
-        AnalyzeVideoThought,
+        WatchingVideoThought,
         NewFactThought,
         ReasoningThought,
         StartSubtask,
@@ -368,7 +369,7 @@ GaiaAgentStep: TypeAlias = Annotated[
         SearchAction,
         ReadDocumentAction,
         NextPageAction,
-        GetVideoAction,
+        WatchVideoAction,
         ConvertFactAction,
         UseCalculatorAction,
         # PythonCodeAction,
@@ -381,7 +382,7 @@ actions = [
     SearchAction,
     ReadDocumentAction,
     NextPageAction,
-    GetVideoAction,
+    WatchVideoAction,
     ConvertFactAction,
     UseCalculatorAction,
     GaiaAnswer,
@@ -395,13 +396,13 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
         if subtasks:
             steps = Union[
                 ReadingResultThought,
-                AnalyzeVideoThought,
+                WatchingVideoThought,
                 NewFactThought,
                 ReasoningThought,
                 SearchAction,
                 ReadDocumentAction,
                 NextPageAction,
-                GetVideoAction,
+                WatchVideoAction,
                 ConvertFactAction,
                 UseCalculatorAction,
                 GaiaAnswer,
@@ -411,13 +412,13 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
         else:
             steps = Union[
                 ReadingResultThought,
-                AnalyzeVideoThought,
+                WatchingVideoThought,
                 NewFactThought,
                 ReasoningThought,
                 SearchAction,
                 ReadDocumentAction,
                 NextPageAction,
-                GetVideoAction,
+                WatchVideoAction,
                 ConvertFactAction,
                 UseCalculatorAction,
                 GaiaAnswer,

@@ -3,9 +3,9 @@ from pathlib import Path
 
 from tapeagents.core import Action
 from tapeagents.environment import Environment
-from tapeagents.steps import GetVideoAction, VideoObservation
+from tapeagents.steps import VideoObservation, WatchVideoAction
 from tapeagents.tools.calculator import calculate
-from tapeagents.tools.media_reader import watch_video
+from tapeagents.tools.media_reader import get_video
 from tapeagents.tools.python_interpreter import python_calculate, run_python_code
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.utils import FatalError
@@ -45,9 +45,15 @@ class GaiaEnvironment(Environment):
             try:
                 match action:
                     case SearchAction():
-                        if "web" not in action.source and "wiki" not in action.source:
-                            raise ValueError(f"Supported sources are 'web' and 'wiki', got {action.source}")
-                        query = f"site:wikipedia.org {action.query}" if "wiki" in action.source else action.query
+                        if action.source == "wiki":
+                            query = f"site:wikipedia.org {action.query}"
+                        elif action.source == "youtube":
+                            query = f"site:youtube.com {action.query}"
+                        elif action.source == "web":
+                            query = action.query
+                        else:
+                            raise ValueError(f"Supported sources are 'web', 'wiki' and 'youtube', got {action.source}")
+
                         try:
                             serp = self.browser.get_search_results(query)
                         except Exception as e:
@@ -73,9 +79,9 @@ class GaiaEnvironment(Environment):
                                 error=self.browser._page_error if self.browser._page_error else None,
                             )
                         )
-                    case GetVideoAction():
+                    case WatchVideoAction():
                         video_path, video_contact_sheet_paths, thumbnail_path, subtitle_path, subtitle_text, error = (
-                            watch_video(action.video_url, action.start_time, self.attachment_dir)
+                            get_video(action.video_url, self.attachment_dir, action.start_time, action.end_time)
                         )
                         tape = tape.append(
                             VideoObservation(

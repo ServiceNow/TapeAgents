@@ -10,15 +10,20 @@ from tapeagents.core import Action, Observation, Thought
 ################# Actions #################
 
 
-class GetVideoAction(Action):
+class WatchVideoAction(Action):
     """
-    Action that loads the video from the provided url and returns the subtitle and its contact sheet.
+    Action that loads the video from the provided url and returns the subtitle and its contact sheet from start_time to end_time.
     """
 
-    kind: Literal["get_video_action"] = "get_video_action"
+    kind: Literal["watch_video_action"] = "watch_video_action"
     video_url: str = Field(description="url of the video to watch")
     start_time: str = Field(
-        description="time of the video to start watching from, if applicable, otherwise empty str", default=""
+        description="time of the video to start watching from, if applicable, otherwise empty str. Format is HH:MM:SS.mmm",
+        default="",
+    )
+    end_time: str = Field(
+        description="time of the video to stop watching at, if applicable, otherwise empty str. Format is 'HH:MM:SS.mmm'",
+        default="",
     )
 
 
@@ -67,19 +72,19 @@ class VideoObservation(Observation):
 ################### Thoughts ###################
 
 
-class AnalyzeVideoThought(Thought):
+class WatchingVideoThought(Thought):
     """
     Thought that outputs the detailed description of each frame of the video contact sheet
     """
 
-    kind: Literal["analyze_video_thought"] = "analyze_video_thought"
+    kind: Literal["watching_video_thought"] = "watching_video_thought"
     description: str = Field(description="description of the video using both the subtitle and the video contact sheet")
     frame_description: list[str] = Field(
         description="detailed and specific description of each frame of the video contact sheet"
     )
 
 
-def image_base64_message(image_path: str) -> str:
+def image_base64_message(image_path: str) -> dict:
     _, image_extension = os.path.splitext(image_path)
     content_type = f"image/{image_extension}"
     base64_image = encode_image(image_path)
