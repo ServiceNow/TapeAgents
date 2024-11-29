@@ -23,7 +23,7 @@ The Tape-centric design of TapeAgents will help you at all stages of your projec
 
 # Get Started
 
-We highly recommend starting with the [introductory Jupyter notebook](/intro.ipynb). The notebook will introduce you to all the core concepts of framework. 
+We highly recommend starting with the [introductory Jupyter notebook](https://github.com/ServiceNow/TapeAgents/blob/main/intro.ipynb). The notebook will introduce you to all the core concepts of framework. 
 
 # Installation
 Install the latest release:
@@ -71,16 +71,16 @@ final_tape = agent.run(start_tape).get_final_tape()  # agent will start executin
 print(f"Final tape: {final_tape.model_dump_json(indent=2)}")
 ```
 
-The [examples/](examples/) directory contains examples of how to use the TapeAgents framework for building, debugging, serving and improving agents. Each example is a self-contained Python script (or module) that demonstrates how to use the framework to build an agent for a specific task.
+The [examples/](https://github.com/ServiceNow/TapeAgents/tree/main/examples) directory contains examples of how to use the TapeAgents framework for building, debugging, serving and improving agents. Each example is a self-contained Python script (or module) that demonstrates how to use the framework to build an agent for a specific task.
 
-- How to build a single agent that [does planning, searches the web and uses code interpreter](examples/gaia_agent) to answer knowledge-grounded questions, solving the tasks from the [GAIA benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
-- How to build [a team of TapeAgents](examples/data_science) with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
-- How to [finetune a TapeAgent](examples/gsm8k_tuning) with a small LLM to be better at math problem solving on GSM-8k dataset.
+- How to build a single agent that [does planning, searches the web and uses code interpreter](https://github.com/ServiceNow/TapeAgents/tree/main/examples/gaia_agent) to answer knowledge-grounded questions, solving the tasks from the [GAIA benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
+- How to build [a team of TapeAgents](https://github.com/ServiceNow/TapeAgents/tree/main/examples/data_science) with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
+- How to [finetune a TapeAgent](https://github.com/ServiceNow/TapeAgents/tree/main/examples/gsm8k_tuning) with a small LLM to be better at math problem solving on GSM-8k dataset.
 
 
 Other notable examples that demonstrate the main aspects of the framework:
-- [workarena](examples/workarena) - custom agent that solves [WorkArena](https://github.com/ServiceNow/WorkArena) benchmark using [BrowserGym](https://github.com/ServiceNow/BrowserGym) environment.
-- [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
+- [workarena](https://github.com/ServiceNow/TapeAgents/tree/main/examples/workarena) - custom agent that solves [WorkArena](https://github.com/ServiceNow/WorkArena) benchmark using [BrowserGym](https://github.com/ServiceNow/BrowserGym) environment.
+- [tape_improver.py](https://github.com/ServiceNow/TapeAgents/tree/main/examples/tape_improver) - the agent that revisit and improves the tapes produced by another agent.
 
 
 # Learn more 
