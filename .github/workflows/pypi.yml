@@ -92,3 +92,13 @@ jobs:
         gh release upload
         '${{ github.ref_name }}' dist/**
         --repo '${{ github.repository }}'
+
+    - name: Set GitHub Release as pre-release
+      if: contains(github.ref, '.dev')  # set releases with tags vA.B.C.devD as pre-release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: >-
+        gh release edit
+        '${{ github.ref_name }}'
+        --repo '${{ github.repository }}'
+        --prerelease
