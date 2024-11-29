@@ -1,9 +1,13 @@
+"""
+Base classes for agents and nodes.
+"""
+
 from __future__ import annotations
 
 import json
 import logging
 from abc import abstractmethod
-from typing import Any, Callable, Generator, Generic
+from typing import Any, Generator, Generic
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
@@ -88,11 +92,6 @@ class AgentStream(Generic[TapeType]):
                 yield event.step
 
 
-# TODO: try adding node and agent types
-PromptMakerFunction = Callable[[Any, Tape], Prompt]
-StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | PartialStep, None, None]]
-
-
 class Node(BaseModel):
     """
     A node in the agent, atomic unit of the agent's behavior.
@@ -110,9 +109,6 @@ class Node(BaseModel):
     name: str = ""
 
     def model_post_init(self, __context: Any) -> None:
-        """
-        Initializes the node's name if it is not set, using the class name without type variables.
-        """
         if not self.name:
             self.name = self.__class__.__name__.split("[")[0]  # class name without type variables
 
@@ -185,8 +181,13 @@ class Agent(BaseModel, Generic[TapeType]):
 
 
     Raises:
-        ValueError:
-            If configuration inconsistencies are detected, such as duplicate names or mismatched LLM configurations.
+        ValueError: If configuration inconsistencies are detected:
+
+            - If a subagent is already managed by another agent
+            - If any subagent is not an instance of Agent class
+            - If there are duplicate names among subagents
+            - If there are duplicate names among nodes
+
     """
 
     name: str = ""
@@ -209,24 +210,6 @@ class Agent(BaseModel, Generic[TapeType]):
     model_config = ConfigDict(extra="forbid")
 
     def model_post_init(self, __context: Any) -> None:
-        """
-        Post-initialization hook for the Agent class.
-
-        This method sets up the agent's name if not provided, validates subagents and nodes,
-        and establishes parent-child relationships between agents.
-
-        Args:
-            __context (Any): The post initialization context (unused but required by pydantic)
-
-        Raises:
-            ValueError: If a subagent is already managed by another agent
-            ValueError: If any subagent is not an instance of Agent class
-            ValueError: If there are duplicate names among subagents
-            ValueError: If there are duplicate names among nodes
-
-        Returns:
-            None: Result of parent class post initialization
-        """
         if not self.name:
             # by default use the class name without the values for type variables
             # e.g. "Agent" instea of "Agent[Tape[...]]""
@@ -481,9 +464,9 @@ class Agent(BaseModel, Generic[TapeType]):
         Select the next node to execute based on the current state of the tape.
 
         The selection process follows these rules:
-        1. If next_node is explicitly set in the tape view, return that node
-        2. If no nodes have been run yet (last_node is None), return the first node
-        3. Return the node that follows the last executed node in the list
+            1. If next_node is explicitly set in the tape view, return that node
+            2. If no nodes have been run yet (last_node is None), return the first node
+            3. Return the node that follows the last executed node in the list
 
         Args:
             tape (TapeType): The tape containing execution state and data
@@ -520,10 +503,13 @@ class Agent(BaseModel, Generic[TapeType]):
         Can return a prompt with no messages, indicating the agent should generate next steps
         by following rules without LLM assistance. Agents that only delegate to subagents may
         not need to implement this method.
+
         Args:
             tape (TapeType): The tape containing the agent's state and history
+
         Returns:
             Prompt: A prompt object for the next agent iteration, potentially empty
+
         Note:
             - Empty prompts signal rule-based generation without LLM
             - Method may be optional for pure delegation agents
@@ -910,7 +896,6 @@ class ObservationMaker(Agent[ObservationMakerTapeType], Generic[TapeType, Observ
         return tape.append(last_step.new_observation).model_copy(update=dict(metadata=metadata))
 
     def can_continue(self, _: TapeType) -> bool:
-        """Check if this observation maker can continue the given tape."""
         return True
 
     def continue_tape(self, tape: TapeType) -> TapeType:

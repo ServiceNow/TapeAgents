@@ -18,3 +18,11 @@ h5 {
     --md-primary-fg-color--light: #80b6a1;
     --md-primary-fg-color--dark: #293e40;
 }
+
+code.doc-symbol-method::after {
+    content: "method" !important;
+}
+
+code.doc-symbol-module::after {
+    content: "module" !important;
+}

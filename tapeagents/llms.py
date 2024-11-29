@@ -51,6 +51,7 @@ class LLMStream:
     """A wrapper class for LLM generators that provides convenient iteration and output extraction.
 
     This class wraps a generator that yields LLMEvents and provides methods to:
+
     - Iterate through events
     - Extract complete LLM output
     - Get the assistant's response text
@@ -223,7 +224,6 @@ class CachedLLM(LLM):
     _cache: dict = {}
 
     def model_post_init(self, __content):
-        """Initializes the cache from either SQLite replay file or cached jsonl file."""
         if _REPLAY_SQLITE:
             self.use_cache = True
             self._cache = {}
@@ -735,6 +735,7 @@ class ReplayLLM(LLM):
     deterministic replay of previous LLM conversations without making new API calls.
 
     The class is useful for:
+
     - Testing and debugging LLM interactions
     - Reproducing specific model behaviors
     - Avoiding repeated API calls during development
@@ -933,6 +934,7 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
 
     Returns:
         TrainingText: A dataclass containing:
+
             - text (str): The formatted conversation text
             - n_predicted (int): Length of the output text portion
 

@@ -1,3 +1,7 @@
+"""
+Core data structures for the tape agents framework.
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -226,6 +230,7 @@ class Respond(Thought):
 
 
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
+"""Type variable for step types."""
 
 
 class TapeMetadata(BaseModel):
@@ -252,6 +257,7 @@ class TapeMetadata(BaseModel):
 
 
 ContextType = TypeVar("ContextType")
+"""Type variable for context types."""
 
 
 class Tape(BaseModel, Generic[ContextType, StepType]):
@@ -307,6 +313,7 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
 
 
 TapeType = TypeVar("TapeType", bound=Tape)
+"""Type variable for tape types."""
 
 
 class Prompt(BaseModel):
@@ -341,6 +348,7 @@ class Prompt(BaseModel):
 
 
 LLMOutput: TypeAlias = litellm.utils.Message
+"""Type alias for the output of the language model."""
 
 
 class LLMCall(BaseModel):
@@ -365,7 +373,9 @@ class LLMCall(BaseModel):
 
 
 AnnotatorTape = Tape[TapeType, StepType]
+"""Type alias for annotator tapes."""
 AnnotatorTapeType = TypeVar("AnnotatorTapeType", bound=AnnotatorTape)
+"""Type variable for annotator tape types."""
 
 
 class AnnotationWithMetadata(BaseModel):

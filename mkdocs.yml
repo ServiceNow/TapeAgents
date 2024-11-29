@@ -1,9 +1,12 @@
 site_name: TapeAgents Documentation
 site_description: TapeAgents is a framework that facilitates all stages of the LLM Agent development lifecycle
 repo_url: https://github.com/ServiceNow/TapeAgents
+repo_name: ServiceNow/TapeAgents
 
 theme:
   name: "material"
+  icon:
+    repo: fontawesome/brands/github
 
 plugins:
 - search

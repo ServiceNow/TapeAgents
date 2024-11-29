@@ -1,3 +1,7 @@
+"""
+Nodes are the building blocks of a TapeAgent, representing atomic units of the agent's behavior.
+"""
+
 import json
 import logging
 from typing import Any, Generator, Type
@@ -310,14 +314,6 @@ class ControlFlowNode(Node):
     This abstract class provides a framework for implementing control flow logic in a node.
     It determines which node should be executed next based on the current state of the tape.
 
-    Args:
-        agent (Any): The agent instance executing the node
-        tape (Tape): The tape object containing the context and state
-        llm_stream (LLMStream): Stream for language model interaction
-
-    Yields:
-        Union[Step, PartialStep]: A step indicating which node should be executed next
-
     Example:
         ```python
         class MyControlFlow(ControlFlowNode):
@@ -331,9 +327,34 @@ class ControlFlowNode(Node):
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
+        """
+        Generates steps that moves the execution to the next node based on the tape content.
+
+        Args:
+            agent (Any): The agent instance executing the node
+            tape (Tape): The tape object containing the context and state
+            llm_stream (LLMStream): Stream for language model interaction
+
+        Yields:
+            step (SetNextNode): A step indicating which node should be executed next
+        """
         yield SetNextNode(next_node=self.select_node(tape))
 
     def select_node(self, tape: Tape) -> str:
+        """
+        Select the next node based on the provided tape.
+
+        This method should be implemented in a subclass to define the logic for selecting the next node.
+
+        Args:
+            tape (Tape): The tape object containing the necessary information for node selection.
+
+        Returns:
+            str: The identifier of the next node.
+
+        Raises:
+            NotImplementedError: If the method is not implemented in the subclass.
+        """
         raise NotImplementedError("Implement this method in the subclass to set the next node according to your logic")
 
 

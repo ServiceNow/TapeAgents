@@ -1,3 +1,7 @@
+"""
+I/O utilities for Tape objects.
+"""
+
 import json
 import logging
 import os
