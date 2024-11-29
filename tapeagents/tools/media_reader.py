@@ -300,7 +300,6 @@ def transcribe_audio(video_path: str, video_path_trimmed: str, start_time: str =
     return vtt_path
 
 
-# function to increade every webvtt timestamp by a given offset
 def increase_vtt_timestamps(vtt_path: str, offset_time: str) -> str:
     offset_seconds = time_to_seconds(offset_time) if offset_time else 0
     if offset_seconds > 0:
