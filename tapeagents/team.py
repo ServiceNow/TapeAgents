@@ -6,7 +6,6 @@ from typing import Generator
 from pydantic import ConfigDict
 
 from tapeagents.agent import DEFAULT, Agent, AgentStep, Node
-from tapeagents.autogen_prompts import SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE, SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE
 from tapeagents.container_executor import extract_code_blocks
 from tapeagents.core import FinalStep, Pass, Prompt, SetNextNode, StepMetadata, Tape
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
@@ -78,6 +77,7 @@ class TeamAgent(Agent[TeamTape]):
         name: str,
         subagents: list[Agent[TeamTape]],
         llm: LLM,
+        templates: dict[str, str],
         max_calls: int = 1,
     ):
         """
@@ -93,10 +93,7 @@ class TeamAgent(Agent[TeamTape]):
                 RespondOrRepeatNode(next_node="broadcast_last_message"),
             ],
             max_calls=max_calls,
-            templates={
-                "select_before": SELECT_SPEAKER_MESSAGE_BEFORE_TEMPLATE,
-                "select_after": SELECT_SPEAKER_MESSAGE_AFTER_TEMPLATE,
-            },
+            templates=templates,
             llms={DEFAULT: llm},
         )
 
