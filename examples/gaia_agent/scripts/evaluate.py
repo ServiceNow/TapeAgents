@@ -39,8 +39,8 @@ def main(cfg: DictConfig) -> None:
     llm: TrainableLLM = instantiate(cfg.llm)
     attachment_dir = cfg.attachment_dir
     os.makedirs(attachment_dir, exist_ok=True)
-    env = GaiaEnvironment(vision_lm=llm, **cfg.env)
-    agent = GaiaAgent.create(llm, attachment_dir=attachment_dir, **cfg.agent)
+    env = GaiaEnvironment(vision_lm=llm, attachment_dir=attachment_dir, **cfg.env)
+    agent = GaiaAgent.create(llm, **cfg.agent)
     tasks = load_dataset(cfg.split)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     if os.path.exists(tapes_dir):
@@ -68,6 +68,7 @@ def main(cfg: DictConfig) -> None:
         for level, level_tasks in tasks.items()
         for i, task in enumerate(level_tasks)
     ]
+    args = args[:1]  # for testing use cfg
     for tape_ready in processor(args, task_worker):
         if isinstance(tape_ready, Exception):
             raise tape_ready
