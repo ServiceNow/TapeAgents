@@ -21,8 +21,7 @@ from .tape import GaiaMetadata, GaiaTape
 
 logger = logging.getLogger(__name__)
 
-GAIA_ROOT_DIR = "data/gaia/"
-GAIA23_DIR = "data/gaia/2023/"
+DATASET_DIR = "data/gaia/"
 
 
 def get_git_revision_hash() -> str:
@@ -75,13 +74,13 @@ def majority_vote(results: list[Any]) -> int:
 def download_dataset():
     logger.info("Downloading GAIA dataset...")
     repo = "gaia-benchmark/GAIA"
-    os.makedirs(GAIA_ROOT_DIR, exist_ok=True)
-    snapshot_download(repo_id=repo, repo_type="dataset", local_dir=GAIA_ROOT_DIR, local_dir_use_symlinks=False)
+    os.makedirs(DATASET_DIR, exist_ok=True)
+    snapshot_download(repo_id=repo, repo_type="dataset", local_dir=DATASET_DIR, local_dir_use_symlinks=False)
 
 
 def load_dataset(split: str):
     tasks = {1: [], 2: [], 3: []}
-    fname = os.path.join(GAIA23_DIR, split, "metadata.jsonl")
+    fname = os.path.join(DATASET_DIR, "2023", split, "metadata.jsonl")
     if not os.path.exists(fname):
         download_dataset()
     if not os.path.exists(fname):
@@ -90,7 +89,7 @@ def load_dataset(split: str):
         for line in f:
             task = json.loads(line)
             if task["file_name"]:
-                task["file_name"] = os.path.join(GAIA23_DIR, split, task["file_name"])
+                task["file_name"] = os.path.join(DATASET_DIR, "2023", split, task["file_name"])
             tasks[task["Level"]].append(task)
 
     logger.info(f"GAIA Tasks: Level 1: {len(tasks[1])}, Level 2: {len(tasks[2])}, Level 3: {len(tasks[3])}")
