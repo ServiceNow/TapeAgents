@@ -147,8 +147,7 @@ class GaiaTapeBrowser(TapeBrowser):
             for r in raw_exps:
                 exp_dir = os.path.join(self.tapes_folder, r)
                 cfg = get_exp_config_dict(exp_dir)
-                parts = cfg["data_dir"].split("/")
-                set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                set_name = cfg["split"]
                 exps.append(f"{set_name}/{r}/{postfix}")
         return sorted(exps)
 
