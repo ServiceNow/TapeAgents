@@ -2,7 +2,7 @@ import logging
 import math
 import os
 import re
-from typing import Optional, Tuple
+from typing import Optional
 
 import ffmpeg
 import webvtt
@@ -27,15 +27,21 @@ def get_video_observation(
         video_contact_sheet_paths = generate_contact_sheets_from_video(
             video_path, video_path_trimmed=video_path_trimmed, start_time=start_time, end_time=end_time
         )
-        subtitle_path = transcribe_audio(video_path)
+        subtitle_path = transcribe_audio(video_path, video_path_trimmed, start_time=start_time, end_time=end_time)
         subtitle_text = extract_text_from_vtt(subtitle_path, start_time, end_time)
         error = None
     except Exception as e:
         logger.error(f"Error while watching video: {e}")
         raise e
-    return VideoObservation(
-        video_path_trimmed, video_contact_sheet_paths, thumbnail_path, subtitle_path, subtitle_text, error
+    video_observation = VideoObservation(
+        video_path=video_path_trimmed,
+        video_contact_sheet_paths=video_contact_sheet_paths,
+        thumbnail_path=thumbnail_path,
+        subtitle_path=subtitle_path,
+        subtitle_text=subtitle_text,
+        error=error,
     )
+    return video_observation
 
 
 def download_video(url: str, output_dir: str) -> str:
@@ -141,7 +147,8 @@ def find_file(dir: str, filename: str, file_extentions: tuple, strict: bool = Fa
 def generate_contact_sheets_from_video(
     video_path: str,
     video_path_trimmed: str,
-    frame_interval_seconds: int = 5,
+    max_contact_sheets: int = 1,
+    frame_interval_seconds: int = 0,  # 0 means auto frame interval
     start_time: str = "",
     end_time: str = "",
 ) -> list[str]:
@@ -157,7 +164,7 @@ def generate_contact_sheets_from_video(
     output_dir = os.path.dirname(video_path_trimmed)
     file_base_path, _ = os.path.splitext(os.path.basename(video_path_trimmed))
     for file in os.listdir(output_dir):
-        if file.startswith(file_base_path) and re.search(r"{}\d+".format(output_suffix), file):
+        if re.search(r"{}_{}\d+".format(file_base_path, output_suffix), file):
             output_paths.append(os.path.join(output_dir, file))
     if len(output_paths) > 0:
         logger.info(f"Use cached contact sheets: {output_paths}")
@@ -177,14 +184,17 @@ def generate_contact_sheets_from_video(
     end_time_seconds = min(end_time_seconds, video_duration)
 
     duration = end_time_seconds - start_time_seconds
-    if duration <= frame_interval_seconds:
+    if frame_interval_seconds == 0:  # Auto frame interval
+        frame_interval_seconds = duration / (max_contact_sheets * nb_tile_x * nb_tile_y)
+    elif duration <= frame_interval_seconds:  # If the video is shorter than the frame interval, use the whole video
         frame_interval_seconds = duration
-    frames_per_interval = int(fps * frame_interval_seconds)
+    logger.info(f"Frame interval (s): {frame_interval_seconds}")
     total_nb_frames = int(duration / frame_interval_seconds)
     nb_tile_y = min(nb_tile_y, math.ceil(total_nb_frames / nb_tile_x))
     nb_tile_x = min(nb_tile_x, math.ceil(total_nb_frames / nb_tile_y))
     frames_per_contact_sheet = nb_tile_x * nb_tile_y
     total_contact_sheets = math.ceil(total_nb_frames / frames_per_contact_sheet)
+    frames_per_interval = int(fps * frame_interval_seconds)
 
     # Generate contact sheets
     vf = """drawtext=text='%{pts\\:hms}'
@@ -227,6 +237,7 @@ def extract_audio(
     audio_path: Optional[str] = None,
     audio_bitrate: str = "128k",
     acodec: str = "mp3",
+    max_duration: int = 300,  # 5 minutes
 ) -> str:
     if not audio_path:
         video_base_path, _ = os.path.splitext(video_path)
@@ -235,9 +246,14 @@ def extract_audio(
     if os.path.exists(audio_path):
         return audio_path
 
+    probe = ffmpeg.probe(video_path)
+    video_duration = float(probe["streams"][0]["duration"])
+
+    end_time_seconds = min(video_duration, max_duration)
+
     try:
         logger.info("Extracting audio from video")
-        ffmpeg_input = ffmpeg.input(video_path)
+        ffmpeg_input = ffmpeg.input(video_path, to=end_time_seconds)
         ffmpeg_input.output(
             audio_path,
             audio_bitrate=audio_bitrate,
@@ -248,27 +264,51 @@ def extract_audio(
     return audio_path
 
 
-def transcribe_audio(video_path: str) -> str:
-    # Check if a VTT file already exists
-    dir = os.path.dirname(video_path)
-    video_id, _ = os.path.splitext(os.path.basename(video_path))
-    vtt_file = find_file(dir, video_id, (".vtt"))
-    if vtt_file:
-        return vtt_file
+def transcribe_audio(video_path: str, video_path_trimmed: str, start_time: str = "", end_time: str = "") -> str:
+    if start_time:
+        # Check if a VTT file already exists for the trimmed video
+        dir_trimmed = os.path.dirname(video_path_trimmed)
+        video_id_trimmed, _ = os.path.splitext(os.path.basename(video_path_trimmed))
+        vtt_file = find_file(dir_trimmed, video_id_trimmed, (".vtt"), strict=True)
+        if vtt_file:
+            ensure_vtt_format(vtt_file)
+            return vtt_file
 
-    # Check if audio file already exists
-    audio_path = find_file(dir, video_id, (".mp3"))
+        audio_path = find_file(dir_trimmed, video_id_trimmed, (".mp3"), strict=True)
+    else:
+        # Check if a VTT file already exists
+        dir = os.path.dirname(video_path)
+        video_id, _ = os.path.splitext(os.path.basename(video_path))
+        vtt_file = find_file(dir, video_id, (".vtt"), strict=True)
+        if vtt_file:
+            ensure_vtt_format(vtt_file)
+            return vtt_file
+
+        audio_path = find_file(dir, video_id, (".mp3"), strict=True)
+
     if audio_path is None:
-        audio_path = extract_audio(video_path)
+        audio_path = extract_audio(video_path_trimmed)
 
-    vtt_path = video_path.replace(".mp3", ".vtt")
+    vtt_path = audio_path.replace(".mp3", ".vtt")
     model = whisper.load_model("turbo")
-    # TODO: use trimmed video to transcribe and update vtt timestamp based on video start_time
     result = model.transcribe(audio_path)
     output_directory = os.path.dirname(audio_path)
 
     vtt_writer = get_writer("vtt", output_directory)
     vtt_writer(result, audio_path)
+    vtt_path = increase_vtt_timestamps(vtt_path, offset_time=start_time)
+    return vtt_path
+
+
+# function to increade every webvtt timestamp by a given offset
+def increase_vtt_timestamps(vtt_path: str, offset_time: str) -> str:
+    offset_seconds = time_to_seconds(offset_time) if offset_time else 0
+    if offset_seconds > 0:
+        vtt = webvtt.read(vtt_path)
+        for caption in vtt:
+            caption.start = seconds_to_time(time_to_seconds(caption.start) + offset_seconds)
+            caption.end = seconds_to_time(time_to_seconds(caption.end) + offset_seconds)
+        vtt.save(vtt_path)
     return vtt_path
 
 
@@ -277,7 +317,6 @@ def extract_text_from_vtt(vtt_path: str, start_time: str = "", end_time: str = "
     end_time = ensure_milliseconds(end_time)
     text = []
 
-    ensure_vtt_format(vtt_path)
     vtt = webvtt.read(vtt_path)
 
     for caption in vtt.iter_slice(start=start_time, end=end_time):
@@ -304,6 +343,16 @@ def ensure_milliseconds(time: str) -> None:
         time += ".000"
     else:
         time = None
+
+
+def seconds_to_time(seconds: float) -> str:
+    """Convert seconds SS to time string HH.MM.SS.mmm"""
+    hours = int(seconds // 3600)
+    seconds %= 3600
+    minutes = int(seconds // 60)
+    seconds %= 60
+    milliseconds = int((seconds % 1) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{int(seconds):02d}.{milliseconds:03d}"
 
 
 def time_to_seconds(time_str: str) -> float:
