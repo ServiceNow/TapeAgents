@@ -1,33 +1,16 @@
+import os
 import sys
 from itertools import zip_longest
-from typing import Any, Callable
 
 import gradio as gr
 
+from tapeagents.core import LLMCall
+from tapeagents.io import load_tapes
 from tapeagents.renderers.basic import BasicRenderer
 from tapeagents.utils import diff_strings
 
-from ..eval import load_results, tape_correct
-
-
-def loader_fn(fname: str) -> tuple[list, dict, str]:  # returns tapes, prompts and title
-    results = load_results(fname)
-    tapes = results.tapes
-    prompts = {p["prompt"]["id"]: p["prompt"] for p in results.prompts}
-    acc, n_solved = results.accuracy
-    header = f"Accuracy: {acc:.2f}%, {n_solved} out of {len(tapes)}"
-    return tapes, prompts, header
-
-
-def tape_name_fn(n: int, tape: dict, tape2: dict | None) -> str:
-    correct = tape_correct(tape)
-    task = tape["metadata"]["task"]
-    mark = "+" if correct else "-"
-    if tape2:
-        mark += "+" if tape_correct(tape2) else "-"
-    if task["file_name"]:
-        mark += "[f]"
-    return f"{mark}L{task['Level']}:{n+1}: {task['Question'][:32]}"
+from ..eval import calculate_accuracy, tape_correct
+from ..tape import GaiaTape
 
 
 class TapeDiffGUI:
@@ -40,8 +23,6 @@ class TapeDiffGUI:
     def __init__(
         self,
         renderer: BasicRenderer,
-        loader_fn: Callable[[str], tuple[list, dict, str]],
-        tape_name_fn: Callable[[int, Any, Any], str],
         fname: str,
         fname2: str,
         file_extension: str = ".json",
@@ -51,9 +32,24 @@ class TapeDiffGUI:
         self.dirname2 = os.path.dirname(fname2)
         self.fname = os.path.basename(fname)
         self.fname2 = os.path.basename(fname2)
-        self.loader = loader_fn
-        self.tape_name = tape_name_fn
         self.file_extension = file_extension
+
+    def load_tapes(self, fname: str) -> tuple[list[GaiaTape], dict[str, LLMCall], str]:
+        tapes: list[GaiaTape] = load_tapes(GaiaTape, fname)  # type: ignore
+        llm_calls = {}  # TODO: load prompts
+        acc, n_solved = calculate_accuracy(tapes)
+        header = f"Accuracy: {acc:.2f}%, {n_solved} out of {len(tapes)}"
+        return tapes, llm_calls, header
+
+    def tape_name(self, n: int, tape: GaiaTape, tape2: GaiaTape | None) -> str:
+        correct = tape_correct(tape)
+        task = tape.metadata.task
+        mark = "+" if correct else "-"
+        if tape2:
+            mark += "+" if tape_correct(tape2) else "-"
+        if task["file_name"]:
+            mark += "[f]"
+        return f"{mark}L{task['Level']}:{n+1}: {task['Question'][:32]}"
 
     def on_load(self):
         files = sorted([f for f in os.listdir(self.dirname) if f.endswith(self.file_extension)])
@@ -63,8 +59,8 @@ class TapeDiffGUI:
         return file_selector, file_selector2
 
     def update(self, fname: str, fname2: str, n: int, first_time: bool = False):
-        tapes, prompts, header = self.loader(os.path.join(self.dirname, fname))
-        tapes2, prompts2, header2 = self.loader(os.path.join(self.dirname2, fname2))
+        tapes, llm_calls, header = self.load_tapes(os.path.join(self.dirname, fname))
+        tapes2, llm_calls2, header2 = self.load_tapes(os.path.join(self.dirname2, fname2))
         tape_names = []
 
         # prepare list of tape names
@@ -84,36 +80,36 @@ class TapeDiffGUI:
         html = f"""{self.renderer.style}{style}<table class="diff" cellspacing="0" cellpadding="0"><tr class="diff">
             <td class="diff"><h2 style="padding-left: 2em;">{header}</h2></td>
             <td class="diff"><h2 style="padding-left: 2em;">{header2}</h2></td></tr>"""
-        for i, (step_dict, step_dict2) in enumerate(zip_longest(tapes[n]["steps"], tapes2[n]["steps"])):
+        for i, (step, step2) in enumerate(zip_longest(tapes[n].steps, tapes2[n].steps)):
             prompt_text = ""
             diff_class = "diff"
-            if step_dict is None:
-                step = ""
+            if step is None:
+                step_str = ""
             else:
-                step = self.renderer.render_step(step_dict, i, folded=False)
-                prompt_id = step_dict.pop("prompt_id", None)
-                if prompt_id in prompts:
-                    prompt_text = self.renderer.render_llm_call(prompts[prompt_id])
-                    step = prompt_text + step
-            if step_dict2 is None:
-                step2 = ""
+                step_str = self.renderer.render_step(step, i, folded=False)
+                prompt_id = step.metadata.prompt_id
+                if prompt_id and prompt_id in llm_calls:
+                    prompt_text = self.renderer.render_llm_call(llm_calls[prompt_id])
+                    step_str = prompt_text + step_str
+            if step2 is None:
+                step2_str = ""
             else:
-                step2 = self.renderer.render_step(step_dict2, i, folded=False)
-                prompt_id2 = step_dict2.pop("prompt_id", None)
-                if step_dict and step_dict != step_dict2:
+                step2_str = self.renderer.render_step(step2, i, folded=False)
+                prompt_id2 = step2.metadata.prompt_id
+                if step and step != step2:
                     diff_class = "diff_highlight"
-                    if step_dict["kind"] == step_dict2["kind"]:
+                    if step.kind == step2.kind:
                         # highlight differences in step B
-                        step2 = diff_strings(
-                            self.renderer.render_step(step_dict, i, folded=False), step2, use_html=True, by_words=True
+                        step2_str = diff_strings(
+                            self.renderer.render_step(step, i, folded=False), step2_str, use_html=True, by_words=True
                         )
-                if prompt_id2 in prompts2:
-                    prompt_text2 = self.renderer.render_llm_call(prompts2[prompt_id2])
+                if prompt_id2 in llm_calls2:
+                    prompt_text2 = self.renderer.render_llm_call(llm_calls2[prompt_id2])
                     if prompt_text and prompt_text != prompt_text2:
                         # highlight differences in prompt B
                         prompt_text2 = diff_strings(prompt_text, prompt_text2, use_html=True, by_words=True)
-                    step2 = prompt_text2 + step2
-            html += f'<tr class="diff"><td class="diff">{step}</td><td class="{diff_class}">{step2}</td></tr>'
+                    step2_str = prompt_text2 + step2_str
+            html += f'<tr class="diff"><td class="diff">{step_str}</td><td class="{diff_class}">{step2_str}</td></tr>'
         html += "</table>"
 
         return html, tape_names, tape_names2
@@ -158,5 +154,5 @@ class TapeDiffGUI:
 
 if __name__ == "__main__":
     assert len(sys.argv) == 3, "Usage: python -m scripts.tape_diff <fname1> <fname2>"
-    gui = TapeDiffGUI(BasicRenderer(), loader_fn, tape_name_fn, sys.argv[1], sys.argv[2])
+    gui = TapeDiffGUI(BasicRenderer(), sys.argv[1], sys.argv[2])
     gui.launch()
