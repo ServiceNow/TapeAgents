@@ -3,9 +3,9 @@ from pathlib import Path
 
 from tapeagents.core import Action
 from tapeagents.environment import Environment
-from tapeagents.steps import VideoObservation, WatchVideoAction
+from tapeagents.steps import WatchVideoAction
 from tapeagents.tools.calculator import calculate
-from tapeagents.tools.media_reader import get_video
+from tapeagents.tools.media_reader import get_video_observation
 from tapeagents.tools.python_interpreter import python_calculate, run_python_code
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.utils import FatalError
@@ -35,9 +35,6 @@ class GaiaEnvironment(Environment):
         self.attachment_dir = attachment_dir
         self.browser = SimpleTextBrowser(**kwargs)
         self.calculate = calculate if safe_calculator else python_calculate
-
-        # Create attachment directory if it doesn't exist
-        Path(attachment_dir).mkdir(parents=True, exist_ok=True)
 
     def react(self, tape: GaiaTape) -> GaiaTape:
         actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
@@ -80,19 +77,10 @@ class GaiaEnvironment(Environment):
                             )
                         )
                     case WatchVideoAction():
-                        video_path, video_contact_sheet_paths, thumbnail_path, subtitle_path, subtitle_text, error = (
-                            get_video(action.video_url, self.attachment_dir, action.start_time, action.end_time)
+                        video_observation = get_video_observation(
+                            action.video_url, self.attachment_dir, action.start_time, action.end_time
                         )
-                        tape = tape.append(
-                            VideoObservation(
-                                video_path=video_path,
-                                video_contact_sheet_paths=video_contact_sheet_paths,
-                                thumbnail_path=thumbnail_path,
-                                subtitle_path=subtitle_path,
-                                subtitle_text=subtitle_text,
-                                error=error or None,
-                            )
-                        )
+                        tape = tape.append(video_observation)
                     case ConvertFactAction():
                         result = self.calculate(
                             action.expression,

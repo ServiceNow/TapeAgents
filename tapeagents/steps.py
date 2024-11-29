@@ -1,11 +1,9 @@
-import base64
-import json
-import os
 from typing import Literal
 
 from pydantic import Field
 
 from tapeagents.core import Action, Observation, Thought
+from tapeagents.utils import image_base64_message
 
 ################# Actions #################
 
@@ -78,19 +76,3 @@ class WatchingVideoThought(Thought):
     frame_description: list[str] = Field(
         description="detailed and specific description of each frame of the video contact sheet"
     )
-
-
-################### Utils ###################
-
-
-def image_base64_message(image_path: str) -> dict:
-    _, image_extension = os.path.splitext(image_path)
-    content_type = f"image/{image_extension}"
-    base64_image = encode_image(image_path)
-    message = {"type": "image_url", "image_url": {"url": f"data:{content_type};base64,{base64_image}"}}
-    return message
-
-
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")

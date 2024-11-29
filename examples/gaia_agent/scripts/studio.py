@@ -4,6 +4,7 @@ import os
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
+
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.studio import Studio
 
@@ -30,6 +31,7 @@ def main(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     llm = instantiate(cfg.llm)
     attachment_dir = cfg.attachment_dir
+    os.makedirs(attachment_dir, exist_ok=True)
     env = GaiaEnvironment(vision_lm=llm, attachment_dir=attachment_dir)
     agent = GaiaAgent.create(llm, **cfg.agent)
     content = "How many calories in 2 teaspoons of hummus"

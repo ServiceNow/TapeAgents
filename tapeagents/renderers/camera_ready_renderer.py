@@ -196,6 +196,13 @@ class CameraReadyRenderer(BasicRenderer):
             return ""
         prompt_messages = [f"tool_schemas: {json.dumps(llm_call.prompt.tools, indent=2)}"]
         for m in llm_call.prompt.messages:
+            # Replace image encoded in base64 with a placeholder
+            if isinstance(m["content"], list):
+                for c in m["content"]:
+                    if c.get("image_url"):
+                        if url := c.get("image_url").get("url"):
+                            if url.startswith("data:image/"):
+                                c["image_url"]["url"] = "data:image/(base64_content)"
             role = f"{m['role']} ({m['name']})" if "name" in m else m["role"]
             prompt_messages.append(f"{role}: {m['content'] if 'content' in m else m['tool_calls']}")
         prompt_text = "\n--\n".join(prompt_messages)

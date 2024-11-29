@@ -10,17 +10,17 @@ import whisper
 import yt_dlp
 from whisper.utils import get_writer
 
+from tapeagents.steps import VideoObservation
+
 logger = logging.getLogger(__name__)
 
 
-def get_video(
+def get_video_observation(
     url: str,
     output_dir: str,
     start_time: str = "",
     end_time: str = "",
-) -> Tuple[str, str, Optional[str], Optional[str], Optional[str], Optional[str]]:
-    os.makedirs(output_dir, exist_ok=True)
-
+) -> VideoObservation:
     try:
         video_path, thumbnail_path = download_video(url, output_dir)
         video_path_trimmed = trim_video(video_path, start_time, end_time)
@@ -33,7 +33,9 @@ def get_video(
     except Exception as e:
         logger.error(f"Error while watching video: {e}")
         raise e
-    return video_path_trimmed, video_contact_sheet_paths, thumbnail_path, subtitle_path, subtitle_text, error
+    return VideoObservation(
+        video_path_trimmed, video_contact_sheet_paths, thumbnail_path, subtitle_path, subtitle_text, error
+    )
 
 
 def download_video(url: str, output_dir: str) -> str:
