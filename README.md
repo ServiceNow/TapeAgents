@@ -1,8 +1,13 @@
 # TapeAgents
 
+[![GitHub Release](https://img.shields.io/github/v/release/ServiceNow/TapeAgents?logo=bookstack&logoColor=white)](https://github.com/ServiceNow/TapeAgents/releases)
+[![PyPI - Version](https://img.shields.io/pypi/v/TapeAgents?logo=pypi&logoColor=white)](https://pypi.org/project/TapeAgents/)
+[![Documentation](https://img.shields.io/badge/MkDocs-Documentation-blue?logo=materialformkdocs&logoColor=white)](https://servicenow.github.io/TapeAgents/)
 ![Build Status](https://github.com/ServiceNow/TapeAgents/actions/workflows/build.yml/badge.svg)
 ![Tests Status](https://github.com/ServiceNow/TapeAgents/actions/workflows/python-tests.yml/badge.svg)
 ![Supported Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
+
+
 
 **TapeAgents** is a framework that leverages a structured, replayable log (**Tape**) of the agent session to facilitate all stages of the LLM Agent development lifecycle. In TapeAgents, the agent reasons by processing the tape and the LLM output to produce new thoughts, actions, control flow steps and append them to the tape. The environment then reacts to the agent’s actions by likewise appending observation steps to the tape.
 
