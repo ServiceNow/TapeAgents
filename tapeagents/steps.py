@@ -33,17 +33,16 @@ class WatchVideoAction(Action):
 class ImageObservation(Observation):
     kind: Literal["image_observation"] = "image_observation"
     image_path: str
-    thumbnail_path: str
-    image_caption: str
+    thumbnail_path: str | None = None
+    image_caption: str | None = None
     error: int | None = None
 
-    def llm_view_trimmed(self, indent: int | None = 2) -> list[dict]:
-        step_data = {"kind": self.kind, "image_caption": self.image_caption, "error": self.error}
-        return json.dumps(step_data, indent=indent, ensure_ascii=False)
-
-    def llm_view(self, indent: int | None = 2) -> list[dict]:
-        llm_view = [{"type": "text", "text": self.llm_view_trimmed()}]
-        llm_view.append(image_base64_message(self.image_path))
+    def llm_view(self) -> list[dict]:
+        llm_view = []
+        if self.image_caption:
+            llm_view.append[{"type": "text", "text": self.image_caption}]
+        if self.image_path:
+            llm_view.append(image_base64_message(self.image_path))
         return llm_view
 
 
@@ -56,16 +55,13 @@ class VideoObservation(Observation):
     subtitle_text: str | None = None
     error: int | None = None
 
-    def llm_view_trimmed(self, indent: int | None = 2) -> list[dict]:
-        step_data = {"kind": self.kind, "subtitle_text": self.subtitle_text, "error": self.error}
-        return json.dumps(step_data, indent=indent, ensure_ascii=False)
-
-    def llm_view(self, indent: int | None = 2) -> list[dict]:
-        llm_view = [
-            {"type": "text", "text": self.llm_view_trimmed()},
-        ]
-        for path in self.video_contact_sheet_paths:
-            llm_view.append(image_base64_message(path))
+    def llm_view(self) -> list[dict]:
+        llm_view = []
+        if self.subtitle_text:
+            llm_view.append({"type": "text", "text": self.subtitle_text})
+        if self.video_contact_sheet_paths:
+            for path in self.video_contact_sheet_paths:
+                llm_view.append(image_base64_message(path))
         return llm_view
 
 
@@ -74,7 +70,7 @@ class VideoObservation(Observation):
 
 class WatchingVideoThought(Thought):
     """
-    Thought that outputs the detailed description of each frame of the video contact sheet
+    Thought that outputs the detailed description of the video
     """
 
     kind: Literal["watching_video_thought"] = "watching_video_thought"
@@ -82,6 +78,9 @@ class WatchingVideoThought(Thought):
     frame_description: list[str] = Field(
         description="detailed and specific description of each frame of the video contact sheet"
     )
+
+
+################### Utils ###################
 
 
 def image_base64_message(image_path: str) -> dict:

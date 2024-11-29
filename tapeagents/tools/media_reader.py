@@ -158,7 +158,7 @@ def generate_contact_sheets_from_video(
         if file.startswith(file_base_path) and re.search(r"{}\d+".format(output_suffix), file):
             output_paths.append(os.path.join(output_dir, file))
     if len(output_paths) > 0:
-        logger.info("Use cached contact sheets:", output_paths)
+        logger.info(f"Use cached contact sheets: {output_paths}")
         return output_paths
 
     # Determine the number of frames and contact sheets needed
@@ -216,7 +216,7 @@ def generate_contact_sheets_from_video(
         except ffmpeg.Error as e:
             logger.error(f"ffmpeg error: {e.stderr.decode('utf-8')}")
             raise e
-    logger.info("Generated contact sheets:", output_paths)
+    logger.info(f"Generated contact sheets: {output_paths}")
     return output_paths
 
 
