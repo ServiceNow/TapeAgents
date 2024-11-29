@@ -35,7 +35,7 @@ def get_training_samples_from_tapes(tapes_path: str) -> list[TrainingText]:
     failures = 0
     not_solved = 0
     with_duplicates = 0
-    tape_files = [os.path.join(tapes_path, f) for f in os.listdir(tapes_path) if f.endswith(".json")]
+    tape_files = sorted([os.path.join(tapes_path, f) for f in os.listdir(tapes_path) if f.endswith(".json")])
     for tape_file in tqdm(tape_files):
         with open(tape_file) as f:
             tape_dict = json.load(f)

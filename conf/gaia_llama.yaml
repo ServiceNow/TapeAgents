@@ -3,9 +3,9 @@ defaults:
   - _self_
   
 exp_name: llama3_405b_1
-exp_path: ../gaia/runs/${exp_name}
+exp_path: outputs/gaia/runs/${exp_name}
+split: validation
 attachment_dir: ${exp_path}/attachments/
-data_dir: ../gaia/dataset/validation/
 n_attempts: 1
 agent:
   planning_mode: simple
@@ -18,4 +18,4 @@ env:
 
 hydra:
   run:
-    dir: ../gaia/runs/${exp_name}
+    dir: outputs/gaia/runs/${exp_name}
