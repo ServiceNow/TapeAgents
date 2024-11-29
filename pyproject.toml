@@ -8,25 +8,28 @@ version = "0.1.1"
 requires-python = ">= 3.10"
 description = "TapeAgents framework for building, tuning and evaluating LLM Agents"
 authors = [
-  {name="Dzmitry Bahdanau"},
-  {name="Oleh Shliazhko"},
-  {name="Alexandre Piché"},
-  {name="Jordan Prince Tremblay"}
+  { name = "Dzmitry Bahdanau" },
+  { name = "Oleh Shliazhko" },
+  { name = "Alexandre Piché" },
+  { name = "Jordan Prince Tremblay" },
 ]
-license = {text = "Apache-2.0"}
+license = { text = "Apache-2.0" }
 readme = "README.md"
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "License :: OSI Approved :: Apache Software License",
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "License :: OSI Approved :: Apache Software License",
 ]
 dynamic = ["dependencies", "optional-dependencies"]
 
+[project.urls]
+"GitHub" = "https://github.com/ServiceNow/TapeAgents"
+
 [tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+dependencies = { file = ["requirements.txt"] }
 optional-dependencies.converters = { file = ["requirements.converters.txt"] }
 optional-dependencies.finetune = { file = ["requirements.finetune.txt"] }
 
@@ -49,7 +52,7 @@ combine_as_imports = true
 
 [tool.pytest.ini_options]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "gpu: requires gpu",
-    "multi_gpu: requires more than 1 gpu",
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "gpu: requires gpu",
+  "multi_gpu: requires more than 1 gpu",
 ]
