@@ -32,15 +32,14 @@ for path in sorted(src.rglob("*.py")):
         "llm_function": "LLM Function",
     }
     nav_key = list(parts[1:])
-    if not nav_key:
-        continue
-    for i in range(len(nav_key)):
-        if nav_key[i] in nav_aliases:
-            nav_key[i] = nav_aliases[nav_key[i]]
-        else:
-            nav_key[i] = nav_key[i].title().replace("_", " ").strip()
-    nav_key = tuple(nav_key)
-    nav[nav_key] = doc_path.as_posix()
+    if nav_key:
+        for i in range(len(nav_key)):
+            if nav_key[i] in nav_aliases:
+                nav_key[i] = nav_aliases[nav_key[i]]
+            else:
+                nav_key[i] = nav_key[i].title().replace("_", " ").strip()
+        nav_key = tuple(nav_key)
+        nav[nav_key] = doc_path.as_posix()
 
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
         identifier = ".".join(parts)

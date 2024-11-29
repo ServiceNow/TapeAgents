@@ -8,7 +8,9 @@ from typing import Any, Generator, Type
 
 from pydantic import Field, TypeAdapter, ValidationError
 
-from .agent import Node
+from tapeagents.view import Call, Respond, TapeViewStack
+
+from .agent import Agent, Node
 from .core import (
     AgentStep,
     LLMOutput,
@@ -426,3 +428,32 @@ class FixedStepsNode(Node):
     ) -> Generator[Step | PartialStep, None, None]:
         for step in self.steps:
             yield step
+
+
+class CallSubagent(Node):
+    """
+    Node that calls a subagent with inputs from the current tape view.
+    """
+
+    agent: Agent
+    inputs: tuple[str | int, ...] = Field(
+        default_factory=tuple,
+        description="Names of the subagents which outputs are required for the current subagent to run",
+    )
+
+    def model_post_init(self, __context: Any) -> None:
+        self.name = f"{self.agent.name}Node"
+
+    def generate_steps(self, _: Any, tape: Tape, llm_stream: LLMStream):
+        view = TapeViewStack.compute(tape)
+        yield Call(agent_name=self.agent.name)
+        for input_ in self.inputs:
+            yield view.top.get_output(input_).model_copy(deep=True)
+
+
+class RespondIfNotRootNode(Node):
+    def generate_steps(self, _: Any, tape: Tape, llm_stream: LLMStream):
+        view = TapeViewStack.compute(tape)
+        if len(view.stack) > 1:
+            yield Respond(copy_output=True)
+        return

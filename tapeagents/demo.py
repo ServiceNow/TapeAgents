@@ -4,12 +4,12 @@ from typing import Generator
 
 import gradio as gr
 
-from .agent import Agent, Annotator, ObservationMaker
-from .core import Episode, Tape
-from .dialog_tape import AssistantStep, UserStep
-from .environment import Environment, ExternalObservationNeeded
-from .rendering import BasicRenderer
-from .orchestrator import main_loop
+from tapeagents.agent import Agent, Annotator, ObservationMaker
+from tapeagents.core import Episode, Tape
+from tapeagents.dialog_tape import AssistantStep, UserStep
+from tapeagents.environment import Environment, ExternalObservationNeeded
+from tapeagents.orchestrator import main_loop
+from tapeagents.renderers.basic import BasicRenderer
 
 logger = logging.getLogger(__name__)
 

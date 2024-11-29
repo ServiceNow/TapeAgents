@@ -1,3 +1,5 @@
+"""Batch processing of tapes."""
+
 import logging
 import random
 import traceback

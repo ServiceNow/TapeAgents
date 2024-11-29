@@ -128,7 +128,7 @@ class ToolCalls(Action):
             dicts (list): A list of dictionaries where each dictionary represents a tool call.
 
         Returns:
-            ToolCalls: An instance of ToolCalls created from the provided list of dictionaries.
+            (ToolCalls): An instance of ToolCalls created from the provided list of dictionaries.
         """
         return ToolCalls.model_validate({"tool_calls": dicts})
 
@@ -229,7 +229,7 @@ class ToolSpec(BaseModel):
             function (Callable): The function to be converted and validated.
 
         Returns:
-            An instance of the class with the validated model.
+            (ToolSpec): An instance of the class with the validated model.
         """
         return cls.model_validate(convert_to_openai_tool(function))
 

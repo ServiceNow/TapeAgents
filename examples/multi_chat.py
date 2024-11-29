@@ -2,14 +2,14 @@ import datetime
 import logging
 import sys
 
-from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import FinalStep
 from tapeagents.environment import CodeExecutionEnvironment
 from tapeagents.llms import LiteLLM
 from tapeagents.orchestrator import main_loop
-from tapeagents.rendering import PrettyRenderer
+from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
 from tapeagents.team import TeamAgent, TeamTape
+from tapeagents.tools.container_executor import ContainerExecutor
 from tapeagents.view import Call, Respond
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

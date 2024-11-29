@@ -242,7 +242,7 @@ class Agent(BaseModel, Generic[TapeType]):
         Gets the manager of the agent.
 
         Returns:
-            Agent: The manager agent instance.
+            (Agent): The manager agent instance.
 
         Raises:
             ValueError: If the agent doesn't have a manager assigned.
@@ -257,7 +257,7 @@ class Agent(BaseModel, Generic[TapeType]):
         Get the default LLM instance associated with the agent.
 
         Returns:
-            LLM: The default LLM instance if only one LLM is configured.
+            (LLM): The default LLM instance if only one LLM is configured.
 
         Raises:
             ValueError: If multiple LLMs are configured for this agent. In this case, use the `llms`
@@ -277,7 +277,7 @@ class Agent(BaseModel, Generic[TapeType]):
         should be accessed through the templates property instead.
 
         Returns:
-            Template: The default template object.
+            (Template): The default template object.
 
         Raises:
             ValueError: If the agent has more than one template.
@@ -296,7 +296,7 @@ class Agent(BaseModel, Generic[TapeType]):
         manager, returns just the agent's name.
 
         Returns:
-            str: The full hierarchical name path of the agent. Examples: "agent_name" (no manager), "manager_name/agent_name" (with manager)
+            (str): The full hierarchical name path of the agent. Examples: "agent_name" (no manager), "manager_name/agent_name" (with manager)
         """
         if self._manager is None:
             return self.name
@@ -310,7 +310,7 @@ class Agent(BaseModel, Generic[TapeType]):
             name (str): The name of the subagent to find.
 
         Returns:
-            Agent: The found subagent instance.
+            (Agent): The found subagent instance.
 
         Raises:
             ValueError: If no subagent with the given name is found.
@@ -327,7 +327,7 @@ class Agent(BaseModel, Generic[TapeType]):
             name (str): The name of the node to find.
 
         Returns:
-            Node: The node with the matching name.
+            (Node): The node with the matching name.
 
         Raises:
             ValueError: If no node with the given name is found.
@@ -378,7 +378,7 @@ class Agent(BaseModel, Generic[TapeType]):
                 - A dictionary mapping names to template configurations
                 - A single template string (will be mapped to default name)
                 - None (no templates will be used)
-            **kwargs: Additional keyword arguments to pass to the class constructor
+            **kwargs (dict, optional): Additional keyword arguments to pass to the class constructor
 
         Returns:
             Self: A new instance of the class initialized with the provided arguments

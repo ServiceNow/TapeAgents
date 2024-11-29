@@ -640,7 +640,7 @@ class FileConverter:
         """
         Args:
             source (str): can be a string representing a path or url, or a requests.response object
-            **kwargs: additional options to pass to the converters
+            **kwargs (dict, optional): additional options to pass to the converters
         """
 
         # Local path or url

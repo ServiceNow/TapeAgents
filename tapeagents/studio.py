@@ -9,7 +9,8 @@ from tapeagents.core import Tape
 from tapeagents.environment import Environment
 from tapeagents.observe import get_latest_tape_id, observe_tape, retrieve_tape, retrieve_tape_llm_calls
 from tapeagents.orchestrator import MainLoopEvent, main_loop
-from tapeagents.rendering import BasicRenderer, render_agent_tree
+from tapeagents.renderers import render_agent_tree
+from tapeagents.renderers.basic import BasicRenderer
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 """
-I/O utilities for Tape objects.
+I/O routines for Tapes.
 """
 
 import json

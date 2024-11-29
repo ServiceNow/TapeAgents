@@ -3,14 +3,15 @@ import logging
 import sys
 
 from tapeagents.agent import Agent
-from tapeagents.container_executor import ContainerExecutor
 from tapeagents.core import Action, FinalStep, Observation, Tape
 from tapeagents.environment import CodeExecutionEnvironment, Environment
 from tapeagents.llms import LLM, LiteLLM
 from tapeagents.orchestrator import main_loop
+from tapeagents.renderers.basic import BasicRenderer
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
-from tapeagents.rendering import BasicRenderer, PrettyRenderer
+from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.team import TeamAgent, TeamTape
+from tapeagents.tools.container_executor import ContainerExecutor
 from tapeagents.view import Call, Respond
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

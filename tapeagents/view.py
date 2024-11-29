@@ -1,3 +1,7 @@
+"""
+Views and view stacks for subagents context isolation.
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict

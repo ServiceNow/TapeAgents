@@ -1,15 +1,21 @@
+"""
+Multiagent building blocks for orchestrating multiple agents in a team.
+"""
+
 from __future__ import annotations
 
 import logging
-from typing import Generator
+from typing import Generator, Generic
 
 from pydantic import ConfigDict
+from typing_extensions import Self
 
 from tapeagents.agent import DEFAULT, Agent, AgentStep, Node
-from tapeagents.container_executor import extract_code_blocks
-from tapeagents.core import FinalStep, Pass, Prompt, SetNextNode, StepMetadata, Tape
+from tapeagents.core import FinalStep, Pass, Prompt, SetNextNode, StepMetadata, Tape, TapeType
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM, LLMStream
+from tapeagents.nodes import CallSubagent, RespondIfNotRootNode
+from tapeagents.tools.container_executor import extract_code_blocks
 from tapeagents.view import Broadcast, Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
@@ -322,3 +328,14 @@ def _llm_messages_from_tape(agent: TeamAgent, tape: TeamTape) -> list[dict[str, 
             case Broadcast():
                 llm_messages.append({"role": "user", "content": step.content, "name": step.from_})
     return llm_messages
+
+
+class Chain(Agent[TapeType], Generic[TapeType]):
+    """Calls agents sequentially. Copies thoughts of previous agents for the next agents."""
+
+    @classmethod
+    def create(cls, nodes: list[CallSubagent], **kwargs) -> Self:
+        subagents = []
+        for node in nodes:
+            subagents.append(node.agent)
+        return super().create(nodes=nodes + [RespondIfNotRootNode()], subagents=subagents, **kwargs)

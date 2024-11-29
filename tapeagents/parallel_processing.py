@@ -1,3 +1,7 @@
+"""
+Functions for parallel processing of agent workers.
+"""
+
 from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from functools import partial
 from queue import Empty, Full, Queue

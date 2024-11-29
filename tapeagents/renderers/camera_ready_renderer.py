@@ -3,13 +3,22 @@ import json
 
 import yaml
 
-from tapeagents.container_executor import CodeBlock
 from tapeagents.core import Action, Error, Observation, SetNextNode, Step, Thought
 from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, ToolCalls, ToolResult, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.observe import LLMCall
-from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer
+from tapeagents.renderers.basic import BasicRenderer
+from tapeagents.tools.container_executor import CodeBlock
 from tapeagents.view import Broadcast, Call, Respond
+
+YELLOW = "#ffffba"
+LIGHT_YELLOW = "#ffffdb"
+SAND = "#e5e5a7"
+WHITE = "#ffffff"
+PURPLE = "#E6E6FA"
+RED = "#ff7b65"
+GREEN = "#6edb8f"
+BLUE = "#bae1ff"
 
 
 class CameraReadyRenderer(BasicRenderer):
@@ -204,12 +213,12 @@ class CameraReadyRenderer(BasicRenderer):
         return html
 
 
-def dict_to_params(arguments: str) -> str:
+def dict_to_params(arguments: str | dict) -> str:
     """
     Transform a dictionary into a function parameters string.
     Example: {'a': 1, 'b': 2} -> 'a=1, b=2'
     """
-    if type(arguments) is str:
+    if isinstance(arguments, str):
         arguments = str_to_dict(arguments)
     return ", ".join(f"{key}={value!r}" for key, value in arguments.items())
 
