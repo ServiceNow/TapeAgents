@@ -6,6 +6,7 @@ from typing import Any, Generic, Iterable, Iterator, List, Literal, TypeAlias, T
 from uuid import uuid4
 
 import litellm
+from litellm.utils import ChoiceLogprobs
 from pydantic import BaseModel, Field, SerializeAsAny
 from typing_extensions import Self
 
@@ -220,6 +221,7 @@ class LLMCall(BaseModel):
     prompt_length_tokens: int = -1
     output_length_tokens: int = -1
     cached: bool
+    logprobs: ChoiceLogprobs | None = None
 
 
 AnnotatorTape = Tape[TapeType, StepType]

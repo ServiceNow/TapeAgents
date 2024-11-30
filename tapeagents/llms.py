@@ -99,6 +99,7 @@ class LLM(BaseModel, ABC):
             prompt_length_tokens=self.count_tokens(prompt.messages),
             output_length_tokens=self.count_tokens(message.content) if message.content else 0,
             cached=cached,
+            logprobs=message._logprobs if message._logprobs else None,
         )
         self._log.append(llm_call.model_dump())
         observe_llm_call(llm_call)

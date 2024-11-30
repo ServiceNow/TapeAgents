@@ -92,7 +92,7 @@ def sqlite_writer(call):
                     call.prompt_length_tokens,
                     call.output_length_tokens,
                     call.cached,
-                    call.output._logprobs.model_dump_json() if call.output._logprobs.model_dump_json() is not None else None,
+                    call.logprobs.model_dump_json() if call.output._logprobs.model_dump_json() is not None else None,
                 ),
             )
             cursor.close()
