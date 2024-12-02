@@ -164,9 +164,16 @@ class GaiaTapeBrowser(TapeBrowser):
                 exp_dir = os.path.join(self.tapes_folder, r)
                 try:
                     cfg = get_exp_config_dict(exp_dir)
-                    set_name = cfg["split"]
-                except Exception:
-                    set_name = "-"
+                    if "split" in cfg:
+                        set_name = cfg["split"]
+                    elif "data_dir" in cfg:
+                        parts = cfg["data_dir"].split("/")
+                        set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                    else:
+                        set_name = ""
+                except Exception as e:
+                    logger.error(f"Failed to load config from {exp_dir}: {e}")
+                    set_name = ""
                 exps.append(f"{set_name}/{r}/{postfix}")
         return sorted(exps)
 

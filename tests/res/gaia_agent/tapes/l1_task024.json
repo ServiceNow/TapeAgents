@@ -1,0 +1,172 @@
+{
+    "metadata": {
+        "id": "3c0aa083-7342-4ec3-b57c-c381c8fd3dc0",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "4",
+        "terminated": false,
+        "task": {
+            "task_id": "a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c",
+            "Question": "How many slides in this PowerPoint presentation mention crustaceans?",
+            "Level": 1,
+            "Final answer": "4",
+            "file_name": "data/gaia/2023/validation/a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c.pptx",
+            "Annotator Metadata": {
+                "Steps": "1. Open the provided file.\n2. Scroll through the presentation, noting the animal names on each slide.\n3. Search the web for “crayfish” to verify that they are crustaceans.\n4. Read the results, noting that they are crustaceans.\n5. Search the web for “isopods” to verify whether they are crustaceans.\n6. Read the results, noting that they are.\n7. Since I’m confident that I know whether all of the other animals are crustaceans, I count the ones that are to get the answer, 4.",
+                "Number of steps": "7",
+                "How long did this take?": "5 minutes",
+                "Tools": "1. PowerPoint viewer",
+                "Number of tools": "1"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "a6bfeea4-ab99-4490-8133-b3dc3d1ab8af",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "How many slides in this PowerPoint presentation mention crustaceans?\n\nPPTX document content:\n<!-- Slide number: 1 -->\n# Animals That are awesome and aquatic\n\n### Notes:\n\n<!-- Slide number: 2 -->\n# crayfish\n\n### Notes:\n\n<!-- Slide number: 3 -->\n# nematodes\n\n### Notes:\n\n<!-- Slide number: 4 -->\n# isopods\n\n### Notes:\n\n<!-- Slide number: 5 -->\n# eels\n\n### Notes:\n\n<!-- Slide number: 6 -->\n# Yeti crab\n\n### Notes:\n\n<!-- Slide number: 7 -->\n# Spider crab\n\n### Notes:\n\n<!-- Slide number: 8 -->\n# jellyfish\n\n### Notes:\n\nPath to the mentioned document: /tmp/a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c.pptx",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "da837994-2797-4061-bbfd-9c4a1d7a2910",
+                "prompt_id": "6f50575c-0fad-433d-b927-d57e817f5e51",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Open the PowerPoint presentation file located at /tmp/a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c.pptx.",
+                "Read the content of each slide in the presentation.",
+                "Count the number of slides that contain the term 'crustaceans' or specific crustacean names such as 'crayfish', 'isopods', 'Yeti crab', and 'Spider crab'.",
+                "Return the total count of slides that mention crustaceans."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f20f41ef-ac02-4272-9c8d-928e542e632d",
+                "prompt_id": "36d090b1-90e7-4f13-87dd-cd7aabeb94d3",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "facts_ledger_thought",
+            "given_facts": [
+                "The PowerPoint presentation contains 8 slides.",
+                "Slide 2 mentions 'crayfish'.",
+                "Slide 4 mentions 'isopods'.",
+                "Slide 6 mentions 'Yeti crab'.",
+                "Slide 7 mentions 'Spider crab'."
+            ],
+            "found_facts": [],
+            "facts_to_lookup": [],
+            "facts_to_derive": [],
+            "educated_guesses": []
+        },
+        {
+            "metadata": {
+                "id": "a9a5c57b-ef85-4137-98e2-9b2fb17f1a51",
+                "prompt_id": "72632bb7-a4c2-428a-9a17-cb63ec521dc8",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "/tmp/a3fbeb63-0e8c-4a11-bff6-0e3b484c3e9c.pptx",
+            "fact_description": "slides that mention crustaceans",
+            "fact_name": "crustacean_slide_count"
+        },
+        {
+            "metadata": {
+                "id": "ba53127a-0a8f-4e1f-921c-1248cd1683fb",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "<!-- Slide number: 1 -->\n# Animals That are awesome and aquatic\n\n### Notes:\n\n<!-- Slide number: 2 -->\n# crayfish\n\n### Notes:\n\n<!-- Slide number: 3 -->\n# nematodes\n\n### Notes:\n\n<!-- Slide number: 4 -->\n# isopods\n\n### Notes:\n\n<!-- Slide number: 5 -->\n# eels\n\n### Notes:\n\n<!-- Slide number: 6 -->\n# Yeti crab\n\n### Notes:\n\n<!-- Slide number: 7 -->\n# Spider crab\n\n### Notes:\n\n<!-- Slide number: 8 -->\n# jellyfish\n\n### Notes:",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "aba3cae3-0a40-446a-aaa1-c625181cfdc5",
+                "prompt_id": "74ff9fdb-245a-4fc2-b714-76e59766bbc6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "slides that mention crustaceans",
+            "fact_found": true,
+            "quote_with_fact": "Slide 2 mentions 'crayfish', Slide 4 mentions 'isopods', Slide 6 mentions 'Yeti crab', Slide 7 mentions 'Spider crab'.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "d503d1d9-150e-47a3-b27e-6eb92034909f",
+                "prompt_id": "74ff9fdb-245a-4fc2-b714-76e59766bbc6",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "5b9ae495-d39f-42f4-8ad4-63b6a21fa7ca",
+                "prompt_id": "3e455bbb-480f-44f5-a02d-69c0e02f887f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "crustacean_slide_count",
+            "unit": "",
+            "value": 4
+        },
+        {
+            "metadata": {
+                "id": "dcdff806-3cbd-4850-a7cc-e779224323fa",
+                "prompt_id": "3e455bbb-480f-44f5-a02d-69c0e02f887f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "67155d6b-19b6-43de-b47b-87e82272d4ae",
+                "prompt_id": "909950e7-5a9b-4018-8660-f7eab4e9dc8f",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Count of slides mentioning crustaceans.",
+            "answer_unit": "",
+            "answer": "4"
+        }
+    ]
+}

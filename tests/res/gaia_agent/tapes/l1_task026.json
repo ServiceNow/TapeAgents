@@ -1,0 +1,380 @@
+{
+    "metadata": {
+        "id": "2c82b7c6-041c-47ab-9641-d1f1ec18f640",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "Extremely",
+        "terminated": false,
+        "task": {
+            "task_id": "9d191bce-651d-4746-be2d-7ef8ecadb9c2",
+            "Question": "Examine the video at https://www.youtube.com/watch?v=1htKBjuUWec.\n\nWhat does Teal'c say in response to the question \"Isn't that hot?\"",
+            "Level": 1,
+            "Final answer": "Extremely",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Follow the link\n2. Watch the clip until the question \"Isn't that hot\" is asked\n3. Take note of the reply.",
+                "Number of steps": "3",
+                "How long did this take?": "2 minutes",
+                "Tools": "1. Web browser\n2. Video processing software\n3. Audio processing software",
+                "Number of tools": "1"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "869e7cf5-36e7-441d-9c70-203163af8074",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "Examine the video at https://www.youtube.com/watch?v=1htKBjuUWec.\n\nWhat does Teal'c say in response to the question \"Isn't that hot?\"",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "8df830fc-4ecc-4230-81b9-c5a9f7db7536",
+                "prompt_id": "56230888-8cb0-4fc7-935e-b8238c86e49e",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Open the provided YouTube link to access the video.",
+                "Play the video and locate the segment where the question \"Isn't that hot?\" is asked.",
+                "Listen carefully to Teal'c's response to the question.",
+                "Note down the exact words spoken by Teal'c in response."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f55d7e14-0907-4333-87ab-5400bf1aaa54",
+                "prompt_id": "e8b3212e-ea93-4961-a127-196112381b70",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "facts_ledger_thought",
+            "given_facts": [
+                "The video is located at the URL https://www.youtube.com/watch?v=1htKBjuUWec.",
+                "Teal'c is a character who responds to the question 'Isn't that hot?'"
+            ],
+            "found_facts": [],
+            "facts_to_lookup": [
+                "The specific response given by Teal'c to the question 'Isn't that hot?'",
+                "Context of the scene in which the question is asked."
+            ],
+            "facts_to_derive": [],
+            "educated_guesses": []
+        },
+        {
+            "metadata": {
+                "id": "039a2864-f428-4923-a72c-257cba5db0e1",
+                "prompt_id": "784dbf45-5bc0-402b-bca0-68185d755a0e",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.youtube.com/watch?v=1htKBjuUWec",
+            "fact_description": "Teal'c's response to the question 'Isn't that hot?'",
+            "fact_name": "tealc_response_hot_question"
+        },
+        {
+            "metadata": {
+                "id": "c5e402cd-6d65-49ee-aa6e-9b024b1e7ae9",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title:  - YouTube\n=======================\n# YouTube\n\n### Video Metadata\n- **Keywords:** video, sharing, camera phone, video phone, free, upload\n\n### Description\nhavej eow-yu seene totawa t teal ;;c;c;c does??",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "a7125112-9a4c-41fc-bd6b-da7b0d4931ce",
+                "prompt_id": "c424f950-1cbf-46c2-af0e-22e761d05f4e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "Teal'c's response to the question 'Isn't that hot?'",
+            "fact_found": false,
+            "quote_with_fact": "",
+            "where_to_look_next": "There is no additional content to explore on this page."
+        },
+        {
+            "metadata": {
+                "id": "5f5fb0b9-7feb-43fa-8e24-2fc9286d51d6",
+                "prompt_id": "c424f950-1cbf-46c2-af0e-22e761d05f4e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "906c917b-fe9b-449d-b973-1696ca75c9f2",
+                "prompt_id": "ddb1d3ce-fdd9-4126-9507-717b1baf5180",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Teal'c response Isn't that hot?"
+        },
+        {
+            "metadata": {
+                "id": "07131382-40c9-4ed6-895a-a231dc75a05b",
+                "prompt_id": "ddb1d3ce-fdd9-4126-9507-717b1baf5180",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "f74fc145-e84d-435f-9487-e37ac71d4b48",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Teal'c response Isn't that hot?",
+            "serp": [
+                {
+                    "title": "Noticed the person sat in 27C had 27C on her trainers",
+                    "url": "https://www.reddit.com/r/mildlyinteresting/comments/190p7ho/noticed_the_person_sat_in_27c_had_27c_on_her/",
+                    "content": "Well she's on the left side of the aisle, which traditionally is seat C (in a 6-across setup, which is probably the most common seating arrangement)."
+                },
+                {
+                    "title": "Bluetooth Speaker with HD Sound, Portable Wireless, IPX5 ...",
+                    "url": "https://www.amazon.com/Bluetooth-Waterproof-Playtime-Portable-Electronic/dp/B0BRKPVZB4",
+                    "content": "Bluetooth speaker with HD sound, portable wireless, IPX5 waterproof, up to 20H playtime, TWS pairing, BT5.3, for home/party/outdoor/beach, electronic gadgets, ..."
+                },
+                {
+                    "title": "Review article Filament fabrication and subsequent ...",
+                    "url": "https://www.sciencedirect.com/science/article/pii/S1359836823004183",
+                    "content": "by NK Bankapalli · 2023 · Cited by 36 — This article thoroughly discusses all aspects of filament fabrication, AM of green parts, debinding, sintering, and post-processing of green and sintered parts ..."
+                },
+                {
+                    "title": "Multi-parametric atlas of the pre-metastatic liver for ...",
+                    "url": "http://www.ncbi.nlm.nih.gov/pmc/articles/PMC11416063",
+                    "content": "28 Jun 2024 — Alterations in resident cell phenotypes, extracellular matrix (ECM), and immune cell infiltration collectively create a pre-metastatic niche."
+                },
+                {
+                    "title": "microstructure, corrosion and stress",
+                    "url": "https://lwrs.inl.gov/content/uploads/11/2024/03/PNNL_LWRSP_MilestoneReport_March2013_Final.pdf",
+                    "content": "Project Background. Objective. This research project addresses one of the least understood aspects of stress corrosion cracking."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "f0ab85a5-c438-4b9b-8946-326cfae04a62",
+                "prompt_id": "f820b0ee-3535-4f48-888a-67f559bccfbe",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Teal'c Isn't that hot response transcript"
+        },
+        {
+            "metadata": {
+                "id": "bf42bde8-6669-45ed-ae9d-9752fdd6df1a",
+                "prompt_id": "f820b0ee-3535-4f48-888a-67f559bccfbe",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "fab75c59-2b60-453f-9eab-06f6aa825548",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Teal'c Isn't that hot response transcript",
+            "serp": [
+                {
+                    "title": "The Search For Bob/Transcript | Critical Role Wiki - Fandom",
+                    "url": "https://criticalrole.fandom.com/wiki/The_Search_For_Bob/Transcript",
+                    "content": "Upon returning home to Whitestone, Grog pulled a card from the Deck of Many Things, pulled the worst card from the deck, and had his soul jettisoned off into a ..."
+                },
+                {
+                    "title": "[Spoilers C2E16] Searchable Critical Role transcript ...",
+                    "url": "https://www.reddit.com/r/criticalrole/comments/hiq399/spoilers_c2e16_searchable_critical_role/",
+                    "content": "I built an archive of all the transcripts of all the episodes of Campaigns 1 and 2 which can be searched, and filtered by person, and where each line links out ..."
+                },
+                {
+                    "title": "In Hot Water/Transcript | Critical Role Wiki - Fandom",
+                    "url": "https://criticalrole.fandom.com/wiki/In_Hot_Water/Transcript",
+                    "content": "MATT: Hello everyone, and welcome to tonight's episode of Critical Role, where a bunch of us nerdy-ass voice actors sit around and play Dungeons & Dragons."
+                },
+                {
+                    "title": "Warm water treatment increased mortality risk in salmon",
+                    "url": "https://www.sciencedirect.com/science/article/pii/S2451943X22000369",
+                    "content": "by S Bui · 2022 · Cited by 7 — This study aimed to complement the growing evidence base to document the impact of thermal treatments on salmon welfare, behaviour, physiology and health."
+                },
+                {
+                    "title": "Cancer Metabolism as a Therapeutic Target and Review ...",
+                    "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10574675/",
+                    "content": "by MTJ Halma · 2023 · Cited by 9 — The Warburg hypothesis states that cancer cells have an altered cell metabolism towards anaerobic glycolysis. Given this metabolic reprogramming in cancer cells ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "ee4c62bc-532d-4f17-951f-345a7f3cfd30",
+                "prompt_id": "f5389ba5-e294-4108-aeda-32ee176ed38c",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Teal'c response to Isn't that hot? Stargate SG-1"
+        },
+        {
+            "metadata": {
+                "id": "d7be5707-5db8-4066-8669-1f9d9a7eeac8",
+                "prompt_id": "f5389ba5-e294-4108-aeda-32ee176ed38c",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "55a4d3d6-1157-4e04-ad83-abea0f73e933",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Teal'c response to Isn't that hot? Stargate SG-1",
+            "serp": [
+                {
+                    "title": "I want to live. I want to experience the universe ...",
+                    "url": "https://www.reddit.com/r/Stargate/comments/zlsdpr/i_want_to_live_i_want_to_experience_the_universe/",
+                    "content": "I want to experience the universe and I want to eat pie. And, of course, the famous Teal'c coffee scene: \"Isn't that hot?\" \"Extremely\" - S3 E16 ..."
+                },
+                {
+                    "title": "How many times did Teal'c say he watched Star Wars",
+                    "url": "https://www.facebook.com/groups/331930378712/posts/10161375625038713/",
+                    "content": "I'm watching Stargate Universe for the first time and I have to admit I'm enjoying it more than SG-1 or Atlantis. One thing that bothers me however is how often ..."
+                },
+                {
+                    "title": "10 Funniest Teal'c Moments In Stargate SG-1",
+                    "url": "https://www.msn.com/en-us/entertainment/news/10-funniest-teal-c-moments-in-stargate-sg-1/ar-AA1sbyi2",
+                    "content": "Teal'c's story in Stargate SG-1 was heartbreaking and inspiring, but some of his best moments in the sci-fi series are when he's the butt of jokes."
+                },
+                {
+                    "title": "10 Funniest Teal'c Moments In Stargate SG-1",
+                    "url": "https://screenrant.com/stargate-sg1-tealc-funny-moments/",
+                    "content": "Oct 13, 2024 — Teal'c often struggled with the English language, so he responded, \"Things will not calm down, Daniel Jackson. They will, in fact, calm up.\" ..."
+                },
+                {
+                    "title": "Stargate SG1 | “What if…”",
+                    "url": "https://www.facebook.com/groups/191294792734/posts/10159618017927735/",
+                    "content": "We would already use technology which is far ahead of us, and if wraith will eventually progress in their technology we wouldn't have an answer."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "ca584267-e2b3-457c-8267-b4470a1c9a7b",
+                "prompt_id": "8048fdd1-0011-487c-a408-79dd0251af50",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "Teal'c's response to the question 'Isn't that hot?'",
+            "fact_found": true,
+            "quote_with_fact": "\"Isn't that hot?\" \"Extremely\" - S3 E16",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "a114d3bb-b6c4-46bf-a3e8-2012c91401e8",
+                "prompt_id": "8048fdd1-0011-487c-a408-79dd0251af50",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "df5ea7cf-e02f-4db2-bc8b-f3d1660922b2",
+                "prompt_id": "8af15e05-ee34-4f5d-8ad2-88f6cb39dfa5",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "tealc_response_hot_question",
+            "unit": "",
+            "value": "Extremely"
+        },
+        {
+            "metadata": {
+                "id": "6aa0f2ee-ba03-46d7-ac16-44445efd3182",
+                "prompt_id": "8af15e05-ee34-4f5d-8ad2-88f6cb39dfa5",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "7defec6d-9c6e-47c2-b5b1-7cc700e281c3",
+                "prompt_id": "2f7b620f-8b7c-460f-a7de-14ee7ecf580b",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Teal'c's response to the question 'Isn't that hot?' was found.",
+            "answer_unit": "",
+            "answer": "Extremely"
+        }
+    ]
+}

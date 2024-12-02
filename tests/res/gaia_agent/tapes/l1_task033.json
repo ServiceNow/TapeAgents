@@ -1,0 +1,413 @@
+{
+    "metadata": {
+        "id": "b901ae95-cfab-40e3-8036-0f4f3c48666c",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "penguin",
+        "terminated": false,
+        "task": {
+            "task_id": "0383a3ee-47a7-41a4-b493-519bdefe0488",
+            "Question": "On the BBC Earth YouTube video of the Top 5 Silliest Animal Moments, what species of bird is featured?",
+            "Level": 1,
+            "Final answer": "Rockhopper penguin",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Search \"top 5 silliest animal moments bbc earth youtube\" on Google search.\n2. Open the top link to \"Top 5 Silliest Animal Moments! | BBC Earth - YouTube\".\n3. Listen to the video until the species is named.",
+                "Number of steps": "3",
+                "How long did this take?": "3 minutes",
+                "Tools": "1. Web browser\n2. Search engine\n3. Video recognition tools",
+                "Number of tools": "3"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "efd00d7d-3481-41cd-ae1b-ba2131548125",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "On the BBC Earth YouTube video of the Top 5 Silliest Animal Moments, what species of bird is featured?",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "1eb48156-b5f8-4f16-9492-083b0e0bc006",
+                "prompt_id": "1376554a-5d07-4be8-aab9-eec47eda025e",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Search for the BBC Earth YouTube video titled 'Top 5 Silliest Animal Moments'.",
+                "Watch the video to identify the species of bird featured.",
+                "Note down the specific species mentioned or shown in the video."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "ba00b61b-6400-4d73-b51b-9382fd97157e",
+                "prompt_id": "1d7ce6d4-e1a1-4d45-bbb0-9b720f8616ce",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "facts_ledger_thought",
+            "given_facts": [
+                "The request mentions a specific YouTube video from BBC Earth titled 'Top 5 Silliest Animal Moments'."
+            ],
+            "found_facts": [],
+            "facts_to_lookup": [
+                "The species of bird featured in the BBC Earth YouTube video 'Top 5 Silliest Animal Moments'. This can be found by watching the video or checking the video description."
+            ],
+            "facts_to_derive": [],
+            "educated_guesses": []
+        },
+        {
+            "metadata": {
+                "id": "a3af029a-d5e0-4dc8-b97b-50ea15c14119",
+                "prompt_id": "3188a1de-27af-49da-8e02-560a6c187eae",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Top 5 Silliest Animal Moments site:youtube.com"
+        },
+        {
+            "metadata": {
+                "id": "22f61b77-bb49-46ec-9118-4dea980aa02e",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Top 5 Silliest Animal Moments site:youtube.com",
+            "serp": [
+                {
+                    "title": "Animal Antics",
+                    "url": "https://www.youtube.com/@animalanticsnf",
+                    "content": "The best and funniest animal clips to hit the net! Whether it makes you chuckle or say 'aww', we have the best collection of viral animal videos online."
+                },
+                {
+                    "title": "Animal Antics",
+                    "url": "https://www.youtube.com/@animalanticsnf",
+                    "content": "The best and funniest animal clips to hit the net! Whether it makes you chuckle or say 'aww', we have the best collection of viral animal videos online."
+                },
+                {
+                    "title": "Top 5s",
+                    "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+                    "content": "Most Inspiring Animal Family Moments | Top 5 | BBC Earth · Best Wild Animal Chases | Top 5 | BBC Earth · Animals vs Nature | Top 5 | BBC Earth."
+                },
+                {
+                    "title": "Top 5s",
+                    "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+                    "content": "Most Inspiring Animal Family Moments | Top 5 | BBC Earth · Best Wild Animal Chases | Top 5 | BBC Earth · Animals vs Nature | Top 5 | BBC Earth."
+                },
+                {
+                    "title": "Animal Antics",
+                    "url": "https://www.youtube.com/@animalanticsnf",
+                    "content": "The best and funniest animal clips to hit the net! Whether it makes you chuckle or say 'aww', we have the best collection of viral animal videos online."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "a3e27b7d-f016-4ea7-b8dc-e1841c6a5bf9",
+                "prompt_id": "46370131-4b2b-4b8c-849a-b4f12fcdb44e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Top 5 Silliest Animal Moments BBC Earth YouTube"
+        },
+        {
+            "metadata": {
+                "id": "8b680197-ce0b-4aba-8588-d567ea10672d",
+                "prompt_id": "46370131-4b2b-4b8c-849a-b4f12fcdb44e",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "ec6e35ad-c3f3-4b7a-af29-ba794950552d",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Top 5 Silliest Animal Moments BBC Earth YouTube",
+            "serp": [
+                {
+                    "title": "Top 5s",
+                    "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+                    "content": "Weirdest Creepy Crawly Moments | Top 5 | BBC Earth. BBC Earth · 14:58 ... Top 5 Silliest Animal Moments! | BBC Earth. BBC Earth · 20:09. Top 5 ..."
+                },
+                {
+                    "title": "Top 5s",
+                    "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+                    "content": "Weirdest Creepy Crawly Moments | Top 5 | BBC Earth. BBC Earth · 14:58 ... Top 5 Silliest Animal Moments! | BBC Earth. BBC Earth · 20:09. Top 5 ..."
+                },
+                {
+                    "title": "Top 5s",
+                    "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+                    "content": "Weirdest Creepy Crawly Moments | Top 5 | BBC Earth. BBC Earth · 14:58 ... Top 5 Silliest Animal Moments! | BBC Earth. BBC Earth · 20:09. Top 5 ..."
+                },
+                {
+                    "title": "Top 5s",
+                    "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+                    "content": "Weirdest Creepy Crawly Moments | Top 5 | BBC Earth. BBC Earth · 14:58 ... Top 5 Silliest Animal Moments! | BBC Earth. BBC Earth · 20:09. Top 5 ..."
+                },
+                {
+                    "title": "BBC Earth",
+                    "url": "https://www.youtube.com/user/BBCEarth/videos",
+                    "content": "5 Amazing Rhino Conservation Moments | BBC Earth · 50 of the Greatest Fights in the Animal Kingdom | BBC Earth."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9f34f09e-1d7a-4f83-af74-d5bfd3b47155",
+                "prompt_id": "b0870186-4c93-4d17-8ead-1c205c95aedc",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+            "fact_description": "species of bird featured in the Top 5 Silliest Animal Moments video",
+            "fact_name": "bird_species_featured"
+        },
+        {
+            "metadata": {
+                "id": "cec6cc3e-4f5a-4d16-94b7-8f9333053ee8",
+                "prompt_id": "b0870186-4c93-4d17-8ead-1c205c95aedc",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "e5ce5d8b-b38b-4fe0-a0ef-b78c6942802d",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Top 5s - YouTube\n=======================\n[About](https://www.youtube.com/about/)[Press](https://www.youtube.com/about/press/)[Copyright](https://www.youtube.com/about/copyright/)[Contact us](/t/contact_us/)[Creators](https://www.youtube.com/creators/)[Advertise](https://www.youtube.com/ads/)[Developers](https://developers.google.com/youtube)[Terms](/t/terms)[Privacy](/t/privacy)[Policy & Safety](https://www.youtube.com/about/policies/)[How YouTube works](https://www.youtube.com/howyoutubeworks?utm_campaign=ytgen&utm_source=ythp&utm_medium=LeftNav&utm_content=txt&u=https%3A%2F%2Fwww.youtube.com%2Fhowyoutubeworks%3Futm_source%3Dythp%26utm_medium%3DLeftNav%26utm_campaign%3Dytgen)[Test new features](/new)[NFL Sunday Ticket](https://tv.youtube.com/learn/nflsundayticket)© 2024 Google LLC",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "20fcbb9b-f0e0-4331-a257-6a5f4c8b8dae",
+                "prompt_id": "c1ab6cbe-906f-4ec3-9213-aff94dd861f0",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Top 5 Silliest Animal Moments bird species featured"
+        },
+        {
+            "metadata": {
+                "id": "dd5b899e-b2d4-44da-af6a-55d9c8e8a106",
+                "prompt_id": "c1ab6cbe-906f-4ec3-9213-aff94dd861f0",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "126383d1-c9bd-44fa-a35d-b30f17e299c5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Top 5 Silliest Animal Moments bird species featured",
+            "serp": [
+                {
+                    "title": "20 Finalists Of Comedy Wildlife Photography Awards",
+                    "url": "https://www.forbes.com/sites/ceciliarodriguez/2024/09/26/funny-wild-animals-in-photos-20-finalists-for--nikons-comedy-wildlife-photography-awards/",
+                    "content": "26 Sept 2024 — The Funniest Wild Animals In Photos: 20 Finalists Of Comedy Wildlife Photography Awards. A cracking selection of amusing images of wild animals ..."
+                },
+                {
+                    "title": "What are the most strange and funniest birds?",
+                    "url": "https://www.quora.com/What-are-the-most-strange-and-funniest-birds",
+                    "content": "Which is the weirdest looking bird you have read/heard about/ seen in your life? 27,092 Views · Which bird has the oddest, funniest, or most ..."
+                },
+                {
+                    "title": "The 11 Weirdest Birds on the Planet",
+                    "url": "https://www.fodors.com/news/photos/the-11-weirdest-birds-on-the-planet",
+                    "content": "3 Nov 2020 — The 11 Weirdest Birds on the Planet · Kakapo · Long Wattled Umbrellabird · Magnificent Frigatebird · King of Saxony Bird of Paradise · Shoebill · Find ..."
+                },
+                {
+                    "title": "20 Finalists Of Comedy Wildlife Photography Awards",
+                    "url": "https://www.forbes.com/sites/ceciliarodriguez/2024/09/26/funny-wild-animals-in-photos-20-finalists-for--nikons-comedy-wildlife-photography-awards/",
+                    "content": "26 Sept 2024 — The Funniest Wild Animals In Photos: 20 Finalists Of Comedy Wildlife Photography Awards. A cracking selection of amusing images of wild animals ..."
+                },
+                {
+                    "title": "The 11 Weirdest Birds on the Planet",
+                    "url": "https://www.fodors.com/news/photos/the-11-weirdest-birds-on-the-planet",
+                    "content": "3 Nov 2020 — The 11 Weirdest Birds on the Planet · Kakapo · Long Wattled Umbrellabird · Magnificent Frigatebird · King of Saxony Bird of Paradise · Shoebill · Find ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "6649861e-9e26-4e55-a88d-b9cd3a916ea1",
+                "prompt_id": "4fdecf09-dc5f-4020-89b3-891c7696e397",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Top 5 Silliest Animal Moments BBC Earth YouTube description"
+        },
+        {
+            "metadata": {
+                "id": "1fde7ae9-7ed5-4234-a3e8-7d145be4891a",
+                "prompt_id": "4fdecf09-dc5f-4020-89b3-891c7696e397",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "93b23d5b-8c24-4b37-99c0-69ada1947bbf",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Top 5 Silliest Animal Moments BBC Earth YouTube description",
+            "serp": [
+                {
+                    "title": "Top 5 Silliest Animal Moments! | BBC Earth - KidzTube",
+                    "url": "https://www.kidzsearch.com/kidztube/mobile/top-5-silliest-animal-moments-bbc-earth_f21be96ec.html",
+                    "content": "The mighty polar bear, the tenacious penguin and majestic lion. Some of the most impressive creatures in the natural world - and at times, the most ridiculous."
+                },
+                {
+                    "title": "Top 5s",
+                    "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+                    "content": "Most Inspiring Animal Family Moments | Top 5 | BBC Earth · Best Wild Animal Chases | Top 5 | BBC Earth · Animals vs Nature | Top 5 | BBC Earth · Weirdest Animal ..."
+                },
+                {
+                    "title": "BBC Earth",
+                    "url": "https://www.youtube.com/bbcearth",
+                    "content": "Videos Over Ten Minutes · Amazing Animals of Asia | BBC Earth · LIVE: Samu the Baby Dolphin | Dolphins of Shark Bay | BBC Earth · LIVE: Exploring the Adorable ..."
+                },
+                {
+                    "title": "Top 5s",
+                    "url": "https://m.youtube.com/playlist?list=PL50KW6aT4UgyO6_dk0D0w1zEhY5t8ndK3",
+                    "content": "Most Inspiring Animal Family Moments | Top 5 | BBC Earth · Best Wild Animal Chases | Top 5 | BBC Earth · Animals vs Nature | Top 5 | BBC Earth · Weirdest Animal ..."
+                },
+                {
+                    "title": "BBC Earth",
+                    "url": "https://www.youtube.com/bbcearth",
+                    "content": "Videos Over Ten Minutes · Amazing Animals of Asia | BBC Earth · LIVE: Samu the Baby Dolphin | Dolphins of Shark Bay | BBC Earth · LIVE: Exploring the Adorable ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "35e2cf01-faa6-473c-86cb-6114b2c90c6c",
+                "prompt_id": "efeeafa5-c3c6-400d-8a9a-7a049292bcf4",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "species of bird featured in the Top 5 Silliest Animal Moments video",
+            "fact_found": true,
+            "quote_with_fact": "The mighty polar bear, the tenacious penguin and majestic lion. Some of the most impressive creatures in the natural world - and at times, the most ridiculous.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "cb1ad7f1-2ce9-4b0e-89ce-f097aa31c9fc",
+                "prompt_id": "efeeafa5-c3c6-400d-8a9a-7a049292bcf4",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "f1d09536-a181-45b0-bf2a-d5071dd7958f",
+                "prompt_id": "01e2d79e-c7a4-4840-a971-d669b8b20f97",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "bird_species_featured",
+            "unit": "",
+            "value": "penguin"
+        },
+        {
+            "metadata": {
+                "id": "0eb8cce9-ac88-44d5-b986-61a2dc90886c",
+                "prompt_id": "01e2d79e-c7a4-4840-a971-d669b8b20f97",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "e6984f0a-3ed8-4620-b330-e10374f96aeb",
+                "prompt_id": "bb2a3e2e-72da-4cf7-a9cb-01703a2e2c56",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the species of bird featured in the video.",
+            "answer_unit": "",
+            "answer": "penguin"
+        }
+    ]
+}

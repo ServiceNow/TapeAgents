@@ -141,13 +141,10 @@ def test_llama_agent_tape_reuse():
 
 
 def test_gaia_agent():
-    # TODO: FIX final steps in the end in test res!
     run_dir = str(res_path / "gaia_agent")
     llm = mock_llm(run_dir)
     env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
-    with open(f"{run_dir}/web_cache.json") as f:
-        web_cache = json.load(f)
-    env.browser.set_web_cache(web_cache)
+    env.browser.set_web_cache(os.path.join(run_dir, "web_cache.jsonl"))
     agent = GaiaAgent.create(llm)
     tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
