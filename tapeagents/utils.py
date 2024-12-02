@@ -102,7 +102,7 @@ def get_step_schemas_from_union_type(cls) -> str:
 
 
 def image_base64_message(image_path: str) -> dict:
-    _, image_extension = os.path.splitext(image_path)
+    image_extension = os.path.splitext(image_path)[1:]
     content_type = f"image/{image_extension}"
     base64_image = encode_image(image_path)
     message = {"type": "image_url", "image_url": {"url": f"data:{content_type};base64,{base64_image}"}}
