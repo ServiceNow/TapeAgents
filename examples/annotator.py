@@ -1,6 +1,6 @@
 import json
 
-from litellm.utils import ChatCompletionMessageToolCall
+from litellm.types.utils import ChatCompletionMessageToolCall
 from pydantic import TypeAdapter
 
 from tapeagents.core import Prompt, Tape
