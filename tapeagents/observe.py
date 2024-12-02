@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from .config import sqlite_db_path
 from .core import LLMCall, LLMOutput, Prompt, Tape
-from litellm.utils import ChoiceLogprobs
+from litellm.types.utils import ChoiceLogprobs
 
 logger = logging.getLogger(__name__)
 
