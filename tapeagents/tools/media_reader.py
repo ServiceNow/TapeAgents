@@ -164,7 +164,7 @@ def generate_contact_sheets_from_video(
     output_dir = os.path.dirname(video_path_trimmed)
     file_base_path, _ = os.path.splitext(os.path.basename(video_path_trimmed))
     for file in os.listdir(output_dir):
-        if re.search(r"{}_{}\d+".format(file_base_path, output_suffix), file):
+        if re.search(r"{}{}\d+".format(file_base_path, output_suffix), file):
             output_paths.append(os.path.join(output_dir, file))
     if len(output_paths) > 0:
         logger.info(f"Use cached contact sheets: {output_paths}")
@@ -269,22 +269,22 @@ def transcribe_audio(video_path: str, video_path_trimmed: str, start_time: str =
         # Check if a VTT file already exists for the trimmed video
         dir_trimmed = os.path.dirname(video_path_trimmed)
         video_id_trimmed, _ = os.path.splitext(os.path.basename(video_path_trimmed))
-        vtt_file = find_file(dir_trimmed, video_id_trimmed, (".vtt"), strict=True)
+        vtt_file = find_file(dir_trimmed, video_id_trimmed, (".vtt",), strict=True)
         if vtt_file:
             ensure_vtt_format(vtt_file)
             return vtt_file
 
-        audio_path = find_file(dir_trimmed, video_id_trimmed, (".mp3"), strict=True)
+        audio_path = find_file(dir_trimmed, video_id_trimmed, (".mp3",), strict=True)
     else:
         # Check if a VTT file already exists
         dir = os.path.dirname(video_path)
         video_id, _ = os.path.splitext(os.path.basename(video_path))
-        vtt_file = find_file(dir, video_id, (".vtt"), strict=True)
+        vtt_file = find_file(dir, video_id, (".vtt",), strict=True)
         if vtt_file:
             ensure_vtt_format(vtt_file)
             return vtt_file
 
-        audio_path = find_file(dir, video_id, (".mp3"), strict=True)
+        audio_path = find_file(dir, video_id, (".mp3",), strict=True)
 
     if audio_path is None:
         audio_path = extract_audio(video_path_trimmed)
