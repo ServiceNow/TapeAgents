@@ -149,8 +149,9 @@ def test_gaia_agent():
     # TODO: FIX final steps in the end in test res!
     run_dir = str(res_path / "gaia_agent")
     llm = mock_llm(run_dir)
-    env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
-    with open(f"{run_dir}/web_cache.jsonl") as f:
+    attachment_dir = os.path.realpath(str(res_path / "gaia_agent" / "attachments"))
+    env = GaiaEnvironment(attachment_dir=attachment_dir, only_cached_webpages=True, safe_calculator=False)
+    with open(f"{run_dir}/browser_log.jsonl") as f:
         web_cache = {}
         for line in f:
             item = json.loads(line)
