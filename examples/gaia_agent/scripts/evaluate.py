@@ -7,10 +7,10 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from examples.gaia_agent.v2 import GaiaPlanner
-from tapeagents.container_executor import ContainerExecutor
 from tapeagents.io import save_json_tape
 from tapeagents.llms import TrainableLLM
 from tapeagents.parallel_processing import choose_processor
+from tapeagents.tools.container_executor import ContainerExecutor
 
 from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
@@ -44,7 +44,7 @@ def main(cfg: DictConfig) -> None:
         code_sandbox = None
     # agent = GaiaAgent.create(llm, **cfg.agent)
     agent = GaiaPlanner.create(llm)
-    tasks = load_dataset(cfg.data_dir)
+    tasks = load_dataset(cfg.split)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     validate_config(cfg, llm, tapes_dir)
 
@@ -73,9 +73,7 @@ def validate_config(cfg, llm, tapes_dir):
         assert (
             old_exp_cfg["llm"]["model_name"] == llm.model_name
         ), f"Exp dir model name mismatch: old {old_exp_cfg['llm']['model_name']}, new {llm.model_name}"
-        assert (
-            old_exp_cfg["data_dir"] == cfg.data_dir
-        ), f"Exp dir data: old {old_exp_cfg['data_dir']}, new {cfg.data_dir}"
+        assert old_exp_cfg["split"] == cfg.split, f"Exp split: old {old_exp_cfg['split']}, new {cfg.split}"
     os.makedirs(tapes_dir, exist_ok=True)
 
 

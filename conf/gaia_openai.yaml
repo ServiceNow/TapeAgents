@@ -1,14 +1,11 @@
 defaults:
   - llm: gpt4o_mini
   - _self_
-
-llm:
-  parameters:
-    temperature: 0.0
-
-exp_name: gpt4o_mini_val_v2_1
-exp_path: ../gaia/runs/${exp_name}
-data_dir: ../gaia/dataset/validation/
+  
+exp_name: gpt4o_mini_val_batch32_6
+exp_path: outputs/gaia/runs/${exp_name}
+split: validation
+n_attempts: 1
 batch: 32
 agent:
   planning_mode: simple
@@ -20,4 +17,4 @@ env:
 
 hydra:
   run:
-    dir: ../gaia/runs/${exp_name}
+    dir: ${exp_path}

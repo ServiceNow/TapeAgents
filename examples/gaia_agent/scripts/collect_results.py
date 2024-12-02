@@ -56,7 +56,7 @@ if __name__ == "__main__":
         "gpt4o_mini_val_changes_t05",
         "gpt4o_mini_val_changes_t05_2",
     ]
-    main(root="../gaia/runs/", runs=runs)
+    main(root="outputs/gaia/runs/", runs=runs)
 
 
 # gp4o-mini, 3 runs

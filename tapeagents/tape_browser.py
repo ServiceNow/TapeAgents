@@ -1,3 +1,7 @@
+"""
+GUI for browsing tapes.
+"""
+
 import logging
 import os
 
@@ -8,11 +12,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from tapeagents.core import Tape
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_tape_llm_calls
-
-from .core import Tape
-from .rendering import BasicRenderer
+from tapeagents.renderers.basic import BasicRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +57,9 @@ class TapeBrowser:
         return tapes
 
     def load_llm_calls(self):
+        logger.info("Loading LLM calls")
         self.llm_calls = retrieve_tape_llm_calls(self.tapes)
+        logger.info(f"Loaded {len(self.llm_calls)} LLM calls")
 
     def get_steps(self, tape: Tape) -> list:
         return tape.steps
@@ -208,4 +213,4 @@ class TapeBrowser:
             app = gr.mount_gradio_app(app, blocks, path="/")
             uvicorn.run(app, host=server_name, port=port)
         else:
-            blocks.launch(server_name=server_name, debug=debug)
+            blocks.launch(server_name=server_name, server_port=port, debug=debug)

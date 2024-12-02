@@ -1,3 +1,7 @@
+"""
+Views and view stacks for subagents context isolation.
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -21,10 +25,16 @@ from tapeagents.core import (
 
 
 class Broadcast(Thought):
-    """Broadcase a message to many subagents.
+    """
+    Broadcast a message to many subagents.
 
     The current agent remains active.
 
+    Attributes:
+        content (str): The content of the message to broadcast.
+        from_ (str): The name of the agent broadcasting the message.
+        to (list[str]): The list of subagents to broadcast the message to.
+        kind (Literal["broadcast"]): The kind of the step, which is "broadcast".
     """
 
     content: str
@@ -39,6 +49,15 @@ class TapeView(BaseModel, Generic[StepType]):
 
     Presents tape data in the form that is describing for describing the agent's logic.
 
+    Attributes:
+        agent_name (str): The name of the agent.
+        agent_full_name (str): The full name of the agent, including the names of all its parent agents.
+        steps (list[StepType]): The list of steps in the agent's part of the tape.
+        steps_by_kind (dict[str, list[StepType]]): A dictionary of steps grouped by their kind.
+        outputs_by_subagent (dict[str, StepType]): A dictionary of the output steps of the agent's subagents.
+        last_node (str): The last node the agent was in.
+        last_prompt_id (str): The ID of the prompt of the last step.
+        next_node (str): The next node the agent will go to next.
     """
 
     agent_name: str
@@ -89,6 +108,10 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     0: TapeView of Agent A
     1: TapeView of Agent B
     2: TapeView of Agent C
+
+    Attributes:
+        stack (list[TapeView[StepType]]): The stack of tape views.
+        messages_by_agent (dict[str, list[Union[Call, Respond, Broadcast]]]): A dictionary of messages by agent.
     """
 
     stack: list[TapeView[StepType]]
@@ -100,6 +123,21 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         return self.stack[-1]
 
     def update(self, step: StepType):
+        """
+        Updates the view based on the given step type.
+
+        Args:
+            step (StepType): The step to process. Can be one of:
+
+                - Call: Creates and pushes new view onto the stack
+                - Broadcast: Processes broadcast messages
+                - Respond: Removes top view from stack
+                - AgentStep: Adds step to current top view
+                - Observation: Adds observation to current top view
+
+        Raises:
+            ValueError: If the step type is not supported
+        """
         self.steps.append(step)
         top = self.stack[-1]
         match step:
@@ -168,7 +206,22 @@ class TapeViewStack(BaseModel, Generic[StepType]):
 
     @staticmethod
     def compute(tape: Tape, root_agent_name: str = "root") -> TapeViewStack[StepType]:
-        # TODO: retrieve view from a prefix of the tape, recompute from the prefix
+        """
+        Computes a stack of tape views from a given tape.
+
+        This function processes a tape step by step and builds a view stack that tracks
+        the execution flow through different agents.
+
+        Args:
+            tape (Tape): The tape containing steps to process
+            root_agent_name (str, optional): Name of the root agent. Defaults to "root"
+
+        Returns:
+            TapeViewStack[StepType]: A stack of tape views representing the execution flow
+
+        Note:
+            TODO: Implement view retrieval from tape prefix and recomputation functionality
+        """
         stack = TapeViewStack(stack=[TapeView(agent_name=root_agent_name, agent_full_name=root_agent_name)])
         for step in tape.steps:
             stack.update(step)

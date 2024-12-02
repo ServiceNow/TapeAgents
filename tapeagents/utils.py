@@ -1,3 +1,7 @@
+"""
+Various utility functions.
+"""
+
 import difflib
 import json
 from typing import Any
