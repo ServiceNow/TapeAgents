@@ -2,10 +2,10 @@ import logging
 import os
 import shutil
 
-from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.core import Action
 from tapeagents.environment import CodeExecutionResult, Environment, ExecuteCode
 from tapeagents.tools.calculator import calculate
+from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.tools.document_converters import pdf_to_images
 from tapeagents.tools.python_interpreter import run_python_code
 from tapeagents.tools.simple_browser import SimpleTextBrowser
@@ -14,7 +14,6 @@ from tapeagents.utils import FatalError
 from .steps import (
     ActionExecutionFailure,
     CalculationResultObservation,
-    CodeResultObservation,
     ConvertFactAction,
     GaiaQuestion,
     GaiaStep,

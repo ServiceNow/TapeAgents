@@ -5,10 +5,10 @@ from typing import Any
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.container_executor import extract_code_blocks
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
+from tapeagents.tools.container_executor import extract_code_blocks
 
 from .prompts import PromptRegistry
 from .steps import (
