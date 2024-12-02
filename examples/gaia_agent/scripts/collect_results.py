@@ -1,17 +1,23 @@
 import os
 from collections import defaultdict
 
-from examples.gaia_agent.tape import GaiaTape
 from tapeagents.io import load_tapes
 
 from ..eval import majority_vote, tape_correct
+from ..steps import load_step
+from ..tape import GaiaTape
 
 
 def main(root: str, runs: list[str]):
     by_level_by_run = defaultdict(lambda: defaultdict(list))
     for run in runs:
         tapes_dir = os.path.join(root, run, "tapes")
-        tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_dir, file_extension=".json")  # type: ignore
+        tapes: list[GaiaTape] = load_tapes(
+            GaiaTape,
+            tapes_dir,
+            file_extension=".json",
+            unknown_steps_loader=load_step,
+        )  # type: ignore
         for tape in tapes:
             by_level_by_run[tape.metadata.level][run].append(tape)
 
@@ -44,11 +50,11 @@ def main(root: str, runs: list[str]):
 
 if __name__ == "__main__":
     runs = [
-        "gpt4o_mini_val_batch32_5",
-        "gpt4o_mini_val_batch32_6",
-        "gpt4o_mini_val_batch32_7",
-        "gpt4o_mini_val_batch32_t0_2",
-        "gpt4o_mini_val_batch32_t05",
+        "gpt4o_mini_val_changes1",
+        "gpt4o_mini_val_changes_t00",
+        "gpt4o_mini_val_changes_t02",
+        "gpt4o_mini_val_changes_t05",
+        "gpt4o_mini_val_changes_t05_2",
     ]
     main(root="outputs/gaia/runs/", runs=runs)
 

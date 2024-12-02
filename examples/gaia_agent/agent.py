@@ -13,14 +13,12 @@ from .prompts import PromptRegistry
 from .steps import (
     ActionExecutionFailure,
     CalculationResultObservation,
-    FinishSubtask,
     GaiaAgentStep,
     GaiaQuestion,
     ListOfFactsThought,
     PageObservation,
     PlanThought,
     PreviousFactsObservation,
-    PythonCodeAction,
     SearchResultsObservation,
     SourcesThought,
     UseCalculatorAction,
@@ -42,14 +40,14 @@ class PlanningMode(str, Enum):
 class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = Field(exclude=True, default=GaiaAgentStep)
+    output_cls: Any = Field(exclude=True, default=GaiaAgentStep)
 
-    def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
+    def get_steps_description(self, tape: GaiaTape) -> str:
         """
         Allow different subset of steps based on the agent's configuration
         """
         plan_thoughts = not tape.has_fact_schemas()
-        allowed_steps = get_allowed_steps(agent.subtasks, plan_thoughts)
+        allowed_steps = get_allowed_steps(plan_thoughts)
         return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def prepare_tape(self, tape: GaiaTape, max_chars: int = 200) -> GaiaTape:
@@ -75,7 +73,7 @@ class GaiaNode(MonoNode):
         if isinstance(step, ListOfFactsThought):
             # remove empty facts produced by the model
             step.given_facts = [fact for fact in step.given_facts if fact.value is not None and fact.value != ""]
-        elif isinstance(step, (UseCalculatorAction, PythonCodeAction)):
+        elif isinstance(step, (UseCalculatorAction)):
             # if calculator or code action is used, add the facts to the action call
             step.facts = tape.model_copy(update=dict(steps=tape.steps + new_steps)).facts()
         return step
@@ -84,9 +82,7 @@ class GaiaNode(MonoNode):
         """
         Make tape shorter to fit llm context size limits
         """
-        finish_subtask_positions = [i for i, step in enumerate(tape) if isinstance(step, FinishSubtask)]
-        # trim either after last finished subtask or at 2/3 of the tape
-        summarization_border = (finish_subtask_positions[-1] + 1) if finish_subtask_positions else int(len(tape) * 0.66)
+        summarization_border = int(len(tape) * 0.66)  # trim at 2/3 of the tape
         short_tape = tape.model_copy(update=dict(steps=[]))
         pre_tape: GaiaTape = tape[:summarization_border]  # type: ignore
         for step in pre_tape.steps:
@@ -100,22 +96,19 @@ class GaiaNode(MonoNode):
 
 
 class GaiaAgent(Agent):
-    subtasks: bool
-
     @classmethod
     def create(
         cls,
         llm: LLM,
         planning_mode: PlanningMode = PlanningMode.simple,
-        subtasks: bool = False,
     ):
-        nodes = cls.prepare_guidance(planning_mode, subtasks)
-        return super().create(llm, nodes=nodes, max_iterations=2, subtasks=subtasks)
+        nodes = cls.prepare_guidance(planning_mode)
+        return super().create(llm, nodes=nodes, max_iterations=2)
 
     @classmethod
-    def prepare_guidance(cls, planning_mode: PlanningMode, subtasks: bool) -> list[GaiaNode]:
+    def prepare_guidance(cls, planning_mode: PlanningMode) -> list[GaiaNode]:
         """
-        Prepare mononodes based on the planning mode and subtasks flag
+        Prepare mononodes based on the planning mode
         """
         guidance_nodes = []
         if planning_mode == PlanningMode.simple:
@@ -179,6 +172,4 @@ class GaiaAgent(Agent):
             ]
         else:
             raise ValueError(f"Unknown planning mode: {planning_mode}")
-        if subtasks:
-            guidance_nodes.append(GaiaNode(name="check_subtask_finished", guidance=PromptRegistry.is_subtask_finished))
         return guidance_nodes

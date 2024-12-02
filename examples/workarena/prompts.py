@@ -6,7 +6,7 @@ Do not express your emotions or opinions about the user question."""
 
 ALLOWED_STEPS = """
 You are allowed to produce ONLY steps with the following json schemas:
-{allowed_steps}
+{schema}
 Do not reproduce schema when producing the steps, use it as a reference.
 """
 

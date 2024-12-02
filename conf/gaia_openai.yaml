@@ -2,14 +2,13 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_val_batch32_6
+exp_name: gpt4o_mini_val_l1test1
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
 n_attempts: 1
 batch: 32
 agent:
   planning_mode: simple
-  subtasks: false
 
 env:
   safe_calculator: false
@@ -18,4 +17,4 @@ env:
 
 hydra:
   run:
-    dir: outputs/gaia/runs/${exp_name}
+    dir: ${exp_path}

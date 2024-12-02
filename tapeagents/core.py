@@ -154,7 +154,7 @@ class LLMOutputParsingFailureAction(Action, Error):
 
     kind: Literal["llm_output_parsing_failure_action"] = "llm_output_parsing_failure_action"
     error: str
-    llm_output: str
+    llm_output: str = ""
 
 
 class StopStep(Action):
@@ -176,6 +176,11 @@ class FinalStep(StopStep):
 
     kind: Literal["final_step"] = "final_step"
     reason: str = ""
+
+
+class TerminationStep(StopStep):
+    kind: Literal["termination_step"] = "termination_step"
+    error: str = "terminated"
 
 
 class SetNextNode(Thought):
@@ -229,6 +234,17 @@ class Respond(Thought):
     copy_output: bool = False
 
 
+class ConditionCheck(Thought):
+    kind: Literal["condition_check"] = "condition_check"
+
+
+class ReferenceStep(Thought):
+    kind: Literal["reference_step"] = "reference_step"
+    step_number: int
+
+
+CONTROL_FLOW_STEPS = (SetNextNode, ConditionCheck, Call, Respond, ReferenceStep)
+
 StepType = TypeVar("StepType", bound=Action | Observation | Thought)
 """Type variable for step types."""
 
@@ -254,6 +270,7 @@ class TapeMetadata(BaseModel):
     n_added_steps: int = 0
     error: Any | None = None
     result: Any = {}
+    terminated: bool = False
 
 
 ContextType = TypeVar("ContextType")
@@ -370,6 +387,8 @@ class LLMCall(BaseModel):
     prompt_length_tokens: int = -1
     output_length_tokens: int = -1
     cached: bool
+    llm_info: dict = {}
+    cost: float = 0
 
 
 AnnotatorTape = Tape[TapeType, StepType]

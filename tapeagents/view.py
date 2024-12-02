@@ -5,11 +5,23 @@ Views and view stacks for subagents context isolation.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Generic, Literal
+from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Call, Observation, Respond, SetNextNode, StepType, Tape, Thought
+from tapeagents.core import (
+    AgentStep,
+    Call,
+    ConditionCheck,
+    Observation,
+    ReferenceStep,
+    Respond,
+    SetNextNode,
+    Step,
+    StepType,
+    Tape,
+    Thought,
+)
 
 
 class Broadcast(Thought):
@@ -103,6 +115,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
     """
 
     stack: list[TapeView[StepType]]
+    steps: list[StepType] = Field(default_factory=list)
     messages_by_agent: dict[str, list[Call | Respond | Broadcast]] = Field(default_factory=lambda: defaultdict(list))
 
     @property
@@ -125,10 +138,14 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         Raises:
             ValueError: If the step type is not supported
         """
+        self.steps.append(step)
         top = self.stack[-1]
         match step:
             case Call():
                 self.put_new_view_on_stack(step)
+            case ReferenceStep():
+                referenced_step = self.steps[step.step_number]
+                top.add_step(referenced_step)
             case Broadcast():
                 self.broadcast(step)
             case Respond():
@@ -154,7 +171,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 # - exclude Observation steps
                 # - among the remaining steps pick the last one
                 if not self.top.is_step_by_active_agent(top_step) and not isinstance(
-                    top_step, (Call, Respond, Observation)
+                    top_step, (Call, Respond, Observation, ConditionCheck)
                 ):
                     new_top.add_step(top_step)
                     new_top.outputs_by_subagent[top.agent_name] = top_step
@@ -209,3 +226,40 @@ class TapeViewStack(BaseModel, Generic[StepType]):
         for step in tape.steps:
             stack.update(step)
         return stack  # type: ignore
+
+
+T = TypeVar("T")
+
+
+def all_steps(tape: Tape | list[Step], step_cls: type[T]) -> list[T]:
+    return [step for step in tape if isinstance(step, step_cls)]
+
+
+def all_positions(tape: Tape | list[Step], step_cls: type[T]) -> list[int]:
+    return [i for i, step in enumerate(tape) if isinstance(step, step_cls)]
+
+
+def first_step(tape: Tape | list[Step], step_cls: type[T]) -> T:
+    steps = all_steps(tape, step_cls)
+    assert steps, f"No steps of type {step_cls} found in the tape"
+    return steps[0]
+
+
+def first_position(tape: Tape | list[Step], step_cls: type[T]) -> int:
+    positions = all_positions(tape, step_cls)
+    assert positions, f"No steps of type {step_cls} found in the tape"
+    return positions[0]
+
+
+def last_step(tape: Tape | list[Step], step_cls: type[T], allow_none: bool = False) -> T:
+    steps = all_steps(tape, step_cls)
+    if allow_none and not steps:
+        return None  # type: ignore
+    assert steps, f"No steps of type {step_cls} found in the tape"
+    return steps[-1]
+
+
+def last_position(tape: Tape | list[Step], step_cls: type[T]) -> int:
+    positions = all_positions(tape, step_cls)
+    assert positions, f"No steps of type {step_cls} found in the tape"
+    return positions[-1]

@@ -1,10 +1,25 @@
+import json
 import os
 import shutil
 from typing import Annotated, Any, Literal, TypeAlias, Union
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
+from tapeagents.core import (
+    Action,
+    Call,
+    ConditionCheck,
+    Error,
+    LLMOutputParsingFailureAction,
+    Observation,
+    ReferenceStep,
+    Respond,
+    SetNextNode,
+    StopStep,
+    TerminationStep,
+    Thought,
+)
+from tapeagents.dialog_tape import AssistantStep
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -59,6 +74,30 @@ class PlanThought(GaiaThought):
     plan: list[str] = Field(description="list of steps to follow to answer the question")
 
 
+class PlanStep(BaseModel):
+    number: int
+    name: str
+    description: str
+    list_of_tools: list[str] = Field(description="list of tools to use to complete the step")
+    prerequisites: list[Any] = Field(
+        description="list of pairs (previous_step_number, previous_step_result) that are needed to start working on this step",
+        default_factory=list,
+    )
+    expected_results: list[str] = Field(
+        description="expected results after succesfull execution of the step. Usually facts, files, papers, documents, code or data",
+        default_factory=list,
+    )
+
+
+class Plan(GaiaThought):
+    """
+    Thought that contains the plan to follow to answer the question
+    """
+
+    kind: Literal["detailed_plan_thought"] = "detailed_plan_thought"
+    plan: list[PlanStep] = Field(description="list of steps to follow to answer the question")
+
+
 class SourcesThought(GaiaThought):
     """
     Thought that contains the sources to use to answer the question. It could be web search, wikipedia, local document path and so on
@@ -94,7 +133,40 @@ class ListOfFactsThought(GaiaThought):
     )
 
 
+class Facts(GaiaThought):
+    """
+    Thought that contains the list of facts that are needed to answer the question
+    """
+
+    kind: Literal["facts_ledger_thought"] = "facts_ledger_thought"
+    given_facts: list[str | dict[str, Any] | list[str]] = Field(
+        description="list of facts that are already given in the question",
+        default=[],
+    )
+    found_facts: list[str | dict[str, Any] | list[str]] = Field(
+        description="list of facts that are found during previous steps",
+        default=[],
+    )
+    facts_to_lookup: list[str] = Field(
+        description="list of facts that need to be looked up on the web or in documents",
+        default=[],
+    )
+    facts_to_derive: list[str] = Field(
+        description="list of facts that need to be derived from the given facts using reasoning or computations",
+        default=[],
+    )
+    educated_guesses: list[str] = Field(
+        description="list of facts guessed from the given task and documents",
+        default=[],
+    )
+
+
 ################### Thoughts ###################
+
+
+class Reflection(GaiaThought):
+    kind: Literal["reflection"] = "reflection"
+    content: str
 
 
 class ReasoningThought(GaiaThought):
@@ -113,19 +185,6 @@ class StartSubtask(GaiaThought):
 
     kind: Literal["start_subtask_thought"] = "start_subtask_thought"
     plan_step: str = Field(description="plan step description")
-
-
-class FinishSubtask(GaiaThought):
-    """
-    Thought that indicates that you've finished working on the subtask from the plan. You cannot produce that step right after the start subtask, there MUST be some steps in between
-    """
-
-    kind: Literal["finish_subtask_thought"] = "finish_subtask_thought"
-    plan_step: str = Field(description="plan step description")
-    success: bool = Field(description="True if the subtask was successful, False otherwise")
-    overview: str = Field(
-        description="overview of the subtask. If the subtask was successful, describe the result. If the subtask was unsuccessful, describe the reason for failure"
-    )
 
 
 class NewFactThought(GaiaThought):
@@ -163,7 +222,9 @@ class ReadingResultThought(GaiaThought):
 ################### Actions ###################
 class SearchAction(GaiaAction):
     """
-    Action that provides parameters for a search function call. Could search in the web_search or wikipedia. Search results will be ordered by relevance from top to bottom
+    Action that provides parameters for a search function call.
+    Search results will be ordered by relevance from top to bottom.
+    If you want more information about the search result, read the url using read_document_action
     """
 
     kind: Literal["search_action"] = "search_action"
@@ -227,10 +288,6 @@ class PythonCodeAction(GaiaAction):
 
     kind: Literal["python_code_action"] = "python_code_action"
     code: str = Field(description="snippet of python code with escaped newlines and quotes to fit json format")
-    fact_name: str = Field(
-        description="fact name to save code execution result, should be unique, lowercase, snake_case, without spaces and special characters"
-    )
-    facts: dict | None = None
 
 
 ################### Observations ###################
@@ -276,7 +333,6 @@ class CalculationResultObservation(GaiaObservation):
 
 class CodeResultObservation(GaiaObservation):
     kind: Literal["code_result_observation"] = "code_result_observation"
-    name: str
     result: str
     stdout: str
     stderr: str
@@ -312,6 +368,51 @@ class ActionExecutionFailure(GaiaObservation, Error):
     error: str
 
 
+class Subtask(GaiaThought):
+    kind: Literal["subtask"] = "subtask"
+    number: int
+    name: str
+    description: str
+    previous_results: list[str | dict | list[str]]
+    list_of_tools: list[str]
+    expected_results: list[str]
+
+
+class SubtaskResult(GaiaThought):
+    """
+    Thought that indicates that you've finished working on the task.
+    Produced either when the task was successful and produced the result or when the task  failed.
+    You cannot produce that step right after the start, there MUST be some steps in between.
+    The answer should use already determined facts.
+    """
+
+    kind: Literal["subtask_result"] = "subtask_result"
+    number: int = Field(description="task number")
+    success: bool = Field(description="True if the task was successful, False otherwise")
+    result: Any = Field(description="full final answer")
+    result_facts: list[str] = Field(
+        description="list of facts found during the task execution that are parts of the final answer."
+    )
+    result_docs: list[str] = Field(
+        description="if the task requested to find a specific document, list of urls of documents or pages that represent the final answer"
+    )
+    execution_summary: str = Field(
+        description="overview of the task execution process in few lines, with notable thougts, guesses and observations"
+    )
+    failure_overview: str = Field(
+        description="detailed description of reasons of the task failure, if applicable", default=""
+    )
+
+
+class PlanReflection(GaiaThought):
+    kind: Literal["plan_reflection"] = "plan_reflection"
+    task_solved: bool
+    plan_finished: bool
+    failed_step_number: int = -1
+    failure_overview: str = ""
+    text: str = Field(description="leave this field empty", default="")
+
+
 GaiaStep = Union[
     PlanThought,
     ListOfFactsThought,
@@ -321,7 +422,7 @@ GaiaStep = Union[
     NewFactThought,
     ReasoningThought,
     StartSubtask,
-    FinishSubtask,
+    SubtaskResult,
     SearchAction,
     ReadDocumentAction,
     NextPageAction,
@@ -338,71 +439,152 @@ GaiaStep = Union[
     ActionExecutionFailure,
     LLMOutputParsingFailureAction,
     SetNextNode,
+    Plan,
+    Facts,
+    Reflection,
+    Subtask,
+    PlanReflection,
+    Call,
+    Respond,
+    ConditionCheck,
+    ReferenceStep,
+    TerminationStep,
 ]
+
+_step_list = [
+    PlanThought,
+    ListOfFactsThought,
+    SourcesThought,
+    DraftPlansThought,
+    ReadingResultThought,
+    NewFactThought,
+    ReasoningThought,
+    StartSubtask,
+    SubtaskResult,
+    SearchAction,
+    ReadDocumentAction,
+    NextPageAction,
+    ConvertFactAction,
+    UseCalculatorAction,
+    PythonCodeAction,
+    GaiaQuestion,
+    SearchResultsObservation,
+    PageObservation,
+    CalculationResultObservation,
+    CodeResultObservation,
+    PreviousFactsObservation,
+    GaiaAnswer,
+    ActionExecutionFailure,
+    LLMOutputParsingFailureAction,
+    SetNextNode,
+    Plan,
+    Facts,
+    Reflection,
+    Subtask,
+    PlanReflection,
+    Call,
+    Respond,
+    ConditionCheck,
+    ReferenceStep,
+    AssistantStep,
+]
+
+_kind_to_step = {step.__fields__["kind"].default: step for step in _step_list}
+
+
+def load_step(step_dict: dict) -> GaiaStep:
+    try:
+        step = _kind_to_step[step_dict["kind"]](**step_dict)
+    except Exception:
+        step = Reflection(content=json.dumps(step_dict, indent=2, ensure_ascii=False))
+    return step
+
 
 GaiaAgentStep: TypeAlias = Annotated[
     Union[
         # thoughts
         PlanThought,
         ListOfFactsThought,
+        Facts,
         SourcesThought,
         DraftPlansThought,
         ReadingResultThought,
         NewFactThought,
         ReasoningThought,
         StartSubtask,
-        FinishSubtask,
+        SubtaskResult,
         # actions
         SearchAction,
         ReadDocumentAction,
         NextPageAction,
         ConvertFactAction,
         UseCalculatorAction,
-        # PythonCodeAction,
+        PythonCodeAction,
         GaiaAnswer,
     ],
     Field(discriminator="kind"),
 ]
 
-actions = [
-    SearchAction,
-    ReadDocumentAction,
-    NextPageAction,
-    ConvertFactAction,
-    UseCalculatorAction,
-    GaiaAnswer,
+ExecutorStep: TypeAlias = Annotated[
+    Union[
+        SubtaskResult,
+        SearchAction,
+        ReadDocumentAction,
+        NextPageAction,
+        PythonCodeAction,
+        ReasoningThought,
+        ReadingResultThought,
+        NewFactThought,
+        ConvertFactAction,
+    ],
+    Field(discriminator="kind"),
+]
+
+CoderStep: TypeAlias = Annotated[
+    Union[
+        SubtaskResult,
+        PythonCodeAction,
+        ReasoningThought,
+        NewFactThought,
+        ConvertFactAction,
+    ],
+    Field(discriminator="kind"),
+]
+
+ReasonerStep: TypeAlias = Annotated[
+    Union[
+        SubtaskResult,
+        ReadDocumentAction,
+        NextPageAction,
+        ReasoningThought,
+        ReadingResultThought,
+        NewFactThought,
+        ConvertFactAction,
+    ],
+    Field(discriminator="kind"),
+]
+
+GaiaAgentStepV2: TypeAlias = Annotated[
+    Union[
+        ReadingResultThought,
+        NewFactThought,
+        ReasoningThought,
+        SearchAction,
+        ReadDocumentAction,
+        NextPageAction,
+        ConvertFactAction,
+        # UseCalculatorAction,
+        PythonCodeAction,
+        GaiaAnswer,
+    ],
+    Field(discriminator="kind"),
 ]
 
 
-def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
+def get_allowed_steps(plan_thoughts: bool) -> str:
     if plan_thoughts:
-        steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
+        steps = Union[PlanThought, Facts]
     else:
-        if subtasks:
-            steps = Union[
-                ReadingResultThought,
-                NewFactThought,
-                ReasoningThought,
-                SearchAction,
-                ReadDocumentAction,
-                NextPageAction,
-                ConvertFactAction,
-                UseCalculatorAction,
-                GaiaAnswer,
-                StartSubtask,
-                FinishSubtask,
-            ]
-        else:
-            steps = Union[
-                ReadingResultThought,
-                NewFactThought,
-                ReasoningThought,
-                SearchAction,
-                ReadDocumentAction,
-                NextPageAction,
-                ConvertFactAction,
-                UseCalculatorAction,
-                GaiaAnswer,
-            ]
+        steps = GaiaAgentStepV2
     steps_alias = Annotated[steps, Field(discriminator="kind")]
     return get_step_schemas_from_union_type(steps_alias)

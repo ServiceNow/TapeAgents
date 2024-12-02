@@ -1,0 +1,339 @@
+{
+    "metadata": {
+        "id": "5ef0642a-e885-463c-a556-c7ca7c1414fa",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "Wojciech",
+        "terminated": false,
+        "task": {
+            "task_id": "305ac316-eef6-4446-960a-92d80d542f82",
+            "Question": "Who did the actor who played Ray in the Polish-language version of Everybody Loves Raymond play in Magda M.? Give only the first name.",
+            "Level": 1,
+            "Final answer": "Wojciech",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Search \"Polish-language version of Everybody Loves Raymond\" and pull up the Wiki page for Wszyscy kochają Romana.\n2. See that Bartłomiej Kasprzykowski is marked as playing Ray and go to his Wiki page.\n3. See that he is stated to have played Wojciech Płaska in Magda M.",
+                "Number of steps": "3",
+                "How long did this take?": "5 minutes",
+                "Tools": "None",
+                "Number of tools": "0"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "f66ab293-df2e-4a5f-bf31-5fb24d4e2456",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "Who did the actor who played Ray in the Polish-language version of Everybody Loves Raymond play in Magda M.? Give only the first name.",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "57c1d68b-248a-4f5b-a4b6-977e228769c5",
+                "prompt_id": "807385d2-0042-451a-bb6a-b78268b30671",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Search for the actor who played Ray in the Polish-language version of Everybody Loves Raymond.",
+                "Identify the character played by that actor in the show Magda M.",
+                "Extract the first name of that character."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "6a3dbad2-e13d-436e-9bd7-63f28bf9ff54",
+                "prompt_id": "1c2e3f4b-3278-49a6-a51e-79ec4cf6fb4e",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "facts_ledger_thought",
+            "given_facts": [
+                "The actor who played Ray in the Polish-language version of Everybody Loves Raymond."
+            ],
+            "found_facts": [],
+            "facts_to_lookup": [
+                "The name of the actor who played Ray in the Polish-language version of Everybody Loves Raymond.",
+                "The character played by that actor in Magda M."
+            ],
+            "facts_to_derive": [],
+            "educated_guesses": []
+        },
+        {
+            "metadata": {
+                "id": "1989cac4-638d-4f1d-b003-2a92c5c896f9",
+                "prompt_id": "f80e137f-a5e9-4365-abdc-e0a64f007076",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "actor who played Ray in Polish version of Everybody Loves Raymond"
+        },
+        {
+            "metadata": {
+                "id": "d2465879-0232-4240-b257-98256812fb52",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "actor who played Ray in Polish version of Everybody Loves Raymond",
+            "serp": [
+                {
+                    "title": "Wszyscy kochają Romana",
+                    "url": "https://en.wikipedia.org/wiki/Wszyscy_kochaj%C4%85_Romana",
+                    "content": "Cast and characters ; Bartłomiej Kasprzykowski as Roman (Ray) ; Aneta Todorczuk-Perchuć as Dorota (Debra) ; Anna Seniuk as Maryla (Marie) ; Joachim Lamża as Zygmunt ..."
+                },
+                {
+                    "title": "Everybody Loves Raymond",
+                    "url": "https://en.wikipedia.org/wiki/Everybody_Loves_Raymond",
+                    "content": "The cast members were Ray Romano, Patricia Heaton, Brad Garrett, Doris Roberts, Peter Boyle, Madylin Sweeten, and Monica Horan. Most episodes of the nine ..."
+                },
+                {
+                    "title": "'Everybody Loves Raymond' Gets Israeli And Polish Versions",
+                    "url": "https://deadline.com/2011/04/everybody-loves-raymond-gets-israeli-and-polish-versions-119751/",
+                    "content": "4 Apr 2011 — Sony Pictures Television is announcing at MIPTV today that it has sold local-language versions of the hit CBS comedy in Israel and Poland."
+                },
+                {
+                    "title": "TOP 20 EVERYBODY LOVES RAYMOND CHARACTERS ...",
+                    "url": "https://www.imdb.com/list/ls505203777/",
+                    "content": "Sawyer Sweeten who plays Ray and Debras identical twin son Geoffrey Barone in the hilarious sitcom 'Everybody Loves Raymond' is also a great boy. Geoffrey also ..."
+                },
+                {
+                    "title": "Ray Romano Movies and Shows",
+                    "url": "https://tv.apple.com/us/person/ray-romano/umc.cpc.xsna4pxb171q22jkpsssdoci",
+                    "content": "Romano was born in Queens, NY, and raised in middle class Forest Hills, where his was one of the few Italian families in a mostly Jewish neighborhood."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9e5b318f-1889-4b20-a4dd-b2890a012759",
+                "prompt_id": "abcde7e7-1c2e-472e-a289-1f97db719896",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "actor who played Ray in the Polish-language version of Everybody Loves Raymond",
+            "fact_found": true,
+            "quote_with_fact": "Bartłomiej Kasprzykowski as Roman (Ray)",
+            "where_to_look_next": "Look for the character played by Bartłomiej Kasprzykowski in Magda M."
+        },
+        {
+            "metadata": {
+                "id": "254456fb-aa55-461c-ac68-9a799435dd7c",
+                "prompt_id": "abcde7e7-1c2e-472e-a289-1f97db719896",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "d4833ce6-e7d5-473f-9dcd-59397a1d3bc0",
+                "prompt_id": "298515e9-2b02-4900-b764-ec5674317224",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Bartłomiej Kasprzykowski character in Magda M."
+        },
+        {
+            "metadata": {
+                "id": "226faa2a-21a2-4cd2-89e5-d2667e83124a",
+                "prompt_id": "298515e9-2b02-4900-b764-ec5674317224",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "6101a3a0-45f1-4d6a-9c35-4dd18988634e",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Bartłomiej Kasprzykowski character in Magda M.",
+            "serp": []
+        },
+        {
+            "metadata": {
+                "id": "9348ed85-e559-4280-a28d-9ee7f38ceda7",
+                "prompt_id": "49fc04eb-6165-45b1-ad01-e813e03367c8",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "character played by Bartłomiej Kasprzykowski in Magda M.",
+            "fact_found": false,
+            "quote_with_fact": "",
+            "where_to_look_next": "Search for more detailed information about the show Magda M. or its cast."
+        },
+        {
+            "metadata": {
+                "id": "1dd5a82d-00d7-4a0f-8a30-1602aab7314a",
+                "prompt_id": "49fc04eb-6165-45b1-ad01-e813e03367c8",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "94edd6db-dac4-4000-b838-7498ebc1a83a",
+                "prompt_id": "dde89543-3b41-45b2-b335-aef968a0db04",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Magda M. cast and characters"
+        },
+        {
+            "metadata": {
+                "id": "92972756-bc99-469a-a438-7359192b388f",
+                "prompt_id": "dde89543-3b41-45b2-b335-aef968a0db04",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "8a8569bd-be86-4677-b860-48668a9e0377",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Magda M. cast and characters",
+            "serp": [
+                {
+                    "title": "Magda M. (TV Series 2005",
+                    "url": "https://www.imdb.com/title/tt0471052/",
+                    "content": "Top cast99+ ; Joanna Brodzik · Magda Milowicz ; Daria Widawska · Agata Bielecka ; Katarzyna Bujakiewicz · Mariola Adamska ; Bartek Kasprzykowski · Wojciech Plaska."
+                },
+                {
+                    "title": "Magda M. (TV Series 2005– ) - “Cast” credits",
+                    "url": "https://m.imdb.com/title/tt0471052/fullcredits/cast",
+                    "content": "Series Cast (213) · Joanna Brodzik · Daria Widawska · Katarzyna Bujakiewicz · Bartek Kasprzykowski · Pawel Malaszynski · Katarzyna Herman · Bartlomiej Swiderski · Jacek ..."
+                },
+                {
+                    "title": "Magda M. (TV Series 2005-2007) - Cast & Crew",
+                    "url": "https://www.themoviedb.org/tv/12949-magda-m/cast",
+                    "content": "Joanna Brodzik · Paweł Małaszyński · Krzysztof Stelmaszyk · Bartłomiej Kasprzykowski · Katarzyna Bujakiewicz · Katarzyna Herman · Daria Widawska · Małgorzata Socha."
+                },
+                {
+                    "title": "Magda M. (2005)",
+                    "url": "https://www.themoviedb.org/tv/12949-magda-m",
+                    "content": "Series Cast · Joanna Brodzik as Magda Miłowicz · Joanna Brodzik · Paweł Małaszyński as Piotr Korzecki. Paweł Małaszyński · Krzysztof Stelmaszyk as · Krzysztof ..."
+                },
+                {
+                    "title": "Magda M. cast - FamousFix.com list",
+                    "url": "https://www.famousfix.com/topic/magda-m/cast",
+                    "content": "She is most famous for her roles in two TV shows: Magda M. and Kasia i Tomek. Date of birth: 11 January 1973. Age: 51. Nationality: Polish. Occupation: Actress."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "60b4d00d-77f2-4af3-8eeb-66be2d0fa433",
+                "prompt_id": "e1c8ee3d-e530-4e7f-9aa9-38dd67c81663",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "character played by Bartłomiej Kasprzykowski in Magda M.",
+            "fact_found": true,
+            "quote_with_fact": "Bartek Kasprzykowski · Wojciech Plaska.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "98167521-3972-40c9-98a3-26dbf9021729",
+                "prompt_id": "e1c8ee3d-e530-4e7f-9aa9-38dd67c81663",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "2552e427-061e-4d1d-abcd-0aab04c7134b",
+                "prompt_id": "526daedc-5ce4-470e-ba16-46d19914de1a",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "wojciech_plaska",
+            "unit": "",
+            "value": "Wojciech"
+        },
+        {
+            "metadata": {
+                "id": "d66960fb-fb0d-4567-a5ff-15c6c1f5abdf",
+                "prompt_id": "526daedc-5ce4-470e-ba16-46d19914de1a",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "b365de8a-8ea1-4ebf-8afd-d669db0a9944",
+                "prompt_id": "740d24e7-e952-4562-8a8f-dc61dfe85b40",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the character played by Bartłomiej Kasprzykowski in Magda M.",
+            "answer_unit": "",
+            "answer": "Wojciech"
+        }
+    ]
+}

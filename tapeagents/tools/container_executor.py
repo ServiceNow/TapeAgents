@@ -156,7 +156,7 @@ class ContainerExecutor:
         def cleanup() -> None:
             try:
                 container = client.containers.get(container_name)
-                container.stop()
+                container.stop(timeout=2)
             except docker.errors.NotFound:
                 pass
             atexit.unregister(cleanup)

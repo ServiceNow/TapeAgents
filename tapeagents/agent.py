@@ -39,6 +39,7 @@ from .llms import LLM, LLMEvent, LLMStream
 DEFAULT = "default"
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class AgentStream(Generic[TapeType]):
@@ -623,13 +624,14 @@ class Agent(BaseModel, Generic[TapeType]):
         Raises:
             NotImplementedError: If the agent has multiple LLMs and no LLM stream is provided
         """
+        logger.debug(f"RUN {self.full_name}, Nodes:{[node.name for node in self.nodes]}")
         if llm_stream is None:
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:
                 raise NotImplementedError("TODO: implement LLM choice in the prompt")
             llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
         for step in self.generate_steps(tape, llm_stream):
-            if isinstance(step, AgentStep):
+            if isinstance(step, AgentStep) and not step.metadata.prompt_id:
                 step.metadata.prompt_id = llm_stream.prompt.id
             yield step
 

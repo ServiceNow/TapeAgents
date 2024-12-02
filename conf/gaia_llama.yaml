@@ -8,7 +8,6 @@ split: validation
 n_attempts: 1
 agent:
   planning_mode: simple
-  subtasks: false
 
 env:
   safe_calculator: false
@@ -17,4 +16,4 @@ env:
 
 hydra:
   run:
-    dir: outputs/gaia/runs/${exp_name}
+    dir: ${exp_path}

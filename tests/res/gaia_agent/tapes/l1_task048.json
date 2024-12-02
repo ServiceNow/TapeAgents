@@ -1,0 +1,148 @@
+{
+    "metadata": {
+        "id": "cf078fd5-08e8-467e-893b-e4cdccffbb4d",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "red,yellow",
+        "terminated": false,
+        "task": {
+            "task_id": "50ec8903-b81f-4257-9450-1085afd2c319",
+            "Question": "A standard Rubik’s cube has been broken into cubes making up its sides. The cubes are jumbled, and one is removed. There are 6 cubes with one colored face, 12 edge cubes with two colored faces, and 8 corner cubes with three colored faces. All blue cubes have been found. All cubes directly left, right, above, and below the orange center cube have been found, along with the center cube. The green corners have all been found, along with all green that borders yellow. For all orange cubes found, the opposite face’s cubes have been found. The removed cube has two colors on its faces. What are they? Answer using a comma separated list, with the colors ordered alphabetically.",
+            "Level": 1,
+            "Final answer": "green, white",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Set up a standard Rubik's cube (red opposite orange, white opposite yellow, green opposite blue).\n2. Eliminated blue cubes, along with adjacent colors.\n3. Eliminated orange cubes, along with adjacent colors.\n4. Eliminated green corners and the green/yellow edge.\n5. Eliminated red, opposite of orange, cubes and adjacent colors.\n6. Identified the last possible two-face cube.",
+                "Number of steps": "6",
+                "How long did this take?": "10 minutes",
+                "Tools": "1. Rubik's cube model",
+                "Number of tools": "1"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "4a17d05c-5c7d-401b-84a3-c325e92f20d1",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "A standard Rubik’s cube has been broken into cubes making up its sides. The cubes are jumbled, and one is removed. There are 6 cubes with one colored face, 12 edge cubes with two colored faces, and 8 corner cubes with three colored faces. All blue cubes have been found. All cubes directly left, right, above, and below the orange center cube have been found, along with the center cube. The green corners have all been found, along with all green that borders yellow. For all orange cubes found, the opposite face’s cubes have been found. The removed cube has two colors on its faces. What are they? Answer using a comma separated list, with the colors ordered alphabetically.",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "da0e06f8-a1f5-44f5-8005-f555b7203df2",
+                "prompt_id": "e6539c51-2c44-469a-85dd-e56a89dd5a7e",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Identify the colors of the cubes based on the provided information about the Rubik's cube.",
+                "List the colors of the cubes that have been found: blue, orange, green, yellow.",
+                "Determine the possible locations of the removed cube based on the information about the found cubes.",
+                "Since the removed cube has two colors, identify which colors could be on the faces of the removed cube based on the adjacent cubes that have been found.",
+                "Cross-reference the colors of the found cubes with the requirement that the removed cube has two colors on its faces.",
+                "Order the identified colors alphabetically and prepare the final answer as a comma-separated list."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9a69bbb6-0845-4df3-897f-1457a0571c0e",
+                "prompt_id": "f3a97fe7-3b10-4786-8854-3620044e3db9",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "facts_ledger_thought",
+            "given_facts": [
+                "There are 6 cubes with one colored face.",
+                "There are 12 edge cubes with two colored faces.",
+                "There are 8 corner cubes with three colored faces.",
+                "All blue cubes have been found.",
+                "All cubes directly left, right, above, and below the orange center cube have been found, along with the center cube.",
+                "The green corners have all been found, along with all green that borders yellow.",
+                "For all orange cubes found, the opposite face’s cubes have been found.",
+                "The removed cube has two colors on its faces."
+            ],
+            "found_facts": [],
+            "facts_to_lookup": [],
+            "facts_to_derive": [
+                "The colors of the faces of the removed cube based on the adjacent cubes that have been found."
+            ],
+            "educated_guesses": []
+        },
+        {
+            "metadata": {
+                "id": "1aa89471-a5e0-4ffa-a346-a452ea70cfc8",
+                "prompt_id": "ca5f332d-6eda-4604-a9bf-2683eea8207e",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": [
+                "The standard Rubik's cube has six colors: blue, orange, green, yellow, red, and white.",
+                "From the information given, blue cubes have been found, and all orange cubes found have their opposite faces found.",
+                "Green corners and green cubes bordering yellow have been found.",
+                "The removed cube has two colors, which means it cannot be blue (since all blue cubes are found), nor can it be orange (as all orange cubes are accounted for).",
+                "The remaining colors are green, yellow, red, and white.",
+                "Since green cubes bordering yellow are found, the removed cube could be yellow and red or yellow and white."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "5d4064f7-482b-4c12-bae3-cdd58e354374",
+                "prompt_id": "1ae1b752-8746-4e9f-bfa5-56c24a0cb943",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "new_fact_thought",
+            "fact_name": "removed_cube_colors",
+            "unit": "",
+            "value": [
+                "red",
+                "yellow"
+            ]
+        },
+        {
+            "metadata": {
+                "id": "ab68189b-5cde-4532-abdc-990aebd8471e",
+                "prompt_id": "1ae1b752-8746-4e9f-bfa5-56c24a0cb943",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "default"
+        },
+        {
+            "metadata": {
+                "id": "df1e22e4-a291-4de3-82a9-0ef645b59570",
+                "prompt_id": "89d0a170-cb43-4e0d-99f0-387789a95762",
+                "node": "default",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the colors of the removed cube based on the constraints provided.",
+            "answer_unit": "",
+            "answer": "red,yellow"
+        }
+    ]
+}

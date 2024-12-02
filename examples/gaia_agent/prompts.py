@@ -1,7 +1,8 @@
-SYSTEM_PROMPT = """You are an expert AI Agent trained to assist user with complex information processing tasks.
-Your role is to understand user queries and respond in a helpful and accurate manner.
+SYSTEM_PROMPT = """You are an expert AI Agent trained to help user by solving complex information-processing tasks.
+Your role is to solve the task using the best of your abilities and knowledge.
 Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
-Do not express your emotions or opinions about the user question."""
+Do not express your emotions or opinions about the task.
+"""
 
 short_format_instruction = (
     "DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output."
@@ -16,7 +17,7 @@ THINK_AFTER_OBSERVATION = f"""Produce the reasoning thought step with the though
 THINK_AFTER_CALCULATION = f"""Produce the reasoning thought step with the thoughts about plausbility and sensibility of the results of the recent calculation. {short_format_instruction}"""
 
 ALLOWED_STEPS = """
-You can use the following tools: search the web, read web page or document, extract fact from the web page or document, calculator, and reasoning.
+You can use the following tools: search the web, read web page or document, extract fact from the web page or document, execute python code, and reasoning.
 You are allowed to produce ONLY steps with the following json schemas:
 {allowed_steps}
 Do not reproduce schema when producing the steps, use it as a reference.
@@ -29,13 +30,13 @@ MLM = """Write a detailed caption for this image. Pay special attention to any d
 {prompt}
 """
 
-FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability. 
+FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability.
 Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
-For each fact provide the description, expected json-compatible format and, if possible, measurement unit. 
+For each fact provide the description, expected json-compatible format and, if possible, measurement unit.
 The fact name should be short and in lowercase. The description should be detailed, self-sustained and informative.
 Here is the pre-survey:
 
-    1. Please list any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.
+    1. Please list ALL specific facts, statements or figures given in the request itself. It is possible that there are none.
     2. Please list any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
     3. Please list any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
     4. Please list any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
@@ -46,12 +47,165 @@ When answering this survey, keep in mind that "facts" will typically be specific
     3. Facts to derive
     4. Educated guesses
 
-Respond with list_of_facts_thought.
-{short_format_instruction}
+Rules:
+- Sometimes, the request will not contain any given facts, facts to look up, or facts to derive. In such cases, you may leave those sections blank.
+- DO NOT include any other headings or sections in your response. DO NOT list next steps or plans until asked to do so.
+- Respond with facts_ledger_thought.
+- {short_format_instruction}
 """
 
 IS_SUBTASK_FINISHED = """Assess if the subtask objective has been fully achieved. If the objective has been achieved or if we're stuck, finish working on the subtask by producing finish_subtask_thought with the status and description.
 If the objective has not been achieved, produce the next step.
+"""
+
+ALLOWED_STEPS_V2 = """
+You are allowed to produce ONLY steps described in this json schema:
+{schema}
+Do not reproduce schema when producing the step, use it only as a reference!
+DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output.
+"""
+
+PLAN_V2 = """What steps should I do to answer the question above? Be specific about how each step should be done.
+
+You can use the following tools:
+- WebSurfer: does wikipedia search, web search, web browsing, reading local documents, extracting fact from the web page or document
+- Coder: Python code execution
+- Reasoner: Reasoning
+
+For each step in the plan, include:
+- A detailed description of the tasks to perform. DO NOT mention previous steps or the overall task!
+- A list of required tools (only WebSurfer, Coder, Reasoner are valid names).
+- A list of expected outcomes, such as facts, files, documents, or data.
+- A list of prerequisites, including any results from previous steps or known facts necessary to proceed. First step should not have prerequisites. Each prerequisite should have the number of the step where it was produced.
+
+If the task is a riddle or puzzle, do not user web surfing! Use only reasoning and coding tools.
+"""
+
+START_EXECUTION_V2 = """
+Briefly describe how to solve this task using reasoning_thougt.
+If you need to filter some data by year, date or any other criteria, first search for the data and then filter it afterwards.
+"""
+
+START_EXECUTION_CODER = """
+Briefly describe how to solve this task using reasoning_thougt.
+"""
+
+REFLECT_SUBTASK = """
+Evaluate the execution of the subtask in the plan step:
+- If the subtask was successfully completed, describe the achieved result.
+- If the subtask failed, analyze the reasons for the failure and suggest adjustments to the plan to enable successful task completion.
+"""
+
+REFLECT_PLAN_STATUS = """
+Assess the current state of plan execution:
+
+Determine whether the produced results contain all the necessary information to answer the question.
+If there is enough information to answer the question, mark task as solved and plan as finished.
+If plan is not finished solved, evaluate the progress of plan completion.
+If any steps have failed, analyze the reasons for the failure and suggest adjustments to the plan to ensure the task can still be completed.
+"""
+
+PLAN_STATUS = """
+Current plan status:
+Total steps: {total_steps}
+Completed steps: {completed_steps}
+Remaining steps: {remaining_steps}
+
+Facts found:
+{facts}
+"""
+
+REPLAN = """We tried to solve task:
+{task}
+
+Our attempt to solve task failed.
+Our previous plan:
+{plan}
+
+Execution summary and description of the failure:
+{result}
+
+Facts gathered during the execution:
+{facts}
+
+Please reason step by step and produce short draft of the new plan to solve this task. It should be different from the previous one.
+Produce detailed bullet-point plan for addressing the original request. For each step of the plan, provide the following:
+- detailed description of things to do
+- list of tools and expected outcomes like concrete artifacts at the end of the step: facts, files, documents, or data to be produced
+- prerequisites, a list of the results of the previous steps, or known facts needed to start working on this step.
+"""
+
+FINAL_ANSWER = """We're solving the task:
+{task}
+
+We've successfully finished the following plan to solve the task:
+{plan}
+
+Facts gathered during the plan execution:
+{facts}
+
+We've got the following result:
+{result}
+
+Based on the facts and result of the plan above, formulate the final answer to the question.
+Pay attention to the exact wording of the question and provide the most accurate and concise response possible.
+
+To output the final answer, use the following template: FINAL ANSWER: [YOUR FINAL ANSWER]
+Your FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
+ADDITIONALLY, your FINAL ANSWER MUST adhere to any formatting instructions specified in the original question (e.g., alphabetization, sequencing, units, rounding, decimal places, etc.)
+If you are asked for a number, express it numerically (i.e., with digits rather than words), don't use commas, and DO NOT INCLUDE UNITS such as $ or USD or percent signs unless specified otherwise.
+If you are asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
+If you are asked for a comma separated list, apply the above rules depending on whether the elements are numbers or strings.
+If you are unable to determine the final answer, output empty result.
+"""
+
+REFLECT_OBSERVATION = """
+Provide reasoning about the current state of the task after the last observation.
+"""
+
+FACTS_SURVEY_UPDATE = """
+As a reminder, we are working to solve the following task:
+
+{task}
+
+We're executing the following plan:
+
+{plan}
+
+Here is the current fact sheet:
+{facts}
+
+We've completed another step in the plan, here is the results:
+
+{last_results}
+
+Please update the following fact sheet to include any new information we have learned that may be helpful. Update rules:
+- Edit should update found facts if new facts have been reported in results.
+- Edit can include adding new guesses, moving educated guesses to found facts where applicable, etc.
+- You can update any section of the fact sheet, with multiple sections edited if necessary.
+- Remove educated guesses that have been proven false or replaced by found facts.
+- Do not remove previously found facts!
+
+Respond with updated facts sheet.
+"""
+
+REASON = "Let's think step by step."
+ACT = "Work only on the current subtask! Produce result step when the current subtask is solved."
+GUESS = """We tried to solve task:
+{task}
+
+Our attempt to solve task failed.
+Our previous plan:
+{plan}
+
+Execution summary and description of the failure:
+{result}
+
+Facts gathered during the execution:
+{facts}
+
+Please guess from the following facts and execution summary the best possible answer to the question.
+Lets think step by step.
 """
 
 
@@ -69,3 +223,18 @@ class PromptRegistry:
     is_subtask_finished = IS_SUBTASK_FINISHED
     think_after_observation = THINK_AFTER_OBSERVATION
     think_after_calculation = THINK_AFTER_CALCULATION
+
+    allowed_steps_v2 = ALLOWED_STEPS_V2
+    plan_v2 = PLAN_V2
+    start_execution_v2 = START_EXECUTION_V2
+    start_execution_coder = START_EXECUTION_CODER
+    reflect_subtask = REFLECT_SUBTASK
+    reflect_plan_status = REFLECT_PLAN_STATUS
+    plan_status = PLAN_STATUS
+    replan = REPLAN
+    final_answer = FINAL_ANSWER
+    reflect_observation = REFLECT_OBSERVATION
+    facts_survey_update = FACTS_SURVEY_UPDATE
+    reason = REASON
+    act = ACT
+    guess = GUESS
