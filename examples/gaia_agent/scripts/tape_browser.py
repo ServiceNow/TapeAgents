@@ -3,13 +3,16 @@ import os
 import sys
 from collections import defaultdict
 
+from pydantic import TypeAdapter
+
 from tapeagents.core import Action
-from tapeagents.io import load_tapes
+from tapeagents.io import load_legacy_tapes
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
 from ..eval import calculate_accuracy, get_exp_config_dict, tape_correct
+from ..steps import GaiaStep
 from ..tape import GaiaTape
 
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +28,7 @@ class GaiaTapeBrowser(TapeBrowser):
         _, fname, postfix = name.split("/", maxsplit=2)
         tapes_path = os.path.join(self.tapes_folder, fname, "tapes")
         try:
-            all_tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_path, file_extension=".json")  # type: ignore
+            all_tapes: list[GaiaTape] = load_legacy_tapes(GaiaTape, tapes_path, step_class=TypeAdapter(GaiaStep))  # type: ignore
         except Exception as e:
             logger.error(f"Failed to load tapes from {tapes_path}: {e}")
             return []
@@ -113,7 +116,7 @@ class GaiaTapeBrowser(TapeBrowser):
 
         for step in tape:
             prompt_id = step.metadata.prompt_id
-            if prompt_id:
+            if prompt_id and prompt_id in self.llm_calls:
                 llm_calls_num += 1
                 tokens_num += (
                     self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
@@ -146,9 +149,12 @@ class GaiaTapeBrowser(TapeBrowser):
         for postfix in ["1", "2", "3", "all"]:
             for r in raw_exps:
                 exp_dir = os.path.join(self.tapes_folder, r)
-                cfg = get_exp_config_dict(exp_dir)
-                parts = cfg["data_dir"].split("/")
-                set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                try:
+                    cfg = get_exp_config_dict(exp_dir)
+                    parts = cfg["data_dir"].split("/")
+                    set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                except Exception:
+                    set_name = "-"
                 exps.append(f"{set_name}/{r}/{postfix}")
         return sorted(exps)
 
