@@ -79,10 +79,7 @@ class WorkArenaBaselineNode(MonoNode):
 class WorkArenaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = Field(exclude=True, default=WorkArenaAgentStep)
-
-    def get_steps_description(self, tape: WorkArenaTape) -> str:
-        return self.steps_prompt.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep))
+    agent_step_cls: Any = WorkArenaAgentStep
 
     def prepare_tape(self, tape: WorkArenaTape, max_chars: int = 100):
         """
