@@ -4,9 +4,10 @@ import os
 
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LiteLLM
-from tapeagents.observe import retrieve_llm_call
+from tapeagents.observe import retrieve_llm_calls
 from tapeagents.orchestrator import main_loop
 
+from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
 from ..eval import load_dataset, task_to_question_step
 from ..tape import GaiaTape
@@ -16,9 +17,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def main(dataset_path, exp_dir, level, task_num):
-    dset = load_dataset(dataset_path)
+def main(exp_dir, level, task_num):
+    dset = load_dataset("validation")
     tapes_dir = f"{exp_dir}/tapes"
+    os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_dir, "tapedata.sqlite")
     tape_name = f"debug_{level}_{task_num}"
     tasks = dset[level]
@@ -30,31 +32,32 @@ def main(dataset_path, exp_dir, level, task_num):
         parameters={"temperature": 0.0},
     )
     env = GaiaEnvironment(vision_lm=llm, safe_calculator=False)
-    planner = GaiaPlanner.create(llm)
+    # agent = GaiaPlanner.create(llm)
+    agent = GaiaAgent.create(llm)
     tape = GaiaTape(steps=[task_to_question_step(task, env)])
     metadata = tape.metadata
     metadata.task = task
     metadata.level = level
-    for event in main_loop(planner, tape, env, max_loops=50):
+    for event in main_loop(agent, tape, env, max_loops=50):
         if event.agent_event and event.agent_event.step:
             step = event.agent_event.step
             tape = tape.append(step)
             save_json_tape(tape, tapes_dir, tape_name)
-            llm_call = retrieve_llm_call(step.metadata.prompt_id)
+            llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
             logger.info(f"{len(tape)} RUN {step.metadata.agent}:{step.metadata.node}")
-            if llm_call:
-                for i, m in enumerate(llm_call.prompt.messages):
+            if llm_calls:
+                for i, m in enumerate(llm_calls[0].prompt.messages):
                     logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
             logger.info(f"{len(tape)} STEP of {step.metadata.agent}:{step.metadata.node}")
             logger.info(step.llm_view())
-            # input("Press Enter to continue...")
+            input("Press Enter to continue...")
             print("-" * 140)
         elif event.observation:
             step = event.observation
             tape = tape.append(step)
             save_json_tape(tape, tapes_dir, tape_name)
             logger.info(f"OBSERVATION: {step.kind}")
-            # input("Press Enter to continue...")
+            input("Press Enter to continue...")
             print("-" * 140)
         elif event.agent_event and event.agent_event.final_tape is not None:
             logger.info("RUN END")
@@ -69,8 +72,7 @@ def main(dataset_path, exp_dir, level, task_num):
 
 
 if __name__ == "__main__":
-    dataset_path = "../gaia/dataset/validation/"
-    exp_dir = "../gaia/runs/v2_debug/"
+    exp_dir = "outputs/gaia/runs/old_debug1/"
     level = 1
     task = 1
-    main(dataset_path, exp_dir, level, task)
+    main(exp_dir, level, task)
