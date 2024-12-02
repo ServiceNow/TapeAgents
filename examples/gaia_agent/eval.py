@@ -11,7 +11,7 @@ from termcolor import colored
 
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
-from tapeagents.rendering import step_view
+from tapeagents.renderers import step_view
 
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment

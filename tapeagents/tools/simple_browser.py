@@ -116,6 +116,7 @@ class SimpleTextBrowser:
         self._cache_filename = "web_cache.json"
         if _FORCE_CACHE_PATH:
             self._cache_filename = _FORCE_CACHE_PATH
+            logger.warning(f"Using forced cache file: {self._cache_filename}")
             self.only_cached_webpages = True
             assert os.path.exists(self._cache_filename), "Forced cache file not found"
         if os.path.exists(self._cache_filename):
@@ -416,6 +417,7 @@ class SimpleTextBrowser:
     def _add_to_cache(self, k: str, value: Any) -> None:
         self._cache[k] = value
         self._log[k] = value
+        self.save_cache()
 
     def save_cache(self):
         with open(self._cache_filename, "w") as f:

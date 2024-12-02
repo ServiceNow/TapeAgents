@@ -25,7 +25,7 @@ def get_stock_data(symbol: str, start_date: str, end_date: str):
         end_date (str): End date in the format 'YYYY-MM-DD'.
 
     Returns:
-        List of tuples: Each tuple contains a 'YYYY-MM-DD' date and the stock price.
+        (list[tuple]): List of tuples, each tuple contains a 'YYYY-MM-DD' date and the stock price.
     """
     symbol = symbol.upper()
     # parse timestamps using datetime
