@@ -416,6 +416,7 @@ class SimpleTextBrowser:
     def _add_to_cache(self, k: str, value: Any) -> None:
         self._cache[k] = value
         self._log[k] = value
+        self.save_cache()
 
     def save_cache(self):
         with open(self._cache_filename, "w") as f:
