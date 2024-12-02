@@ -52,18 +52,19 @@ def calculate_rewards_with_implicit_kl(row, reward_minus_kl_coef):
 
     Args:
         row (dict): Dictionary containing reward and log probability data with keys:
+
             - reward: Base reward value
             - old_logprobs: Log probabilities from old policy
             - ref_logprobs: Reference log probabilities
         reward_minus_kl_coef (float): Coefficient for implicit KL penalty term
 
     Returns:
-        float: Reward value adjusted by implicit KL penalty, calculated as:
+        (float): Reward value adjusted by implicit KL penalty, calculated as:
             reward - reward_minus_kl_coef * KL(ref||old)
 
         The KL divergence is approximated using the Schulman approximation:
             KL ≈ exp(log_ratio) - log_ratio - 1
-        where log_ratio = ref_logprobs - old_logprobs
+            where log_ratio = ref_logprobs - old_logprobs
     """
     rewards = row["rewards"]
     old_logprobs = row["old_logprobs"]
@@ -79,13 +80,14 @@ def calculate_advantage(row, max_advantage: None | float = None):
 
     Args:
         row (dict): Dictionary containing rewards and statistics with keys:
+
             - rewards: List of reward values
             - reward_mean: Mean reward value
             - reward_std: Standard deviation of rewards
 
     Returns:
-        list[float]: List of advantage values calculated as (reward - mean)/(std + eps)
-        where eps=1e-4 is added for numerical stability
+       (list[float]): List of advantage values calculated as (reward - mean)/(std + eps)
+            where eps=1e-4 is added for numerical stability
     """
     rewards = row["rewards"]
     mean = row["reward_mean"]

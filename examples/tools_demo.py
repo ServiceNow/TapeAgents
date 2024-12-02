@@ -1,10 +1,10 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 from tapeagents.demo import Demo
-from tapeagents.dialog_tape import DialogTape, DialogContext
+from tapeagents.dialog_tape import DialogContext, DialogTape
 from tapeagents.environment import ToolEnvironment
 from tapeagents.llms import LiteLLM
-from tapeagents.rendering import BasicRenderer
+from tapeagents.renderers.basic import BasicRenderer
 
 from .openai_function_calling import FunctionCallingAgent
 

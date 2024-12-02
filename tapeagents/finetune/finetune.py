@@ -247,7 +247,7 @@ def run_finetuning_loop(
                         "dataset_stats/min_batch_len": training_metrics.min_batch_len,
                     }
                 )
-                
+
                 metrics_dict.update(get_avg_rl_stats(rl_metrics))
                 rl_metrics = defaultdict(list)
 

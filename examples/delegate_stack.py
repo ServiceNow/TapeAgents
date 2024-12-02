@@ -6,7 +6,6 @@ from typing import Annotated, Literal, TypeAlias
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.chain import CallSubagent, Chain
 from tapeagents.core import (
     Action,
     FinalStep,
@@ -15,6 +14,8 @@ from tapeagents.core import (
     Thought,
 )
 from tapeagents.llms import LLM, LLMStream, TrainableLLM
+from tapeagents.nodes import CallSubagent
+from tapeagents.team import Chain
 from tapeagents.view import Call, Respond, TapeViewStack
 
 EXAMPLE_TEXT = """I am a text with some verbs like running, jumping, and swimming."""

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def main(exp_path: str) -> None:
     cfg = get_exp_config_dict(exp_path)
-    tasks = load_dataset(cfg["data_dir"])
+    tasks = load_dataset(cfg["split"])
     tapes_dir = os.path.join(exp_path, "tapes")
     os.makedirs(tapes_dir, exist_ok=True)
     with open(os.path.join(exp_path, "browser_log.jsonl"), "w") as wf:

@@ -1,3 +1,7 @@
+"""
+GUI for browsing tapes.
+"""
+
 import logging
 import os
 
@@ -8,11 +12,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from tapeagents.core import Tape
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_tape_llm_calls
-
-from .core import Tape
-from .rendering import BasicRenderer
+from tapeagents.renderers.basic import BasicRenderer
 
 logger = logging.getLogger(__name__)
 
