@@ -16,10 +16,12 @@ def test_intro_notebook():
             shutil.copytree(assets_path, Path("assets"))
             tb.inject(
                 f"""
+                import os
                 from tapeagents import llms
                 llms._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
+                os.environ["TAPEAGENTS_SQLITE_DB"] = llms._REPLAY_SQLITE
                 from tapeagents.tools import simple_browser
-                simple_browser._FORCE_CACHE_PATH = "{res_dir}/intro_notebook/web_cache.json"
+                simple_browser._FORCE_CACHE_PATH = "{res_dir}/intro_notebook/web_cache.jsonl"
                 """,
                 before=0,
             )
