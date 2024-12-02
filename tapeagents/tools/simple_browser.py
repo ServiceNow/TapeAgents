@@ -118,7 +118,7 @@ class SimpleTextBrowser:
         self._cache_filename = "web_cache.jsonl"
         if _FORCE_CACHE_PATH:
             self._cache_filename = _FORCE_CACHE_PATH
-            logger.warning(f"Using forced cache file: {self._cache_filename}")
+            logger.warning(f"Using forced cache file {self._cache_filename}")
             self.only_cached_webpages = True
             assert os.path.exists(self._cache_filename), "Forced cache file not found"
         if os.path.exists(self._cache_filename):
