@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Callable, Dict, Mapping, Optional
+from typing import Callable, Optional
 
 import pandas as pd
 import torch
@@ -44,7 +44,7 @@ class RLConfig(StepConfig):
     )
     epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
     reward_minus_kl_coef: Optional[float] = field(
-        default=0.,
+        default=0.0,
         # https://arxiv.org/abs/2402.14740
         metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
     )
@@ -56,7 +56,6 @@ class RLConfig(StepConfig):
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
-
 
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
@@ -142,8 +141,16 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "min_reward": rewards[masks_].min().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
-        "mean_new_logprobs_positive_log_p_weights": masked_mean(new_log_probs[log_p_weights > 0], masks_[log_p_weights > 0]).item() if (log_p_weights > 0).any() else 0,
-        "mean_new_logprobs_negative_log_p_weights": masked_mean(new_log_probs[log_p_weights < 0], masks_[log_p_weights < 0]).item() if (log_p_weights < 0).any() else 0,
+        "mean_new_logprobs_positive_log_p_weights": masked_mean(
+            new_log_probs[log_p_weights > 0], masks_[log_p_weights > 0]
+        ).item()
+        if (log_p_weights > 0).any()
+        else 0,
+        "mean_new_logprobs_negative_log_p_weights": masked_mean(
+            new_log_probs[log_p_weights < 0], masks_[log_p_weights < 0]
+        ).item()
+        if (log_p_weights < 0).any()
+        else 0,
         "mean_ref_logprobs": masked_mean(ref_logprobs, masks_).item(),
         "advantage": masked_mean(advantages, masks_).item(),
         "max_advantage": advantages[masks_].max().item(),

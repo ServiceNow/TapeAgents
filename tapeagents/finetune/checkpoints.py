@@ -194,6 +194,7 @@ def load_training_checkpoint(
 ):
     """
     Load checkpoint created by save_training_checkpoint() in-place:
+
     - With deepspeed, this will load model, optimizer, lr_scheduler states in-place.
     - Without deepspeed, this will *only* load optimizer, lr_scheduler states in-place,
         but *not* model states!

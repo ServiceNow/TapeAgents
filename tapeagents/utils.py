@@ -1,3 +1,7 @@
+"""
+Various utility functions.
+"""
+
 import base64
 import difflib
 import json

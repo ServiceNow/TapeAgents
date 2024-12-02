@@ -1,3 +1,7 @@
+"""
+Module contains the main loops of the agent-environment interaction and replay functions.
+"""
+
 import enum
 import logging
 from typing import Generator, Generic
@@ -8,7 +12,7 @@ from termcolor import colored
 from .agent import Agent
 from .core import AgentEvent, Observation, Step, StopStep, TapeType
 from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
-from .rendering import step_view
+from .renderers import step_view
 from .utils import FatalError, diff_dicts
 
 logger = logging.getLogger(__name__)

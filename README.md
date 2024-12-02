@@ -1,16 +1,16 @@
-<div align="center">
-
 # TapeAgents
 
+[![GitHub Release](https://img.shields.io/github/v/release/ServiceNow/TapeAgents?logo=bookstack&logoColor=white)](https://github.com/ServiceNow/TapeAgents/releases)
+[![PyPI - Version](https://img.shields.io/pypi/v/TapeAgents?logo=pypi&logoColor=white)](https://pypi.org/project/TapeAgents/)
+[![Documentation](https://img.shields.io/badge/MkDocs-Documentation-blue?logo=materialformkdocs&logoColor=white)](https://servicenow.github.io/TapeAgents/)
 ![Build Status](https://github.com/ServiceNow/TapeAgents/actions/workflows/build.yml/badge.svg)
 ![Tests Status](https://github.com/ServiceNow/TapeAgents/actions/workflows/python-tests.yml/badge.svg)
-![Supported Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
-</div>
+
 
 **TapeAgents** is a framework that leverages a structured, replayable log (**Tape**) of the agent session to facilitate all stages of the LLM Agent development lifecycle. In TapeAgents, the agent reasons by processing the tape and the LLM output to produce new thoughts, actions, control flow steps and append them to the tape. The environment then reacts to the agent’s actions by likewise appending observation steps to the tape.
 
-![image](/assets/overview.png)
+![image](https://github.com/ServiceNow/TapeAgents/raw/main/assets/overview.png)
 
 
 Key features:
@@ -27,28 +27,27 @@ The Tape-centric design of TapeAgents will help you at all stages of your projec
 
 # Get Started
 
-We highly recommend starting with the [introductory Jupyter notebook](/intro.ipynb). The notebook will introduce you to all the core concepts of framework. 
+We highly recommend starting with the [introductory Jupyter notebook](https://github.com/ServiceNow/TapeAgents/blob/main/intro.ipynb). The notebook will introduce you to all the core concepts of framework. 
 
 # Installation
+Install the latest release:
+```
+pip install TapeAgents
+```
 
+If you want to install the version from the sources:
 1. Clone the repository:
 ```
 git clone https://github.com/ServiceNow/TapeAgents.git
 cd TapeAgents
 ```
 
-2. Create conda environment and install the package in editable mode:
+2. Create conda environment `tapeagents` and install the package in editable mode inside the environment:
 ```
 make setup
 ```
 
 # Examples
-
-To run the example, first activate the `tapeagents` environment that was created during the setup process:
-```bash
-conda activate tapeagents
-```
-
 The simplest agent just to show the basic structure of the agent:
 ```python
 from tapeagents.agent import Agent, Node
@@ -76,16 +75,16 @@ final_tape = agent.run(start_tape).get_final_tape()  # agent will start executin
 print(f"Final tape: {final_tape.model_dump_json(indent=2)}")
 ```
 
-The [examples/](examples/) directory contains examples of how to use the TapeAgents framework for building, debugging, serving and improving agents. Each example is a self-contained Python script (or module) that demonstrates how to use the framework to build an agent for a specific task.
+The [examples/](https://github.com/ServiceNow/TapeAgents/tree/main/examples) directory contains examples of how to use the TapeAgents framework for building, debugging, serving and improving agents. Each example is a self-contained Python script (or module) that demonstrates how to use the framework to build an agent for a specific task.
 
-- How to build a single agent that [does planning, searches the web and uses code interpreter](examples/gaia_agent) to answer knowledge-grounded questions, solving the tasks from the [GAIA benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
-- How to build [a team of TapeAgents](examples/data_science) with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
-- How to [finetune a TapeAgent](examples/gsm8k_tuning) with a small LLM to be better at math problem solving on GSM-8k dataset.
+- How to build a single agent that [does planning, searches the web and uses code interpreter](https://github.com/ServiceNow/TapeAgents/tree/main/examples/gaia_agent) to answer knowledge-grounded questions, solving the tasks from the [GAIA benchmark](https://huggingface.co/spaces/gaia-benchmark/leaderboard).
+- How to build [a team of TapeAgents](https://github.com/ServiceNow/TapeAgents/tree/main/examples/data_science) with [AutoGen](https://github.com/microsoft/autogen)-style low-code programming paradigm
+- How to [finetune a TapeAgent](https://github.com/ServiceNow/TapeAgents/tree/main/examples/gsm8k_tuning) with a small LLM to be better at math problem solving on GSM-8k dataset.
 
 
 Other notable examples that demonstrate the main aspects of the framework:
-- [workarena](examples/workarena) - custom agent that solves [WorkArena](https://github.com/ServiceNow/WorkArena) benchmark using [BrowserGym](https://github.com/ServiceNow/BrowserGym) environment.
-- [tape_improver.py](examples/tape_improver.py) - the agent that revisit and improves the tapes produced by another agent.
+- [workarena](https://github.com/ServiceNow/TapeAgents/tree/main/examples/workarena) - custom agent that solves [WorkArena](https://github.com/ServiceNow/WorkArena) benchmark using [BrowserGym](https://github.com/ServiceNow/BrowserGym) environment.
+- [tape_improver.py](https://github.com/ServiceNow/TapeAgents/tree/main/examples/tape_improver) - the agent that revisit and improves the tapes produced by another agent.
 
 
 # Learn more 
@@ -98,6 +97,7 @@ Feel free to reach out to the team:
 - Dzmitry Bahdanau, dzmitry.bahdanau@servicenow.com
 - Oleh Shliazhko, oleh.shliazhko@servicenow.com
 - Jordan Prince Tremblay, jordanprince.t@servicenow.com
+- Alexandre Piché, alexandre.piche@servicenow.com
 
 # Acknowledgements
 

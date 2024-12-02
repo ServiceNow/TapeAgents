@@ -16,7 +16,8 @@ from tapeagents.observe import (
     retrieve_tape_llm_calls,
 )
 from tapeagents.orchestrator import MainLoopEvent, main_loop
-from tapeagents.rendering import BasicRenderer, render_agent_tree
+from tapeagents.renderers import render_agent_tree
+from tapeagents.renderers.basic import BasicRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ class Studio:
                 with gr.Column(scale=3):
                     tape_render = gr.HTML("")
                 with gr.Column(scale=1):
-                    org_chart = gr.TextArea(render_agent_tree(agent), label="Agents Hierarchy", max_lines=20)
+                    gr.TextArea(render_agent_tree(agent), label="Agents Hierarchy", max_lines=20)
                     agent_config = gr.Textbox(
                         "",
                         max_lines=15,

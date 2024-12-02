@@ -10,7 +10,7 @@ from omegaconf import DictConfig
 
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.llms import TrainableLLM
-from tapeagents.parallel_processing import choose_processor, lazy_thread_pool_processor
+from tapeagents.parallel_processing import choose_processor
 
 from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment

@@ -22,11 +22,11 @@ def make_answer_template() -> LLMFunctionTemplate:
         ],
         outputs=[
             RationaleOutput.for_output("answer"),
-            AssistantOutput(name="answer", desc="often between 1 and 5 words")
-        ]
-    )        
-    
-    
+            AssistantOutput(name="answer", desc="often between 1 and 5 words"),
+        ],
+    )
+
+
 def make_query_template() -> LLMFunctionTemplate:
     return LLMFunctionTemplate(
         desc="Write a simple search query that will help answer a complex question.",
@@ -36,6 +36,6 @@ def make_query_template() -> LLMFunctionTemplate:
         ],
         outputs=[
             RationaleOutput.for_output("query"),
-            ToolCallOutput(name="query", tool_name="retrieve", arg_name="query")
-        ]
-    )       
+            ToolCallOutput(name="query", tool_name="retrieve", arg_name="query"),
+        ],
+    )
