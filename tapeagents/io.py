@@ -12,6 +12,8 @@ from typing import Generator, Type
 import yaml
 from pydantic import TypeAdapter
 
+from tapeagents.dialog_tape import AssistantStep
+
 from .core import Tape
 
 logger = logging.getLogger(__name__)
@@ -115,6 +117,30 @@ def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
         f.write(tape.model_dump_json(indent=4))
 
 
+def load_tape_dicts(path: Path | str, file_extension: str = ".yaml") -> list[dict]:
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"File not found: {path}")
+    if file_extension not in (".yaml", ".json"):
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+    if os.path.isdir(path):
+        logger.info(f"Loading tapes from dir {path}")
+        paths = sorted([os.path.join(path, f) for f in os.listdir(path) if f.endswith(file_extension)])
+    else:
+        paths = [path]
+        file_extension = os.path.splitext(path)[-1]
+    tapes = []
+    for path in paths:
+        with open(path) as f:
+            if file_extension == ".yaml":
+                data = list(yaml.safe_load_all(f))
+            else:
+                data = json.load(f)
+        if not isinstance(data, list):
+            data = [data]
+        tapes.extend(data)
+    return tapes
+
+
 def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension: str = ".yaml") -> list[Tape]:
     """Load tapes from dir with YAML or JSON files.
 
@@ -140,26 +166,34 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
         tapes = load_tapes(tape_adapter, "configs/tapes", ".json")
         ```
     """
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"File not found: {path}")
-    if file_extension not in (".yaml", ".json"):
-        raise ValueError(f"Unsupported file extension: {file_extension}")
-    if os.path.isdir(path):
-        logger.info(f"Loading tapes from dir {path}")
-        paths = sorted([os.path.join(path, f) for f in os.listdir(path) if f.endswith(file_extension)])
-    else:
-        paths = [path]
-        file_extension = os.path.splitext(path)[-1]
-    loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
     tapes = []
-    for path in paths:
-        with open(path) as f:
-            if file_extension == ".yaml":
-                data = list(yaml.safe_load_all(f))
-            else:
-                data = json.load(f)
-        if not isinstance(data, list):
-            data = [data]
-        for tape in data:
-            tapes.append(loader(tape))
+    loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
+    data = load_tape_dicts(path, file_extension)
+    for tape_dict in data:
+        tape = loader(tape_dict)
+        tapes.append(tape)
+    return tapes
+
+
+def load_legacy_tapes(tape_class: Type | TypeAdapter, path: Path | str, step_class: Type | TypeAdapter) -> list[Tape]:
+    tapes = []
+    loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
+    data = load_tape_dicts(path, ".json")
+    for tape_dict in data:
+        try:
+            tape = loader(tape_dict)
+        except Exception:
+            step_dicts = tape_dict["steps"]
+            tape_dict["steps"] = []
+            tape = loader(tape_dict)
+            step_loader = step_class.model_validate if isinstance(step_class, Type) else step_class.validate_python
+            steps = []
+            for step_dict in step_dicts:
+                try:
+                    steps.append(step_loader(step_dict))
+                except Exception as e:
+                    logger.warning(f"Failed to load step: {e}")
+                    steps.append(AssistantStep(content=json.dumps(step_dict, indent=2, ensure_ascii=False)))
+            tape.steps = steps
+        tapes.append(tape)
     return tapes
