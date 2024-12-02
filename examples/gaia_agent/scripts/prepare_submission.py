@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def main(exp_path: str):
     assert os.path.isdir(exp_path), f"Directory {exp_path} does not exist or is not a directory"
     cfg = get_exp_config_dict(exp_path)
-    tasks = load_dataset(cfg["data_dir"])
+    tasks = load_dataset(cfg["split"])
     submission_file = os.path.join(exp_path, "submission.jsonl")
     submission = []
     expected_tasks_num = sum(len(level_tasks) for level_tasks in tasks.values())

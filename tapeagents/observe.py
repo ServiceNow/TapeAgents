@@ -1,3 +1,7 @@
+"""
+Functions to observe and store LLM calls and Tapes in a persistent storage
+"""
+
 import datetime
 import json
 import logging
@@ -151,7 +155,7 @@ def retrieve_llm_calls(prompt_ids: str | list[str]) -> list[LLMCall]:
     with sqlite3.connect(sqlite_db_path()) as conn:
         cursor = conn.cursor()
         for i in range(0, len(prompt_ids), 100):
-            prompts = prompt_ids[i:i + 100]
+            prompts = prompt_ids[i : i + 100]
             cursor.execute(
                 f"SELECT * FROM LLMCalls WHERE prompt_id IN ({','.join(['?'] * len(prompts))})",
                 prompts,
@@ -178,7 +182,7 @@ def observe_tape(tape: Tape):
 
 
 def retrieve_tape_llm_calls(tapes: Tape | list[Tape]) -> dict[str, LLMCall]:
-    logger.info(f"Retrieving LLM calls")
+    logger.info("Retrieving LLM calls")
     if isinstance(tapes, Tape):
         tapes = [tapes]
     result = {}

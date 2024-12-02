@@ -3,7 +3,7 @@ import sys
 
 from tapeagents.dialog_tape import DialogTape, SystemStep, UserStep
 from tapeagents.llms import LLM, TrainableLLM
-from tapeagents.rendering import PrettyRenderer
+from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
 
 from .delegate_stack import EXAMPLE_TEXT, ExampleTape, make_analyze_text_chain

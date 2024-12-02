@@ -1,0 +1,60 @@
+site_name: TapeAgents Documentation
+site_description: TapeAgents is a framework that facilitates all stages of the LLM Agent development lifecycle
+site_url: https://servicenow.github.io/TapeAgents/
+
+repo_url: https://github.com/ServiceNow/TapeAgents
+repo_name: ServiceNow/TapeAgents
+
+copyright: Copyright 2024 ServiceNow, Inc.
+
+theme:
+  name: "material"
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.tabs
+    # - navigation.sections
+    - navigation.path
+    - navigation.top
+    - content.code.copy
+extra:
+  generator: false
+
+plugins:
+- search
+- gen-files:
+    scripts:
+    - docs/gen_ref_pages.py
+- literate-nav:
+    nav_file: SUMMARY.md
+- section-index
+- mkdocstrings:
+    default_handler: python
+    enable_inventory: true
+    handlers:
+      python:
+        options:
+          show_labels: true
+          summary: true
+          docstring_section_style: list
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+          show_root_toc_entry: true
+          show_category_heading: false
+          show_root_full_path: true
+- git-revision-date-localized:
+    enable_creation_date: true
+
+extra_css:
+- css/mkdocstrings.css
+
+nav:
+- Home: index.md
+- Quickstart: quickstart.md
+# defer to gen-files + literate-nav
+- Reference: reference/
+# rest of the navigation...

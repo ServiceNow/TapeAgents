@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def main(fname: str, dataset_path: str = ""):
+def main(fname: str, dataset_split: str = ""):
     """
     Replay Gaia tapes from the file with the results, compare the results with the original ones,
     and print the statistics of the replay.
@@ -32,9 +32,7 @@ def main(fname: str, dataset_path: str = ""):
     model_name = results.model
     params = results.llm_config
 
-    data_dir = dataset_path or results.dataset_path
-    assert data_dir, "Dataset path is not provided"
-    tasks = load_dataset(data_dir)
+    tasks = load_dataset(dataset_split)
     llm = ReplayLLM(
         llm_calls=llm_calls,
         model_name=model_name,
@@ -71,7 +69,4 @@ def main(fname: str, dataset_path: str = ""):
 
 if __name__ == "__main__":
     assert len(sys.argv) > 1, "Provide the path to the results file"
-    main(
-        sys.argv[1],
-        "../gaia/dataset/validation/",
-    )
+    main(sys.argv[1], "validation")

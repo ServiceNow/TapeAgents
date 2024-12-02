@@ -14,7 +14,8 @@ from tapeagents.dialog_tape import (
 )
 from tapeagents.environment import ToolEnvironment
 from tapeagents.llms import LiteLLM, LLMOutput
-from tapeagents.rendering import BasicRenderer, render_dialog_plain_text
+from tapeagents.renderers import render_dialog_plain_text
+from tapeagents.renderers.basic import BasicRenderer
 
 from .annotator import GroundednessAnnotator
 from .llama_user import USER_MODEL_TEMPLATE
