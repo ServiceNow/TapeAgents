@@ -15,6 +15,7 @@ import torch
 import yaml
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from tenacity import retry, stop_after_attempt, wait_exponential
+from examples.rl_gsm8k.run_finetune import run_finetuning_loop
 
 logger = logging.getLogger(__name__)
 
