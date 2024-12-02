@@ -61,18 +61,3 @@ class VideoObservation(Observation):
             for path in self.video_contact_sheet_paths:
                 llm_view.append(image_base64_message(path))
         return llm_view
-
-
-################### Thoughts ###################
-
-
-class WatchingVideoThought(Thought):
-    """
-    Thought that outputs the detailed description of the video
-    """
-
-    kind: Literal["watching_video_thought"] = "watching_video_thought"
-    description: str = Field(description="description of the video using both the subtitle and the video contact sheet")
-    frame_description: list[str] = Field(
-        description="detailed and specific description of each frame of the video contact sheet"
-    )

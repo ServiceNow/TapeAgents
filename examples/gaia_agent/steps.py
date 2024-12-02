@@ -13,7 +13,7 @@ from tapeagents.core import (
     StopStep,
     Thought,
 )
-from tapeagents.steps import VideoObservation, WatchingVideoThought, WatchVideoAction
+from tapeagents.steps import VideoObservation, WatchVideoAction
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -327,7 +327,6 @@ GaiaStep = Union[
     SourcesThought,
     DraftPlansThought,
     ReadingResultThought,
-    WatchingVideoThought,
     NewFactThought,
     ReasoningThought,
     StartSubtask,
@@ -360,7 +359,6 @@ GaiaAgentStep: TypeAlias = Annotated[
         SourcesThought,
         DraftPlansThought,
         ReadingResultThought,
-        WatchingVideoThought,
         NewFactThought,
         ReasoningThought,
         StartSubtask,
@@ -396,7 +394,6 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
         if subtasks:
             steps = Union[
                 ReadingResultThought,
-                WatchingVideoThought,
                 NewFactThought,
                 ReasoningThought,
                 SearchAction,
@@ -412,7 +409,6 @@ def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
         else:
             steps = Union[
                 ReadingResultThought,
-                WatchingVideoThought,
                 NewFactThought,
                 ReasoningThought,
                 SearchAction,
