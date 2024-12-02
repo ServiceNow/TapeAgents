@@ -68,7 +68,6 @@ def main(cfg: DictConfig) -> None:
         for level, level_tasks in tasks.items()
         for i, task in enumerate(level_tasks)
     ]
-    args = args[:1]  # for testing use cfg
     for tape_ready in processor(args, task_worker):
         if isinstance(tape_ready, Exception):
             raise tape_ready
