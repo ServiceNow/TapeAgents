@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Callable, Dict, Mapping, Optional
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -61,7 +61,6 @@ class RLConfig(StepConfig):
         default=10.0,
         metadata={"help": "Clip the advantage to this value"},
     )
-
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
     if rl_config:

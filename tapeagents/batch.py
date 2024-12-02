@@ -1,3 +1,5 @@
+"""Batch processing of tapes."""
+
 import logging
 import random
 import traceback
@@ -32,7 +34,6 @@ def batch_main_loop(
         environments = [environments] * len(tapes)
 
     def worker_func(input: tuple[TapeType, Environment]) -> TapeType | Exception:
-        last_tape = None
         start_tape, env = input
         try:
             result = main_loop(agent, start_tape, env, max_loops=max_loops).get_final_tape()

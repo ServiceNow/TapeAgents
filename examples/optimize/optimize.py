@@ -1,31 +1,16 @@
+import json
 import logging
 import os
-
-import hydra
-from omegaconf import DictConfig
-
-from tapeagents.io import stream_yaml_tapes
-from tapeagents.optimize import add_demos
-from tapeagents.rendering import PrettyRenderer
-from tapeagents.studio import Studio
-from tapeagents.tape_browser import TapeBrowser
-
-from .func_templates import make_answer_template, make_query_template
-from .load_demos import load_agentic_rag_demos, load_rag_demos
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
-import json
 import pathlib
 import random
 
 import dspy
 import dspy.evaluate
+import hydra
 import tqdm
 from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
+from omegaconf import DictConfig
 
 from tapeagents.agent import Agent, Node
 from tapeagents.batch import batch_main_loop
@@ -41,9 +26,20 @@ from tapeagents.dialog_tape import (
     UserStep,
 )
 from tapeagents.environment import ToolEnvironment
-from tapeagents.llm_function import KindRef, LLMFunctionNode, NodeRef, by_node, by_step
+from tapeagents.io import stream_yaml_tapes
+from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
 from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.orchestrator import main_loop
+from tapeagents.renderers.pretty import PrettyRenderer
+from tapeagents.studio import Studio
+from tapeagents.tape_browser import TapeBrowser
+
+from .func_templates import make_answer_template, make_query_template
+from .load_demos import load_agentic_rag_demos, load_rag_demos
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
 
@@ -125,6 +121,25 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
             agent.templates[template_name].partial_demos = partial_demos
 
     return agent
+
+
+def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
+    """Extract demos for function templates from the given tapes.
+
+    When there is too many demos, select random ones.
+
+    """
+    demos = {template_name: [] for template_name in agent.templates}
+    for tape in tapes:
+        for node, index in agent.get_node_runs(tape):
+            if isinstance(node, LLMFunctionNode):
+                demos[node.template_name].append(node.extract_demo(agent, tape, index))
+    rng = random.Random(seed)
+    agent_copy = agent.model_copy(deep=True)
+    for template_name, template in agent_copy.templates.items():
+        k = min(max_n_demos, len(demos[template_name]))
+        template.demos = rng.sample(demos[template_name], k)
+    return agent_copy
 
 
 def optimize_agent(agent: Agent, cfg: DictConfig):

@@ -8,17 +8,17 @@ from tapeagents.dialog_tape import (
     AnnotationAction,
     AnnotatorFreeFormThought,
     AssistantStep,
-    DialogTape,
     DialogAnnotator,
     DialogAnnotatorTape,
     DialogContext,
+    DialogTape,
     ToolCalls,
     ToolResult,
     ToolSpec,
     UserStep,
 )
 from tapeagents.llms import LiteLLM, LLMStream
-from tapeagents.rendering import render_dialog_plain_text
+from tapeagents.renderers import render_dialog_plain_text
 
 _ANNOTATOR_PROMPT: str = """Here is a dialog between a user and an assistant.
 
@@ -43,6 +43,7 @@ class GroundednessAnnotator(DialogAnnotator):
     Annotates the steps of a given dialog tape based on the results of function calls in the tape.
     Produces the binary correctness of the assistant's last message.
     """
+
     def make_prompt(self, tape: DialogAnnotatorTape):
         """
         Creates a prompt for the annotator based on the dialog tape.
