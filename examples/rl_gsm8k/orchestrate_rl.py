@@ -127,13 +127,15 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
             # Check if we will need the KL
-            if hasattr(cfg.finetune, "rl") and (cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.reward_minus_kl_coef > 0):
-                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text) # type: ignore
+            if hasattr(cfg.finetune, "rl") and (
+                cfg.finetune.rl.kl_coef > 0 or cfg.finetune.rl.reward_minus_kl_coef > 0
+            ):
+                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
             else:
                 trace.logprobs = [0] * llm_call.output_length_tokens
                 trace.ref_logprobs = [0] * llm_call.output_length_tokens
             trace.reward = reward
-            trace.group_id = new_tape.metadata.parent_id 
+            trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
             if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(

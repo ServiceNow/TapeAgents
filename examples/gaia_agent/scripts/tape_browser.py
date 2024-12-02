@@ -3,14 +3,16 @@ import os
 import sys
 from collections import defaultdict
 
+from pydantic import TypeAdapter
+
 from tapeagents.core import Action, Step
-from tapeagents.io import load_tapes
+from tapeagents.io import load_legacy_tapes
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
 from ..eval import calculate_accuracy, get_exp_config_dict, tape_correct
-from ..steps import load_step
+from ..steps import GaiaStep
 from ..tape import GaiaTape
 
 logging.basicConfig(level=logging.INFO)
@@ -27,12 +29,7 @@ class GaiaTapeBrowser(TapeBrowser):
         tapes_path = os.path.join(self.tapes_folder, fname, "tapes")
         image_dir = os.path.join(self.tapes_folder, fname, "images")
         try:
-            all_tapes: list[GaiaTape] = load_tapes(
-                GaiaTape,
-                tapes_path,
-                file_extension=".json",
-                unknown_steps_loader=load_step,
-            )  # type: ignore
+            all_tapes: list[GaiaTape] = load_legacy_tapes(GaiaTape, tapes_path, step_class=TypeAdapter(GaiaStep))  # type: ignore
         except Exception as e:
             logger.error(f"Failed to load tapes from {tapes_path}: {e}")
             return []
@@ -128,7 +125,7 @@ class GaiaTapeBrowser(TapeBrowser):
 
         for step in tape:
             prompt_id = step.metadata.prompt_id
-            if prompt_id:
+            if prompt_id and prompt_id in self.llm_calls:
                 llm_calls_num += 1
                 if prompt_id in self.llm_calls:
                     tokens_num += (
@@ -164,8 +161,7 @@ class GaiaTapeBrowser(TapeBrowser):
                 exp_dir = os.path.join(self.tapes_folder, r)
                 try:
                     cfg = get_exp_config_dict(exp_dir)
-                    parts = cfg["data_dir"].split("/")
-                    set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                    set_name = cfg["split"]
                 except Exception:
                     set_name = "-"
                 exps.append(f"{set_name}/{r}/{postfix}")

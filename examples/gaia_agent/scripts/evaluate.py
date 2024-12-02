@@ -8,10 +8,10 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.config import is_debug_mode
-from tapeagents.container_executor import ContainerExecutor
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
 from tapeagents.parallel_processing import choose_processor
+from tapeagents.tools.container_executor import ContainerExecutor
 
 from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
@@ -45,7 +45,7 @@ def main(cfg: DictConfig) -> None:
         logger.error(f"Failed to create code sandbox: {e}")
         code_sandbox = None
     agent = GaiaAgent.create(llm, **cfg.agent)
-    tasks = load_dataset(cfg.data_dir)
+    tasks = load_dataset(cfg.split)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     validate_config(cfg, llm, tapes_dir)
     images_dir = os.path.join(cfg.exp_path, "images")
@@ -78,9 +78,7 @@ def validate_config(cfg, llm, tapes_dir):
         assert (
             old_exp_cfg["llm"]["model_name"] == llm.model_name
         ), f"Exp dir model name mismatch: old {old_exp_cfg['llm']['model_name']}, new {llm.model_name}"
-        assert (
-            old_exp_cfg["data_dir"] == cfg.data_dir
-        ), f"Exp dir data: old {old_exp_cfg['data_dir']}, new {cfg.data_dir}"
+        assert old_exp_cfg["split"] == cfg.split, f"Exp split: old {old_exp_cfg['split']}, new {cfg.split}"
     os.makedirs(tapes_dir, exist_ok=True)
 
 

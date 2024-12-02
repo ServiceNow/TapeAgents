@@ -7,9 +7,8 @@ from typing import Any
 
 import datasets
 import transformers
-from omegaconf import DictConfig
-
 import wandb
+from omegaconf import DictConfig
 from wandb.sdk import wandb_run
 
 from .context import accelerator, logger
@@ -39,10 +38,7 @@ def init_wandb(
     wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
 
     if len(wandb_name) > 128:
-        logger.warning(
-            f"wandb_name: {wandb_name} is longer than 128 characters. "
-            "Truncating to 128 characters."
-        )
+        logger.warning(f"wandb_name: {wandb_name} is longer than 128 characters. Truncating to 128 characters.")
 
     logging.info(f"Initializing W&B with name: {wandb_name[:128]}, resume: {resume}")
     run = wandb.init(

@@ -1,3 +1,7 @@
+"""
+Base classes for environments that execute actions and produce observations
+"""
+
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -7,7 +11,7 @@ from langchain_core.tools import BaseTool, tool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
-from tapeagents.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
+from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 
 from .agent import TapeType

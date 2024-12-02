@@ -78,7 +78,7 @@ class Lion(Optimizer):
             and returns the loss.
 
         Returns:
-          the loss.
+          (tensor): the loss.
         """
         loss = None
         if closure is not None:
