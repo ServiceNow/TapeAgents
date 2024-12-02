@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 def main(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     llm = instantiate(cfg.llm)
-    attachment_dir = cfg.attachment_dir
+    attachment_dir = cfg.get("env").get("attachment_dir")
     os.makedirs(attachment_dir, exist_ok=True)
     env = GaiaEnvironment(vision_lm=llm, attachment_dir=attachment_dir)
     agent = GaiaAgent.create(llm, **cfg.agent)

@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class GaiaEnvironment(Environment):
-    def __init__(self, safe_calculator: bool = True, attachment_dir: str = "attachment", **kwargs) -> None:
+    def __init__(self, safe_calculator: bool = True, attachment_dir: str = "attachments", **kwargs) -> None:
         super().__init__()
         self.attachment_dir = attachment_dir
         self.browser = SimpleTextBrowser(**kwargs)

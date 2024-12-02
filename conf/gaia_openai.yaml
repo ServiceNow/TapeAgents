@@ -5,7 +5,6 @@ defaults:
 exp_name: gpt4o_mini_val_batch32_6
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-attachment_dir: ${exp_path}/attachments/
 n_attempts: 1
 batch: 32
 agent:
@@ -13,6 +12,7 @@ agent:
   subtasks: false
 
 env:
+  attachment_dir: ${exp_path}/attachments/
   safe_calculator: false
   use_web_cache: true
   only_cached_webpages: false

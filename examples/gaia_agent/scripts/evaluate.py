@@ -37,9 +37,10 @@ def main(cfg: DictConfig) -> None:
     """
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     llm: TrainableLLM = instantiate(cfg.llm)
-    attachment_dir = cfg.attachment_dir
+    n_tasks = cfg.get("n_tasks", None)
+    attachment_dir = cfg.get("env").get("attachment_dir")
     os.makedirs(attachment_dir, exist_ok=True)
-    env = GaiaEnvironment(vision_lm=llm, attachment_dir=attachment_dir, **cfg.env)
+    env = GaiaEnvironment(vision_lm=llm, **cfg.env)
     agent = GaiaAgent.create(llm, **cfg.agent)
     tasks = load_dataset(cfg.split)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
@@ -68,6 +69,9 @@ def main(cfg: DictConfig) -> None:
         for level, level_tasks in tasks.items()
         for i, task in enumerate(level_tasks)
     ]
+    if n_tasks:
+        args = args[:n_tasks]  # run only the first n_tasks
+
     for tape_ready in processor(args, task_worker):
         if isinstance(tape_ready, Exception):
             raise tape_ready
