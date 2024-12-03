@@ -14,7 +14,6 @@ import litellm
 import openai
 import requests
 from Levenshtein import ratio
-from litellm.types.utils import ChatCompletionTokenLogprob, TopLogprob
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
