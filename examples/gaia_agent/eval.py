@@ -6,12 +6,13 @@ import subprocess
 from typing import Any, Counter, Generator
 
 import yaml
+from huggingface_hub import snapshot_download
 from termcolor import colored
 
 from tapeagents.core import TerminationStep
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import MainLoopStatus, main_loop
-from tapeagents.rendering import step_view
+from tapeagents.renderers import step_view
 
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment
@@ -20,6 +21,8 @@ from .steps import GaiaQuestion
 from .tape import GaiaMetadata, GaiaTape
 
 logger = logging.getLogger(__name__)
+
+DATASET_DIR = "data/gaia/"
 
 
 def get_git_revision_hash() -> str:
@@ -69,13 +72,25 @@ def majority_vote(results: list[Any]) -> int:
     return best_idx
 
 
-def load_dataset(data_dir):
+def download_dataset():
+    logger.info("Downloading GAIA dataset...")
+    repo = "gaia-benchmark/GAIA"
+    os.makedirs(DATASET_DIR, exist_ok=True)
+    snapshot_download(repo_id=repo, repo_type="dataset", local_dir=DATASET_DIR, local_dir_use_symlinks=False)
+
+
+def load_dataset(split: str):
     tasks = {1: [], 2: [], 3: []}
-    with open(f"{data_dir}/metadata.jsonl") as f:
+    fname = os.path.join(DATASET_DIR, "2023", split, "metadata.jsonl")
+    if not os.path.exists(fname):
+        download_dataset()
+    if not os.path.exists(fname):
+        raise FileNotFoundError(f"Dataset not found: {fname}")
+    with open(fname) as f:
         for line in f:
             task = json.loads(line)
             if task["file_name"]:
-                task["file_name"] = f"{data_dir}/{task['file_name']}"
+                task["file_name"] = os.path.join(DATASET_DIR, "2023", split, task["file_name"])
             tasks[task["Level"]].append(task)
 
     logger.info(f"GAIA Tasks: Level 1: {len(tasks[1])}, Level 2: {len(tasks[2])}, Level 3: {len(tasks[3])}")

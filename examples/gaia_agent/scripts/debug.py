@@ -6,12 +6,13 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from tapeagents.container_executor import ContainerExecutor
 from tapeagents.io import save_json_tape
-from tapeagents.llms import LiteLLM, TrainableLLM
-from tapeagents.observe import retrieve_llm_call
+from tapeagents.llms import TrainableLLM
+from tapeagents.observe import retrieve_llm_calls
 from tapeagents.orchestrator import main_loop
+from tapeagents.tools.container_executor import ContainerExecutor
 
+from ..agent import GaiaAgent
 from ..environment import GaiaEnvironment
 from ..eval import load_dataset, task_to_question_step
 from ..tape import GaiaTape
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
     config_name="gaia_openai",
 )
 def main(cfg: DictConfig) -> None:
-    dset = load_dataset(cfg.data_dir)
+    dset = load_dataset("validation")
     tapes_dir = f"{cfg.exp_path}/tapes"
     os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
@@ -51,21 +52,21 @@ def main(cfg: DictConfig) -> None:
             step = event.agent_event.step
             tape = tape.append(step)
             save_json_tape(tape, tapes_dir, tape_name)
-            llm_call = retrieve_llm_call(step.metadata.prompt_id)
+            llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
             logger.info(f"{len(tape)} RUN {step.metadata.agent}:{step.metadata.node}")
-            if llm_call:
-                for i, m in enumerate(llm_call.prompt.messages):
+            if llm_calls:
+                for i, m in enumerate(llm_calls[0].prompt.messages):
                     logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
             logger.info(f"{len(tape)} STEP of {step.metadata.agent}:{step.metadata.node}")
             logger.info(step.llm_view())
-            # input("Press Enter to continue...")
+            input("Press Enter to continue...")
             print("-" * 140)
         elif event.observation:
             step = event.observation
             tape = tape.append(step)
             save_json_tape(tape, tapes_dir, tape_name)
             logger.info(f"OBSERVATION: {step.kind}")
-            # input("Press Enter to continue...")
+            input("Press Enter to continue...")
             print("-" * 140)
         elif event.agent_event and event.agent_event.final_tape is not None:
             logger.info("RUN END")

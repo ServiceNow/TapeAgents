@@ -37,19 +37,17 @@ def init_wandb(
         raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
     wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
 
-    if len(wandb_id) > 128 or len(wandb_name) > 128:
-        logger.warning(
-            f"wandb_id or wandb_name is longer than 128 characters. "
-            f"Truncating to 128 characters. wandb_id: {wandb_id}, wandb_name: {wandb_name}"
-        )
+    if len(wandb_name) > 128:
+        logger.warning(f"wandb_name: {wandb_name} is longer than 128 characters. Truncating to 128 characters.")
 
+    logging.info(f"Initializing W&B with name: {wandb_name[:128]}, resume: {resume}")
     run = wandb.init(
-        name=wandb_name[:128], # wandb limits name to 128 characters
+        name=wandb_name[:128],  # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
         project=cfg.finetune.wandb_project_name,
         config=config_for_wandb,  # type: ignore
         resume=resume,
-        id=wandb_id[:128],
+        id=wandb_id,
         tags=cfg.finetune.tags,
     )
     if not isinstance(run, wandb_run.Run):
@@ -84,7 +82,7 @@ def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None =
         wandb_config = {}
         if run is not None:
             wandb_config = {
-                "name": run.name[:128], # wandb limits name to 128 characters
+                "name": run.name[:128],  # wandb limits name to 128 characters
                 "entity": run.entity,
                 "project": run.project_name(),
                 "id": run.id,
@@ -118,10 +116,10 @@ def log_time(start_time, msg):
     return t
 
 
-def flatten_dict_config(d: DictConfig, separator=".") -> dict:
+def flatten_dict_config(d: DictConfig | dict, separator=".") -> dict:
     result = {}
     for k, v in d.items():
-        if isinstance(v, DictConfig):
+        if isinstance(v, DictConfig) or isinstance(v, dict):
             for sub_k, sub_v in flatten_dict_config(v).items():
                 result[str(k) + separator + str(sub_k)] = sub_v
         else:

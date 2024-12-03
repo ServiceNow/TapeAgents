@@ -1,7 +1,15 @@
 import json
 import pathlib
 
-from tapeagents.dialog_tape import AssistantStep, AssistantThought, FunctionCall, ToolCall, ToolCalls, ToolResult, UserStep
+from tapeagents.dialog_tape import (
+    AssistantStep,
+    AssistantThought,
+    FunctionCall,
+    ToolCall,
+    ToolCalls,
+    ToolResult,
+    UserStep,
+)
 
 
 res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
@@ -11,7 +19,7 @@ def load_rag_demos() -> tuple[list, list]:
     with open(res_dir / "llm_function_rag_demos.json") as f:
         demos_json = json.load(f)
     partial_demos = []
-    demos = [] 
+    demos = []
     for demo in demos_json:
         if demo.get("augmented"):
             demo = {
@@ -19,7 +27,7 @@ def load_rag_demos() -> tuple[list, list]:
                 "context": ToolResult(content=demo["context"], tool_call_id=""),
                 "rationale": AssistantThought(content=demo["rationale"]),
                 "answer": AssistantStep(content=demo["answer"]),
-            }            
+            }
             demos.append(demo)
         else:
             demo = {
@@ -37,16 +45,16 @@ def load_agentic_rag_demos() -> dict[str, tuple[list, list]]:
     result = {}
     for predictor, predictor_demos in demos_json.items():
         predictor_demos = [d for d in predictor_demos if d.get("augmented")]
-        demos = [] 
+        demos = []
         if "query" in predictor:
             for demo in predictor_demos:
-                tc = ToolCall(function=FunctionCall(name='retrieve', arguments={'query': demo["query"]}))
+                tc = ToolCall(function=FunctionCall(name="retrieve", arguments={"query": demo["query"]}))
                 demo = {
                     "question": UserStep(content=demo["question"]),
                     "context": ToolResult(content=demo["context"]),
                     "rationale": AssistantThought(content=demo["rationale"]),
                     "query": ToolCalls(tool_calls=[tc]),
-                }            
+                }
                 demos.append(demo)
             result[f"query{predictor[-2]}"] = ([], demos)
         elif predictor == "generate_answer":
@@ -56,9 +64,9 @@ def load_agentic_rag_demos() -> dict[str, tuple[list, list]]:
                     "context": ToolResult(content=demo["context"], tool_call_id=""),
                     "rationale": AssistantThought(content=demo["rationale"]),
                     "answer": AssistantStep(content=demo["answer"]),
-                }            
+                }
                 demos.append(demo)
             result["answer"] = ([], demos)
-        else: 
+        else:
             raise ValueError(f"Unknown predictor {predictor}")
-    return result    
+    return result

@@ -3,13 +3,16 @@ import os
 import sys
 from collections import defaultdict
 
+from pydantic import TypeAdapter
+
 from tapeagents.core import Action, SetNextNode
-from tapeagents.io import load_tapes
+from tapeagents.io import load_legacy_tapes
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
 from ..eval import calculate_accuracy, get_exp_config_dict, tape_correct
+from ..steps import GaiaStep
 from ..tape import GaiaTape
 
 logging.basicConfig(level=logging.INFO)
@@ -25,11 +28,7 @@ class GaiaTapeBrowser(TapeBrowser):
         _, fname, postfix = name.split("/", maxsplit=2)
         tapes_path = os.path.join(self.tapes_folder, fname, "tapes")
         try:
-            all_tapes: list[GaiaTape] = load_tapes(
-                GaiaTape,
-                tapes_path,
-                file_extension=".json",
-            )  # type: ignore
+            all_tapes: list[GaiaTape] = load_legacy_tapes(GaiaTape, tapes_path, step_class=TypeAdapter(GaiaStep))  # type: ignore
         except Exception as e:
             logger.error(f"Failed to load tapes from {tapes_path}: {e}")
             return []
@@ -67,7 +66,7 @@ class GaiaTapeBrowser(TapeBrowser):
         errors = defaultdict(int)
         prompt_tokens_num = 0
         output_tokens_num = 0
-        total_cost = 0.
+        total_cost = 0.0
         for tape in tapes:
             if tape.metadata.error:
                 errors["fatal"] += 1
@@ -87,7 +86,7 @@ class GaiaTapeBrowser(TapeBrowser):
                     errors["browser"] += 1
                 elif step.kind == "llm_output_parsing_failure_action":
                     errors["parsing"] += 1
-                elif step.kind == "action_execution_failure":
+                elif step.kind == "action_execution_failure" and last_action:
                     errors[f"{last_action.kind}"] += 1
         html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}"
         html += f"</h2>Prompts tokens total: {prompt_tokens_num}, output tokens total: {output_tokens_num}, cost total: {total_cost:.2f}"
@@ -127,7 +126,7 @@ class GaiaTapeBrowser(TapeBrowser):
 
         for step in tape:
             prompt_id = step.metadata.prompt_id
-            if prompt_id:
+            if prompt_id and prompt_id in self.llm_calls:
                 llm_calls_num += 1
                 if prompt_id in self.llm_calls:
                     llm_call = self.llm_calls[prompt_id]
@@ -162,9 +161,18 @@ class GaiaTapeBrowser(TapeBrowser):
         for postfix in ["1", "2", "3", "all"]:
             for r in raw_exps:
                 exp_dir = os.path.join(self.tapes_folder, r)
-                cfg = get_exp_config_dict(exp_dir)
-                parts = cfg["data_dir"].split("/")
-                set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                try:
+                    cfg = get_exp_config_dict(exp_dir)
+                    if "split" in cfg:
+                        set_name = cfg["split"]
+                    elif "data_dir" in cfg:
+                        parts = cfg["data_dir"].split("/")
+                        set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                    else:
+                        set_name = ""
+                except Exception as e:
+                    logger.error(f"Failed to load config from {exp_dir}: {e}")
+                    set_name = ""
                 exps.append(f"{set_name}/{r}/{postfix}")
         return sorted(exps)
 

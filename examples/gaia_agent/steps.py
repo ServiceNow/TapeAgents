@@ -498,6 +498,7 @@ GaiaAgentStep: TypeAlias = Annotated[
         # thoughts
         PlanThought,
         ListOfFactsThought,
+        Facts,
         SourcesThought,
         DraftPlansThought,
         ReadingResultThought,
@@ -575,7 +576,7 @@ GaiaAgentStepV2: TypeAlias = Annotated[
 
 def get_allowed_steps(plan_thoughts: bool) -> str:
     if plan_thoughts:
-        steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
+        steps = Union[PlanThought, Facts]
     else:
         steps = GaiaAgentStepV2
     steps_alias = Annotated[steps, Field(discriminator="kind")]

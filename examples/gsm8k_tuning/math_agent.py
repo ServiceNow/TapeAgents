@@ -20,7 +20,6 @@ from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
 from tapeagents.orchestrator import main_loop
 from tapeagents.tools.calculator import calculate
-from tapeagents.utils import get_step_schemas_from_union_type
 
 logger = logging.getLogger(__name__)
 
@@ -100,9 +99,9 @@ Your role is to understand user queries and respond in a helpful and accurate ma
 Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
 """
 
-ALLOWED_STEPS = f"""
+ALLOWED_STEPS = """
 You are allowed to produce ONLY steps with the following json schemas:
-{get_step_schemas_from_union_type(MathAgentStep)}
+{schema}
 Do not reproduce schema when producing the steps, use it as a reference.
 """
 

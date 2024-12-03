@@ -108,18 +108,18 @@ def _prepare_accelerate_args(mixed_precision, distributed_mode):
     accelerate_args = [f"--mixed_precision={mixed_precision}"]
     if distributed_mode == "multi_gpu":
         accelerate_args += [
-            "--config_file conf/deepspeed/accelerate_base.yaml",
+            "--config_file conf/accelerate/accelerate_base.yaml",
             "--num_processes 2",
             "--multi_gpu",
         ]
     elif distributed_mode == "deepspeed":
         accelerate_args += [
-            "--config_file conf/deepspeed/accelerate_base.yaml",
+            "--config_file conf/accelerate/accelerate_base.yaml",
             "--use_deepspeed",
-            "--deepspeed_config_file ../conf/deepspeed/deepspeed_stage3_bf16.json",
+            "--deepspeed_config_file ../conf/accelerate/deepspeed_stage3_bf16.json",
         ]
     else:
-        accelerate_args.append(f"--config_file {res_path}/conf/deepspeed/accelerate_local.yaml")
+        accelerate_args.append(f"--config_file {res_path}/conf/accelerate/accelerate_local.yaml")
     return " ".join(accelerate_args)
 
 

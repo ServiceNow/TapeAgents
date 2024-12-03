@@ -9,6 +9,7 @@ from tapeagents.utils import json_value_from_str
 from .steps import (
     CalculationResultObservation,
     CodeResultObservation,
+    Facts,
     GaiaStep,
     ListOfFactsThought,
     NewFactThought,
@@ -30,7 +31,7 @@ class GaiaTape(Tape[DialogContext, GaiaStep]):
 
     def has_fact_schemas(self) -> bool:
         for step in self.steps:
-            if isinstance(step, ListOfFactsThought):
+            if isinstance(step, (ListOfFactsThought, Facts)):
                 return True
         return False
 

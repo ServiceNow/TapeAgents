@@ -1,8 +1,8 @@
 import logging
 
-from tapeagents.container_executor import CodeBlock, ContainerExecutor
 from tapeagents.environment import Environment
 from tapeagents.tools.calculator import calculate
+from tapeagents.tools.container_executor import CodeBlock, ContainerExecutor
 from tapeagents.tools.python_interpreter import python_calculate, run_python_code
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.utils import FatalError

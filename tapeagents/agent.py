@@ -1,9 +1,13 @@
+"""
+Base classes for agents and nodes.
+"""
+
 from __future__ import annotations
 
 import json
 import logging
 from abc import abstractmethod
-from typing import Any, Callable, Generator, Generic
+from typing import Any, Generator, Generic
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
@@ -40,7 +44,13 @@ logger.setLevel(logging.INFO)
 
 class AgentStream(Generic[TapeType]):
     """
-    The result of the agent run, wrapper around a generator that produces AgentEvents.
+    A wrapper around a generator that produces AgentEvents, representing the result of an agent run.
+
+    The generator can be iterated over to get the events, or the final tape can be extracted with get_final_tape.
+    Support iterable protocol and generator protocol.
+
+    Attributes:
+        generator (Generator[AgentEvent[TapeType], None, None]): The generator that produces AgentEvents.
     """
 
     def __init__(self, generator: Generator[AgentEvent[TapeType], None, None]):
@@ -53,29 +63,48 @@ class AgentStream(Generic[TapeType]):
         return next(self.generator)
 
     def get_final_tape(self) -> TapeType:
+        """
+        Retrieve the final tape from the agent's events.
+
+        Iterates through the events of the agent and returns the final tape
+        if it is found. If no final tape is produced by the agent, a ValueError
+        is raised.
+
+        Returns:
+            TapeType: The final tape produced by the agent.
+
+        Raises:
+            ValueError: If the agent did not produce a final tape.
+        """
         for event in self:
             if event.final_tape:
                 return event.final_tape
         raise ValueError("Agent didn't produce final tape")
 
     def get_steps(self) -> Generator[Step, None, None]:
+        """
+        Generator function that yields steps from events.
+
+        Yields:
+            Step: The step associated with each event that has a step.
+        """
         for event in self:
             if event.step:
                 yield event.step
 
 
-# TODO: try adding node and agent types
-PromptMakerFunction = Callable[[Any, Tape], Prompt]
-StepsGeneratorFunction = Callable[[Any, Tape, LLMStream], Generator[Step | PartialStep, None, None]]
-
-
 class Node(BaseModel):
     """
     A node in the agent, atomic unit of the agent's behavior.
+
     The agent chooses which node to run based on the current tape.
     The node has a name and contains 2 main functions:
-     - make a prompt out of the tape
-     - generate steps out of the received llm output
+
+    - make a prompt out of the tape
+    - generate steps out of the received llm output
+
+    Attributes:
+        name (str): The name of the node. Defaults to an empty string.
     """
 
     name: str = ""
@@ -85,28 +114,84 @@ class Node(BaseModel):
             self.name = self.__class__.__name__.split("[")[0]  # class name without type variables
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
+        """
+        Creates a prompt for the given agent and tape.
+
+        Args:
+            agent (Any): The agent for which the prompt is being created.
+            tape (Tape): The tape associated with the agent.
+
+        Returns:
+            Prompt: The generated prompt.
+        """
         return Prompt()
 
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
+        """
+        Generates steps for the given agent, tape, and LLM stream.
+
+        Args:
+            agent (Any): The agent for which steps are to be generated.
+            tape (Tape): The tape object containing relevant data.
+            llm_stream (LLMStream): The LLM stream to be used for generating steps.
+
+        Yields:
+            Union[Step, PartialStep]: The generated steps or partial steps.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by the subclass.
+        """
         raise NotImplementedError("Node must implement generate_steps")
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
+        """
+        Generates an LLMOutput object for a given agent and tape at a specified index.
+
+        Args:
+            agent (Any): The agent for which the LLMOutput is being generated.
+            tape (Tape): The tape containing the steps.
+            index (int): The index of the step in the tape from which to generate the output.
+
+        Returns:
+            LLMOutput: An object containing the role and content for the LLM output.
+        """
         return LLMOutput(role="assistant", content=tape.steps[index].content)
-    
+
     def update(self, node_config: dict[str, Any]) -> Node:
         return type(self).model_validate(node_config)
 
 
 class Agent(BaseModel, Generic[TapeType]):
     """
-    The base class for agents.
-    Main methods are:
-        - run: run the agent on the tape until it produces a stop step
-        - make_prompt: make a prompt for the LLM
-        - generate_steps: generate steps from the LLM output
-        - select_node: select the node to run next based on the current state of the tape
+    Base class for agents within the TapeAgents framework.
+
+    An agent is a model that can run on a tape, generating new steps based on the tape's state.
+    The agent can have subagents, which are other agents that it manages and can delegate to.
+    The agent can also have nodes, which are atomic units of the agent's behavior that it can choose to run based on the tape.
+
+    Attributes:
+        name (str): The unique name of the agent.
+        llms (dict[str, SerializeAsAny[LLM]]): A dictionary mapping names to LLM instances used by the agent.
+        subagents (list[Any]): A list of subagents managed by this agent. Subagents must have unique names.
+        templates (dict[str, Any]): A dictionary of templates used for generating prompts.
+        nodes (list[SerializeAsAny[Node]]): A list of nodes that define the agent's actions and decision points.
+        max_iterations (int): The maximum number of iterations the agent will execute before stopping.
+        manager (Agent): Retrieves the manager agent overseeing this agent.
+        llm (LLM): Default language model if only one is configured.
+        template (Template): Default template if only one is configured.
+        full_name (str): Hierarchical name of the agent, including its manager hierarchy.
+
+
+    Raises:
+        ValueError: If configuration inconsistencies are detected:
+
+            - If a subagent is already managed by another agent
+            - If any subagent is not an instance of Agent class
+            - If there are duplicate names among subagents
+            - If there are duplicate names among nodes
+
     """
 
     name: str = ""
@@ -157,46 +242,123 @@ class Agent(BaseModel, Generic[TapeType]):
 
     @property
     def manager(self):
+        """
+        Gets the manager of the agent.
+
+        Returns:
+            (Agent): The manager agent instance.
+
+        Raises:
+            ValueError: If the agent doesn't have a manager assigned.
+        """
         if self._manager is None:
             raise ValueError("Agent doesn't have a manager")
         return self._manager
 
     @property
     def llm(self):
+        """
+        Get the default LLM instance associated with the agent.
+
+        Returns:
+            (LLM): The default LLM instance if only one LLM is configured.
+
+        Raises:
+            ValueError: If multiple LLMs are configured for this agent. In this case, use the `llms`
+                       property to access specific LLM instances.
+        """
         if len(self.llms) > 1:
             raise ValueError("Agent has multiple LLMs. Use llms property to access a specific one.")
         return self.llms[DEFAULT]
 
     @property
     def template(self):
+        """
+        Returns the default template of the agent.
+
+        This property provides access to the default template when the agent has exactly one template.
+        If multiple templates exist, it raises a ValueError indicating that specific templates
+        should be accessed through the templates property instead.
+
+        Returns:
+            (Template): The default template object.
+
+        Raises:
+            ValueError: If the agent has more than one template.
+            IndexError: If no templates exist (implicitly through list access).
+        """
         if len(self.templates) > 1:
             raise ValueError("Agent has multiple templates. Use templates property to access a specific one.")
         return self.templates[DEFAULT]
 
     @property
     def full_name(self):
+        """Returns the full hierarchical name of the agent.
+
+        The full name is constructed by combining the manager's full name (if present)
+        with this agent's name, separated by a forward slash. If the agent has no
+        manager, returns just the agent's name.
+
+        Returns:
+            (str): The full hierarchical name path of the agent. Examples: "agent_name" (no manager), "manager_name/agent_name" (with manager)
+        """
         if self._manager is None:
             return self.name
         return f"{self._manager.full_name}/{self.name}"
 
     def find_subagent(self, name: str):
+        """
+        Find a subagent by name in the list of subagents.
+
+        Args:
+            name (str): The name of the subagent to find.
+
+        Returns:
+            (Agent): The found subagent instance.
+
+        Raises:
+            ValueError: If no subagent with the given name is found.
+        """
         for agent in self.subagents:
             if agent.name == name:
                 return agent
         raise ValueError(f"Agent {name} not found")
 
     def find_node(self, name: str):
+        """Find a node by its name in the list of nodes.
+
+        Args:
+            name (str): The name of the node to find.
+
+        Returns:
+            (Node): The node with the matching name.
+
+        Raises:
+            ValueError: If no node with the given name is found.
+        """
         for node in self.nodes:
             if node.name == name:
                 return node
         raise ValueError(f"Node {name} not found")
 
     def get_subagent_names(self) -> list[str]:
+        """
+        Returns a list of names of all subagents.
+
+        Returns:
+            list[str]: A list containing the names of all subagents in the agent.
+        """
         return [agent.name for agent in self.subagents]
 
     def clone(self) -> Self:
         """
-        Make a deep copy of the agent without the manager.
+        Creates a deep copy of the current agent instance.
+
+        This method creates an independent copy of the agent with all its attributes,
+        but detaches it from any manager.
+
+        Returns:
+            Self: A new instance of the agent with identical attributes but no manager.
         """
         result = self.model_copy(deep=True)
         result._manager = None
@@ -204,15 +366,33 @@ class Agent(BaseModel, Generic[TapeType]):
 
     @classmethod
     def create(
-        cls,
-        llms: dict[str, LLM] | LLM | None = None,
-        templates: dict[str, Any] | str | None = None,
-        **kwargs,
+        cls, llms: dict[str, LLM] | LLM | None = None, templates: dict[str, Any] | str | None = None, **kwargs
     ) -> Self:
-        """The user-friendly way to create an agent that flexible-typed inputs.
+        """
+        Creates an instance of the class with provided LLMs and templates.
 
-        A subclass can override this method and extend its signature.
+        Args:
+            llms (Union[Dict[str, LLM], LLM, None]): Language model(s) to use. Can be:
 
+                - A dictionary mapping names to LLM instances
+                - A single LLM instance (will be mapped to default name)
+                - None (empty dict will be used)
+            templates (Union[Dict[str, Any], str, None]): Template(s) to use. Can be:
+
+                - A dictionary mapping names to template configurations
+                - A single template string (will be mapped to default name)
+                - None (no templates will be used)
+            **kwargs (dict, optional): Additional keyword arguments to pass to the class constructor
+
+        Returns:
+            Self: A new instance of the class initialized with the provided arguments
+
+        Example:
+            ```python
+            agent = Agent.create(llm)  # Single LLM
+            agent = Agent.create({"gpt": llm1, "claude": llm2})  # Multiple LLMs
+            agent = Agent.create(llm, "template")  # LLM with template
+            ```
         """
         if isinstance(llms, LLM):
             llms = {DEFAULT: llms}
@@ -225,13 +405,30 @@ class Agent(BaseModel, Generic[TapeType]):
 
     def update(self, agent_config: dict[str, Any]) -> Agent[TapeType]:
         """
-        Reload the configuration of all llms and subagents while keeping their classes.
+        Updates the agent's configuration while preserving instance types.
 
-        :param agent_config: the new configuration dictionary
+        This method allows reconfiguration of the agent while maintaining the class types
+        of LLMs and subagents. It performs a deep update by recursively applying changes
+        to nested components.
+
+        Args:
+            agent_config (dict[str, Any]): New configuration dictionary containing LLMs,
+                subagents, templates and other agent settings.
+
+        Returns:
+            Agent[TapeType]: A new agent instance with updated configuration.
+
+        Raises:
+            ValueError: If the new configuration has different LLMs or number of subagents
+                than the current agent.
+
+        Note:
+            - Only string templates are updated, complex template objects are preserved
+            - Node configurations are preserved to avoid potential issues
         """
+
         if not set(self.llms.keys()) == set(agent_config["llms"].keys()):
             raise ValueError("Agent has different LLMs than the new configuration.")
-        llms = {name: llm.model_validate(agent_config["llms"][name]) for name, llm in self.llms.items()}
         if len(self.subagents) != len(agent_config["subagents"]):
             raise ValueError("Agent has different number of subagents than the new configuration.")
         # recurse into subagents
@@ -239,22 +436,52 @@ class Agent(BaseModel, Generic[TapeType]):
             subagent.model_validate(subagent.update(subagent_obj))
             for subagent, subagent_obj in zip(self.subagents, agent_config["subagents"])
         ]
+        # recurse into llms
+        llms = {name: llm.model_validate(agent_config["llms"][name]) for name, llm in self.llms.items()}
+        # only update templates are str
+        templates = {
+            name: (value if isinstance(value, str) else self.templates[name])
+            for name, value in agent_config["templates"].items()
+        }
         config_copy = agent_config.copy()
         config_copy["llms"] = llms
         config_copy["subagents"] = subagents
+        config_copy["templates"] = templates
+        # do not update nodes for now to avoid tricky bugs
         config_copy["nodes"] = self.nodes
         return type(self).model_validate(config_copy)
 
     def compute_view(self, tape: TapeType) -> TapeViewStack:
+        """
+        Compute the view stack from a given tape.
+
+        Args:
+            tape (TapeType): The input tape to process.
+
+        Returns:
+            TapeViewStack: A stack of views computed from the input tape.
+        """
         return TapeViewStack.compute(tape)
 
     def select_node(self, tape: TapeType) -> Node:
         """
-        Select the node to run next based on the current state of the tape.
+        Select the next node to execute based on the current state of the tape.
 
-        :param tape: the tape to make the decision on
-        :return: the node to run next
+        The selection process follows these rules:
+            1. If next_node is explicitly set in the tape view, return that node
+            2. If no nodes have been run yet (last_node is None), return the first node
+            3. Return the node that follows the last executed node in the list
+
+        Args:
+            tape (TapeType): The tape containing execution state and data
+
+        Returns:
+            Node: The next node to be executed
+
+        Raises:
+            ValueError: If unable to determine the next node to execute (e.g., reached end of list)
         """
+        # Select the node to run next based on the current state of the tape.
         view = self.compute_view(tape).top
         if view.next_node:
             logger.debug(f"{self.name}: Next node was set explicitly in the tape: {view.next_node}")
@@ -274,22 +501,38 @@ class Agent(BaseModel, Generic[TapeType]):
         raise ValueError("Next node not found")
 
     def make_prompt(self, tape: TapeType) -> Prompt:
-        """Make the prompt for the next iteration of the agent.
-
-        Can return prompt with no messages, which means the agent should generate next
-        steps by following rules, with no help from the LLM. An agent that only delegate
-        to subagents may not need to implement this method.
         """
+        Makes the prompt for the next iteration of the agent.
+        This method generates a prompt by delegating to the selected node's make_prompt method.
+        Can return a prompt with no messages, indicating the agent should generate next steps
+        by following rules without LLM assistance. Agents that only delegate to subagents may
+        not need to implement this method.
+
+        Args:
+            tape (TapeType): The tape containing the agent's state and history
+
+        Returns:
+            Prompt: A prompt object for the next agent iteration, potentially empty
+
+        Note:
+            - Empty prompts signal rule-based generation without LLM
+            - Method may be optional for pure delegation agents
+        """
+
         return self.select_node(tape).make_prompt(self, tape)
 
     def generate_steps(self, tape: TapeType, llm_stream: LLMStream) -> Generator[Step | PartialStep, None, None]:
         """
-        Generate new steps and other events by feeding the prompt to the LLM
+        Generate steps from the agent by selecting a node and processing its output.
 
-        :param tape: the tape to generate steps for
-        :param llm_stream: the stream of tokens from the LLM
-        :return: a generator of steps (or partial steps) to append to the tape
+        Args:
+            tape (TapeType): The input tape containing the interaction history
+            llm_stream (LLMStream): Stream interface for the language model output
+
+        Yields:
+            Union[Step, PartialStep]: Union[Step, PartialStep]: The generated steps or partial steps.
         """
+        # Generate new steps and other events by feeding the prompt to the LLM
         node = self.select_node(tape)
         for step in node.generate_steps(self, tape, llm_stream):
             if isinstance(step, AgentStep):
@@ -297,14 +540,36 @@ class Agent(BaseModel, Generic[TapeType]):
             yield step
 
     def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
+        """
+        Generates an LLM output based on a tape and step index.
+
+        Args:
+            tape (TapeType): The input tape
+            index (int): The position in the tape up to which to process.
+
+        Returns:
+            LLMOutput: The generated language model output for the tape segment.
+
+        Note:
+            This method delegates the actual output generation to the selected node's
+            make_llm_output method after selecting the appropriate node based on the
+            tape segment up to the given index.
+        """
         return self.select_node(tape[:index]).make_llm_output(self, tape, index)
 
     def delegate(self, tape: TapeType) -> Agent[TapeType]:
         """
-        Recursively find the subagent that should run based on the current state of the tape.
+        Delegates control to the appropriate subagent based on the current tape state.
 
-        :param tape: the tape to make the decision on
-        :return: the subagent to run
+        This method recursively traverses the agent hierarchy to find the most specific
+        subagent that should handle the current tape state based on views computed from
+        the tape.
+
+        Args:
+            tape (TapeType): The tape containing the current state to process.
+
+        Returns:
+            Agent[TapeType]: The subagent that should handle the current tape state.
         """
         views = self.compute_view(tape)
         subagent = self
@@ -314,17 +579,36 @@ class Agent(BaseModel, Generic[TapeType]):
         return subagent
 
     def is_agent_step(self, step: Step) -> bool:
-        """Check if the step was produced by the agent or by the environment."""
+        """
+        Check if a step was produced by the agent.
+
+        Args:
+            step (Step): The step object to check.
+
+        Returns:
+            bool: True if the step is an Action or Thought (agent-produced),
+                  False otherwise.
+        """
         return isinstance(step, (Action, Thought))
 
     def should_stop(self, tape: TapeType) -> bool:
-        """Check if the agent should stop its turn and wait for observations."""
+        """
+        Check if the agent should stop its turn and wait for observations.
+
+        Args:
+            tape (TapeType): The tape containing the sequence of steps (actions and observations).
+
+        Returns:
+            bool: True if the last step in the tape is an Action, indicating the agent should stop and wait for observations.
+                 False if the last step is not an Action, indicating the agent can continue.
+        """
         return isinstance(tape.steps[-1], Action)
 
     def run_iteration(
         self, tape: TapeType, llm_stream: LLMStream | None = None
     ) -> Generator[Step | PartialStep, None, None]:
-        """Run one iteration of the agent (assuming one call to the underlyng model)
+        """
+        Run one iteration of the agent (assuming one call to the underlyng model).
 
         During an iteration the agent generates steps from a stream of tokens that arises
         from a single LLM call with a single prompt. An agent can do multiple iterations
@@ -333,6 +617,15 @@ class Agent(BaseModel, Generic[TapeType]):
         This function can also take a given `llm_stream`, which can be useful when the agent
         reuses a tape.
 
+        Args:
+            tape (TapeType): The tape to run the agent on
+            llm_stream (LLMStream): The stream of tokens from the LLM
+
+        Yields:
+            Union[Step, PartialStep]: The generated steps or partial
+
+        Raises:
+            NotImplementedError: If the agent has multiple LLMs and no LLM stream is provided
         """
         logger.debug(f"RUN {self.full_name}, Nodes:{[node.name for node in self.nodes]}")
         if llm_stream is None:
@@ -347,7 +640,33 @@ class Agent(BaseModel, Generic[TapeType]):
 
     def run(self, tape: TapeType, max_iterations: int | None = None) -> AgentStream[TapeType]:
         """
-        Run the agent on the tape until it produces a stop step, but no more than max_iterations.
+        Run the agent on the tape iteratively, delegating to subagents until a stop condition is met.
+
+        This method executes the agent's logic by:
+        1. Delegating to appropriate subagents based on the tape state
+        2. Processing steps from subagent iterations
+        3. Updating the tape with new steps
+        4. Checking stop conditions
+        5. Tracking metadata about the execution
+
+        Args:
+            tape (TapeType): The input tape to process
+            max_iterations (int, optional): Maximum number of iterations to run.
+                If None, uses self.max_iterations. Defaults to None.
+
+        Returns:
+            AgentStream[TapeType]: A stream of AgentEvents containing:
+
+                - partial_step: Intermediate processing steps
+                - step: Completed agent steps with updated tape
+                - final_tape: Final tape with updated metadata after completion
+
+        Yields:
+            AgentEvent: Events indicating the agent's progress including partial steps,
+                completed steps with updated tape, and the final result.
+
+        Raises:
+            ValueError: If the agent generates anything other than steps or partial steps.
         """
         if max_iterations is None:
             max_iterations = self.max_iterations
@@ -385,11 +704,20 @@ class Agent(BaseModel, Generic[TapeType]):
         return AgentStream(_run_implementation())
 
     def reuse(self, tape: TapeType) -> tuple[TapeType, list[LLMCall]]:
-        """Reuse another agent's tape as one's own.
+        """
+        Reuse another agent's tape as one's own.
 
         Construct LLM outputs at each step where a prompt is made. Check that output
         parsing yield the same steps as in the original tape. Rewrite metadata for all steps.
 
+        Args:
+            tape (TapeType): The tape to reuse
+
+        Returns:
+            tuple[TapeType, list[LLMCall]]: The reused tape and a list of LLM calls made during the reuse
+
+        Raises:
+            TapeReuseFailure: If the regenerated steps don't match the original tape.
         """
         reused_steps = []
         llm_calls = []
@@ -432,7 +760,21 @@ class Agent(BaseModel, Generic[TapeType]):
         return reused_tape, llm_calls
 
     def get_node_runs(self, tape: TapeType) -> list[tuple[Node, int]]:
-        """Parse the tape into fragments produced by the agent's nodes"""
+        """
+        Parse the tape and identify the indices where each node began its execution.
+
+        This method identifies transition points in the tape where different nodes started
+        producing output by tracking changes in prompt IDs.
+
+        Args:
+            tape (TapeType): The sequence of tape steps to analyze.
+
+        Returns:
+            list[tuple[Node, int]]: List of tuples containing (node, index) pairs where:
+
+                - node: The Node object that produced the tape fragment
+                - index: The starting index in the tape where this node began execution
+        """
         last_prompt_id = None
         result = []
         for index, step in enumerate(tape):
@@ -443,16 +785,53 @@ class Agent(BaseModel, Generic[TapeType]):
         return result
 
     def make_training_text(self, llm_call: LLMCall) -> TrainingText:
-        """Routes the request to make trace to the appropriate agent's LLM."""
+        """
+        Routes the request to make training text to the agent's LLM.
+
+        Args:
+            llm_call (LLMCall): Object containing prompt and output from an LLM call.
+
+        Returns:
+            TrainingText: The training text generated from the prompt and output.
+
+        Note:
+            Currently only supports one LLM. Future versions will support multiple LLMs.
+        """
         # TODO: support more than 1 LLM
         return self.llm.make_training_text(llm_call.prompt, llm_call.output)
 
     def make_training_data(self, tape: TapeType) -> list[TrainingText]:
+        """
+        Generates training data from a tape by converting LLM calls into training texts.
+
+        Args:
+            tape (TapeType): A tape containing recorded LLM interactions.
+
+        Returns:
+            list[TrainingText]: A list of training text objects created from the LLM calls.
+
+        Notes:
+            This method first reuses the tape to extract LLM calls, then converts each call
+            into a training text format using make_training_text().
+        """
         _, llm_calls = self.reuse(tape)
         return [self.make_training_text(llm_call) for llm_call in llm_calls]
 
 
 class TapeReuseFailure(ValueError):
+    """Exception raised when tape reuse operation fails.
+
+    This exception is raised when an attempt to reuse a tape encounters an error,
+    providing access to the succesfully reused part of the tape
+
+    Args:
+        msg (str): Description of why the tape reuse failed
+        partial_tape (Tape): The incomplete/partial tape that was being constructed
+
+    Attributes:
+        partial_tape (Tape): The incomplete tape at the point of failure
+    """
+
     def __init__(self, msg: str, partial_tape: Tape):
         self.partial_tape = partial_tape
         super().__init__(msg)
@@ -467,6 +846,12 @@ def _is_step_data_equal(step1: Step, step2: Step) -> bool:
     Another caveat is that some data, like function call arguments in LLM messages, is not deserialized,
     and hence can be tricky to compare across steps. This function deserializes known fields like that before comparison..
 
+    Args:
+        step1 (Step): The first step to compare
+        step2 (Step): The second step to compare
+
+    Returns:
+        bool: True if the data in the steps is equal, False otherwise
     """
 
     def just_data(step: Step) -> dict:
@@ -516,7 +901,6 @@ class ObservationMaker(Agent[ObservationMakerTapeType], Generic[TapeType, Observ
         return tape.append(last_step.new_observation).model_copy(update=dict(metadata=metadata))
 
     def can_continue(self, _: TapeType) -> bool:
-        """Check if this observation maker can continue the given tape."""
         return True
 
     def continue_tape(self, tape: TapeType) -> TapeType:
