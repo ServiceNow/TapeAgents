@@ -263,6 +263,7 @@ class TrainableLLM(CachedLLM):
 
     base_url: str
     api_token: str = Field(default="", exclude=True)
+    collect_logprobs: bool = False
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -277,10 +278,15 @@ class TrainableLLM(CachedLLM):
             "model": self.model_name,
             "messages": prompt.messages,
             "stream": self.stream,
-            "logprobs": 1,
-            "include_stop_str_in_output": True,
-            "skip_special_tokens": False,
         }
+        if self.collect_logprobs:
+            data.update(
+                {
+                    "logprobs": 1,
+                    "include_stop_str_in_output": True,
+                    "skip_special_tokens": False,
+                }
+            )
         r = requests.post(
             url=f"{self.base_url}/v1/chat/completions",
             json=data | self.parameters,
@@ -314,19 +320,14 @@ class TrainableLLM(CachedLLM):
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
-                # Text generated token by token might not be tokenized the same way as the HF tokenizer on sequences
-                logprobs_content = data["choices"][0]["logprobs"]["content"]
-                vllm_tokens = [content["token"] for content in logprobs_content]
-                hf_tokens = [self.tokenizer.decode(t) for t in self.tokenizer.encode(content, add_special_tokens=False)]
                 if self.tokenizer.eos_token and content.endswith(self.tokenizer.eos_token):
                     content = content[: -len(self.tokenizer.eos_token)]
-                if not hf_tokens == vllm_tokens:
-                    logprobs = self.get_log_probs(prompt, LLMOutput(content=content))
-                    logprobs_content = [
-                        ChatCompletionTokenLogprob(token=t, logprob=lp, top_logprobs=[TopLogprob(token=t, logprob=lp)])
-                        for t, lp in zip(vllm_tokens, logprobs)
-                    ]
-                output = LLMOutput(content=content, logprobs={"content": logprobs_content})
+
+                if self.collect_logprobs:
+                    logprobs_content = data["choices"][0]["logprobs"]["content"]
+                    output = LLMOutput(content=content, logprobs={"content": logprobs_content})
+                else:
+                    output = LLMOutput(content=content)
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
