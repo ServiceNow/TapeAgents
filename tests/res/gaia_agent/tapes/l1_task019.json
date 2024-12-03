@@ -1,0 +1,206 @@
+{
+    "metadata": {
+        "id": "d50ea7aa-998c-4c87-9ffa-3132e853b22d",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "Annie Levin",
+        "task": {
+            "task_id": "5188369a-3bbe-43d8-8b94-11558f909a08",
+            "Question": "What writer is quoted by Merriam-Webster for the Word of the Day from June 27, 2022?",
+            "Level": 1,
+            "Final answer": "Annie Levin",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Search \"merriam-webster word of the day\" on Google search.\n2. Opened the top \"Word of the Day\" result from the Merriam-Webster dictionary online.\n3. Clicked \"SEE ALL WORDS OF THE DAY\" at the bottom.\n4. Scrolled down to June 27, 2022.\n5. Opened the Word of the Day (\"jingoism\").\n6. Scrolled down and identified context quote for \"jingoism\".\n7. Noted the name attributed to the quote. ",
+                "Number of steps": "7",
+                "How long did this take?": "8 minutes",
+                "Tools": "1. Web browser\n2. Search engine\n3. Audio capability",
+                "Number of tools": "3"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "55277263-3086-408c-9917-e5abc4f083fa",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "What writer is quoted by Merriam-Webster for the Word of the Day from June 27, 2022?",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "0f64427c-48a6-4fb9-9472-a77dcd140b8a",
+                "prompt_id": "73fc9fd0-9352-4f38-aa3e-a4cdc952c383",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Search for Merriam-Webster's Word of the Day for June 27, 2022.",
+                "Identify the writer quoted in the entry for that specific Word of the Day.",
+                "Extract the relevant information regarding the writer from the search results."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "efaa0f25-0e67-413b-91d4-e10659d19a04",
+                "prompt_id": "a1e644f8-9257-42e7-8d6a-358722a0bd70",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                "The date June 27, 2022",
+                "Merriam-Webster has a Word of the Day feature"
+            ],
+            "facts_to_lookup": [
+                "Merriam-Webster's Word of the Day for June 27, 2022",
+                "The writer quoted in that Word of the Day entry"
+            ],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "c02b4f29-72a0-4ae8-8db8-c9f3e04588fd",
+                "prompt_id": "06dc0962-a65d-4401-93e5-7cb9db230b1e",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Merriam-Webster Word of the Day June 27 2022"
+        },
+        {
+            "metadata": {
+                "id": "4a86fe2a-0445-42fc-bbea-e43ba5749d7b",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Merriam-Webster Word of the Day June 27 2022",
+            "serp": [
+                {
+                    "title": "Word of the Day: Jingoism",
+                    "url": "https://www.merriam-webster.com/word-of-the-day/jingoism-2022-06-27",
+                    "content": "27 Jun 2022 — June 27, 2022 | extreme patriotism or nationalism Jingoism originated during the Russo-Turkish War of 1877-1878, when many British citizens ..."
+                },
+                {
+                    "title": "Word of the Day Calendar",
+                    "url": "https://www.merriam-webster.com/word-of-the-day/calendar",
+                    "content": "Learn a new word every day with the Word of the Day from Merriam-Webster, the most trusted authority on American English. Now available as a podcast, ..."
+                },
+                {
+                    "title": "Jingoism Definition & Meaning",
+                    "url": "https://www.merriam-webster.com/dictionary/jingoism",
+                    "content": "10 Aug 2024 — Merriam-Webster's Word of the Day. jingoism. Merriam-Webster's Word of the Day for June 27, 2022 is: jingoism \\JING-goh-iz-im\\ noun. See ..."
+                },
+                {
+                    "title": "Word of the Day: Gossamer",
+                    "url": "https://www.merriam-webster.com/word-of-the-day",
+                    "content": "What It Means. Something described as gossamer—such as a butterfly wing or a thin fabric—is very light or delicate. // Except for a few gossamer clouds, ..."
+                },
+                {
+                    "title": "Wordle's word of the day for June 27, game #373 (Spoiler)",
+                    "url": "https://www.masslive.com/entertainment/2022/06/wordles-word-of-the-day-for-june-27-game-373-spoiler.html",
+                    "content": "27 Jun 2022 — The Wordle answer for June 27 is “RETRO.” According to the Merriam-Webster, retro means “relating to, reviving, or being the styles and especially the fashions ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "abfe810d-72b8-4412-a874-1971e60ae9d5",
+                "prompt_id": "c83bb2d6-9eb5-487a-b3f5-4bea06a18849",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.merriam-webster.com/word-of-the-day/jingoism-2022-06-27",
+            "fact_description": "writer quoted for the Word of the Day on June 27, 2022",
+            "fact_name": "writer"
+        },
+        {
+            "metadata": {
+                "id": "1fbc910a-bcbc-4aa3-9ef3-eea4714d680a",
+                "prompt_id": "c83bb2d6-9eb5-487a-b3f5-4bea06a18849",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "13e01889-285f-44b5-ac7f-a1b8c452c7fb",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Word of the Day: Jingoism | Merriam-Webster\n=======================\nMenu Toggle\n\n[Merriam\\-Webster Logo](/ \"Merriam Webster - established 1828\")\n\n* [Games \\& Quizzes](/games)\n* [Games \\& Quizzes](/games)\n* [Word of the Day](/word-of-the-day)\n* [Grammar](/grammar)\n* [Wordplay](/wordplay)\n* [Word Finder](/wordfinder)\n* [Thesaurus](/thesaurus)\n* [Join MWU](https://unabridged.merriam-webster.com/subscriber/register/p1?refc=HDR_GLOBAL_JOINMWU)\n* + Shop\n\t+ [Books\n\n\t![link icon](/dist-cross-dungarees/2024-10-03--18-48-07-njo6f/images/svg/link-icon.svg)](https://shop.merriam-webster.com/?utm_source=mwsite&utm_medium=nav&utm_content=header)\n\t+ [Merch\n\n\t![link icon](/dist-cross-dungarees/2024-10-03--18-48-07-njo6f/images/svg/link-icon.svg)](https://merriamwebster.threadless.com/?utm_source=mwsite&utm_medium=nav&utm_content=header)\n* + Settings\n\t+ [My Words](/saved-words)\n\t+ [Recents](/recents)\n\t+ [Account](/settings)\n\t+ [Log Out](/logout)\n* [More](javascript:void(0);)\n\t+ [Thesaurus](/thesaurus)\n\t+ [Join MWU\n\n\t![link icon](/dist-cross-dungarees/2024-10-03--18-48-07-njo6f/images/svg/link-icon.svg)](https://unabridged.merriam-webster.com/subscriber/register/p1?refc=HDR_GLOBAL_JOINMWU)\n\t+ Shop\n\t+ [Books\n\n\t![link icon](/dist-cross-dungarees/2024-10-03--18-48-07-njo6f/images/svg/link-icon.svg)](https://shop.merriam-webster.com/?utm_source=mwsite&utm_medium=nav&utm_content=header)\n\t+ [Merch\n\n\t![link icon](/dist-cross-dungarees/2024-10-03--18-48-07-njo6f/images/svg/link-icon.svg)](https://merriamwebster.threadless.com/?utm_source=mwsite&utm_medium=nav&utm_content=header)\n\n\t\t- [Log In](/login)\n\t\t- Username\n\t\t- [My Words](/saved-words)\n\t\t- [Recents](/recents)\n\t\t- [Account](/settings)\n\t\t- [Log Out](/logout)\n\n Est. 1828\n\nWord of the Day\n===============\n\n : June 27, 2022\n\njingoism\n--------\n\n[play](javascript:void(0) \"Listen to the pronunciation of jingoism\")\n\nnoun\n\nJING\\-goh\\-iz\\-im\n\n[Prev](/word-of-the-day/culminate-2022-06-26)\n[Next](/word-of-the-day/fulsome-2022-06-28)\n\n---\n\nWhat It Means\n-------------\n\n*Jingoism* is excessive patriotism or nationalism, especially when marked by a belligerent foreign policy.\n\n// When the war began many people were caught up in a wave of *jingoism*.\n\n[See the entry \\>](https://www.merriam-webster.com/dictionary/jingoism)\n\njingoism in Context\n-------------------\n\n\"War is bad for culture. Not least of all because it turns our cultural institutions into bastions of *jingoism*.\" — Annie Levin, *The New York Observer*, 7 Mar. 2022\n\n### Build your vocabulary! Get Word of the Day in your inbox every day.\n\n[Test Your Vocabulary](/games)\n\n---\n\n* ![sequel spelled three ways with the incorrect ways crossed out and the correct spelling circled](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)\n* Rachel seemed to be \\_\\_\\_\\_\\_ in every endeavor she started.\n\n* [successful](/games/commonly-misspelled-quiz-2?q=4546&a=16848)\n[successfull](/games/commonly-misspelled-quiz-2?q=4546&a=16850)\n* [sucessful](/games/commonly-misspelled-quiz-2?q=4546&a=16851)\n[succesful](/games/commonly-misspelled-quiz-2?q=4546&a=16849)\n\n![Spell It](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)\n\nHear a word and type it out. How many can you get right?\n\n[TAKE THE QUIZ](/games/spell-it)\n\n![Play Blossom: Solve today's spelling word game by finding as many words as you can using just 7 letters. Longer words score more points.](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)\n\nPick the best words!\n\n[PLAY](/games/blossom-word-game)\n\n---\n\nDid You Know?\n-------------\n\n*Jingoism* originated during the Russo\\-Turkish War of 1877\\-1878, when many British citizens were hostile toward Russia and felt Britain should intervene in the conflict. Supporters of the cause expressed their sentiments in a music\\-hall ditty with this refrain:\n\n> We don't want to fight, yet by jingo if we do,\n>\n>\n> We've got the ships, we've got the men,\n>\n>\n> We've got the money, too!\n\nSomeone holding the attitude implied in the song became known as a *jingo* or *jingoist*, and the attitude itself was dubbed *jingoism*. The *jingo* in the tune is probably a euphemism for *Jesus*.\n\n---\n\nTest Your Vocabulary with M\\-W Quizzes\n--------------------------------------\n\n[![spelunker-silhouette ](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)](/games/people-interest-quiz?src=wotdl)\n[People of Interest Quiz](/games/people-interest-quiz?src=wotdl)\n\n[Play Now](/games/people-interest-quiz?src=wotdl)\n\n[![cow coming home](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)](/games/farm-words?src=wotdl)\n[Farm Idioms Quiz](/games/farm-words?src=wotdl)\n\n[Play Now](/games/farm-words?src=wotdl)\n\n[![vector art of man ready to cut messy balls of thread with scissors](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)](/games/commonly-confused-quiz-2?src=wotdl)\n[Commonly Confused Words Quiz Vol. 2](/games/commonly-confused-quiz-2?src=wotdl)\n\n[Play Now](/games/commonly-confused-quiz-2?src=wotdl)\n\n[![baobab-trees](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)](/games/name-that-tree?src=wotdl)\n[Name That Tree!](/games/name-that-tree?src=wotdl)\n\n[Play Now](/games/name-that-tree?src=wotdl)\n\n[![a collage of quiz items flush serif narwhal and chestnuts](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)](/games/ntt-mega-4?src=wotdl)\n[Name That Thing MegaQuiz: Vol. 4](/games/ntt-mega-4?src=wotdl)\n\n[Play Now](/games/ntt-mega-4?src=wotdl)\n\n[![iykyk if you know you know slang written in a neon](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)](/games/abbrevation-station?src=wotdl)\n[Quiz: Abbreviation Station](/games/abbrevation-station?src=wotdl)\n\n[Play Now](/games/abbrevation-station?src=wotdl)\n\n---\n\nQuiz\n----\n\nUnscramble the letters to find a word that means \"a supporter of a war or warlike policy\": KWAH\n\n[VIEW THE ANSWER](https://s.m-w.com/3aAJJzs)\n\n---\n\nPodcast\n-------\n\n---\n\nMore Words of the Day\n---------------------\n\n* #### Oct 04\n\n[gossamer](/word-of-the-day)\n----------------------------\n* #### Oct 03\n\n[posterity](/word-of-the-day/posterity-2024-10-03)\n--------------------------------------------------\n* #### Oct 02\n\n[fret](/word-of-the-day/fret-2024-10-02)\n----------------------------------------\n* #### Oct 01\n\n[chthonic](/word-of-the-day/chthonic-2024-10-01)\n------------------------------------------------\n* #### Sep 30\n\n[tribulation](/word-of-the-day/tribulation-2024-09-30)\n------------------------------------------------------\n* #### Sep 29\n\n[feckless](/word-of-the-day/feckless-2024-09-29)\n------------------------------------------------\n\n[SEE ALL WORDS OF THE DAY](/word-of-the-day/calendar)\n\n[![Play Quordle: Guess all four words in a limited number of tries.  Each of your guesses must be a real 5-letter word.](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)\n\n### Can you solve 4 words at once?\n\nPlay\nPlay\n\n### Can you solve 4 words at once?\n\nPlay\nPlay](https://www.merriam-webster.com/games/quordle/)\n\nLove words? Need even more definitions?\nSubscribe to America's largest dictionary and get thousands more definitions and advanced search—ad free!\n\n[Merriam\\-Webster unabridged](https://unabridged.merriam-webster.com/subscriber/register/p1?refc=INLINE_WOD_MWU)\n\nGames \\& Quizzes\n----------------\n\n[See All](/games)\n\n[![Play Quordle: Guess all four words in a limited number of tries.  Each of your guesses must be a real 5-letter word.](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)\n\nQuordle\nCan you solve 4 words at once?\n\nPlay](https://www.merriam-webster.com/games/quordle/)\n\n[![Play Blossom: Solve today's spelling word game by finding as many words as you can using just 7 letters. Longer words score more points.](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)\n\nBlossom Word Game\nPick the best words!\n\nPlay](/games/blossom-word-game)\n\n[![Play Missing Letter: a crossword with a twist. Each of the 25 puzzle words start with a different letter of the alphabet. Which letter is missing?](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)\n\nMissing Letter\nA daily crossword with a twist\n\nPlay](/games/missing-letter)\n\n[![spelunker-silhouette ](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)\n\nPeople of Interest Quiz\nCan you tell the \"sommeliers\" from the \"spelunkers\"?\n\nTake the quiz](/games/people-interest-quiz)\n\n[Merriam Webster](/)\n\nLearn a new word every day. Delivered to your inbox!\n\n* [Help](/help)\n* [About Us](/about-us)\n* [Advertising Info](/advertising)\n* [Contact Us](/contact-us)\n* [Diversity](https://corporate.britannica.com/diversity)\n* [Privacy Policy](/privacy-policy)\n* [Terms of Use](/terms-of-use)\n\n* [Facebook](https://www.facebook.com/merriamwebster)\n* [Twitter](https://twitter.com/merriamwebster)\n* [YouTube](https://www.youtube.com/user/MerriamWebsterOnline)\n* [Instagram](https://www.instagram.com/merriamwebster/)\n\n© 2024 Merriam\\-Webster, Incorporated",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "776226f9-57a3-49f9-9fc1-9274ffe5561d",
+                "prompt_id": "826c1ea1-538c-403e-a5a8-6994593dcf26",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "writer quoted for the Word of the Day on June 27, 2022",
+            "fact_found": true,
+            "quote_with_fact": "\"War is bad for culture. Not least of all because it turns our cultural institutions into bastions of *jingoism*.\" — Annie Levin, *The New York Observer*, 7 Mar. 2022",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "c78c8df4-b7ca-4ad9-b0dc-ec47852b0b41",
+                "prompt_id": "826c1ea1-538c-403e-a5a8-6994593dcf26",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "54ce6a5a-a931-484f-b534-4a6df15cebd1",
+                "prompt_id": "d59a72a5-dd64-43e5-9e93-9c8959805228",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the writer quoted for the Word of the Day on June 27, 2022.",
+            "answer_unit": "",
+            "answer": "Annie Levin"
+        }
+    ]
+}

@@ -8,14 +8,12 @@ split: validation
 n_attempts: 1
 batch: 32
 agent:
-  planning_mode: simple
-  subtasks: false
+  plain_code: false
 
 env:
-  safe_calculator: false
+  image_observations: true
   use_web_cache: true
-  only_cached_webpages: false
 
 hydra:
   run:
-    dir: outputs/gaia/runs/${exp_name}
+    dir: ${exp_path}

@@ -11,9 +11,8 @@ agent:
   subtasks: false
 
 env:
-  safe_calculator: false
+  image_observations: false
   use_web_cache: true
-  only_cached_webpages: false
 
 hydra:
   run:

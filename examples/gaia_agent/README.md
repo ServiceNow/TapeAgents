@@ -19,10 +19,12 @@ Additionally, the Gaia agent implements the initial planning step, which produce
 
 ## Quickstart
 Perform all the following steps from the top folder of the repo.
-First, you need to install the dependencies for file converters and make folders:
+First, you need to install the dependencies for file converters:
 ```bash
-pip install -r requirements.converters.txt
+pip install -r ../../../requirements.converters.txt
 ```
+If you want to use conversion of PDF files to images to preserve tables and complex formatting, please install prerequisites of the pdf2image library as described [in their documentation](https://pypi.org/project/pdf2image/).
+
 Then you can run the agent using the following commands:
 - `python -m examples.gaia_agent.scripts.studio` - Interactive GUI that allows you to set the task for the agent and observe how it solves it step by step.
 - `python -m examples.gaia_agent.scripts.evaluate` - script to run evaluation on the GAIA validation set.

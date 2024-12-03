@@ -316,13 +316,13 @@ class CodeResult(BaseModel):
 
     exit_code: int = Field(description="The exit code of the code execution.")
     output: str = Field(description="The output of the code execution.")
-    output_files: list[str] = Field(default=None, description="The output files of the code execution.")
+    output_files: list[str] | None = Field(default=None, description="The output files of the code execution.")
 
 
 class CommandLineCodeResult(CodeResult):
     """(Experimental) A code result class for command line code executor."""
 
-    code_files: list[str] = Field(
+    code_files: list[str] | None = Field(
         default=None,
         description="The file that the executed code block was saved to.",
     )

@@ -114,6 +114,10 @@ class ExecuteCode(Action):
     kind: Literal["execute_code"] = "execute_code"
     code: list[CodeBlock]
 
+    def llm_view(self, indent: int | None = 2) -> str | list[dict]:
+        blocks = [f"```{block.language}\n{block.code}\n```" for block in self.code]
+        return "\n\n".join(blocks)
+
 
 class CodeExecutionResult(Observation):
     kind: Literal["code_execution_result"] = "code_execution_result"
