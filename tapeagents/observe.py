@@ -92,7 +92,7 @@ def sqlite_writer(call):
                     call.prompt_length_tokens,
                     call.output_length_tokens,
                     call.cached,
-                    call.logprobs.model_dump_json() if call.output._logprobs.model_dump_json() is not None else None,
+                    call.logprobs.model_dump_json() if call.logprobs else None,
                 ),
             )
             cursor.close()
@@ -183,7 +183,7 @@ def observe_tape(tape: Tape):
 
 
 def retrieve_tape_llm_calls(tapes: Tape | list[Tape]) -> dict[str, LLMCall]:
-    logger.info(f"Retrieving LLM calls")
+    logger.info("Retrieving LLM calls")
     if isinstance(tapes, Tape):
         tapes = [tapes]
     result = {}
