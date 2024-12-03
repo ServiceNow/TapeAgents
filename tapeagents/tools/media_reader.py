@@ -2,6 +2,8 @@ import logging
 import math
 import os
 import re
+import threading
+import time
 from typing import Optional
 
 import ffmpeg
@@ -11,8 +13,11 @@ import yt_dlp
 from whisper.utils import get_writer
 
 from tapeagents.steps import VideoObservation
+from tapeagents.utils import acquire_timeout
 
 logger = logging.getLogger(__name__)
+
+video_lock = threading.Lock()
 
 
 def get_video_observation(
@@ -47,7 +52,10 @@ def get_video_observation(
 
 def download_video(url: str, output_dir: str) -> str:
     if "youtube" in url:
-        return download_video_youtube(url, output_dir)
+        with acquire_timeout(video_lock, 5):
+            video = download_video_youtube(url, output_dir)
+            time.sleep(2)
+            return video
     else:
         raise NotImplementedError("Only youtube videos are supported at the moment")
 

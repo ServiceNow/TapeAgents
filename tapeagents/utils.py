@@ -6,6 +6,7 @@ import base64
 import difflib
 import json
 import os
+from contextlib import contextmanager
 from typing import Any
 
 import jsonref
@@ -112,3 +113,13 @@ def image_base64_message(image_path: str) -> dict:
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+
+
+@contextmanager
+def acquire_timeout(lock, timeout):
+    result = lock.acquire(timeout=timeout)
+    try:
+        yield result
+    finally:
+        if result:
+            lock.release()
