@@ -24,7 +24,6 @@ from examples.rl_gsm8k.cot_math_agent import (
     CoTMathAgent,
     MathEnvironment,
     RLMathTape,
-    ReasoningThoughtwithValue,
     Task,
 )
 from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
@@ -57,7 +56,7 @@ def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) 
         raise e
 
 
-def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[MathTape]:
+def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTape]:
     """
     Creates RLMathTape objects from a list of math problem dictionaries.
 
@@ -80,14 +79,14 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[MathTape]
                 }
             ),
         )
-        tape = MathTape(steps=[start_step], context=None)
+        tape = RLMathTape(steps=[start_step], context=None)
         tapes.append(tape)
     return tapes
 
 
 def extract_tape_training_samples(
-    new_tape: MathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list[LLMCall]
-) -> Tuple[MathTape, List[TrainingText], Dict[str, int]]:
+    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list[LLMCall]
+) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
 
@@ -191,7 +190,7 @@ def generate_training_data(
     env: MathEnvironment,
     tapes_dir: Path,
     split_name: str,
-) -> Tuple[List[MathTape], List[TrainingText], Dict[str, float]]:
+) -> Tuple[List[RLMathTape], List[TrainingText], Dict[str, float]]:
     """
     Generate complete tapes and training samples from a list of initialized tapes.
 
