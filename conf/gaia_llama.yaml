@@ -5,7 +5,7 @@ defaults:
 exp_name: llama3_405b_1
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-n_attempts: 1
+
 agent:
   planning_mode: simple
   subtasks: false

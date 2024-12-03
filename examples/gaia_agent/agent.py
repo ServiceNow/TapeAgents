@@ -119,11 +119,7 @@ class GaiaAgent(Agent):
     def create(cls, llm: LLM, plain_code: bool = False, **kwargs):
         nodes = [
             GaiaNode(name="plan", guidance=PromptRegistry.plan, allowed_steps=plan_steps),
-            GaiaNode(
-                name="facts_survey",
-                guidance=PromptRegistry.facts_survey,
-                allowed_steps=plan_steps,
-            ),
+            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, allowed_steps=plan_steps),
             GaiaNode(
                 name="start_execution",
                 guidance=PromptRegistry.start_execution,

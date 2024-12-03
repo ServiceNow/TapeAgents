@@ -2,11 +2,11 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_val_batch32_6
+exp_name: gpt4o_mini_val_video2
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-n_attempts: 1
 batch: 32
+
 agent:
   plain_code: false
 
