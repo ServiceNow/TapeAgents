@@ -177,5 +177,6 @@ cython_debug/
 /wandb/
 config_tree
 outputs/
+data/
 package-lock.json
 package.json

@@ -1,4 +1,4 @@
-.PHONY: setup env install lint test test-slow test-all clean update-intro update-clean-intro clear-clean-intro
+.PHONY: setup env install lint test test-slow test-all clean update-intro update-clean-intro clear-clean-intro build
 
 ENV_NAME=tapeagents
 PYTHON_VERSION=3.10
@@ -44,3 +44,8 @@ update-clean-intro:
 
 clear-clean-intro:
 	@$(CONDA) run --no-capture-output --name ${ENV_NAME} jupyter nbconvert --inplace examples/intro_clean.ipynb --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
+
+build:
+	@mkdir -p dist
+	@rm dist/*
+	@python3 -m build --outdir dist/
