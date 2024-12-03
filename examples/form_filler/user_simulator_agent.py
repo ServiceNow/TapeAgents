@@ -259,4 +259,4 @@ class UserSimulatorMainNode(Node):
             content=user_utterance,
             metadata=StepMetadata(other={'alias': agent.behavior_alias}),
         )
-        yield MakeObservation(new_observation=step)
+        yield MakeObservation[UserStep](new_observation=step)
