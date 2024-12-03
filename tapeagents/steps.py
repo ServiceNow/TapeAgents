@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 class WatchVideoAction(Action):
     """
-    Action that loads the video from the provided URL and returns the subtitle and its contact sheet from start_time to end_time.
+    Action that loads the video from the provided url and returns the video content.
     """
 
     kind: Literal["watch_video_action"] = "watch_video_action"
-    video_url: str = Field(description="url of the video to watch")
+    video_url: str = Field(description="url of the video")
     start_time: str = Field(
         description="time of the video to start watching from, if applicable, otherwise empty str. Format is HH:MM:SS.mmm",
         default="",

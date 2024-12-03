@@ -190,7 +190,7 @@ class NextPageAction(GaiaAction):
 
 class ReadDocumentAction(GaiaAction):
     """
-    Action that loads the document, file, image, video or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
+    Action that loads the document, file, image or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
     """
 
     kind: Literal["read_document_action"] = "read_document_action"
