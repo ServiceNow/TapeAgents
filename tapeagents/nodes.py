@@ -92,10 +92,10 @@ class MonoNode(Node):
             5. Reconstructs messages if trimming occurred
         """
         clean_tape = self.prepare_tape(tape)
-        messages = self.tape_to_messages(clean_tape)
+        messages = self.tape_to_messages(clean_tape, agent.full_name)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
             clean_tape = self.trim_tape(clean_tape)
-            messages = self.tape_to_messages(clean_tape)
+            messages = self.tape_to_messages(clean_tape, agent.full_name)
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
@@ -110,7 +110,7 @@ class MonoNode(Node):
         """Override this method if you want to make prompt messages from different steps."""
         return TapeViewStack.compute(tape).top.steps
 
-    def tape_to_messages(self, tape: Tape) -> list[dict]:
+    def tape_to_messages(self, tape: Tape, agent_name: str) -> list[dict]:
         """
         Converts a Tape object and steps description into a list of messages for LLM conversation.
 
@@ -137,7 +137,7 @@ class MonoNode(Node):
                 step_role = step.kind
                 step_content = step.content
             else:
-                agent_own_step = isinstance(step, AgentStep) and step.metadata.agent == agent.full_name
+                agent_own_step = isinstance(step, AgentStep) and step.metadata.agent == agent_name
                 step_role = "assistant" if agent_own_step else "user"
                 step_content = step.llm_view()
             messages.append({"role": step_role, "content": step_content})
