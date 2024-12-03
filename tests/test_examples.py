@@ -268,3 +268,4 @@ if __name__ == "__main__":
     test_tape_improver()
     test_gsm8k_tuning_tapes_generation()
     test_gsm8k_tuning_samples_prep()
+    test_rl_for_math_data()
