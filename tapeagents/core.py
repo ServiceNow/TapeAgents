@@ -81,7 +81,7 @@ class Step(BaseModel):
         """Dumps the step data as dictionary, excluding the metadata."""
         return self.model_dump(exclude_none=True, exclude={"metadata"})
 
-    def llm_view(self, indent: int | None = 2) -> str:
+    def llm_view(self, indent: int | None = 2) -> str | list[dict]:
         """Returns a JSON string representation of the step data, excluding the metadata."""
         return json.dumps(self.llm_dict(), indent=indent, ensure_ascii=False)
 

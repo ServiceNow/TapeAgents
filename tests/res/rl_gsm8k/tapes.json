@@ -1,0 +1,330 @@
+[
+    {
+        "metadata": {
+            "id": "6e291f4a-f238-454c-bb03-e6f33bb44be1",
+            "parent_id": "9ea7706c-b6dd-452c-94e4-df409234c68d",
+            "author": "CoTMathAgent",
+            "author_tape_id": null,
+            "n_added_steps": 1,
+            "error": null,
+            "result": {}
+        },
+        "context": null,
+        "steps": [
+            {
+                "metadata": {
+                    "id": "66d4cd42-5341-4989-94ce-9dc70c5f9040",
+                    "prompt_id": "",
+                    "node": "",
+                    "agent": "",
+                    "other": {
+                        "question": "For every 12 cans you recycle, you receive $0.50, and for every 5 kilograms of newspapers, you receive $1.50. If your family collected 144 cans and 20 kilograms of newspapers, how much money would you receive?",
+                        "answer": "There are 144/12 = <<144/12=12>>12 sets of 12 cans that the family collected.\nSo, the family would receive $0.50 x 12 = $<<0.50*12=6>>6 for the cans.\nThere are 20/5 = <<20/5=4>>4 sets of 5 kilograms of newspapers that the family collected.\nSo, the family would receive $1.50 x 4 = $<<1.50*4=6>>6 for the newspapers.\nTherefore, the family would receive a total of $6 + $6 = $<<6+6=12>>12.\n#### 12",
+                        "value": 12
+                    }
+                },
+                "kind": "task",
+                "task": "For every 12 cans you recycle, you receive $0.50, and for every 5 kilograms of newspapers, you receive $1.50. If your family collected 144 cans and 20 kilograms of newspapers, how much money would you receive?"
+            },
+            {
+                "metadata": {
+                    "id": "68e23b9f-b079-4c15-b004-d83b9870ca0f",
+                    "prompt_id": "636459c5-8750-48c1-a99b-23087f111619",
+                    "node": "cot",
+                    "agent": "CoTMathAgent",
+                    "other": {}
+                },
+                "kind": "reasoning_thought_with_value",
+                "reasoning": "To find out how much money you would receive, we need to calculate the earnings from recycling cans and newspapers separately and then add them together.\n\n1. Calculate the earnings from recycling cans:\n   You received $0.50 for every 12 cans. To find out how many sets of 12 cans you have, divide the total number of cans by 12.\n   144 cans / 12 cans per set = 12 sets\n   Since you receive $0.50 for every 12 cans, multiply the number of sets by $0.50.\n   12 sets * $0.50/set = $6\n\n2. Calculate the earnings from recycling newspapers:\n   You received $1.50 for every 5 kilograms of newspapers. To find out how many sets of 5 kilograms you have, divide the total number of kilograms by 5.\n   20 kilograms / 5 kilograms per set = 4 sets\n   Since you receive $1.50 for every 5 kilograms, multiply the number of sets by $1.50.\n   4 sets * $1.50/set = $6\n\n3. Add the earnings from recycling cans and newspapers together:\n   $6 (from cans) + $6 (from newspapers) = $12\n\nThe answer is: $12",
+                "value": 12.0
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "id": "e9b10584-07fb-4b9e-97ee-e85de9bc0e40",
+            "parent_id": "9ea7706c-b6dd-452c-94e4-df409234c68d",
+            "author": "CoTMathAgent",
+            "author_tape_id": null,
+            "n_added_steps": 1,
+            "error": null,
+            "result": {}
+        },
+        "context": null,
+        "steps": [
+            {
+                "metadata": {
+                    "id": "66d4cd42-5341-4989-94ce-9dc70c5f9040",
+                    "prompt_id": "",
+                    "node": "",
+                    "agent": "",
+                    "other": {
+                        "question": "For every 12 cans you recycle, you receive $0.50, and for every 5 kilograms of newspapers, you receive $1.50. If your family collected 144 cans and 20 kilograms of newspapers, how much money would you receive?",
+                        "answer": "There are 144/12 = <<144/12=12>>12 sets of 12 cans that the family collected.\nSo, the family would receive $0.50 x 12 = $<<0.50*12=6>>6 for the cans.\nThere are 20/5 = <<20/5=4>>4 sets of 5 kilograms of newspapers that the family collected.\nSo, the family would receive $1.50 x 4 = $<<1.50*4=6>>6 for the newspapers.\nTherefore, the family would receive a total of $6 + $6 = $<<6+6=12>>12.\n#### 12",
+                        "value": 12
+                    }
+                },
+                "kind": "task",
+                "task": "For every 12 cans you recycle, you receive $0.50, and for every 5 kilograms of newspapers, you receive $1.50. If your family collected 144 cans and 20 kilograms of newspapers, how much money would you receive?"
+            },
+            {
+                "metadata": {
+                    "id": "454065df-f1d9-44d3-96b3-cce5fdbce545",
+                    "prompt_id": "28d8d290-7e3a-408d-8e8d-d4bf09915cc0",
+                    "node": "cot",
+                    "agent": "CoTMathAgent",
+                    "other": {}
+                },
+                "kind": "reasoning_thought_with_value",
+                "reasoning": "To find out how much money you would receive, let's break it down step by step.\n\nFirst, let's calculate the money received from recycling cans:\n\nYou have 144 cans, and for every 12 cans, you receive $0.50. \n\nTo find out how many sets of 12 cans you have, divide 144 by 12:\n\n144 \u00f7 12 = 12\n\nSo, you have 12 sets of 12 cans. \n\nMultiply the number of sets by the reward per set:\n\n12 sets * $0.50 per set = $6\n\nNow, let's calculate the money received from recycling newspapers:\n\nYou have 20 kilograms of newspapers, and for every 5 kilograms, you receive $1.50. \n\nTo find out how many sets of 5 kilograms you have, divide 20 by 5:\n\n20 \u00f7 5 = 4\n\nSo, you have 4 sets of 5 kilograms. \n\nMultiply the number of sets by the reward per set:\n\n4 sets * $1.50 per set = $6\n\nNow, add the money received from recycling cans and newspapers:\n\n$6 (cans) + $6 (newspapers) = $12\n\nThe answer is: $12",
+                "value": 12.0
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "id": "edaf6f01-89e7-4496-a232-0fbfc36c8e6d",
+            "parent_id": "d82da99d-aafc-4dab-89d1-4286eb06a166",
+            "author": "CoTMathAgent",
+            "author_tape_id": null,
+            "n_added_steps": 1,
+            "error": null,
+            "result": {}
+        },
+        "context": null,
+        "steps": [
+            {
+                "metadata": {
+                    "id": "2fc52204-4622-41c5-b163-bdb123e07831",
+                    "prompt_id": "",
+                    "node": "",
+                    "agent": "",
+                    "other": {
+                        "question": "Betty picked 16 strawberries. Matthew picked 20 more strawberries than Betty and twice as many as Natalie. They used their strawberries to make jam. One jar of jam used 7 strawberries and they sold each jar at $4. How much money were they able to make from the strawberries they picked?",
+                        "answer": "Matthew picked 16 + 20 = <<16+20=36>>36 strawberries.\nNatalie picked 36/2 = <<36/2=18>>18 strawberries.\nAll together, they have 16 + 36 + 18 = <<16+36+18=70>>70 strawberries.\nThey can make 70/7 = <<70/7=10>>10 jars of strawberries.\nThey earn 10 x $4 = $<<10*4=40>>40 from the strawberries they picked.\n#### 40",
+                        "value": 40
+                    }
+                },
+                "kind": "task",
+                "task": "Betty picked 16 strawberries. Matthew picked 20 more strawberries than Betty and twice as many as Natalie. They used their strawberries to make jam. One jar of jam used 7 strawberries and they sold each jar at $4. How much money were they able to make from the strawberries they picked?"
+            },
+            {
+                "metadata": {
+                    "id": "239db47b-f126-45cf-b0d4-63f6b1db030c",
+                    "prompt_id": "7cc9dee6-8f49-4567-aafc-fe6a54fed906",
+                    "node": "cot",
+                    "agent": "CoTMathAgent",
+                    "other": {}
+                },
+                "kind": "reasoning_thought_with_value",
+                "reasoning": "To find out how much money they made from the strawberries, we need to follow these steps:\n\n1. Find out how many strawberries Matthew picked: Matthew picked 20 more strawberries than Betty, and Betty picked 16 strawberries. So, Matthew picked 16 + 20 = 36 strawberries.\n\n2. Find out how many strawberries Natalie picked: Matthew picked twice as many strawberries as Natalie. So, Natalie picked 36 / 2 = 18 strawberries.\n\n3. Calculate the total number of strawberries they picked: Betty picked 16 strawberries, Matthew picked 36, and Natalie picked 18. So, in total they picked 16 + 36 + 18 = 70 strawberries.\n\n4. Determine how many jars of jam they made: Each jar of jam uses 7 strawberries. They picked 70 strawberries in total. So, they can make 70 / 7 = 10 jars of jam.\n\n5. Calculate how much money they made from the jam: They sold each jar of jam for $4. They made 10 jars of jam. So, they made 10 * 4 = $40 from the jam.\n\nThe answer is: $40",
+                "value": 40.0
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "id": "bb75247a-15a1-4925-a954-841ae93fbbe9",
+            "parent_id": "d82da99d-aafc-4dab-89d1-4286eb06a166",
+            "author": "CoTMathAgent",
+            "author_tape_id": null,
+            "n_added_steps": 1,
+            "error": null,
+            "result": {}
+        },
+        "context": null,
+        "steps": [
+            {
+                "metadata": {
+                    "id": "2fc52204-4622-41c5-b163-bdb123e07831",
+                    "prompt_id": "",
+                    "node": "",
+                    "agent": "",
+                    "other": {
+                        "question": "Betty picked 16 strawberries. Matthew picked 20 more strawberries than Betty and twice as many as Natalie. They used their strawberries to make jam. One jar of jam used 7 strawberries and they sold each jar at $4. How much money were they able to make from the strawberries they picked?",
+                        "answer": "Matthew picked 16 + 20 = <<16+20=36>>36 strawberries.\nNatalie picked 36/2 = <<36/2=18>>18 strawberries.\nAll together, they have 16 + 36 + 18 = <<16+36+18=70>>70 strawberries.\nThey can make 70/7 = <<70/7=10>>10 jars of strawberries.\nThey earn 10 x $4 = $<<10*4=40>>40 from the strawberries they picked.\n#### 40",
+                        "value": 40
+                    }
+                },
+                "kind": "task",
+                "task": "Betty picked 16 strawberries. Matthew picked 20 more strawberries than Betty and twice as many as Natalie. They used their strawberries to make jam. One jar of jam used 7 strawberries and they sold each jar at $4. How much money were they able to make from the strawberries they picked?"
+            },
+            {
+                "metadata": {
+                    "id": "133281ab-7683-4e5f-9384-584c27c9bafd",
+                    "prompt_id": "ac6d0283-a530-4948-a547-97f8aff66044",
+                    "node": "cot",
+                    "agent": "CoTMathAgent",
+                    "other": {}
+                },
+                "kind": "reasoning_thought_with_value",
+                "reasoning": "To find out how much money they were able to make, let's break down the problem into steps:\n\n1. Betty picked 16 strawberries.\n2. Matthew picked 20 more strawberries than Betty, so Matthew picked 16 + 20 = 36 strawberries.\n3. Matthew picked twice as many strawberries as Natalie. To find out how many strawberries Natalie picked, we divide Matthew's amount by 2. So, Natalie picked 36 / 2 = 18 strawberries.\n4. The total number of strawberries they picked is 16 (Betty) + 36 (Matthew) + 18 (Natalie) = 70 strawberries.\n5. One jar of jam uses 7 strawberries. To find out how many jars of jam they can make, we divide the total number of strawberries by 7. So, 70 / 7 = 10 jars.\n6. Each jar is sold at $4. To find out how much money they made, we multiply the number of jars by the price per jar. So, 10 jars * $4/jar = $40.\n\nThe answer is: $40",
+                "value": 40.0
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "id": "f66e6694-bc1a-433d-b636-fae2a1e70f0d",
+            "parent_id": "e83978b3-3f7c-4aec-9e94-94d7756507af",
+            "author": "CoTMathAgent",
+            "author_tape_id": null,
+            "n_added_steps": 1,
+            "error": null,
+            "result": {}
+        },
+        "context": null,
+        "steps": [
+            {
+                "metadata": {
+                    "id": "a59c99c0-b6ef-40ae-8bb1-0b69bd3f0d5b",
+                    "prompt_id": "",
+                    "node": "",
+                    "agent": "",
+                    "other": {
+                        "question": "Jack has a stack of books that is 12 inches thick. He knows from experience that 80 pages is one inch thick. If he has 6 books, how many pages is each one on average?",
+                        "answer": "There are 960 pages because 80 x 12 = <<80*12=960>>960\nEach book is 160 pages because 960 / 6 = <<960/6=160>>160\n#### 160",
+                        "value": 160
+                    }
+                },
+                "kind": "task",
+                "task": "Jack has a stack of books that is 12 inches thick. He knows from experience that 80 pages is one inch thick. If he has 6 books, how many pages is each one on average?"
+            },
+            {
+                "metadata": {
+                    "id": "7c3bb1eb-1a57-4a00-8efe-4ce8b0c324ca",
+                    "prompt_id": "657dcdeb-96cb-4a23-8693-3238fb806799",
+                    "node": "cot",
+                    "agent": "CoTMathAgent",
+                    "other": {}
+                },
+                "kind": "reasoning_thought_with_value",
+                "reasoning": "To find the average number of pages in each book, we need to follow these steps:\n\n1. First, we need to find the total number of pages in the stack of books. \nSince 80 pages is one inch thick and the stack is 12 inches thick, the total number of pages is:\n80 pages/inch * 12 inches = 960 pages\n\n2. Next, we need to find the average number of pages in each book.\nSince Jack has 6 books, we divide the total number of pages by the number of books:\n960 pages / 6 books = 160 pages/book\n\nTherefore, the average number of pages in each book is 160.\n\nThe answer is: 160",
+                "value": 160.0
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "id": "ebce0887-de3d-4afa-bf21-e696178680bd",
+            "parent_id": "e83978b3-3f7c-4aec-9e94-94d7756507af",
+            "author": "CoTMathAgent",
+            "author_tape_id": null,
+            "n_added_steps": 1,
+            "error": null,
+            "result": {}
+        },
+        "context": null,
+        "steps": [
+            {
+                "metadata": {
+                    "id": "a59c99c0-b6ef-40ae-8bb1-0b69bd3f0d5b",
+                    "prompt_id": "",
+                    "node": "",
+                    "agent": "",
+                    "other": {
+                        "question": "Jack has a stack of books that is 12 inches thick. He knows from experience that 80 pages is one inch thick. If he has 6 books, how many pages is each one on average?",
+                        "answer": "There are 960 pages because 80 x 12 = <<80*12=960>>960\nEach book is 160 pages because 960 / 6 = <<960/6=160>>160\n#### 160",
+                        "value": 160
+                    }
+                },
+                "kind": "task",
+                "task": "Jack has a stack of books that is 12 inches thick. He knows from experience that 80 pages is one inch thick. If he has 6 books, how many pages is each one on average?"
+            },
+            {
+                "metadata": {
+                    "id": "0c8bd4f1-1687-40f9-ad19-7ab7fb3acb23",
+                    "prompt_id": "962aaf32-b441-4629-89bd-c0c7afaf0c31",
+                    "node": "cot",
+                    "agent": "CoTMathAgent",
+                    "other": {}
+                },
+                "kind": "reasoning_thought_with_value",
+                "reasoning": "To find out the average number of pages in each book, we need to first find the total number of pages in the stack of 12 inches thick. \n\nSince 80 pages is one inch thick, we multiply 80 by 12 to get the total number of pages:\n\n80 pages/inch * 12 inches = 960 pages\n\nNow, we know Jack has 6 books. To find the average number of pages in each book, we divide the total number of pages by 6:\n\n960 pages / 6 books = 160 pages per book\n\nThe answer is: 160",
+                "value": 160.0
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "id": "10f33dbb-d04c-4cf9-b843-04fa4f638dc7",
+            "parent_id": "fd6059a5-321e-44f4-ad96-38b2288ca2cf",
+            "author": "CoTMathAgent",
+            "author_tape_id": null,
+            "n_added_steps": 1,
+            "error": null,
+            "result": {}
+        },
+        "context": null,
+        "steps": [
+            {
+                "metadata": {
+                    "id": "0b90a96b-74dc-4497-9259-f6be38c7557c",
+                    "prompt_id": "",
+                    "node": "",
+                    "agent": "",
+                    "other": {
+                        "question": "James dumps his whole collection of 500 Legos on the floor and starts building a castle out of them.  He uses half the pieces before finishing and is told to put the rest away.  He puts all of the leftover pieces back in the box they came from, except for 5 missing pieces that he can't find.  How many Legos are in the box at the end?",
+                        "answer": "James starts with 500 Legos and uses half of them, leaving 500/2=<<500/2=250>>250 Legos unused.\nHe puts those unused Legos away but since he's missing 5 he only puts 250-5=<<250-5=245>>245 Legos away.\n#### 245",
+                        "value": 245
+                    }
+                },
+                "kind": "task",
+                "task": "James dumps his whole collection of 500 Legos on the floor and starts building a castle out of them.  He uses half the pieces before finishing and is told to put the rest away.  He puts all of the leftover pieces back in the box they came from, except for 5 missing pieces that he can't find.  How many Legos are in the box at the end?"
+            },
+            {
+                "metadata": {
+                    "id": "8f238d30-a533-4e82-8b79-dbd6e6e5fb31",
+                    "prompt_id": "6e9282a8-da70-4205-b8c1-37add418fd64",
+                    "node": "cot",
+                    "agent": "CoTMathAgent",
+                    "other": {}
+                },
+                "kind": "reasoning_thought_with_value",
+                "reasoning": "To find the number of Legos in the box at the end, let's break down the information step by step.\n\n1. James starts with 500 Legos.\n2. He uses half the pieces before finishing the castle. So, he used 500 / 2 = 250 Legos.\n3. This means he has 500 - 250 = 250 Legos left.\n4. He puts all of the leftover pieces back in the box, except for 5 missing pieces. So, he puts 250 - 5 = 245 Legos back in the box.\n\nThe answer is: 245",
+                "value": 245.0
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "id": "2bfb72f3-84d2-4889-8510-eb27ba367057",
+            "parent_id": "fd6059a5-321e-44f4-ad96-38b2288ca2cf",
+            "author": "CoTMathAgent",
+            "author_tape_id": null,
+            "n_added_steps": 1,
+            "error": null,
+            "result": {}
+        },
+        "context": null,
+        "steps": [
+            {
+                "metadata": {
+                    "id": "0b90a96b-74dc-4497-9259-f6be38c7557c",
+                    "prompt_id": "",
+                    "node": "",
+                    "agent": "",
+                    "other": {
+                        "question": "James dumps his whole collection of 500 Legos on the floor and starts building a castle out of them.  He uses half the pieces before finishing and is told to put the rest away.  He puts all of the leftover pieces back in the box they came from, except for 5 missing pieces that he can't find.  How many Legos are in the box at the end?",
+                        "answer": "James starts with 500 Legos and uses half of them, leaving 500/2=<<500/2=250>>250 Legos unused.\nHe puts those unused Legos away but since he's missing 5 he only puts 250-5=<<250-5=245>>245 Legos away.\n#### 245",
+                        "value": 245
+                    }
+                },
+                "kind": "task",
+                "task": "James dumps his whole collection of 500 Legos on the floor and starts building a castle out of them.  He uses half the pieces before finishing and is told to put the rest away.  He puts all of the leftover pieces back in the box they came from, except for 5 missing pieces that he can't find.  How many Legos are in the box at the end?"
+            },
+            {
+                "metadata": {
+                    "id": "c8c51a07-9904-4018-b49c-4c97cdeb6d74",
+                    "prompt_id": "593b40c1-fe9b-4816-9ff3-1ad80783ff27",
+                    "node": "cot",
+                    "agent": "CoTMathAgent",
+                    "other": {}
+                },
+                "kind": "reasoning_thought_with_value",
+                "reasoning": "To find the number of Legos in the box at the end, let's break down the steps:\n\n1. James starts with 500 Legos.\n2. He uses half of them for the castle, so he uses 500 / 2 = 250 Legos.\n3. The remaining Legos are 500 - 250 = 250 Legos.\n4. James puts all of the leftover pieces back in the box, except for 5 that he can't find.\n5. So, he puts 250 - 5 = 245 Legos back in the box.\n\nThe answer is: 245",
+                "value": 245.0
+            }
+        ]
+    }
+]

@@ -456,6 +456,7 @@ class TrainableLLM(CachedLLM):
 
     base_url: str
     api_token: str = Field(default="", exclude=True)
+    collect_logprobs: bool = False
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -471,6 +472,14 @@ class TrainableLLM(CachedLLM):
             "messages": prompt.messages,
             "stream": self.stream,
         }
+        if self.collect_logprobs:
+            data.update(
+                {
+                    "logprobs": 1,
+                    "include_stop_str_in_output": True,
+                    "skip_special_tokens": False,
+                }
+            )
         r = requests.post(
             url=f"{self.base_url}/v1/chat/completions",
             json=data | self.parameters,
@@ -503,7 +512,16 @@ class TrainableLLM(CachedLLM):
                 content = data["choices"][0]["message"]["content"]
                 if not content:
                     logger.warning(f"Empty completion {data}")
-                output = LLMOutput(content=content)
+
+                if self.tokenizer.eos_token and content.endswith(self.tokenizer.eos_token):
+                    content = content[: -len(self.tokenizer.eos_token)]
+
+                if self.collect_logprobs:
+                    # Note: vLLM tokens do not always match the HF tokenizer tokens
+                    logprobs_content = data["choices"][0]["logprobs"]["content"]
+                    output = LLMOutput(content=content, logprobs={"content": logprobs_content})
+                else:
+                    output = LLMOutput(content=content)
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
@@ -837,11 +855,17 @@ class ReplayLLM(LLM):
                 )
                 known_prompts = list(self.outputs.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
-                if score >= 0.7:
-                    logger.warning(f"Closest prompt score {score:.3f}")
-                    for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
-                        logger.warning(f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n")
-                raise FatalError("prompt not found")
+                if score >= 0.9:
+                    logger.info(f"Using closest prompt with score {score:.3f}")
+                    output = self.outputs[closest]
+                else:
+                    if score >= 0.7:
+                        logger.warning(f"Closest prompt score {score:.3f}")
+                        for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
+                            logger.warning(
+                                f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n"
+                            )
+                    raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 
         return LLMStream(_implementation(), prompt=prompt)

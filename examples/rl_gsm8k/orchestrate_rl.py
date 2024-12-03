@@ -23,7 +23,8 @@ import wandb
 from examples.rl_gsm8k.cot_math_agent import (
     CoTMathAgent,
     MathEnvironment,
-    MathTape,
+    RLMathTape,
+    ReasoningThoughtwithValue,
     Task,
 )
 from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
@@ -58,19 +59,18 @@ def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) 
 
 def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[MathTape]:
     """
-    Creates MathTape objects from a list of math problem dictionaries.
+    Creates RLMathTape objects from a list of math problem dictionaries.
 
     Args:
         problems (list[dict]): List of dictionaries containing math problems, where each dict
             has 'question' and expected answer value. The list is created from a dataset.
 
     Returns:
-        list[MathTape]: List of MathTape objects initialized with the math problems as Task steps.
+        list[RLMathTape]: List of RLMathTape objects initialized with the math problems as Task steps.
             Each tape contains a single starting Task step with the question and expected answer value
             stored in metadata.
     """
-    tapes: list[MathTape] = []
-
+    tapes: list[RLMathTape] = []
     for problem in problems:
         start_step = Task(
             task=problem["task"],
@@ -150,7 +150,15 @@ def extract_tape_training_samples(
         sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-            trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
+
+            trace.logprobs = []
+            if hasattr(llm_call.output, "logprobs"):
+                trace.logprobs = [c["logprob"] for c in llm_call.output.logprobs["content"]]
+
+            if len(trace.logprobs) != llm_call.output_length_tokens:
+                # the online vLLM tokenizer does not agree with the HF tokenizer
+                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
+
             trace.reward = reward
             trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
@@ -178,7 +186,7 @@ def extract_tape_training_samples(
 
 def generate_training_data(
     agent: CoTMathAgent,
-    tapes: list[MathTape],
+    tapes: list[RLMathTape],
     cfg: DictConfig,
     env: MathEnvironment,
     tapes_dir: Path,
@@ -197,7 +205,7 @@ def generate_training_data(
 
     Returns:
         Tuple containing:
-        - List of completed MathTapes
+        - List of completed RLMathTapes
         - List of training samples with rewards and logprobs
         - Dictionary of performance statistics and execution times
     """
@@ -331,6 +339,7 @@ def main(cfg: DictConfig):
             tokenizer_name=str(assistant_model_path),
             parameters=cfg.llm.parameters,
             use_cache=False,
+            collect_logprobs=True,
         )
 
         test_llm = TrainableLLM(

@@ -250,7 +250,7 @@ class ContainerExecutor:
                 output += "\n" + "Timeout"
             outputs.append(output)
             if file_output := _get_file_name_from_output(output, self._work_dir):
-                output_files.append(file_output)
+                output_files.extend(file_output)
 
             last_exit_code = exit_code
             if exit_code != 0:
@@ -316,13 +316,13 @@ class CodeResult(BaseModel):
 
     exit_code: int = Field(description="The exit code of the code execution.")
     output: str = Field(description="The output of the code execution.")
-    output_files: list[str] = Field(default=None, description="The output files of the code execution.")
+    output_files: list[str] | None = Field(default=None, description="The output files of the code execution.")
 
 
 class CommandLineCodeResult(CodeResult):
     """(Experimental) A code result class for command line code executor."""
 
-    code_files: list[str] = Field(
+    code_files: list[str] | None = Field(
         default=None,
         description="The file that the executed code block was saved to.",
     )
@@ -392,9 +392,8 @@ def _get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str
     return None
 
 
-def _get_file_name_from_output(output: str, workspace_path: Path) -> Optional[str]:
-    # TODO support more file types
-    pattern = r"\S+\.png|jpg|jpeg"
+def _get_file_name_from_output(output: str, workspace_path: Path) -> Optional[list[str]]:
+    pattern = r"\S+\.png|jpg|jpeg"  # TODO support more file types
     compiled_pattern = re.compile(pattern)
     matches = compiled_pattern.findall(output)
     filenames = []
@@ -403,7 +402,7 @@ def _get_file_name_from_output(output: str, workspace_path: Path) -> Optional[st
         if not path.is_absolute():
             path = workspace_path / path
         filenames.append(str(path))
-    return ", ".join(filenames) if len(filenames) > 0 else None
+    return filenames if len(filenames) > 0 else None
 
 
 def silence_pip(code: str, lang: str) -> str:

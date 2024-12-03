@@ -5,15 +5,15 @@ defaults:
 exp_name: llama3_405b_1
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-n_attempts: 1
+
 agent:
   planning_mode: simple
   subtasks: false
 
 env:
-  safe_calculator: false
+  attachment_dir: ${exp_path}/attachments/
+  image_observations: false
   use_web_cache: true
-  only_cached_webpages: false
 
 hydra:
   run:
