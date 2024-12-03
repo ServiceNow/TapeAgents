@@ -1,3 +1,7 @@
+"""
+Module contains the main loops of the agent-environment interaction and replay functions.
+"""
+
 import enum
 import logging
 from typing import Generator, Generic
@@ -5,10 +9,12 @@ from typing import Generator, Generic
 from pydantic import BaseModel, Field
 from termcolor import colored
 
+from tapeagents.config import is_debug_mode
+
 from .agent import Agent
 from .core import AgentEvent, Observation, Step, StopStep, TapeType
 from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
-from .rendering import step_view
+from .renderers import step_view
 from .utils import FatalError, diff_dicts
 
 logger = logging.getLogger(__name__)
@@ -89,6 +95,8 @@ def main_loop(
     """
 
     def _implementation():
+        if is_debug_mode():
+            logger.setLevel(logging.DEBUG)
         n_loops = 0
         tape = start_tape
         event = None
@@ -264,7 +272,7 @@ def replay_tapes(
                 raise FatalError("Tape mismatch")
             ok += 1
         except FatalError as f:
-            logger.error(colored(f"Fatal error: {f}, skip tape", "red"))
+            logger.error(colored(f"Fatal error: {f}, skip tape {tape.metadata.id}", "red"))
             fails += 1
             if pause_on_error:
                 input("Press Enter to continue...")

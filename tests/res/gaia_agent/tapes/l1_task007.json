@@ -1,0 +1,171 @@
+{
+    "metadata": {
+        "id": "256fea6a-5894-4f2c-96ad-7506294908d4",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "Georgette",
+        "task": {
+            "task_id": "cffe0e32-c9a6-4c52-9877-78ceb4aaa9fb",
+            "Question": "An office held a Secret Santa gift exchange where each of its twelve employees was assigned one other employee in the group to present with a gift. Each employee filled out a profile including three likes or hobbies. On the day of the gift exchange, only eleven gifts were given, each one specific to one of the recipient's interests. Based on the information in the document, who did not give a gift?",
+            "Level": 1,
+            "Final answer": "Fred",
+            "file_name": "data/gaia/2023/validation/cffe0e32-c9a6-4c52-9877-78ceb4aaa9fb.docx",
+            "Annotator Metadata": {
+                "Steps": "1. Open the document.\n2. Look at gifts and recipient interests.\n3. Match Galileo Galilei biography (could apply to astronomy or books -> Miguel or Micah)\n4. Match fishing reel (only applies to fishing -> Harry)\n5. Match Raku programming guide (Perl language, but could also apply to JavaScript enthusiast - > Fred or Jun)\n6. Match chisel set (could apply to camping or woodworking, but Harry is already fulfilled -> Jun, so Raku guide is for Fred)\n7. Match custom dice (could apply to board games or tabletop RPGs -> Lucy or Sara)\n8. Match “War and Peace” American film copy (could apply to old movies or Audrey Hepburn -> Perry or Alex)\n9. Match yarn (only applies to knitting -> Micah, so the Galileo biography is for Miguel)\n10. Match \"One Piece\" graphic novel (could apply to books or manga, but Micah already has yarn -> Alex, so the \"War and Peace\" film is for Perry)\n11. Match \"War and Peace\" novel (could apply to books or historical fiction novels, but Micah has yarn -> Tyson)\n12. Match Starbucks gift card (only applies to coffee -> Lucy, so the dice are for Sara)\n13. Match foam exercise mat (only applies to yoga -> Georgette)\n14. Note which recipients have gifts (Miguel, Harry, Fred, Jun, Sara, Perry, Micah, Alex, Tyson, Lucy, Georgette) and which does not (Rebecca).\n15. Find who was supposed to give Rebecca a gift (Fred).",
+                "Number of steps": "15",
+                "How long did this take?": "15 minutes",
+                "Tools": "1. Word document access",
+                "Number of tools": "1"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "c08eeb40-7503-45fd-8f97-8025aae8c6de",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "An office held a Secret Santa gift exchange where each of its twelve employees was assigned one other employee in the group to present with a gift. Each employee filled out a profile including three likes or hobbies. On the day of the gift exchange, only eleven gifts were given, each one specific to one of the recipient's interests. Based on the information in the document, who did not give a gift?\n\nDOCX document content:\nEmployees\n=========\n\n1. Harry\n2. Rebecca\n3. Georgette\n4. Micah\n5. Perry\n6. Tyson\n7. Lucy\n8. Jun\n9. Sara\n10. Miguel\n11. Fred\n12. Alex\n\nGift Assignments\n================\n\n| Giftee | Recipient |\n| --- | --- |\n| Harry | Miguel |\n| Rebecca | Micah |\n| Georgette | Lucy |\n| Micah | Jun |\n| Perry | Georgette |\n| Tyson | Fred |\n| Lucy | Alex |\n| Jun | Harry |\n| Sara | Perry |\n| Fred | Rebecca |\n| Miguel | Sara |\n| Alex | Tyson |\n\nProfiles\n========\n\nHarry: *Fishing, Camping, Wine*\n\nRebecca: *Cars, Dogs, Chocolate*\n\nGeorgette: *Yoga, Cooking, Green Energy*\n\nMicah: *Knitting, Rainy Weather, Books*\n\nPerry: *Old Movies, Rats, Journaling*\n\nTyson: *Historical Fiction Novels, Biking, Parakeets*\n\nLucy: *Coffee, Physics, Board Games*\n\nJun: *Woodworking, Barbecue, JavaScript*\n\nSara: *Tabletop RPGs, Spas, Music*\n\nMiguel: *Astronomy, Decorative Washi Tape, Ketchup*\n\nFred: *Chemistry, Perl, Cats*\n\nAlex: *Surfing, Audrey Hepburn, Manga*\n\nGifts:\n======\n\n* Galileo Galilei biography\n* Fishing reel\n* Raku programming guide\n* Chisel set\n* Custom dice\n* “War and Peace” American film copy\n* Yarn\n* “One Piece” graphic novel\n* “War and Peace” novel\n* Starbucks gift card\n* Foam exercise mat\n\n\nPath to the mentioned document: /tmp/cffe0e32-c9a6-4c52-9877-78ceb4aaa9fb.docx",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "ce4fc22a-79aa-49a1-a5d7-c436e1506e5e",
+                "prompt_id": "e6284c3a-383b-4ae0-b9a2-304526f2448a",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Read the DOCX document to extract the list of employees, gift assignments, and gifts given.",
+                "Count the total number of employees and gifts given to identify the discrepancy (12 employees, 11 gifts).",
+                "Identify the recipient of each gift and match them against the list of employees to determine who did not give a gift.",
+                "Cross-reference the gift assignments to see if any employee is missing from the list of gifters."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "7126e996-eb20-49c6-a9f5-9fbdc4d24941",
+                "prompt_id": "edb0d568-95ff-40df-8f9f-98d9469e6535",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                "There are twelve employees in the office.",
+                "Only eleven gifts were given.",
+                "Each employee filled out a profile with three likes or hobbies.",
+                "The list of employees includes: Harry, Rebecca, Georgette, Micah, Perry, Tyson, Lucy, Jun, Sara, Miguel, Fred, Alex.",
+                "The gift assignments are provided in a table format.",
+                "A list of gifts given is provided."
+            ],
+            "facts_to_lookup": [],
+            "facts_to_derive": [
+                "Identify which employee did not give a gift based on the gift assignments."
+            ],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "fe5534fa-e349-4911-9a21-55139fbfb0c9",
+                "prompt_id": "814106da-c705-46db-8905-7aaf4d25b0c9",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "/tmp/cffe0e32-c9a6-4c52-9877-78ceb4aaa9fb.docx",
+            "fact_description": "list of employees, gift assignments, and gifts given",
+            "fact_name": "office Secret Santa details"
+        },
+        {
+            "metadata": {
+                "id": "9ced41f9-9783-42a5-b7e6-6b7867dfd105",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Employees\n=========\n\n1. Harry\n2. Rebecca\n3. Georgette\n4. Micah\n5. Perry\n6. Tyson\n7. Lucy\n8. Jun\n9. Sara\n10. Miguel\n11. Fred\n12. Alex\n\nGift Assignments\n================\n\n| Giftee | Recipient |\n| --- | --- |\n| Harry | Miguel |\n| Rebecca | Micah |\n| Georgette | Lucy |\n| Micah | Jun |\n| Perry | Georgette |\n| Tyson | Fred |\n| Lucy | Alex |\n| Jun | Harry |\n| Sara | Perry |\n| Fred | Rebecca |\n| Miguel | Sara |\n| Alex | Tyson |\n\nProfiles\n========\n\nHarry: *Fishing, Camping, Wine*\n\nRebecca: *Cars, Dogs, Chocolate*\n\nGeorgette: *Yoga, Cooking, Green Energy*\n\nMicah: *Knitting, Rainy Weather, Books*\n\nPerry: *Old Movies, Rats, Journaling*\n\nTyson: *Historical Fiction Novels, Biking, Parakeets*\n\nLucy: *Coffee, Physics, Board Games*\n\nJun: *Woodworking, Barbecue, JavaScript*\n\nSara: *Tabletop RPGs, Spas, Music*\n\nMiguel: *Astronomy, Decorative Washi Tape, Ketchup*\n\nFred: *Chemistry, Perl, Cats*\n\nAlex: *Surfing, Audrey Hepburn, Manga*\n\nGifts:\n======\n\n* Galileo Galilei biography\n* Fishing reel\n* Raku programming guide\n* Chisel set\n* Custom dice\n* “War and Peace” American film copy\n* Yarn\n* “One Piece” graphic novel\n* “War and Peace” novel\n* Starbucks gift card\n* Foam exercise mat",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "192c378d-6347-4cb2-8178-696f25ff1296",
+                "prompt_id": "5d07f1a6-857a-407b-a835-40b507776827",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "identify who did not give a gift",
+            "fact_found": true,
+            "quote_with_fact": "",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "67040cf8-23ae-4cfe-a154-f7c25ff54455",
+                "prompt_id": "5d07f1a6-857a-407b-a835-40b507776827",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "cf32cac4-294f-4362-882f-c5e1b82fbb5a",
+                "prompt_id": "bce8ce32-7203-4dd5-bb1a-3cbda03a07b2",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "There are 12 employees and only 11 gifts were given. By analyzing the gift assignments, each employee except for one must have given a gift. The assignments show that every employee is paired with a recipient, except for one employee who does not appear as a giftee. The employee who did not give a gift is Georgette, as she is the only one not listed as a giver."
+        },
+        {
+            "metadata": {
+                "id": "c51aa4da-1a42-4c04-b9ee-afeb9772d2bc",
+                "prompt_id": "bce8ce32-7203-4dd5-bb1a-3cbda03a07b2",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "de5d0f3f-80a1-4f7a-ae56-cbe57b3692fb",
+                "prompt_id": "8f8abfca-1948-4be2-bb5f-b2acb7434e32",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the employee who did not give a gift during the Secret Santa exchange.",
+            "answer_unit": "",
+            "answer": "Georgette"
+        }
+    ]
+}

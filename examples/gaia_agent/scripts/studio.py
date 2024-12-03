@@ -30,10 +30,15 @@ logger = logging.getLogger(__name__)
 def main(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     llm = instantiate(cfg.llm)
-    env = GaiaEnvironment(vision_lm=llm)
+    attachment_dir = cfg.get("env").get("attachment_dir")
+    os.makedirs(attachment_dir, exist_ok=True)
+    env = GaiaEnvironment(vision_lm=llm, attachment_dir=attachment_dir)
     agent = GaiaAgent.create(llm, **cfg.agent)
-    tape = GaiaTape(steps=[GaiaQuestion(content="How many calories in 2 teaspoons of hummus")])
-    Studio(agent, tape, CameraReadyRenderer(), env).launch(server_name="0.0.0.0")
+    content = "How many calories in 2 teaspoons of hummus"
+    # Uncomment the following line to test video question
+    # content = "In the video https://www.youtube.com/watch?v=L1vXCYZAYYM, what is the highest number of bird species to be on camera simultaneously?"
+    tape = GaiaTape(steps=[GaiaQuestion(content=content)])
+    Studio(agent, tape, CameraReadyRenderer(), env).launch(server_name="0.0.0.0", static_dir=attachment_dir)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from tapeagents.demo import Demo
 from tapeagents.dialog_tape import DialogContext, DialogTape
 from tapeagents.llms import LiteLLM
-from tapeagents.rendering import BasicRenderer
+from tapeagents.renderers.basic import BasicRenderer
 
 from .openai_function_calling import TOOL_SCHEMAS, FunctionCallingAgent, MockToolEnvironment
 

@@ -1,7 +1,9 @@
 import contextlib
+import gzip
 import json
 import logging
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -20,8 +22,13 @@ sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import 
 
 from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
-from examples.delegate_stack import ExampleTape as ExampleTapeStack
-from examples.delegate_stack import Linguist, make_analyze_text_chain
+from examples.delegate_stack import (
+    ExampleTape as ExampleTapeStack,
+)
+from examples.delegate_stack import (
+    Linguist,
+    make_analyze_text_chain,
+)
 from examples.gaia_agent.agent import GaiaAgent
 from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.tape import GaiaTape
@@ -124,7 +131,7 @@ def test_llama_agent_tape_reuse():
                 if isinstance(step, AgentStep):
                     assert isinstance(reused_step, AgentStep)
                     assert reused_step.metadata.prompt_id != step.metadata.prompt_id
-    c = retrieve_tape_llm_calls(reused_tape)
+    retrieve_tape_llm_calls(reused_tape)
     traces_from_logs = [agent.make_training_text(llm_call) for llm_call in llm_calls]
     direct_traces = agent.make_training_data(tape)
     assert len(traces_from_logs) == len(
@@ -143,18 +150,23 @@ def test_llama_agent_tape_reuse():
 
 
 def test_gaia_agent():
-    # TODO: FIX final steps in the end in test res!
     run_dir = str(res_path / "gaia_agent")
-    llm = mock_llm(run_dir)
-    env = GaiaEnvironment(only_cached_webpages=True, safe_calculator=False)
-    with open(f"{run_dir}/web_cache.json") as f:
-        web_cache = json.load(f)
-    env.browser.set_web_cache(web_cache)
-    agent = GaiaAgent.create(llm)
-    tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
-    logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, env)
-    assert fails == 0, f"{fails} failed tapes"
+    db_file = f"{run_dir}/tapedata.sqlite"
+    with gzip.open(f"{run_dir}/tapedata.sqlite.gz", "rb") as f_in:
+        with open(db_file, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    try:
+        llm = mock_llm(run_dir)
+        env = GaiaEnvironment(only_cached_webpages=True, attachment_dir=f"{run_dir}/attachments")
+        env.browser.set_web_cache(f"{run_dir}/web_cache.jsonl")
+        agent = GaiaAgent.create(llm)
+        tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
+        logger.info(f"Validate {len(tapes)} tapes")
+        fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+        assert fails == 0, f"{fails} failed tapes"
+    finally:
+        if os.path.exists(db_file):
+            os.remove(db_file)
 
 
 def test_workarena_agent():

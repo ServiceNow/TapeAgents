@@ -1,6 +1,5 @@
 import json
 import logging
-import multiprocessing
 import os
 import shutil
 import subprocess
@@ -14,7 +13,6 @@ import requests
 import torch
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from tapeagents.finetune.finetune import run_finetuning_loop
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +79,7 @@ class VLLMServiceManager:
                 return False
 
             if process.poll() is not None:
-                logger.error(f"-> Service process has terminated")
+                logger.error("-> Service process has terminated")
                 return False
 
             logger.info(f"-> Waiting for service at {url}")
