@@ -4,15 +4,9 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import (
-    Action,
-    Error,
-    LLMOutputParsingFailureAction,
-    Observation,
-    SetNextNode,
-    StopStep,
-    Thought,
-)
+from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
+from tapeagents.dialog_tape import AssistantStep, ImageObservation
+from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.steps import VideoObservation, WatchVideoAction
 from tapeagents.utils import get_step_schemas_from_union_type
 
@@ -85,19 +79,19 @@ class ListOfFactsThought(GaiaThought):
     """
 
     kind: Literal["list_of_facts_thought"] = "list_of_facts_thought"
-    given_facts: list[FactSchemaWithValue] = Field(
+    given_facts: list[str] = Field(
         description="list of facts that are already given in the question",
         default=[],
     )
-    facts_to_lookup: list[FactSchema] = Field(
+    facts_to_lookup: list[str] = Field(
         description="list of facts that need to be looked up on the web or in documents",
         default=[],
     )
-    facts_to_derive: list[FactSchema] = Field(
-        description="list of facts that need to be derived from the given facts using reasoning or calculations",
+    facts_to_derive: list[str] = Field(
+        description="list of facts that need to be derived from the given facts using reasoning or code execution",
         default=[],
     )
-    facts_to_guess: list[FactSchema] = Field(
+    facts_to_guess: list[str] = Field(
         description="list of facts that need to be guessed from the given facts, documents and reasoning",
         default=[],
     )
@@ -112,7 +106,7 @@ class ReasoningThought(GaiaThought):
     """
 
     kind: Literal["reasoning_thought"] = "reasoning_thought"
-    reasoning: list[str] = Field(description="reasoning sentences that describe how to move forward with the task")
+    reasoning: str
 
 
 class StartSubtask(GaiaThought):
@@ -139,17 +133,11 @@ class FinishSubtask(GaiaThought):
 
 class NewFactThought(GaiaThought):
     """
-    Thought that outputs new fact value, extracted from the previous steps. Value must follow the format described in list_of_facts_thought. If the fact has units that need to be converted, use convert_fact_action after this thought.
+    Thought that outputs new fact value, extracted from the previous steps.
     """
 
     kind: Literal["new_fact_thought"] = "new_fact_thought"
-    fact_name: str = Field(
-        description="fact name, should be unique, lowercase, snake_case, without spaces and special characters"
-    )
-    unit: str = Field(description="unit of the fact value, if applicable, otherwise empty string")
-    value: Any = Field(
-        description="json-parsable value of the fact without units, using format from the list_of_facts_thought"
-    )
+    fact: str
 
 
 class ReadingResultThought(GaiaThought):
@@ -231,15 +219,13 @@ class UseCalculatorAction(GaiaAction):
 
 class PythonCodeAction(GaiaAction):
     """
-    Action to execute the python code. The code should be only produced after the reasoning thought. Code has access to all the facts as local variables.
+    Action to execute the python code snippet.
     """
 
     kind: Literal["python_code_action"] = "python_code_action"
-    code: str = Field(description="snippet of python code with escaped newlines and quotes to fit json format")
-    fact_name: str = Field(
-        description="fact name to save code execution result, should be unique, lowercase, snake_case, without spaces and special characters"
+    code: str = Field(
+        description="snippet of python code with escaped newlines and quotes to fit json format. Last line should print the result"
     )
-    facts: dict | None = None
 
 
 ################### Observations ###################
@@ -349,6 +335,10 @@ GaiaStep = Union[
     ActionExecutionFailure,
     LLMOutputParsingFailureAction,
     SetNextNode,
+    ImageObservation,
+    ExecuteCode,
+    CodeExecutionResult,
+    AssistantStep,
 ]
 
 GaiaAgentStep: TypeAlias = Annotated[
@@ -369,55 +359,41 @@ GaiaAgentStep: TypeAlias = Annotated[
         NextPageAction,
         WatchVideoAction,
         ConvertFactAction,
-        UseCalculatorAction,
-        # PythonCodeAction,
+        # UseCalculatorAction,
+        PythonCodeAction,
         GaiaAnswer,
     ],
     Field(discriminator="kind"),
 ]
 
-actions = [
-    SearchAction,
-    ReadDocumentAction,
-    NextPageAction,
-    WatchVideoAction,
-    ConvertFactAction,
-    UseCalculatorAction,
-    GaiaAnswer,
-]
+plan_steps = get_step_schemas_from_union_type(
+    Annotated[Union[PlanThought, ListOfFactsThought], Field(discriminator="kind")]
+)
+all_steps = get_step_schemas_from_union_type(
+    Annotated[
+        Union[
+            ReadingResultThought,
+            ReasoningThought,
+            SearchAction,
+            ReadDocumentAction,
+            NextPageAction,
+            PythonCodeAction,
+            GaiaAnswer,
+        ],
+        Field(discriminator="kind"),
+    ]
+)
 
-
-def get_allowed_steps(subtasks: bool, plan_thoughts: bool) -> str:
-    if plan_thoughts:
-        steps = Union[PlanThought, ListOfFactsThought, DraftPlansThought, SourcesThought]
-    else:
-        if subtasks:
-            steps = Union[
-                ReadingResultThought,
-                NewFactThought,
-                ReasoningThought,
-                SearchAction,
-                ReadDocumentAction,
-                NextPageAction,
-                WatchVideoAction,
-                ConvertFactAction,
-                UseCalculatorAction,
-                GaiaAnswer,
-                StartSubtask,
-                FinishSubtask,
-            ]
-        else:
-            steps = Union[
-                ReadingResultThought,
-                NewFactThought,
-                ReasoningThought,
-                SearchAction,
-                ReadDocumentAction,
-                NextPageAction,
-                WatchVideoAction,
-                ConvertFactAction,
-                UseCalculatorAction,
-                GaiaAnswer,
-            ]
-    steps_alias = Annotated[steps, Field(discriminator="kind")]
-    return get_step_schemas_from_union_type(steps_alias)
+nocode_steps = get_step_schemas_from_union_type(
+    Annotated[
+        Union[
+            ReadingResultThought,
+            ReasoningThought,
+            SearchAction,
+            ReadDocumentAction,
+            NextPageAction,
+            GaiaAnswer,
+        ],
+        Field(discriminator="kind"),
+    ]
+)

@@ -23,6 +23,7 @@ import re
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse
 
@@ -43,9 +44,22 @@ from .document_converters import (
     UnsupportedFormatException,
 )
 
+
+@contextmanager
+def acquire_timeout(lock, timeout):
+    result = lock.acquire(timeout=timeout)
+    try:
+        yield result
+    finally:
+        if result:
+            lock.release()
+
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 search_lock = threading.Lock()
+flush_lock = threading.Lock()
 
 
 def get_tavily_key():
@@ -111,17 +125,19 @@ class SimpleTextBrowser:
         self.use_web_cache = use_web_cache
         self.only_cached_webpages = only_cached_webpages
         self._cache = {}
-        self._log = {}
-        self._cache_writes = 0
-        self._cache_filename = "web_cache.json"
+        self._log = []
+        self._cache_buffer = []
+        self._cache_filename = "web_cache.jsonl"
         if _FORCE_CACHE_PATH:
             self._cache_filename = _FORCE_CACHE_PATH
-            logger.warning(f"Using forced cache file: {self._cache_filename}")
+            logger.warning(f"Using forced cache file {self._cache_filename}")
             self.only_cached_webpages = True
             assert os.path.exists(self._cache_filename), "Forced cache file not found"
         if os.path.exists(self._cache_filename):
             with open(self._cache_filename) as f:
-                self._cache = json.load(f)
+                for line in f:
+                    data = json.loads(line)
+                    self._cache[data["k"]] = data["v"]
             logger.info(f"Loaded {len(self._cache)} web results from cache")
 
     @property
@@ -282,8 +298,9 @@ class SimpleTextBrowser:
             if query in self._cache:
                 key = query
             logger.info(colored(f"Cache hit for search {query}", "green"))
-            self._log[query] = self._cache[key]
+            self._log.append({"k": query, "v": self._cache[key]})
             return self._cache[key][:max_results]
+        logger.info(colored(f"Search {query} not in cache", "yellow"))
         if self.only_cached_webpages:
             ratios = [(k, ratio(key, k, score_cutoff=0.5)) for k in self._cache.keys()]
             if not len(ratios):
@@ -294,7 +311,7 @@ class SimpleTextBrowser:
             serp = self.tavily.search(query=query, search_depth="basic", max_results=max_results) or {"results": []}
             results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
         else:
-            with search_lock:
+            with acquire_timeout(search_lock, 5):
                 results = [
                     {"title": r.title, "url": r.url, "content": r.description}
                     for r in search(query, advanced=True, num_results=max_results)
@@ -411,17 +428,31 @@ class SimpleTextBrowser:
             header = f"Title: {self.page_title}\n=======================\n" if self.page_title else ""
         return header + self.viewport.strip()
 
-    def set_web_cache(self, cache: dict) -> None:
-        self._cache = cache
+    def set_web_cache(self, cache_filename: str) -> None:
+        with open(cache_filename) as f:
+            for line in f:
+                data = json.loads(line)
+                self._cache[data["k"]] = data["v"]
 
-    def _add_to_cache(self, k: str, value: Any) -> None:
-        self._cache[k] = value
-        self._log[k] = value
-        self.save_cache()
+    def _add_to_cache(self, key: str, value: Any) -> None:
+        self._cache[key] = value
+        self._log.append({"k": key, "v": value})
+        self._cache_buffer.append({"k": key, "v": value})
+        self.flush_cache()
 
-    def save_cache(self):
-        with open(self._cache_filename, "w") as f:
-            json.dump(self._cache, f, indent=2, ensure_ascii=False)
+    def flush_cache(self):
+        with open(self._cache_filename, "a") as f:
+            for item in self._cache_buffer:
+                f.write(json.dumps(item) + "\n")
+        self._cache_buffer = []
+
+    def flush_log(self, browser_log_path: str):
+        with flush_lock:
+            if len(self._log):
+                with open(browser_log_path, "a") as wf:
+                    for line in self._log:
+                        wf.write(json.dumps(line) + "\n")
+            self._log = []
 
     def get_page(self, url: str) -> tuple[str, int, int]:
         """
@@ -433,7 +464,7 @@ class SimpleTextBrowser:
             url = f"file://{url}"
         if self.use_web_cache and url in self._cache:
             logger.info(colored(f"Cache hit {url}", "green"))
-            self._log[url] = self._cache[url]
+            self._log.append({"k": url, "v": self._cache[url]})
             content, title = self._cache[url]
             self.history.append((url, time.time()))
             self.page_title = title

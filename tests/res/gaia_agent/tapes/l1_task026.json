@@ -1,0 +1,229 @@
+{
+    "metadata": {
+        "id": "879ed7e2-be75-4d0c-940c-9a629211c7e5",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "Extremely",
+        "task": {
+            "task_id": "9d191bce-651d-4746-be2d-7ef8ecadb9c2",
+            "Question": "Examine the video at https://www.youtube.com/watch?v=1htKBjuUWec.\n\nWhat does Teal'c say in response to the question \"Isn't that hot?\"",
+            "Level": 1,
+            "Final answer": "Extremely",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Follow the link\n2. Watch the clip until the question \"Isn't that hot\" is asked\n3. Take note of the reply.",
+                "Number of steps": "3",
+                "How long did this take?": "2 minutes",
+                "Tools": "1. Web browser\n2. Video processing software\n3. Audio processing software",
+                "Number of tools": "1"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "1543af54-717c-4f52-81a8-72331c53ed0f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "Examine the video at https://www.youtube.com/watch?v=1htKBjuUWec.\n\nWhat does Teal'c say in response to the question \"Isn't that hot?\"",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "3dadbfcd-b839-4342-99d2-a807f7f82c28",
+                "prompt_id": "7782b308-776d-49d3-bde9-96af396aa77a",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Access the provided YouTube link to the video.",
+                "Play the video and locate the segment where the question \"Isn't that hot?\" is asked.",
+                "Listen carefully to Teal'c's response to the question.",
+                "Note down the exact words spoken by Teal'c in response."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "ba12a809-98e5-4bd8-9fb9-75384ef1fa82",
+                "prompt_id": "a53f67cd-7633-4046-bb7e-e9d94be5b8ca",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                "The video is located at the URL https://www.youtube.com/watch?v=1htKBjuUWec.",
+                "Teal'c is a character who responds to the question 'Isn't that hot?'"
+            ],
+            "facts_to_lookup": [],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "946852a5-dd96-4af2-b0af-99b7ed01a3b2",
+                "prompt_id": "3dcfdc2f-ba63-43e4-acc6-673d9db12458",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.youtube.com/watch?v=1htKBjuUWec",
+            "fact_description": "Teal'c's response to the question 'Isn't that hot?'",
+            "fact_name": "Teal'c response"
+        },
+        {
+            "metadata": {
+                "id": "7cc8ba12-ba09-4fb0-be91-1aff270fd62d",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title:  - YouTube\n=======================\n# YouTube\n\n### Video Metadata\n- **Keywords:** video, sharing, camera phone, video phone, free, upload\n\n### Description\nhavej eow-yu seene totawa t teal ;;c;c;c does??",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "7965b01f-0a47-4056-bbfd-9ac7764c88e3",
+                "prompt_id": "67d8d060-4344-412a-8945-3ebf7835a04e",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "Teal'c's response to the question 'Isn't that hot?'",
+            "fact_found": false,
+            "quote_with_fact": "",
+            "where_to_look_next": "There is no additional content to explore on this page."
+        },
+        {
+            "metadata": {
+                "id": "7da2bba9-d1b5-4908-b207-828c3a648f6f",
+                "prompt_id": "67d8d060-4344-412a-8945-3ebf7835a04e",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "2422f7f9-77ee-4975-bf84-f1e6ac62b3f4",
+                "prompt_id": "e0b95fab-fb14-4a38-8cf1-59a57f010cd7",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Teal'c response to Isn't that hot? Stargate"
+        },
+        {
+            "metadata": {
+                "id": "5917e2f0-e64f-41a6-bb1c-6fe210f12921",
+                "prompt_id": "e0b95fab-fb14-4a38-8cf1-59a57f010cd7",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "d4687488-db79-466a-bf44-a9652b1a5e96",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Teal'c response to Isn't that hot? Stargate",
+            "serp": [
+                {
+                    "title": "I've decided this is officially my favorite line said by Teal'c in ...",
+                    "url": "https://www.reddit.com/r/Stargate/comments/pb5k44/ive_decided_this_is_officially_my_favorite_line/",
+                    "content": "Teal'c : You have been impregnated without copulation. Vala Mal Doran : Yes, and I'm absolutely terrified. Have any of you ever heard of anything like it?"
+                },
+                {
+                    "title": "Stargate Fans United | I have a silly question",
+                    "url": "https://m.facebook.com/groups/331930378712/posts/i-have-a-silly-question-in-continium-when-tealc-blows-up-the-time-machine-would-/10162061876178713/",
+                    "content": "I have a silly question. In Continium , when Teal'c blows up the time machine . Would one granade do the job , it was a pretty big cave ?"
+                },
+                {
+                    "title": "Stargate Fans United | Here are a few examples how to ...",
+                    "url": "https://m.facebook.com/groups/331930378712/posts/here-are-a-few-examples-how-to-react-when-somebody-says-heshe-doesnt-like-starga/10162083004558713/",
+                    "content": "Here are a few examples how to react when somebody says he/she doesn't like Stargate - Universe edition."
+                },
+                {
+                    "title": "Why was Teal'c so different from other Jaffa?",
+                    "url": "https://scifi.stackexchange.com/questions/283835/why-was-tealc-so-different-from-other-jaffa",
+                    "content": "Jan 24, 2024 — A concerned Carter asks \"Wasn't that hot?\" to which Teal'c dispassionately replies \"Extremely.\" – Machavity. Commented Jan 25 at 13:57."
+                },
+                {
+                    "title": "C++ class forward declaration",
+                    "url": "https://stackoverflow.com/questions/9119236/c-class-forward-declaration",
+                    "content": "How is Teal'c able to use a rope across the stargate event horizon? What is the command to clear an entire line in Linux using Super + ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "2f9fbd9b-a1dd-4943-8dca-d0fbb19ba8eb",
+                "prompt_id": "92dd5ddd-22af-4dae-bca1-4c178b233591",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "Teal'c's response to the question 'Isn't that hot?'",
+            "fact_found": true,
+            "quote_with_fact": "Wasn't that hot? to which Teal'c dispassionately replies 'Extremely.'",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "c0540bb0-7f95-4ab4-a73a-d23cfb74262f",
+                "prompt_id": "92dd5ddd-22af-4dae-bca1-4c178b233591",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "1116baa9-1526-4d78-94c0-ef361963d218",
+                "prompt_id": "cbd01636-06cf-416f-a880-87411a75f365",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified Teal'c's response to the question.",
+            "answer_unit": "",
+            "answer": "Extremely"
+        }
+    ]
+}

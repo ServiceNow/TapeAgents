@@ -9,6 +9,8 @@ from typing import Any, Callable, Literal, TypeAlias
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
+from tapeagents.utils import image_base64_message
+
 from .agent import Annotator
 from .core import (
     Action,
@@ -75,6 +77,20 @@ class AssistantStep(Action):
 
     content: str
     kind: Literal["assistant"] = "assistant"
+
+
+class ImageObservation(Observation):
+    kind: Literal["image"] = "image"
+    image_path: str
+    thumbnail_path: str = ""
+    image_caption: str = ""
+    error: int | None = None
+
+    def llm_view(self) -> list[dict]:
+        content = [{"type": "text", "text": self.image_caption}]
+        if self.image_path:
+            content.append(image_base64_message(self.image_path))
+        return content
 
 
 class FunctionCall(BaseModel):

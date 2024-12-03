@@ -1,0 +1,100 @@
+{
+    "metadata": {
+        "id": "0b06a400-f531-4f26-a90d-d52ed574b70d",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "right",
+        "task": {
+            "task_id": "2d83110e-a098-4ebb-9987-066c06fa42d0",
+            "Question": ".rewsna eht sa \"tfel\" drow eht fo etisoppo eht etirw ,ecnetnes siht dnatsrednu uoy fI",
+            "Level": 1,
+            "Final answer": "Right",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Read the instructions in reverse",
+                "Number of steps": "1",
+                "How long did this take?": "1 minute",
+                "Tools": "1. A word reversal tool / script",
+                "Number of tools": "0"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "1743f0ea-86ba-461d-8f98-ce9858805743",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": ".rewsna eht sa \"tfel\" drow eht fo etisoppo eht etirw ,ecnetnes siht dnatsrednu uoy fI",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "2da9a1ad-e40d-429a-906a-817baa5f3a9a",
+                "prompt_id": "d25160f5-7633-4945-92f8-6086006813e2",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Reverse the given text to read it correctly.",
+                "Identify the opposite of the word 'left'.",
+                "Construct a sentence using the identified opposite word."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "921f505c-d9aa-4ff9-bb37-d44119cbdc41",
+                "prompt_id": "1fc5c7f9-0195-4437-b709-c8f855beaae5",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [],
+            "facts_to_lookup": [],
+            "facts_to_derive": [],
+            "facts_to_guess": [
+                "The opposite of the word 'left' is 'right'."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "8eff625a-fba0-44ef-87db-7920cecba416",
+                "prompt_id": "914c551f-6357-49ed-99df-6726d64d739f",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "The given text reversed reads: 'If you understand this sentence, write the opposite of the word 'left'.' The opposite of 'left' is 'right'."
+        },
+        {
+            "metadata": {
+                "id": "b0e92e57-593e-465c-b1c7-a60a3d3f2b1c",
+                "prompt_id": "1f4b3ca3-0135-4bc4-a308-022aa3dd3ad8",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the opposite of the word 'left'.",
+            "answer_unit": "",
+            "answer": "right"
+        }
+    ]
+}

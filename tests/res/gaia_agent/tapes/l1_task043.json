@@ -1,0 +1,205 @@
+{
+    "metadata": {
+        "id": "972e8dbd-7175-4978-b650-061b03060226",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "1",
+        "task": {
+            "task_id": "23dd907f-1261-4488-b21c-e9185af91d5e",
+            "Question": "In Audre Lorde’s poem “Father Son and Holy Ghost”, what is the number of the stanza in which some lines are indented?",
+            "Level": 1,
+            "Final answer": "2",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Search the web for “Audre Lorde Father Son and Holy Ghost”.\n2. Click on Poetry Foundation result.\n3. Note the stanza that appears to have lines indented, the second one.\n4. Return to search results to confirm.\n5. Click on second result.\n6. Confirm that the indentation appears in the second stanza here as well.",
+                "Number of steps": "6",
+                "How long did this take?": "5 minutes",
+                "Tools": "1. Search engine\n2. Web browser",
+                "Number of tools": "2"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "97d30f2c-8b6d-4e7c-a51c-ffb748b96442",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "In Audre Lorde’s poem “Father Son and Holy Ghost”, what is the number of the stanza in which some lines are indented?",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "b97545d5-965f-4ca3-a2b3-8b7d20786296",
+                "prompt_id": "6af0e15b-4988-4f7c-a9b8-b8ea9179b907",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Search for the text of Audre Lorde's poem 'Father Son and Holy Ghost'.",
+                "Read through the poem to identify the stanzas and their formatting.",
+                "Look for any stanzas that contain indented lines.",
+                "Note the number of the stanza(s) where the lines are indented."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "3608eafd-b7ef-4277-9990-7a8fa5dd09fa",
+                "prompt_id": "8a0d2d70-37d6-4a0e-a345-9394527f497b",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                "The poem is titled 'Father Son and Holy Ghost' by Audre Lorde."
+            ],
+            "facts_to_lookup": [
+                "The text of the poem 'Father Son and Holy Ghost' to identify the stanza with indented lines."
+            ],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "59b35828-85d3-4217-9f4a-d56ff3c6e705",
+                "prompt_id": "ac7cc641-2524-47db-bd6b-5f848cfbc6ec",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Audre Lorde Father Son and Holy Ghost poem text"
+        },
+        {
+            "metadata": {
+                "id": "39413189-5e46-4acc-b77d-32f01896193f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Audre Lorde Father Son and Holy Ghost poem text",
+            "serp": [
+                {
+                    "title": "Father Son and Holy Ghost - Audre Lorde",
+                    "url": "https://beta.poetryfoundation.org/poems/46462/father-son-and-holy-ghost",
+                    "content": "I have not ever seen my father's grave. Not that his judgment eyes. have been forgotten. nor his great hands' print. on our evening doorknobs."
+                },
+                {
+                    "title": "Father Son and Holy Ghost",
+                    "url": "https://www.poetryoutloud.org/poem/father-son-and-holy-ghost/",
+                    "content": "By Audre Lorde. I have not ever seen my father's grave. Not that his judgment eyes have been forgotten nor his great hands' print"
+                },
+                {
+                    "title": "Audre Lorde's \"Father Son and Holy Ghost\"",
+                    "url": "https://owlcation.com/humanities/audre-lordes-father-son-and-holy-ghost",
+                    "content": "7 Mar 2024 — In Audre Lorde's \"Father Son and Holy Ghost,\" the speaker is remembering her father. She emphasizes that she has not as yet visited her father's grave."
+                },
+                {
+                    "title": "In Honor of Father's Day: 5 Classic Poems About Sh*tty Dads",
+                    "url": "https://weird-sister.com/2016/06/19/honor-fathers-day-5-classic-poems-shtty-dads/",
+                    "content": "19 Jun 2016 — “Father Son and Holy Ghost” – Audre Lorde All of Audre Lorde's writing is basically my feminist bible, and this poem is no exception."
+                },
+                {
+                    "title": "\"Father Son and Holy Ghost\" by Poet Audre Lorde",
+                    "url": "https://blackthen.com/poem-father-son-holy-ghost-poet-audre-lorde/",
+                    "content": "3 May 2024 — Father Son and Holy Ghost by Audre Lorde. I have not ever seen my father's grave. Not that his judgment eyes have been forgotten nor his great hands' print."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "04785451-d5f9-4c8c-97d2-b3b417795ba6",
+                "prompt_id": "5b6abe3e-187c-40be-91ec-35287e153fe8",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://beta.poetryfoundation.org/poems/46462/father-son-and-holy-ghost",
+            "fact_description": "stanza number with indented lines",
+            "fact_name": "stanza with indented lines"
+        },
+        {
+            "metadata": {
+                "id": "b0a268b0-900c-44c6-8bc8-9389497055ef",
+                "prompt_id": "5b6abe3e-187c-40be-91ec-35287e153fe8",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "93f8ea81-6403-4740-a5ed-e5a9adeb78be",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Father Son and Holy Ghost | The Poetry Foundation\n=======================\nPoems \\& Poets\n\nTopics \\& ThemesFeaturesEvents \\& ProgramsAbout Us [Poetry  Magazine](/poetrymagazine/) [October 2024](/poetrymagazine/issue/1600245/october-2024)[Subscribe](/poetrymagazine/subscribe)[Subscribe![October 2024](https://cdn-test.poetryfoundation.org/cdn-cgi/image/w=10,h=16,q=50,fit=contain,blur=3/content/images/oct2024-poetry-cover.png)![Sep2024 poetry cover](https://cdn-test.poetryfoundation.org/cdn-cgi/image/w=10,h=16,q=50,fit=contain,blur=3/content/images/sep2024-poetry-cover.jpg)](/poetrymagazine/issue/1600245/october-2024)[Poetry Foundation](/)[Poetry Foundation](/)Poetry Foundation* Poems \\& Poets\n* Topics \\& Themes\n* Features\n* Events \\& Programs\n* About Us\n [Poetry  Magazine](/poetrymagazine/)[October 2024](/poetrymagazine/issue/1600245/october-2024)[Subscribe](/poetrymagazine/subscribe/)[Subscribe![October 2024](https://cdn-test.poetryfoundation.org/cdn-cgi/image/w=10,h=16,q=50,fit=contain,blur=3/content/images/oct2024-poetry-cover.png)![Sep2024 poetry cover](https://cdn-test.poetryfoundation.org/cdn-cgi/image/w=10,h=16,q=50,fit=contain,blur=3/content/images/sep2024-poetry-cover.jpg)](/poetrymagazine/issue/1600245/october-2024)![Poetry Foundation](/assets/images/logo-print.png)Father Son and Holy Ghost\n=========================\n\nBy [Audre Lorde](/poets/audre-lorde)Share thisShareI have not ever seen my father’s grave.\n\n Not that his judgment eyes\n\n have been forgotten\n\n nor his great hands’ print\n\n on our evening doorknobs\n\n             one half turn each night\n\n             and he would come\n\n             drabbled with the world’s business\n\n             massive and silent\n\n             as the whole day’s wish\n\n             ready to redefine\n\n             each of our shapes\n\n but now the evening doorknobs\n\n wait    and do not recognize us\n\n as we pass.\n\n Each week a different woman\n\n regular as his one quick glass\n\n each evening\n\n pulls up the grass his stillness grows\n\n calling it weed.\n\n Each week    a different woman\n\n has my mother’s face\n\n and he\n\n who time has    changeless\n\n must be amazed\n\n who knew and loved\n\n but one.\n\n My father died in silence\n\n loving creation\n\n and well\\-defined response\n\n he lived    still judgments\n\n on familiar things\n\n and died    knowing\n\n a January 15th that year me.\n\n Lest I go into dust\n\n I have not ever seen my father’s grave.\n\nCopyright Credit: Audre Lorde, “Father Son and Holy Ghost” from *Collected Poems of Audre Lorde.* Copyright © 1997 by The Audre Lorde Estate. Reprinted with the permission of W. W. Norton \\& Company, Inc. This selection may not be reproduced, stored in a retrieval system, or transmitted in any form or by any means without the prior written permission of the publisher.Source: *Collected Poems of Audre Lorde* (W. W. Norton and Company Inc., 1997\\)Share thisShareMore About This Poem* Poems \\& Poets\n\t+ [Collections](/collections)\n\t+ [Poem Guides](/poems/guides)\n\t+ [Poem of the Day](/poems/poem-of-the-day)\n\t+ [Poems](/poems)\n\t+ [All Poems](/poems/browse)\n\t+ [Poets](/poets)\n\t+ [All Poets](/poets/browse)\n* [Topics \\& Themes](/topics-themes)\n\t+ [Adults](/education/adults)\n\t+ [Children](/education/children)\n\t+ [Education](/education)\n\t+ [Educators](/education/educators)\n\t+ [Glossary of Poetic Terms](/education/glossary)\n\t+ [Teens](/education/teens)\n* Features\n\t+ [About the Magazine](/poetrymagazine/about)\n\t+ [Advertise with *Poetry*](/poetrymagazine/advertise)\n\t+ [Articles](/articles)\n\t+ [Books](/books)\n\t+ [Podcasts](/podcasts)\n\t+ [*Poetry* Magazine](/poetrymagazine)\n\t+ [*Poetry* Magazine Archive](/poetrymagazine/archive)\n\t+ [Submit to *Poetry*](/poetrymagazine/submit)\n\t+ [Subscriptions](/poetrymagazine/subscribe)\n\t+ [Video](/video)\n* Events \\& Programs\n\t+ [Awards](/awards)\n\t+ [Events](/events)\n\t+ [All Past Events](/events/browse)\n\t+ [Exhibitions](/exhibitions)\n\t+ [Grants](/grants)\n\t+ [Library](/library)\n\t+ [Partnerships](/partnerships)\n\t+ [Poetry Out Loud](/programs/poetry-out-loud)\n\t+ [Programs](/programs)\n* [About Us](/about-us)\n\t+ [Contact Us](/contact-us)\n\t+ [Give](/give)\n\t+ [Jobs](/our-team/jobs)\n\t+ [News](/news)\n\t+ [Media Partnerships](/media-partnerships)\n\t+ [Our Team](/our-team)\n\t+ [Press Releases](/press-releases)\n\t+ [Reports \\& Financials](/reports-financials)\n\t+ [Trustees](/our-team/board)\n\t+ [Visit](/visit)\n\n[Poetry Foundation](/)[Twitter](https://twitter.com/poetryfound)[Facebook](https://www.facebook.com/poetryfoundation)[Instagram](https://www.instagram.com/poetryfoundation/)[*Poetry* Magazine](https://twitter.com/poetrymagazine) * [Contact Us](/contact-us)\n* [Newsletters](/newsletter)\n* [Press](/press-releases)\n* [Privacy Policy](/privacy-policy)\n* [Terms of Use](/terms-of-use)\n* [Poetry Mobile App](/mobile-app)\n* 61 West Superior Street,\n Chicago, IL 60654\n* © 2024 Poetry Foundation\n [See a problem on this page?](https://www.poetryfoundation.org/contact?subject=problem)",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "1b137b67-e0d2-4904-8490-8b13894ceade",
+                "prompt_id": "f5773bd2-48eb-4590-aa61-6e30c0d560ae",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "stanza number with indented lines",
+            "fact_found": true,
+            "quote_with_fact": "but now the evening doorknobs\n\n wait    and do not recognize us\n\n as we pass.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "3c592aeb-651e-4874-b519-5ae8c9919237",
+                "prompt_id": "f5773bd2-48eb-4590-aa61-6e30c0d560ae",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "de1df2e7-cbff-4530-9c97-695dfeb9b1b8",
+                "prompt_id": "1f05d7da-2158-47a9-a2f2-b3fc1fcdc05e",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the stanza with indented lines in Audre Lorde's poem.",
+            "answer_unit": "",
+            "answer": "1"
+        }
+    ]
+}
