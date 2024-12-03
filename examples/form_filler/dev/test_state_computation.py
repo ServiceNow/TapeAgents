@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 import yaml
 
-from llmd2.tapeagents_tmp.ghreat.tape import from_llmd2_dialog_dict, FormFillerTape, FormFillerStep
-from llmd2.tapeagents_tmp.ghreat.state import FormFillerState, compute_form_filler_state
+from examples.form_filler.tape import from_llmd2_dialog_dict, FormFillerTape, FormFillerStep
+from examples.form_filler.state import FormFillerState, compute_form_filler_state
 from tapeagents.io import save_tapes, load_tapes
 
 

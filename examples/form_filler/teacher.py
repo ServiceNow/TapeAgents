@@ -8,11 +8,11 @@ from tapeagents.core import LLMOutputParsingFailureAction, Prompt, SetNextNode
 from tapeagents.agent import Agent, Node
 from tapeagents.llms import LLM, LLMStream
 
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape, prepare_formfiller_template_variables
-from llmd2.tapeagents_tmp.ghreat.utils import render_chat_template, sanitize_json_completion
-from llmd2.tapeagents_tmp.ghreat.steps import *
-from llmd2.tapeagents_tmp.ghreat.state import compute_form_filler_state, update_form_filler_state
-from llmd2.tapeagents_tmp.ghreat.error import FormFillerStateError
+from examples.form_filler.tape import FormFillerTape, prepare_formfiller_template_variables
+from examples.form_filler.utils import render_chat_template, sanitize_json_completion
+from examples.form_filler.steps import *
+from examples.form_filler.state import compute_form_filler_state, update_form_filler_state
+from examples.form_filler.error import FormFillerStateError
 
 
 logger = logging.getLogger(__name__)

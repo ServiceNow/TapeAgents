@@ -1,0 +1,68 @@
+name: New Product Launch Request
+description: Submit a request to launch a new product across LuxuryCorp's brand portfolio,
+  including fashion, leather goods, perfumery, cosmetics, watches, jewelry, and wines
+  and spirits. This request requires the product name, brand, and category as mandatory
+  parameters. The product description and target market are optional parameters. According
+  to LuxuryCorp's policy, all new product launches must comply with the company's sustainability
+  and quality standards. Upon submission, a unique request ID will be generated, and
+  the request status will be set to 'pending review'. The request will then be reviewed
+  by the LuxuryCorp product launch committee, and the status will be updated to 'approved'
+  or'rejected' accordingly.
+parameters:
+  type: object
+  properties:
+    product_name:
+      description: The name of the new product
+      type: string
+    brand:
+      description: The LuxuryCorp brand under which the product will be launched
+      type: string
+      enum:
+      - Louis Vuitton
+      - Christian Dior
+      - Givenchy
+      - Bulgari
+      - TAG Heuer
+      - "Dom P\xE9rignon"
+    category:
+      description: The category of the new product
+      type: string
+      enum:
+      - fashion
+      - leather goods
+      - perfumery
+      - cosmetics
+      - watches
+      - jewelry
+      - wines and spirits
+    product_description:
+      description: A brief description of the new product
+      type: string
+    target_market:
+      description: The target market for the new product
+      type: string
+  required:
+  - product_name
+  - brand
+  - category
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the new product launch request
+      type: string
+    request_status:
+      description: The status of the new product launch request
+      type: string
+      enum:
+      - pending review
+      - approved
+      - rejected
+    comments:
+      description: Any additional comments or feedback from the product launch committee
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - request_status

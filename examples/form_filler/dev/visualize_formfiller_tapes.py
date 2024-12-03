@@ -3,12 +3,12 @@ import os
 from pathlib import Path
 import sys
 
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape
+from examples.form_filler.tape import FormFillerTape
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 from tapeagents.io import load_tapes
 from tapeagents.core import Tape
-from llmd2.tapeagents_tmp.ghreat.user_simulator_agent import UserSimulatorTape
+from examples.form_filler.user_simulator_agent import UserSimulatorTape
 
 # Syntax: python visualize_formfiller_tapes.py <path_to_tapes_folder> <path_to_sqlite_db> <port>
 

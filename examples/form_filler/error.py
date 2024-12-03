@@ -7,8 +7,8 @@ from pydantic import Field, JsonValue
 
 from tapeagents.core import Step, Action, Error
 
-from llmd2.tapeagents_tmp.ghreat.types import FunctionName, ParameterName
-# from llmd2.tapeagents_tmp.ghreat.steps import FormFillerStep
+from examples.form_filler.types import FunctionName, ParameterName
+# from examples.form_filler.steps import FormFillerStep
 
 
 class FormFillerStateError(ABC, Action, Error):

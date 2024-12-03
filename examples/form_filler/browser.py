@@ -1,6 +1,6 @@
 import sys
 
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape
+from examples.form_filler.tape import FormFillerTape
 from tapeagents.rendering import PrettyRenderer
 from tapeagents.tape_browser import TapeBrowser
 

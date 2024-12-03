@@ -4,12 +4,12 @@ import numpy as np
 from pydantic import BaseModel
 import logging
 
-from llmd2.tapeagents_tmp.ghreat.schema import FunctionSchema, JsonSchema
-from llmd2.tapeagents_tmp.ghreat.steps import RequestFunctionParameters, InspectFunction
+from examples.form_filler.schema import FunctionSchema, JsonSchema
+from examples.form_filler.steps import RequestFunctionParameters, InspectFunction
 from tapeagents.core import Step
 
-from llmd2.tapeagents_tmp.ghreat.state import FormFillerState
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape
+from examples.form_filler.state import FormFillerState
+from examples.form_filler.tape import FormFillerTape
 
 
 logger = logging.getLogger(__name__)

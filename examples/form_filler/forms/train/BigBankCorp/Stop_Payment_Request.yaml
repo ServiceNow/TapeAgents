@@ -1,0 +1,56 @@
+name: Stop_Payment_Request
+description: 'Request to stop payment on a check or electronic transaction processed
+  by BigBankCorp, including specifying transaction details and reason for stop payment.
+  This function requires the transaction ID, transaction date, and reason for stop
+  payment as mandatory parameters. The reason for stop payment must be one of the
+  following: ''Lost/Stolen'', ''Fraudulent'', ''Incorrect Information'', or ''Other''.
+  The function will return a request ID, the status of the request which can be either
+  ''Pending'', ''Approved'', or ''Rejected'', and a comment explaining the reason
+  for approval or rejection. According to BigBankCorp''s policy, stop payment requests
+  can only be made within 24 hours of the transaction date. Additionally, the requestor
+  must be the account holder or have the necessary authorization to make the request.'
+parameters:
+  type: object
+  properties:
+    transaction_id:
+      description: The unique identifier of the transaction
+      type: string
+    transaction_date:
+      description: The date of the transaction
+      type: string
+      format: date
+    reason_for_stop_payment:
+      description: The reason for stopping the payment
+      type: string
+      enum:
+      - Lost/Stolen
+      - Fraudulent
+      - Incorrect Information
+      - Other
+    account_holder_name:
+      description: The name of the account holder
+      type: string
+  required:
+  - transaction_id
+  - transaction_date
+  - reason_for_stop_payment
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique identifier of the stop payment request
+      type: string
+    status:
+      description: The status of the stop payment request
+      type: string
+      enum:
+      - Pending
+      - Approved
+      - Rejected
+    comment:
+      description: The comment explaining the reason for approval or rejection
+      type: string
+  required:
+  - request_id
+  - status
+  - comment

@@ -8,7 +8,7 @@ step_types_chain:
 - AssistantStep
 
 step_filters:
-- _target_: llmd2.tapeagents_tmp.ghreat.user_simulator_filters.HasNoFunction
+- _target_: examples.form_filler.user_simulator_filters.HasNoFunction
 
 instruction: |-
     Write one sentence acting as a user that ask the agent what requests can it perform.

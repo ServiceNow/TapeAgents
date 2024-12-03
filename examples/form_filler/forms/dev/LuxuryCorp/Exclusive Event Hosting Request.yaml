@@ -1,0 +1,65 @@
+name: Exclusive Event Hosting Request
+description: 'Submit a request to host an exclusive event at one of LuxuryCorp''s flagship
+  stores or private venues, featuring LuxuryCorp''s luxury goods and services. This
+  request requires the event date, event type, and number of guests. The event type
+  must be one of the following: ''Private Shopping'', ''Product Launch'', or ''Charity
+  Gala''. The number of guests must be between 10 and 500. LuxuryCorp''s events team
+  will review the request and respond with a unique request ID, the status of the
+  request (either ''Approved'', ''Denied'', or ''Pending''), and a list of available
+  venues that meet the request criteria. Please note that LuxuryCorp''s policy is to
+  prioritize requests from loyalty program members and to allocate a maximum of 20%
+  of total venue capacity for exclusive events.'
+parameters:
+  type: object
+  properties:
+    event_date:
+      description: The date of the event
+      type: string
+      format: date
+    event_type:
+      description: The type of event
+      type: string
+      enum:
+      - Private Shopping
+      - Product Launch
+      - Charity Gala
+    number_of_guests:
+      description: The number of guests attending the event
+      type: integer
+      minimum: 10
+      maximum: 500
+    loyalty_program_member:
+      description: Whether the requester is a loyalty program member
+      type: boolean
+      default: false
+  required:
+  - event_date
+  - event_type
+  - number_of_guests
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the request
+      type: string
+    status:
+      description: The status of the request
+      type: string
+      enum:
+      - Approved
+      - Denied
+      - Pending
+    available_venues:
+      description: A list of available venues that meet the request criteria
+      type: array
+      items:
+        type: object
+        properties:
+          venue_name:
+            type: string
+          venue_address:
+            type: string
+  required:
+  - request_id
+  - status
+  - available_venues

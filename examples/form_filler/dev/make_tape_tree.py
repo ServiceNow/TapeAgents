@@ -14,12 +14,12 @@ from hydra.core.global_hydra import GlobalHydra
 from hydra.utils import instantiate
 from tqdm import tqdm
 
-from llmd2.tapeagents_tmp.ghreat.error import UnknownError
-from llmd2.tapeagents_tmp.ghreat.dev.run_formfiller_agent import run_formfiller_agent
-from llmd2.tapeagents_tmp.ghreat.dev.run_user_simulator import run_user_simulator_agent
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerAgentMetadata, FormFillerContext, FormFillerTape
-from llmd2.tapeagents_tmp.ghreat.user_simulator_agent import UserSimulatorAgent
-from llmd2.tapeagents_tmp.ghreat.user_simulator_agent import UserSimulatorTape
+from examples.form_filler.error import UnknownError
+from examples.form_filler.dev.run_formfiller_agent import run_formfiller_agent
+from examples.form_filler.dev.run_user_simulator import run_user_simulator_agent
+from examples.form_filler.tape import FormFillerAgentMetadata, FormFillerContext, FormFillerTape
+from examples.form_filler.user_simulator_agent import UserSimulatorAgent
+from examples.form_filler.user_simulator_agent import UserSimulatorTape
 
 from tapeagents.agent import Agent
 from tapeagents.core import Error

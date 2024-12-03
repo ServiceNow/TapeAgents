@@ -8,9 +8,9 @@ from omegaconf import DictConfig
 import traceback
 from tqdm import tqdm
 
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerAgentMetadata, FormFillerUserMetadata, FormFillerTape
+from examples.form_filler.tape import FormFillerAgentMetadata, FormFillerUserMetadata, FormFillerTape
 
-from llmd2.tapeagents_tmp.ghreat.user_simulator_agent import SampleUserInstructionThought, UserSimulatorAgent, UserSimulatorError, UserSimulatorTape
+from examples.form_filler.user_simulator_agent import SampleUserInstructionThought, UserSimulatorAgent, UserSimulatorError, UserSimulatorTape
 from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.parallel_processing import lazy_thread_pool_processor
 

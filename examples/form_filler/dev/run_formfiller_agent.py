@@ -10,10 +10,10 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from llmd2.tapeagents_tmp.ghreat.environment import FormFillerEnvironment
-from llmd2.tapeagents_tmp.ghreat.student import StudentAgent
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerContext, FormFillerAgentMetadata, FormFillerUserMetadata, FormFillerTape
-from llmd2.tapeagents_tmp.ghreat.error import UnknownError
+from examples.form_filler.environment import FormFillerEnvironment
+from examples.form_filler.student import StudentAgent
+from examples.form_filler.tape import FormFillerContext, FormFillerAgentMetadata, FormFillerUserMetadata, FormFillerTape
+from examples.form_filler.error import UnknownError
 
 from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.core import TapeMetadata, Error

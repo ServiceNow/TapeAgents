@@ -4,11 +4,11 @@ from typing import Type
 import numpy as np
 import pydantic
 
-from llmd2.tapeagents_tmp.ghreat.environment import FormFillerEnvironment
-from llmd2.tapeagents_tmp.ghreat.state import compute_form_filler_state
-from llmd2.tapeagents_tmp.ghreat.error import FormFillerStateError
-from llmd2.tapeagents_tmp.ghreat.user_simulator_filters import AlwaysTrue, extract_placeholder_keys, get_step_instruction_params
-from llmd2.tapeagents_tmp.ghreat.utils import get_step_cls, render_chat_template
+from examples.form_filler.environment import FormFillerEnvironment
+from examples.form_filler.state import compute_form_filler_state
+from examples.form_filler.error import FormFillerStateError
+from examples.form_filler.user_simulator_filters import AlwaysTrue, extract_placeholder_keys, get_step_instruction_params
+from examples.form_filler.utils import get_step_cls, render_chat_template
 from tapeagents.core import StepMetadata
 from tapeagents.core import Tape, Prompt, SetNextNode
 from tapeagents.dialog_tape import DialogTape
@@ -20,8 +20,8 @@ import tapeagents.llms
 import transformers
 tapeagents.llms.transformers = transformers
 
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape
-from llmd2.tapeagents_tmp.ghreat.steps import *
+from examples.form_filler.tape import FormFillerTape
+from examples.form_filler.steps import *
 
 logger = logging.getLogger(__name__)
 

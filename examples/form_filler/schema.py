@@ -20,7 +20,7 @@ import referencing.jsonschema
 from typing_extensions import Self
 
 from tapeagents.core import Observation
-from llmd2.tapeagents_tmp.ghreat.error import (
+from examples.form_filler.error import (
     InvalidFunctionParameterSkipError,
     InvalidFunctionParameterValueError,
     InvalidFunctionParametersError,
@@ -30,7 +30,7 @@ from llmd2.tapeagents_tmp.ghreat.error import (
     UnknownFunctionSchemaError,
     FormFillerStateError
 )
-from llmd2.tapeagents_tmp.ghreat.types import FunctionName, ParameterName
+from examples.form_filler.types import FunctionName, ParameterName
 
 
 ### copy-paste of llmd2.core.json_schema ###

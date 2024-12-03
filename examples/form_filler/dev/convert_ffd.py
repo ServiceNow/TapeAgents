@@ -5,9 +5,9 @@ from pathlib import Path
 from tqdm import tqdm
 import yaml
 
-from llmd2.tapeagents_tmp.ghreat.critic import from_llmd2_annotated_dialog_dict
-import llmd2.tapeagents_tmp.ghreat.tape as tape_module
-from llmd2.tapeagents_tmp.ghreat.tape import from_llmd2_dialog_dict
+from examples.form_filler.critic import from_llmd2_annotated_dialog_dict
+import examples.form_filler.tape as tape_module
+from examples.form_filler.tape import from_llmd2_dialog_dict
 from tapeagents.io import stream_yaml_tapes
 
 

@@ -4,10 +4,10 @@ from pathlib import Path
 
 import yaml
 
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape
-from llmd2.tapeagents_tmp.ghreat.steps import Exit, FunctionCandidates, FunctionCandidate, ResolveFunction, InspectFunction, CallFunction
-from llmd2.tapeagents_tmp.ghreat.schema import FunctionSchema
-from llmd2.tapeagents_tmp.ghreat.types import FunctionName
+from examples.form_filler.tape import FormFillerTape
+from examples.form_filler.steps import Exit, FunctionCandidates, FunctionCandidate, ResolveFunction, InspectFunction, CallFunction
+from examples.form_filler.schema import FunctionSchema
+from examples.form_filler.types import FunctionName
 
 from tapeagents.environment import Environment, NoActionsToReactTo
 from tapeagents.core import Error

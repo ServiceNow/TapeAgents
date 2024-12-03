@@ -9,13 +9,13 @@ step_types_chain:
   - RequestFunctionParameters
   - AssistantStep
 step_filters:
-  - _target_: llmd2.tapeagents_tmp.ghreat.user_simulator_filters.HasRequiredTemplateParams
+  - _target_: examples.form_filler.user_simulator_filters.HasRequiredTemplateParams
     params:
       - current_parameter_name
       - current_parameter_enum_values
 
 instruction:
-  _target_: llmd2.tapeagents_tmp.ghreat.user_simulator_agent.InstructionSampler
+  _target_: examples.form_filler.user_simulator_agent.InstructionSampler
   instructions:
     invalid: |-
       Provide an INVALID value for the '{current_parameter_name}' field.

@@ -5,9 +5,9 @@ from tapeagents.llms import LLM, LLMStream
 from tapeagents.agent import Agent, Node
 from tapeagents.view import Call, Respond
 
-from llmd2.tapeagents_tmp.ghreat.schema import FunctionSchema
-from llmd2.tapeagents_tmp.ghreat.steps import I_NOTE_STEPS, I_SHOULD_STEPS, FunctionCandidates, RequestFunctionParameters
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape, from_llmd2_dialog_dict
+from examples.form_filler.schema import FunctionSchema
+from examples.form_filler.steps import I_NOTE_STEPS, I_SHOULD_STEPS, FunctionCandidates, RequestFunctionParameters
+from examples.form_filler.tape import FormFillerTape, from_llmd2_dialog_dict
 
 
 class IsGrounded(Thought):

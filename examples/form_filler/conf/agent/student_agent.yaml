@@ -2,7 +2,7 @@ defaults:
   - /llm: vllm_sft448_temp1
   - _self_
 
-_target_: llmd2.tapeagents_tmp.ghreat.student.StudentAgent.create
+_target_: examples.form_filler.student.StudentAgent.create
 
 
 templates:

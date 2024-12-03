@@ -12,7 +12,7 @@ from tapeagents.io import load_tapes, save_tapes
 from tapeagents.llms import LiteLLM
 from tapeagents.parallel_processing import lazy_thread_pool_processor
 
-from llmd2.tapeagents_tmp.ghreat.critic import (
+from examples.form_filler.critic import (
     Critic, CriticExpert, CriticStep, CriticTape,
     IsGrounded,
     IsHelpful,
@@ -21,7 +21,7 @@ from llmd2.tapeagents_tmp.ghreat.critic import (
     IsTransparent1,
     IsTransparent2,
 )
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape
+from examples.form_filler.tape import FormFillerTape
 
 logging.basicConfig(level=logging.INFO)
 

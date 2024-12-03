@@ -1,4 +1,4 @@
-_target_: llmd2.tapeagents_tmp.ghreat.user_simulator_agent.UserSimulatorAgent.create
+_target_: examples.form_filler.user_simulator_agent.UserSimulatorAgent.create
 
 behavior_alias: ???
 

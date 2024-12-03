@@ -9,7 +9,7 @@ step_types_chain:
   - AssistantStep
 
 step_filters:
-  - _target_: llmd2.tapeagents_tmp.ghreat.user_simulator_filters.ParameterType
+  - _target_: examples.form_filler.user_simulator_filters.ParameterType
     # cannot skip <--> required & no default
     required_no_default: true
 

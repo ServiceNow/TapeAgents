@@ -5,9 +5,9 @@ from pydantic import BaseModel, JsonValue, Field
 from tapeagents.core import Action, Observation, SetNextNode, StopStep, Thought, LLMOutputParsingFailureAction
 from tapeagents.dialog_tape import UserStep, AssistantStep
 
-from llmd2.tapeagents_tmp.ghreat.types import FunctionName, ParameterName
-from llmd2.tapeagents_tmp.ghreat.schema import FunctionSchema
-from llmd2.tapeagents_tmp.ghreat.error import _FormFillerStateError
+from examples.form_filler.types import FunctionName, ParameterName
+from examples.form_filler.schema import FunctionSchema
+from examples.form_filler.error import _FormFillerStateError
 
 
 class FunctionCandidate(BaseModel):

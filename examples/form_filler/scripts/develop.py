@@ -10,8 +10,8 @@ from tapeagents.studio import Studio
 from tapeagents.llms import LLAMA, LLM
 from tapeagents.rendering import PrettyRenderer
 
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape
-from llmd2.tapeagents_tmp.ghreat.critic import (
+from examples.form_filler.tape import FormFillerTape
+from examples.form_filler.critic import (
     Critic,
     CriticExpert,
     CriticTape,

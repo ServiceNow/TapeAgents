@@ -6,8 +6,8 @@ import json
 from tapeagents.core import Tape, TapeMetadata, Thought, Observation, Action
 from tapeagents.dialog_tape import UserStep, AssistantStep
 
-from llmd2.tapeagents_tmp.ghreat.steps import *
-from llmd2.tapeagents_tmp.ghreat.schema import FunctionSchema
+from examples.form_filler.steps import *
+from examples.form_filler.schema import FunctionSchema
 
 
 class FormFillerContext(BaseModel):

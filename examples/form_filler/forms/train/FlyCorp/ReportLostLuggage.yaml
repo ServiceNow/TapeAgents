@@ -1,0 +1,64 @@
+name: ReportLostLuggage
+description: 'Request to report lost luggage, including flight details, luggage description,
+  and contact information. This function requires the passenger''s name, flight number,
+  departure date, luggage type, and contact email. The luggage type must be one of
+  the following: suitcase, backpack, handbag, or other. The function will return a
+  request ID, the status of the request (either ''pending'', ''in_progress'', or''resolved''),
+  and a comment from the FlyCorp customer service team. According to FlyCorp''s policy,
+  all lost luggage reports must be submitted within 24 hours of flight arrival. FlyCorp
+  is not responsible for lost luggage that is not reported within this timeframe.'
+parameters:
+  type: object
+  properties:
+    passenger_name:
+      description: The passenger's full name
+      type: string
+    flight_number:
+      description: The flight number of the flight on which the luggage was lost
+      type: string
+    departure_date:
+      description: The date of departure of the flight on which the luggage was lost
+      type: string
+      format: date
+    luggage_type:
+      description: The type of luggage that was lost
+      type: string
+      enum:
+      - suitcase
+      - backpack
+      - handbag
+      - other
+    contact_email:
+      description: The passenger's email address
+      type: string
+      format: email
+    luggage_description:
+      description: A brief description of the lost luggage
+      type: string
+      default: ''
+  required:
+  - passenger_name
+  - flight_number
+  - departure_date
+  - luggage_type
+  - contact_email
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the lost luggage report
+      type: string
+    status:
+      description: The status of the lost luggage report
+      type: string
+      enum:
+      - pending
+      - in_progress
+      - resolved
+    comment:
+      description: A comment from the FlyCorp customer service team
+      type: string
+  required:
+  - request_id
+  - status
+  - comment

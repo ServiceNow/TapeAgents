@@ -4,11 +4,11 @@ from pydantic import BaseModel, Field, JsonValue
 
 
 from tapeagents.dialog_tape import AssistantStep, UserStep
-from llmd2.tapeagents_tmp.ghreat.types import FunctionName, ParameterName
-from llmd2.tapeagents_tmp.ghreat.schema import FunctionSchema
-from llmd2.tapeagents_tmp.ghreat.steps import *
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerTape
-from llmd2.tapeagents_tmp.ghreat.error import *
+from examples.form_filler.types import FunctionName, ParameterName
+from examples.form_filler.schema import FunctionSchema
+from examples.form_filler.steps import *
+from examples.form_filler.tape import FormFillerTape
+from examples.form_filler.error import *
 
 
 logger = logging.getLogger(__name__)

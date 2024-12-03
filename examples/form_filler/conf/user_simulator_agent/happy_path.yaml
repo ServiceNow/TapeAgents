@@ -8,10 +8,10 @@ step_types_chain:
 - AssistantStep
 
 step_filters:
-- _target_: llmd2.tapeagents_tmp.ghreat.user_simulator_filters.HasAnyFunction
+- _target_: examples.form_filler.user_simulator_filters.HasAnyFunction
 
 instruction:
-  _target_: llmd2.tapeagents_tmp.ghreat.user_simulator_agent.InstructionSampler
+  _target_: examples.form_filler.user_simulator_agent.InstructionSampler
   instructions:
     respond: 'Reply to the agent and answer its question. DO NOT ask followup questions.'
     respond_short: 'Reply with a short answer to the agent. DO NOT explain yourself. Be very scpecific and brief!'

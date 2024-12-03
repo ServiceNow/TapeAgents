@@ -5,10 +5,10 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from llmd2.tapeagents_tmp.ghreat.environment import FormFillerEnvironment
-from llmd2.tapeagents_tmp.ghreat.student import StudentAgent
-from llmd2.tapeagents_tmp.ghreat.tape import FormFillerContext, FormFillerTape
-from llmd2.tapeagents_tmp.ghreat.teacher import TeacherAgent
+from examples.form_filler.environment import FormFillerEnvironment
+from examples.form_filler.student import StudentAgent
+from examples.form_filler.tape import FormFillerContext, FormFillerTape
+from examples.form_filler.teacher import TeacherAgent
 from tapeagents.io import load_tapes
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.studio import Studio
