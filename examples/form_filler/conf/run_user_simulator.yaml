@@ -1,0 +1,16 @@
+defaults:
+  - user_simulator_agent: happy_path
+  - llm@user_simulator_agent.llms: vllm_llama3_8b
+  - override hydra/job_logging: verbose2
+  - _self_
+
+input_dialogues_path: ???
+output_path: ??? # must be a directory
+n_workers: 0
+max_continuable_tapes: -1
+
+hydra:
+  run:
+    dir: ${output_path}
+  job:
+    chdir: false

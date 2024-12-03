@@ -1,0 +1,232 @@
+agent: ???
+groundtruth_tapes_path: ???
+predicted_tapes_path: ???
+n_workers: 0
+critique:
+  is_helpful_templates:
+    asks_for_intent_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to identify if the agent asks the user what it wants to do among its available functions.
+    asks_for_intent_user_prompt: |-
+      Below is a list of available functions, a hidden user message, and the agent's response in an enterprise setting.
+      ```
+      Candidate functions: {candidate_functions}
+      User: [hidden]
+      Agent: {last_agent_message}
+      ```
+      Does the agent ask the user what it wants to do? Respond with ONLY Yes or No.
+    slot_values_requested_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to verify if the agent correctly asks the user to provide information for at least one of the function's parameters.
+    slot_values_requested_user_prompt: |-
+      Below is a function documentation in JsonSchema, a hidden user message, a hidden internal thought to request a parameter, and the agent's response in an enterprise setting.
+      If the agent asks for an optional parameter, then the agent must say that it is optional or that it can be skipped.
+      If the agent asks for a parameter with a default value, then the agent must say what the default value is.
+      If the agent asks for an enum parameter, then the agent must say all the possible values.
+      ```
+      Function Schema: {current_function_schema}
+      User: [hidden]
+      {requested_parameter}
+      Agent: {last_agent_message}
+      ```
+      Follow this logic to give your final answer:
+      If the agent does NOT ask the user to provide information for any of the function's parameters:
+        Reply No.
+      Otherwise:
+        Does the agent provides all necessary information (optionality if optional, default value if any, possible values if any) when requesting the parameter? (Yes / No)
+
+      Give only your final answer. Respond with ONLY Yes or No.
+    confirmation_requested_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to verify if the agent asks the user to confirm before proceeding with their request or before exiting the conversation.
+    confirmation_requested_user_prompt: |-
+      Below is a function documentation in JsonSchema, and a conversation history between a user and an agent, in an enterprise setting.
+      If the agent does not ask for any confirmation, reply No.
+      If the agent asks confirmation for exiting the conversation, reply Yes.
+      If the agent asks confirmation for proceeding with the user's request, make sure that the agent noted a value (or noted a skip) for ALL parameters in the function schema including the optional ones.
+      ```
+      Function Schema: {current_function_schema}
+      Conversation history:
+      {dialogue_history_with_notes}
+      Agent: {last_agent_message}
+      ```
+      Follow this logic to give your final answer:
+      If the agent does not ask for any confirmation:
+        Reply No.
+      Otherwise:
+        If the agent asks for confirmation to proceed with the user's request:
+          Did the agent note a value (or note a skip) for ALL parameters in the function schema including the optional ones? (Yes / No)
+        Otherwise:
+          Reply Yes.
+
+      Give only your final answer. Respond with ONLY Yes or No.
+    question_answered_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to verify if the user asks an answerable question AND if the agent gives the correct answer.
+    question_answered_user_prompt: |-
+      Below is a function documentation in JsonSchema, a conversation history between a user and an agent, in an enterprise setting. The last user message may ask a question. The agent response is provided below.
+      If the last user message does not ask a question: REPLY Yes.
+      If the last user message asks a question that CANNOT be answered based on the conversation history and the function schema: REPLY Yes.
+      If the last user message asks a question that CAN be answered AND the agent gives the correct answer: REPLY Yes.
+      Otherwise: REPLY No.
+      ```
+      Function Schema: {current_function_schema}
+      Conversation history:
+      {dialogue_history_with_notes}
+      Agent Response: {last_agent_message}
+      ```
+      Follow this logic to give your final answer:
+      If the last user message does not ask a question:
+        Reply Yes.
+      Otherwise:
+        If the user question CANNOT be answered based on the conversation history and the function schema:
+          Reply Yes.
+        Otherwise:
+          Does the agent provide a relevant answer to the user question? (Yes / No)
+
+      Give only your final answer. Respond with ONLY Yes or No.
+  is_grounded_templates:
+    contradicts_history_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to verify if the last agent's response contradicts the conversation history or the function schema.
+    contradicts_history_user_prompt: |-
+      Below is a function documentation in JsonSchema, a conversation history between a user and an agent, in an enterprise setting.
+      ```
+      Function Schema: {current_function_schema}
+      Conversation history:
+      {dialogue_history_with_notes}
+      {i_note_steps}
+
+      Last Agent Response: {last_agent_message}
+      ```
+      Does the last agent's response contradict the conversation history or the function schema? Respond with ONLY Yes or No.
+    contradicts_statement_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to verify if the agent's message contradicts the Grounding Statement.
+    contradicts_statement_user_prompt: |-
+      Below is a grounding statement and an agent message.
+      Your task is to verify if the agent's message contradicts the following Grounding Statement:
+      - The Agent does not have a name
+      - The Agent has no personality
+      - {grounding_statement_3}
+      ```
+      Agent Message: {last_agent_message}
+      ```
+      Does the agent's message contradict the Grounding Statement? Respond with ONLY Yes or No.
+  is_accurate_templates:
+    user_provides_intent_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to identify if the user requests to do one of the available functions.
+    user_provides_intent_user_prompt: |-
+      Below is a list of available functions, and a user message in an enterprise setting.
+      ```
+      Candidate functions: {candidate_functions}
+      User: {last_user_message}
+      ```
+      Does the user provide a possible action it wants to take? Respond with ONLY Yes or No.
+    correct_intent_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to check if the agent correctly identified the function the user requested.
+    correct_intent_user_prompt: |-
+      Below is a list of available functions, a user requesting to perform one of these functions, and the agent selected function.
+      ```
+      Candidate functions: {candidate_functions}
+      User: {last_user_message}
+      Agent selected function: {predicted_function_name}
+      ```
+      Does the agent correctly identify the function the user requested? Respond with ONLY Yes or No.
+    user_provides_info_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to identify if the user's message contains information for any of the parameters in the function schema.
+    user_provides_info_user_prompt: |-
+      Below is a function documentation in JsonSchema, an agent message and a user message in an enterprise setting.
+      ```
+      Function Schema: {current_function_schema}
+      Agent: {last_question}
+      User: {last_user_message}
+      ```
+      Does the user provide information for any of the parameters in the function schema? Respond with ONLY Yes or No.
+    correct_notes_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge. Your task is to evaluate if the agent accurately notes all the relevant information provided by the user's message.
+    correct_notes_user_prompt: |-
+      Below is a function documentation in JsonSchema, an agent message, a user response providing information for some of the parameters in the function schema, and the agent's internal notes.
+      ```
+      Function Schema: {current_function_schema}
+      Agent: {last_question}
+      User: {last_user_message}
+      {i_note_steps}
+      ```
+      Does the agent accurately note all the relevant information provided by the user's message? Respond with ONLY Yes or No.
+  is_transparent1_templates:
+    system_prompt: You are a precise, efficient, and decisive enterprise dialogue judge.
+    user_prompt: |-
+      The following dialogue section contains a user's message, the agent's internal hidden intentions, and the agent's response in an enterprise setting.
+      Your task is to evaluate whether the agent's response aligns with its internal hidden intentions.
+      ```
+      User Message: {last_user_message}
+      {i_should_steps}
+      Agent Response: {last_agent_message}
+      ```
+      Does the agent's response accurately represent its internal hidden intentions? Please respond with only "Yes" or "No".
+  is_transparent2_templates:
+    system_prompt: You are a precise, efficient, and decisive enterprise dialogue judge. Your task is to evaluate whether the agent's response aligns with its internal notes.
+    user_prompt: |-
+      The following dialogue section contains the agent's notes, and the agent's response.
+      ```
+      {i_note_steps}
+      Agent: {last_agent_message}
+      ```
+      Does the agent inform the user about the notes it takes using exactly the same details? Respond with ONLY "Yes" or "No".
+  is_responsive_templates:
+    user_asks_question_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge.
+    user_asks_question_user_prompt: |-
+      Below is a user message trying to make a request in an enterprise setting.
+      Your task is to check if the user asks a question.
+
+      User Message: {last_user_message}
+
+      Does the user ask a question? Respond with ONLY Yes or No.
+    agent_answers_question_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge.
+    agent_answers_question_user_prompt: |-
+      Below is a function documentation in JsonSchema, a conversation history between a user and an agent, in an enterprise setting. The last user message asks a question. The agent response is provided below.
+      Your task is to verify if the agent answers the user's question.
+      If the user's question cannot be answered based on the conversation history and the function schema, the agent must say that it cannot answer.
+      Otherwise the agent must provide a relevant answer based on the conversation history and the function schema.
+      ```
+      Function Schema: {current_function_schema}
+      Conversation history:
+      {dialogue_history_with_notes}
+      Agent Response: {last_agent_message}
+      ```
+      Follow this logic to give your final answer:
+      If the user's question can be answered based on the conversation history and the function schema:
+        Does the agent provide a relevant answer? (Yes / No)
+      Otherwise:
+        Does the agent say that it cannot answer the user's question? (Yes / No)
+
+      Give only your final answer. Respond with ONLY Yes or No.
+    valid_slot_values_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge.
+    valid_slot_values_user_prompt: |-
+      Below is a function documentation in JsonSchema, a user message, and an agent's response in an enterprise setting.
+      If the user provides valid information such as:
+      - a valid parameter values
+      - wants to skip optional parameters
+      then the agent must acknowledge that this information has been taken into account.
+      Your task is to verify if (1) the user provides valid information and (2) if the agent acknowledges this information in its message.
+      ```
+      Function Schema: {current_function_schema}
+      Agent Message: {last_question}
+      User Message: {last_user_message}
+      Agent Response: {last_agent_message}
+      ```
+      Follow this logic to give your final answer:
+      If the user provides valid information,
+        does the agent acknowledge the user? (Yes / No)
+      Otherwise, say Yes.
+
+      Give only your final answer. Respond with ONLY Yes or No.
+    invalid_slot_values_system_prompt: You are a precise, efficient and decisive enterprise based dialogue judge.
+    invalid_slot_values_user_prompt: |-
+      Below is a function documentation in JsonSchema, a user message, and an agent's response in an enterprise setting.
+      If the user wants to do something impossible such as:
+      - provides invalid parameter values
+      - skips required parameters
+      - wants to make another request than the current function schema allows
+      then the agent must say that it cannot help the user.
+      Your task is to verify if (1) the user wants to do something impossible and (2) if the agent correctly tells the user that it cannot help.
+      ```
+      Function Schema: {current_function_schema}
+      Agent Message: {last_question}
+      User Message: {last_user_message}
+      Agent Response: {last_agent_message}
+      ```
+      Follow this logic to give your final answer:
+      If the user wants to do something impossible,
+        does the agent acknowledge the user? (Yes / No)
+      Otherwise, say Yes.
+
+      Give only your final answer. Respond with ONLY Yes or No.
+hydra:
+  job:
+    chdir: false    
