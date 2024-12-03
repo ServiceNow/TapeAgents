@@ -34,6 +34,7 @@ def get_video_observation(
         logger.error(f"Error while watching video: {e}")
         raise e
     video_observation = VideoObservation(
+        local_dir=output_dir,
         video_path=video_path_trimmed,
         video_contact_sheet_paths=video_contact_sheet_paths,
         thumbnail_path=thumbnail_path,
