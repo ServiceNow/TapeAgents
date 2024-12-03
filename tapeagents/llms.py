@@ -262,7 +262,7 @@ class TrainableLLM(CachedLLM):
 
     base_url: str
     api_token: str = Field(default="", exclude=True)
-    collect_logprobs: bool = True
+    collect_logprobs: bool = False
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
