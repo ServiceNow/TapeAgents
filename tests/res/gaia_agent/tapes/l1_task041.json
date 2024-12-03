@@ -1,0 +1,404 @@
+{
+    "metadata": {
+        "id": "d57d6c35-6894-4ec2-a1ef-c13db6eb202f",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "500 Things to Eat Before It's Too Late",
+        "task": {
+            "task_id": "dc22a632-937f-4e6a-b72f-ba0ff3f5ff97",
+            "Question": "What was the complete title of the book in which two James Beard Award winners recommended the restaurant where Ali Khan enjoyed a New Mexican staple in his cost-conscious TV show that started in 2015? Write the numbers in plain text if there are some in the title.",
+            "Level": 1,
+            "Final answer": "Five Hundred Things To Eat Before It's Too Late: and the Very Best Places to Eat Them",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Searched \"Ali Khan New Mexico staple TV show\" on Google.\n2. Opened \"Albuquerque | Cheap Eats\" at https://www.cookingchanneltv.com/shows/cheap-eats/episodes/albuquerque.\n3. Noted the New Mexico staple and the list of restaurants.\n4. Searched \"Albuquerque Cheap Eats carne avodava\" on Google.\n5. Confirmed the restaurant name (Papa Felipe's) from the results.\n6. Searched \"James Beard Award winners Papa Felipe's\" on Google.\n7. Opened \"Papa Felipe's Mexican Restaurant - Albuquerque, New ...\" at https://www.nmgastronome.com/?p=4572.\n8. Clicked the link on the book title.\n9. Copied the full book title from Amazon.",
+                "Number of steps": "9",
+                "How long did this take?": "15 minutes",
+                "Tools": "1. Web browser\n2. Search engine",
+                "Number of tools": "2"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "ddd231bc-dcad-4697-a316-89f5aeddfaf9",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "What was the complete title of the book in which two James Beard Award winners recommended the restaurant where Ali Khan enjoyed a New Mexican staple in his cost-conscious TV show that started in 2015? Write the numbers in plain text if there are some in the title.",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "c35c4a71-fd4d-42bd-8a84-c29b5afec611",
+                "prompt_id": "7466ea4d-3000-4917-ac13-d30cc88aa517",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Identify the TV show hosted by Ali Khan that started in 2015.",
+                "Research the New Mexican staple featured in the show.",
+                "Find out which restaurant was recommended by two James Beard Award winners in relation to the show.",
+                "Look for the complete title of the book that includes this information."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "48b5f2ee-58ea-46d4-ab77-7e20c02cbcc3",
+                "prompt_id": "b37f0b04-bb36-454a-b4e5-d5285e9e75de",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                "Ali Khan enjoyed a New Mexican staple in his cost-conscious TV show that started in 2015.",
+                "Two James Beard Award winners recommended a restaurant."
+            ],
+            "facts_to_lookup": [
+                "The name of the TV show hosted by Ali Khan that started in 2015.",
+                "The New Mexican staple featured in the show.",
+                "The restaurant recommended by the two James Beard Award winners.",
+                "The complete title of the book that includes this information."
+            ],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "d94be954-2e41-4cfd-8cf0-1e1e3e9dcaf0",
+                "prompt_id": "87ab7bed-d43f-4f28-a2c2-72a534cc4c0b",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Ali Khan cost-conscious TV show started in 2015"
+        },
+        {
+            "metadata": {
+                "id": "87697168-d597-4985-962a-9ccd9b7eaa7d",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Ali Khan cost-conscious TV show started in 2015",
+            "serp": [
+                {
+                    "title": "Saif Ali Khan",
+                    "url": "https://en.wikipedia.org/wiki/Saif_Ali_Khan",
+                    "content": "Saif Ali Khan is an Indian actor and film producer who primarily works in Hindi films. Current head of the Pataudi family, he is the son of actress Sharmila ..."
+                },
+                {
+                    "title": "All shows of Zee TV",
+                    "url": "https://www.imdb.com/list/ls569596195/",
+                    "content": "A woman with faith in love meets a man cautious about romance due to past heartbreak. Despite their differences, they grow close and must decide if they can ..."
+                },
+                {
+                    "title": "TV Shows about God and religion",
+                    "url": "https://www.imdb.com/list/ls563125219/",
+                    "content": "The Chosen is a historical drama based on the life of Jesus and those who knew him. Set against the backdrop of Roman oppression in first-century Israel."
+                },
+                {
+                    "title": "Heeramandi",
+                    "url": "https://en.wikipedia.org/wiki/Heeramandi",
+                    "content": "The series is about the lives of tawaifs in the red-light district of Heera Mandi in Lahore during the Indian independence movement against the British Raj."
+                },
+                {
+                    "title": "The many faces of Alyy Khan - Pakistan",
+                    "url": "https://www.dawn.com/news/1179156",
+                    "content": "3 May 2015 — Alyy Khan says he hasn't done much stage in Pakistan — just directed one stage play Aapki Sonia. “Javed Siddiqi's Aapki Sonia was a world-class ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "9a3a353e-6900-4231-8add-f7f50a260610",
+                "prompt_id": "d25a4766-859c-4e50-a9df-8ee0aecddee0",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Ali Khan cost-conscious TV show name 2015"
+        },
+        {
+            "metadata": {
+                "id": "73ebce4b-765f-403d-bcca-1c9da179a1b5",
+                "prompt_id": "d25a4766-859c-4e50-a9df-8ee0aecddee0",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "a5243140-a4ca-48d8-94e0-cc16d051f472",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Ali Khan cost-conscious TV show name 2015",
+            "serp": [
+                {
+                    "title": "Ali Khan",
+                    "url": "https://www.foodallergy.org/our-initiatives/awareness-campaigns/living-teal/living-tealtm-videos/take-out-show/ali-khan",
+                    "content": "In 2015, Ali premiered his very own show, Cheap Eats, on Cooking Channel. Armed with a budget of only $35, Ali takes a culinary tour of the US on a budget ..."
+                },
+                {
+                    "title": "Ali Khan Eats: Home",
+                    "url": "https://alikhaneats.com/",
+                    "content": "He is most known for his breakout series, Cheap Eats, which ran for 5 seasons on Cooking Channel, internationally on Food Network and streams on major platforms ..."
+                },
+                {
+                    "title": "Ali Khan | Actor",
+                    "url": "https://www.imdb.com/name/nm6475434/",
+                    "content": "The host of Food Network's Spring Baking Championship(season 7 + season 4), he is most known for his breakout series, Cheap Eats, which ran for 5 seasons on ..."
+                },
+                {
+                    "title": "Saif Ali Khan",
+                    "url": "https://en.wikipedia.org/wiki/Saif_Ali_Khan",
+                    "content": "Saif Ali Khan is an Indian actor and film producer who primarily works in Hindi films. Current head of the Pataudi family, he is the son of actress Sharmila ..."
+                },
+                {
+                    "title": "All shows of Zee TV",
+                    "url": "https://www.imdb.com/list/ls569596195/",
+                    "content": "This series is about how they grow as human beings, who care for each other, but also learn to care for others while staying true to themselves."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "c005e7f0-e579-4d03-9427-693486bc0f8d",
+                "prompt_id": "3609e6be-caa8-4229-b27c-dc9c2b3c7089",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "title of the show hosted by Ali Khan that started in 2015",
+            "fact_found": true,
+            "quote_with_fact": "In 2015, Ali premiered his very own show, Cheap Eats, on Cooking Channel.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "ff47192c-e53d-4e25-8d44-db1361bfcae7",
+                "prompt_id": "3609e6be-caa8-4229-b27c-dc9c2b3c7089",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "70c037c2-9915-40ea-8f12-a78b54550e9f",
+                "prompt_id": "5955a189-48ee-4201-b1e5-242079b53af9",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Cheap Eats Ali Khan New Mexican staple restaurant recommended by James Beard Award winners"
+        },
+        {
+            "metadata": {
+                "id": "9658c66a-5bc4-4ca4-b8ef-63cac990d459",
+                "prompt_id": "5955a189-48ee-4201-b1e5-242079b53af9",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "e31aeee3-f401-4268-8ab6-2351d87727a3",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Cheap Eats Ali Khan New Mexican staple restaurant recommended by James Beard Award winners",
+            "serp": [
+                {
+                    "title": "Ali Khan (@alikhaneats)",
+                    "url": "https://www.instagram.com/alikhaneats/?hl=en",
+                    "content": "Host on @foodnetwork @discoveryplus @cookingchannel #SpringBakingChampionship #CheapEats #BestThingIEverAte Burger Guru ✍      ‍   @texashighways · 3,582 posts."
+                },
+                {
+                    "title": "Ali Khan Serves Up ACL Festival Food Selections",
+                    "url": "https://thetraveladdict.com/interviews/ali-khan-serves-up-acl-festival-food-selections-dishes-on-cheap-eats-and-austins-unexpected-hot-spots/",
+                    "content": "Oct 5, 2023 — Read on for restaurant selection strategies on the road, if the prices on “Cheap Eats” were the real deal, affordable ideas in major cities and ..."
+                },
+                {
+                    "title": "Papa Felipe's Mexican Restaurant - Albuquerque, New ...",
+                    "url": "https://www.nmgastronome.com/?p=4572",
+                    "content": "Jul 8, 2018 — In an episode entitled “Cheap Eats,” host and food blogger Ali Khan had dinner at Papa Felipe's where he enjoyed a sopaipilla stuffed with carne ..."
+                },
+                {
+                    "title": "Award-winning Restaurants in the US",
+                    "url": "https://www.opentable.com/lists/award-winning-us",
+                    "content": "May 12, 2023 — ... New Restaurants in the World and recognition from the James Beard Foundation and Michelin. ... affordable menu are a casual alternative to our ..."
+                },
+                {
+                    "title": "The Best Thing I Ever Ate",
+                    "url": "https://en.wikipedia.org/wiki/The_Best_Thing_I_Ever_Ate",
+                    "content": "Diet; winner of James Beard Award · Guy Fieri - Winner of Season 2 of Food Network ... Ali Khan - Food blogger; host of Cheap Eats · Dan Kohler - Culinary ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "6483da3c-a725-467c-ad3c-5a25f4ba5a9a",
+                "prompt_id": "de93b20d-9502-4c9d-b22b-a31b7ac205c1",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "restaurant where Ali Khan enjoyed a New Mexican staple",
+            "fact_found": true,
+            "quote_with_fact": "Ali Khan had dinner at Papa Felipe's where he enjoyed a sopaipilla stuffed with carne.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "94f70fa0-a3c3-4e68-8f9d-2a3a8bdb39e0",
+                "prompt_id": "de93b20d-9502-4c9d-b22b-a31b7ac205c1",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "e9bf1d42-7ad4-4fce-9c70-56355fdf5068",
+                "prompt_id": "ee658546-4f9b-4f7b-88ea-d19177185677",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "book title Papa Felipe's restaurant James Beard Award winners"
+        },
+        {
+            "metadata": {
+                "id": "463a7751-91ad-4b9f-8dc5-4ff95206c001",
+                "prompt_id": "ee658546-4f9b-4f7b-88ea-d19177185677",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "331cb83f-825d-4f04-9e78-33e00eac2c95",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "book title Papa Felipe's restaurant James Beard Award winners",
+            "serp": [
+                {
+                    "title": "Papa Felipe's Mexican Restaurant - Albuquerque, New ...",
+                    "url": "https://www.nmgastronome.com/?p=4572",
+                    "content": "Jul 8, 2018 — In 2009, James Beard Award-winning food journalists Jane and Michael Stern published a terrific tome entitled 500 Things to Eat Before It's Too ..."
+                },
+                {
+                    "title": "Awards Search",
+                    "url": "https://www.jamesbeard.org/awards/search",
+                    "content": "Press Inquires. For press inquires about past award winners please contact awards@jamesbeard.org."
+                },
+                {
+                    "title": "James Beard Awards 2024: Media Award Winners",
+                    "url": "https://www.eater.com/24173865/james-beard-foundation-awards-2024-media-winners-cookbooks-journalism",
+                    "content": "Jun 8, 2024 — Here's who won James Beard Awards for cookbooks, food writing, television, and more, with wins for Hetty Lui McKinnon, Sohla El-Waylly, ..."
+                },
+                {
+                    "title": "The 2024 James Beard Awards Semifinalists",
+                    "url": "https://www.jamesbeard.org/blog/the-2024-james-beard-awards-semifinalists",
+                    "content": "Jan 24, 2024 — Today, we are proud to announce the 2024 Restaurant and Chef Awards semifinalists for the James Beard Awards® presented by Capital One."
+                },
+                {
+                    "title": "2024 James Beard Foundation Book Award Winners ...",
+                    "url": "https://www.publishersweekly.com/pw/newsbrief/index.html?record=4743",
+                    "content": "Jun 9, 2024 — José Andrés, Abi Balingit, Laura Tillman, and Sohla El-Waylly were among this year's winners."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "5286b5bc-a1b8-44f6-b903-d3d0cdeb33f3",
+                "prompt_id": "c9553473-8a91-445d-9458-e4d027b2910e",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reading_result_thought",
+            "fact_description": "complete title of the book by James Beard Award winners related to Papa Felipe's",
+            "fact_found": true,
+            "quote_with_fact": "In 2009, James Beard Award-winning food journalists Jane and Michael Stern published a terrific tome entitled 500 Things to Eat Before It's Too Late.",
+            "where_to_look_next": ""
+        },
+        {
+            "metadata": {
+                "id": "4c0d2e22-4d42-482b-86b6-2f227f357d75",
+                "prompt_id": "c9553473-8a91-445d-9458-e4d027b2910e",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "6a1778d3-db99-4fb1-86f5-77e62e246d0d",
+                "prompt_id": "ead4b163-1480-48d8-99f2-073d65f50ec9",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the complete title of the book related to the restaurant recommended by James Beard Award winners.",
+            "answer_unit": "",
+            "answer": "500 Things to Eat Before It's Too Late"
+        }
+    ]
+}

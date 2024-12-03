@@ -23,6 +23,7 @@ import re
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse
 
@@ -42,6 +43,17 @@ from .document_converters import (
     FileConverter,
     UnsupportedFormatException,
 )
+
+
+@contextmanager
+def acquire_timeout(lock, timeout):
+    result = lock.acquire(timeout=timeout)
+    try:
+        yield result
+    finally:
+        if result:
+            lock.release()
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -299,7 +311,7 @@ class SimpleTextBrowser:
             serp = self.tavily.search(query=query, search_depth="basic", max_results=max_results) or {"results": []}
             results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
         else:
-            with search_lock:
+            with acquire_timeout(search_lock, 5):
                 results = [
                     {"title": r.title, "url": r.url, "content": r.description}
                     for r in search(query, advanced=True, num_results=max_results)
@@ -416,8 +428,11 @@ class SimpleTextBrowser:
             header = f"Title: {self.page_title}\n=======================\n" if self.page_title else ""
         return header + self.viewport.strip()
 
-    def set_web_cache(self, cache: dict) -> None:
-        self._cache = cache
+    def set_web_cache(self, cache_filename: str) -> None:
+        with open(cache_filename) as f:
+            for line in f:
+                data = json.loads(line)
+                self._cache[data["k"]] = data["v"]
 
     def _add_to_cache(self, key: str, value: Any) -> None:
         self._cache[key] = value

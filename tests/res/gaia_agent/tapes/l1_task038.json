@@ -1,0 +1,506 @@
+{
+    "metadata": {
+        "id": "869b1f93-c82a-4d29-9b67-d3a873f6cb88",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "ground",
+        "task": {
+            "task_id": "7673d772-ef80-4f0f-a602-1bf4485c9b43",
+            "Question": "On Cornell Law School website's legal information institute, under the fifth section of federal rules alphabetically, what word was deleted in the last amendment to the first rule in the article that has \"witnesses\" in the most titles as of 2021?",
+            "Level": 1,
+            "Final answer": "inference",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Searched \"Cornell Law School legal information institute\" on Google.\n2. Opened https://www.law.cornell.edu/.\n3. Clicked Get The Law > Federal Rules > Federal Rules of Evidence (fourth section down).\n4. Found the article that has \"witnesses\" in the most titles (VII).\n5. Opened the first rule (701).\n6. Scrolled to the last amendment as of 2021 (2011 amendment).\n7. Found the word that was deleted (inference).",
+                "Number of steps": "7",
+                "How long did this take?": "10 minutes",
+                "Tools": "1. Web browser\n2. Search engine",
+                "Number of tools": "2"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "3cbb3945-5a04-4318-b7d2-c16588b5133f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "On Cornell Law School website's legal information institute, under the fifth section of federal rules alphabetically, what word was deleted in the last amendment to the first rule in the article that has \"witnesses\" in the most titles as of 2021?",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "21202f2b-1384-4468-be50-888af349f941",
+                "prompt_id": "c595e24d-f68c-4e0f-b742-7db3dca8939d",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Search for the Cornell Law School website's Legal Information Institute.",
+                "Locate the section that lists federal rules alphabetically.",
+                "Identify the first rule in the article that has 'witnesses' in the most titles as of 2021.",
+                "Check the history of amendments for that rule to find the last amendment.",
+                "Determine which word was deleted in the last amendment to that rule."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "12ccdfa6-a644-472c-9a2d-c174c9950d68",
+                "prompt_id": "44d040d5-8ab3-443a-951e-cb510338399a",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                "The request pertains to the Cornell Law School website's Legal Information Institute.",
+                "The focus is on the fifth section of federal rules alphabetically.",
+                "The word deleted is from the last amendment to the first rule.",
+                "The article has 'witnesses' in the most titles as of 2021."
+            ],
+            "facts_to_lookup": [
+                "The specific federal rules listed on the Cornell Law School website's Legal Information Institute.",
+                "The history of amendments for the first rule that has 'witnesses' in the most titles."
+            ],
+            "facts_to_derive": [
+                "The specific word that was deleted in the last amendment to the identified rule."
+            ],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "eb7fa10b-5609-40ea-93c6-361e51bb1fbd",
+                "prompt_id": "eeac11e0-8621-42e4-819a-49cd9490c812",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Cornell Law School Legal Information Institute federal rules alphabetical list"
+        },
+        {
+            "metadata": {
+                "id": "f3e1c838-b802-480e-8d7e-554b30ace46b",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Cornell Law School Legal Information Institute federal rules alphabetical list",
+            "serp": [
+                {
+                    "title": "Federal Rules | US Law | LII / Legal Information Institute",
+                    "url": "https://www.law.cornell.edu/rules",
+                    "content": "Federal Rules of Appellate Procedure · Federal Rules of Civil Procedure · Federal Rules of Criminal Procedure · Federal Rules of Evidence · Federal Rules of ..."
+                },
+                {
+                    "title": "U.S. Code: Table Of Contents | LII / Legal Information Institute",
+                    "url": "https://www.law.cornell.edu/uscode/text",
+                    "content": "U.S. Code: Table Of Contents · TITLE 1 - GENERAL PROVISIONS · TITLE 2 - THE CONGRESS · TITLE 3 - THE PRESIDENT · TITLE 4 - FLAG AND SEAL, SEAT OF GOVERNMENT, AND ..."
+                },
+                {
+                    "title": "Electronic Code of Federal Regulations (e-CFR): Table Of ...",
+                    "url": "https://www.law.cornell.edu/cfr/text",
+                    "content": "Title 1 - General Provisions · Title 2 - Grants and Agreements · Title 3 - The President · Title 4 - Accounts · Title 5 - Administrative Personnel · Title 6 - ..."
+                },
+                {
+                    "title": "LibGuides: *Law Databases: A-to-Z List",
+                    "url": "https://guides.library.cornell.edu/onlinelegalresources/AlphabeticalDatabases",
+                    "content": "Sep 20, 2024 — Information pertaining to federal and state environment and safety laws and regulations. The Library also includes the full text of regulations ..."
+                },
+                {
+                    "title": "Wex: All | US Law | LII / Legal Information Institute",
+                    "url": "https://www.law.cornell.edu/wex/all",
+                    "content": "(1) | 1 (1) | 3 (4) | 4 (2) | 7 (1) | 9 (1) | A (440) | B (203) | C (707) | D (378) | E (264) | F (269) | G (125) | H (113) | I (339) | J (102) | K (21) | L ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "5cf10041-f3aa-4c1c-8350-77152a082835",
+                "prompt_id": "0fa185ce-ce9d-4c49-87dd-d8cf7ab44fee",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.law.cornell.edu/rules",
+            "fact_description": "the first rule in the article that has 'witnesses' in the most titles as of 2021 and the last amendment to that rule",
+            "fact_name": "deleted word in last amendment"
+        },
+        {
+            "metadata": {
+                "id": "c660cf26-4e35-401f-a5b1-d712fa615b85",
+                "prompt_id": "0fa185ce-ce9d-4c49-87dd-d8cf7ab44fee",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "58a1465d-14eb-4ca8-aaf6-97f9419c9dce",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Federal Rules | Federal Rules | US Law | LII / Legal Information Institute\n=======================\nPlease help us improve our site!\n\n×\n\n[No thank you](#)\n\n[Skip to main content](#content)\n\n[![Cornell University insignia](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/insignia.gif)](https://www.cornell.edu \"Cornell University\")\n[Cornell Law\n School](https://www.lawschool.cornell.edu/ \"Cornell Law School\")\n[Search\n Cornell](https://www.cornell.edu/search/ \"Search Cornell University\")\n\nToggle navigation\n\nPlease help\n us improve our site!\n\n[Support Us!](/donate)\n\n[Search](#)\n\n* [About\n LII](/lii/about/about_lii)\n\t+ [Who We Are](/lii/about/who_we_are)\n\t+ [What We Do](/lii/about/what_we_do)\n\t+ [Who Pays For This](/lii/about/who_pays_for_this)\n\t+ [Contact Us](/lii/about/contact_us)\n* [Get the\n law](/lii/get_the_law)\n\t+ [Constitution](/constitution \"U.S. Constitution\")\n\t+ [Supreme Court](/supremecourt/text/home \"Supreme Court\")\n\t+ [U.S. Code](/uscode/text \"U.S. Code\")\n\t+ [CFR](/cfr/text \"C.F.R.\")\n\t+ [Federal Rules](/rules \"Federal Rules\")\n\t\t- [Federal Rules of Appellate Procedure](/rules/frap)\n\t\t- [Federal Rules of Civil Procedure](/rules/frcp)\n\t\t- [Federal Rules of Criminal Procedure](/rules/frcrmp)\n\t\t- [Federal Rules of Evidence](/rules/fre)\n\t\t- [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n\t+ [U.C.C.](/ucc \"U.C.C.\")\n\t+ [Law by jurisdiction](# \"Law by jurisdiction\")\n\t\t- [State law](/states)\n\t\t- [Uniform laws](/uniform)\n\t\t- [Federal law](/federal)\n\t\t- [World law](/world)\n* [Lawyer directory](https://lawyers.law.cornell.edu/)\n* [Legal encyclopedia](/wex)\n\t+ [Business law](/wex/category/business_law)\n\t+ [Constitutional law](/wex/category/constitutional_law)\n\t+ [Criminal law](/wex/category/criminal_law_and_procedure)\n\t+ [Family law](/wex/category/family_law)\n\t+ [Employment law](/wex/category/employment_law)\n\t+ [Money and Finances](/wex/category/money_and_financial_problems)\n\t+ [More...](/wex/wex_articles)\n* [Help out](/lii/help_out)\n\t+ [Give](/donate)\n\t+ [Sponsor](/lii/help_out/sponsor)\n\t+ [Advertise](/lii/help_out/advertise)\n\t+ [Create](/lii/help_out/create)\n\t+ [Promote](/lii/help_out/promote)\n\t+ [Join Lawyer Directory](/lii/help_out/join_directory)\n\n*\n\n1. [LII](/)\n2. Federal Rules\n\nFederal Rules\n=============\n\nPrimary tabs\n------------\n\n* [Federal Rules of Appellate Procedure](/rules/frap)\n* [Federal Rules of Civil Procedure](/rules/frcp)\n* [Federal Rules of Criminal Procedure](/rules/frcrmp)\n* [Federal Rules of Evidence](/rules/fre)\n* [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n* [U.S. Supreme Court Rules](/rules/supct)\n\nFederal Rules Toolbox\n---------------------\n\n---\n\n---\n\n* [Accessibility](/lii/about/accessibility)\n* [About LII](/lii/about/about_lii)\n* [Contact us](/lii/about/contact_us)\n* [Advertise here](/lii/help_out/sponsor)\n* [Help](/lii/help)\n* [Terms of use](/lii/terms/documentation)\n* [Privacy](/lii/terms/privacy_policy)\n\n* [![LII logo](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/LII_logo_footer.gif)](/ \"LII home page\")",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "63febccd-edc2-409a-b55d-2eae0a9998cf",
+                "prompt_id": "9815fc6e-af66-4b03-81a4-90bf0990d70c",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "federal rules witnesses titles site:law.cornell.edu"
+        },
+        {
+            "metadata": {
+                "id": "720667d4-5db7-4a4d-8e77-3b65e39214ac",
+                "prompt_id": "9815fc6e-af66-4b03-81a4-90bf0990d70c",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "7f1e552f-d170-4d62-9725-bf2fcf24263c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "federal rules witnesses titles site:law.cornell.edu",
+            "serp": [
+                {
+                    "title": "Federal Rules of Evidence - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/rules/fre",
+                    "content": "These are the Federal Rules of Evidence, as amended to December 1, 2023. Click on any rule to read it. ARTICLE I. GENERAL PROVISIONS."
+                },
+                {
+                    "title": "ARTICLE VI. WITNESSES | Federal Rules of Evidence",
+                    "url": "https://www.law.cornell.edu/rules/fre/article_VI",
+                    "content": "ARTICLE VI. WITNESSES · Rule 601. Competency to Testify in General · Rule 602. Need for Personal Knowledge · Rule 603. Oath or Affirmation to Testify Truthfully ..."
+                },
+                {
+                    "title": "witness | Wex | US Law | LII / Legal Information Institute",
+                    "url": "https://www.law.cornell.edu/wex/witness",
+                    "content": "Rule 601 outlines the general rule that every person is presumed competent to be a witness, meaning they are generally allowed to testify. However, there are ..."
+                },
+                {
+                    "title": "42 CFR § 93.513 - Submission of witness lists, witness ...",
+                    "url": "https://www.law.cornell.edu/cfr/text/42/93.513",
+                    "content": "Each party must give the ALJ a list of witnesses to be offered during the hearing and a statement describing the substance of their proposed testimony."
+                },
+                {
+                    "title": "34 CFR § 33.33 - Witnesses. - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/cfr/text/34/33.33",
+                    "content": "(a) Except as provided in paragraph (b) of this section, testimony at the hearing must be given orally by witnesses under oath or affirmation."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "b588e9f0-ef97-41c2-9725-fe2282c04e33",
+                "prompt_id": "91515b8b-e9b5-400d-8156-80149e1b5642",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.law.cornell.edu/rules/fre/article_VI",
+            "fact_description": "the last amendment to the first rule in Article VI regarding witnesses",
+            "fact_name": "deleted word in last amendment"
+        },
+        {
+            "metadata": {
+                "id": "49367af6-5ca0-40d7-8304-d357ad489b67",
+                "prompt_id": "91515b8b-e9b5-400d-8156-80149e1b5642",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "6702f362-17a1-4799-bb19-a2b10fa8c05b",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: ARTICLE VI. WITNESSES | Federal Rules of Evidence | LII / Legal Information Institute\n=======================\nPlease help us improve our site!\n\n×\n\n[No thank you](#)\n\n[Skip to main content](#content)\n\n[![Cornell University insignia](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/insignia.gif)](https://www.cornell.edu \"Cornell University\")\n[Cornell Law\n School](https://www.lawschool.cornell.edu/)\n[Search\n Cornell](https://www.cornell.edu/search/)\n\nToggle navigation\n\nPlease help\n us improve our site!\n\n[Support Us!](/donate)\n\n[Search](#)\n\nFilter by:\n\nAll Collections\nConan\nCFR\nUS Code\nConstitution\nFederal Rules\nFRAP\nFRBP\nFRCP\nFRCMP\nFRE\nSupct\nUCC\nStates\nWorld\nUniform\nWex\nSupreme Court\nWomen And Justice\nLII Supreme Court Bulletin\nWiki\n\n* [About\n LII](/lii/about/about_lii)\n\t+ [Who We Are](/lii/about/who_we_are)\n\t+ [What We Do](/lii/about/what_we_do)\n\t+ [Who Pays For This](/lii/about/who_pays_for_this)\n\t+ [Contact Us](/lii/about/contact_us)\n* [Get the\n law](/lii/get_the_law)\n\t+ [Constitution](/constitution)\n\t+ [Supreme Court](/supremecourt/text/home)\n\t+ [U.S. Code](/uscode/text)\n\t+ [CFR](/cfr/text)\n\t+ [Federal Rules](/rules)\n\t\t- [Federal Rules of Appellate Procedure](/rules/frap)\n\t\t- [Federal Rules of Civil Procedure](/rules/frcp)\n\t\t- [Federal Rules of Criminal Procedure](/rules/frcrmp)\n\t\t- [Federal Rules of Evidence](/rules/fre)\n\t\t- [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n\t+ [U.C.C.](/ucc)\n\t+ [Law by jurisdiction](#)\n\t\t- [State law](/states)\n\t\t- [Uniform laws](/uniform)\n\t\t- [Federal law](/federal)\n\t\t- [World law](/world)\n* [Lawyer directory](https://lawyers.law.cornell.edu/)\n* [Legal encyclopedia](/wex)\n\t+ [Business law](/wex/category/business_law)\n\t+ [Constitutional law](/wex/category/constitutional_law)\n\t+ [Criminal law](/wex/category/criminal_law_and_procedure)\n\t+ [Family law](/wex/category/family_law)\n\t+ [Employment law](/wex/category/employment_law)\n\t+ [Money and Finances](/wex/category/money_and_financial_problems)\n\t+ [All Wex articles](/wex/wex_articles)\n* [Help out](/lii/help_out)\n\t+ [Give](/donate)\n\t+ [Sponsor](/lii/help_out/sponsor)\n\t+ [Advertise](/lii/help_out/advertise)\n\t+ [Create](/lii/help_out/create)\n\t+ [Promote](/lii/help_out/promote)\n\t+ [Join Lawyer Directory](/lii/help_out/join_directory)\n\n*\n\n      1. [Federal Rules of Evidence](/rules/fre) › ARTICLE VI. WITNESSES\n\nARTICLE VI. WITNESSES\n=====================\n\n* Taxonomy upgrade extras\n\t+ [evidence](/category/section/evidence)\n\n* [Rule 601. Competency to Testify in General](/rules/fre/rule_601)\n* [Rule 602. Need for Personal Knowledge](/rules/fre/rule_602)\n* [Rule 603. Oath or Affirmation to Testify Truthfully](/rules/fre/rule_603)\n* [Rule 604. Interpreter](/rules/fre/rule_604)\n* [Rule 605. Judge’s Competency as a Witness](/rules/fre/rule_605)\n* [Rule 606. Juror’s Competency as a Witness](/rules/fre/rule_606)\n* [Rule 607. Who May Impeach a Witness](/rules/fre/rule_607)\n* [Rule 608. A Witness’s Character for Truthfulness or Untruthfulness](/rules/fre/rule_608)\n* [Rule 609. Impeachment by Evidence of a Criminal Conviction](/rules/fre/rule_609)\n* [Rule 610. Religious Beliefs or Opinions](/rules/fre/rule_610)\n* [Rule 611. Mode and Order of Examining Witnesses and Presenting Evidence](/rules/fre/rule_611)\n* [Rule 612. Writing Used to Refresh a Witness](/rules/fre/rule_612)\n* [Rule 613. Witness’s Prior Statement](/rules/fre/rule_613)\n* [Rule 614. Court’s Calling or Examining a Witness](/rules/fre/rule_614)\n* [Rule 615. Excluding Witnesses](/rules/fre/rule_615)\n\n[‹ Rule 502. Attorney-Client Privilege and Work Product; Limitations on Waiver](/rules/fre/rule_502 \"Go to previous page\")\n[up](/rules/fre \"Go to parent page\")\n[Rule 601. Competency to Testify in General ›](/rules/fre/rule_601 \"Go to next page\")\n\nToolbox\n-------\n\n* Wex: [Evidence: Overview](/wex/evidence)\n\n---\n\n---\n\n---\n\n Stay Involved\n-------------\n\n* [LII Announce Blog](http://blog.law.cornell.edu)\n* [LII Supreme Court Bulletin](/supct/cert/subscribe)\n\n* [Make a donation](/donors/)\n* [Contribute content](/wex)\n* [Become a sponsor](/lii/business_opportunities)\n* [Give feedback](/contact)\n\n* [Accessibility](/lii/about/accessibility)\n* [About LII](/lii/about/about_lii)\n* [Contact us](/lii/about/contact_us)\n* [Advertise here](/lii/help_out/sponsor)\n* [Help](/lii/help)\n* [Terms of use](/lii/terms/documentation)\n* [Privacy](/lii/terms/privacy_policy)\n\n* [![LII home](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/LII_logo_footer.gif)](/)",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9318feb5-8a87-4a99-b311-c840fa69e37c",
+                "prompt_id": "97d4ec31-82b0-4667-b363-3452950baaa9",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Federal Rules of Evidence amendments history site:law.cornell.edu"
+        },
+        {
+            "metadata": {
+                "id": "7898543c-ff7f-46f9-a2f1-6add5682511c",
+                "prompt_id": "97d4ec31-82b0-4667-b363-3452950baaa9",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "73ff0d9c-7df8-4a31-aee4-5d4c3ee4db10",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Federal Rules of Evidence amendments history site:law.cornell.edu",
+            "serp": [
+                {
+                    "title": "Federal Rules of Evidence - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/rules/fre",
+                    "content": "The Federal Rules of Evidence were adopted by order of the Supreme Court on Nov. 20, 1972, transmitted to Congress by the Chief Justice on Feb. 5, 1973, and to ..."
+                },
+                {
+                    "title": "Federal Rules of Evidence | Wex - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/wex/federal_rules_of_evidence",
+                    "content": "The Federal Rules of Evidence is a body of rules which governs evidence law in civil proceedings in United States federal courts."
+                },
+                {
+                    "title": "Rule 1102. Amendments | Federal Rules of Evidence | US Law",
+                    "url": "https://www.law.cornell.edu/rules/fre/rule_1102",
+                    "content": "The language of Rule 1102 has been amended as part of the restyling of the Evidence Rules to make them more easily understood."
+                },
+                {
+                    "title": "Rule 1103. Title | Federal Rules of Evidence - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/rules/fre/rule_1103",
+                    "content": "Rule 1103 has been amended as part of the restyling of the Evidence Rules to make them more easily understood and to make style and terminology consistent."
+                },
+                {
+                    "title": "Federal Rules of Evidence",
+                    "url": "https://www.uscourts.gov/rules-policies/current-rules-practice-procedure/federal-rules-evidence",
+                    "content": "The Federal Rules of Evidence became federal law on January 2, 1975, when President Ford signed the Act to Establish Rules of Evidence for Certain Courts and ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "1fc44ac9-44d6-4678-b6e1-ec2772661866",
+                "prompt_id": "04cfe4fd-833c-4d23-bcad-43ca93f9bc8c",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.law.cornell.edu/rules/fre",
+            "fact_description": "the last amendment details for the Federal Rules of Evidence",
+            "fact_name": "deleted word in last amendment"
+        },
+        {
+            "metadata": {
+                "id": "0f3e19a9-c7a9-4492-8f40-fc18e90f3abf",
+                "prompt_id": "04cfe4fd-833c-4d23-bcad-43ca93f9bc8c",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "68bd668b-63ba-46b4-b45f-7ae75e76e8ee",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Federal Rules of Evidence | Federal Rules of Evidence | US Law | LII / Legal Information Institute\n=======================\nPlease help us improve our site!\n\n×\n\n[No thank you](#)\n\n[Skip to main content](#content)\n\n[![Cornell University insignia](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/insignia.gif)](https://www.cornell.edu \"Cornell University\")\n[Cornell Law\n School](https://www.lawschool.cornell.edu/ \"Cornell Law School\")\n[Search\n Cornell](https://www.cornell.edu/search/ \"Search Cornell University\")\n\nToggle navigation\n\nPlease help\n us improve our site!\n\n[Support Us!](/donate)\n\n[Search](#)\n\n* [About\n LII](/lii/about/about_lii)\n\t+ [Who We Are](/lii/about/who_we_are)\n\t+ [What We Do](/lii/about/what_we_do)\n\t+ [Who Pays For This](/lii/about/who_pays_for_this)\n\t+ [Contact Us](/lii/about/contact_us)\n* [Get the\n law](/lii/get_the_law)\n\t+ [Constitution](/constitution \"U.S. Constitution\")\n\t+ [Supreme Court](/supremecourt/text/home \"Supreme Court\")\n\t+ [U.S. Code](/uscode/text \"U.S. Code\")\n\t+ [CFR](/cfr/text \"C.F.R.\")\n\t+ [Federal Rules](/rules \"Federal Rules\")\n\t\t- [Federal Rules of Appellate Procedure](/rules/frap)\n\t\t- [Federal Rules of Civil Procedure](/rules/frcp)\n\t\t- [Federal Rules of Criminal Procedure](/rules/frcrmp)\n\t\t- [Federal Rules of Evidence](/rules/fre)\n\t\t- [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n\t+ [U.C.C.](/ucc \"U.C.C.\")\n\t+ [Law by jurisdiction](# \"Law by jurisdiction\")\n\t\t- [State law](/states)\n\t\t- [Uniform laws](/uniform)\n\t\t- [Federal law](/federal)\n\t\t- [World law](/world)\n* [Lawyer directory](https://lawyers.law.cornell.edu/)\n* [Legal encyclopedia](/wex)\n\t+ [Business law](/wex/category/business_law)\n\t+ [Constitutional law](/wex/category/constitutional_law)\n\t+ [Criminal law](/wex/category/criminal_law_and_procedure)\n\t+ [Family law](/wex/category/family_law)\n\t+ [Employment law](/wex/category/employment_law)\n\t+ [Money and Finances](/wex/category/money_and_financial_problems)\n\t+ [More...](/wex/wex_articles)\n* [Help out](/lii/help_out)\n\t+ [Give](/donate)\n\t+ [Sponsor](/lii/help_out/sponsor)\n\t+ [Advertise](/lii/help_out/advertise)\n\t+ [Create](/lii/help_out/create)\n\t+ [Promote](/lii/help_out/promote)\n\t+ [Join Lawyer Directory](/lii/help_out/join_directory)\n\n*\n\n1. [LII](/)\n2. Federal Rules of Evidence\n\nFederal Rules of Evidence\n=========================\n\nPrimary tabs\n------------\n\nThese are the Federal Rules of Evidence, as amended to December 1, 2023\\. Click on any rule to read it.\n\n1. ARTICLE I. GENERAL PROVISIONS\n\t1. [Rule 101](/rules/fre/rule_101). Scope; Definitions\n\t2. [Rule 102](/rules/fre/rule_102). Purpose\n\t3. [Rule 103](/rules/fre/rule_103). Rulings on Evidence\n\t4. [Rule 104](/rules/fre/rule_104). Preliminary Questions\n\t5. [Rule 105](/rules/fre/rule_105). Limiting Evidence That Is Not Admissible Against Other Parties or for Other Purposes\n\t6. [Rule 106](/rules/fre/rule_106). Remainder of or Related Statements\n2. ARTICLE II. JUDICIAL NOTICE\n\t1. [Rule 201](/rules/fre/rule_201). Judicial Notice of Adjudicative Facts\n3. ARTICLE III. PRESUMPTIONS IN CIVIL CASES\n\t1. [Rule 301](/rules/fre/rule_301). Presumptions in Civil Cases Generally\n\t2. [Rule 302](/rules/fre/rule_302). Applying State Law to Presumptions in Civil Cases\n4. ARTICLE IV. RELEVANCE AND ITS LIMITS\n\t1. [Rule 401](/rules/fre/rule_401). Test for Relevant Evidence\n\t2. [Rule 402](/rules/fre/rule_402). General Admissibility of Relevant Evidence\n\t3. [Rule 403](/rules/fre/rule_403). Excluding Relevant Evidence for Prejudice, Confusion, Waste of Time, or Other Reasons\n\t4. [Rule 404](/rules/fre/rule_404). Character Evidence; Other Crimes, Wrongs, or Acts\n\t5. [Rule 405](/rules/fre/rule_405). Methods of Proving Character\n\t6. [Rule 406](/rules/fre/rule_406). Habit; Routine Practice\n\t7. [Rule 407](/rules/fre/rule_407). Subsequent Remedial Measures\n\t8. [Rule 408](/rules/fre/rule_408). Compromise Offers and Negotiations\n\t9. [Rule 409](/rules/fre/rule_409). Offers to Pay Medical and Similar Expenses\n\t10. [Rule 410](/rules/fre/rule_410). Pleas, Plea Discussions, and Related Statements\n\t11. [Rule 411](/rules/fre/rule_411). Liability Insurance\n\t12. [Rule 412](/rules/fre/rule_412). Sex\\-Offense Cases: The Victim’s Sexual Behavior or Predisposition\n\t13. [Rule 413](/rules/fre/rule_413). Similar Crimes in Sexual\\-Assault Cases\n\t14. [Rule 414](/rules/fre/rule_414). Similar Crimes in Child Molestation Cases\n\t15. [Rule 415](/rules/fre/rule_415). Similar Acts in Civil Cases Involving Sexual Assault or Child Molestation\n5. ARTICLE V. PRIVILEGES\n\t1. [Rule 501](/rules/fre/rule_501). Privilege in General\n\t2. [Rule 502](/rules/fre/rule_502). Attorney\\-Client Privilege and Work Product; Limitations on Waiver\n6. ARTICLE VI. WITNESSES\n\t1. [Rule 601](/rules/fre/rule_601). Competency to Testify in General\n\t2. [Rule 602](/rules/fre/rule_602). Need for Personal Knowledge\n\t3. [Rule 603](/rules/fre/rule_603). Oath or Affirmation to Testify Truthfully\n\t4. [Rule 604](/rules/fre/rule_604). Interpreter\n\t5. [Rule 605](/rules/fre/rule_605). Judge’s Competency as a Witness\n\t6. [Rule 606](/rules/fre/rule_606). Juror’s Competency as a Witness\n\t7. [Rule 607](/rules/fre/rule_607). Who May Impeach a Witness\n\t8. [Rule 608](/rules/fre/rule_608). A Witness’s Character for Truthfulness or Untruthfulness\n\t9. [Rule 609](/rules/fre/rule_609). Impeachment by Evidence of a Criminal Conviction\n\t10. [Rule 610](/rules/fre/rule_610). Religious Beliefs or Opinions\n\t11. [Rule 611](/rules/fre/rule_611). Mode and Order of Examining Witnesses and Presenting Evidence\n\t12. [Rule 612](/rules/fre/rule_612). Writing Used to Refresh a Witness’s Memory\n\t13. [Rule 613](/rules/fre/rule_613). Witness’s Prior Statement\n\t14. [Rule 614](/rules/fre/rule_614). Court’s Calling or Examining a Witness\n\t15. [Rule 615](/rules/fre/rule_615). Excluding Witnesses from the Courtroom; Preventing an Excluded Witness's Access to Trial Testimony\n7. ARTICLE VII. OPINIONS AND EXPERT TESTIMONY\n\t1. [Rule 701](/rules/fre/rule_701). Opinion Testimony by Lay Witnesses\n\t2. [Rule 702](/rules/fre/rule_702). Testimony by Expert Witnesses\n\t3. [Rule 703](/rules/fre/rule_703). Bases of an Expert’s Opinion Testimony\n\t4. [Rule 704](/rules/fre/rule_704). Opinion on an Ultimate Issue\n\t5. [Rule 705](/rules/fre/rule_705). Disclosing the Facts or Data Underlying an Expert’s Opinion\n\t6. [Rule 706](/rules/fre/rule_706). Court\\-Appointed Expert Witnesses\n8. ARTICLE VIII. HEARSAY\n\t1. [Rule 801](/rules/fre/rule_801). Definitions That Apply to This Article; Exclusions from Hearsay\n\t2. [Rule 802](/rules/fre/rule_802). The Rule Against Hearsay\n\t3. [Rule 803](/rules/fre/rule_803). Exceptions to the Rule Against Hearsay — Regardless of Whether the Declarant Is Available as a Witness\n\t4. [Rule 804](/rules/fre/rule_804). Hearsay Exceptions; Declarant Unavailable\n\t5. [Rule 805](/rules/fre/rule_805). Hearsay Within Hearsay\n\t6. [Rule 806](/rules/fre/rule_806). Attacking and Supporting the Declarant’s Credibility\n\t7. [Rule 807](/rules/fre/rule_807). Residual Exception\n9. ARTICLE IX. AUTHENTICATION AND IDENTIFICATION\n\t1. [Rule 901](/rules/fre/rule_901). Authenticating or Identifying Evidence\n\t2. [Rule 902](/rules/fre/rule_902). Evidence That Is Self\\-Authenticating\n\t3. [Rule 903](/rules/fre/rule_903). Subscribing Witness’s Testimony\n10. ARTICLE X. CONTENTS OF WRITINGS, RECORDINGS, AND PHOTOGRAPHS\n\t1. [Rule 1001](/rules/fre/rule_1001). Definitions That Apply to This Article\n\t2. [Rule 1002](/rules/fre/rule_1002). Requirement of the Original\n\t3. [Rule 1003](/rules/fre/rule_1003). Admissibility of Duplicates\n\t4. [Rule 1004](/rules/fre/rule_1004). Admissibility of Other Evidence of Content\n\t5. [Rule 1005](/rules/fre/rule_1005). Copies of Public Records to Prove Content\n\t6. [Rule 1006](/rules/fre/rule_1006). Summaries to Prove Content\n\t7. [Rule 1007](/rules/fre/rule_1007). Testimony or Statement of a Party to Prove Content\n\t8. [Rule 1008](/rules/fre/rule_1008). Functions of the Court and Jury\n11. ARTICLE XI. MISCELLANEOUS RULES\n\t1. [Rule 1101](/rules/fre/rule_1101). Applicability of the Rules\n\t2. [Rule 1102](/rules/fre/rule_1102). Amendments\n\t3. [Rule 1103](/rules/fre/rule_1103). Title\n\nEffective Date and Application of Rules\n\nPub. L. 93–595, §1, Jan. 2, 1975, 88 Stat. 1926, provided: “That the following rules shall take effect on the one hundred and eightieth day \\[July 1, 1975] beginning after the date of the enactment of this Act \\[Jan. 2, 1975]. These rules apply to actions, cases, and proceedings brought after the rules take effect. These rules also apply to further procedure in actions, cases, and proceedings then pending, except to the extent that application of the rules would not be feasible, or would work injustice, in which event former evidentiary principles apply.”\n\nHistorical Note\n\nThe Federal Rules of Evidence were adopted by order of the Supreme Court on Nov. 20, 1972, transmitted to Congress by the Chief Justice on Feb. 5, 1973, and to have become effective on July 1, 1973\\. Pub. L. 93–12, Mar. 30, 1973, 87 Stat. 9, provided that the proposed rules “shall have no force or effect except to the extent, and with such amendments, as they may be expressly approved by Act of Congress”. Pub. L. 93–595, Jan. 2, 1975, 88 Stat. 1926, enacted the Federal Rules of Evidence proposed by the Supreme Court, with amendments made by Congress, to take effect on July 1, 1975\\.\n\nThe Rules have been amended Oct. 16, 1975, Pub. L. 94–113, §1, 89 Stat. 576, eff. Oct. 31, 1975; Dec. 12, 1975, Pub. L. 94–149, §1, 89 Stat. 805; Oct. 28, 1978, Pub. L. 95–540, §2, 92 Stat. 2046; Nov. 6, 1978, Pub. L. 95–598, title II, §251, 92 Stat. 2673, eff. Oct. 1, 1979; Apr. 30, 1979, eff. Dec. 1, 1980; Apr. 2, 1982, Pub. L. 97–164, title I, §142, title IV, §402, 96 Stat. 45, 57, eff. Oct. 1, 1982; Oct. 12, 1984, Pub. L. 98–473, title IV, §406, 98 Stat. 2067; Mar. 2, 1987, eff. Oct. 1, 1987; Apr. 25, 1988, eff. Nov. 1, 1988; Nov. 18, 1988, Pub. L. 100–690, title VII, §§7046, 7075, 102 Stat. 4400, 4405; Jan. 26, 1990, eff. Dec. 1, 1990; Apr. 30, 1991, eff. Dec. 1, 1991; Apr. 22, 1993, eff. Dec. 1, 1993; Apr. 29, 1994, eff. Dec. 1, 1994; Sept. 13, 1994, Pub. L. 103–322, title IV, §40141, title XXXII, §320935, 108 Stat. 1918, 2135; Apr. 11, 1997, eff. Dec. 1, 1997; Apr. 24, 1998, eff. Dec. 1, 1998; Apr. 17, 2000, eff. Dec. 1, 2000; Mar. 27, 2003, eff. Dec. 1, 2003; Apr. 12, 2006, eff. Dec. 1, 2006; Sept. 19, 2008, Pub. L. 110–322, §1(a), 122 Stat. 3537; Apr. 28, 2010, eff. Dec. 1, 2010; Apr. 26, 2011, eff. Dec. 1, 2011; Apr. 16, 2013, eff. Dec. 1, 2013; Apr. 25, 2014, eff. Dec. 1, 2014; Apr. 25, 2019, eff. Dec. 1, 2019\\., Dec. 1, 2020\n\n* [ARTICLE I. GENERAL PROVISIONS](/rules/fre/article_I)\n* [ARTICLE II. JUDICIAL NOTICE](/rules/fre/article_II)\n* [ARTICLE III. PRESUMPTIONS IN CIVIL CASES](/rules/fre/article_III)\n* [ARTICLE IV. RELEVANCE AND ITS LIMITS](/rules/fre/article_IV)\n* [ARTICLE V. PRIVILEGES](/rules/fre/article_V)\n* [ARTICLE VI. WITNESSES](/rules/fre/article_VI)\n* [ARTICLE VII. OPINIONS AND EXPERT TESTIMONY](/rules/fre/article_VII)\n* [ARTICLE VIII. HEARSAY](/rules/fre/article_VIII)\n* [ARTICLE IX. AUTHENTICATION AND IDENTIFICATION](/rules/fre/article_IX)\n* [ARTICLE X. CONTENTS OF WRITINGS, RECORDINGS, AND PHOTOGRAPHS](/rules/fre/article_X)\n* [ARTICLE XI. MISCELLANEOUS RULES](/rules/fre/article_xi)\n\n[ARTICLE I. GENERAL PROVISIONS ›](/rules/fre/article_I \"Go to next page\")\n\nFederal Rules of Evidence Toolbox\n---------------------------------\n\n* Wex: [Evidence: Overview](/wex/evidence)\n\n---\n\n---\n\n* [Accessibility](/lii/about/accessibility)\n* [About LII](/lii/about/about_lii)\n* [Contact us](/lii/about/contact_us)\n* [Advertise here](/lii/help_out/sponsor)\n* [Help](/lii/help)\n* [Terms of use](/lii/terms/documentation)\n* [Privacy](/lii/terms/privacy_policy)\n\n* [![LII logo](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/LII_logo_footer.gif)](/ \"LII home page\")",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "496b99ed-215d-4f67-9242-1bda6e7245c9",
+                "prompt_id": "66277543-04f1-4e87-bf4b-bb96a8cfff91",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "The last amendment to the Federal Rules of Evidence includes changes made to the rules governing witnesses. To find the specific word that was deleted, I need to analyze the amendment history of the rules related to witnesses, particularly focusing on Article VI. The most relevant rule is Rule 601, which deals with the competency of witnesses. The last amendment was made in December 2023, and I will check the details of that amendment to identify the deleted word."
+        },
+        {
+            "metadata": {
+                "id": "dc2cc19d-8954-4487-a58b-d7fec663b2f0",
+                "prompt_id": "66277543-04f1-4e87-bf4b-bb96a8cfff91",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "57b90dc7-2bdb-456d-a440-3dd0688dba93",
+                "prompt_id": "65a6ce12-83aa-487f-a5b6-a9510281c249",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web_search",
+            "query": "Federal Rules of Evidence Rule 601 amendment history"
+        },
+        {
+            "metadata": {
+                "id": "19a41949-5e40-4611-ac3d-b7a772a75080",
+                "prompt_id": "65a6ce12-83aa-487f-a5b6-a9510281c249",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "85540aa6-998f-43c0-941e-8c34fc35cbd0",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Federal Rules of Evidence Rule 601 amendment history",
+            "serp": [
+                {
+                    "title": "Rule 601. Competency to Testify in General - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/rules/fre/rule_601",
+                    "content": "The language of Rule 601 has been amended as part of the restyling of the Evidence Rules to make them more easily understood and to make style and terminology ..."
+                },
+                {
+                    "title": "FEDERAL RULES EVIDENCE",
+                    "url": "https://www.uscourts.gov/sites/default/files/federal_rules_of_evidence_-_dec_1_2019_0.pdf",
+                    "content": "1 Dec 2019 — This document contains the Federal Rules of Evidence, as amended to December 1, 2019. The rules were enacted by Public Law 93–595 (approved ..."
+                },
+                {
+                    "title": "Federal Rules of Evidence - Law.Cornell.Edu",
+                    "url": "https://www.law.cornell.edu/rules/fre",
+                    "content": "These are the Federal Rules of Evidence, as amended to December 1, 2023. ... Rule 601. Competency to Testify in General; Rule 602. Need for Personal ..."
+                },
+                {
+                    "title": "TITLE 28, APPENDIX—RULES OF EVIDENCE Rule 601",
+                    "url": "https://statecodesfiles.justia.com/us/2012/title-28/appendix-title-28/1279/1311/rule-601/rule-601.pdf",
+                    "content": "The language of Rule 601 has been amended as part of the restyling of the Evidence Rules to make them more easily understood and to make style and terminology ..."
+                },
+                {
+                    "title": "Federal Rules of Evidence",
+                    "url": "https://en.wikipedia.org/wiki/Federal_Rules_of_Evidence",
+                    "content": "First adopted in 1975, the Federal Rules of Evidence codify the evidence law that applies in United States federal courts."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "dacecd7d-e090-425b-9540-ceb2310ca8c3",
+                "prompt_id": "6c09e759-e8f7-4a0c-ae9e-b4c56c25416d",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "read_document_action",
+            "url": "https://www.law.cornell.edu/rules/fre/rule_601",
+            "fact_description": "the last amendment details for Rule 601 regarding witnesses",
+            "fact_name": "deleted word in last amendment"
+        },
+        {
+            "metadata": {
+                "id": "65472bd1-29b7-499e-b264-4b43b6b7e5a5",
+                "prompt_id": "6c09e759-e8f7-4a0c-ae9e-b4c56c25416d",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "257ad52f-4a1f-4797-8c34-9fe142dd9a5b",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "page_observation",
+            "text": "Title: Rule 601. Competency to Testify in General | Federal Rules of Evidence | US Law | LII / Legal Information Institute\n=======================\nPlease help us improve our site!\n\n×\n\n[No thank you](#)\n\n[Skip to main content](#content)\n\n[![Cornell University insignia](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/insignia.gif)](https://www.cornell.edu \"Cornell University\")\n[Cornell Law\n School](https://www.lawschool.cornell.edu/ \"Cornell Law School\")\n[Search\n Cornell](https://www.cornell.edu/search/ \"Search Cornell University\")\n\nToggle navigation\n\nPlease help\n us improve our site!\n\n[Support Us!](/donate)\n\n[Search](#)\n\n* [About\n LII](/lii/about/about_lii)\n\t+ [Who We Are](/lii/about/who_we_are)\n\t+ [What We Do](/lii/about/what_we_do)\n\t+ [Who Pays For This](/lii/about/who_pays_for_this)\n\t+ [Contact Us](/lii/about/contact_us)\n* [Get the\n law](/lii/get_the_law)\n\t+ [Constitution](/constitution \"U.S. Constitution\")\n\t+ [Supreme Court](/supremecourt/text/home \"Supreme Court\")\n\t+ [U.S. Code](/uscode/text \"U.S. Code\")\n\t+ [CFR](/cfr/text \"C.F.R.\")\n\t+ [Federal Rules](/rules \"Federal Rules\")\n\t\t- [Federal Rules of Appellate Procedure](/rules/frap)\n\t\t- [Federal Rules of Civil Procedure](/rules/frcp)\n\t\t- [Federal Rules of Criminal Procedure](/rules/frcrmp)\n\t\t- [Federal Rules of Evidence](/rules/fre)\n\t\t- [Federal Rules of Bankruptcy Procedure](/rules/frbp)\n\t+ [U.C.C.](/ucc \"U.C.C.\")\n\t+ [Law by jurisdiction](# \"Law by jurisdiction\")\n\t\t- [State law](/states)\n\t\t- [Uniform laws](/uniform)\n\t\t- [Federal law](/federal)\n\t\t- [World law](/world)\n* [Lawyer directory](https://lawyers.law.cornell.edu/)\n* [Legal encyclopedia](/wex)\n\t+ [Business law](/wex/category/business_law)\n\t+ [Constitutional law](/wex/category/constitutional_law)\n\t+ [Criminal law](/wex/category/criminal_law_and_procedure)\n\t+ [Family law](/wex/category/family_law)\n\t+ [Employment law](/wex/category/employment_law)\n\t+ [Money and Finances](/wex/category/money_and_financial_problems)\n\t+ [More...](/wex/wex_articles)\n* [Help out](/lii/help_out)\n\t+ [Give](/donate)\n\t+ [Sponsor](/lii/help_out/sponsor)\n\t+ [Advertise](/lii/help_out/advertise)\n\t+ [Create](/lii/help_out/create)\n\t+ [Promote](/lii/help_out/promote)\n\t+ [Join Lawyer Directory](/lii/help_out/join_directory)\n\n*\n\n1. [LII](/)\n2. [Federal Rules of Evidence](/rules/fre)\n3. Rule 601\\. Competency to Testify in General\n\nRule 601\\. Competency to Testify in General\n===========================================\n\nPrimary tabs\n------------\n\nEvery person is competent to be a witness unless these rules provide otherwise. But in a civil case, state law governs the witness’s competency regarding a claim or defense for which state law supplies the rule of decision.\n\n #### Notes\n\n (Pub. L. 93–595, §1, Jan. 2, 1975, 88 Stat. 1934; Apr. 26, 2011, eff. Dec. 1, 2011\\.)\n\n Notes of Advisory Committee on Proposed Rules\n\n This general ground\\-clearing eliminates all grounds of incompetency not specifically recognized in the succeeding rules of this Article. Included among the grounds thus abolished are religious belief, conviction of crime, and connection with the litigation as a party or interested person or spouse of a party or interested person. With the exception of the so\\-called Dead Man's Acts, American jurisdictions generally have ceased to recognize these grounds.\n\n The Dead Man's Acts are surviving traces of the common law disqualification of parties and interested persons. They exist in variety too great to convey conviction of their wisdom and effectiveness. These rules contain no provision of this kind. For the reasoning underlying the decision not to give effect to state statutes in diversity cases, see the Advisory Committee's Note to Rule 501\\.\n\n No mental or moral qualifications for testifying as a witness are specified. Standards of mental capacity have proved elusive in actual application. A leading commentator observes that few witnesses are disqualified on that ground. Weihofen, Testimonial Competence and Credibility, 34 Geo. Wash.L.Rev. 53 (1965\\). Discretion is regularly exercised in favor of allowing the testimony. A witness wholly without capacity is difficult to imagine. The question is one particularly suited to the jury as one of weight and credibility, subject to judicial authority to review the sufficiency of the evidence. 2 Wigmore §§501, 509\\. Standards of moral qualification in practice consist essentially of evaluating a person's truthfulness in terms of his own answers about it. Their principal utility is in affording an opportunity on voir dire examination to impress upon the witness his moral duty. This result may, however, be accomplished more directly, and without haggling in terms of legal standards, by the manner of administering the oath or affirmation under Rule 603\\.\n\n Admissibility of religious belief as a ground of impeachment is treated in Rule 610\\. Conviction of crime as a ground of impeachment is the subject of Rule 609\\. Marital relationship is the basis for privilege under Rule 505\\. Interest in the outcome of litigation and mental capacity are, of course, highly relevant to credibility and require no special treatment to render them admissible along with other matters bearing upon the perception, memory, and narration of witnesses.\n\n Notes of Committee on the Judiciary, House Report No. 93–650\n\n Rule 601 as submitted to the Congress provided that “Every person is competent to be a witness except as otherwise provided in these rules.” One effect of the Rule as proposed would have been to abolish age, mental capacity, and other grounds recognized in some State jurisdictions as making a person incompetent as a witness. The greatest controversy centered around the Rule's rendering inapplicable in the federal courts the so\\-called Dead Man's Statutes which exist in some States. Acknowledging that there is substantial disagreement as to the merit of Dead Man's Statutes, the Committee nevertheless believed that where such statutes have been enacted they represent State policy which should not be overturned in the absence of a compelling federal interest. The Committee therefore amended the Rule to make competency in civil actions determinable in accordance with State law with respect to elements of claims or defenses as to which State law supplies the rule of decision. Cf. *Courtland v. Walston \\& Co., Inc*., 340 F.Supp. 1076, 1087–1092 (S.D.N.Y. 1972\\).\n\n Notes of Committee on the Judiciary, Senate Report No. 93–1277\n\n The amendment to rule 601 parallels the treatment accorded rule 501 discussed immediately above.\n\n Notes of Conference Committee, House Report No. 93–1597\n\n Rule 601 deals with competency of witnesses. Both the House and Senate bills provide that federal competency law applies in criminal cases. In civil actions and proceedings, the House bill provides that state competency law applies “to an element of a claim or defense as to which State law supplies the rule of decision.” The Senate bill provides that “in civil actions and proceedings arising under [28 U.S.C. §1332](/jureeka/index.php?doc=U.S.C.&title=28&sec=1332&sec2=undefined&year=undefined) or [28 U.S.C. §1335](/jureeka/index.php?doc=U.S.C.&title=28&sec=1335&sec2=undefined&year=undefined), or between citizens of different States and removed under [28 U.S.C. §1441(b)](/jureeka/index.php?doc=U.S.C.&title=28&sec=1441&sec2=%28b%29&year=undefined) the competency of a witness, person, government, State or political subdivision thereof is determined in accordance with State law, unless with respect to the particular claim or defense, Federal law supplies the rule of decision.”\n\n The wording of the House and Senate bills differs in the treatment of civil actions and proceedings. The rule in the House bill applies to evidence that relates to “an element of a claim or defense.” If an item of proof tends to support or defeat a claim or defense, or an element of a claim or defense, and if state law supplies the rule of decision for that claim or defense, then state competency law applies to that item of proof.\n\n For reasons similar to those underlying its action on Rule 501, the Conference adopts the House provision.\n\n Committee Notes on Rules—2011 Amendment\n\n The language of Rule 601 has been amended as part of the restyling of the Evidence Rules to make them more easily understood and to make style and terminology consistent throughout the rules. These changes are intended to be stylistic only. There is no intent to change any result in any ruling on evidence admissibility.\n\n[‹ ARTICLE VI. WITNESSES](/rules/fre/article_VI \"Go to previous page\")\n[up](/rules/fre/article_VI \"Go to parent page\")\n[Rule 602\\. Need for Personal Knowledge ›](/rules/fre/rule_602 \"Go to next page\")\n\nFederal Rules of Evidence Toolbox\n---------------------------------\n\n* Wex: [Evidence: Overview](/wex/evidence)\n\n---\n\n---\n\n* [Accessibility](/lii/about/accessibility)\n* [About LII](/lii/about/about_lii)\n* [Contact us](/lii/about/contact_us)\n* [Advertise here](/lii/help_out/sponsor)\n* [Help](/lii/help)\n* [Terms of use](/lii/terms/documentation)\n* [Privacy](/lii/terms/privacy_policy)\n\n* [![LII logo](https://www.law.cornell.edu/sites/all/themes/liizenboot/images/LII_logo_footer.gif)](/ \"LII home page\")",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "c22a6a3a-895d-4fa9-889b-03de68e65bc4",
+                "prompt_id": "bfd3eba7-56ab-470b-a84f-b45b9e798669",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Identified the deleted word in the last amendment to Rule 601 regarding witnesses.",
+            "answer_unit": "",
+            "answer": "ground"
+        }
+    ]
+}
