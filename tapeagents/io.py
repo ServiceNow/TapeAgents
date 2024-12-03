@@ -8,14 +8,13 @@ import os
 import shutil
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Generator, Type
+from typing import Generator, Type
 
 import yaml
 from pydantic import TypeAdapter
 
-from tapeagents.dialog_tape import AssistantStep, ImageObservation
-
-from .core import Tape, TapeType
+from tapeagents.core import Tape, TapeType
+from tapeagents.steps import ImageObservation, UnknownStep
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +198,7 @@ def load_legacy_tapes(tape_class: Type[TapeType], path: Path | str, step_class: 
                     steps.append(step_loader(step_dict))
                 except Exception as e:
                     logger.warning(f"Failed to load step: {e}")
-                    steps.append(AssistantStep(content=json.dumps(step_dict, indent=2, ensure_ascii=False)))
+                    steps.append(UnknownStep(content=json.dumps(step_dict, indent=2, ensure_ascii=False)))
             tape.steps = steps
         tapes.append(tape)
     return tapes

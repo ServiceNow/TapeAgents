@@ -6,6 +6,7 @@ import base64
 import difflib
 import json
 import os
+from contextlib import contextmanager
 from typing import Any
 
 import jsonref
@@ -102,7 +103,7 @@ def get_step_schemas_from_union_type(cls) -> str:
 
 
 def image_base64_message(image_path: str) -> dict:
-    _, image_extension = os.path.splitext(image_path)
+    image_extension = os.path.splitext(image_path)[1][1:]
     content_type = f"image/{image_extension}"
     base64_image = encode_image(image_path)
     message = {"type": "image_url", "image_url": {"url": f"data:{content_type};base64,{base64_image}"}}
@@ -112,3 +113,13 @@ def image_base64_message(image_path: str) -> dict:
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+
+
+@contextmanager
+def acquire_timeout(lock, timeout):
+    result = lock.acquire(timeout=timeout)
+    try:
+        yield result
+    finally:
+        if result:
+            lock.release()

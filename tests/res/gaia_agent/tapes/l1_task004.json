@@ -1,12 +1,12 @@
 {
     "metadata": {
-        "id": "e3320324-324b-441c-9f67-4089dc98e8fa",
+        "id": "c4d26df3-d3db-49e8-b223-24c7e532c40a",
         "parent_id": null,
         "author": null,
         "author_tape_id": null,
         "n_added_steps": 0,
         "error": null,
-        "result": "multiple species including penguins and kea parrots",
+        "result": "",
         "task": {
             "task_id": "a1e91b78-d3d8-4675-bb8d-62741b4b68a6",
             "Question": "In the video https://www.youtube.com/watch?v=L1vXCYZAYYM, what is the highest number of bird species to be on camera simultaneously?",
@@ -30,7 +30,7 @@
     "steps": [
         {
             "metadata": {
-                "id": "ed988324-a6c6-40eb-acee-a33278282631",
+                "id": "19538204-406f-4b10-a2b6-a4a42a2ed49c",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -42,24 +42,25 @@
         },
         {
             "metadata": {
-                "id": "824af00a-2e15-47ed-b1f1-0f5822774a2f",
-                "prompt_id": "79bf4440-e136-4220-ab80-0e415d188560",
+                "id": "240e47b7-52b2-489a-ab15-bb6fd9bf6787",
+                "prompt_id": "e7afe453-cd8d-4128-99e6-16221fba02a2",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "plan_thought",
             "plan": [
-                "Watch the video at the provided link to identify the scenes where multiple bird species are present.",
-                "Take note of the timestamps where different bird species appear on camera.",
-                "Count the number of distinct bird species visible at each timestamp.",
-                "Determine the highest count of bird species observed simultaneously in any scene."
+                "Open the provided YouTube link to access the video.",
+                "Watch the video carefully, focusing on scenes where multiple bird species are present.",
+                "Count the number of different bird species visible on camera at the same time during those scenes.",
+                "Note the highest count observed throughout the video.",
+                "Summarize the findings to answer the question."
             ]
         },
         {
             "metadata": {
-                "id": "0522a2d5-3b6c-42b6-a09c-c59161cbbf5b",
-                "prompt_id": "ca3fb6fd-d2bc-4504-8906-a6c983439ca5",
+                "id": "52b64240-f345-4110-9432-a04c95064312",
+                "prompt_id": "c74db35d-b66d-451a-b6ce-8fec42f90f16",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -69,77 +70,53 @@
                 "The video link is https://www.youtube.com/watch?v=L1vXCYZAYYM."
             ],
             "facts_to_lookup": [
-                "The content of the video to determine the number of bird species shown simultaneously."
+                "The content of the video to determine the number of bird species on camera."
             ],
-            "facts_to_derive": [],
+            "facts_to_derive": [
+                "The highest number of bird species visible on camera simultaneously."
+            ],
             "facts_to_guess": []
         },
         {
             "metadata": {
-                "id": "76bc3074-42e5-49f1-bcf1-e6407a53de6a",
-                "prompt_id": "17e5d5f8-74f8-432c-9a74-bb50ebe2f436",
+                "id": "604d1f2e-bed2-41e1-a1c6-51564b456b3c",
+                "prompt_id": "e5729139-fb44-4a2a-92c9-d1017c1f46e0",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
             },
-            "kind": "search_action",
-            "source": "web_search",
-            "query": "highest number of bird species on camera simultaneously site:youtube.com"
+            "kind": "watch_video_action",
+            "video_url": "https://www.youtube.com/watch?v=L1vXCYZAYYM",
+            "start_time": "",
+            "end_time": ""
         },
         {
             "metadata": {
-                "id": "8c2a4d71-d386-46a6-b5ed-2b43ea348df2",
+                "id": "697548eb-2321-4b9e-8e65-ad8322e5e190",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "other": {}
             },
-            "kind": "search_results_observation",
-            "query": "highest number of bird species on camera simultaneously site:youtube.com",
-            "serp": [
-                {
-                    "title": "2023 Final Results",
-                    "url": "https://www.birdcount.org/2023-final-results/",
-                    "content": "Participants across India reported 1070 different bird species. The state of West Bengal had the most species reported with 495, while the state of Tamil Nadu ..."
-                },
-                {
-                    "title": "How to Count Birds : Help Center",
-                    "url": "https://support.ebird.org/en/support/solutions/articles/48000838845-how-to-count-birds",
-                    "content": "Mar 23, 2023 — Tips for counting birds on your eBird checklists. Large flocks, moving birds, and mixed-species."
-                },
-                {
-                    "title": "How to Count Birds : Help Center",
-                    "url": "https://support.ebird.org/en/support/solutions/articles/48000838845-how-to-count-birds",
-                    "content": "Mar 23, 2023 — Tips for counting birds on your eBird checklists. Large flocks, moving birds, and mixed-species."
-                },
-                {
-                    "title": "Nearly 3 Billion Birds Gone - Cornell Lab of Ornithology",
-                    "url": "https://www.birds.cornell.edu/home/bring-birds-back/",
-                    "content": "The North American bird population is down by 2.9 billion breeding adults, with devastating losses among birds in every biome."
-                },
-                {
-                    "title": "How to Count Birds : Help Center",
-                    "url": "https://support.ebird.org/en/support/solutions/articles/48000838845-how-to-count-birds",
-                    "content": "Mar 23, 2023 — Tips for counting birds on your eBird checklists. Large flocks, moving birds, and mixed-species."
-                }
-            ]
+            "kind": "action_execution_failure",
+            "error": "\u001b[0;31mERROR:\u001b[0m [youtube] L1vXCYZAYYM: Sign in to confirm you’re not a bot. This helps protect our community. Learn more"
         },
         {
             "metadata": {
-                "id": "660db7e8-e71d-442d-a1ab-b4f6aa6f1923",
-                "prompt_id": "66f7d46d-34b3-498d-94a0-25237c466358",
+                "id": "fca3ec1f-d480-4e5e-8a70-a36a32a1a065",
+                "prompt_id": "fa888a82-ccd9-434a-bc41-6211d89e297b",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "search_action",
-            "source": "web_search",
-            "query": "highest number of bird species on camera simultaneously in video L1vXCYZAYYM"
+            "source": "youtube",
+            "query": "highest number of bird species on camera simultaneously site:youtube.com L1vXCYZAYYM"
         },
         {
             "metadata": {
-                "id": "2215178f-9de9-4379-9dfe-aa4959a2af05",
-                "prompt_id": "66f7d46d-34b3-498d-94a0-25237c466358",
+                "id": "64a9943f-3ef0-4e02-b9eb-deb212719f99",
+                "prompt_id": "fa888a82-ccd9-434a-bc41-6211d89e297b",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -149,7 +126,42 @@
         },
         {
             "metadata": {
-                "id": "5d0577bf-3e25-4eea-aa62-a601af0afab1",
+                "id": "4f32fc21-75fb-4d12-84c4-6bb734875e44",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "highest number of bird species on camera simultaneously site:youtube.com L1vXCYZAYYM",
+            "serp": []
+        },
+        {
+            "metadata": {
+                "id": "40ca95fb-207d-436d-929c-f19f0cffd973",
+                "prompt_id": "b7fb6f58-5996-439f-a320-008b44451ef5",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "highest number of bird species on camera simultaneously in video L1vXCYZAYYM"
+        },
+        {
+            "metadata": {
+                "id": "212cfc8f-ede5-4c0c-a125-61c98c6111d4",
+                "prompt_id": "b7fb6f58-5996-439f-a320-008b44451ef5",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "86e4befe-7161-4c72-b161-6d231b808153",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -161,204 +173,17 @@
         },
         {
             "metadata": {
-                "id": "c7cec1eb-3564-40ac-b9df-4d19b52d5a80",
-                "prompt_id": "b0ce6f25-6d75-4452-a910-4d788120c478",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "read_document_action",
-            "url": "https://www.youtube.com/watch?v=L1vXCYZAYYM",
-            "fact_description": "highest number of bird species on camera simultaneously",
-            "fact_name": "highest number of bird species"
-        },
-        {
-            "metadata": {
-                "id": "0fb3a90d-5b1a-4de3-bde3-8016d2386a49",
-                "prompt_id": "b0ce6f25-6d75-4452-a910-4d788120c478",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "cb3ba279-a31f-4c70-8b0c-23f56642a27d",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "other": {}
-            },
-            "kind": "page_observation",
-            "text": "Title:  - YouTube\n=======================\n# YouTube\n\n### Video Metadata\n- **Keywords:** video, sharing, camera phone, video phone, free, upload\n\n### Description\nEmperor Penguin Chicks and Adelie Penguins stand up to Giant Petrel\n\nThe emperor penguin chicks are left to fend for themselves and stand up against a giant petrel with the help of a feisty Adelie.\n\nFrom our programme 'Spy in the Snow' for the BBC.\n\nNarrated by David Tennant\n\nProduced by Matthew Gordon\n\nCreative Director: John Downer\n\nFollow John Downer Productions:\n\nTwitter   / johndownerprod\nFacebook   / johndownerproductions\nInstagram   / johndownerproductions",
-            "current_page": 1,
-            "total_pages": 1,
-            "error": null
-        },
-        {
-            "metadata": {
-                "id": "2a5da47d-ef8f-428e-9d5c-4bb5e4c5866c",
-                "prompt_id": "43b7fdce-7c90-43ff-be54-32e66b881b01",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "reading_result_thought",
-            "fact_description": "highest number of bird species on camera simultaneously",
-            "fact_found": false,
-            "quote_with_fact": "",
-            "where_to_look_next": "There are no additional pages to look at; consider searching for a summary or review of the video."
-        },
-        {
-            "metadata": {
-                "id": "33e78a34-8df5-49f9-8317-82670e683c97",
-                "prompt_id": "43b7fdce-7c90-43ff-be54-32e66b881b01",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "b8653e06-3045-4a9c-9c47-a3346fc8a1a7",
-                "prompt_id": "fd384224-b7b4-42b1-9aea-aae2675d706a",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web_search",
-            "query": "highest number of bird species on camera simultaneously Spy in the Snow"
-        },
-        {
-            "metadata": {
-                "id": "63905dc9-9295-49f5-a926-3cef5fb91cbb",
-                "prompt_id": "fd384224-b7b4-42b1-9aea-aae2675d706a",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "9eb90436-3fa6-4477-b567-3b06e89852e4",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "other": {}
-            },
-            "kind": "search_results_observation",
-            "query": "highest number of bird species on camera simultaneously Spy in the Snow",
-            "serp": [
-                {
-                    "title": "Polar Bear – Spy on the Ice",
-                    "url": "https://jdp.co.uk/programmes/polar-bear-spy-on-the-ice",
-                    "content": "Polar Bear Spy on the Ice gets closer than ever before to these charismatic bears and reveals their astonishing intelligence and curiosity."
-                },
-                {
-                    "title": "Spy In The Wild – Series 2",
-                    "url": "https://jdp.co.uk/programmes/spy-in-the-wild-series-2",
-                    "content": "Using special state-of-the-art 4k resolution “Spy Creatures” the viewer is plunged into the very heart of the extraordinary lives of over 40 remarkable animals."
-                },
-                {
-                    "title": "32 species caught on camera in Dalby Forest during ...",
-                    "url": "https://naturespy.org/blogs/journal/32-species-caught-on-camera-in-dalby-forest-during-lockdown?srsltid=AfmBOor21DOjcOI__mFXSm39L3QUaAyvDKdgYkmcv2oRlJ7hHMVT5X9s",
-                    "content": "Nov 23, 2020 — Roe deer were by far the most recorded species in our lockdown survey, accounting for 55% of records generated, followed by blackbirds (9% of ..."
-                },
-                {
-                    "title": "Spy in the Snow: 'A polar bear destroyed our camera!'",
-                    "url": "https://www.whattowatch.com/news/spy-in-the-snow-polar-bear-destroyed-camera-562835",
-                    "content": "Dec 21, 2018 — This fascinating film reveals new insights into the survival techniques of penguins, polar bears and even kea parrots and wombats!"
-                },
-                {
-                    "title": "Snow Birds: 10 Birds to Look for in Winter - Cool Green Science",
-                    "url": "https://blog.nature.org/2016/01/18/snow-birds-10-birds-to-look-for-in-winter/",
-                    "content": "Jan 18, 2016 — Winter birding isn't easy, but it is amazing. If you're ready to brave the cold, here are 10 winter-only species to search for this month."
-                }
-            ]
-        },
-        {
-            "metadata": {
-                "id": "c0b33e2f-b5bd-46ba-a7d3-9b8b0f44fb44",
-                "prompt_id": "31f0c202-6d05-4536-b1fe-22fe05b70fba",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "read_document_action",
-            "url": "https://www.whattowatch.com/news/spy-in-the-snow-polar-bear-destroyed-camera-562835",
-            "fact_description": "highest number of bird species on camera simultaneously",
-            "fact_name": "highest number of bird species"
-        },
-        {
-            "metadata": {
-                "id": "63fbb67a-4037-44bb-abb8-1a16fe658d56",
-                "prompt_id": "31f0c202-6d05-4536-b1fe-22fe05b70fba",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "b00fcec5-e7ee-485f-9206-55a8edc0e2ac",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "other": {}
-            },
-            "kind": "page_observation",
-            "text": "Title: Spy in the Snow: ‘A polar bear destroyed our camera!’ | What to Watch\n=======================\n[Skip to main content](#main)\n\nOpen menu\nClose menu\n\n[What To Watch\n\nWhat to Watch](https://www.whattowatch.com)\n\nSearch\n\nSearch What to Watch\n\nUS Edition![flag of US](https://vanilla.futurecdn.net/whattowatch/media/shared/img/flags/nosize/US.svg)![flag of US](https://vanilla.futurecdn.net/whattowatch/media/shared/img/flags/nosize/US.svg)US![flag of UK](https://vanilla.futurecdn.net/whattowatch/media/shared/img/flags/nosize/GB.svg)UK\n\n*\n* [UK TV Guide](https://www.whattowatch.com/uk-tv-guide)\n* [TV](https://www.whattowatch.com/tv-shows)\n* [Streaming](https://www.whattowatch.com/streaming-services)\n* [Movies](https://www.whattowatch.com/movies)\n* [Soaps](https://www.whattowatch.com/soaps)\n* [News](https://www.whattowatch.com/news)\n* [Sports](https://www.whattowatch.com/tag/sports)\n* [Reviews](https://www.whattowatch.com/reviews)\n* More\n\t+ [UK Shows](https://www.whattowatch.com/uk-shows)\n\t+ [Sign up to What to Watch newsletter](https://www.whattowatch.com/features/sign-up-for-the-what-to-watch-newsletter)\n\t+ [About What to Watch](https://www.whattowatch.com/features/about-what-to-watch)\n\t+ [Subscribe to TV Times (UK)](https://www.magazinesdirect.com/temp-xtv)\n\t+ [Subscribe to TV \\& Satellite Week (UK)](https://www.magazinesdirect.com/temp-xts)\n\t+ [Competitions (UK)](https://comps.whatsontv.co.uk)\n\nTrending* [Cyber Monday streaming deals](https://www.whattowatch.com/deals/best-streaming-deals)\n* [Netflix](https://www.whattowatch.com/netflix)\n* [Christmas TV](https://www.whattowatch.com/christmas-tv)\n* [Young and the Restless](https://www.whattowatch.com/the-young-and-the-restless)\n* [EastEnders](https://www.whattowatch.com/eastenders)\n* [Emmerdale](https://www.whattowatch.com/emmerdale)\n* [Coronation Street](https://www.whattowatch.com/coronation-street)\n\n1. [News](https://www.whattowatch.com/news)\n2. [What's On TV](https://www.whattowatch.com/whats-on-tv)\n\nSpy in the Snow: ‘A polar bear destroyed our camera!’\n=====================================================\n\nBy [Elaine Reilly](https://www.whattowatch.com/author/elaine-reilly)( [What's on TV](https://www.whattowatch.com/whats-on-tv) ) published 21 December 2018\n\n*\n*\n*\n*\n\nWhen you purchase through links on our site, we may earn an affiliate commission. [Here’s how it works](https://www.whattowatch.com/features/about-what-to-watch#section-affiliate-advertising-disclosure).\n\n![Ice breaker. Polar bear on sea ice in The Arctic.](https://cdn.mos.cms.futurecdn.net/NzihqagD3G8vscwRMvaTvQ-320-80.jpg)\n\n(Image credit: BBC/John Downer Productions/Matt)\n\n**The Spy Creatures are back! Producer Matt Gordon reveals behind\\-the\\-scenes secrets from BBC's enchanting new wildlife film, Spy in the Snow.**\n\nThe weather outside is frightful but BBC1’s new, wildlife documentary Spy In The Snow is delightful! The team behind last year’s stunning film [Snow Bears](https://www.whattowatch.com/christmas-tv-home/christmas-tv-news/snow-bears-polar-bear-phone-call-510727) returns with a new, hour\\-long adventure, narrated by David Tennant, revealing how life in snow and ice is the ultimate endurance test.\n\nUsing cutting\\-edge technology and undercover spy cameras this fascinating film reveals new insights into the survival techniques of penguins, polar bears and even kea parrots and wombats!\n\n“We’re always trying to immerse viewers in animals’ worlds and give a unique perspective into their lives in what looks to us like a magical Narnia\\-like, wonderland,” says producer [Matt Gordon](https://twitter.com/MattGordonUK).\n\nHere Matt reveals more about filming the wonderful wildlife on show in the snow…\n--------------------------------------------------------------------------------\n\n**Sea otters in Alaska**\n\n![I give up, I'm the cutest. Sea otter in the snow in Alaska.](https://cdn.mos.cms.futurecdn.net/pvX6PZAJ8zct4RoUhZtx2k-320-80.jpg)\n\nI give up, I'm the cutest. Sea otter in the snow in Alaska. (Image credit: BBC/John Downer Productions/Fred)\n\nMatt: “The first place we take you is Alaska where we used spy otter cams to film sea otters. Otters normally try to avoid bringing their pups up in extreme blizzards with the sea freezing over, preferring the warmer Spring. But occasionally they give birth in Alaska’s harsh Winter and this is what we managed to film.\n\n“This is pretty much the first time sea otters have been filmed for this long in the winter.\n\nGet the What to Watch Newsletter\n--------------------------------\n\nThe latest updates, reviews and unmissable series to watch and more!\n\nContact me with news and offers from other Future brandsReceive email from us on behalf of our trusted partners or sponsorsBy submitting your information you agree to the [Terms \\& Conditions](https://futureplc.com/terms-conditions/) and [Privacy Policy](https://futureplc.com/privacy-policy/) and are aged 16 or over.“We also use a bald eagle drone spy that gets us a unique perspective on otters’ lives. In one scene you see a male otter trying to kidnap a baby and hold it hostage so he can mate with the mum. Our cameras in the sky and the water make you feel right in the thick of it.”\n\n**Polar bears in The Arctic**\n\n![Polar bear and Snowball Cam getting acquainted in The Arctic.](https://cdn.mos.cms.futurecdn.net/upZ3qaytqD9sgjRVSabALe-320-80.jpg)\n\nPolar bear and Snowball Cam getting acquainted in The Arctic. (Image credit: BBC/John Downer Productions/Phil)\n\nMatt: “While sea otters have amazing fur that allows them to survive \\- it’s actually the densest fur in the world with a million hairs per square inch! – Polar bears have two fur coats to protect them in temperature that go down to \\-40\\.\n\n“For the polar bears we use a snowball cam, a blizzard cam and others that look like inanimate objects, which the polar bears interact with. Because polar bears are fearless predators they really explore the cameras, testing them and turning them upside down.\n\n“You will see at the end of the programme one of our snowball cams was destroyed when a polar bear stood on it!”\n\n**Emperor penguins in The Antarctic**\n\n![Birds of a feather huddle together. Emperor penguins with their chicks in Antarctica.](https://cdn.mos.cms.futurecdn.net/ArBCdgEsQ8ysUmNqTi5Mve-320-80.jpg)\n\nBirds of a feather huddle together. Emperor penguins with their chicks in Antarctica. (Image credit: BBC/John Downer Productions/Fred)\n\nMatt: “Thanks to our spy creatures we get up close and personal with the animals living in these extreme environments. It gives us unique insights into how they survive.\n\n“You see our penguin cam deploy an egg cam, which is quite a funny moment. The emperor penguins not breeding still have a strong urge to raise an egg so there’s a tussle for it. One finally gets the egg cam and puts it under its pouch to keep it warm \\- until it realises it’s not a real egg and walks off! For the first time we get the unique perspective of what it must be like for a chick keeping warm under the feathers of an adult emperor penguin!”\n\n**Wallabies and wombats in Tasmania**\n\n![Spot the difference. Bennett's Wallaby and Spy Wallaby touch noses in Tasmania, Australia.](https://cdn.mos.cms.futurecdn.net/FbmFjCLKdsCAgzsQioM6eT-320-80.jpg)\n\nSpot the difference. Bennett's Wallaby and Spy Wallaby touch noses in Tasmania, Australia. (Image credit: BBC/John Downer Productions/Fred)\n\nMatt: “Marsupials like wallabies and wombats are not the type of animal you expect to see in the snow. We know about penguins huddling together to survive but in Tasmania wallabies survive by being opportunist with their browsing. Even if only a small amount of vegetation is exposed they can feed on it, but if snowfall gets too thick they have to escape to lower ground.\n\n“Wombats can survive because they’re more adapted to digging through the snow to get to hidden grass and other vegetation.”\n\n**Keas in New Zealand**\n\n![Spy cam, we have a problem. Kea biting controller of Spy Kea in New Zealand.](https://cdn.mos.cms.futurecdn.net/kAryQ7WBpuEg6YdmqUAR4T-320-80.jpg)\n\nSpy cam, we have a problem. Kea biting controller of Spy Kea in New Zealand. (Image credit: BBC/John Downer Productions/Matt)\n\nMatt: The kea parrots in New Zealand are beautiful, colourful, green parrots with red feathers underneath that you also don’t expect to see in snow!\n\n“They’re not specifically adapted for survival in snowy environment, like otters with their fur. They have a completely different way of surviving – they use their intelligence. Keas are very social birds and love new things. So they’ve no fear of digging up snow and foraging for food. They even make snowballs!\n\n“Our kea spy camera intrigues them and this allows us to get close and learn how their social behaviour and intelligence helps them survive Winter. Once they accept the camera, they just carry on with everyday life.”\n\n**Spy in the Snow airs on BBC1, Sunday 30 December 2018 at 7pm**\n\nCATEGORIES\n\n[Christmas TV](https://www.whattowatch.com/christmas-tv)\n\n![Elaine Reilly](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)[Elaine Reilly](https://www.whattowatch.com/author/elaine-reilly)Social Links NavigationWriter for TV Times, What’s On TV, TV \\& Satellite Week and What To WatchWith twenty years of experience as an entertainment journalist, Elaine writes for What’s on TV, TV Times, TV \\& Satellite Week and[www.whattowatch.com](https://www.whattowatch.com) covering a variety of programs from gardening and wildlife to documentaries and drama.\n\nAs well as active involvement in the WTW family’s social media accounts, she has been known to get chatty on the red carpet and wander into the odd podcast.\n\nAfter a day of previewing TV, writing about TV and interviewing TV stars, Elaine likes nothing than to relax… by watching TV.\n\nMore about christmas tv[![Key art for BeBe Winans' We Three Kings](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)Bebe Winans Lifetime Christmas movie BeBe Winans' We Three Kings airs tonight, November 30](https://www.whattowatch.com/news/bebe-winans-hopes-to-unite-a-family-for-christmas-in-bebe-winans-we-three-kings-movie-tonight-november-30)[![Lindsay Lohan as Avery in Our Little Secret](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)I love Christmas TV and Lindsay Lohan's latest Netflix movie is the best thing I've watched this year for one surprising reason](https://www.whattowatch.com/features/i-love-christmas-tv-and-lindsay-lohans-latest-netflix-movie-is-the-best-thing-ive-watched-this-year-for-one-surprising-reason)Latest[![John Lithgow and Jeff Bridges in The Old Man on Hulu]()Act fast: you have just one more day to grab that awesome $0\\.99 Hulu deal](https://www.whattowatch.com/news/act-fast-you-have-just-one-more-day-to-grab-that-awesome-usd0-99-hulu-deal)[See more latest ►](https://www.whattowatch.com/news)\n\n##### Most Popular\n\n[![](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)](https://www.whattowatch.com/news/blue-bloods-celebrating-a-family-legacy)[Blue Bloods: Celebrating a Family Legacy special airs tonight on CBS](https://www.whattowatch.com/news/blue-bloods-celebrating-a-family-legacy)[![](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)](https://www.whattowatch.com/news/exclusive-reveal-emmerdale-scoops-favourite-soap-at-tv-times-awards-after-huge-year-for-the-show)[Exclusive reveal: Emmerdale scoops Favourite Soap at TV Times Awards after huge year for the show](https://www.whattowatch.com/news/exclusive-reveal-emmerdale-scoops-favourite-soap-at-tv-times-awards-after-huge-year-for-the-show)[![](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)](https://www.whattowatch.com/news/general-hospital-spoilers-drews-attempt-to-stop-jason-from-moving-into-quartermaines-fails)[General Hospital spoilers: Drew’s attempt to stop Jason from moving into Quartermaines fails?](https://www.whattowatch.com/news/general-hospital-spoilers-drews-attempt-to-stop-jason-from-moving-into-quartermaines-fails) [![]()](https://www.whattowatch.com/news/buying-a-black-friday-tv-deal-remember-to-check-these-5-things-first)[Buying a Black Friday TV deal? Remember to check these 5 things first](https://www.whattowatch.com/news/buying-a-black-friday-tv-deal-remember-to-check-these-5-things-first)[![]()](https://www.whattowatch.com/news/stream-another-day-every-james-bond-movie-is-about-to-be-pulled-from-streaming-so-act-fast)[Stream Another Day: every James Bond movie is about to be pulled from streaming, so act fast!](https://www.whattowatch.com/news/stream-another-day-every-james-bond-movie-is-about-to-be-pulled-from-streaming-so-act-fast)[![]()](https://www.whattowatch.com/news/how-to-watch-the-agency-release-dates-streaming-options-and-more)[How to watch The Agency: release dates, streaming options and more](https://www.whattowatch.com/news/how-to-watch-the-agency-release-dates-streaming-options-and-more)[![](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)](https://www.whattowatch.com/news/why-general-hospital-is-not-new-on-november-28-and-november-29)[Why General Hospital is not new on November 28 and November 29](https://www.whattowatch.com/news/why-general-hospital-is-not-new-on-november-28-and-november-29)[![](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)](https://www.whattowatch.com/news/why-matlock-is-not-new-tonight-november-28)[Why Matlock is not new tonight, November 28](https://www.whattowatch.com/news/why-matlock-is-not-new-tonight-november-28)[![](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)](https://www.whattowatch.com/news/why-ghosts-is-not-new-on-thursday-november-28)[Why Ghosts is not new on Thursday, November 28](https://www.whattowatch.com/news/why-ghosts-is-not-new-on-thursday-november-28)[![](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)](https://www.whattowatch.com/news/why-the-young-and-the-restless-is-not-new-on-november-28-and-november-29)[Why The Young and the Restless is not new on November 28 and November 29](https://www.whattowatch.com/news/why-the-young-and-the-restless-is-not-new-on-november-28-and-november-29)[![]()](https://www.whattowatch.com/news/you-can-get-three-sports-streaming-services-for-basically-the-price-of-one-in-the-black-friday-streaming-deals)[You can get three sports streaming services for basically the price of one in the Black Friday streaming deals](https://www.whattowatch.com/news/you-can-get-three-sports-streaming-services-for-basically-the-price-of-one-in-the-black-friday-streaming-deals)\n\nLATEST ARTICLES1. [![Pembrokeshire Murders Luke Evans as Steve Wilkins](https://vanilla.futurecdn.net/cyclingnews/media/img/missing-image.svg)](https://www.whattowatch.com/news/netflix-adds-true-crime-drama-about-a-killer-caught-via-classic-gameshow-bullseye \"Netflix adds true crime drama about a killer caught via classic gameshow Bullseye\")1[Netflix adds true crime drama about a killer caught via classic gameshow Bullseye](https://www.whattowatch.com/news/netflix-adds-true-crime-drama-about-a-killer-caught-via-classic-gameshow-bullseye)\n2. 2[Act fast: you have just one more day to grab that awesome $0\\.99 Hulu deal](https://www.whattowatch.com/news/act-fast-you-have-just-one-more-day-to-grab-that-awesome-usd0-99-hulu-deal)\n3. 3[How to watch Yellowstone season 5 episode 12: release date, air times and streaming options](https://www.whattowatch.com/news/how-to-watch-yellowstone-season-5-episode-12-release-date-air-times-and-streaming-options)\n4. 4[New true crime special A Murder in the Pines premieres tonight on ID](https://www.whattowatch.com/news/a-murder-in-the-pines-premieres-on-id)\n5. 5[I tried Amazon's new fancy TV and there's one reason why I think its Black Friday deal is fantastic](https://www.whattowatch.com/news/i-tried-amazons-new-fancy-tv-and-theres-one-reason-why-i-think-its-black-friday-deal-is-fantastic)\n\nWhat to Watch is part of Future plc, an international media group and leading digital publisher. [Visit our corporate site](https://futureplc.com/).\n\n* [Terms and conditions](https://futureplc.com/terms-conditions/)\n* [Contact Future's experts](https://futureplc.com/contact/)\n* [Privacy policy](https://futureplc.com/privacy-policy/)\n* [Cookies policy](https://futureplc.com/cookies-policy/)\n* [Accessibility statement](https://futureplc.com/accessibility-statement/)\n* [Careers](https://futureplc.com/careers/)\n* [About Us](https://www.whattowatch.com/features/about-what-to-watch)\n* [Advertise with us](https://go.future-advertising.com/WhatToWatch-Media-Kit.html)\n\n©\nFuture Publishing Limited Quay House, The Ambury,\nBath\nBA1 1UA. All rights reserved. England and Wales company registration number 2008885\\.\n\n![](https://sb.scorecardresearch.com/p/?c1=2&c2=10055482&cv=4.4.0&cj=1)",
-            "current_page": 1,
-            "total_pages": 1,
-            "error": null
-        },
-        {
-            "metadata": {
-                "id": "d4a6ee63-5450-4e5b-acad-05a54b8b1873",
-                "prompt_id": "d3487719-05d1-4a00-9fa7-eda84af2bd20",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "reading_result_thought",
-            "fact_description": "highest number of bird species on camera simultaneously",
-            "fact_found": true,
-            "quote_with_fact": "Using cutting-edge technology and undercover spy cameras this fascinating film reveals new insights into the survival techniques of penguins, polar bears and even kea parrots and wombats!",
-            "where_to_look_next": ""
-        },
-        {
-            "metadata": {
-                "id": "f56e65c3-9070-4c36-b549-dde32fb5d8b1",
-                "prompt_id": "d3487719-05d1-4a00-9fa7-eda84af2bd20",
-                "node": "act",
-                "agent": "GaiaAgent",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "88445e1c-2d8a-479d-b786-23fd4bcf009f",
-                "prompt_id": "3d39b174-c16f-4422-a625-dfb6bf51f322",
+                "id": "d171ea4c-8417-4a12-a772-7fbec685d74b",
+                "prompt_id": "98a724fd-514e-44b3-b4e8-57aa501305ed",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "gaia_answer_action",
-            "success": true,
-            "overview": "Identified the highest number of bird species shown in the video.",
+            "success": false,
+            "overview": "Unable to find information regarding the highest number of bird species on camera simultaneously in the specified video.",
             "answer_unit": "",
-            "answer": "multiple species including penguins and kea parrots"
+            "answer": ""
         }
     ]
 }
