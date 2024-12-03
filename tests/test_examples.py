@@ -11,7 +11,7 @@ from make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
 from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
-from examples.rl_gsm8k.orchestrate_rl import extract_tape_training_samples, CoTMathAgent, RLMathTape
+from examples.rl_gsm8k.orchestrate_rl import CoTMathAgent, RLMathTape, extract_tape_training_samples
 from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_all_llm_calls
