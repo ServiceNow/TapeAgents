@@ -15,7 +15,7 @@ from pydantic import TypeAdapter
 
 from tapeagents.dialog_tape import AssistantStep, ImageObservation
 
-from .core import Tape
+from .core import Tape, TapeType
 
 logger = logging.getLogger(__name__)
 
@@ -149,20 +149,20 @@ def load_tape_dicts(path: Path | str, file_extension: str = ".yaml") -> list[dic
     return tapes
 
 
-def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension: str = ".yaml") -> list[Tape]:
+def load_tapes(tape_class: Type[TapeType], path: Path | str, file_extension: str = ".yaml") -> list[TapeType]:
     """Load tapes from dir with YAML or JSON files.
 
     This function loads tapes from a file or directory and converts them into tape objects
     using the specified tape class or type adapter.
 
     Args:
-        tape_class (Union[Type, TypeAdapter]): The class or type adapter used to validate and create tape objects.
+        tape_class (Type[TapeType]): The class or type adapter used to validate and create tape objects.
         path (Union[Path, str]): Path to a file or directory containing tape configurations.
         file_extension (str, optional): File extension to filter by when loading from directory.
             Must be either '.yaml' or '.json'. Defaults to '.yaml'.
 
     Returns:
-        list[Tape]: A list of validated tape objects.
+        list[TapeType]: A list of validated tape objects.
 
     Raises:
         FileNotFoundError: If the specified path does not exist.
@@ -175,25 +175,23 @@ def load_tapes(tape_class: Type | TypeAdapter, path: Path | str, file_extension:
         ```
     """
     tapes = []
-    loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
     data = load_tape_dicts(path, file_extension)
     for tape_dict in data:
-        tape = loader(tape_dict)
+        tape = tape_class.model_validate(tape_dict)
         tapes.append(tape)
     return tapes
 
 
-def load_legacy_tapes(tape_class: Type | TypeAdapter, path: Path | str, step_class: Type | TypeAdapter) -> list[Tape]:
+def load_legacy_tapes(tape_class: Type[TapeType], path: Path | str, step_class: Type | TypeAdapter) -> list[TapeType]:
     tapes = []
-    loader = tape_class.model_validate if isinstance(tape_class, Type) else tape_class.validate_python
     data = load_tape_dicts(path, ".json")
     for tape_dict in data:
         try:
-            tape = loader(tape_dict)
+            tape = tape_class.model_validate(tape_dict)
         except Exception:
             step_dicts = tape_dict["steps"]
             tape_dict["steps"] = []
-            tape = loader(tape_dict)
+            tape = tape_class.model_validate(tape_dict)
             step_loader = step_class.model_validate if isinstance(step_class, Type) else step_class.validate_python
             steps = []
             for step_dict in step_dicts:
