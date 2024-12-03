@@ -4,7 +4,6 @@ import sys
 from typing import Any, Literal
 
 from tapeagents.agent import Agent
-from tapeagents.chain import CallSubagent, Chain
 from tapeagents.core import (
     Action,
     AgentStep,
@@ -15,9 +14,10 @@ from tapeagents.core import (
     Thought,
 )
 from tapeagents.llms import LLM, LiteLLM, LLMStream
+from tapeagents.nodes import CallSubagent
 from tapeagents.observe import observe_tape
-from tapeagents.rendering import PrettyRenderer
-from tapeagents.team import TeamTape
+from tapeagents.renderers.pretty import PrettyRenderer
+from tapeagents.team import Chain, TeamTape
 from tapeagents.view import Call, Respond
 
 from ..data_science.data_science import make_renderers

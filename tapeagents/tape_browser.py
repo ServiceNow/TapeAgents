@@ -1,3 +1,7 @@
+"""
+GUI for browsing tapes.
+"""
+
 import logging
 import os
 
@@ -8,11 +12,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from tapeagents.core import Tape
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_tape_llm_calls
-
-from .core import Tape
-from .rendering import BasicRenderer
+from tapeagents.renderers.basic import BasicRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +178,6 @@ class TapeBrowser:
                 logger.info(f"Selected tape {selected_file}/{j} from query params")
             return self.update_view(selected_file)
 
-        gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
         with gr.Blocks(analytics_enabled=False) as blocks:
             with gr.Row():
                 with gr.Column(scale=4):

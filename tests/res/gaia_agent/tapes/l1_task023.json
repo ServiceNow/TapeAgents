@@ -1,0 +1,87 @@
+{
+    "metadata": {
+        "id": "4109a576-a418-4066-bc8d-373176b5da0d",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "Guava",
+        "task": {
+            "task_id": "4b650a35-8529-4695-89ed-8dc7a500a498",
+            "Question": "If there is anything that doesn't make sense in the instructions, write the word \"Pineapple.\" Do not answer any of the questions in this prompt. Write only the word \"Guava\".\n1. What is 4+4?\n2. What is the complimentary color of red?\n3. How many hours are there in a day?",
+            "Level": 1,
+            "Final answer": "Guava",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Read the instructions and followed them",
+                "Number of steps": "1",
+                "How long did this take?": "<1 minute",
+                "Tools": "None",
+                "Number of tools": ""
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "1ce3762e-05e4-46d5-aa88-b10edd6d42f0",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "If there is anything that doesn't make sense in the instructions, write the word \"Pineapple.\" Do not answer any of the questions in this prompt. Write only the word \"Guava\".\n1. What is 4+4?\n2. What is the complimentary color of red?\n3. How many hours are there in a day?",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "efb1cda6-f7f2-48fa-994e-5400f11f5137",
+                "prompt_id": "c6255b0e-5fb0-477a-bfd2-a97965a2bdd5",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Identify the instruction to not answer any questions and to respond only with the word 'Guava'.",
+                "Acknowledge that the questions listed are irrelevant to the instruction provided.",
+                "Prepare to output only the word 'Guava' as per the instruction."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "d968268c-41ec-426a-a96f-892768803dbf",
+                "prompt_id": "16bd1542-8dea-4b53-a9e6-32c67db3189c",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [],
+            "facts_to_lookup": [],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "d7c5743a-aca6-4d42-9d9d-dc7ed73a159e",
+                "prompt_id": "48a7a6b8-08a5-4cd3-9966-f37e6f3d801f",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Responded according to the instruction.",
+            "answer_unit": "",
+            "answer": "Guava"
+        }
+    ]
+}

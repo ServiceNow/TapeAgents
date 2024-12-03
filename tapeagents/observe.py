@@ -1,3 +1,7 @@
+"""
+Functions to observe and store LLM calls and Tapes in a persistent storage
+"""
+
 import datetime
 import json
 import logging

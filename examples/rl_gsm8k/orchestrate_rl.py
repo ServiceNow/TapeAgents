@@ -126,13 +126,14 @@ def extract_tape_training_samples(
         sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
+
             if llm_call.output.logprobs:
                 # TODO: verify the HF tokenization
                 trace.logprobs = [c['logprob'] for c in llm_calls[0].output.logprobs['content']]
             else:
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text) # type: ignore
             trace.reward = reward
-            trace.group_id = new_tape.metadata.parent_id 
+            trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
             if (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length and len(

@@ -1,0 +1,28 @@
+h5 {
+    font-size: 1.25em !important;
+    font-weight: 400 !important;
+}
+
+h3,
+h4,
+h5 {
+    margin: 1.6em 0 .64em !important;
+}
+
+.doc-object {
+    margin-top: 4em !important;
+}
+
+:root {
+    --md-primary-fg-color: #1f8476;
+    --md-primary-fg-color--light: #80b6a1;
+    --md-primary-fg-color--dark: #293e40;
+}
+
+code.doc-symbol-method::after {
+    content: "method" !important;
+}
+
+code.doc-symbol-module::after {
+    content: "module" !important;
+}
