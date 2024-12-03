@@ -19,9 +19,9 @@ Additionally, the Gaia agent implements the initial planning step, which produce
 
 ## Quickstart
 Perform all the following steps from the top folder of the repo.
-First, you need to install the dependencies for file converters and make folders:
+First, you need to install the dependencies for file converters:
 ```bash
-pip install -r requirements.converters.txt
+bash ./scripts/install.sh
 ```
 Then you can run the agent using the following commands:
 - `python -m examples.gaia_agent.scripts.studio` - Interactive GUI that allows you to set the task for the agent and observe how it solves it step by step.

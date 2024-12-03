@@ -2,11 +2,12 @@ import logging
 import os
 import shutil
 
+from pdf2image import convert_from_path
+
 from tapeagents.core import Action
 from tapeagents.environment import CodeExecutionResult, Environment, ExecuteCode
 from tapeagents.tools.calculator import calculate
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
-from tapeagents.tools.document_converters import pdf_to_images
 from tapeagents.tools.python_interpreter import run_python_code
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.utils import FatalError
@@ -185,3 +186,16 @@ def print_last_line(python_code: str) -> str:
     else:
         lines[-1] = f"print({lines[-1]})"
     return "\n".join(lines)
+
+
+def pdf_to_images(filename: str, n_pages: int = 3):
+    images = []
+    for i, image in enumerate(convert_from_path(filename)):
+        page_index = i + 1
+        page_fname = filename[:-4] + f"_{page_index}.png"
+        if os.path.exists(page_fname):
+            images.append(page_fname)
+            continue
+        image.save(page_fname)
+        images.append(page_fname)
+    return images[:n_pages], len(images)
