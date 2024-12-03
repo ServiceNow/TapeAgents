@@ -149,7 +149,7 @@ def test_gaia_agent():
     agent = GaiaAgent.create(llm)
     tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, env)
+    fails = replay_tapes(agent, tapes, env, reuse_observations=True)
     assert fails == 0, f"{fails} failed tapes"
 
 
