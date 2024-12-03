@@ -45,7 +45,7 @@ MathAgentStep: TypeAlias = Annotated[
     Field(discriminator="kind"),
 ]
 
-MathTape = Tape[
+RLMathTape = Tape[
     None,
     Union[
         Task,
@@ -101,7 +101,7 @@ class MathEnvironment(Environment):
     def __init__(self) -> None:
         super().__init__()
 
-    def react(self, tape: MathTape) -> MathTape:
+    def react(self, tape: RLMathTape) -> RLMathTape:
         actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
         for action in actions:
             if isinstance(action, LLMOutputParsingFailureAction):

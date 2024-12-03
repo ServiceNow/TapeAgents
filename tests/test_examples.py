@@ -11,8 +11,10 @@ from make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
 from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
+from examples.rl_gsm8k.orchestrate_rl import extract_tape_training_samples, CoTMathAgent, RLMathTape
 from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
+from tapeagents.observe import retrieve_all_llm_calls
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
 
@@ -236,6 +238,21 @@ def test_gsm8k_tuning_samples_prep():
     run_dir = f"{res_path}/gsm8k_tuning"
     training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
     new_training_samples = get_training_samples_from_tapes(f"{run_dir}/tapes/")
+    assert training_samples == new_training_samples
+
+
+def test_rl_for_math_data():
+    run_dir = f"{res_path}/rl_math"
+    sqlite_path = f"{run_dir}/tapedata.sqlite"
+    llm_calls = retrieve_all_llm_calls(sqlite_path)
+    tapes = load_tapes(RLMathTape, run_dir, file_extension=".json")
+    agent = CoTMathAgent.create(mock_llm(run_dir))
+    cfg = DictConfig({"use_rejection_sampling": False, "finetune": {"seq_length": 1024}})
+    training_samples = []
+    for tape in tapes:
+        _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg, llm_calls)
+        training_samples.extend(training_sample)
+    new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
     assert training_samples == new_training_samples
 
 
