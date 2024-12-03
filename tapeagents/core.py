@@ -221,7 +221,6 @@ class LLMCall(BaseModel):
     prompt_length_tokens: int = -1
     output_length_tokens: int = -1
     cached: bool
-    logprobs: ChoiceLogprobs | None = None
 
 
 AnnotatorTape = Tape[TapeType, StepType]

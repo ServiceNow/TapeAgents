@@ -99,7 +99,6 @@ class LLM(BaseModel, ABC):
             prompt_length_tokens=self.count_tokens(prompt.messages),
             output_length_tokens=self.count_tokens(message.content) if message.content else 0,
             cached=cached,
-            logprobs=message._logprobs if hasattr(message, "_logprobs") else None,
         )
         self._log.append(llm_call.model_dump())
         observe_llm_call(llm_call)
@@ -263,7 +262,7 @@ class TrainableLLM(CachedLLM):
 
     base_url: str
     api_token: str = Field(default="", exclude=True)
-    collect_logprobs: bool = False
+    collect_logprobs: bool = True
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
