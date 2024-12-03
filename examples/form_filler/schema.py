@@ -33,7 +33,6 @@ from examples.form_filler.error import (
 from examples.form_filler.types import FunctionName, ParameterName
 
 
-### copy-paste of llmd2.core.json_schema ###
 
 JsonType: TypeAlias = Literal["null", "boolean", "object", "array", "number", "string", "integer"]
 
@@ -187,7 +186,6 @@ class JsonSchema(BaseModel):
         return possible_values
 
 
-### copy-paste of llmd2.core.function_schema ###
 
 
 class FunctionSchema(Observation):

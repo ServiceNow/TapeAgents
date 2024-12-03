@@ -121,7 +121,7 @@ UserSimulatorTape = Tape[FormFillerTape, ... | MakeObservation]
 ```
 
 The user agent will then run `self.add_observation(form_filler_tape, user_tape)` to convert its `MakeObservation` steps to `Observation` steps and append them to the input `form_filler_tape`.
-This code can be seen in [run_user_simulator.run_user_simulator_agent()](https://github.com/ServiceNow/cat-mono-repo/blob/main/llmd2-core/src/llmd2/tapeagents_tmp/ghreat/dev/run_user_simulator.py).
+This code can be seen in [run_user_simulator.run_user_simulator_agent()](https://github.com/ServiceNow/cat-mono-repo/blob/main/examples/form_filler/dev/run_user_simulator.py).
 
 The user agent nodes are defined in [user_simulator_agent.py](https://github.com/ServiceNow/cat-mono-repo/blob/main/llmd2-core/src/llmd2/tapeagents_tmp/ghreat/user_simulator_agent.py) as 
 
@@ -166,7 +166,7 @@ We generate synthetic dialogues by alternating between calling the Form-filler A
 For instance, to generate trees using the `tree_config6` configuration, 
 run the following command (in a tmux window)
 ```bash
-python llmd2-core/src/llmd2/tapeagents_tmp/ghreat/dev/make_tape_tree.py \
+python examples/form_filler/dev/make_tape_tree.py \
   make_tape_tree.force_restart_idx=-1 \
   make_tape_tree.output_path=<path to output folder> \
   make_tape_tree.preambles_path=<path to forms>/train/FlyCorp \

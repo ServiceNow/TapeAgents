@@ -2,7 +2,8 @@
 
 from abc import ABC, abstractmethod
 from io import StringIO
-from typing import Any, Literal, Self, Union
+from typing import Any, Literal, Union
+from typing_extensions import Self
 from pydantic import Field, JsonValue
 
 from tapeagents.core import Step, Action, Error

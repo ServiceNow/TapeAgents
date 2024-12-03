@@ -1,5 +1,6 @@
 import logging
-from typing import Literal, Self
+from typing import Literal
+from typing_extensions import Self
 from pydantic import BaseModel, Field, JsonValue
 
 
