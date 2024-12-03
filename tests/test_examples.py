@@ -253,8 +253,8 @@ def test_gsm8k_tuning_samples_prep():
     assert training_samples == new_training_samples
 
 
-def test_rl_for_math_data():
-    run_dir = f"{res_path}/rl_math"
+def test_rl_gsm8k_data():
+    run_dir = f"{res_path}/rl_gsm8k"
     sqlite_path = f"{run_dir}/tapedata.sqlite"
     llm_calls = retrieve_all_llm_calls(sqlite_path)
     tapes = load_tapes(RLMathTape, run_dir, file_extension=".json")
@@ -263,7 +263,9 @@ def test_rl_for_math_data():
     training_samples = []
     for tape in tapes:
         _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg, llm_calls)
-        training_samples.extend(training_sample)
+        if training_sample:
+            training_samples.append(training_sample[0])
+
     new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
     assert training_samples == new_training_samples
 
@@ -280,4 +282,4 @@ if __name__ == "__main__":
     test_tape_improver()
     test_gsm8k_tuning_tapes_generation()
     test_gsm8k_tuning_samples_prep()
-    test_rl_for_math_data()
+    test_rl_gsm8k_data()
