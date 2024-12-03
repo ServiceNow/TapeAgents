@@ -127,11 +127,14 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            if llm_call.output.logprobs:
-                # TODO: verify the HF tokenization
-                trace.logprobs = [c['logprob'] for c in llm_calls[0].output.logprobs['content']]
-            else:
-                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text) # type: ignore
+            trace.logprobs = []
+            if hasattr(llm_call.output, "logprobs"):
+                trace.logprobs = [c["logprob"] for c in llm_call.output.logprobs["content"]]
+
+            if len(trace.logprobs) != llm_call.output_length_tokens:
+                # the online vLLM tokenizer does not agree with the HF tokenizer
+                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
+
             trace.reward = reward
             trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
@@ -305,6 +308,7 @@ def main(cfg: DictConfig):
             tokenizer_name=str(assistant_model_path),
             parameters=cfg.llm.parameters,
             use_cache=False,
+            collect_logprobs=True,
         )
 
         test_llm = TrainableLLM(
