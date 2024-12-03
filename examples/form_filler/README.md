@@ -6,7 +6,7 @@ GREADTH stands for Grounded, REsponsive, Accurate, Disciplined, Transparent and 
 
 ## Requirements
 - Make sure to activate the `tapeagents` conda environment.
-- Install the json5 library: `pip install json5`
+- Install additional requirements for this example `pip install -r requirements.formfiller.txt`
 
 
 ## Form-filler Agent
