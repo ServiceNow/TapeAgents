@@ -33,19 +33,19 @@ class WatchVideoAction(Action):
 
 
 class ImageObservation(Observation):
-    kind: Literal["image_observation"] = "image_observation"
+    kind: Literal["image"] = "image"
     image_path: str
-    thumbnail_path: str | None = None
-    image_caption: str | None = None
+    thumbnail_path: str = ""
+    image_caption: str = ""
     error: int | None = None
 
     def llm_view(self) -> list[dict]:
-        llm_view = []
+        content = []
         if self.image_caption:
-            llm_view.append[{"type": "text", "text": self.image_caption}]
+            content.append({"type": "text", "text": self.image_caption})
         if self.image_path:
-            llm_view.append(image_base64_message(self.image_path))
-        return llm_view
+            content.append(image_base64_message(self.image_path))
+        return content
 
 
 class VideoObservation(Observation):
@@ -116,3 +116,8 @@ def normalize_step_paths(model: Step, root_path: str) -> Step:
             else:
                 raise ValueError(f"Expected a list or string, got {type(value)}")
     return model
+
+
+class UnknownStep(Step):
+    content: str
+    kind: Literal["unknown"] = "unknown"  # type: ignore

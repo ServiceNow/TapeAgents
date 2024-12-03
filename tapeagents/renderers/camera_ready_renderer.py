@@ -14,6 +14,7 @@ from tapeagents.dialog_tape import (
     UserStep,
 )
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
+from tapeagents.io import UnknownStep
 from tapeagents.observe import LLMCall
 from tapeagents.renderers.basic import BasicRenderer
 from tapeagents.tools.container_executor import CodeBlock
@@ -111,6 +112,9 @@ class CameraReadyRenderer(BasicRenderer):
         elif isinstance(step, Observation):
             role = "Observation"
             class_ = "error" if getattr(step, "error", False) else "observation"
+        elif isinstance(step, UnknownStep):
+            role = "Unknown Step"
+            class_ = "error"
         else:
             raise ValueError(f"Unknown object type: {type(step)}")
 
@@ -278,14 +282,11 @@ def render_video(video_path, thumbnail_path, subtitles_path) -> str:
 
 
 def render_image(image_path: str, image_caption: str | None = None) -> str:
-    html = ""
-    image_path = path_to_static(image_path)
+    if not os.path.exists(image_path):
+        return ""
+    image_url = path_to_static(image_path)
     figcaption_attribute = f"<pre>{image_caption}</pre>" if image_caption else ""
-    html += f"""
-    <img src='{image_path}' style='max-width: 100%; height: 250px; padding: 4px;'>
-    {figcaption_attribute}
-    """
-    return html
+    return f"<img src='{image_url}' style='max-width: 100%; height: 250px; padding: 4px;'>{figcaption_attribute}"
 
 
 def path_to_static(path: str) -> str:

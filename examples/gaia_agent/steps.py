@@ -5,9 +5,9 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 from pydantic import BaseModel, Field
 
 from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
-from tapeagents.dialog_tape import AssistantStep, ImageObservation
+from tapeagents.dialog_tape import AssistantStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
-from tapeagents.steps import VideoObservation, WatchVideoAction
+from tapeagents.steps import ImageObservation, VideoObservation, WatchVideoAction
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
