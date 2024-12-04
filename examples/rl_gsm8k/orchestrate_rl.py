@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
     try:
-        trace.ref_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
+        trace.ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
         return trace
     except Exception as e:
         raise e
@@ -124,8 +124,6 @@ def extract_tape_training_samples(
         no_error = 1
         prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")
         answer = new_tape.steps[0].metadata.other["value"]
-        if len(prediction) > 1:
-            logger.warning(f"Multiple answers found: {prediction}")
         if eval_fn(
             {
                 "prediction": prediction,
@@ -158,13 +156,12 @@ def extract_tape_training_samples(
 
             if len(logprobs) != llm_call.output_length_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
-                logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text).content  # type: ignore
+                logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
                 logprobs = [c.logprob for c in logprobs]
                 compute_log_probs.append(1)
             else:
                 compute_log_probs.append(0)
 
-            trace.logprobs = [c["logprob"] for c in logprobs]
             trace.reward = reward
             trace.logprobs = logprobs
             trace.group_id = new_tape.metadata.parent_id
@@ -249,7 +246,7 @@ def generate_training_data(
     start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
-    with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
+    with ThreadPoolExecutor(max_workers=torch.cuda.device_count()) as executor:
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
             agent=agent,
@@ -261,6 +258,7 @@ def generate_training_data(
         # Wrap futures with tqdm for progress tracking
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
             new_tape, tape_training_samples, tape_stats = future.result()
+            training_samples.extend(tape_training_samples)
             reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
             step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
@@ -289,8 +287,7 @@ def generate_training_data(
             / (end_sampling_from_llm - start_sampling_from_llm),
             f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
             / (end_sampling_from_llm - start_sampling_from_llm),
-            f"{dataset_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
-            f"{dataset_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
+            f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
         },
     }
@@ -344,44 +341,45 @@ def main(cfg: DictConfig):
         else:
             assistant_model_path = cfg.model_path
 
-        llm = TrainableLLM(
-            base_url="http://127.0.0.1:8080",
-            model_name=str(assistant_model_path),
-            tokenizer_name=str(assistant_model_path),
-            parameters=cfg.llm.parameters,
-            use_cache=False,
-            collect_logprobs=True,
-        )
-
-        test_llm = TrainableLLM(
-            base_url="http://127.0.0.1:8080",
-            model_name=str(assistant_model_path),
-            tokenizer_name=str(assistant_model_path),
-            parameters=cfg.test_llm.parameters,
-            use_cache=False,
-        )
 
         try:
-            sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
-            train_tapes = convert_problems_to_tapes(sub_samples, cfg)
-            train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
-            train_agent = CoTMathAgent.create(llm=llm)
-
-            splits = [("train", train_agent, train_tapes)]
-            if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                test_tapes = convert_problems_to_tapes(test_samples, cfg)
-                test_agent = CoTMathAgent.create(llm=test_llm)
-                splits.append(("test", test_agent, test_tapes))
             all_results = {}
             with VLLMServiceManager(
                 model_name_or_path=assistant_model_path,
                 stdout_file_path=exp_path / "assistant_vllm_stdout.log",
                 stderr_file_path=exp_path / "assistant_vllm_stderr.log",
                 port=8080,
+                gpu_per_instance=cfg.gpu_per_instance,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **cfg.vllm_config.vllm_kwargs,
             ) as vllm_service_manager:
+                llm = TrainableLLM(
+                    base_url=vllm_service_manager.get_base_urls(),
+                    model_name=str(assistant_model_path),
+                    tokenizer_name=str(assistant_model_path),
+                    parameters=cfg.llm.parameters,
+                    use_cache=False,
+                    collect_logprobs=True,
+                )
+
+                test_llm = TrainableLLM(
+                    base_url=vllm_service_manager.get_base_urls(),
+                    model_name=str(assistant_model_path),
+                    tokenizer_name=str(assistant_model_path),
+                    parameters=cfg.test_llm.parameters,
+                    use_cache=False,
+                )
+                sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
+                train_tapes = convert_problems_to_tapes(sub_samples, cfg)
+                train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
+                train_agent = CoTMathAgent.create(llm=llm)
+
+                splits = [("train", train_agent, train_tapes)]
+                if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
+                    test_tapes = convert_problems_to_tapes(test_samples, cfg)
+                    test_agent = CoTMathAgent.create(llm=test_llm)
+                    splits.append(("test", test_agent, test_tapes))
                 for split_name, agent, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
                     new_tapes, training_samples, stats = generate_training_data(
@@ -418,26 +416,27 @@ def main(cfg: DictConfig):
 
         start_basemodel_logprobs = time.time()
         try:
-            basemodel_llm = TrainableLLM(
-                base_url="http://127.0.0.1:8081",
-                model_name=cfg.model_path,
-                tokenizer_name=cfg.model_path,
-                parameters=dict(temperature=0.7),
-            )
-
-            basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
-
             with VLLMServiceManager(
                 model_name_or_path=cfg.model_path,
                 stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
                 stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
-                port=8081,
+                port=8090,
                 verbose=True,
+                gpu_per_instance=cfg.gpu_per_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **cfg.vllm_config.vllm_kwargs,
             ) as vllm_service_manager:
+                basemodel_llm = TrainableLLM(
+                    base_url=vllm_service_manager.get_base_urls(),
+                    model_name=cfg.model_path,
+                    tokenizer_name=cfg.model_path,
+                    parameters=dict(temperature=0.7),
+                )
+
+                basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
+
                 # FIXME: more than 1 worker causes the LLM to run OOM
-                with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
+                with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers) as executor:
                     futures = [
                         executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
                         for trace in all_results["train"]["training_samples"]
