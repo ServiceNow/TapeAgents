@@ -131,16 +131,24 @@ def extract_tape_training_samples(
             logprobs = []
             if hasattr(llm_call.output, "logprobs"):
                 logprobs = llm_call.output.logprobs["content"]
+<<<<<<< HEAD
                 logprobs = [c["logprob"] for c in logprobs]
+=======
+>>>>>>> 94c39c72b4bcf83267131b3736498d8afd85ca5a
 
             if len(logprobs) != llm_call.output_length_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
                 logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text).content  # type: ignore
+<<<<<<< HEAD
                 logprobs = [c.logprob for c in logprobs]
                 compute_log_probs.append(1)
+=======
+                recomputed_logprobs.append(1)
+>>>>>>> 94c39c72b4bcf83267131b3736498d8afd85ca5a
             else:
                 compute_log_probs.append(0)
 
+            trace.logprobs = [c["logprob"] for c in logprobs]
             trace.reward = reward
             trace.logprobs = logprobs
             trace.group_id = new_tape.metadata.parent_id
