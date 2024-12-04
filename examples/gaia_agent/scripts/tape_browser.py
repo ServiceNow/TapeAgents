@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from pydantic import TypeAdapter
 
-from tapeagents.core import Action, Step
+from tapeagents.core import Action
 from tapeagents.io import load_legacy_tapes
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
@@ -72,26 +72,32 @@ class GaiaTapeBrowser(TapeBrowser):
     def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
         acc, n_solved = calculate_accuracy(tapes)
         errors = defaultdict(int)
-        tokens_num = 0
+        prompt_tokens_num = 0
+        output_tokens_num = 0
+        total_cost = 0.0
         for tape in tapes:
             if tape.metadata.error:
                 errors["fatal"] += 1
+            if tape.metadata.terminated:
+                errors["terminated"] += 1
             last_action = None
             for step in tape:
                 if isinstance(step, Action):
                     last_action = step
                 prompt_id = step.metadata.prompt_id
                 if prompt_id and prompt_id in self.llm_calls:
-                    tokens_num += (
-                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
-                    )
+                    llm_call = self.llm_calls[prompt_id]
+                    prompt_tokens_num += llm_call.prompt_length_tokens
+                    output_tokens_num += llm_call.output_length_tokens
+                    total_cost += llm_call.cost
                 if step.kind == "page_observation" and step.error:
                     errors["browser"] += 1
                 elif step.kind == "llm_output_parsing_failure_action":
                     errors["parsing"] += 1
                 elif step.kind == "action_execution_failure":
                     errors[f"{last_action.kind}"] += 1
-        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}"
+        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}"
+        html += f"</h2>Prompts tokens total: {prompt_tokens_num}, output tokens total: {output_tokens_num}, cost total: {total_cost:.2f}"
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
             html += f"<h2>Errors</h2>{errors_str}"
@@ -99,20 +105,21 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
         error = "F" if tape.metadata.error else None
+        if tape.metadata.terminated:
+            error = "T"
         last_action = None
         for step in tape:
             if isinstance(step, Action):
                 last_action = step
-            if step.kind == "page_observation" and step.error:
+            elif step.kind == "page_observation" and step.error:
                 error = "br"
             elif step.kind == "llm_output_parsing_failure_action":
                 error = "pa"
             elif step.kind == "action_execution_failure" and last_action:
                 error = last_action.kind[:2]
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
-        if tape.metadata.task["file_name"]:
-            ext = tape.metadata.task["file_name"].split(".")[-1]
-            mark += f"({ext})"
+        if tape.metadata.task.get("file_name"):
+            mark += "📁"
         if error:
             mark += f"[{error}]"
         if mark:
@@ -121,21 +128,24 @@ class GaiaTapeBrowser(TapeBrowser):
 
     def get_tape_label(self, tape: GaiaTape) -> str:
         llm_calls_num = 0
-        tokens_num = 0
+        input_tokens_num = 0
+        output_tokens_num = 0
+        cost = 0
 
         for step in tape:
             prompt_id = step.metadata.prompt_id
             if prompt_id and prompt_id in self.llm_calls:
                 llm_calls_num += 1
                 if prompt_id in self.llm_calls:
-                    tokens_num += (
-                        self.llm_calls[prompt_id].prompt_length_tokens + self.llm_calls[prompt_id].output_length_tokens
-                    )
+                    llm_call = self.llm_calls[prompt_id]
+                    input_tokens_num += llm_call.prompt_length_tokens
+                    output_tokens_num += llm_call.output_length_tokens
+                    cost += llm_call.cost
         failure_count = len(
             [step for step in tape if "failure" in step.kind or (step.kind == "page_observation" and step.error)]
         )
         label = f"""<h2>Tape Result</h2>
-            <div class="result-label expected">Golden Answer: <b>{tape.metadata.task['Final answer']}</b></div>
+            <div class="result-label expected">Golden Answer: <b>{tape.metadata.task.get('Final answer', '')}</b></div>
             <div class="result-label">Agent Answer: <b>{tape.metadata.result}</b></div>
             <div class="result-label">Steps: {len(tape)}</div>
             <div class="result-label">Failures: {failure_count}</div>"""
@@ -143,7 +153,7 @@ class GaiaTapeBrowser(TapeBrowser):
         overview = tape[-1].overview if hasattr(tape[-1], "overview") else ""  # type: ignore
         label += f"""
             <div class="result-success">Finished successfully: {success}</div>
-            <div>LLM Calls: {llm_calls_num}, tokens: {tokens_num}</div>
+            <div>LLM Calls: {llm_calls_num}, input_tokens: {input_tokens_num}, output_tokens {output_tokens_num}, cost {cost:.2f}</div>
             <div class="result-overview">Overview:<br>{overview}</div>"""
         if tape.metadata.error:
             label += f"<div class='result-error'><b>Error</b>: {tape.metadata.error}</div>"
@@ -161,26 +171,23 @@ class GaiaTapeBrowser(TapeBrowser):
                 exp_dir = os.path.join(self.tapes_folder, r)
                 try:
                     cfg = get_exp_config_dict(exp_dir)
-                    set_name = cfg["split"]
-                except Exception:
-                    set_name = "-"
+                    if "split" in cfg:
+                        set_name = cfg["split"]
+                    elif "data_dir" in cfg:
+                        parts = cfg["data_dir"].split("/")
+                        set_name = parts[-2] if cfg["data_dir"].endswith("/") else parts[-1]
+                    else:
+                        set_name = ""
+                except Exception as e:
+                    logger.error(f"Failed to load config from {exp_dir}: {e}")
+                    set_name = ""
                 exps.append(f"{set_name}/{r}/{postfix}")
         return sorted(exps)
 
 
-class GaiaRender(CameraReadyRenderer):
-    def render_step(self, step: Step, index: int, **kwargs) -> str:
-        image_path = step.metadata.other.get("image_path")
-        html = super().render_step(step, index, **kwargs)
-        if image_path:
-            image_url = os.path.join("static", image_path)
-            html = f"<div class='observation'>{html}<div><img src='{image_url}' style='max-width: 100%;'></div></div>"
-        return html
-
-
 def main(dirname: str):
-    browser = GaiaTapeBrowser(dirname, GaiaRender())
-    browser.launch(static_dir=dirname, port=7861)
+    browser = GaiaTapeBrowser(dirname, CameraReadyRenderer())
+    browser.launch(port=7861)
 
 
 if __name__ == "__main__":
