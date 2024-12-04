@@ -869,8 +869,6 @@ class ReplayLLM(LLM):
                                 f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n"
                             )
                     raise FatalError("prompt not found")
-
-                raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 
         return LLMStream(_implementation(), prompt=prompt)
