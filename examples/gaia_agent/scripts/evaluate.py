@@ -26,7 +26,7 @@ if is_debug_mode():
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="gaia_hybrid",
+    config_name="gaia_openai",
 )
 def main(cfg: DictConfig) -> None:
     """
@@ -39,7 +39,7 @@ def main(cfg: DictConfig) -> None:
     os.makedirs(code_path, exist_ok=True)
     os.makedirs(cfg.env.attachment_dir, exist_ok=True)
     llm = instantiate(cfg.llm)
-    plan_llm = instantiate(cfg.plan_llm)
+    plan_llm = instantiate(cfg.plan_llm) if cfg.get("plan_llm") else None
     try:
         code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
     except Exception as e:
@@ -47,12 +47,11 @@ def main(cfg: DictConfig) -> None:
         code_sandbox = None
     agent = GaiaAgent.create(llm, plan_llm, **cfg.agent)
     tasks = load_dataset(cfg.split)
-    if cfg.tasks:
+    if cfg.get("tasks"):
         selected_tasks = {}
         for level, level_tasks in cfg.tasks.items():
             selected_tasks[level] = [tasks[level][i] for i in level_tasks]
         tasks = selected_tasks
-        print(tasks)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     validate_config(cfg, llm, tapes_dir)
     images_dir = os.path.join(cfg.exp_path, "images")
