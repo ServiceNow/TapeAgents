@@ -108,6 +108,8 @@ class IntentDiscoveryNode(Node):
                 if isinstance(step, InspectFunction):
                     inspect_function_found = True
                 yield step
+                if isinstance(step, Action):
+                    break  # stop yielding steps after the first action step
 
             if not inspect_function_found:
                 yield SetNextNode(next_node="intent_discovery_node")
@@ -130,12 +132,14 @@ class TeacherNode(Node):
 
     def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
         completion = llm_stream.get_text()
-        logger.debug(f"teacher agent at node {self.name} --- Completion: {completion}")
+        logger.debug(f"teacher agent at node {self.name} --- Prompt: {llm_stream.prompt} --- Completion: {completion}")
         for predicted_step in parse_completion(completion):
             if not self.yield_actions and isinstance(predicted_step, ACTION_STEPS):
                 # Actions (but not error) should be skipped in intermediate nodes
                 continue
             yield predicted_step
+            if isinstance(predicted_step, Action):
+                break  # stop yielding steps after the first action step
 
 
 class GatherValuesNode(TeacherNode):
@@ -264,6 +268,10 @@ class WriteConfirmationNode(TeacherNode):
 
     def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
         yield from super().generate_steps(agent, tape, llm_stream)  # yield all predicted steps
+        # hard code the confirmation message with summary of assigned parameters
+        yield AssistantStep(
+            content=f"Please review the information you provided. If you want to proceed, please approve.\n{tape.get_filled_parameters_as_llm_view()}"
+        )
         # go back to routing node if the agent gets called again
         yield SetNextNode(next_node="routing_node")
 
@@ -275,14 +283,26 @@ class CallFunctionNode(TeacherNode):
 
     def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
         call_function_found = False
+        assistant_message_found = False
         for step in super().generate_steps(agent, tape, llm_stream):  # yield all predicted steps
             if isinstance(step, CallFunction):
                 call_function_found = True
+            if isinstance(step, AssistantStep):
+                # this should not happen based on the prompt, but sometimes the llm still generates an assistant message
+                # we can either ignore this step and set_next_node to write_confirmation_node to write a proper confirmation message,
+                # or we can keep it and set_next_node to routing_node
+                # we choose the latter
+                assistant_message_found = True
             yield step
-        
-        # If there was no action step (i.e. call function) in the predicted steps, go back to write confirmation node
+
+        # If there was a call function, nothing else to do, otherwise check if there was an assistant message
         if not call_function_found:
-            yield SetNextNode(next_node="write_confirmation_node")
+            if assistant_message_found:
+                # If there was an assistant message, skip write_confirmation_node and go back to routing node
+                yield SetNextNode(next_node="routing_node")
+            else:
+                # If there was no assistant message, go to write_confirmation_node
+                yield SetNextNode(next_node="write_confirmation_node")
 
 
 def parse_completion(completion: str) -> Generator[FormFillerStep, None, None]:
