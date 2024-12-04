@@ -190,7 +190,7 @@ class LLM(BaseModel, ABC):
         """
         return {"input": 0, "output": 0}
 
-    def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
+    def log_output(self, prompt: Prompt, message: LLMOutput, usage: dict = {}, cached: bool = False):
         """
         Logs the output of an LLM (Language Model) call along with its metadata.
 
@@ -209,8 +209,17 @@ class LLM(BaseModel, ABC):
             llm_info=self.get_info(),
         )
         token_costs = self.get_token_costs()
+        if usage:
+            # For models like OpenAI-o1 the number of used completions tokens can differ
+            # from the number of output tokens
+            prompt_token_usage = usage.prompt_tokens
+            output_token_usage = usage.completion_tokens
+        else:
+            prompt_token_usage = llm_call.prompt_length_tokens
+            output_token_usage = llm_call.output_length_tokens
         llm_call.cost = (
-            token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens
+            token_costs["input"] * prompt_token_usage 
+            + token_costs["output"] * output_token_usage
         )
         self._log.append(llm_call.model_dump())
         observe_llm_call(llm_call)
@@ -438,7 +447,8 @@ class LiteLLM(CachedLLM):
             assert isinstance(response, litellm.ModelResponse)
             assert isinstance(response.choices[0], litellm.utils.Choices)
             output = response.choices[0].message
-        self.log_output(prompt, output)
+            usage = response.model_extra["usage"]
+        self.log_output(prompt, output, usage)
         yield LLMEvent(output=output)
 
     def make_training_text(self, *args, **kwargs) -> TrainingText:
