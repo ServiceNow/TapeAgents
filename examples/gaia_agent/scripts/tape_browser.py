@@ -98,17 +98,17 @@ class GaiaTapeBrowser(TapeBrowser):
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
-        error = "F" if tape.metadata.error else None
+        error = "F" if tape.metadata.error else ""
         last_action = None
         for step in tape:
             if isinstance(step, Action):
                 last_action = step
             if step.kind == "page_observation" and step.error:
-                error = "br"
+                error += "br"
             elif step.kind == "llm_output_parsing_failure_action":
-                error = "pa"
+                error += "pa"
             elif step.kind == "action_execution_failure" and last_action:
-                error = last_action.kind[:2]
+                error += last_action.kind[:2]
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
         if tape.metadata.task["file_name"]:
             ext = tape.metadata.task["file_name"].split(".")[-1]
