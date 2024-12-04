@@ -52,8 +52,8 @@ def validate_and_save_agent_configs():
 
     user_agent_config = hydra.compose(
         overrides=[
-            f"+user_simulator_agent=happy_path",
-            f"+llm@user_simulator_agent.llms=vllm_llama3_8b"
+            f"+user_simulator_agent=test_behavior",
+            f"+llm@user_simulator_agent.llms=vllm_llama3_405b"
         ],
     )
     print('Attempting to initialize user simulator agent')
@@ -133,42 +133,52 @@ def load_user_input_tapes() -> list[FormFillerTape]:
 
 
 def prepare_reference_completions():
-    teacher_agent = get_teacher_agent()
-    teacher_input_tapes = load_teacher_input_tapes()
-    teacher_output_tapes = []
-    print('Generating reference completions for teacher')
-    for input_tape in tqdm(teacher_input_tapes):
-        __, predicted_tape_or_exception = run_formfiller_agent(input_tape, teacher_agent)
-        assert not isinstance(predicted_tape_or_exception, Exception), 'Failed on input tape {input_tape.metadata.id}'
-        teacher_output_tapes.append(predicted_tape_or_exception)
-    print(f'-> successfully generated {len(teacher_output_tapes)} reference completions')
-    with open(output_tapes_for_teacher_path, 'w') as f:
-        yaml.safe_dump_all([tape.model_dump() for tape in teacher_output_tapes], f)
+    # teacher_agent = get_teacher_agent()
+    # teacher_input_tapes = load_teacher_input_tapes()
+    # teacher_output_tapes = []
+    # print('Generating reference completions for teacher')
+    # for input_tape in tqdm(teacher_input_tapes):
+    #     __, predicted_tape_or_exception = run_formfiller_agent(input_tape, teacher_agent)
+    #     assert not isinstance(predicted_tape_or_exception, Exception), f'Failed on input tape {input_tape.metadata.id}'
+    #     teacher_output_tapes.append(predicted_tape_or_exception)
+    # print(f'-> successfully generated {len(teacher_output_tapes)} reference completions')
+    # with open(output_tapes_for_teacher_path, 'w') as f:
+    #     yaml.safe_dump_all([tape.model_dump() for tape in teacher_output_tapes], f)
     
     user_agent = get_user_simulator_agent()
     user_input_tapes = load_user_input_tapes()
     user_output_tapes = []
+    failed_user_inputs = []
     print('Generating reference completions for user')
     for input_tape in tqdm(user_input_tapes):
         exception, continued_tape, user_simulator_agent_tape = run_user_simulator_agent(input_tape, user_agent)
-        assert not exception, 'Failed on input tape {input_tape.metadata.id}'
+        if exception:
+            print(f'Failed on input tape {input_tape.metadata.id}')
+            failed_user_inputs.append(input_tape)
+            continue
         user_output_tapes.append(continued_tape)
     print(f'-> successfully generated {len(user_output_tapes)} reference completions')
     with open(output_tapes_for_user_path, 'w') as f:
         yaml.safe_dump_all([tape.model_dump() for tape in user_output_tapes], f)
+    assert len(user_input_tapes) == len(user_output_tapes), (f'-> failed user input ids: {[tape.metadata.id for tape in failed_user_inputs]}')
+
 
 
 
 
 def main():
     # # Run this script as python -m examples.form_filler.dev.prepare_test_assets
-    # validate_and_save_agent_configs()
+    validate_and_save_agent_configs()
 
     # Extract some tapes randomly from an existing dialogue tree created by make_tape_tree
     # extract_random_tapes_from_tape_tree('/mnt/llmd/data/gabriel/make_tape_tree/train/FlyCorp/agent_teacher_agent_vllm_llama3_405b_temp1/user_vllm_llama3_405b_temp1/tree_config6_size500/dec2')
 
     # Generate the reference completions
+    # If any of the input tapes cause agent failure, you may manually remove them from the input tapes yaml and rerun the script
+    # make sure to keep extract_random_tapes_from_tape_tree() commented out to avoid regenerating the same tapes
     prepare_reference_completions()
+
+
 
 
 if __name__ == "__main__":

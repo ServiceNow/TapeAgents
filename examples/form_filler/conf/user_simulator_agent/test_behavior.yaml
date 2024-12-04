@@ -1,0 +1,13 @@
+defaults:
+- base
+- _self_
+
+behavior_alias: test_behavior
+
+step_types_chain:
+- AssistantStep
+
+step_filters:
+- _target_: examples.form_filler.user_simulator_filters.HasAnyFunction
+
+instruction: 'Reply with a short answer to the agent. DO NOT explain yourself. Be very scpecific and brief! IF and ONLY IF the agent asks what it can do for you, write one short sentence to request {schema_name}'
