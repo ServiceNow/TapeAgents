@@ -104,7 +104,7 @@ def extract_tape_training_samples(
         - Dictionary with statistics (reward, steps, success, no_errors)
     """
     discarded = []
-    recomputed_logprobs = []
+    compute_log_probs = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     match cfg.dataset_name:
@@ -151,18 +151,22 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            trace.logprobs = []
+            logprobs = []
             if hasattr(llm_call.output, "logprobs"):
-                trace.logprobs = [c["logprob"] for c in llm_call.output.logprobs["content"]]
+                logprobs = llm_call.output.logprobs["content"]
+                logprobs = [c["logprob"] for c in logprobs]
 
-            if len(trace.logprobs) != llm_call.output_length_tokens:
+            if len(logprobs) != llm_call.output_length_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
-                trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
-                recomputed_logprobs.append(1)
+                logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text).content  # type: ignore
+                logprobs = [c.logprob for c in logprobs]
+                compute_log_probs.append(1)
             else:
-                recomputed_logprobs.append(0)
+                compute_log_probs.append(0)
 
+            trace.logprobs = [c["logprob"] for c in logprobs]
             trace.reward = reward
+            trace.logprobs = logprobs
             trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
@@ -183,7 +187,7 @@ def extract_tape_training_samples(
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
-        "recomputed_logprobs": np.mean(recomputed_logprobs),
+        "compute_log_probs": np.mean(compute_log_probs),
     }
     return new_tape, training_samples, tape_stats
 
@@ -221,6 +225,7 @@ def generate_training_data(
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
     discarded_stats = defaultdict(list)
+    compute_logprobs_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
     logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
@@ -261,7 +266,7 @@ def generate_training_data(
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-            training_samples.extend(tape_training_samples)
+            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_log_probs"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
 
@@ -284,6 +289,8 @@ def generate_training_data(
             / (end_sampling_from_llm - start_sampling_from_llm),
             f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
             / (end_sampling_from_llm - start_sampling_from_llm),
+            f"{dataset_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
+            f"{dataset_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
         },
     }
