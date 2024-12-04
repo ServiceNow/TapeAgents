@@ -1,0 +1,39 @@
+user_simulator_agent:
+  _target_: examples.form_filler.user_simulator_agent.UserSimulatorAgent.create
+  behavior_alias: happy_path
+  prompt_template:
+    messages:
+    - role: user
+      content: 'Please continue the conversation below:
+
+        {text}
+
+
+        Instruction: {instruction}. Answer directly with the user text and nothing
+        else. Be creative and do not make up generic information like 123, Main Street
+        or John Doe.'
+  step_types_chain:
+  - AssistantStep
+  step_filters:
+  - _target_: examples.form_filler.user_simulator_filters.HasAnyFunction
+  instruction:
+    _target_: examples.form_filler.user_simulator_agent.InstructionSampler
+    instructions:
+      respond: Reply to the agent and answer its question. DO NOT ask followup questions.
+      respond_short: Reply with a short answer to the agent. DO NOT explain yourself.
+        Be very scpecific and brief!
+      respond_detail: Reply with a detailed answer to the agent. DO NOT ask followup
+        questions.
+    weights:
+      respond: 1
+      respond_short: 1
+      respond_detail: 1
+  llms:
+    _target_: tapeagents.llms.TrainableLLM
+    model_name: meta-llama/Meta-Llama-3.1-8B-Instruct
+    stream: false
+    use_cache: false
+    context_size: 128000
+    base_url: https://snow-research-tapes-vllm_llama8b.job.toolkit-sp.yul201.service-now.com
+    parameters:
+      temperature: 0.2
