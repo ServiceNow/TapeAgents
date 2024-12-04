@@ -80,6 +80,8 @@ class GaiaTapeBrowser(TapeBrowser):
             for step in tape:
                 if isinstance(step, Action):
                     last_action = step
+                if step.kind == "search_results_observation" and not step.serp:
+                    errors["search_empty"] += 1
                 prompt_id = step.metadata.prompt_id
                 if prompt_id and prompt_id in self.llm_calls:
                     tokens_num += (
@@ -103,7 +105,9 @@ class GaiaTapeBrowser(TapeBrowser):
         for step in tape:
             if isinstance(step, Action):
                 last_action = step
-            if step.kind == "page_observation" and step.error:
+            if step.kind == "search_results_observation" and not step.serp:
+                error += "se"
+            elif step.kind == "page_observation" and step.error:
                 error += "br"
             elif step.kind == "llm_output_parsing_failure_action":
                 error += "pa"
