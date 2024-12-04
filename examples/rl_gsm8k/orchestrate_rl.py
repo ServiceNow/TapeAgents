@@ -269,6 +269,7 @@ def generate_training_data(
             compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_log_probs"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
+            training_samples.extend(tape_training_samples)
 
     end_annotate_tape = time.time()
 
@@ -289,9 +290,8 @@ def generate_training_data(
             / (end_sampling_from_llm - start_sampling_from_llm),
             f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
             / (end_sampling_from_llm - start_sampling_from_llm),
-            f"{dataset_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
-            f"{dataset_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
+            f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
         },
     }
     return new_tapes, training_samples, stats
