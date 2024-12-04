@@ -24,7 +24,7 @@ First, you need to install the dependencies for file converters:
 pip install -r requirements.converters.txt
 ```
 
-Then, make sure you have `FFmpeg` installed (more details [here](https://github.com/kkroening/ffmpeg-python?tab=readme-ov-file#installing-ffmpeg)).
+Then, make sure you have `FFmpeg` version 7.1.x or newer installed (more details [here](https://github.com/kkroening/ffmpeg-python?tab=readme-ov-file#installing-ffmpeg)).
 
 If you want to use conversion of PDF files to images to preserve tables and complex formatting, please install prerequisites of the pdf2image library as described [in their documentation](https://pypi.org/project/pdf2image/).
 

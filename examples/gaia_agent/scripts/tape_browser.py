@@ -84,6 +84,8 @@ class GaiaTapeBrowser(TapeBrowser):
             for step in tape:
                 if isinstance(step, Action):
                     last_action = step
+                if step.kind == "search_results_observation" and not step.serp:
+                    errors["search_empty"] += 1
                 prompt_id = step.metadata.prompt_id
                 if prompt_id and prompt_id in self.llm_calls:
                     llm_call = self.llm_calls[prompt_id]
@@ -104,19 +106,21 @@ class GaiaTapeBrowser(TapeBrowser):
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
-        error = "F" if tape.metadata.error else None
+        error = "F" if tape.metadata.error else ""
         if tape.metadata.terminated:
             error = "T"
         last_action = None
         for step in tape:
             if isinstance(step, Action):
                 last_action = step
+            if step.kind == "search_results_observation" and not step.serp:
+                error += "se"
             elif step.kind == "page_observation" and step.error:
-                error = "br"
+                error += "br"
             elif step.kind == "llm_output_parsing_failure_action":
-                error = "pa"
+                error += "pa"
             elif step.kind == "action_execution_failure" and last_action:
-                error = last_action.kind[:2]
+                error += last_action.kind[:2]
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
         if tape.metadata.task.get("file_name"):
             mark += "📁"
