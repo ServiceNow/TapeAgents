@@ -858,21 +858,17 @@ class ReplayLLM(LLM):
                 )
                 known_prompts = list(self.outputs.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
-                logger.warning(f"Closest prompt score {score:.3f}")
-                for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
-                    old = a.get("content", str(a))
-                    new = b.get("content", str(b))
-                    if score >= 0.9:
-                        logger.warning(f"STEP{i}: {diff_strings(old, new)}\n")
-                    else:
-                        try:
-                            json_old = json.loads(old)
-                            json_new = json.loads(new)
-                            if json_old.get("kind") != json_new.get("kind"):
-                                logger.warning(f"STEP{i} kinds: OLD {json_old.get('kind')}, NEW {json_new.get('kind')}")
-                        except Exception:
-                            logger.warning(f"STEP{i} OLD: {old}")
-                            logger.warning(f"STEP{i} NEW: {new}")
+                if score >= 0.9:
+                    logger.info(f"Using closest prompt with score {score:.3f}")
+                    output = self.outputs[closest]
+                else:
+                    if score >= 0.7:
+                        logger.warning(f"Closest prompt score {score:.3f}")
+                        for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
+                            logger.warning(
+                                f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n"
+                            )
+                    raise FatalError("prompt not found")
 
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
