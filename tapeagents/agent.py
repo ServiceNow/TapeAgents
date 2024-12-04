@@ -266,6 +266,19 @@ class Agent(BaseModel, Generic[TapeType]):
         if len(self.llms) > 1:
             raise ValueError("Agent has multiple LLMs. Use llms property to access a specific one.")
         return self.llms[DEFAULT]
+    
+    @property
+    def default_llm(self):
+        """
+        Get the default LLM instance associated with the agent.
+
+        Returns:
+            (LLM): The LLM with DEFAULT name.
+
+        Doesn't raise an error if there are multiple LLMs, unlike the `def llm`
+
+        """
+        return self.llms[DEFAULT]
 
     @property
     def template(self):

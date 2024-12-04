@@ -220,9 +220,15 @@ class CameraReadyRenderer(BasicRenderer):
         label = (
             f"Prompt {prompt_length_str} {' (cached)' if llm_call.cached else ''} | Completion {completion_length_str}"
         )
+        llm_info_html = f"""
+            <details> 
+                <summary>LLM info</summary>
+                <pre font-size: 12px;>{yaml.dump(llm_call.llm_info, sort_keys=False)}</pre>
+            </details>""" if llm_call.llm_info else ""
         html = f"""
         <div class='basic-prompt-box' style='background-color:{WHITE};'>
-            <details>
+            {llm_info_html}
+            <details>    
                 <summary>{label}</summary>
                 <div style='display: flex;'>
                     <div style='flex: 1; margin-right: 10px;'>

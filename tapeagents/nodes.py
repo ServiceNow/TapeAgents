@@ -57,9 +57,10 @@ class MonoNode(Node):
         ```
     """
 
-    guidance: str = ""  # guidance text that is attached to the end of the prompt
+    guidance: str = ""  
     system_prompt: str = ""
-    steps_prompt: str = ""  # prompt that describes the steps that the agent can take
+    steps_prompt: str = "" 
+    llm_name: str = "" # TODO: add docstring
     agent_step_cls: Any = Field(exclude=True)
     next_node: str = ""
 
@@ -89,10 +90,10 @@ class MonoNode(Node):
         cleaned_tape = self.prepare_tape(tape)
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
-        if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
+        if agent.default_llm.count_tokens(messages) > (agent.default_llm.context_size - 500):
             cleaned_tape = self.trim_tape(cleaned_tape)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
-        return Prompt(messages=messages)
+        return Prompt(llm_name=self.llm_name, messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
         """
