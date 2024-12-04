@@ -672,6 +672,7 @@ class Agent(BaseModel, Generic[TapeType]):
             input_tape_length = len(tape)
             input_tape_id = tape.metadata.id
             stop = False
+            original_metadata = tape.metadata
             while n_iterations < max_iterations and not stop:
                 current_subagent = self.delegate(tape)
                 for step in current_subagent.run_iteration(tape):
@@ -686,7 +687,7 @@ class Agent(BaseModel, Generic[TapeType]):
                     else:
                         raise ValueError("Agent can only generate steps or partial steps")
                 n_iterations += 1
-            updated_metadata = tape.metadata.model_copy(
+            updated_metadata = original_metadata.model_copy(
                 update=dict(
                     parent_id=input_tape_id,
                     author=self.name,
