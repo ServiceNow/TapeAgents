@@ -186,7 +186,11 @@ class LLM(BaseModel, ABC):
 
         prompt_length_tokens = self.count_tokens(prompt.messages)
         if message.content:
-            output_length_tokens = self.count_tokens(prompt.messages + [{"role": "assistant", "content": message.content}]) - prompt_length_tokens
+            # lstrip the left spaces from the assistant message because the chat template will add one
+            output_length_tokens = (
+                self.count_tokens(prompt.messages + [{"role": "assistant", "content": message.content.lstrip() if message.content else ""}])
+                - prompt_length_tokens
+            )
         else:
             output_length_tokens = 0
 
@@ -996,8 +1000,10 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )
+    # lstrip the space, because the chat template adds a space at the beginning
     text = tokenizer.apply_chat_template(
-        prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=False
+        prompt.messages + [{"role": "assistant", "content": output.content.lstrip() if output.content else ""}],
+        tokenize=False,
     )
     output_text = text[len(prompt_text) :]
 
