@@ -102,8 +102,8 @@ def task_worker(args: tuple) -> int:
     tape_name = f"l{level}_task{i:03d}"
     env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox, **cfg_env)
 
-    tape = solve_task(task, agent, env, level)
-    save_json_tape(tape, tapes_dir, tape_name)
+    for tape in solve_task(task, agent, env, level):
+        save_json_tape(tape, tapes_dir, tape_name)
     save_tape_images(tape, images_dir)
     logger.info(f"Task {tape_name} solved, saved to {tapes_dir}")
     env.browser.flush_log(os.path.join(exp_path, "browser_log.jsonl"))

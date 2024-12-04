@@ -66,7 +66,7 @@ def main(cfg: DictConfig) -> None:
             logger.info(f"OBSERVATION: {step.kind}")
             input("Press Enter to continue...")
             print("-" * 140)
-        elif (new_tape := (event.agent_tape or event.env_tape)):
+        elif new_tape := (event.agent_tape or event.env_tape):
             tape = new_tape
             save_json_tape(tape, tapes_dir, tape_name)
             logger.info(f"Saved tape to {tapes_dir}/{tape_name}.json")
