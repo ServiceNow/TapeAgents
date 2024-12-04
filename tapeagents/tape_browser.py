@@ -12,8 +12,8 @@ import yaml
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from tapeagents.annotation import Annotation
 from tapeagents.core import Tape, TapeMetadata
+from tapeagents.steps import Annotation
 from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.observe import retrieve_tape_llm_calls
 from tapeagents.renderers.basic import BasicRenderer
