@@ -8,6 +8,7 @@ from tapeagents.agent import Agent
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
+from tapeagents.steps import VideoObservation
 from tapeagents.tools.container_executor import extract_code_blocks
 
 from .prompts import PromptRegistry
@@ -65,6 +66,8 @@ class GaiaNode(MonoNode):
             elif isinstance(step, ActionExecutionFailure):
                 short_error = f"{step.error[:max_chars]}\n..." if len(step.error) > max_chars else step.error
                 new_step = step.model_copy(update=dict(error=short_error))
+            elif isinstance(step, VideoObservation):
+                new_step = step.model_copy(update=dict(video_contact_sheet_paths=None, subtitle_text=None))
             else:
                 new_step = step
             steps.append(new_step)
@@ -116,11 +119,7 @@ class GaiaAgent(Agent):
     def create(cls, llm: LLM, plain_code: bool = False, **kwargs):
         nodes = [
             GaiaNode(name="plan", guidance=PromptRegistry.plan, allowed_steps=plan_steps),
-            GaiaNode(
-                name="facts_survey",
-                guidance=PromptRegistry.facts_survey,
-                allowed_steps=plan_steps,
-            ),
+            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, allowed_steps=plan_steps),
             GaiaNode(
                 name="start_execution",
                 guidance=PromptRegistry.start_execution,

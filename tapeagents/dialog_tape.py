@@ -79,20 +79,6 @@ class AssistantStep(Action):
     kind: Literal["assistant"] = "assistant"
 
 
-class ImageObservation(Observation):
-    kind: Literal["image"] = "image"
-    image_path: str
-    thumbnail_path: str = ""
-    image_caption: str = ""
-    error: int | None = None
-
-    def llm_view(self) -> list[dict]:
-        content = [{"type": "text", "text": self.image_caption}]
-        if self.image_path:
-            content.append(image_base64_message(self.image_path))
-        return content
-
-
 class FunctionCall(BaseModel):
     """
     A class representing a function call.

@@ -178,7 +178,6 @@ class TapeBrowser:
                 logger.info(f"Selected tape {selected_file}/{j} from query params")
             return self.update_view(selected_file)
 
-        gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
         with gr.Blocks(analytics_enabled=False) as blocks:
             with gr.Row():
                 with gr.Column(scale=4):

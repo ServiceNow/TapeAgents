@@ -37,7 +37,7 @@ def main(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     code_path = os.path.join(cfg.exp_path, "code")
     os.makedirs(code_path, exist_ok=True)
-
+    os.makedirs(cfg.env.attachment_dir, exist_ok=True)
     llm: TrainableLLM = instantiate(cfg.llm)
     try:
         code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
@@ -60,6 +60,8 @@ def main(cfg: DictConfig) -> None:
         for i, task in enumerate(level_tasks)
         if not task_already_solved(i, level, tapes_dir)
     ]
+    if cfg.get("n_tasks"):
+        args = args[: cfg.n_tasks]  # run only the first n_tasks
     logger.info(f"Evaluate {len(args)} unsolved tasks using {n_workers} workers")
     for tape_ready in processor(args, task_worker):
         if isinstance(tape_ready, Exception):

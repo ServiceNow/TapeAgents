@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "id": "87201689-504d-42f3-8ad5-646ab5fb0f45",
+        "id": "e2c495aa-95bf-4dc4-a38e-f964e9467744",
         "parent_id": null,
         "author": null,
         "author_tape_id": null,
@@ -30,7 +30,7 @@
     "steps": [
         {
             "metadata": {
-                "id": "d23356a4-8623-4fd1-af57-f6e47d83bc7a",
+                "id": "9ceb60a7-2b40-48f9-bbf3-4b69676fa587",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -42,8 +42,8 @@
         },
         {
             "metadata": {
-                "id": "caa1bbbe-e727-466a-8405-3b4e5e2624e4",
-                "prompt_id": "a0df1b90-9bd6-4417-a611-c93286ead5e2",
+                "id": "bcf14285-0d77-4a52-80c7-165590723ef2",
+                "prompt_id": "b24fc1d0-4d2d-43b4-9aa4-63a1ff74a74e",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -51,27 +51,30 @@
             "kind": "plan_thought",
             "plan": [
                 "Identify the components of the English sentence 'I like apples'.",
-                "Determine the Tizin equivalents for each component: subject, verb, and object.",
+                "Determine the corresponding Tizin words for each component: subject, verb, and object.",
+                "Rearrange the components according to Tizin sentence structure: Verb first, then direct object, then subject.",
                 "Translate 'I' to its nominative form 'Pa'.",
-                "Translate 'like' to the appropriate verb form in Tizin, which is 'Maktay' for present tense.",
+                "Translate 'like' to its present tense form 'Maktay'.",
                 "Translate 'apples' to its accusative form 'Zapple'.",
-                "Arrange the components in the Tizin sentence structure: Verb first, then direct object, then subject."
+                "Combine the translated components in the correct order to form the Tizin sentence."
             ]
         },
         {
             "metadata": {
-                "id": "9c3ca84d-32ab-443f-a19e-0f66f06d8c40",
-                "prompt_id": "78157764-ab89-4367-9e5d-358057fa2720",
+                "id": "170a8b37-8d78-4aaa-8ff9-2df41965fa10",
+                "prompt_id": "94afa1ca-4bdf-42cf-9270-22fcc3c0c9ca",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "list_of_facts_thought",
             "given_facts": [
-                "In Tizin, the sentence structure is Verb first, followed by the direct object, followed by the subject.",
-                "The word for 'I' in nominative form is 'Pa'.",
-                "The verb for 'to like' in present tense is 'Maktay'.",
-                "The word for 'apples' in accusative form is 'Zapple'."
+                "In Tizin, basic sentences are arranged with the Verb first, followed by the direct object, followed by the subject.",
+                "The word that indicates oneself is 'Pa' (nominative form).",
+                "'Mato' is the accusative form for oneself.",
+                "'Sing' is the genitive form for oneself.",
+                "The root verb for intense liking is 'Maktay' (present tense), 'Tay' (preterit past), and 'Aktay' (imperfect past).",
+                "'Apple' is the nominative form, 'Zapple' is the accusative form, and 'Izapple' is the genitive form for apples."
             ],
             "facts_to_lookup": [],
             "facts_to_derive": [],
@@ -79,19 +82,19 @@
         },
         {
             "metadata": {
-                "id": "5bb4dce1-951b-4d2f-af41-31556224c07a",
-                "prompt_id": "e12eb9c0-ed92-4e25-8b03-dc56d8ec9fc9",
+                "id": "1548efe1-bb68-4023-b9d8-73a4a62afdef",
+                "prompt_id": "476dc16e-5fea-4bdf-b945-445b92443202",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "reasoning_thought",
-            "reasoning": "The English sentence 'I like apples' can be broken down into its components: subject ('I'), verb ('like'), and object ('apples'). In Tizin, the subject 'I' translates to 'Pa', the verb 'like' in present tense translates to 'Maktay', and the object 'apples' translates to 'Zapple'. According to Tizin sentence structure, the verb comes first, followed by the object, and then the subject. Therefore, the Tizin translation will be 'Maktay Zapple Pa'."
+            "reasoning": "The English sentence 'I like apples' consists of a subject ('I'), a verb ('like'), and an object ('apples'). In Tizin, the subject 'I' translates to 'Pa', the verb 'like' in present tense translates to 'Maktay', and the object 'apples' translates to 'Zapple'. According to Tizin sentence structure, the order will be Verb first, followed by the direct object, and then the subject."
         },
         {
             "metadata": {
-                "id": "14fbd26b-41ab-4e21-81b9-a4a557c43840",
-                "prompt_id": "10434686-fb15-4cb3-8ab4-44ee59e3082a",
+                "id": "e1df7a12-e4fd-48c6-ac32-40b8fd372129",
+                "prompt_id": "4eca5c47-c5c3-4e6a-bd8c-1e525b23cb78",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}

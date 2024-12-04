@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "id": "0daed46d-6800-48f7-8373-f14bfef9ceac",
+        "id": "a42a191d-d4f9-4f1c-b6d6-9740bb009b82",
         "parent_id": null,
         "author": null,
         "author_tape_id": null,
@@ -30,7 +30,7 @@
     "steps": [
         {
             "metadata": {
-                "id": "63f7c2d5-7f0a-4207-8ea3-86898de5b317",
+                "id": "464346f8-6ce5-458f-896c-e64e1ad2f78d",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -42,8 +42,8 @@
         },
         {
             "metadata": {
-                "id": "1eb43dc8-30cb-4cb3-b206-fd5da45dcc7e",
-                "prompt_id": "6fb7301e-8657-4104-87e3-c71c0b33e57f",
+                "id": "78491144-5640-4107-928f-454473b89961",
+                "prompt_id": "2da83abc-da97-4da8-bcb0-7faba2a8bea8",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -57,8 +57,8 @@
         },
         {
             "metadata": {
-                "id": "c3d3594f-43da-4c5a-b7a3-21e1825254ed",
-                "prompt_id": "4e5ce49e-3548-4caa-a3b1-8abd09d3b344",
+                "id": "f4020b05-d38f-4afe-abdd-958236a591fc",
+                "prompt_id": "37ac0efe-0a28-4489-8a81-93bd0bc836cf",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -70,26 +70,26 @@
             ],
             "facts_to_lookup": [
                 "List of Featured Articles promoted in November 2016 on English Wikipedia.",
-                "Details about the nomination of the dinosaur article."
+                "Details of the nomination for the dinosaur article."
             ],
             "facts_to_derive": [],
             "facts_to_guess": []
         },
         {
             "metadata": {
-                "id": "7472643e-214d-4bdc-a7a9-95c5749cc417",
-                "prompt_id": "4b65a6a6-cda2-47b9-99e2-e06d3000ab1f",
+                "id": "2b02b498-caed-4b41-a88e-3ca287a42a13",
+                "prompt_id": "74cbd511-cfb9-48ec-b2c9-5f8879426f6f",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "search_action",
-            "source": "wikipedia",
+            "source": "wiki",
             "query": "Featured Articles promoted in November 2016"
         },
         {
             "metadata": {
-                "id": "bc3ece63-7f68-4ab6-8489-7c996197be3f",
+                "id": "b10c8384-bf99-41dd-8e7c-dc2f8cb430fb",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -127,8 +127,8 @@
         },
         {
             "metadata": {
-                "id": "1bf8a0a6-f69f-46cc-aefa-ed5faaa6f26c",
-                "prompt_id": "256ec796-8e1d-4c9e-a2ff-d163422110ee",
+                "id": "3b3ed556-8877-468e-a9a6-ff0337394ef9",
+                "prompt_id": "46dff343-1284-4e9c-9821-5d01ff35f0d4",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -136,12 +136,12 @@
             "kind": "read_document_action",
             "url": "https://en.wikipedia.org/wiki/Wikipedia:Featured_articles_promoted_in_2016",
             "fact_description": "the only Featured Article about a dinosaur promoted in November 2016",
-            "fact_name": "dinosaur Featured Article November 2016"
+            "fact_name": "dinosaur article"
         },
         {
             "metadata": {
-                "id": "005b0fc6-8123-4738-aef1-89870d5da33f",
-                "prompt_id": "256ec796-8e1d-4c9e-a2ff-d163422110ee",
+                "id": "7258999a-e777-4fa9-aec2-138bba34f839",
+                "prompt_id": "46dff343-1284-4e9c-9821-5d01ff35f0d4",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -151,7 +151,7 @@
         },
         {
             "metadata": {
-                "id": "c40ffa22-2a10-495d-8377-268669233b43",
+                "id": "a65e4d8d-6224-486d-a7eb-a017e1f8e701",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -165,8 +165,8 @@
         },
         {
             "metadata": {
-                "id": "8cba5d1e-cb5c-4178-88b8-08d32b160b49",
-                "prompt_id": "2333c102-4357-4d26-acbf-e9b186db340a",
+                "id": "b5d1123f-e06a-45ec-a64e-4c89ec5b32fc",
+                "prompt_id": "6c7ffc30-8a6c-43fa-97f7-fe683add9b87",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -175,8 +175,8 @@
         },
         {
             "metadata": {
-                "id": "50079b70-38a5-4d6f-ad78-0a80fa126e29",
-                "prompt_id": "2333c102-4357-4d26-acbf-e9b186db340a",
+                "id": "ef2e38f7-491d-44a9-b5c5-eb8c7527de4f",
+                "prompt_id": "6c7ffc30-8a6c-43fa-97f7-fe683add9b87",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -186,7 +186,7 @@
         },
         {
             "metadata": {
-                "id": "294079bd-c6ec-430e-9b03-cb96b7bc7ce0",
+                "id": "45099ca3-1abd-4f61-bccb-e733d007fddd",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -200,19 +200,19 @@
         },
         {
             "metadata": {
-                "id": "84214b75-c318-4bac-8304-4abb5a2aaaed",
-                "prompt_id": "08246472-5e92-4cb8-ba18-e447b6310de3",
+                "id": "4fc3b741-b145-4e7a-b53a-997a4c8d75cd",
+                "prompt_id": "175a4a05-9ede-4c74-b212-b16c8b0e2569",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "reasoning_thought",
-            "reasoning": "The only Featured Article about a dinosaur promoted in November 2016 is 'Giganotosaurus', which was nominated by 'FunkMonk'."
+            "reasoning": "The only dinosaur article promoted as a Featured Article in November 2016 is 'Giganotosaurus', which was nominated by 'FunkMonk'."
         },
         {
             "metadata": {
-                "id": "5451e8a4-07ba-445d-a05b-43eab88f863d",
-                "prompt_id": "08246472-5e92-4cb8-ba18-e447b6310de3",
+                "id": "b597d65f-2ef2-4dd5-acba-f6698e6eedae",
+                "prompt_id": "175a4a05-9ede-4c74-b212-b16c8b0e2569",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -222,8 +222,8 @@
         },
         {
             "metadata": {
-                "id": "78727372-06b6-4805-8da3-75d9f95252e4",
-                "prompt_id": "69d59b86-77cd-469c-b834-cca23b482a83",
+                "id": "b8dd41b5-0e04-4c06-b442-bbe441cdac52",
+                "prompt_id": "5ef46f8e-d304-4c29-8c34-a3dcfe1b0d6c",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}

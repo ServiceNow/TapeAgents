@@ -23,7 +23,6 @@ import re
 import threading
 import time
 import uuid
-from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse
 
@@ -36,24 +35,13 @@ from termcolor import colored
 
 from tapeagents.core import Prompt
 from tapeagents.llms import LLM
-from tapeagents.utils import FatalError, diff_strings
+from tapeagents.utils import FatalError, acquire_timeout, diff_strings
 
 from .document_converters import (
     FileConversionException,
     FileConverter,
     UnsupportedFormatException,
 )
-
-
-@contextmanager
-def acquire_timeout(lock, timeout):
-    result = lock.acquire(timeout=timeout)
-    try:
-        yield result
-    finally:
-        if result:
-            lock.release()
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
