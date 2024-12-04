@@ -100,7 +100,7 @@ def main(cfg: DictConfig):
     stats = Counter()
     with stream_yaml_tapes(output_path / f"{agent_type}_predicted_tapes.yaml") as saver:
         for tape in tqdm(predicted_tapes, desc="Saving predicted tapes"):
-            stats[tape.steps[-1].kind] += 1
+            stats[tape.last_action.kind] += 1
             saver.save(tape)
     print(stats)
 
@@ -109,7 +109,7 @@ def main(cfg: DictConfig):
     if failure_tapes:
         with stream_yaml_tapes(output_path / f"{agent_type}_failure_tapes.yaml") as saver:
             for tape in tqdm(failure_tapes, desc="Saving failure tapes"):
-                error_stats[tape.steps[-1].kind] += 1
+                error_stats[tape.last_action.kind] += 1
                 saver.save(tape)
         print(error_stats)
 

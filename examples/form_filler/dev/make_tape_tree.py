@@ -1,4 +1,6 @@
+from collections import Counter
 from datetime import datetime
+import json
 import logging
 import math
 from pathlib import Path
@@ -61,26 +63,40 @@ def export_merged_dialogues(output_path: Path, num_layer):
                     load_tapes(FormFillerTape, failures_path)  # type: ignore
                 )
 
+    stats = {
+        "formfiller_agent_tapes.yaml": Counter(),
+        "formfiller_user_tapes.yaml": Counter(),
+        "user_simulator_tapes.yaml": Counter(),
+    }
     logger.info(f'Saving {len(all_formfiller_agent_successes)} successful agent forks to {output_path / "formfiller_agent_tapes.yaml"}')
     with stream_yaml_tapes(output_path / "formfiller_agent_tapes.yaml") as saver:
         for tape in all_formfiller_agent_successes:
+            stats["formfiller_agent_tapes.yaml"][tape.last_action.kind] += 1
             saver.save(tape)
 
     if all_formfiller_agent_failures:
+        stats["formfiller_agent_tape_failures.yaml"] = Counter()
         logger.info(f'Saving {len(all_formfiller_agent_failures)} failed agent forks to {output_path / "formfiller_agent_tape_failures.yaml"}')
         with stream_yaml_tapes(output_path / "formfiller_agent_tape_failures.yaml") as saver:
             for tape in all_formfiller_agent_failures:
+                stats["formfiller_agent_tape_failures.yaml"][tape.last_action.kind] += 1
                 saver.save(tape)
 
     logger.info(f'Saving {len(all_formfiller_user_tapes)} user forks to {output_path / "formfiller_user_tapes.yaml"}')
     with stream_yaml_tapes(output_path / "formfiller_user_tapes.yaml") as saver:
         for tape in all_formfiller_user_tapes:
+            stats["formfiller_user_tapes.yaml"][tape.last_action.kind] += 1
             saver.save(tape)
 
     logger.info(f'Saving {len(all_user_tapes)} user simulator tapes to {output_path / "user_simulator_tapes.yaml"}')
     with stream_yaml_tapes(output_path / "user_simulator_tapes.yaml") as saver:
         for tape in all_user_tapes:
+            stats["user_simulator_tapes.yaml"][tape.last_action.kind] += 1
             saver.save(tape)
+
+    logger.info(f'Saving stats to {output_path / "stats.json"}')
+    with open(output_path / "stats.json", "w") as f:
+        json.dump(stats, f, indent=2)
 
 
 class Layer(BaseModel):
