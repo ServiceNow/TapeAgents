@@ -135,7 +135,7 @@ def sqlite_store_tape(tape: Tape):
             )
             cursor.close()
     except Exception as e:
-        logger.error(f"Failed to store LLMCall: {e}")
+        logger.error(f"Failed to store Tape: {e}")
 
 
 llm_call_listeners: list[LLMCallListener] = [sqlite_store_llm_call]
