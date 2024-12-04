@@ -19,7 +19,7 @@ USER_SIMULATORS=(
 # Loop over each user simulator agent
 for USER_SIMULATOR in "${USER_SIMULATORS[@]}"; do
   # Run the Python script with the specified arguments
-  python llmd2-core/src/llmd2/tapeagents_tmp/ghreat/dev/run_user_simulator.py \
+  python examples/form_filler/dev/run_user_simulator.py \
     input_dialogues_path="/mnt/llmd/data/gontiern/tapes/ehsan_balanced_v3_balanced_ufs_part0/teacher_predicted_tapes.yaml" \
     output_path="${OUTPUT_PREFIX}/${USER_SIMULATOR}" \
     user_simulator_agent="${USER_SIMULATOR}" \
@@ -29,4 +29,4 @@ for USER_SIMULATOR in "${USER_SIMULATORS[@]}"; do
 done
 
 # Visualize 
-python llmd2-core/src/llmd2/tapeagents_tmp/ghreat/dev/visualize_formfiller_tapes.py ${OUTPUT_PREFIX}
+python examples/form_filler/dev/visualize_formfiller_tapes.py ${OUTPUT_PREFIX}

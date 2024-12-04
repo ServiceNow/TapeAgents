@@ -188,7 +188,6 @@ def make_tape_tree(
     env_spec: str,
     previous_layer_idx: int = -1,  # -1 if no previous layer
     previous_layer_dialogues: list[FormFillerTape] = [],  # must be empty at first layer
-    stop_on_steps: tuple = () , #(AssistantStep, CallFunction, Exit),
     num_workers: int = 0,
 ) -> Generator[tuple[int, list[FormFillerTape], list[FormFillerTape], list[UserSimulatorTape]|None], None, None]:
 
