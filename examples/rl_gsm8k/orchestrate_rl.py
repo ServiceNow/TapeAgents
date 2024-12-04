@@ -104,6 +104,7 @@ def extract_tape_training_samples(
         - Dictionary with statistics (reward, steps, success, no_errors)
     """
     discarded = []
+    recomputed_logprobs = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     match cfg.dataset_name:
@@ -157,6 +158,9 @@ def extract_tape_training_samples(
             if len(trace.logprobs) != llm_call.output_length_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
                 trace.logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
+                recomputed_logprobs.append(1)
+            else:
+                recomputed_logprobs.append(0)
 
             trace.reward = reward
             trace.group_id = new_tape.metadata.parent_id
@@ -179,6 +183,7 @@ def extract_tape_training_samples(
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
+        "recomputed_logprobs": np.mean(recomputed_logprobs),
     }
     return new_tape, training_samples, tape_stats
 
