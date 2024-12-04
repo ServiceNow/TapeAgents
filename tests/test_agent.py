@@ -236,23 +236,6 @@ def test_run_iteration():
     assert isinstance(steps[1], Action)
 
 
-def test_run_iteration_with_multiple_llms():
-    class MockNode(Node):
-        def generate_steps(self, agent, tape, llm_stream):
-            yield PartialStep(step=Action())
-            yield Action()
-
-    class MockAgent(Agent):
-        def select_node(self, tape):
-            return MockNode()
-
-    agent = MockAgent(llms={"llm1": EmptyLLM(), "llm2": EmptyLLM()})
-    tape = MockTape()
-
-    with pytest.raises(NotImplementedError, match="TODO: implement LLM choice in the prompt"):
-        list(agent.run_iteration(tape))
-
-
 def test_run_iteration_with_agent_step():
     class MockNode(Node):
         def generate_steps(self, agent, tape, llm_stream):
