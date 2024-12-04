@@ -206,7 +206,12 @@ def generate_contact_sheets_from_video(
     frames_per_interval = int(fps * frame_interval_seconds)
 
     # Generate contact sheets
-    vf = """drawtext=text='%{pts\\:hms}'
+    font = os.environ.get("FFMPEG_FONT")
+    if font:
+        vf = f"drawtext=text='%{{pts\\:hms}}:fontfile={font}"
+    else:
+        vf = "drawtext=text='%{pts\\:hms}"
+    vf += """
             :x='(main_w-text_w)/2'
             :y='(main_h-text_h)'
             :fontcolor='Yellow'
