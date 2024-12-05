@@ -264,6 +264,7 @@ def test_rl_gsm8k_data():
     for tape in tapes:
         _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg, llm_calls, strict=False)
         training_samples.append(training_sample[0])
+    
     new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
     assert training_samples == new_training_samples
 
