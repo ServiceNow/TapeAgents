@@ -38,6 +38,7 @@ from examples.rl_gsm8k.utils import (
     load_state,
     save_state,
     setup_logging,
+    get_tokens_from_hf_tokenizer,
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
@@ -50,7 +51,8 @@ logger = logging.getLogger(__name__)
 
 def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
     try:
-        trace.ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+        ref_logprobs_content = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
+        trace.ref_logprobs = [c.logprob for c in ref_logprobs_content]
         return trace
     except Exception as e:
         raise e
@@ -85,7 +87,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list[LLMCall]
+    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list[LLMCall], strict: bool = True
 ) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -97,6 +99,7 @@ def extract_tape_training_samples(
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
         llm_calls: List of LLM calls
+        strict: check that every token matches between the vLLM and the HF tokenizer otherwise just compare their lengths
 
     Returns:
         Tuple containing:
@@ -149,15 +152,20 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            logprobs = []
-            if hasattr(llm_call.output, "logprobs"):
-                logprobs = llm_call.output.logprobs["content"]
-                logprobs = [c["logprob"] for c in logprobs]
 
-            if len(logprobs) != llm_call.output_length_tokens:
+            hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
+
+            logprobs = []
+            vllm_tokens = []
+            if hasattr(llm_call.output, "logprobs"):
+                logprobs_content = llm_call.output.logprobs.content
+                logprobs = [c.logprob for c in logprobs_content]
+                vllm_tokens = [c.token for c in logprobs_content]
+
+            if (strict and vllm_tokens != hf_tokens) or (not strict and len(logprobs) != llm_call.output_length_tokens):
                 # the online vLLM tokenizer does not agree with the HF tokenizer
-                logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
-                logprobs = [c.logprob for c in logprobs]
+                logprobs_content = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
+                logprobs = [c.logprob for c in logprobs_content]
                 compute_log_probs.append(1)
             else:
                 compute_log_probs.append(0)

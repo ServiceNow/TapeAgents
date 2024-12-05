@@ -74,7 +74,7 @@ def calculate_rewards_with_implicit_kl(row, reward_minus_kl_coef):
     return [reward - reward_minus_kl_coef * kl for reward in rewards]
 
 
-def calculate_advantage(row, max_advantage: None | float = None):
+def calculate_advantage(row):
     """
     Calculate advantage values for a row of data.
 
@@ -93,8 +93,6 @@ def calculate_advantage(row, max_advantage: None | float = None):
     mean = row["reward_mean"]
     std = row["reward_std"]
     advantages = [(reward - mean) / (np.nan_to_num(std) + 1e-4) for reward in rewards]
-    if max_advantage is not None:
-        advantages = [np.clip(advantage, -max_advantage, max_advantage) for advantage in advantages]
     return advantages
 
 
