@@ -85,7 +85,7 @@ def export_merged_dialogues(output_path: Path, num_layer):
     logger.info(f'Saving {len(all_formfiller_user_tapes)} user forks to {output_path / "formfiller_user_tapes.yaml"}')
     with stream_yaml_tapes(output_path / "formfiller_user_tapes.yaml") as saver:
         for tape in all_formfiller_user_tapes:
-            stats["formfiller_user_tapes.yaml"][tape.last_action.kind] += 1
+            stats["formfiller_user_tapes.yaml"][tape.steps[-1].kind] += 1
             saver.save(tape)
 
     logger.info(f'Saving {len(all_user_tapes)} user simulator tapes to {output_path / "user_simulator_tapes.yaml"}')
