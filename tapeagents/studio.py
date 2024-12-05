@@ -79,7 +79,7 @@ class Studio:
 
             # Tape controls
             tape_data.submit(
-                lambda data: tape.model_validate(yaml.load(data, Loader=yaml.Loader)).with_new_id(),
+                lambda data: tape.model_validate(yaml.safe_load(data)).with_new_id(),
                 [tape_data],
                 [tape_state],
             ).then(*render_tape).then(lambda tape_dict: observe_tape(self.validate_tape(tape_dict)), [tape_state], [])
@@ -143,7 +143,7 @@ class Studio:
         renderer = self.renderers[renderer_name]
         llm_calls = retrieve_tape_llm_calls(tape)
         return (
-            yaml.dump(tape.model_dump(), sort_keys=False),
+            yaml.safe_dump(tape.model_dump(), sort_keys=False),
             renderer.style + renderer.render_tape(tape, llm_calls),
         )
 
