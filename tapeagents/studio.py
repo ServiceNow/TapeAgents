@@ -6,6 +6,7 @@ import uvicorn
 import yaml
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+
 from tapeagents.agent import Agent
 from tapeagents.core import Tape
 from tapeagents.environment import Environment
@@ -78,7 +79,9 @@ class Studio:
 
             # Tape controls
             tape_data.submit(
-                lambda data: tape.model_validate(yaml.safe_load(data)).with_new_id(), [tape_data], [tape_state]
+                lambda data: tape.model_validate(yaml.load(data, Loader=yaml.Loader)).with_new_id(),
+                [tape_data],
+                [tape_state],
             ).then(*render_tape).then(lambda tape_dict: observe_tape(self.validate_tape(tape_dict)), [tape_state], [])
             pop.submit(self.pop_n_steps, [tape_state, pop], [tape_state]).then(*render_tape)
             keep.submit(self.keep_n_steps, [tape_state, keep], [tape_state]).then(*render_tape)
@@ -92,9 +95,7 @@ class Studio:
                 ).then(*render_tape)
 
             # Agent controls
-            agent_config.submit(self.update_agent, [agent_config, agent_state], [agent_state]).then(
-                lambda: gr.Info("Agent updated")
-            )
+            agent_config.submit(self.update_agent, [agent_config], [agent_state]).then(lambda: gr.Info("Agent updated"))
             run_agent.click(
                 self.run_agent, [renderer_choice, agent_state, tape_state], [tape_state, tape_data, tape_render]
             )
@@ -141,7 +142,10 @@ class Studio:
         tape = self.validate_tape(tape_dict)
         renderer = self.renderers[renderer_name]
         llm_calls = retrieve_tape_llm_calls(tape)
-        return (yaml.dump(tape.model_dump(), sort_keys=False), renderer.style + renderer.render_tape(tape, llm_calls))
+        return (
+            yaml.dump(tape.model_dump(), sort_keys=False),
+            renderer.style + renderer.render_tape(tape, llm_calls),
+        )
 
     def validate_agent(self, agent_dict: dict) -> Agent:
         return self.original_agent.update(agent_dict)
@@ -150,8 +154,8 @@ class Studio:
         agent = self.validate_agent(agent_dict)
         return yaml.dump(agent.model_dump(), sort_keys=False)
 
-    def update_agent(self, config: str, agent: Agent) -> Agent:
-        return agent.update(yaml.safe_load(config))
+    def update_agent(self, config: str) -> dict:
+        return self.original_agent.update(yaml.safe_load(config)).model_dump()
 
     def run_agent(
         self, renderer_name: str, agent_dict: dict, tape_dict: dict
