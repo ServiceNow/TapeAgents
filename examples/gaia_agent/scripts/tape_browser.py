@@ -73,7 +73,10 @@ class GaiaTapeBrowser(TapeBrowser):
         acc, n_solved = calculate_accuracy(tapes)
         errors = defaultdict(int)
         tokens_num = 0
+        no_result = 0
         for tape in tapes:
+            if tape.metadata.result in ["", None, "None"]:
+                no_result += 1
             if tape.metadata.error:
                 errors["fatal"] += 1
             last_action = None
@@ -96,6 +99,7 @@ class GaiaTapeBrowser(TapeBrowser):
         html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}"
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
+            html += f"<h2>No result: {no_result}</h2>"
             html += f"<h2>Errors</h2>{errors_str}"
         return html
 
