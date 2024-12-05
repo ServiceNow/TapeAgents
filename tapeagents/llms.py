@@ -19,10 +19,10 @@ import litellm
 import openai
 import requests
 from Levenshtein import ratio
+from litellm.types.utils import ChatCompletionTokenLogprob, ChoiceLogprobs, TopLogprob
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
-from litellm.types.utils import ChoiceLogprobs, ChatCompletionTokenLogprob, TopLogprob
 
 from .config import DB_DEFAULT_FILENAME
 from .core import LLMOutput, Prompt, TrainingText
@@ -1031,7 +1031,6 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )
-    # lstrip the space, because the chat template adds a space at the beginning
     text = tokenizer.apply_chat_template(
         prompt.messages + [{"role": "assistant", "content": output.content}],
         tokenize=False,
