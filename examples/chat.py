@@ -1,9 +1,9 @@
 import sys
 
-from tapeagents.team import TeamAgent, TeamTape
+from tapeagents.llms import LLM, TrainableLLM
+from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
-from tapeagents.llms import TrainableLLM, LLM
-from tapeagents.rendering import PrettyRenderer
+from tapeagents.team import TeamAgent, TeamTape
 
 
 def try_chat(llm: LLM, studio: bool):
@@ -15,7 +15,7 @@ def try_chat(llm: LLM, studio: bool):
         teammate=TeamAgent.create(
             name="Cathy", llm=llm, system_prompt="Your name is Cathy and you are a part of a duo of comedians."
         ),
-        max_turns=3,
+        max_calls=3,
         init_message="Hey Cathy, tell me a joke",
     )
     if studio:

@@ -1,0 +1,173 @@
+{
+    "metadata": {
+        "id": "5563e953-8bec-4313-8fc7-32150627a492",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "2",
+        "task": {
+            "task_id": "dc28cf18-6431-458b-83ef-64b3ce566c10",
+            "Question": "My family reunion is this week, and I was assigned the mashed potatoes to bring. The attendees include my married mother and father, my twin brother and his family, my aunt and her family, my grandma and her brother, her brother's daughter, and his daughter's family. All the adults but me have been married, and no one is divorced or remarried, but my grandpa and my grandma's sister-in-law passed away last year. All living spouses are attending. My brother has two children that are still kids, my aunt has one six-year-old, and my grandma's brother's daughter has three kids under 12. I figure each adult will eat about 1.5 potatoes of mashed potatoes and each kid will eat about 1/2 a potato of mashed potatoes, except my second cousins don't eat carbs. The average potato is about half a pound, and potatoes are sold in 5-pound bags. How many whole bags of potatoes do I need? Just give the number.",
+            "Level": 1,
+            "Final answer": "2",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Calculate the number of adults (mother, father, brother, brother's wife, aunt, aunt's husband, grandma, grandma's brother, grandma's brother's daughter, grandma's brother's daughter's husband, me = 11).\n2. Calculate the number of children (niece, nephew, cousin, grandma's brother's daughter's kids x3 = 6).\n3. Subtract the number of second cousins (grandma's brother's daughter's kids) (6 - 3 = 3).\n4. Calculate the adult potatoes (11 * 1.5 = 16.5).\n5. Calculate the child potatoes (3 * 0.5 = 1.5).\n6. Add to get the total potatoes (16.5 + 1.5 = 18).\n7. Multiply to get the pounds of potatoes (18 * 0.5 = 9 pounds).\n8. Calculate the number of 5-lb bags needed (9 / 5 = 1.8).\n9. Round up to get total bags (2).",
+                "Number of steps": "9",
+                "How long did this take?": "8 minutes",
+                "Tools": "1. Calculator",
+                "Number of tools": "1"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "2f5949f5-6184-4f2e-b108-1cec2d19620c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "My family reunion is this week, and I was assigned the mashed potatoes to bring. The attendees include my married mother and father, my twin brother and his family, my aunt and her family, my grandma and her brother, her brother's daughter, and his daughter's family. All the adults but me have been married, and no one is divorced or remarried, but my grandpa and my grandma's sister-in-law passed away last year. All living spouses are attending. My brother has two children that are still kids, my aunt has one six-year-old, and my grandma's brother's daughter has three kids under 12. I figure each adult will eat about 1.5 potatoes of mashed potatoes and each kid will eat about 1/2 a potato of mashed potatoes, except my second cousins don't eat carbs. The average potato is about half a pound, and potatoes are sold in 5-pound bags. How many whole bags of potatoes do I need? Just give the number.",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "bc37cc0c-1313-499f-8a2e-1d9b9df3fdeb",
+                "prompt_id": "9c13caa8-0f9a-4853-8db9-3f78e3d18551",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Identify the total number of adults and children attending the reunion.",
+                "Calculate the total amount of mashed potatoes needed based on the number of adults and children and their respective consumption rates.",
+                "Determine the total weight of potatoes required in pounds.",
+                "Convert the weight of potatoes needed into the number of whole bags required, given that potatoes are sold in 5-pound bags."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "dc0000a9-9531-46e0-9a8e-2ae86cceba0b",
+                "prompt_id": "2e1e3bc2-4000-487e-9680-745d8ec931de",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                "Attendees include married mother and father, twin brother and his family, aunt and her family, grandma and her brother, his daughter, and her family.",
+                "All adults but the user are married, no one is divorced or remarried.",
+                "Grandpa and grandma's sister-in-law passed away last year.",
+                "Brother has two children, aunt has one six-year-old, grandma's brother's daughter has three kids under 12.",
+                "Adults eat about 1.5 potatoes each, kids eat about 0.5 potatoes each, second cousins don't eat carbs.",
+                "Average potato weighs about half a pound.",
+                "Potatoes are sold in 5-pound bags."
+            ],
+            "facts_to_lookup": [],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "4da4f310-a11b-4437-8fb6-a35fc1c3a165",
+                "prompt_id": "c4359f17-5183-4454-aa02-e75fc99c0485",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Count the adults and children: 2 parents + 1 brother + 1 aunt + 1 grandma + 1 grandpa's brother + 1 grandpa's brother's daughter = 7 adults. The children are: 2 from the brother + 1 from the aunt + 3 from grandma's brother's daughter = 6 children. Total attendees: 7 adults + 6 children = 13 attendees."
+        },
+        {
+            "metadata": {
+                "id": "22b32ce7-c112-404a-a816-74ff9f8efa72",
+                "prompt_id": "61728db7-779a-4d46-bf76-ce495e1e3f32",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Calculate the total mashed potatoes needed: Adults (7) eat 1.5 potatoes each, totaling 7 * 1.5 = 10.5 potatoes. Kids (6) eat 0.5 potatoes each, totaling 6 * 0.5 = 3 potatoes. Total potatoes needed = 10.5 + 3 = 13.5 potatoes."
+        },
+        {
+            "metadata": {
+                "id": "006fdd00-efc3-4977-a07c-ecd170b14341",
+                "prompt_id": "61728db7-779a-4d46-bf76-ce495e1e3f32",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "d3c1c1b9-26f5-49df-ac2a-1698bb08333d",
+                "prompt_id": "205b5087-e175-40ee-8060-c500bc377a70",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Determine the total weight of potatoes: Each potato weighs 0.5 pounds, so 13.5 potatoes weigh 13.5 * 0.5 = 6.75 pounds."
+        },
+        {
+            "metadata": {
+                "id": "d7833e2a-29f4-497f-b4b2-cdf258052b04",
+                "prompt_id": "205b5087-e175-40ee-8060-c500bc377a70",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "4e0de81a-2169-48ff-a756-37130e3301d7",
+                "prompt_id": "24c0fa47-4755-4177-bbfb-2c8236bf7d4a",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "reasoning_thought",
+            "reasoning": "Calculate the number of bags needed: Potatoes are sold in 5-pound bags. Therefore, 6.75 pounds / 5 pounds per bag = 1.35 bags. Since we need whole bags, round up to 2 bags."
+        },
+        {
+            "metadata": {
+                "id": "9a7fdb6b-3c46-4637-aec1-b61f3367c74d",
+                "prompt_id": "24c0fa47-4755-4177-bbfb-2c8236bf7d4a",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "6e7b1694-2504-4b06-ba7c-e28ac6e51757",
+                "prompt_id": "2f1d779b-c2c2-4db3-9ab3-abffa9691c04",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Calculated the number of whole bags of potatoes needed for the family reunion.",
+            "answer_unit": "",
+            "answer": "2"
+        }
+    ]
+}

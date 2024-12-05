@@ -1,15 +1,33 @@
 import ast
 import json
+import os
 
 import yaml
 
-from tapeagents.container_executor import CodeBlock
 from tapeagents.core import Action, Error, Observation, SetNextNode, Step, Thought
-from tapeagents.dialog_tape import AssistantStep, DialogContext, SystemStep, ToolCalls, ToolResult, UserStep
+from tapeagents.dialog_tape import (
+    AssistantStep,
+    DialogContext,
+    SystemStep,
+    ToolCalls,
+    ToolResult,
+    UserStep,
+)
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
+from tapeagents.io import UnknownStep
 from tapeagents.observe import LLMCall
-from tapeagents.rendering import BLUE, GREEN, LIGHT_YELLOW, PURPLE, RED, WHITE, BasicRenderer
+from tapeagents.renderers.basic import BasicRenderer
+from tapeagents.tools.container_executor import CodeBlock
 from tapeagents.view import Broadcast, Call, Respond
+
+YELLOW = "#ffffba"
+LIGHT_YELLOW = "#ffffdb"
+SAND = "#e5e5a7"
+WHITE = "#ffffff"
+PURPLE = "#E6E6FA"
+RED = "#ff7b65"
+GREEN = "#6edb8f"
+BLUE = "#bae1ff"
 
 
 class CameraReadyRenderer(BasicRenderer):
@@ -94,6 +112,9 @@ class CameraReadyRenderer(BasicRenderer):
         elif isinstance(step, Observation):
             role = "Observation"
             class_ = "error" if getattr(step, "error", False) else "observation"
+        elif isinstance(step, UnknownStep):
+            role = "Unknown Step"
+            class_ = "error"
         else:
             raise ValueError(f"Unknown object type: {type(step)}")
 
@@ -134,20 +155,30 @@ class CameraReadyRenderer(BasicRenderer):
             text = maybe_fold(pretty_yaml(dump["result"]))
             if step.result.exit_code == 0:
                 if step.result.output_files:
-                    # TODO support more file type
-                    for output_file in step.result.output_files:
-                        for file in output_file.split(","):
-                            text += f"""<img src='/file={file}' style="max-width: 100%; height: 250px; padding: 4px">"""
+                    for file in step.result.output_files:
+                        text += render_image(file)
                 elif step.result.output:
                     text += f"\n {maybe_fold(step.result.output)}"
-        elif (content := getattr(step, "content", None)) is not None:
-            del dump["content"]
-            text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
-        elif (content := getattr(step, "text", None)) is not None:
-            del dump["text"]
-            text = pretty_yaml(dump) + ("\n" + maybe_fold(content) if content else "")
         else:
-            text = pretty_yaml(dump)
+            foldable_keys = ["content", "text"]
+            content = ""
+            for key in step.__dict__:
+                for attr in foldable_keys:
+                    if key.endswith(attr):
+                        del dump[key]
+                        content += getattr(step, key, "")
+            text = pretty_yaml(dump) + ("\n" + maybe_fold(content))
+
+        # Augment text with media
+        if (video_path := getattr(step, "video_path", None)) is not None:
+            text += render_video(
+                video_path, getattr(step, "thumbnail_path", None), getattr(step, "subtitle_path", None)
+            )
+            if (image_paths := getattr(step, "video_contact_sheet_paths", None)) is not None:
+                for image_path in image_paths:
+                    text += render_image(image_path)
+        elif (image_path := getattr(step, "image_path", getattr(step, "thumbnail_path", None))) is not None:
+            text += render_image(image_path, getattr(step, "image_caption", None))
 
         if not self.show_content:
             text = ""
@@ -170,6 +201,13 @@ class CameraReadyRenderer(BasicRenderer):
             return ""
         prompt_messages = [f"tool_schemas: {json.dumps(llm_call.prompt.tools, indent=2)}"]
         for m in llm_call.prompt.messages:
+            # Replace image encoded in base64 with a placeholder
+            if isinstance(m["content"], list):
+                for c in m["content"]:
+                    if c.get("image_url"):
+                        if url := c.get("image_url").get("url"):
+                            if url.startswith("data:image/"):
+                                c["image_url"]["url"] = "data:image/(base64_content)"
             role = f"{m['role']} ({m['name']})" if "name" in m else m["role"]
             prompt_messages.append(f"{role}: {m['content'] if 'content' in m else m['tool_calls']}")
         prompt_text = "\n--\n".join(prompt_messages)
@@ -188,13 +226,13 @@ class CameraReadyRenderer(BasicRenderer):
                 <summary>{label}</summary>
                 <div style='display: flex;'>
                     <div style='flex: 1; margin-right: 10px;'>
-                        <pre style='padding-left: 6px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word;'>{prompt_text.strip()}</pre>
+                        <pre style='padding-left: 6px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word;'>{prompt_text.strip()}</pre>
                     </div>"""
 
         if llm_call.output:
             html += f"""
                     <div style='flex: 1;'>
-                        <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word;'>{llm_call.output.content}</pre>
+                        <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word;'>{llm_call.output.content}</pre>
                     </div>"""
 
         html += """
@@ -204,12 +242,12 @@ class CameraReadyRenderer(BasicRenderer):
         return html
 
 
-def dict_to_params(arguments: str) -> str:
+def dict_to_params(arguments: str | dict) -> str:
     """
     Transform a dictionary into a function parameters string.
     Example: {'a': 1, 'b': 2} -> 'a=1, b=2'
     """
-    if type(arguments) is str:
+    if isinstance(arguments, str):
         arguments = str_to_dict(arguments)
     return ", ".join(f"{key}={value!r}" for key, value in arguments.items())
 
@@ -223,3 +261,33 @@ def str_to_dict(s: str) -> dict:
         return ast.literal_eval(s)
     except (ValueError, SyntaxError):
         raise ValueError("Invalid string representation of a dictionary")
+
+
+def render_video(video_path, thumbnail_path, subtitles_path) -> str:
+    html = ""
+    video_path = path_to_static(video_path)
+    poster_attribute = f"poster='{path_to_static(thumbnail_path)}'" if thumbnail_path else ""
+    subtitles_track = (
+        f"<track kind='subtitles' src='{path_to_static(subtitles_path)}' srclang='en' label='English' default>"
+        if subtitles_path
+        else ""
+    )
+    html = f"""
+    <video controls {poster_attribute}>
+        <source src='{video_path}' type="video/mp4">
+        {subtitles_track}
+    </video>
+    """
+    return html
+
+
+def render_image(image_path: str, image_caption: str | None = None) -> str:
+    if not os.path.exists(image_path):
+        return ""
+    image_url = path_to_static(image_path)
+    figcaption_attribute = f"<pre>{image_caption}</pre>" if image_caption else ""
+    return f"<img src='{image_url}' style='max-width: 100%; height: 250px; padding: 4px;'>{figcaption_attribute}"
+
+
+def path_to_static(path: str) -> str:
+    return os.path.join("static", os.path.basename(path))

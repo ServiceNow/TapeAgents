@@ -30,7 +30,7 @@ from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
 from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.optimize import add_demos
 from tapeagents.orchestrator import main_loop
-from tapeagents.rendering import PrettyRenderer
+from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
 from tapeagents.tape_browser import TapeBrowser
 
@@ -119,6 +119,25 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
             agent.templates[template_name].partial_demos = partial_demos
 
     return agent
+
+
+def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
+    """Extract demos for function templates from the given tapes.
+
+    When there is too many demos, select random ones.
+
+    """
+    demos = {template_name: [] for template_name in agent.templates}
+    for tape in tapes:
+        for node, index in agent.get_node_runs(tape):
+            if isinstance(node, LLMFunctionNode):
+                demos[node.template_name].append(node.extract_demo(agent, tape, index))
+    rng = random.Random(seed)
+    agent_copy = agent.model_copy(deep=True)
+    for template_name, template in agent_copy.templates.items():
+        k = min(max_n_demos, len(demos[template_name]))
+        template.demos = rng.sample(demos[template_name], k)
+    return agent_copy
 
 
 def optimize_agent(agent: Agent, cfg: DictConfig):

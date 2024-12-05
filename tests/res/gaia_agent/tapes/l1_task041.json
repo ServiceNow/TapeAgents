@@ -1,0 +1,391 @@
+{
+    "metadata": {
+        "id": "4ab0735d-e4de-4a7f-bde9-11e02e9584a1",
+        "parent_id": null,
+        "author": null,
+        "author_tape_id": null,
+        "n_added_steps": 0,
+        "error": null,
+        "result": "The Shed: The Cookbook: Original, Seasonal Recipes for Year-Round Inspiration",
+        "task": {
+            "task_id": "dc22a632-937f-4e6a-b72f-ba0ff3f5ff97",
+            "Question": "What was the complete title of the book in which two James Beard Award winners recommended the restaurant where Ali Khan enjoyed a New Mexican staple in his cost-conscious TV show that started in 2015? Write the numbers in plain text if there are some in the title.",
+            "Level": 1,
+            "Final answer": "Five Hundred Things To Eat Before It's Too Late: and the Very Best Places to Eat Them",
+            "file_name": "",
+            "Annotator Metadata": {
+                "Steps": "1. Searched \"Ali Khan New Mexico staple TV show\" on Google.\n2. Opened \"Albuquerque | Cheap Eats\" at https://www.cookingchanneltv.com/shows/cheap-eats/episodes/albuquerque.\n3. Noted the New Mexico staple and the list of restaurants.\n4. Searched \"Albuquerque Cheap Eats carne avodava\" on Google.\n5. Confirmed the restaurant name (Papa Felipe's) from the results.\n6. Searched \"James Beard Award winners Papa Felipe's\" on Google.\n7. Opened \"Papa Felipe's Mexican Restaurant - Albuquerque, New ...\" at https://www.nmgastronome.com/?p=4572.\n8. Clicked the link on the book title.\n9. Copied the full book title from Amazon.",
+                "Number of steps": "9",
+                "How long did this take?": "15 minutes",
+                "Tools": "1. Web browser\n2. Search engine",
+                "Number of tools": "2"
+            }
+        },
+        "attempt_number": 0,
+        "level": 1
+    },
+    "context": {
+        "tools": []
+    },
+    "steps": [
+        {
+            "metadata": {
+                "id": "b0c9bc48-4364-4ec7-a281-ef7e495794ef",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "question",
+            "content": "What was the complete title of the book in which two James Beard Award winners recommended the restaurant where Ali Khan enjoyed a New Mexican staple in his cost-conscious TV show that started in 2015? Write the numbers in plain text if there are some in the title.",
+            "filename": null
+        },
+        {
+            "metadata": {
+                "id": "51c62031-67be-466d-a6f8-e59257b771a0",
+                "prompt_id": "004e9a91-d041-4717-9602-b54f7e02a6d3",
+                "node": "plan",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "plan_thought",
+            "plan": [
+                "Identify the TV show hosted by Ali Khan that started in 2015.",
+                "Research the New Mexican staple featured in that show.",
+                "Find out which restaurant was recommended by two James Beard Award winners in that show.",
+                "Look up the complete title of the book that includes this restaurant recommendation."
+            ]
+        },
+        {
+            "metadata": {
+                "id": "8b5b09db-5225-4d84-b491-df4438469e8f",
+                "prompt_id": "99eecb13-008e-4c14-a01c-b3a038b7176a",
+                "node": "facts_survey",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "list_of_facts_thought",
+            "given_facts": [
+                "Ali Khan has a cost-conscious TV show that started in 2015.",
+                "Two James Beard Award winners recommended a restaurant.",
+                "The restaurant serves a New Mexican staple."
+            ],
+            "facts_to_lookup": [
+                "The title of the TV show hosted by Ali Khan that started in 2015.",
+                "The New Mexican staple featured in Ali Khan's show.",
+                "The restaurant recommended by the two James Beard Award winners.",
+                "The complete title of the book that includes the restaurant recommendation."
+            ],
+            "facts_to_derive": [],
+            "facts_to_guess": []
+        },
+        {
+            "metadata": {
+                "id": "e0574a75-5004-432b-9161-96603b8779e8",
+                "prompt_id": "f2cf8824-821d-4837-9029-3af748833c40",
+                "node": "start_execution",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Ali Khan cost-conscious TV show started in 2015"
+        },
+        {
+            "metadata": {
+                "id": "25aed8f0-b853-42b0-9f38-39d266798e68",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Ali Khan cost-conscious TV show started in 2015",
+            "serp": [
+                {
+                    "title": "Saif Ali Khan",
+                    "url": "https://en.wikipedia.org/wiki/Saif_Ali_Khan",
+                    "content": "Saif Ali Khan is an Indian actor and film producer who primarily works in Hindi films. Current head of the Pataudi family, he is the son of actress Sharmila ..."
+                },
+                {
+                    "title": "All shows of Zee TV",
+                    "url": "https://www.imdb.com/list/ls569596195/",
+                    "content": "A woman with faith in love meets a man cautious about romance due to past heartbreak. Despite their differences, they grow close and must decide if they can ..."
+                },
+                {
+                    "title": "TV Shows about God and religion",
+                    "url": "https://www.imdb.com/list/ls563125219/",
+                    "content": "The Chosen is a historical drama based on the life of Jesus and those who knew him. Set against the backdrop of Roman oppression in first-century Israel."
+                },
+                {
+                    "title": "Heeramandi",
+                    "url": "https://en.wikipedia.org/wiki/Heeramandi",
+                    "content": "The series is about the lives of tawaifs in the red-light district of Heera Mandi in Lahore during the Indian independence movement against the British Raj."
+                },
+                {
+                    "title": "The many faces of Alyy Khan - Pakistan",
+                    "url": "https://www.dawn.com/news/1179156",
+                    "content": "3 May 2015 — Alyy Khan says he hasn't done much stage in Pakistan — just directed one stage play Aapki Sonia. “Javed Siddiqi's Aapki Sonia was a world-class ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "a15c7c1e-94ee-44bb-ada2-f6e58e5f8910",
+                "prompt_id": "6af52174-674c-42dc-bfae-547c187f08c0",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Ali Khan food show 2015 title"
+        },
+        {
+            "metadata": {
+                "id": "b9e4e9e7-b7ed-41ca-8505-031e4e4c3ca3",
+                "prompt_id": "6af52174-674c-42dc-bfae-547c187f08c0",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "dff5a883-ddae-4349-90b0-4efd51ba3237",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Ali Khan food show 2015 title",
+            "serp": [
+                {
+                    "title": "Cheap Eats",
+                    "url": "https://en.wikipedia.org/wiki/Cheap_Eats",
+                    "content": "Cheap Eats is an original food travelogue television series on Cooking Channel where host and co-executive producer Ali Khan, author of the blog Bang for ..."
+                },
+                {
+                    "title": "Ali Khan Eats",
+                    "url": "https://alikhaneats.com/about-2/",
+                    "content": "In 2015, Ali premiered his very own show, Cheap Eats, on Cooking Channel. As the host of Cheap Eats, Ali is right at home taking audiences on a culinary ..."
+                },
+                {
+                    "title": "Ali Khan",
+                    "url": "https://www.foodallergy.org/our-initiatives/awareness-campaigns/living-teal/living-tealtm-videos/take-out-show/ali-khan",
+                    "content": "In 2015, Ali premiered his very own show, Cheap Eats, on Cooking Channel. Armed with a budget of only $35, Ali takes a culinary tour of the US on a budget ..."
+                },
+                {
+                    "title": "Cheap Eats (TV Series 2013",
+                    "url": "https://www.imdb.com/title/tt3012894/",
+                    "content": "Join Ali Khan, author of the blog Bang for Your Burger Buck, on this sweet and savory ride as he searches for breakfast, lunch, a snack and dinner on a budget ..."
+                },
+                {
+                    "title": "Ali Khan - Friend of FARE - Food Allergy Research & ...",
+                    "url": "https://www.linkedin.com/in/alikhaneats",
+                    "content": "Ali Khan is a television host and food writer. A multi-hyphenate creative in the food television and food writing as well as a content creatory in the digital ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "5442b68e-5e22-4332-96fa-595565e1c809",
+                "prompt_id": "6f071e87-eacd-4bdd-8970-9a632b496b58",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Cheap Eats restaurant New Mexican staple James Beard Award winners"
+        },
+        {
+            "metadata": {
+                "id": "272c246d-e014-4b8a-bc91-cb2860d8495a",
+                "prompt_id": "6f071e87-eacd-4bdd-8970-9a632b496b58",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "7f3bf87f-c1a9-48ba-adc4-dbac5f9bd3fa",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "Cheap Eats restaurant New Mexican staple James Beard Award winners",
+            "serp": [
+                {
+                    "title": "Affordable James Beard Award-winning restaurant. Great ...",
+                    "url": "https://www.tripadvisor.com/ShowUserReviews-g60958-d1439851-r960389683-The_Shed-Santa_Fe_New_Mexico.html",
+                    "content": "The Shed: Affordable James Beard Award-winning restaurant. Great food and drinks! - See 5087 traveler reviews, 787 candid photos, and great deals for Santa ..."
+                },
+                {
+                    "title": "Papa Felipe's Mexican Restaurant - Albuquerque, New ...",
+                    "url": "https://www.nmgastronome.com/?p=4572",
+                    "content": "Jul 8, 2018 — In 2009, James Beard Award-winning food journalists Jane and ... In an episode entitled “Cheap Eats,” host and food blogger Ali Khan ..."
+                },
+                {
+                    "title": "James Beard Foundation (JBF) Award Nominees & Winners",
+                    "url": "https://www.nmgastronome.com/?cat=2836",
+                    "content": "Follow the Culinary Ruminations of New Mexico's Sesquipedalian Sybarite. 1,433 Restaurant Reviews, More Than 14,300 Visitor Comments…And Counting!"
+                },
+                {
+                    "title": "This One Restaurant In New Mexico Won A James Beard ...",
+                    "url": "https://www.onlyinyourstate.com/food/new-mexico/james-beard-award-winner-nm",
+                    "content": "Rancho de Chimayó Restaurante in New Mexico is a James Beard Foundation Award-winning restaurant. ... inexpensive travel gifts are sure to delight the recipients."
+                },
+                {
+                    "title": "James Beard Foundation names Denver's El Taco de ...",
+                    "url": "https://www.denverpost.com/2020/02/18/el-taco-de-mexico-james-beard-classics-award/",
+                    "content": "Feb 18, 2020 — ... Cheap · Cannabis · Recipes · Denver Post Store · Classifieds · Classifieds ... winners of other James Beard Awards in Denver and Colorado."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "4c53c0d9-7a91-42b0-8217-01066cec21cd",
+                "prompt_id": "a3ccd8fc-c250-4481-aa0b-1e48cdb4140e",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "book title The Shed restaurant James Beard Award winners"
+        },
+        {
+            "metadata": {
+                "id": "8b6f86cb-8778-4ee1-a115-993d047eab0a",
+                "prompt_id": "a3ccd8fc-c250-4481-aa0b-1e48cdb4140e",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "b575ee11-24c7-4c3a-89e6-52a6c1fc6b05",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "book title The Shed restaurant James Beard Award winners",
+            "serp": [
+                {
+                    "title": "The 2024 James Beard Award Winners",
+                    "url": "https://www.jamesbeard.org/blog/the-2024-james-beard-award-winners",
+                    "content": "Jun 10, 2024 — Here are the winners of the 2024 James Beard Foundation Restaurant and Chef Awards presented by Capital One. This year's winners were announced Monday, June 10."
+                },
+                {
+                    "title": "All Winners by Year - James Beard Book Awards",
+                    "url": "https://www.barnesandnoble.com/b/books/james-beard-foundation-awards/all-winners-by-year-james-beard-book-awards/_/N-29Z8q8Z1unr",
+                    "content": "Explore our list of All Winners by Year - James Beard Book Awards Books at Barnes & Noble®. Get your order fast and stress free with ..."
+                },
+                {
+                    "title": "2024 James Beard Winners",
+                    "url": "https://booklarder.com/collections/2024-james-beard-winners",
+                    "content": "James Beard award-winning author and culinary game-changer Josh Niland returns with the ultimate guide to the art of Fish Butchery , with expert techniques ..."
+                },
+                {
+                    "title": "The 2024 James Beard Awards Semifinalists",
+                    "url": "https://www.jamesbeard.org/blog/the-2024-james-beard-awards-semifinalists",
+                    "content": "Jan 24, 2024 — Today, we are proud to announce the 2024 Restaurant and Chef Awards semifinalists for the James Beard Awards® presented by Capital One."
+                },
+                {
+                    "title": "The 2024 James Beard Media Award Winners",
+                    "url": "https://www.jamesbeard.org/blog/the-2024-james-beard-media-award-winners",
+                    "content": "Jun 8, 2024 — 2024 James Beard Foundation Book Award Winners. Cookbooks and other non-fiction food or beverage-related books that were published in the ..."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "becca6ec-e78f-44a1-b009-407df493b0ca",
+                "prompt_id": "4d5b7bf1-2987-4150-b233-94103ea89117",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "The Shed restaurant cookbook title"
+        },
+        {
+            "metadata": {
+                "id": "acbb528a-0a77-46a9-99c8-4919aab65a36",
+                "prompt_id": "4d5b7bf1-2987-4150-b233-94103ea89117",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "eed202aa-c698-4d8e-8df2-f8cf07fc8735",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "other": {}
+            },
+            "kind": "search_results_observation",
+            "query": "The Shed restaurant cookbook title",
+            "serp": [
+                {
+                    "title": "The Shed: The Cookbook: Original, seasonal recipes for ...",
+                    "url": "https://www.amazon.com/Shed-Cookbook-year-round-inspiration-Fearnley-Whittingstall/dp/0857832530",
+                    "content": "Book overview. Let the Gladwin brothers show you how to create the delicious seasonal food that has made their restaurant so popular."
+                },
+                {
+                    "title": "The Cookbook: Original, seasonal recipes for year-round ...",
+                    "url": "https://www.abebooks.com/9780857832535/Cookbook-Original-seasonal-recipes-year-round-0857832530/plp",
+                    "content": "Synopsis. Let the Gladwin brothers show you how to create the delicious seasonal food that has made their restaurant so popular. Divided into four sections, ..."
+                },
+                {
+                    "title": "The Shed: The Cookbook: Original, Seasonal Recipes for ...",
+                    "url": "https://www.amazon.com/Shed-Cookbook-Year-Round-Inspiration-Hardcover/dp/B011W9CD20",
+                    "content": "Let the Gladwin brothers show you how to create the delicious seasonal food that has made their restaurant so popular. Divided into four sections, ..."
+                },
+                {
+                    "title": "The Shed Cookbook – review | Food",
+                    "url": "https://www.theguardian.com/lifeandstyle/2014/dec/06/gladwin-brothers-shed-cookbook-review",
+                    "content": "Dec 6, 2014 — Cookworm: The Gladwin brothers' plentiful book of forgaging tips and seasonal, nose-to-tail recipes is as handsome as it is ample."
+                },
+                {
+                    "title": "The Shed: The Cookbook: Original, seasonal recipes for ...",
+                    "url": "https://www.goodreads.com/book/show/26842887-the-shed",
+                    "content": "Oct 30, 2014 — Rate this book. Let the Gladwin brothers show you how to create the delicious seasonal food that has made their restaurant so popular."
+                }
+            ]
+        },
+        {
+            "metadata": {
+                "id": "254880a7-f9f6-48d7-945c-33d3305ae22a",
+                "prompt_id": "e3aee17d-c821-403f-853c-8f53777134bd",
+                "node": "act",
+                "agent": "GaiaAgent",
+                "other": {}
+            },
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "The complete title of the book is 'The Shed: The Cookbook: Original, Seasonal Recipes for Year-Round Inspiration'.",
+            "answer_unit": "",
+            "answer": "The Shed: The Cookbook: Original, Seasonal Recipes for Year-Round Inspiration"
+        }
+    ]
+}

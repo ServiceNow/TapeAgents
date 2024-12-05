@@ -2,20 +2,23 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_val_batch32_6
-exp_path: ../gaia/runs/${exp_name}
-data_dir: ../gaia/dataset/validation/
-n_attempts: 1
-batch: 32
+exp_name: gpt4o_mini_val_video_v1
+exp_path: outputs/gaia/runs2/${exp_name}
+split: validation
+batch: 1
+
 agent:
-  planning_mode: simple
-  subtasks: false
+  plain_code: false
 
 env:
-  safe_calculator: false
+  attachment_dir: ${exp_path}/attachments/
+  image_observations: true
   use_web_cache: true
-  only_cached_webpages: false
+
+studio:
+  tape:
+    null
 
 hydra:
   run:
-    dir: ../gaia/runs/${exp_name}
+    dir: ${exp_path}

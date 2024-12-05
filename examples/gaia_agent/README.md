@@ -18,9 +18,28 @@ The agent is free to choose which thoughts and actions to use to satisfy the cur
 Additionally, the Gaia agent implements the initial planning step, which produces a «plan» in the form of a sequence of free-form descriptions of the actions that should be taken to solve the task.
 
 ## Quickstart
+Perform all the following steps from the top folder of the repo.  
+First, you need to install the dependencies for file converters:
+```bash
+pip install -r requirements.converters.txt
+```
+
+Then, make sure you have `FFmpeg` version 7.1.x or newer installed (more details [here](https://github.com/kkroening/ffmpeg-python?tab=readme-ov-file#installing-ffmpeg)).
+
+If you want to use conversion of PDF files to images to preserve tables and complex formatting, please install prerequisites of the pdf2image library as described [in their documentation](https://pypi.org/project/pdf2image/).
+
+Then you can run the agent using the following commands:
 - `python -m examples.gaia_agent.scripts.studio` - Interactive GUI that allows you to set the task for the agent and observe how it solves it step by step.
 - `python -m examples.gaia_agent.scripts.evaluate` - script to run evaluation on the GAIA validation set.
 - `python -m examples.gaia_agent.scripts.tape_browser` - Gradio UI for exploring the tapes and metrics produced during evaluation.
+
+If you see the error `remote: Access to dataset gaia-benchmark/GAIA is restricted. You must have access to it and be authenticated to access it. Please log in.`, you need to log in to the Hugging Face account first:
+```bash
+huggingface-cli login
+```
+
+You can adjust config in [conf/gaia_openai.yaml](../../conf/gaia_openai.yaml).
+
 
 ## Results
 | Model | Avg. Val Accuracy | Val Level 1 Accuracy|  Val Level 2 Accuracy |  Val Level 3 Accuracy |

@@ -35,7 +35,7 @@ import PIL
 import pptx
 import puremagic
 import requests
-import speech_recognition as sr
+import whisper
 from bs4 import BeautifulSoup
 from readability import Document
 
@@ -231,7 +231,7 @@ class YouTubeConverter(DocumentConverter):
                         if attrdesc:
                             metadata["description"] = attrdesc["content"]
                     break
-        except:
+        except Exception:
             pass
 
         # Start preparing the page
@@ -274,7 +274,7 @@ class YouTubeConverter(DocumentConverter):
                     # Alternative formatting:
                     # formatter = TextFormatter()
                     # formatter.format_transcript(transcript)
-                except:
+                except Exception:
                     pass
             if transcript_text:
                 webpage_text += f"\n### Transcript\n{transcript_text}\n"
@@ -383,14 +383,14 @@ class PptxConverter(HtmlConverter):
                     alt_text = ""
                     try:
                         alt_text = shape._element._nvXxPr.cNvPr.attrib.get("descr", "")
-                    except:
+                    except Exception:
                         pass
 
                     # A placeholder name
                     filename = re.sub(r"\W", "", shape.name) + ".jpg"
                     # try:
                     #    filename = shape.image.filename
-                    # except:
+                    # except Exception:
                     #    pass
 
                     md_content += "\n![" + (alt_text if alt_text else shape.name) + "](" + filename + ")\n"
@@ -448,19 +448,16 @@ class PptxConverter(HtmlConverter):
 
 class WavConverter(DocumentConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
-        # Bail if not a XLSX
+        # Bail if not a WAV
         extension = kwargs.get("file_extension", "")
         if extension.lower() != ".wav":
             return None
 
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(local_path) as source:
-            audio = recognizer.record(source)
-            text_content = recognizer.recognize_whisper(audio).strip()
-
+        model = whisper.load_model("turbo")
+        text_content = model.transcribe(local_path) or "[No speech detected]"
         return DocumentConverterResult(
             title=None,
-            text_content="### Audio Transcript:\n" + ("[No speech detected]" if text_content == "" else text_content),
+            text_content=f"### Audio Transcript:\n{text_content}",
         )
 
 
@@ -558,7 +555,7 @@ class ImageConverter(DocumentConverter):
             try:
                 result = subprocess.run([exiftool, "-json", local_path], capture_output=True, text=True).stdout
                 return json.loads(result)[0]
-            except:
+            except Exception:
                 return None
 
     def _get_mlm_description(self, local_path, extension, client, prompt=None):
@@ -639,8 +636,8 @@ class FileConverter:
     def convert(self, source, **kwargs):
         """
         Args:
-            - source: can be a string representing a path or url, or a requests.response object
-            - extension: specifies the file extension to use when interpreting the file. If None, infer from source (path, uri, content-type, etc.)
+            source (str): can be a string representing a path or url, or a requests.response object
+            **kwargs (dict, optional): additional options to pass to the converters
         """
 
         # Local path or url
@@ -732,7 +729,7 @@ class FileConverter:
                 # If we hit an error log it and keep trying
                 try:
                     res = converter.convert(local_path, **_kwargs)
-                except Exception as e:
+                except Exception:
                     error_trace = ("\n\n" + traceback.format_exc()).strip()
 
                 if res is not None:

@@ -1,27 +1,26 @@
-import datetime
 import json
 import logging
 import os
-import shutil
 import subprocess
-from typing import Any, Counter, Iterable
-from uuid import uuid4
+from typing import Any, Counter, Generator
 
 import yaml
-from pydantic import BaseModel, Field
+from huggingface_hub import snapshot_download
 from termcolor import colored
 
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
-from tapeagents.rendering import step_view
+from tapeagents.renderers import step_view
 
 from .agent import GaiaAgent
 from .environment import GaiaEnvironment
 from .scorer import question_scorer
-from .steps import GaiaAnswer, GaiaQuestion, PlanThought
+from .steps import GaiaAnswer, SearchAction
 from .tape import GaiaMetadata, GaiaTape
 
 logger = logging.getLogger(__name__)
+
+DATASET_DIR = "data/gaia/"
 
 
 def get_git_revision_hash() -> str:
@@ -71,98 +70,81 @@ def majority_vote(results: list[Any]) -> int:
     return best_idx
 
 
-def load_dataset(data_dir):
+def download_dataset():
+    logger.info("Downloading GAIA dataset...")
+    repo = "gaia-benchmark/GAIA"
+    os.makedirs(DATASET_DIR, exist_ok=True)
+    snapshot_download(repo_id=repo, repo_type="dataset", local_dir=DATASET_DIR, local_dir_use_symlinks=False)
+
+
+def load_dataset(split: str):
     tasks = {1: [], 2: [], 3: []}
-    with open(f"{data_dir}/metadata.jsonl") as f:
+    fname = os.path.join(DATASET_DIR, "2023", split, "metadata.jsonl")
+    if not os.path.exists(fname):
+        download_dataset()
+    if not os.path.exists(fname):
+        raise FileNotFoundError(f"Dataset not found: {fname}")
+    with open(fname) as f:
         for line in f:
             task = json.loads(line)
             if task["file_name"]:
-                task["file_name"] = f"{data_dir}/{task['file_name']}"
+                task["file_name"] = os.path.join(DATASET_DIR, "2023", split, task["file_name"])
             tasks[task["Level"]].append(task)
 
     logger.info(f"GAIA Tasks: Level 1: {len(tasks[1])}, Level 2: {len(tasks[2])}, Level 3: {len(tasks[3])}")
     return tasks
 
 
-def solve_task(task: dict, agent: GaiaAgent, env: GaiaEnvironment, n_attempts: int = 1) -> GaiaTape:
-    question = task_to_question_step(task, env)
-    tapes: list[GaiaTape] = []
-    results: list[Any] = []
-    previous_plans: list[str] = []
-    while len(tapes) < n_attempts:
-        predicted = None
-        tries = 3
-        while not predicted and tries:
-            tape = GaiaTape(steps=[question])
-            logger.info(colored(f"Attempt {len(tapes)+1}", "green"))
-            discard_attempt = False
-            planned = False
-            step = None
-            try:
-                for event in main_loop(agent, tape, env, max_loops=30):
-                    if event.agent_event and event.agent_event.step:
-                        step = event.agent_event.step
-                        tape = tape.append(step)  # type: ignore
-                        if isinstance(step, PlanThought) and not planned:
-                            plan_dump = "\n".join(step.plan)
-                            if plan_dump in previous_plans:
-                                logger.info("Plan already been used, discard attempt")
-                                discard_attempt = True
-                                break
-                            else:
-                                planned = True
-                                previous_plans.append(plan_dump)
-                    if event.observation:
-                        tape = tape.append(event.observation)  # type: ignore
-                if discard_attempt:
-                    continue
-            except Exception as e:
-                tape.metadata.error = str(e)
-                logger.exception(f"Failed to solve task: {e}")
-                break
-            predicted = step.answer if isinstance(step, GaiaAnswer) else None
-            tries -= 1
-        predicted = str(predicted)
-        tapes.append(tape)
-        results.append(predicted)
-        logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
-    logger.info(f"Produced {len(tapes)} tapes, vote")
-    best = majority_vote(results)
-    logger.info(f"Majority vote best non-empty result: {best}, out of {results}")
-    best_tape = tapes[best]
-    best_tape.metadata = GaiaMetadata.model_validate(
-        best_tape.metadata.model_dump() | {"task": task, "result": results[best]}
+def solve_task(
+    task: dict,
+    agent: GaiaAgent,
+    env: GaiaEnvironment,
+    level: int,
+    retries: int = 3,
+    max_loops: int = 50,
+) -> Generator[GaiaTape, None, None]:
+    """Solve GAIA task. 
+    
+    This function is a generator that yields intermediate tapes during the solving process.
+    The last tape will contain the agent's response.
+    
+    """
+    start_steps = env.task_to_observations(task)
+    solved = None
+    result = None
+    while not solved and retries:
+        tape = GaiaTape(steps=start_steps)
+        try:
+            for event in main_loop(agent, tape, env, max_loops=max_loops):
+                if partial_tape := (event.agent_tape or event.env_tape):
+                    tape = partial_tape
+                    tape.metadata = GaiaMetadata.model_validate(
+                            tape.metadata.model_dump() | {"task": task, "level": level}
+                        )                    
+                    yield tape
+                if n_search_repetitions(tape) >= 3:
+                    break
+        except Exception as e:
+            tape.metadata.error = str(e)
+            logger.exception(f"Failed to solve task: {e}")
+            break
+        result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
+        result = str(result) if result is not None else ""
+        solved = result != ""
+        retries -= 1
+    logger.info(f"Expected: {task['Final answer']}, Agent produced: {result}")
+    tape.metadata = GaiaMetadata.model_validate(
+        tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
     )
-    return best_tape
+    yield tape
 
 
-def task_to_question_step(task: dict, env: GaiaEnvironment, max_doc_length: int = 8000) -> GaiaQuestion:
-    question = GaiaQuestion.from_task(task)
-    if question.filename:
-        name, ext = question.filename.rsplit(".", maxsplit=1)
-        if ext == "zip":
-            folder_name = name
-            os.makedirs(folder_name, exist_ok=True)
-            shutil.unpack_archive(question.filename, folder_name)
-            document_text = "\n\nArchive contains the following files:\n"
-            for i, file in enumerate(os.listdir(folder_name)):
-                file_path = os.path.join(folder_name, file)
-                content = env.browser.get_whole_document(file_path)
-                file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
-                if len(file_text) > max_doc_length:
-                    file_text = ""
-                file_text += f"{i+1}. Path to the '{file}': {file_path}"
-                document_text += file_text
-        else:
-            content = env.browser.get_whole_document(question.filename)
-            document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
-            if len(document_text) > max_doc_length:
-                document_text = ""
-            document_text += f"\nPath to the mentioned document: {question.filename}"
-        question.content += document_text
-    question.filename = None
-    logger.info(f"Question: {question.content}")
-    return question
+def n_search_repetitions(tape: GaiaTape) -> int:
+    steps_by_query = {}
+    for step in tape:
+        if isinstance(step, SearchAction):
+            steps_by_query[step.query] = steps_by_query.get(step.query, 0) + 1
+    return max(steps_by_query.values(), default=0)
 
 
 def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> list[GaiaTape]:
@@ -204,9 +186,12 @@ def ensemble_files(tape_dirs: list[str], out_dir: str = ""):
     acc, num = calculate_accuracy(ensembled_tapes, show_intermediate=False)
     logger.info(f"Ensembled {len(tape_dirs)} accuracy: {acc:.2f} ({num} of {len(ensembled_tapes)})")
     if out_dir:
-        assert not os.path.exists(out_dir), f"Directory {out_dir} already exists"
+        out_tapes_dir = os.path.join(out_dir, "tapes")
+        os.makedirs(out_tapes_dir)
         for i, tape in enumerate(ensembled_tapes):
-            save_json_tape(tape, out_dir, f"tape{i+1}")
+            save_json_tape(tape, out_tapes_dir, f"tape{i+1:03d}")
+        with open(os.path.join(out_dir, "ensemble_config.json"), "w") as f:
+            json.dump({"sources": tape_dirs, "mode": "majority"}, f, indent=2)
         logger.info(f"Saved to {out_dir}")
 
 
