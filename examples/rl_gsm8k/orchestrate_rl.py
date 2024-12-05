@@ -36,6 +36,7 @@ from examples.rl_gsm8k.utils import (
     load_state,
     save_state,
     setup_logging,
+    get_tokens_from_hf_tokenizer,
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
@@ -129,14 +130,8 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            def get_tokens_from_hf(tokenizer, prompt, output):
-                prompt_token_ids = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=True, add_generation_prompt=True)
-                text_token_ids = tokenizer.apply_chat_template(prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True)
-                output_token_ids = text_token_ids[len(prompt_token_ids) :]
-                output_tokens = [tokenizer.decode(output_token_id) for output_token_id in output_token_ids]
-                return output_tokens
 
-            hf_tokens = get_tokens_from_hf(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
+            hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
 
             logprobs = []
             vllm_tokens = []
