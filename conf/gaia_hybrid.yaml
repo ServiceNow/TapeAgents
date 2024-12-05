@@ -1,9 +1,9 @@
 defaults:
   - llm: gpt4o_mini
-  - llm@plan_llm: gpt4o
+  - llm@plan_llm: o1
   - _self_
   
-exp_name: hydrid_val
+exp_name: hydrid_val_o1
 exp_path: outputs/gaia/runs2/${exp_name}
 split: validation
 batch: 1
@@ -18,6 +18,8 @@ env:
 
 tasks:
   1: [40]
+  2: [6, 47, 73]
+  3: [9, 11, 16, 19]
 
 studio:
   tape:
