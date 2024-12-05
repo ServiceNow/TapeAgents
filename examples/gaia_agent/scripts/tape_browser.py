@@ -73,13 +73,18 @@ class GaiaTapeBrowser(TapeBrowser):
         acc, n_solved = calculate_accuracy(tapes)
         errors = defaultdict(int)
         tokens_num = 0
+        no_result = 0
         for tape in tapes:
+            if tape.metadata.result in ["", None, "None"]:
+                no_result += 1
             if tape.metadata.error:
                 errors["fatal"] += 1
             last_action = None
             for step in tape:
                 if isinstance(step, Action):
                     last_action = step
+                if step.kind == "search_results_observation" and not step.serp:
+                    errors["search_empty"] += 1
                 prompt_id = step.metadata.prompt_id
                 if prompt_id and prompt_id in self.llm_calls:
                     tokens_num += (
@@ -94,21 +99,24 @@ class GaiaTapeBrowser(TapeBrowser):
         html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>LLM tokens spent: {tokens_num}"
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
+            html += f"<h2>No result: {no_result}</h2>"
             html += f"<h2>Errors</h2>{errors_str}"
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
-        error = "F" if tape.metadata.error else None
+        error = "F" if tape.metadata.error else ""
         last_action = None
         for step in tape:
             if isinstance(step, Action):
                 last_action = step
-            if step.kind == "page_observation" and step.error:
-                error = "br"
+            if step.kind == "search_results_observation" and not step.serp:
+                error += "se"
+            elif step.kind == "page_observation" and step.error:
+                error += "br"
             elif step.kind == "llm_output_parsing_failure_action":
-                error = "pa"
+                error += "pa"
             elif step.kind == "action_execution_failure" and last_action:
-                error = last_action.kind[:2]
+                error += last_action.kind[:2]
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
         if tape.metadata.task["file_name"]:
             ext = tape.metadata.task["file_name"].split(".")[-1]
