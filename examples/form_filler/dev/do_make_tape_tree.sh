@@ -3,18 +3,15 @@
 SIZE=5
 TREE_CONFIG=tree_config6
 AGENT="teacher_agent"
-AGENT_LLM="vllm_llama3_405b_temp1"
-USER_LLM="vllm_llama3_405b_temp1"
-
-# AGENT_LLM="vllm_llama3_8b_temp1"
-# USER_LLM="vllm_llama3_8b_temp1"
+AGENT_LLM="vllm_llama3_405b_temp1"  # "vllm_llama3_8b_temp1"
+USER_LLM="vllm_llama3_405b_temp1"  # "vllm_llama3_8b_temp1"
 
 
 DOMAIN="train/FlyCorp"
 # DOMAIN="train/CoffeeCorp"
 # DOMAIN="train/BigBankCorp"
 
-OUTPUT_DIR=/mnt/llmd/data/gabriel/make_tape_tree/DEBUG/${DOMAIN}/agent_${AGENT}_${AGENT_LLM}/user_${USER_LLM}/${TREE_CONFIG}_size${SIZE}
+OUTPUT_DIR=.local/make_tape_tree/${DOMAIN}/${AGENT}_${AGENT_LLM}/user_${USER_LLM}/${TREE_CONFIG}_size${SIZE}
 echo "Output directory: ${OUTPUT_DIR}"
 
 JOB_NAME=$(echo "tapetree_${DOMAIN}_${SIZE}" | tr '[:upper:]' '[:lower:]' | sed 's/\///g' | tr '-' '_' | tr -d '.')

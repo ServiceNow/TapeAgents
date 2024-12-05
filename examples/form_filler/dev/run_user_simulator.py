@@ -62,7 +62,7 @@ def main(cfg: DictConfig):
     logger.info(f'Hydra runtime dir: {hydra.core.hydra_config.HydraConfig.get().runtime.output_dir}')
     logger.info(f'Output path: {output_path}')
 
-    input_dialogues_path = cfg.input_dialogues_path  # e.g. "/mnt/llmd/data/ehsan_kamalloo/tapes/make_balanced_set/ehsan_balanced_v3/balanced_ufs_part0.yaml"
+    input_dialogues_path = cfg.input_dialogues_path
 
     tapes: list[FormFillerTape] = load_tapes(FormFillerTape, input_dialogues_path)
     user_simulator_agent = instantiate(cfg.user_simulator_agent)
