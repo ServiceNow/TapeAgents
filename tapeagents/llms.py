@@ -451,6 +451,8 @@ class TrainableLLM(CachedLLM):
     base_url: str
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
+    # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
+    remove_leading_white_space: bool = False
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -504,8 +506,9 @@ class TrainableLLM(CachedLLM):
             data = r.json()
             try:
                 content = data["choices"][0]["message"]["content"]
-                # vllm sometimes adds a whitespace at the beginning of the completion
-                content = content.lstrip()
+                if self.remove_leading_white_space:
+                    # vllm sometimes adds a whitespace at the beginning of the completion
+                    content = content.lstrip()
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
