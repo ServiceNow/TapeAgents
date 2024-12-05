@@ -111,7 +111,7 @@ def solve_task(
     """
     start_steps = env.task_to_observations(task)
     solved = None
-    predicted = None
+    result = None
     while not solved and retries:
         tape = GaiaTape(steps=start_steps)
         try:
@@ -128,11 +128,14 @@ def solve_task(
             tape.metadata.error = str(e)
             logger.exception(f"Failed to solve task: {e}")
             break
-        predicted = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
-        tape.metadata.result = str(predicted)
-        solved = predicted not in ["", None]
+        result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
+        result = str(result) if result is not None else ""
+        solved = result != ""
         retries -= 1
-    logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
+    logger.info(f"Expected: {task['Final answer']}, Agent produced: {result}")
+    tape.metadata = GaiaMetadata.model_validate(
+        tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
+    )
     yield tape
 
 
