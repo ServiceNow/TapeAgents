@@ -148,7 +148,6 @@ def extract_tape_training_samples(
             else:
                 compute_log_probs.append(0)
 
-            trace.logprobs = [c for c in logprobs]
             trace.reward = reward
             trace.logprobs = logprobs
             trace.group_id = new_tape.metadata.parent_id
