@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import pathlib
+import random
 
 import dspy
 import dspy.evaluate
@@ -28,7 +29,6 @@ from tapeagents.environment import ToolEnvironment
 from tapeagents.io import stream_yaml_tapes
 from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
 from tapeagents.llms import LiteLLM, LLMStream
-from tapeagents.optimize import add_demos
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
