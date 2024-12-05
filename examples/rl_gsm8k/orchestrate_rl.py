@@ -51,7 +51,8 @@ logger = logging.getLogger(__name__)
 
 def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
     try:
-        trace.ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+        ref_logprobs_content = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
+        trace.ref_logprobs = [c.logprob for c in ref_logprobs_content]
         return trace
     except Exception as e:
         raise e
@@ -159,14 +160,14 @@ def extract_tape_training_samples(
             logprobs = []
             vllm_tokens = []
             if hasattr(llm_call.output, "logprobs"):
-                logprobs = llm_call.output.logprobs.content
-                logprobs = [c.logprob for c in logprobs]
-                vllm_tokens = [c.token for c in llm_call.output.logprobs.content]
+                logprobs_content = llm_call.output.logprobs.content
+                logprobs = [c.logprob for c in logprobs_content]
+                vllm_tokens = [c.token for c in logprobs_content]
 
             if (strict and vllm_tokens != hf_tokens) or (not strict and len(logprobs) != llm_call.output_length_tokens):
                 # the online vLLM tokenizer does not agree with the HF tokenizer
-                logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
-                logprobs = [c.logprob for c in logprobs]
+                logprobs_content = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
+                logprobs = [c.logprob for c in logprobs_content]
                 compute_log_probs.append(1)
             else:
                 compute_log_probs.append(0)
