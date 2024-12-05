@@ -18,12 +18,15 @@ import ast
 import builtins
 import difflib
 import json
+import logging
 import math
 import sys
-import traceback
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 
 class InterpreterError(ValueError):
@@ -916,18 +919,28 @@ def evaluate_python_code(
     return result
 
 
-def run_python_code(code: str, facts: dict) -> Tuple[str, str, str]:
+def run_python_code(code: str, facts: dict, timeout: int = 10) -> Tuple[str, str, str]:
     # run code and capture stdout, stderr
     old_stdout = sys.stdout
     old_stderr = sys.stderr
     sys.stdout = mystdout = StringIO()
     sys.stderr = mystderr = StringIO()
-
-    result = None
+    out = ""
+    err = ""
+    result = ""
     try:
-        result = evaluate_python_code(code, state=facts.copy(), tools=BASE_PYTHON_TOOLS)
-    except Exception:
-        traceback.print_exc()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(evaluate_python_code, code, BASE_PYTHON_TOOLS, facts.copy())
+            try:
+                result = future.result(timeout=timeout)
+                out = mystdout.getvalue()
+                err = mystderr.getvalue()
+            except TimeoutError:
+                logger.warning("Timeout, code took too long to execute")
+                err = "Timeout, code took too long to execute."
+    except Exception as e:
+        err = f"Error: {e}"
+        logger.exception(e)
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
@@ -936,7 +949,7 @@ def run_python_code(code: str, facts: dict) -> Tuple[str, str, str]:
         str_result = json.dumps(result)
     except Exception:
         str_result = str(result)
-    return str_result, mystdout.getvalue(), mystderr.getvalue()
+    return str_result, out, err
 
 
 def python_calculate(expression: str, values_dict: dict[str, Any]) -> str:

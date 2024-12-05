@@ -9,6 +9,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 import time
 from abc import ABC, abstractmethod
 from itertools import zip_longest
@@ -33,6 +34,8 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
+
+cache_write_lock = threading.Lock()
 
 
 class LLMEvent(BaseModel):
@@ -173,6 +176,21 @@ class LLM(BaseModel, ABC):
         """
         pass
 
+    def get_info(self) -> dict:
+        return {
+            "model_name": self.model_name,
+            "parameters": self.parameters,
+            "context_size": self.context_size,
+        }
+
+    def get_token_costs(self) -> dict:
+        """Returns prices for different kinds of tokens.
+
+        See `result['input']` for the price of input tokens and
+        `result['output']` for the price of output tokens respectively.
+        """
+        return {"input": 0, "output": 0}
+
     def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
         """
         Logs the output of an LLM (Language Model) call along with its metadata.
@@ -200,6 +218,11 @@ class LLM(BaseModel, ABC):
             prompt_length_tokens=prompt_length_tokens,
             output_length_tokens=output_length_tokens,
             cached=cached,
+            llm_info=self.get_info(),
+        )
+        token_costs = self.get_token_costs()
+        llm_call.cost = (
+            token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens
         )
         self._log.append(llm_call.model_dump())
         observe_llm_call(llm_call)
@@ -285,11 +308,12 @@ class CachedLLM(LLM):
     def _add_to_cache(self, key: str, event_dict: dict):
         if not self.use_cache:
             return
-        if key not in self._cache:
-            self._cache[key] = []
-        self._cache[key].append(event_dict)
-        with open(self._cache_file, "a") as f:
-            f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
+        with cache_write_lock:
+            if key not in self._cache:
+                self._cache[key] = []
+            self._cache[key].append(event_dict)
+            with open(self._cache_file, "a") as f:
+                f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 
     def get_prompt_key(self, prompt: Prompt) -> str:
         prompt_text = json.dumps(prompt.model_dump(exclude={"id"}), ensure_ascii=False, sort_keys=True)
@@ -386,6 +410,13 @@ class LiteLLM(CachedLLM):
         else:
             return litellm.token_counter(model=self.model_name, messages=messages)
 
+    def get_token_costs(self):
+        costs = litellm.model_cost.get(self.model_name)
+        if costs is None:
+            logger.info(f"Model {self.model_name} not found in the LiteLLM cost database")
+            return {"input": 0, "output": 0}
+        return {"input": costs["input_cost_per_token"], "output": costs["output_cost_per_token"]}
+
     def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
         while True:
             try:
@@ -462,6 +493,8 @@ class TrainableLLM(CachedLLM):
     base_url: str
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
+    # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
+    remove_leading_white_space: bool = False
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -515,6 +548,9 @@ class TrainableLLM(CachedLLM):
             data = r.json()
             try:
                 content = data["choices"][0]["message"]["content"]
+                if self.remove_leading_white_space:
+                    # vllm sometimes adds a whitespace at the beginning of the completion
+                    content = content.lstrip()
                 if not content:
                     logger.warning(f"Empty completion {data}")
 

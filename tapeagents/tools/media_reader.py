@@ -227,12 +227,14 @@ def generate_contact_sheets_from_video(
         to = ss + duration
         output_path = f"{video_base_path}{output_suffix}{i+1}.{format}"
         try:
-            ffmpeg.input(video_path, to=to).output(
+            cmd = ffmpeg.input(video_path, to=to).output(
                 output_path,
                 ss=ss,
                 vframes=1,
                 vf=vf,
-            ).run(overwrite_output=True)
+            )
+            logger.info(f"FFMPEG ARGS: {cmd.get_args()}")
+            cmd.run(overwrite_output=True)
             output_paths.append(output_path)
         except ffmpeg.Error as e:
             logger.error(f"ffmpeg error: {e.stderr.decode('utf-8')}")
