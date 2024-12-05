@@ -1,0 +1,10 @@
+metadata:
+  id: 00000000-0000-0000-0000-000000000000
+context:
+  env_spec: examples/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 00000000-0000-0000-0000-000000000001
+  kind: assistant
+  content: Hi, how can I help you?
