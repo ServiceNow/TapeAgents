@@ -77,7 +77,7 @@ def convert_problems_to_tapes(problems: list) -> list[RLMathTape]:
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
+    new_tape: RLMathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list, strict: bool = True
 ) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -89,6 +89,7 @@ def extract_tape_training_samples(
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
         llm_calls: List of LLM calls
+        strict: check that every token matches between the vLLM and the HF tokenizer otherwise just compare their lengths
 
     Returns:
         Tuple containing:
@@ -128,12 +129,23 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
+            def get_tokens_from_hf(tokenizer, prompt, output):
+                prompt_token_ids = tokenizer.apply_chat_template(conversation=prompt.messages, tokenize=True, add_generation_prompt=True)
+                text_token_ids = tokenizer.apply_chat_template(prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True)
+                output_token_ids = text_token_ids[len(prompt_token_ids) :]
+                output_tokens = [tokenizer.decode(output_token_id) for output_token_id in output_token_ids]
+                return output_tokens
+
+            hf_tokens = get_tokens_from_hf(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
+
             logprobs = []
+            vllm_tokens = []
             if hasattr(llm_call.output, "logprobs"):
                 logprobs = llm_call.output.logprobs.content
                 logprobs = [c.logprob for c in logprobs]
+                vllm_tokens = [c.token for c in llm_call.output.logprobs.content]
 
-            if len(logprobs) != llm_call.output_length_tokens:
+            if (strict and vllm_tokens != hf_tokens) or (not strict and len(logprobs) != llm_call.output_length_tokens):
                 # the online vLLM tokenizer does not agree with the HF tokenizer
                 logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text).content  # type: ignore
                 logprobs = [c.logprob for c in logprobs]
