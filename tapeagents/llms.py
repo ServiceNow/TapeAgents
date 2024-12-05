@@ -504,6 +504,8 @@ class TrainableLLM(CachedLLM):
             data = r.json()
             try:
                 content = data["choices"][0]["message"]["content"]
+                # vllm sometimes adds a whitespace at the beginning of the completion
+                content = content.lstrip()
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
