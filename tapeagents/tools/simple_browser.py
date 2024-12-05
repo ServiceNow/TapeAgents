@@ -302,10 +302,14 @@ class SimpleTextBrowser:
             results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
         else:
             with acquire_timeout(search_lock, 5):
-                results = [
-                    {"title": r.title, "url": r.url, "content": r.description}
-                    for r in search(query, advanced=True, num_results=max_results)
-                ]
+                try:
+                    results = [
+                        {"title": r.title, "url": r.url, "content": r.description}
+                        for r in search(query, advanced=True, num_results=max_results)
+                    ]
+                except Exception as e:
+                    logger.warning(f"Failed to fetch search results: {e}, fallback to serper")
+                    results = serper_search(query, num_results=max_results)
                 time.sleep(2)  # Avoid rate limiting of the search engine
         self._add_to_cache(key, results)
         return results[:max_results]
@@ -495,3 +499,13 @@ class SimpleTextBrowser:
         except Exception as e:
             raise Exception(f"Failed to load page {url}.\nError: {e}")
         return self.page_content
+
+
+def serper_search(query: str, num_results: int = 5) -> list[dict]:
+    api_key = os.environ["SERPER_API_KEY"]
+    url = "https://google.serper.dev/search"
+    payload = json.dumps({"q": query})
+    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
+    response = requests.request("POST", url, headers=headers, data=payload)
+    results = response.json()["organic"][:num_results]
+    return [{"title": r["title"], "url": r["link"], "content": r["snippet"]} for r in results]
