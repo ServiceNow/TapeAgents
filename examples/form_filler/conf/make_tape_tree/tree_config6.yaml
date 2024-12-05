@@ -1,17 +1,16 @@
 defaults:
-  - /agent: student_agent  #teacher_agent # student_agent
-  - override /llm@agent.llm: vllm_sft448_temp1  # vllm_llama3_8b_temp1
+  - /agent: teacher_agent  # teacher_agent | student_agent
   - _self_
 
 # Cannot initialize with defaults list due to multiple user simulator models
 # Instead pass it as a string
-user_simulator_llm: vllm_llama3_8b_temp1
+user_simulator_llm: openrouter_llama3_405b_temp1
 
 num_workers: 6
 force_restart_idx: -1  # use -1 to resume from last finished layer or the layer_idx to restart from
 global_count: -1
 
-preambles_path: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/BigBankCorp
+preambles_path: examples/form_filler/forms/train/BigBankCorp
 output_path: ???
 
 layers:

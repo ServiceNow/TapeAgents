@@ -1,6 +1,6 @@
 defaults:
   - user_simulator_agent: happy_path
-  - llm@user_simulator_agent.llms: vllm_llama3_8b
+  - llm@user_simulator_agent.llms: openrouter_llama3_405b_temp1
   - override hydra/job_logging: verbose2
   - _self_
 

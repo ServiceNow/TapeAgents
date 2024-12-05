@@ -3,8 +3,8 @@
 SIZE=5
 TREE_CONFIG=tree_config6
 AGENT="teacher_agent"
-AGENT_LLM="vllm_llama3_405b_temp1"  # "vllm_llama3_8b_temp1"
-USER_LLM="vllm_llama3_405b_temp1"  # "vllm_llama3_8b_temp1"
+AGENT_LLM="vllm_llama3_405b_temp1"
+USER_LLM="vllm_llama3_405b_temp1"
 
 
 DOMAIN="train/FlyCorp"

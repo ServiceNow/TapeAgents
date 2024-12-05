@@ -1,5 +1,4 @@
-# The env variable `TAPEAGENTS_LLM_TOKEN` should be set. Add the following line to your ~/.bashrc or ~/.zshenv:
-# export TAPEAGENTS_LLM_TOKEN=`cat /mnt/llmd/data/.llmd_glide_token`
+# The env variable `TAPEAGENTS_LLM_TOKEN` should be set.
 _target_: tapeagents.llms.TrainableLLM
 model_name: meta-llama/Meta-Llama-3.1-8B-Instruct
 stream: false

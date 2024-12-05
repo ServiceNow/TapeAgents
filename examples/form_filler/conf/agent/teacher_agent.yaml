@@ -1,5 +1,5 @@
 defaults:
-  - /llm: vllm_llama3_405b
+  - /llm: openrouter_llama3_405b_temp1
   - _self_
 
 _target_: examples.form_filler.teacher.TeacherAgent.create

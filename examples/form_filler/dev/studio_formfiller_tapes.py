@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(config_path="../conf", config_name="run_formfiller_agent")
 def main(cfg: DictConfig):
-    llm = instantiate(cfg.llm) # e.g. vllm_llama3_405b
+    llm = instantiate(cfg.llm)
     user_dialogues_path = cfg.user_dialogues_path
 
     if cfg.agent_type == "student":
