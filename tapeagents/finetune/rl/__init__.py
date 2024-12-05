@@ -57,10 +57,6 @@ class RLConfig(StepConfig):
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
-    max_advantage: Optional[float] = field(
-        default=10.0,
-        metadata={"help": "Clip the advantage to this value"},
-    )
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
     if rl_config:
@@ -201,10 +197,6 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     # Merge the computed statistics back to the original dataset
     df_with_stats = pd.merge(df, grouped, on="group_id", how="left")
-    calculate_advantage_ = partial(
-        calculate_advantage,
-        max_advantage=config.max_advantage if config.max_advantage is not None else None,
-    )
 
     df_with_stats["advantages"] = df_with_stats.apply(calculate_advantage, axis=1)
 
