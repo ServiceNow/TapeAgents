@@ -165,7 +165,8 @@ class Studio:
 
     def run_environment(self, tape: Tape) -> Tape:
         assert self.environment
-        return self.environment.react(tape)
+        start_tape = self.validate_tape(tape)
+        return self.environment.react(start_tape)
 
     def run_main_loop(
         self, renderer_name: str, agent_dict: dict, tape_dict: dict
