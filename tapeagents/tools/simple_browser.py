@@ -302,16 +302,28 @@ class SimpleTextBrowser:
             results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
         else:
             with acquire_timeout(search_lock, 5):
+                fallback = False
+                results = []
                 try:
                     results = [
                         {"title": r.title, "url": r.url, "content": r.description}
                         for r in search(query, advanced=True, num_results=max_results)
                     ]
+                    if not len(results):
+                        fallback = True
                 except Exception as e:
-                    logger.warning(f"Failed to fetch search results: {e}, fallback to serper")
+                    logger.warning(f"Failed to fetch search results: {e}")
+                    fallback = True
+
+                if fallback:
+                    logger.warning("No search results, fallback to serper")
                     results = serper_search(query, num_results=max_results)
+                    logger.warning(f"Serper results: {len(results)}")
                 time.sleep(2)  # Avoid rate limiting of the search engine
-        self._add_to_cache(key, results)
+        if results:
+            self._add_to_cache(key, results)
+        else:
+            raise Exception(f"Empty search results for {query}")
         return results[:max_results]
 
     def _fetch_page(self, url: str) -> None:
