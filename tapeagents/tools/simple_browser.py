@@ -29,7 +29,6 @@ from urllib.parse import unquote, urljoin, urlparse
 import pathvalidate
 import requests
 from Levenshtein import ratio
-from tavily import TavilyClient
 from termcolor import colored
 
 from tapeagents.core import Prompt
@@ -50,15 +49,6 @@ logger.setLevel(logging.INFO)
 flush_lock = threading.Lock()
 
 
-def get_tavily_key():
-    if os.path.exists("TAVILY_API_KEY"):
-        with open("TAVILY_API_KEY") as f:
-            return f.read().strip()
-    key = os.environ.get("TAVILY_API_KEY")
-    if key is None:
-        raise ValueError("TAVILY_API_KEY environment variable must be set.")
-
-
 _FORCE_CACHE_PATH = None  # For testing purposes only
 
 
@@ -72,7 +62,6 @@ class SimpleTextBrowser:
         start_page: Optional[str] = None,
         viewport_size: Optional[int] = 32000,
         downloads_folder: str = "/tmp/agent_browser_downloads",
-        use_tavily: bool = False,
         use_web_cache: bool = True,
         only_cached_webpages: bool = False,
         vision_lm: LLM | None = None,
@@ -104,7 +93,6 @@ class SimpleTextBrowser:
 
         self._page_content: str = ""
         self._page_error: int = 0
-        self.tavily = TavilyClient(api_key=get_tavily_key()) if use_tavily else None
         self.converter_kwargs = converter_kwargs or {}
 
         self._find_on_page_query: Union[str, None] = None
