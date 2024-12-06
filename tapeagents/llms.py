@@ -539,7 +539,8 @@ class TrainableLLM(CachedLLM):
                 content = data["choices"][0]["message"]["content"]
                 if self.remove_leading_white_space:
                     # vllm sometimes adds a whitespace at the beginning of the completion
-                    content = content.lstrip()
+assert content[0] == ' '
+content = content[1:]
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
