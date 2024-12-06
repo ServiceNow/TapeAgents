@@ -13,7 +13,6 @@ attempts: 64
 force_restart: false
 max_iterations: 1000
 use_rejection_sampling: false
-use_accelerate: false
 llm:
   parameters:
     max_tokens: 1024 
