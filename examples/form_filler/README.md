@@ -47,7 +47,7 @@ python -m examples.form_filler.dev.run_formfiller_agent \
     user_dialogues_path=.local/user_tapes/<B>/user_predicted_tapes.yaml \
     output_path=.local/agent_tapes/teacher
 ```
-reaplcing <B> with the actual behavior name you used to run a user agent.
+replacing <B> with the actual behavior name you used to run a user agent.
 
 By default this script will use the [openrouter_llama3_405b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/openrouter_llama3_405b_temp1.yaml) llm config which uses openrouter to call llama405B.
 To use this model you must have an openrouter API key saved into your `TAPEAGENTS_LLM_TOKEN` environment variable.
@@ -82,7 +82,7 @@ python -m examples.form_filler.dev.run_formfiller_agent \
     user_dialogues_path=.local/user_tapes/<B>/user_predicted_tapes.yaml \
     output_path=.local/agent_tapes/student
 ```
-reaplcing <B> with the actual behavior name you used to run a user agent.
+replacing <B> with the actual behavior name you used to run a user agent.
 
 By default this script will use the [sft_llama3_8b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/sft_llama3_8b_temp1.yaml) llm config.
 Right now this config uses openrouter to call llama8B, however this config is meant to be used with a **fine-tuned** model. You should change the config `model_name` and `base_url` to map to your pretrained model.
@@ -138,7 +138,7 @@ To test various user behaviors we defined various prompts for the user agent, al
 To test the user you need to have agent tapes as input. We provide a default starting agent tape in [initial_agent_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/initial_agent_tapes.yaml).
 The first time you run the user use this starting tape as input:
 ```bash
-USER_SIMULATOR="init_message_short"  # use init_message_... behaviors on begining of conversations and any other behaviors defined in conf/user_simulator_agent/ once the user specified its intent.
+USER_SIMULATOR="init_message_short"  # use init_message_... behaviors on beginning of conversations and any other behaviors defined in conf/user_simulator_agent/ once the user specified its intent.
 python -m examples.form_filler.dev.run_user_simulator \
     input_dialogues_path="examples/form_filler/initial_agent_tapes.yaml" \
     output_path=".local/user_tapes/${USER_SIMULATOR}" \
