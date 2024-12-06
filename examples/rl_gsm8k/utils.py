@@ -335,7 +335,7 @@ def calculate_stats(stats):
     }
 
 
-def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str, use_accelerate: bool) -> None:
+def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
 
@@ -354,17 +354,6 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
     num_gpus = torch.cuda.device_count()
     if num_gpus == 0:
         raise ValueError("No GPUs available for finetuning")
-
-    if not use_accelerate:
-        with open(f"{config_dir}/{config_name}.yaml", "r") as f:
-            finetune_cfg: DictConfig | ListConfig = OmegaConf.create(yaml.safe_load(f))
-
-        p = multiprocessing.Process(target=run_finetuning_loop, args=(finetune_cfg,))
-        p.start()  # Start the subprocess
-        p.join()  # Wait for the process to complete
-        # Check if the subprocess exited with an error
-        if p.exitcode != 0:
-            raise RuntimeError(f"Finetuning subprocess failed with exit code {p.exitcode}")
 
     # Construct command based on GPU count
     base_cmd = [

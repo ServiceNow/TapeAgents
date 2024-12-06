@@ -493,7 +493,7 @@ def main(cfg: DictConfig):
         OmegaConf.save(finetune_cfg, config_path)
 
         start_finetune = time.time()
-        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path, cfg.use_accelerate)
+        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path)
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
         wandb.log(
