@@ -544,7 +544,6 @@ class TrainableLLM(CachedLLM):
                     logger.warning(f"Empty completion {data}")
 
                 if self.collect_logprobs:
-                    # Note: vLLM tokens do not always match the HF tokenizer tokens
                     logprobs_content = data["choices"][0]["logprobs"]["content"]
                     if self.tokenizer.eos_token and content.endswith(self.tokenizer.eos_token):
                         # the eos was added in the case where self.collect_logprobs is True

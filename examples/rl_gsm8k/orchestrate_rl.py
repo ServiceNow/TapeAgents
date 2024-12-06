@@ -140,6 +140,7 @@ def extract_tape_training_samples(
                 logprobs = [c.logprob for c in logprobs]
                 vllm_tokens = [c.token for c in llm_call.output.logprobs.content]
 
+            # Note: tokens produced during genereration are not always the same as the tokens produced on full sequences
             if (strict and vllm_tokens != hf_tokens) or (not strict and len(logprobs) != llm_call.output_length_tokens):
                 # the online vLLM tokenizer does not agree with the HF tokenizer
                 logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text).content  # type: ignore
