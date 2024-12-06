@@ -102,32 +102,23 @@ class GaiaEnvironment(Environment):
                         result = calculate(action.expression, action.facts or {})
                         tape = tape.append(CalculationResultObservation(name=action.fact_name, result=result))
                     case PythonCodeAction():
-                        if self.code_sandbox is not None:
-                            result = self.code_sandbox.execute_code_blocks(
-                                [CodeBlock(code=print_last_line(action.code), language="python")]
-                            )
+                        code = add_print_to_last_line(action.code)
+                        if self.code_sandbox is None:
+                            obs = self.run_restricted_python(code)
+                        else:
+                            result = self.code_sandbox.execute_code_blocks([CodeBlock(code=code, language="python")])
                             result.output = result.output[:1000].strip()
                             obs = CodeExecutionResult(result=result)
-                        else:
-                            # TODO: remove this option and permutations crutch
-                            logger.warning(f"Code sandbox is not provided, running code locally!\n{action.code}")
-                            if "permutations" in action.code:
-                                result, stdout, stderr = "", "", "Execution timeout"
-                            else:
-                                result, stdout, stderr = run_python_code(action.code, {})
-                            output = f"{result[:1000].strip()}\n\nstdout:\n{stdout}\n\nstderr:\n{stderr}"
-                            obs = CodeExecutionResult(
-                                result=CommandLineCodeResult(
-                                    output=output,
-                                    exit_code=0 if not stderr else 1,
-                                )
-                            )
                         tape = tape.append(obs)
                     case ExecuteCode():
-                        assert self.code_sandbox is not None, "Code sandbox is not provided"
-                        result = self.code_sandbox.execute_code_blocks(action.code)
-                        result.output = result.output[:1000].strip()
-                        obs = CodeExecutionResult(result=result)
+                        if self.code_sandbox is None:
+                            obs = self.run_restricted_python(action.code[0].code)
+                        else:
+                            for i in range(len(action.code)):
+                                action.code[i].code = add_print_to_last_line(action.code[i].code)
+                            result = self.code_sandbox.execute_code_blocks(action.code)
+                            result.output = result.output[:1000].strip()
+                            obs = CodeExecutionResult(result=result)
                         tape = tape.append(obs)
                     case LLMOutputParsingFailureAction():
                         pass
@@ -140,6 +131,12 @@ class GaiaEnvironment(Environment):
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape
+
+    def run_restricted_python(self, code: str) -> CodeExecutionResult:
+        logger.warning(f"Code sandbox is not provided, running code locally!\n{code}")
+        result, stdout, stderr = run_python_code(code, {})
+        output = f"{result[:1000].strip()}\n\nstdout:\n{stdout}\n\nstderr:\n{stderr}"
+        return CodeExecutionResult(result=CommandLineCodeResult(output=output, exit_code=0 if not stderr else 1))
 
     def task_to_observations(
         self,
@@ -189,7 +186,7 @@ class GaiaEnvironment(Environment):
         return steps
 
 
-def print_last_line(python_code: str) -> str:
+def add_print_to_last_line(python_code: str) -> str:
     lines = python_code.splitlines()
     if "print(" in lines[-1]:
         return python_code
