@@ -285,7 +285,7 @@ class SimpleTextBrowser:
                 raise FatalError(f'No cache for "{query}"')
             closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
             raise FatalError(f'No cache for "{query}". Closest with score {score}:\n"{closest}"')
-        results = web_search(query)
+        results = web_search(query, max_results)
         if results:
             self._add_to_cache(key, results)
         else:
