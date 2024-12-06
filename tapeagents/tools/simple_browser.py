@@ -28,14 +28,14 @@ from urllib.parse import unquote, urljoin, urlparse
 
 import pathvalidate
 import requests
-from googlesearch import search
 from Levenshtein import ratio
 from tavily import TavilyClient
 from termcolor import colored
 
 from tapeagents.core import Prompt
 from tapeagents.llms import LLM
-from tapeagents.utils import FatalError, acquire_timeout, diff_strings
+from tapeagents.tools.search import web_search
+from tapeagents.utils import FatalError, diff_strings
 
 from .document_converters import (
     FileConversionException,
@@ -46,7 +46,7 @@ from .document_converters import (
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-search_lock = threading.Lock()
+
 flush_lock = threading.Lock()
 
 
@@ -297,29 +297,7 @@ class SimpleTextBrowser:
                 raise FatalError(f'No cache for "{query}"')
             closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
             raise FatalError(f'No cache for "{query}". Closest with score {score}:\n"{closest}"')
-        if self.tavily is not None:
-            serp = self.tavily.search(query=query, search_depth="basic", max_results=max_results) or {"results": []}
-            results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
-        else:
-            with acquire_timeout(search_lock, 5):
-                fallback = False
-                results = []
-                try:
-                    results = [
-                        {"title": r.title, "url": r.url, "content": r.description}
-                        for r in search(query, advanced=True, num_results=max_results)
-                    ]
-                    if not len(results):
-                        fallback = True
-                except Exception as e:
-                    logger.warning(f"Failed to fetch search results: {e}")
-                    fallback = True
-
-                if fallback:
-                    logger.warning("No search results, fallback to serper")
-                    results = serper_search(query, num_results=max_results)
-                    logger.warning(f"Serper results: {len(results)}")
-                time.sleep(2)  # Avoid rate limiting of the search engine
+        results = web_search(query)
         if results:
             self._add_to_cache(key, results)
         else:
@@ -511,13 +489,3 @@ class SimpleTextBrowser:
         except Exception as e:
             raise Exception(f"Failed to load page {url}.\nError: {e}")
         return self.page_content
-
-
-def serper_search(query: str, num_results: int = 5) -> list[dict]:
-    api_key = os.environ["SERPER_API_KEY"]
-    url = "https://google.serper.dev/search"
-    payload = json.dumps({"q": query})
-    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
-    response = requests.request("POST", url, headers=headers, data=payload)
-    results = response.json()["organic"][:num_results]
-    return [{"title": r["title"], "url": r["link"], "content": r["snippet"]} for r in results]
