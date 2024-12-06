@@ -17,8 +17,8 @@ from hydra.utils import instantiate
 from tqdm import tqdm
 
 from examples.form_filler.error import UnknownError
-from examples.form_filler.dev.run_formfiller_agent import run_formfiller_agent
-from examples.form_filler.dev.run_user_simulator import run_user_simulator_agent
+from examples.form_filler.scripts.run_formfiller_agent import run_formfiller_agent
+from examples.form_filler.scripts.run_user_simulator import run_user_simulator_agent
 from examples.form_filler.tape import FormFillerAgentMetadata, FormFillerContext, FormFillerTape
 from examples.form_filler.user_simulator_agent import UserSimulatorAgent
 from examples.form_filler.user_simulator_agent import UserSimulatorTape
@@ -85,7 +85,7 @@ def export_merged_dialogues(output_path: Path, num_layer):
     logger.info(f'Saving {len(all_formfiller_user_tapes)} user forks to {output_path / "formfiller_user_tapes.yaml"}')
     with stream_yaml_tapes(output_path / "formfiller_user_tapes.yaml") as saver:
         for tape in all_formfiller_user_tapes:
-            stats["formfiller_user_tapes.yaml"][tape.last_action.kind] += 1
+            stats["formfiller_user_tapes.yaml"][tape.steps[-1].kind] += 1
             saver.save(tape)
 
     logger.info(f'Saving {len(all_user_tapes)} user simulator tapes to {output_path / "user_simulator_tapes.yaml"}')

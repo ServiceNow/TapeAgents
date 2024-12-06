@@ -19,8 +19,8 @@ from tqdm import tqdm
 import yaml
 import random
 
-from examples.form_filler.dev.run_formfiller_agent import run_formfiller_agent
-from examples.form_filler.dev.run_user_simulator import run_user_simulator_agent
+from examples.form_filler.scripts.run_formfiller_agent import run_formfiller_agent
+from examples.form_filler.scripts.run_user_simulator import run_user_simulator_agent
 from examples.form_filler.tape import FormFillerTape
 
 
@@ -35,7 +35,7 @@ def validate_and_save_agent_configs():
     teacher_agent_config = hydra.compose(
         overrides=[
             f"+agent=teacher_agent",
-            f"llm@agent.llm=vllm_llama3_405b",
+            f"llm@agent.llm=vllm_llama3_405b_temp1",
         ],
     )
     print('Attempting to initialize teacher agent')
@@ -51,7 +51,7 @@ def validate_and_save_agent_configs():
     user_agent_config = hydra.compose(
         overrides=[
             f"+user_simulator_agent=test_behavior",
-            f"+llm@user_simulator_agent.llms=vllm_llama3_405b"
+            f"+llm@user_simulator_agent.llms=vllm_llama3_405b_temp1"
         ],
     )
     print('Attempting to initialize user simulator agent')

@@ -1,5 +1,5 @@
 defaults:
-  - /llm: vllm_sft448_temp1
+  - /llm: sft_llama3_8b_temp1
   - _self_
 
 _target_: examples.form_filler.student.StudentAgent.create
