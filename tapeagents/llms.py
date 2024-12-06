@@ -688,9 +688,7 @@ class TrainableLLM(CachedLLM):
         time_t0 = time.time()
         prompt_text = self.tokenizer.apply_chat_template(prompt.messages, tokenize=False)
         completion = output.content or ""
-        # FIXME: message should not contain None values
-        assistant_message = {k: v for k, v in output.model_dump().items() if v}
-        messages = prompt.messages + [assistant_message]
+        messages = prompt.messages + [{"role": "assistant", "content": completion}]
         prompt_text = self.tokenizer.apply_chat_template(prompt.messages, tokenize=False, add_generation_prompt=True)
         prompt_completion_text = self.tokenizer.apply_chat_template(messages, tokenize=False)
         if self.tokenizer.bos_token and prompt_text.startswith(self.tokenizer.bos_token):
