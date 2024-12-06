@@ -4,6 +4,6 @@ model_name: meta-llama/Llama-3.1-8B-Instruct
 stream: false
 use_cache: false
 context_size: 128000
-base_url: https://openrouter.ai/api/v1
+base_url: https://openrouter.ai/api
 parameters:
   temperature: 1.0
