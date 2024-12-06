@@ -21,8 +21,8 @@ from tqdm import tqdm
 import yaml
 import random
 
-from examples.form_filler.dev.run_formfiller_agent import run_formfiller_agent
-from examples.form_filler.dev.run_user_simulator import run_user_simulator_agent
+from examples.form_filler.scripts.run_formfiller_agent import run_formfiller_agent
+from examples.form_filler.scripts.run_user_simulator import run_user_simulator_agent
 from examples.form_filler.tape import FormFillerTape
 
 
@@ -167,7 +167,7 @@ def prepare_reference_completions():
 
 
 def main():
-    # # Run this script as python -m examples.form_filler.dev.prepare_test_assets
+    # # Run this script as python -m examples.form_filler.scripts.prepare_test_assets
     validate_and_save_agent_configs()
 
     # Extract some tapes randomly from an existing dialogue tree created by make_tape_tree

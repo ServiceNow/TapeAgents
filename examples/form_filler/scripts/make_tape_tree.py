@@ -17,8 +17,8 @@ from hydra.utils import instantiate
 from tqdm import tqdm
 
 from examples.form_filler.error import UnknownError
-from examples.form_filler.dev.run_formfiller_agent import run_formfiller_agent
-from examples.form_filler.dev.run_user_simulator import run_user_simulator_agent
+from examples.form_filler.scripts.run_formfiller_agent import run_formfiller_agent
+from examples.form_filler.scripts.run_user_simulator import run_user_simulator_agent
 from examples.form_filler.tape import FormFillerAgentMetadata, FormFillerContext, FormFillerTape
 from examples.form_filler.user_simulator_agent import UserSimulatorAgent
 from examples.form_filler.user_simulator_agent import UserSimulatorTape

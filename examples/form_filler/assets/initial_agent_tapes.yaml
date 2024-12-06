@@ -2,7 +2,7 @@
 metadata:
   id: 00000000-0000-0000-0000-000000000000
 context:
-  env_spec: examples/form_filler/forms/train/BigBankCorp
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
   date: '2024-12-01'
 steps:
 - metadata:
@@ -13,7 +13,7 @@ steps:
 metadata:
   id: 00000000-0000-0000-0000-000000000001
 context:
-  env_spec: examples/form_filler/forms/train/BigBankCorp
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
   date: '2024-12-01'
 steps:
 - metadata:
@@ -24,7 +24,7 @@ steps:
 metadata:
   id: 00000000-0000-0000-0000-000000000002
 context:
-  env_spec: examples/form_filler/forms/train/BigBankCorp
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
   date: '2024-12-01'
 steps:
 - metadata:
@@ -35,7 +35,7 @@ steps:
 metadata:
   id: 00000000-0000-0000-0000-000000000003
 context:
-  env_spec: examples/form_filler/forms/train/BigBankCorp
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
   date: '2024-12-01'
 steps:
 - metadata:
@@ -46,7 +46,7 @@ steps:
 metadata:
   id: 00000000-0000-0000-0000-000000000004
 context:
-  env_spec: examples/form_filler/forms/train/BigBankCorp
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
   date: '2024-12-01'
 steps:
 - metadata:

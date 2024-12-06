@@ -10,7 +10,7 @@ num_workers: 0
 force_restart_idx: -1  # use -1 to resume from last finished layer or the layer_idx to restart from
 global_count: -1
 
-preambles_path: examples/form_filler/forms/train/BigBankCorp
+preambles_path: examples/form_filler/assets/forms/train/BigBankCorp
 output_path: ???
 
 layers:
