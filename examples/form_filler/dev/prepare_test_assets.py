@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 
 assets_folder = Path(__file__).parent.parent.parent.parent / 'tests' / 'res' / 'form_filler'
-# Set up LLM caching sqlite db path (test will reuse this instead of calling LLM)
-os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(assets_folder, "tapedata.sqlite")
 
 
 input_tapes_for_teacher_path = assets_folder / 'input_tapes_for_teacher.yaml'
@@ -78,14 +76,15 @@ def get_user_simulator_agent():
     cfg = OmegaConf.load(assets_folder / 'user_simulator_agent_test_config.yaml')
     return instantiate(cfg.user_simulator_agent)
 
-def extract_random_tapes_from_tape_tree(tape_tree_path: Path, layers_to_extract: tuple[int] = (0, 2, 4, 8), n_tapes_per_layer: int = 3):
+
+def extract_random_tapes_from_tape_tree(tape_tree_path: Path, teacher_layers: tuple[int] = (0, 2, 4, 8), user_layers: tuple[int] = (1, 3, 5, 9), n_tapes_per_layer: int = 1):
     tape_tree_path = Path(tape_tree_path)
 
     random.seed(0)
 
     # Get input tapes for agent
     tapes_for_agent = []
-    for layer in [0, 2, 4, 8]:
+    for layer in teacher_layers:
         print(f'Teacher Agent Inputs: Extracting {n_tapes_per_layer} tapes from layer {layer}')
         tape_tree_layer = tape_tree_path / f'layer_{layer}'
         with open(tape_tree_layer / 'data.yaml') as f:
@@ -94,12 +93,12 @@ def extract_random_tapes_from_tape_tree(tape_tree_path: Path, layers_to_extract:
         for idx, tape_obj in enumerate(tapes_obj):
             tape = FormFillerTape.model_validate(tape_obj)
             tapes_for_agent.append(tape)
-            if idx >= 3:
+            if idx >= n_tapes_per_layer:
                 break
         
     # Get input tapes for user
     tapes_for_user = []
-    for layer in [1, 3, 5, 9]:
+    for layer in user_layers:
         print(f'User Agent Inputs: Extracting {n_tapes_per_layer} tapes from layer {layer}')
         tape_tree_layer = tape_tree_path / f'layer_{layer}'
         with open(tape_tree_layer / 'data.yaml') as f:
@@ -108,7 +107,7 @@ def extract_random_tapes_from_tape_tree(tape_tree_path: Path, layers_to_extract:
         for idx, tape_obj in enumerate(tapes_obj):
             tape = FormFillerTape.model_validate(tape_obj)
             tapes_for_user.append(tape)
-            if idx >= 3:
+            if idx >= n_tapes_per_layer:
                 break
 
     # Save the tapes
@@ -131,25 +130,36 @@ def load_user_input_tapes() -> list[FormFillerTape]:
         tapes = list(yaml.safe_load_all(f))
     return [FormFillerTape.model_validate(tape) for tape in tapes]
 
+def load_teacher_reference_tapes() -> list[FormFillerTape]:
+    with open(output_tapes_for_teacher_path) as f:
+        tapes = list(yaml.safe_load_all(f))
+    return [FormFillerTape.model_validate(tape) for tape in tapes]
 
-def prepare_reference_completions():
-    # teacher_agent = get_teacher_agent()
-    # teacher_input_tapes = load_teacher_input_tapes()
-    # teacher_output_tapes = []
-    # print('Generating reference completions for teacher')
-    # for input_tape in tqdm(teacher_input_tapes):
-    #     __, predicted_tape_or_exception = run_formfiller_agent(input_tape, teacher_agent)
-    #     assert not isinstance(predicted_tape_or_exception, Exception), f'Failed on input tape {input_tape.metadata.id}'
-    #     teacher_output_tapes.append(predicted_tape_or_exception)
-    # print(f'-> successfully generated {len(teacher_output_tapes)} reference completions')
-    # with open(output_tapes_for_teacher_path, 'w') as f:
-    #     yaml.safe_dump_all([tape.model_dump() for tape in teacher_output_tapes], f)
+def load_user_reference_tapes() -> list[FormFillerTape]:
+    with open(output_tapes_for_user_path) as f:
+        tapes = list(yaml.safe_load_all(f))
+    return [FormFillerTape.model_validate(tape) for tape in tapes]
+
+
+def get_completions(save_as_references: bool = True):
+    teacher_agent = get_teacher_agent()
+    teacher_input_tapes = load_teacher_input_tapes()
+    teacher_output_tapes = []
+    print('Generating completions for teacher')
+    for input_tape in tqdm(teacher_input_tapes):
+        __, predicted_tape_or_exception = run_formfiller_agent(input_tape, teacher_agent)
+        assert not isinstance(predicted_tape_or_exception, Exception), f'Failed on input tape {input_tape.metadata.id}'
+        teacher_output_tapes.append(predicted_tape_or_exception)
+    print(f'-> successfully generated {len(teacher_output_tapes)} reference completions')
+    if save_as_references:
+        with open(output_tapes_for_teacher_path, 'w') as f:
+            yaml.safe_dump_all([tape.model_dump() for tape in teacher_output_tapes], f)
     
     user_agent = get_user_simulator_agent()
     user_input_tapes = load_user_input_tapes()
     user_output_tapes = []
     failed_user_inputs = []
-    print('Generating reference completions for user')
+    print('Generating completions for user')
     for input_tape in tqdm(user_input_tapes):
         exception, continued_tape, user_simulator_agent_tape = run_user_simulator_agent(input_tape, user_agent)
         if exception:
@@ -158,28 +168,60 @@ def prepare_reference_completions():
             continue
         user_output_tapes.append(continued_tape)
     print(f'-> successfully generated {len(user_output_tapes)} reference completions')
-    with open(output_tapes_for_user_path, 'w') as f:
-        yaml.safe_dump_all([tape.model_dump() for tape in user_output_tapes], f)
+    if save_as_references:
+        with open(output_tapes_for_user_path, 'w') as f:
+            yaml.safe_dump_all([tape.model_dump() for tape in user_output_tapes], f)
     assert len(user_input_tapes) == len(user_output_tapes), (f'-> failed user input ids: {[tape.metadata.id for tape in failed_user_inputs]}')
+    return teacher_output_tapes, user_output_tapes
+
+
+def assert_same_tape(tape, tape_ref):
+    assert tape == tape_ref, f'Tapes {tape.metadata.id} and {tape_ref.metadata.id} do not match'
+    # assert len(tape.steps) == len(tape_ref.steps), f'Tapes {tape.metadata.id} and {tape_ref.metadata.id} have different number of steps'
+    # for idx, (step, step_ref) in zip(tape.steps, tape_ref.steps):
+    #     assert step == step_ref, f'Step {idx} of tapes {tape.metadata.id} and {tape_ref.metadata.id} do not match'
+
+
+def predict_and_compare():
+    # Make new predictions
+    teacher_output_tapes, user_output_tapes = get_completions(save_as_references=False)
+    teacher_reference_tapes = load_teacher_reference_tapes()
+    user_reference_tapes = load_user_reference_tapes()
+
+    # Compare the new predictions with the reference predictions
+    assert len(teacher_output_tapes) == len(teacher_reference_tapes), f'Number of teacher output tapes do not match'
+    assert len(user_output_tapes) == len(user_reference_tapes), f'Number of user output tapes do not match'
+
+    # Check that the predictions are the same
+    for tape, tape_ref in zip(teacher_output_tapes, teacher_reference_tapes):
+        assert_same_tape(tape, tape_ref)
 
 
 
+def prepare_test_assets():
+    # # This reads hydra configs from the examples/form_filler/conf directory
+    # validate_and_save_agent_configs()
 
-
-def main():
-    # # Run this script as python -m examples.form_filler.dev.prepare_test_assets
-    validate_and_save_agent_configs()
-
-    # Extract some tapes randomly from an existing dialogue tree created by make_tape_tree
-    # extract_random_tapes_from_tape_tree('/mnt/llmd/data/gabriel/make_tape_tree/train/FlyCorp/agent_teacher_agent_vllm_llama3_405b_temp1/user_vllm_llama3_405b_temp1/tree_config6_size500/dec2')
+    # # Extract some tapes randomly from an existing dialogue tree created by make_tape_tree
+    # extract_random_tapes_from_tape_tree('/mnt/llmd/data/gabriel/make_tape_tree/train/FlyCorp/agent_teacher_agent_vllm_llama3_405b_temp1/user_vllm_llama3_405b_temp1/tree_config6_size500/dec2',
+    #                                     teacher_layers=(0,),
+    #                                     user_layers=(1,),
+    #                                     n_tapes_per_layer=1)
 
     # Generate the reference completions
     # If any of the input tapes cause agent failure, you may manually remove them from the input tapes yaml and rerun the script
     # make sure to keep extract_random_tapes_from_tape_tree() commented out to avoid regenerating the same tapes
-    prepare_reference_completions()
+
+    # Patch environment variable so that tapedata.sqlite is saved in the right place
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(assets_folder, "tapedata.sqlite")
+    os.remove(os.environ["TAPEAGENTS_SQLITE_DB"]) if os.path.exists(os.environ["TAPEAGENTS_SQLITE_DB"]) else None  # clean up database
+    get_completions(save_as_references=True)
 
 
 
 
 if __name__ == "__main__":
-    main()
+    # Run this script as python -m examples.form_filler.dev.prepare_test_assets
+    # We do NOT make use of make_test_data because 
+    # Hydra configuration clashes with make_test_data.py's directory changes (hydra.initialize does not support absolute paths)
+    prepare_test_assets()

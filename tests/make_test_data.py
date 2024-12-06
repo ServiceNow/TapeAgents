@@ -80,8 +80,5 @@ if __name__ == "__main__":
         case ["data_science"]:
             with run_in_tmp_dir_to_make_test_data("data_science"):
                 data_science.main(studio=False)
-        case ["form_filler_agent"]:
-            with run_in_tmp_dir_to_make_test_data("form_filler_agent"):
-                form_filler_test.main()
         case _:
             raise Exception("Usage: python -m tests.make_test_data [delegate_stack | intro_notebook | tape_improver]")

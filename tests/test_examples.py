@@ -9,7 +9,9 @@ import tempfile
 from pathlib import Path
 
 import yaml
-from make_test_data import run_test_in_tmp_dir
+from examples.form_filler.dev.prepare_test_assets import get_completions, load_teacher_input_tapes, load_teacher_reference_tapes, load_user_input_tapes, load_user_reference_tapes, get_teacher_agent, get_user_simulator_agent
+from examples.form_filler.environment import FormFillerEnvironment
+from .make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
 from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
@@ -214,6 +216,24 @@ def test_data_science():
     assert replay_success, "Failed to replay tape"
 
 
+def test_form_filler():
+    teacher_agent = get_teacher_agent()
+    user_agent = get_user_simulator_agent()
+    # teacher_output_tapes, user_output_tapes = get_completions(save_as_references=False)
+    teacher_input_tapes = load_teacher_input_tapes()
+    user_input_tapes = load_user_input_tapes()
+    teacher_reference_tapes = load_teacher_reference_tapes()
+    user_reference_tapes = load_user_reference_tapes()
+    env = FormFillerEnvironment.from_spec(Path(__file__).parent.parent / 'examples' / 'form_filler' / 'forms' / 'train' / 'FlyCorp')
+
+    replay_success = replay_tapes(teacher_agent, start_tapes=teacher_input_tapes, tapes=teacher_reference_tapes, env=env, reuse_observations=True)
+    replay_success = replay_tapes(user_agent, start_tapes=user_input_tapes, tapes=user_reference_tapes, env=env, reuse_observations=True)
+
+    # user uses another kind of tape (UserSimulatorTape vs. FormfillerTape), so the following won't work
+    # replay_tape(user_agent, user_reference_tapes[0], reuse_observations=True)
+
+
+
 def test_tape_improver():
     run_dir = f"{res_path}/tape_improver"
     llm = mock_llm(run_dir)
@@ -252,14 +272,15 @@ def test_gsm8k_tuning_samples_prep():
 
 
 if __name__ == "__main__":
-    test_llama_agent()
-    test_llama_agent_traces()
-    test_llama_agent_tape_reuse()
-    test_gaia_agent()
-    test_workarena_agent()
-    test_delegate()
-    test_delegate_stack()
-    test_data_science()
-    test_tape_improver()
-    test_gsm8k_tuning_tapes_generation()
-    test_gsm8k_tuning_samples_prep()
+    # test_llama_agent()
+    # test_llama_agent_traces()
+    # test_llama_agent_tape_reuse()
+    # test_gaia_agent()
+    # test_workarena_agent()
+    # test_delegate()
+    # test_delegate_stack()
+    # test_data_science()
+    test_form_filler()
+    # test_tape_improver()
+    # test_gsm8k_tuning_tapes_generation()
+    # test_gsm8k_tuning_samples_prep()
