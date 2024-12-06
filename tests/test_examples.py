@@ -217,14 +217,16 @@ def test_data_science():
 
 
 def test_form_filler():
-    assets_dir = Path(__file__).parent.parent / 'examples' / 'form_filler' / 'assets'
+    assets_dir = Path(__file__).parent / 'res' / 'form_filler'
     env = FormFillerEnvironment.from_spec(Path(__file__).parent.parent / 'examples' / 'form_filler' / 'assets' / 'forms' / 'train' / 'FlyCorp')
 
     teacher_agent = get_teacher_agent()
     user_agent = get_user_simulator_agent()
-    llm = mock_llm(assets_dir)
-    teacher_agent.llms = {'default':llm}
-    user_agent.llms = {'default':llm}
+    teacher_mock_llm = ReplayLLM.from_llm(teacher_agent.llms['default'], assets_dir)
+    teacher_agent.llms = {'default':teacher_mock_llm}
+
+    user_mock_llm = ReplayLLM.from_llm(user_agent.llms['default'], assets_dir)
+    user_agent.llms = {'default':user_mock_llm}
 
     # teacher_output_tapes, user_output_tapes = get_completions(save_as_references=False)
     teacher_input_tapes = load_teacher_input_tapes()
@@ -232,12 +234,12 @@ def test_form_filler():
     teacher_reference_tapes = load_teacher_reference_tapes()
     user_reference_tapes = load_user_reference_tapes()
 
-    with set_sqlite_db_dir(assets_dir):
-        teacher_failures = replay_tapes(teacher_agent, start_tapes=teacher_input_tapes, tapes=teacher_reference_tapes, env=env, reuse_observations=True)
-        assert teacher_failures == 0, 'Failed to replay teacher tapes'
-        
-        user_failures = replay_tapes(user_agent, start_tapes=user_input_tapes, tapes=user_reference_tapes, env=env, reuse_observations=True)
-        assert user_failures == 0, 'Failed to replay user tapes'
+    # with set_sqlite_db_dir(assets_dir):
+    teacher_failures = replay_tapes(teacher_agent, start_tapes=teacher_input_tapes, tapes=teacher_reference_tapes, env=env, reuse_observations=True)
+    assert teacher_failures == 0, 'Failed to replay teacher tapes'
+    
+    user_failures = replay_tapes(user_agent, start_tapes=user_input_tapes, tapes=user_reference_tapes, env=env, reuse_observations=True)
+    assert user_failures == 0, 'Failed to replay user tapes'
 
 
 def test_tape_improver():

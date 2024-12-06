@@ -36,7 +36,7 @@ def validate_and_save_agent_configs():
     teacher_agent_config = hydra.compose(
         overrides=[
             f"+agent=teacher_agent",
-            # f"llm@agent.llm=vllm_llama3_405b_temp1",
+            f"llm@agent.llm=openrouter_llama3_405b_temp0",
         ],
     )
     print('Attempting to initialize teacher agent')
@@ -52,7 +52,7 @@ def validate_and_save_agent_configs():
     user_agent_config = hydra.compose(
         overrides=[
             f"+user_simulator_agent=test_behavior",
-            f"+llm@user_simulator_agent.llms=openrouter_llama3_405b_temp1"
+            f"+llm@user_simulator_agent.llms=openrouter_llama3_405b_temp0"
         ],
     )
     print('Attempting to initialize user simulator agent')
@@ -91,11 +91,10 @@ def extract_random_tapes_from_tape_tree(tape_tree_path: Path, teacher_layers: tu
         with open(tape_tree_layer / 'data.yaml') as f:
             tapes_obj = list(yaml.safe_load_all(f))
         random.shuffle(tapes_obj)
+        tapes_obj = tapes_obj[:n_tapes_per_layer]
         for idx, tape_obj in enumerate(tapes_obj):
             tape = FormFillerTape.model_validate(tape_obj)
             tapes_for_agent.append(tape)
-            if idx >= n_tapes_per_layer:
-                break
         
     # Get input tapes for user
     tapes_for_user = []
@@ -105,6 +104,7 @@ def extract_random_tapes_from_tape_tree(tape_tree_path: Path, teacher_layers: tu
         with open(tape_tree_layer / 'user_simulator_tapes.yaml') as f:
             tapes_obj = list(yaml.safe_load_all(f))
         random.shuffle(tapes_obj)
+        tapes_obj = tapes_obj[:n_tapes_per_layer]
         for idx, tape_obj in enumerate(tapes_obj):
             tape = UserSimulatorTape.model_validate(tape_obj)
             # remove all the predicted steps
@@ -112,8 +112,6 @@ def extract_random_tapes_from_tape_tree(tape_tree_path: Path, teacher_layers: tu
             tape.metadata.n_added_steps = 0
 
             tapes_for_user.append(tape)
-            if idx >= n_tapes_per_layer:
-                break
 
     # Save the tapes
     input_tapes_for_teacher_path.parent.mkdir(exist_ok=True, parents=True)
@@ -153,7 +151,7 @@ def get_completions(save_as_references: bool = True):
     print('Generating completions for teacher')
     for input_tape in tqdm(teacher_input_tapes):
         __, predicted_tape_or_exception = run_formfiller_agent(input_tape, teacher_agent)
-        assert not isinstance(predicted_tape_or_exception, Exception), f'Failed on input tape {input_tape.metadata.id}'
+        assert not isinstance(predicted_tape_or_exception, Exception), f'Failed on input tape {input_tape.metadata.id}: {predicted_tape_or_exception}'
         teacher_output_tapes.append(predicted_tape_or_exception)
     print(f'-> successfully generated {len(teacher_output_tapes)} reference completions')
     if save_as_references:
@@ -210,8 +208,8 @@ def prepare_test_assets():
 
     # # # Extract some tapes randomly from an existing dialogue tree created by make_tape_tree
     # extract_random_tapes_from_tape_tree('/mnt/llmd/data/gontiern/make_tape_tree/dec4/train/FlyCorp/teacher_agent_vllm_llama3_405b_temp1/user_vllm_llama3_405b_temp1/tree_config6_size500/',
-    #                                     teacher_layers=(0,),
-    #                                     user_layers=(0,),
+    #                                     teacher_layers=(0,2,4),
+    #                                     user_layers=(0,2,4),
     #                                     n_tapes_per_layer=1)
 
     # Generate the reference completions

@@ -27,4 +27,4 @@ user_simulator_agent:
     context_size: 128000
     base_url: https://openrouter.ai/api
     parameters:
-      temperature: 1.0
+      temperature: 0

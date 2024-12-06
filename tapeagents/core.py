@@ -429,3 +429,9 @@ ObservationMakerTapeType = TypeVar("ObservationMakerTapeType", bound=Tape)
 class MakeObservation(Action, Generic[StepType]):
     kind: Literal["make_observation"] = "make_observation"
     new_observation: StepType
+
+    def llm_dict(self) -> dict[str, Any]:
+        """Dumps the step data as dictionary, excluding the metadata of the step itself and the metadata of the wrapped step"""
+        obj = self.model_dump(exclude_none=True, exclude={"metadata"})
+        del obj['new_observation']['metadata']
+        return obj

@@ -7,7 +7,7 @@ agent:
     context_size: 128000
     base_url: https://openrouter.ai/api
     parameters:
-      temperature: 1.0
+      temperature: 0
   _target_: examples.form_filler.teacher.TeacherAgent.create
   templates:
     intent_discovery_prompt:
