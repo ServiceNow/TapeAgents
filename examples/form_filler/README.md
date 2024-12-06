@@ -40,11 +40,11 @@ The nodes are defined in [teacher.py](https://github.com/ServiceNow/TapeAgents/b
 The prompts for the nodes are provided in [teacher_agent.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/agent/teacher_agent.yaml).
 
 To test the teacher you need to have user tapes as input.
-We provide a set of 5 initial user tapes in [initial_agent_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_agent_tapes.yaml) to run the agent on.
+We provide a set of 5 initial user tapes in [initial_user_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_user_tapes.yaml) to run the agent on.
 ```bash
 python -m examples.form_filler.scripts.run_formfiller_agent \
     agent=teacher_agent \
-    user_dialogues_path=examples/form_filler/assets/initial_agent_tapes.yaml \
+    user_dialogues_path=examples/form_filler/assets/initial_user_tapes.yaml \
     output_path=outputs/agent_tapes/teacher
 ```
 If you already ran a [User Agent](#user-agent) with behavior \<B>, you can continue these conversations by setting `user_dialogues_path=outputs/user_tapes/<B>/user_predicted_tapes.yaml`, replacing \<B> with the actual behavior name you used to run a user agent.
@@ -75,11 +75,11 @@ StudentNode <-|
 The prompts for the nodes are provided in [student_agent.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/agent/student_agent.yaml). 
 
 To test the student you need to have user tapes as input.
-We provide a set of 5 initial user tapes in [initial_agent_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_agent_tapes.yaml) to run the agent on.
+We provide a set of 5 initial user tapes in [initial_user_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_user_tapes.yaml) to run the agent on.
 ```bash
 python -m examples.form_filler.scripts.run_formfiller_agent \
     agent=student_agent \
-    user_dialogues_path=outputs/user_tapes/<B>/user_predicted_tapes.yaml \
+    user_dialogues_path=examples/form_filler/assets/initial_user_tapes.yaml \
     output_path=outputs/agent_tapes/student
 ```
 If you already ran a [User Agent](#user-agent) with behavior \<B>, you can continue these conversations by setting `user_dialogues_path=outputs/user_tapes/<B>/user_predicted_tapes.yaml`, replacing \<B> with the actual behavior name you used to run a user agent.

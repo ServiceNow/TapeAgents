@@ -1,5 +1,5 @@
 import json
-import json5  # support more robust parsing, e.g., trailing commas and comments
+import json
 import logging
 from typing import Any, Generator
 import pydantic
@@ -110,7 +110,7 @@ class StudentNode(Node):
 def parse_completion(function_name: FunctionName | None, completion: str) -> Generator[FormFillerStep, None, None]:
     # first, check if the completion has a valid json format
     try:
-        step_dict = json5.loads(sanitize_json_completion(completion))
+        step_dict = json.loads(sanitize_json_completion(completion))
     except Exception as e:
         logger.exception(f"Failed to parse agent output: {completion}\n\nError: {e}")
         yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output.\n\nError: {e}", llm_output=completion)
