@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 import yaml
-from examples.form_filler.dev.prepare_test_assets import get_completions, load_teacher_input_tapes, load_teacher_reference_tapes, load_user_input_tapes, load_user_reference_tapes, get_teacher_agent, get_user_simulator_agent
+from examples.form_filler.scripts.prepare_test_assets import get_completions, load_teacher_input_tapes, load_teacher_reference_tapes, load_user_input_tapes, load_user_reference_tapes, get_teacher_agent, get_user_simulator_agent
 from examples.form_filler.environment import FormFillerEnvironment
 from .make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
@@ -217,21 +217,27 @@ def test_data_science():
 
 
 def test_form_filler():
+    assets_dir = Path(__file__).parent.parent / 'examples' / 'form_filler' / 'assets'
+    env = FormFillerEnvironment.from_spec(Path(__file__).parent.parent / 'examples' / 'form_filler' / 'assets' / 'forms' / 'train' / 'FlyCorp')
+
     teacher_agent = get_teacher_agent()
     user_agent = get_user_simulator_agent()
+    llm = mock_llm(assets_dir)
+    teacher_agent.llms = {'default':llm}
+    user_agent.llms = {'default':llm}
+
     # teacher_output_tapes, user_output_tapes = get_completions(save_as_references=False)
     teacher_input_tapes = load_teacher_input_tapes()
     user_input_tapes = load_user_input_tapes()
     teacher_reference_tapes = load_teacher_reference_tapes()
     user_reference_tapes = load_user_reference_tapes()
-    env = FormFillerEnvironment.from_spec(Path(__file__).parent.parent / 'examples' / 'form_filler' / 'forms' / 'train' / 'FlyCorp')
 
-    replay_success = replay_tapes(teacher_agent, start_tapes=teacher_input_tapes, tapes=teacher_reference_tapes, env=env, reuse_observations=True)
-    replay_success = replay_tapes(user_agent, start_tapes=user_input_tapes, tapes=user_reference_tapes, env=env, reuse_observations=True)
-
-    # user uses another kind of tape (UserSimulatorTape vs. FormfillerTape), so the following won't work
-    # replay_tape(user_agent, user_reference_tapes[0], reuse_observations=True)
-
+    with set_sqlite_db_dir(assets_dir):
+        teacher_failures = replay_tapes(teacher_agent, start_tapes=teacher_input_tapes, tapes=teacher_reference_tapes, env=env, reuse_observations=True)
+        assert teacher_failures == 0, 'Failed to replay teacher tapes'
+        
+        user_failures = replay_tapes(user_agent, start_tapes=user_input_tapes, tapes=user_reference_tapes, env=env, reuse_observations=True)
+        assert user_failures == 0, 'Failed to replay user tapes'
 
 
 def test_tape_improver():

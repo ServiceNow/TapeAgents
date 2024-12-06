@@ -21,11 +21,10 @@ user_simulator_agent:
     write one short sentence to request {schema_name}
   llms:
     _target_: tapeagents.llms.TrainableLLM
-    model_name: meta-llama/Meta-Llama-3.1-405B-Instruct-FP8
+    model_name: meta-llama/Llama-3.1-405B-Instruct
     stream: false
     use_cache: false
     context_size: 128000
-    base_url: https://snow-research-tapes-vllm_llama405b.job.toolkit-sp.yul201.service-now.com
+    base_url: https://openrouter.ai/api
     parameters:
-      temperature: 0.2
-      max_tokens: 8192
+      temperature: 1.0
