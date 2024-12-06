@@ -1,5 +1,5 @@
 import json
-import json5  # support more robust parsing, e.g., trailing commas and comments
+import json
 import logging
 from typing import Any, Generator
 
@@ -308,7 +308,7 @@ class CallFunctionNode(TeacherNode):
 def parse_completion(completion: str) -> Generator[FormFillerStep, None, None]:
     # first, check if the completion has a valid json format
     try:
-        step_dict = json5.loads(sanitize_json_completion(completion))
+        step_dict = json.loads(sanitize_json_completion(completion))
         if isinstance(step_dict, dict):
             step_dict = [step_dict]
         for step in step_dict:
