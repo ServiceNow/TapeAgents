@@ -237,7 +237,7 @@ def generate_training_data(
     start_sampling_from_llm = time.time()
 
     with SQLiteWriterThread():
-        main_loops = batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers)
+        main_loops = batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers_per_gpu * torch.cuda.device_count())
         new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
@@ -370,6 +370,7 @@ def main(cfg: DictConfig):
                     parameters=cfg.llm.parameters,
                     use_cache=False,
                     collect_logprobs=True,
+                    remove_leading_white_space=True,
                 )
 
                 test_llm = TrainableLLM(
@@ -378,6 +379,7 @@ def main(cfg: DictConfig):
                     tokenizer_name=str(assistant_model_path),
                     parameters=cfg.test_llm.parameters,
                     use_cache=False,
+                    remove_leading_white_space=True,
                 )
                 sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
                 train_tapes = convert_problems_to_tapes(sub_samples, cfg)
@@ -444,8 +446,7 @@ def main(cfg: DictConfig):
 
                 basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
-                # FIXME: more than 1 worker causes the LLM to run OOM
-                with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers) as executor:
+                with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()) as executor:
                     futures = [
                         executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
                         for trace in all_results["train"]["training_samples"]

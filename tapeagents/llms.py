@@ -12,7 +12,7 @@ import os
 import threading
 import time
 from abc import ABC, abstractmethod
-from itertools import zip_longest
+from itertools import zip_longest, cycle
 from typing import Any, Callable, Generator
 import random
 
@@ -500,6 +500,8 @@ class TrainableLLM(CachedLLM):
     def model_post_init(self, __context):
         super().model_post_init(__context)
         self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
+        if isinstance(self.base_url, list):
+            self._base_url = cycle(self.base_url)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
@@ -519,7 +521,7 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        base_url = self.base_url if isinstance(self.base_url, str) else next(self._base_url)
         logger.debug(f"POST request to {base_url}/v1/chat/completions")
         r = requests.post(
             url=f"{base_url}/v1/chat/completions",

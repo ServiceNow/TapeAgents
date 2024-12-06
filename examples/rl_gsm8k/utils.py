@@ -145,7 +145,7 @@ class VLLMServiceManager:
 
 
     @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
-    def _start_llm(self, cuda_device, port) -> subprocess.Popen:
+    def _start_llm(self, cuda_device, port):
         tensor_parallel_size = cuda_device.count(",") + 1
         kwargs_str = " ".join([f"{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
 
