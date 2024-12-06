@@ -78,7 +78,7 @@ def convert_problems_to_tapes(problems: list) -> list[RLMathTape]:
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list, strict: bool = True
+    new_tape: RLMathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
 ) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -130,7 +130,6 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
 
             logprobs = []
@@ -141,7 +140,7 @@ def extract_tape_training_samples(
                 vllm_tokens = [c.token for c in llm_call.output.logprobs.content]
 
             # Note: tokens produced during generation are not always the same as the tokens produced on the full sequence
-            if (strict and vllm_tokens != hf_tokens) or (not strict and len(logprobs) != llm_call.output_length_tokens):
+            if vllm_tokens != hf_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
                 logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text).content  # type: ignore
                 logprobs = [c.logprob for c in logprobs]
