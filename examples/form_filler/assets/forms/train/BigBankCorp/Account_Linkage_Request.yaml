@@ -1,0 +1,51 @@
+name: Account_Linkage_Request
+description: Request to link multiple BigBankCorp accounts, including personal and
+  business accounts, for consolidated online banking access. This function requires
+  the user's account numbers and authentication token as input parameters. The function
+  will validate the user's identity and account ownership before linking the accounts.
+  According to BigBankCorp's policy, a maximum of 5 accounts can be linked per user.
+  The function will return a request ID, the status of the request (either 'pending',
+  'approved', or'rejected'), and a list of linked account numbers. This function is
+  subject to BigBankCorp's terms and conditions, and users must comply with all applicable
+  laws and regulations.
+parameters:
+  type: object
+  properties:
+    authentication_token:
+      description: The user's authentication token
+      type: string
+    account_numbers:
+      description: A comma separated list of account numbers to be linked
+      type: string
+    primary_account_number:
+      description: The primary account number to which other accounts will be linked
+      type: string
+    nickname:
+      description: An optional nickname for the linked accounts
+      type: string
+  required:
+  - authentication_token
+  - primary_account_number
+  - account_numbers
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the request
+      type: string
+    status:
+      description: The status of the request
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    linked_accounts:
+      description: A list of linked account numbers
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - linked_accounts

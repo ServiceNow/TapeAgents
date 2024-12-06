@@ -23,13 +23,13 @@ lint:
 	@$(CONDA) run --no-capture-output --name ${ENV_NAME} ruff format .
 
 test:
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest -m "not slow" tests/
+	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest -s --color=yes -m "not slow" tests/
 
 test-slow:
 	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest -m "slow" tests/
 
 test-all:
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest tests/
+@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest tests/
 
 clean:
 	@$(CONDA) env remove --name $(ENV_NAME) --yes

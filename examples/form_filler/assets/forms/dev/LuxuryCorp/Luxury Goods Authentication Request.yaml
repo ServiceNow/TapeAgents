@@ -1,0 +1,57 @@
+name: Luxury Goods Authentication Request
+description: Submit a request to authenticate the authenticity of a luxury good, including
+  verification of serial numbers, materials, and craftsmanship. This request requires
+  the provision of the luxury good's serial number, brand, and type. According to
+  LuxuryCorp's policy, all luxury goods must be verified by our team of experts within
+  3-5 business days. The request will be assigned a unique request ID, which will
+  be used to track the status of the request. The status of the request can be either
+  'pending', 'approved', or'rejected'. Upon approval, the request will include a detailed
+  report of the luxury good's authenticity, including the materials used and the craftsmanship
+  quality.
+parameters:
+  type: object
+  properties:
+    serial_number:
+      description: The serial number of the luxury good.
+      type: string
+    brand:
+      description: The brand of the luxury good.
+      type: string
+    type:
+      description: The type of the luxury good (e.g. handbag, watch, etc.).
+      type: string
+    additional_info:
+      description: Any additional information about the luxury good.
+      type: string
+  required:
+  - serial_number
+  - brand
+  - type
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID assigned to the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    report:
+      description: The detailed report of the luxury good's authenticity.
+      type: object
+      properties:
+        materials:
+          description: The materials used in the luxury good.
+          type: array
+          items:
+            type: string
+        craftsmanship_quality:
+          description: The quality of the craftsmanship of the luxury good.
+          type: string
+  required:
+  - request_id
+  - status

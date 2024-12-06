@@ -1,0 +1,42 @@
+[
+  {
+    "name": "New Product Launch Request",
+    "description": "Submit a request to launch a new product across LuxuryCorp's brand portfolio, including fashion, leather goods, perfumery, cosmetics, watches, jewelry, and wines and spirits."
+  },
+  {
+    "name": "Brand Ambassador Partnership Request",
+    "description": "Request a partnership with a celebrity or influencer to promote LuxuryCorp's brands, including Louis Vuitton, Christian Dior, and Givenchy."
+  },
+  {
+    "name": "Exclusive Event Hosting Request",
+    "description": "Submit a request to host an exclusive event at one of LuxuryCorp's flagship stores or private venues, featuring LuxuryCorp's luxury goods and services."
+  },
+  {
+    "name": "Customized Product Order Request",
+    "description": "Request a customized product order for a special occasion or bespoke gift, featuring LuxuryCorp's high-end materials and craftsmanship."
+  },
+  {
+    "name": "Supply Chain Optimization Request",
+    "description": "Submit a request to optimize LuxuryCorp's supply chain operations, including logistics, inventory management, and distribution across 70+ countries."
+  },
+  {
+    "name": "Digital Marketing Campaign Request",
+    "description": "Request a digital marketing campaign to promote LuxuryCorp's brands and products across social media, email, and online advertising channels."
+  },
+  {
+    "name": "In-Store Experience Enhancement Request",
+    "description": "Submit a request to enhance the in-store experience at LuxuryCorp's retail locations, including interior design, visual merchandising, and customer service training."
+  },
+  {
+    "name": "Partnership with Emerging Designer Request",
+    "description": "Request a partnership with an emerging designer or fashion talent to collaborate on a limited-edition collection or capsule line."
+  },
+  {
+    "name": "Luxury Goods Authentication Request",
+    "description": "Submit a request to authenticate the authenticity of a luxury good, including verification of serial numbers, materials, and craftsmanship."
+  },
+  {
+    "name": "Employee Training and Development Request",
+    "description": "Request training and development opportunities for LuxuryCorp employees, including workshops, mentorship programs, and leadership development initiatives."
+  }
+]

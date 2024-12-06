@@ -1,0 +1,58 @@
+name: Vendor Application
+description: Apply to become a vendor for ShopCorp by providing company information,
+  product offerings, and compliance with ShopCorp's policies and procedures, including
+  adherence to our Code of Conduct and Environmental Sustainability Policy. This function
+  requires the vendor's name, address, and primary contact information, as well as
+  a list of products or services offered. Optional parameters include a brief company
+  description and relevant certifications. The function returns a request ID, a status
+  indicating whether the application is pending, approved, or rejected, and a list
+  of any additional documentation required for review.
+parameters:
+  type: object
+  properties:
+    vendor_name:
+      description: The name of the vendor company.
+      type: string
+    address:
+      description: The physical address of the vendor company.
+      type: string
+    primary_contact:
+      description: The name and email of the primary contact person.
+      type: string
+    products_or_services:
+      description: A comma separated list of products or services offered by the vendor.
+      type: string
+    company_description:
+      description: A brief description of the vendor company.
+      type: string
+      default: ''
+    certifications:
+      description: Comma-separated list of relevant certifications held by the vendor company.
+      type: string
+      default: ''
+  required:
+  - vendor_name
+  - address
+  - primary_contact
+  - products_or_services
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique identifier for the vendor application request.
+      type: string
+    status:
+      description: The status of the vendor application request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    additional_documentation:
+      description: A list of additional documentation required for review.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

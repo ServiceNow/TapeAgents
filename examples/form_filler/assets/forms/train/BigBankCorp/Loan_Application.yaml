@@ -1,0 +1,76 @@
+name: Loan_Application
+description: 'Request for a personal or commercial loan, including mortgages, credit
+  cards, and lines of credit, with BigBankCorp. This function requires the applicant''s
+  personal information, loan amount, and loan purpose. According to BigBankCorp''s
+  policies, applicants must be at least 18 years old and have a valid government-issued
+  ID. The loan amount must be between $1,000 and $1,000,000. The loan purpose must
+  be one of the following: ''personal'', ''commercial'',''mortgage'', ''credit_card'',
+  or ''line_of_credit''. The function returns a request ID, the status of the request,
+  and a list of required documents for the loan application.'
+parameters:
+  type: object
+  properties:
+    first_name:
+      description: The applicant's first name
+      type: string
+    last_name:
+      description: The applicant's last name
+      type: string
+    age:
+      description: The applicant's age
+      type: integer
+    loan_amount:
+      description: The amount of the loan
+      type: number
+    loan_purpose:
+      description: The purpose of the loan
+      type: string
+      enum:
+      - personal
+      - commercial
+      - mortgage
+      - credit_card
+      - line_of_credit
+    id_type:
+      description: The type of government-issued ID
+      type: string
+      enum:
+      - driver_license
+      - passport
+      - state_id
+    id_number:
+      description: The number of the government-issued ID
+      type: string
+    co_applicant:
+      description: The co-applicant's name (optional)
+      type: string
+  required:
+  - first_name
+  - last_name
+  - age
+  - loan_amount
+  - loan_purpose
+  - id_type
+  - id_number
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the loan application request
+      type: string
+    status:
+      description: The status of the loan application request
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    required_documents:
+      description: A list of required documents for the loan application
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - required_documents

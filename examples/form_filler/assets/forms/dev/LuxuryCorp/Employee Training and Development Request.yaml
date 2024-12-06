@@ -1,0 +1,55 @@
+name: Employee Training and Development Request
+description: Request training and development opportunities for LuxuryCorp employees,
+  including workshops, mentorship programs, and leadership development initiatives.
+  This function requires the employee's ID, department, and job title as mandatory
+  parameters, and optionally, the specific training area of interest. According to
+  LuxuryCorp's HR policy, all employees are eligible for training and development opportunities,
+  and the request will be reviewed by the HR department within 5 working days. The
+  function returns a unique request ID, the status of the request (pending, approved,
+  or rejected), and a list of recommended training programs.
+parameters:
+  type: object
+  properties:
+    employee_id:
+      description: The ID of the LuxuryCorp employee making the request.
+      type: integer
+    department:
+      description: The department of the LuxuryCorp employee making the request.
+      type: string
+    job_title:
+      description: The job title of the LuxuryCorp employee making the request.
+      type: string
+    training_area:
+      description: The specific training area of interest (optional).
+      type: string
+  required:
+  - employee_id
+  - department
+  - job_title
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID assigned to the request.
+      type: string
+    status:
+      description: The status of the request (pending, approved, or rejected).
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    recommended_programs:
+      description: A list of recommended training programs.
+      type: array
+      items:
+        type: object
+        properties:
+          program_name:
+            type: string
+          program_description:
+            type: string
+  required:
+  - request_id
+  - status
+  - recommended_programs

@@ -1,0 +1,49 @@
+name: SupplyChainDisruptionNotification
+description: Notify CoffeeCorp headquarters of a supply chain disruption, including
+  details on affected products and expected resolution time. This function requires
+  the submission of a disruption reason, affected product IDs, and an estimated resolution
+  time in days. According to CoffeeCorp's supply chain management policy, all disruptions
+  must be reported within 24 hours of occurrence. The function will return a unique
+  request ID, the status of the request (either 'pending', 'in_progress', or'resolved'),
+  and a list of affected product names.
+parameters:
+  type: object
+  properties:
+    disruption_reason:
+      description: The reason for the supply chain disruption.
+      type: string
+    affected_product_ids:
+      description: A comma separated list of IDs of the products affected by the disruption.
+      type: string
+    estimated_resolution_time:
+      description: The estimated time in days to resolve the disruption.
+      type: integer
+    reporting_manager_email:
+      description: The email of the manager reporting the disruption (optional).
+      type: string
+  required:
+  - disruption_reason
+  - affected_product_ids
+  - estimated_resolution_time
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - in_progress
+      - resolved
+    affected_product_names:
+      description: A list of names of the products affected by the disruption.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - affected_product_names

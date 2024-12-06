@@ -1,0 +1,49 @@
+version: 1
+disable_existing_loggers: False
+formatters:
+  full:
+    format: "[%(levelname)s][%(asctime)s][%(threadName)s][%(filename)s:%(funcName)s():%(lineno)d][%(name)s]: %(message)s"
+  simple:
+    format: "[%(filename)s:%(funcName)s():%(lineno)d]: %(message)s"
+  message_only:
+    format: "%(message)s"
+handlers:
+  console_info:  # Same as console, but with INFO level
+    class: logging.StreamHandler
+    level: INFO
+    formatter: simple
+    stream: ext://sys.stdout
+  console_debug:  # Same as console, but with INFO level
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: simple
+    stream: ext://sys.stdout
+  info_file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: full
+    filename: ${hydra.runtime.output_dir}/info.log
+    maxBytes: 10485760 # 10MB
+    backupCount: 20
+    encoding: utf8
+  debug_file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: full
+    filename: ${hydra.runtime.output_dir}/debug.log
+    maxBytes: 10485760 # 10MB
+    backupCount: 20
+    encoding: utf8
+  error_file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: ERROR
+    formatter: full
+    filename: ${hydra.runtime.output_dir}/error.log
+    maxBytes: 10485760 # 10MB
+    backupCount: 20
+    encoding: utf8
+
+
+root:
+  level: DEBUG
+  handlers: [console_debug, info_file_handler, debug_file_handler, error_file_handler]

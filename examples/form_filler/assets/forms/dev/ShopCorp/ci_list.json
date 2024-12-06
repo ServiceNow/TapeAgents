@@ -1,0 +1,42 @@
+[
+  {
+    "name": "New Product Request",
+    "description": "Submit a request to introduce a new product to ShopCorp's inventory, including details on product features, pricing, and supplier information."
+  },
+  {
+    "name": "Price Change Request",
+    "description": "Request a price change for an existing product in ShopCorp's inventory, including justification for the change and expected impact on sales."
+  },
+  {
+    "name": "Inventory Replenishment Request",
+    "description": "Submit a request to replenish inventory for a specific product at a particular store location, including quantity and expected delivery date."
+  },
+  {
+    "name": "Employee Access Request",
+    "description": "Request access to specific ShopCorp systems or applications for a new or existing employee, including justification for access and supervisor approval."
+  },
+  {
+    "name": "Customer Complaint Resolution",
+    "description": "Report and resolve customer complaints regarding products, services, or store experiences, including details on the issue and proposed resolution."
+  },
+  {
+    "name": "Store Maintenance Request",
+    "description": "Submit a request for maintenance or repair work at a ShopCorp store location, including details on the issue and expected resolution timeline."
+  },
+  {
+    "name": "Vendor Application",
+    "description": "Apply to become a vendor for ShopCorp, including company information, product offerings, and compliance with ShopCorp's policies and procedures."
+  },
+  {
+    "name": "Employee Transfer Request",
+    "description": "Request a transfer to a different store location or role within ShopCorp, including justification for the transfer and supervisor approval."
+  },
+  {
+    "name": "Product Return Request",
+    "description": "Submit a request to return a product to a vendor or supplier, including details on the reason for return and expected credit or refund."
+  },
+  {
+    "name": "Digital Coupon Creation",
+    "description": "Request the creation of a digital coupon for a specific product or promotion, including details on the coupon terms, expiration date, and target audience."
+  }
+]

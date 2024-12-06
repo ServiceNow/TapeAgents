@@ -1,0 +1,59 @@
+name: Digitalization Project Proposal
+description: Submit a proposal for digitalization projects to improve DriveCorp's operational
+  efficiency and customer experience. The proposal should include a project title,
+  a brief description, and the expected benefits to DriveCorp. According to DriveCorp's
+  digitalization policy, all proposals must align with the company's goal of becoming
+  carbon neutral by 2050. Proposals will be reviewed by the Digitalization Committee,
+  and the proposer will be notified of the decision within 6 weeks. The request ID
+  and status of the proposal will be provided upon submission.
+parameters:
+  type: object
+  properties:
+    project_title:
+      description: The title of the digitalization project proposal.
+      type: string
+    project_description:
+      description: A brief description of the digitalization project proposal.
+      type: string
+    expected_benefits:
+      description: The expected benefits of the digitalization project to DriveCorp.
+      type: string
+    department:
+      description: The department submitting the proposal.
+      type: string
+      enum:
+      - Sales
+      - Marketing
+      - IT
+      - Operations
+    priority:
+      description: The priority level of the proposal.
+      type: integer
+      default: 1
+  required:
+  - project_title
+  - project_description
+  - expected_benefits
+  - department
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the proposal request.
+      type: string
+    request_status:
+      description: The status of the proposal request.
+      type: string
+      enum:
+      - submitted
+      - in_review
+      - approved
+      - rejected
+    comments:
+      description: Any comments from the Digitalization Committee.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - request_status

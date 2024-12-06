@@ -1,0 +1,10 @@
+# The env variable `TAPEAGENTS_LLM_TOKEN` should be set.
+_target_: tapeagents.llms.TrainableLLM
+model_name: meta-llama/Meta-Llama-3.1-405B-Instruct-FP8
+stream: false
+use_cache: false
+context_size: 128000
+base_url: https://snow-research-tapes-vllm_llama405b.job.toolkit-sp.yul201.service-now.com
+parameters:
+  temperature: 1
+  max_tokens: 8192 # new tokens

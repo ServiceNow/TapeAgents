@@ -1,0 +1,67 @@
+name: Employee Transfer Request
+description: Request a transfer to a different store location or role within ShopCorp,
+  including justification for the transfer and supervisor approval. This function
+  requires the employee's ID, current store location, desired store location, current
+  role, desired role, justification for the transfer, and supervisor's approval. According
+  to ShopCorp's policies, employees must have at least 6 months of service to be eligible
+  for a transfer, and supervisors must approve the transfer within 5 business days.
+  The function returns a request ID, the status of the request (pending, approved,
+  or rejected), and a list of comments from the supervisor and HR.
+parameters:
+  type: object
+  properties:
+    employee_id:
+      description: The ID of the employee requesting the transfer.
+      type: integer
+    current_store_location:
+      description: The current store location of the employee.
+      type: string
+    desired_store_location:
+      description: The desired store location for the transfer.
+      type: string
+    current_role:
+      description: The current role of the employee.
+      type: string
+    desired_role:
+      description: The desired role for the transfer.
+      type: string
+    justification:
+      description: The justification for the transfer.
+      type: string
+    supervisor_approval:
+      description: The approval from the supervisor.
+      type: boolean
+    preferred_transfer_date:
+      description: The preferred date for the transfer (optional).
+      type: string
+      format: date
+  required:
+  - employee_id
+  - current_store_location
+  - desired_store_location
+  - current_role
+  - desired_role
+  - justification
+  - supervisor_approval
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the transfer request.
+      type: string
+    status:
+      description: The status of the transfer request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: A list of comments from the supervisor and HR.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

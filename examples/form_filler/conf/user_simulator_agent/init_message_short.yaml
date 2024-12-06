@@ -1,0 +1,20 @@
+defaults:
+- base
+- _self_
+
+behavior_alias: init_message_short
+
+
+step_types_chain:
+- AssistantStep
+
+step_filters:
+- _target_: examples.form_filler.user_simulator_filters.HasNoFunction
+
+instruction: |-
+    Write one short sentence to request {schema_name}
+    Important rules:
+    - Phrase your request in natural language, do not use special characters or upper case letters in the middle of your message.
+    - Do not explain yourself, be very specific and very brief.
+    - Write only one sentence with less than 20 words.
+    - Start your sentence with "I want to", "I need to" and so on.

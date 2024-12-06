@@ -1,0 +1,64 @@
+name: Digital Marketing Campaign Request
+description: Request a digital marketing campaign to promote LuxuryCorp's brands and
+  products across social media, email, and online advertising channels. This function
+  requires the brand name, campaign duration, and target audience as mandatory parameters.
+  The brand name must be one of LuxuryCorp's existing brands, and the campaign duration
+  must be between 1-12 weeks. The target audience must be specified as either 'existing
+  customers' or 'new customers'. The function will return a unique request ID, the
+  status of the request (either 'pending', 'approved', or'rejected'), and a list of
+  recommended advertising channels. According to LuxuryCorp's policy, all digital marketing
+  campaigns must comply with the company's brand guidelines and be approved by the
+  marketing director.
+parameters:
+  type: object
+  properties:
+    brand_name:
+      description: The name of the LuxuryCorp brand to be promoted.
+      type: string
+      enum:
+      - Louis Vuitton
+      - Christian Dior
+      - Givenchy
+      - Bulgari
+      - TAG Heuer
+      - "Dom P\xE9rignon"
+    campaign_duration:
+      description: The duration of the campaign in weeks.
+      type: integer
+      minimum: 1
+      maximum: 12
+    target_audience:
+      description: The target audience for the campaign.
+      type: string
+      enum:
+      - existing customers
+      - new customers
+    budget:
+      description: The budget for the campaign.
+      type: number
+  required:
+  - brand_name
+  - campaign_duration
+  - target_audience
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    recommended_channels:
+      description: A list of recommended advertising channels.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - recommended_channels

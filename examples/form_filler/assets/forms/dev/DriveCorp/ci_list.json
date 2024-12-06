@@ -1,0 +1,42 @@
+[
+  {
+    "name": "New Vehicle Design Request",
+    "description": "Submit a request for designing a new vehicle model, including specifications and features."
+  },
+  {
+    "name": "Production Line Optimization",
+    "description": "Request optimization of production lines to increase efficiency and reduce costs."
+  },
+  {
+    "name": "Electric Vehicle Charging Station Installation",
+    "description": "Submit a request for installation of electric vehicle charging stations at DriveCorp facilities."
+  },
+  {
+    "name": "Supply Chain Disruption Mitigation",
+    "description": "Request assistance in mitigating supply chain disruptions affecting DriveCorp's operations."
+  },
+  {
+    "name": "Autonomous Vehicle Testing Request",
+    "description": "Submit a request for testing and validation of autonomous vehicle features."
+  },
+  {
+    "name": "Sustainability Report Generation",
+    "description": "Request generation of sustainability reports highlighting DriveCorp's environmental impact and progress towards carbon neutrality."
+  },
+  {
+    "name": "Dealer Network Expansion",
+    "description": "Submit a request for expanding DriveCorp's dealer network in new markets or regions."
+  },
+  {
+    "name": "Vehicle Recalls and Updates",
+    "description": "Request management of vehicle recalls and software updates for DriveCorp's fleet."
+  },
+  {
+    "name": "Digitalization Project Proposal",
+    "description": "Submit a proposal for digitalization projects to improve DriveCorp's operational efficiency and customer experience."
+  },
+  {
+    "name": "Employee Training and Development",
+    "description": "Request training and development programs for DriveCorp employees to enhance skills and knowledge in areas like electric mobility and autonomous driving."
+  }
+]

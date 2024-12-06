@@ -1,0 +1,90 @@
+name: BookFlight
+description: Request to book a flight for a passenger, including flight details, passenger
+  information, and payment details. This function requires the passenger's first and
+  last name, email address, phone number, and payment method. The flight details include
+  the departure and arrival airports, departure date, and class of service. According
+  to FlyCorp's policies, passengers must be at least 18 years old to book a flight,
+  and payment must be made using a valid credit card. The function returns a request
+  ID, the status of the request (either 'pending', 'approved', or'rejected'), and
+  a list of flight details.
+parameters:
+  type: object
+  properties:
+    first_name:
+      description: The passenger's first name
+      type: string
+    last_name:
+      description: The passenger's last name
+      type: string
+    email:
+      description: The passenger's email address
+      type: string
+      format: email
+    phone_number:
+      description: The passenger's phone number
+      type: string
+    payment_method:
+      description: The payment method (e.g. Visa, Mastercard, Amex)
+      type: string
+    departure_airport:
+      description: The departure airport code (e.g. ATL, JFK, LAX)
+      type: string
+    arrival_airport:
+      description: The arrival airport code (e.g. ATL, JFK, LAX)
+      type: string
+    departure_date:
+      description: The departure date in YYYY-MM-DD format
+      type: string
+      format: date
+    class_of_service:
+      description: The class of service (e.g. Basic Economy, Main Cabin, Comfort+)
+      type: string
+      enum:
+      - Basic Economy
+      - Main Cabin
+      - Comfort+
+    loyalty_program_number:
+      description: The passenger's loyalty program number (optional)
+      type: string
+  required:
+  - first_name
+  - last_name
+  - email
+  - phone_number
+  - payment_method
+  - departure_airport
+  - arrival_airport
+  - departure_date
+  - class_of_service
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the booking request
+      type: string
+    status:
+      description: The status of the request (pending, approved, or rejected)
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    flight_details:
+      description: A list of flight details
+      type: array
+      items:
+        type: object
+        properties:
+          flight_number:
+            description: The flight number
+            type: string
+          departure_time:
+            description: The departure time in HH:MM format
+            type: string
+          arrival_time:
+            description: The arrival time in HH:MM format
+            type: string
+  required:
+  - request_id
+  - status
+  - flight_details

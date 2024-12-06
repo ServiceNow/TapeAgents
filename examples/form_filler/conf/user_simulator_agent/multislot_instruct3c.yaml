@@ -1,0 +1,29 @@
+defaults:
+- base
+- _self_
+
+behavior_alias: multislot_instruct3c
+
+step_types_chain:
+  - RequestFunctionParameters
+  - AssistantStep
+step_filters:
+  - _target_: examples.form_filler.user_simulator_filters.HasRequiredTemplateParams
+    params:
+      - current_parameter_name
+      - future_parameter_name
+      - future_parameter_name2
+      - future_parameter_name3
+
+instruction: |-
+  As an AI assistant, your mission is to act as a human user. Your language is DIRECT, CLEAR, and PLAIN.
+  Write one sentence acting as a user that does the following:
+  1) answer the agent's last question for '{current_parameter_name}'.
+  2) provide a value for '{future_parameter_name}'
+  3) provide a value for '{future_parameter_name2}'.
+  4) provide a value for '{future_parameter_name3}'.
+  Important rules:
+  - Use natural language.
+  - Do not use underscore or other special characters.
+  - Do both (1), (2), (3) and (4) in a single message.
+  - Do not explain yourself. Be specific and brief.

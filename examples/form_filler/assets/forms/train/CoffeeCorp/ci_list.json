@@ -1,0 +1,42 @@
+[
+  {
+    "name": "NewStoreRequest",
+    "description": "Submit a request to open a new CoffeeCorp store location, including details on location, staff, and inventory needs."
+  },
+  {
+    "name": "CoffeeBeanOrder",
+    "description": "Place an order for coffee beans from a specific region or farm, specifying quantity and roast level."
+  },
+  {
+    "name": "EmployeeTrainingRequest",
+    "description": "Request training for a new employee, including modules on coffee preparation, customer service, and point-of-sale operations."
+  },
+  {
+    "name": "Menu Item Proposal",
+    "description": "Submit a proposal for a new menu item, including recipe, pricing, and marketing strategy."
+  },
+  {
+    "name": "StoreRemodelRequest",
+    "description": "Request a remodel of an existing store, including updates to layout, decor, and equipment."
+  },
+  {
+    "name": "SupplyChainDisruptionNotification",
+    "description": "Notify CoffeeCorp headquarters of a supply chain disruption, including details on affected products and expected resolution time."
+  },
+  {
+    "name": "CustomerComplaintResolution",
+    "description": "Submit a resolution to a customer complaint, including details on the issue and steps taken to resolve it."
+  },
+  {
+    "name": "MarketingCampaignProposal",
+    "description": "Submit a proposal for a new marketing campaign, including budget, target audience, and promotional materials."
+  },
+  {
+    "name": "InventoryAdjustmentRequest",
+    "description": "Request an adjustment to inventory levels, including reasons for the adjustment and expected impact on sales."
+  },
+  {
+    "name": "PartnershipOpportunitySubmission",
+    "description": "Submit a proposal for a partnership opportunity, including details on the partner organization and potential benefits to CoffeeCorp."
+  }
+]

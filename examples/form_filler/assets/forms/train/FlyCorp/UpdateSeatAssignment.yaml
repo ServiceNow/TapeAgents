@@ -1,0 +1,65 @@
+name: UpdateSeatAssignment
+description: Request to update a passenger's seat assignment on a flight, including
+  seat number and class of service. This function requires the passenger's booking
+  reference, flight number, and new seat assignment details. According to FlyCorp's
+  policies, seat assignments can only be updated up to 24 hours prior to the scheduled
+  flight departure time. Additionally, FlyCorp's rules dictate that passengers in Basic
+  Economy class are not eligible for seat selection. The function returns a request
+  ID, the status of the request (either'success' or 'failed'), and a list of available
+  seats on the flight.
+parameters:
+  type: object
+  properties:
+    booking_reference:
+      description: The passenger's booking reference number.
+      type: string
+    flight_number:
+      description: The flight number for which the seat assignment needs to be updated.
+      type: string
+    new_seat_number:
+      description: The new seat number to be assigned to the passenger.
+      type: string
+    new_class_of_service:
+      description: The new class of service for the passenger (e.g. Main Cabin, Comfort+,
+        etc.).
+      type: string
+      enum:
+      - Main Cabin
+      - Comfort+
+      - Premium Select
+      - Delta One
+    current_class_of_service:
+      description: The current class of service of the passenger (optional, but required
+        if new_class_of_service is provided).
+      type: string
+      enum:
+      - Main Cabin
+      - Comfort+
+      - Premium Select
+      - Delta One
+      - Basic Economy
+  required:
+  - booking_reference
+  - flight_number
+  - new_seat_number
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the request.
+      type: string
+    status:
+      description: The status of the request (either'success' or 'failed').
+      type: string
+      enum:
+      - success
+      - failed
+    available_seats:
+      description: A list of available seats on the flight.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - available_seats

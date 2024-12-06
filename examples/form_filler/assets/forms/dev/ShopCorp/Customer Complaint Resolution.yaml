@@ -1,0 +1,52 @@
+name: Customer Complaint Resolution
+description: Report and resolve customer complaints regarding products, services,
+  or store experiences at ShopCorp, including details on the issue and proposed resolution.
+  This function requires the customer's name, contact information, and a detailed
+  description of the issue. The function will return a unique request ID, the status
+  of the request (either 'pending', 'in_progress', or'resolved'), and a list of comments
+  from the customer service team. According to ShopCorp's customer complaint resolution
+  policy, all complaints must be acknowledged within 24 hours and resolved within
+  7 business days. Customer service representatives are required to follow the company's
+  guidelines for resolving complaints, which include apologizing for the issue, offering
+  a solution or compromise, and ensuring the customer is satisfied with the resolution.
+parameters:
+  type: object
+  properties:
+    customer_name:
+      description: The customer's full name
+      type: string
+    contact_info:
+      description: The customer's email address or phone number
+      type: string
+    issue_description:
+      description: A detailed description of the issue
+      type: string
+    product_id:
+      description: The ID of the product related to the complaint (optional)
+      type: integer
+  required:
+  - customer_name
+  - contact_info
+  - issue_description
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the complaint request
+      type: string
+    status:
+      description: The status of the request
+      type: string
+      enum:
+      - pending
+      - in_progress
+      - resolved
+    comments:
+      description: A list of comments from the customer service team
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

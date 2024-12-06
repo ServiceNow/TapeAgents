@@ -1,0 +1,56 @@
+name: AddAncillaryService
+description: Request to add an ancillary service to a flight booking, including service
+  type and payment details. This function requires the flight booking ID, service
+  type (either 'baggage' or'meal'), and payment method (either 'credit card' or 'cash').
+  According to FlyCorp's policy, only one ancillary service can be added per flight
+  booking. If the service is successfully added, the function returns a request ID,
+  the status of the request ('pending', 'approved', or'rejected'), and a list of the
+  updated services associated with the flight booking. If the service is already added,
+  the function returns an error message.
+parameters:
+  type: object
+  properties:
+    flight_booking_id:
+      description: The ID of the flight booking.
+      type: integer
+    service_type:
+      description: The type of ancillary service.
+      type: string
+      enum:
+      - baggage
+      - meal
+    payment_method:
+      description: The payment method.
+      type: string
+      enum:
+      - credit card
+      - cash
+    special_instructions:
+      description: Any special instructions for the ancillary service.
+      type: string
+  required:
+  - flight_booking_id
+  - service_type
+  - payment_method
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    updated_services:
+      description: The list of updated services associated with the flight booking.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - updated_services

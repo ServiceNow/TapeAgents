@@ -1,0 +1,71 @@
+name: Digital Coupon Creation
+description: Request the creation of a digital coupon for a specific product or promotion,
+  including details on the coupon terms, expiration date, and target audience. This
+  function requires the product ID, promotion type, coupon value, expiration date,
+  and target audience as input parameters. The target audience can be either 'all
+  customers' or 'loyalty program members'. The function will return a request ID,
+  the status of the request (either 'pending', 'approved', or'rejected'), and a list
+  of coupon codes generated for the promotion. According to ShopCorp's policies, digital
+  coupons can only be created for products that are currently in stock and have a
+  minimum price of $10. Additionally, loyalty program members can only receive digital
+  coupons for products that are part of the loyalty program's rewards catalog.
+parameters:
+  type: object
+  properties:
+    product_id:
+      description: The ID of the product for which the digital coupon is being created.
+      type: integer
+    promotion_type:
+      description: The type of promotion (e.g. percentage off, fixed amount off, buy
+        one get one free).
+      type: string
+      enum:
+      - percentage off
+      - fixed amount off
+      - buy one get one free
+    coupon_value:
+      description: The value of the digital coupon.
+      type: number
+    expiration_date:
+      description: The date on which the digital coupon expires.
+      type: string
+      format: date
+    target_audience:
+      description: The target audience for the digital coupon (either 'all customers'
+        or 'loyalty program members').
+      type: string
+      enum:
+      - all customers
+      - loyalty program members
+    start_date:
+      description: The date on which the digital coupon becomes active (optional).
+      type: string
+      format: date
+  required:
+  - product_id
+  - promotion_type
+  - coupon_value
+  - expiration_date
+  - target_audience
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the request.
+      type: string
+    status:
+      description: The status of the request (either 'pending', 'approved', or'rejected').
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    coupon_codes:
+      description: A list of coupon codes generated for the promotion.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - coupon_codes
