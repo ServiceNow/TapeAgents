@@ -201,7 +201,7 @@ def prepare_formfiller_template_variables(tape: FormFillerTape) -> dict[str, Any
             template_values["current_parameter"] = step.parameters[0]
 
         if isinstance(step, (Thought, Observation, Action)):
-            template_values["dialogue_history_json"].append(step.model_dump())
+            template_values["dialogue_history_json"].append(step.model_dump(exclude={"metadata"}))
 
     if not template_values["current_parameter"]:
         function_schema_step = tape.function_schema_step
