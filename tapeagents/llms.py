@@ -22,7 +22,6 @@ from Levenshtein import ratio
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
-from litellm.types.utils import ChoiceLogprobs, ChatCompletionTokenLogprob, TopLogprob
 
 from .config import DB_DEFAULT_FILENAME
 from .core import LLMOutput, Prompt, TrainingText
