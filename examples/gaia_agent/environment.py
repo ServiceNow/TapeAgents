@@ -59,10 +59,8 @@ class GaiaEnvironment(Environment):
                             query = f"site:wikipedia.org {action.query}"
                         elif action.source == "youtube":
                             query = f"site:youtube.com {action.query}"
-                        elif action.source == "web":
-                            query = action.query
                         else:
-                            raise ValueError(f"Supported sources are 'web', 'wiki' and 'youtube', got {action.source}")
+                            query = action.query
 
                         try:
                             serp = self.browser.get_search_results(query)
