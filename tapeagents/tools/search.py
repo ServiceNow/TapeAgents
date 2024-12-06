@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import threading
+import time
 
 import requests
 
@@ -22,6 +23,7 @@ def web_search(query: str, max_results: int = 5, timeout_sec: int = 5) -> list[d
                 results = serper_search(query, max_results=max_results)
             except Exception as e:
                 logger.warning(f"Failed to fetch search results: {e}")
+            time.sleep(1)
     return results
 
 
