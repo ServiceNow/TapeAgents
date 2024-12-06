@@ -20,6 +20,8 @@ First, install extra depedencies:
 pip install -r examples/optimize/requirements.txt
 ```
 
+Make sure you have set your environment variable `OPENAI_API_KEY`
+
 ## Explore the setting
 
 To better understand the setup, you can launch a pre-optimized agent in TapeAgents Studio and run it by pressing `Run Loop` button.
@@ -68,6 +70,14 @@ Answer accuracy: 0.52
 
 And this way we get a higher retrieval accuracy, though answer accuracy went down.
 
+Let's randomly search for the best optimized agent.
+
+```bash
+$ python -m examples.optimize.optimize agent=agentic_rag optimize.do=true optimize.optimize_demos=true target=evaluate
+Retrieval accuracy: 0.56
+Answer accuracy: 0.62
+```
+
 Note:
 - we found the quantitative results of this experiment to be very unstable due to the LLM non-determinism and the small training and dev set sizes. In our future work we will add validation of the selected examples and evaluate on a larget dev set.
 - by default the LLM cache is on, so if you rerun an experiment, you will get the exact same results. You can run another experiment by changing passing `exp_name=<another_name>` to Hydra.
@@ -81,3 +91,6 @@ python -m examples.optimize.optimize agent=agentic_rag optimize.do=true target=b
 ```
 
 You can now explore the agent tapes on the dev set, as well as the "good" and the "bad" training tapes. The good tapes that are the ones we used to mine demonstrations for the function templates. The bad tapes are the ones that we filtered out by various criteria (see `result` field in metadata in the tape browser for the reason for filtering).
+
+## Experiment different configuration
+You can update the configuration in [hotpot_qa.yaml](../../conf/hotpot_qa.yaml) and run new experiments

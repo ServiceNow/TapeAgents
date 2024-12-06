@@ -13,6 +13,8 @@ optimize:
   do: false
   n_paragraphs: 2
   max_n_demos: 4
+  optimize_demos: false
+  max_optimize_tries: 5
 rag:
   partial_demos: true
   demos: true
@@ -20,4 +22,5 @@ agentic_rag:
   max_hops: 2
 dataset:
   dev_size: 50
+  train_size: 20
 question: How many storeys are in the castle that David Gregory inherited?
