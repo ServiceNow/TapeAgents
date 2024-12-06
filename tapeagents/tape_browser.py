@@ -227,7 +227,7 @@ class TapeBrowser:
             )
         return blocks
 
-    def launch(self, server_name: str = "0.0.0.0", port=7860, debug: bool = False, static_dir: str = ""):
+    def launch(self, server_name: str = "0.0.0.0", port=None, debug: bool = False, static_dir: str = ""):
         gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
 
         self.blocks = self.create_blocks()

@@ -5,12 +5,17 @@ import sys
 import tempfile
 from pathlib import Path
 
+from omegaconf import DictConfig
 import testbook
+import yaml
 
+from examples.optimize import optimize
+from tapeagents.dialog_tape import DialogTape
 import tapeagents.observe
 from examples import delegate_stack
 from examples.data_science import data_science
 from examples.tape_improver import tape_improver
+from tests.test_utils import load_tape_dict
 
 
 @contextlib.contextmanager
@@ -79,5 +84,11 @@ if __name__ == "__main__":
         case ["data_science"]:
             with run_in_tmp_dir_to_make_test_data("data_science"):
                 data_science.main(studio=False)
+        case ["optimize"]:
+            test_dir = Path(f"tests/res/optimize").resolve()
+            with open(test_dir / "config.yaml") as f:
+                cfg = DictConfig(yaml.safe_load(f))
+            with run_in_tmp_dir_to_make_test_data("optimize", keep_llm_cache=True):
+                optimize.run(cfg)
         case _:
-            raise Exception("Usage: python -m tests.make_test_data [delegate_stack | intro_notebook | tape_improver]")
+            raise Exception("Usage: python -m tests.make_test_data <example-to-test>")

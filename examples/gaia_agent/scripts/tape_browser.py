@@ -195,7 +195,7 @@ class GaiaTapeBrowser(TapeBrowser):
 
 def main(dirname: str):
     browser = GaiaTapeBrowser(dirname, CameraReadyRenderer())
-    browser.launch(port=7861)
+    browser.launch()
 
 
 if __name__ == "__main__":

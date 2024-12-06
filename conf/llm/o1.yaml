@@ -1,0 +1,5 @@
+_target_: tapeagents.llms.LiteLLM
+model_name: o1-preview
+use_cache: false
+context_size: 128000
+parameters: {}
