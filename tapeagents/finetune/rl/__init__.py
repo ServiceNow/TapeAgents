@@ -184,7 +184,7 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
     if config.reward_minus_kl_coef > 0:
         logger.info("Updating Reward with Implicit KL")
         calculate_reward_with_implicit_kl_ = partial(
-            calculate_reward_with_implicit_kl, reward_minus_kl_coef=config.reward_minus_kl
+            calculate_reward_with_implicit_kl, reward_minus_kl_coef=config.reward_minus_kl_coef
         )
         df["reward"] = df.apply(calculate_reward_with_implicit_kl_, axis=1)
 

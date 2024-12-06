@@ -71,13 +71,20 @@ def run_finetuning_loop(
         raise ValueError(f"Unknown training objective {objective}")
 
     with open_dict(args):
-        # very useful for comparing runs; note that gradient accumulation will later be divided by num_processes
+        # Adjust gradient accumulation steps to be divisible by num_processes
+        original_accum_passes = args.gradient_accumulation_passes
+        if original_accum_passes % num_processes != 0:
+            # Round up to the next multiple of num_processes
+            new_accum_passes = ((original_accum_passes + num_processes - 1) // num_processes) * num_processes
+            logger.warning(
+                f"Adjusting gradient_accumulation_passes from {original_accum_passes} to {new_accum_passes} "
+                f"to make it divisible by {num_processes} processes"
+            )
+            args.gradient_accumulation_passes = new_accum_passes
+
+        # very useful for comparing runs
         args.effective_batch_size = int(args.train_batch_size) * int(args.gradient_accumulation_passes)
 
-    if args.gradient_accumulation_passes % num_processes != 0:
-        raise ValueError(
-            f"Cannot {num_processes}-way parallelize the config with {args.gradient_accumulation_passes} accum passes"
-        )
     args.gradient_accumulation_passes //= num_processes
     samples_per_pass = num_processes * args.train_batch_size
     set_seed(args.seed)
@@ -134,8 +141,42 @@ def run_finetuning_loop(
     accelerator.wait_for_everyone()
     dt = log_time(dt, "finetune/data_load")
 
-    optimizer = get_optimizer(args.optim, model, args.learning_rate, args.weight_decay)
-    lr_scheduler = get_scheduler(args.lr_scheduler_type, optimizer, args.num_warmup_steps, args.max_train_steps)
+    # Add check for DeepSpeed configuration
+    is_deepspeed = getattr(accelerator.state, "deepspeed_plugin", None) is not None
+
+    if not is_deepspeed:
+        optimizer = get_optimizer(args.optim, model, args.learning_rate, args.weight_decay)
+        lr_scheduler = get_scheduler(args.lr_scheduler_type, optimizer, args.num_warmup_steps, args.max_train_steps)
+    else:
+        from accelerate.utils import DummyOptim, DummyScheduler
+
+        # Create optimizer kwargs matching DeepSpeed config
+        optimizer_kwargs = {
+            "params": model.parameters(),
+            "lr": args.learning_rate,
+            "weight_decay": args.weight_decay,
+        }
+
+        optimizer = DummyOptim(params=model.parameters())  # Minimal DummyOptim
+
+        # Create scheduler kwargs matching DeepSpeed config
+        scheduler_kwargs = {
+            "warmup_min_lr": 0.0,
+            "warmup_max_lr": args.learning_rate,
+            "warmup_num_steps": args.num_warmup_steps,
+            "total_num_steps": args.max_train_steps,
+        }
+
+        lr_scheduler = DummyScheduler(
+            optimizer,
+            **scheduler_kwargs
+        )
+
+        # Update accelerator's DeepSpeed plugin config
+        if hasattr(accelerator.state, "deepspeed_plugin"):
+            ds_plugin = accelerator.state.deepspeed_plugin
+            ds_plugin.deepspeed_config["optimizer"]["params"]["lr"] = args.learning_rate
+            ds_plugin.deepspeed_config["optimizer"]["params"]["weight_decay"] = args.weight_decay
 
     # Wrap everything with HF Accelerator
     (

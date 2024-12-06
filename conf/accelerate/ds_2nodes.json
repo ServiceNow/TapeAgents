@@ -1,0 +1,86 @@
+{
+    "zero_optimization": {
+        "stage": 3,
+        "overlap_comm": true,
+        "contiguous_gradients": true,
+        "reduce_scatter": true,
+        "sub_group_size": 8e7,
+        "reduce_bucket_size": "auto",
+        "stage3_prefetch_bucket_size": "auto",
+        "stage3_param_persistence_threshold": 1e6,
+        "stage3_max_live_parameters": 1.5e8,
+        "stage3_max_reuse_distance": 1.5e8,
+        "stage3_gather_16bit_weights_on_model_save": true,
+        "offload_optimizer": {
+            "device": "cpu",
+            "pin_memory": true,
+            "fast_init": true,
+            "ratio": 0.45,
+            "buffer_count": 4
+        },
+        "offload_param": {
+            "device": "none",
+            "pin_memory": true
+        },
+        "memory_efficient_linear": true,
+        "round_robin_gradients": true
+    },
+    "bf16": {
+        "enabled": "auto"
+    },
+    "gradient_clipping": "auto",
+    "train_micro_batch_size_per_gpu": "auto",
+    "gradient_accumulation_steps": "auto",
+    "train_batch_size": "auto",
+    "optimizer": {
+        "type": "AdamW",
+        "params": {
+            "lr": "auto",
+            "betas": [0.9, 0.999],
+            "eps": 1e-8,
+            "adam_w_mode": true,
+            "weight_decay": "auto"
+        }
+    },
+    "scheduler": {
+        "type": "WarmupDecayLR",
+        "params": {
+            "warmup_min_lr": 0,
+            "warmup_max_lr": "auto",
+            "warmup_num_steps": "auto",
+            "total_num_steps": "auto"
+        }
+    },
+    "activation_checkpointing": {
+        "partition_activations": true,
+        "cpu_checkpointing": false,
+        "contiguous_memory_optimization": true,
+        "synchronize_checkpoint_boundary": true,
+        "profile": false
+    },
+    "communication_data_type": "bf16",
+    "wall_clock_breakdown": true,
+    "monitor_config": {
+        "enabled": true,
+        "tag": "ds_train",
+        "csv_monitor": {
+            "enabled": true,
+            "output_path": "/mnt/results/logs/",
+            "job_name": "llama_train"
+        }
+    },
+    "torch_cuda_alloc_conf": {
+        "max_split_size_mb": 128,
+        "garbage_collection_threshold": 0.8
+    },
+    "aio": {
+        "block_size": 1048576,
+        "queue_depth": 24,
+        "single_submit": false,
+        "overlap_events": true,
+        "thread_count": 6
+    },
+    "wandb": {
+        "enabled": false
+    }
+}
