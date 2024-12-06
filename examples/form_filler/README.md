@@ -47,7 +47,7 @@ python -m examples.form_filler.dev.run_formfiller_agent \
     user_dialogues_path=.local/user_tapes/<B>/user_predicted_tapes.yaml \
     output_path=.local/agent_tapes/teacher
 ```
-replacing <B> with the actual behavior name you used to run a user agent.
+replacing \<B> with the actual behavior name you used to run a user agent.
 
 By default this script will use the [openrouter_llama3_405b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/openrouter_llama3_405b_temp1.yaml) llm config which uses openrouter to call llama405B.
 To use this model you must have an openrouter API key saved into your `TAPEAGENTS_LLM_TOKEN` environment variable.
@@ -82,7 +82,7 @@ python -m examples.form_filler.dev.run_formfiller_agent \
     user_dialogues_path=.local/user_tapes/<B>/user_predicted_tapes.yaml \
     output_path=.local/agent_tapes/student
 ```
-replacing <B> with the actual behavior name you used to run a user agent.
+replacing \<B> with the actual behavior name you used to run a user agent.
 
 By default this script will use the [sft_llama3_8b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/sft_llama3_8b_temp1.yaml) llm config.
 Right now this config uses openrouter to call llama8B, however this config is meant to be used with a **fine-tuned** model. You should change the config `model_name` and `base_url` to map to your pretrained model.
@@ -95,7 +95,7 @@ This script will produce agent tapes stored in the `output_path` directory. The 
 - `student_agent_failure_tapes.yaml`: Failed agent tapes with an error step as the last step
 - `student_agent_stats.json`: The counts of last step types of failed and successful tapes
 
-### VISUALIZATION
+## Visualization
 
 To look at the generated tapes in the browser, run the following command:
 ```bash
