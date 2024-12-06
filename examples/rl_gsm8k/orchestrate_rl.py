@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText | None:
     try:
-        trace.ref_logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text)  # type: ignore
+        trace.ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
         return trace
     except Exception as e:
         logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
@@ -135,15 +135,17 @@ def extract_tape_training_samples(
             logprobs = []
             vllm_tokens = []
             if hasattr(llm_call.output, "logprobs"):
-                logprobs = llm_call.output.logprobs.content
-                logprobs = [c.logprob for c in logprobs]
-                vllm_tokens = [c.token for c in llm_call.output.logprobs.content]
+                logprobs_dict = llm_call.output.logprobs
+                logprobs = [c["logprob"] for c in logprobs_dict["content"]]
+                vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
 
             # Note: tokens produced during generation are not always the same as the tokens produced on the full sequence
             if vllm_tokens != hf_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
-                logprobs = agent.llm.get_log_probs(trace.prompt_text, trace.output_text).content  # type: ignore
-                logprobs = [c.logprob for c in logprobs]
+                logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+                logprobs = [c["logprob"] for c in logprobs_dict["content"]]
+                new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
+                assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
                 compute_log_probs.append(1)
             else:
                 compute_log_probs.append(0)
@@ -234,7 +236,7 @@ def generate_training_data(
     start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
-    with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
+    with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers) as executor:
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
             agent=agent,
@@ -425,7 +427,7 @@ def main(cfg: DictConfig):
                         **cfg.vllm_config.vllm_kwargs,
                     ) as vllm_service_manager:
                         # FIXME: more than 1 worker causes the LLM to run OOM
-                        with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
+                        with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers) as executor:
                             futures = [
                                 executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
                                 for trace in training_samples

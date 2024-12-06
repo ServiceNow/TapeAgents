@@ -249,16 +249,11 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
     cursor.close()
     calls: list[LLMCall] = []
     for row in rows:
-        output_dict = json.loads(row["output"])
-        # Handle logprobs separately before creating LLMOutput
-        if "logprobs" in output_dict:
-            logprobs = ChoiceLogprobs(**output_dict["logprobs"])
-            output_dict["logprobs"] = logprobs
         calls.append(
             LLMCall(
                 timestamp=row["timestamp"],
                 prompt=Prompt(**json.loads(row["prompt"])),
-                output=LLMOutput(**output_dict),
+                output=LLMOutput(**json.loads(row["output"])),
                 prompt_length_tokens=row["prompt_length_tokens"],
                 output_length_tokens=row["output_length_tokens"],
                 cached=row["cached"],
