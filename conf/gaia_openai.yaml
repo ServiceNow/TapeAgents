@@ -2,17 +2,22 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_val_batch32_6
-exp_path: outputs/gaia/runs/${exp_name}
+exp_name: gpt4o_mini_val_video_v1
+exp_path: outputs/gaia/runs2/${exp_name}
 split: validation
-n_attempts: 1
-batch: 32
+batch: 1
+
 agent:
   plain_code: false
 
 env:
+  attachment_dir: ${exp_path}/attachments/
   image_observations: true
   use_web_cache: true
+
+studio:
+  tape:
+    null
 
 hydra:
   run:

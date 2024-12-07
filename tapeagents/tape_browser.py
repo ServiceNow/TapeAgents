@@ -2,6 +2,7 @@
 GUI for browsing tapes.
 """
 
+import datetime
 import logging
 import os
 
@@ -10,10 +11,10 @@ import uvicorn
 import yaml
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
-from tapeagents.core import Tape
-from tapeagents.io import load_tapes
+from tapeagents.core import Tape, TapeMetadata
+from tapeagents.steps import Annotation
+from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.observe import retrieve_tape_llm_calls
 from tapeagents.renderers.basic import BasicRenderer
 
@@ -29,7 +30,7 @@ class TapeBrowser:
 
     def __init__(
         self,
-        tape_cls: type[BaseModel],
+        tape_cls: type[Tape],
         tapes_folder: str,
         renderer: BasicRenderer,
         file_extension: str = ".yaml",
@@ -37,6 +38,7 @@ class TapeBrowser:
         self.tape_cls = tape_cls
         self.file_extension: str = file_extension
         self.tapes_folder: str = tapes_folder
+        self.annotation_file: str = os.path.join(tapes_folder, "annotations.yaml")
         self.renderer: BasicRenderer = renderer
         self.files: list[str] = []
         self.tape_index: dict[str, tuple[int, int]] = {}
@@ -165,20 +167,31 @@ class TapeBrowser:
         self.selected_tape = 0
         return self.update_view(selected_file)
 
-    def launch(self, server_name: str = "0.0.0.0", port=7860, debug: bool = False, static_dir: str = ""):
-        def get_request_params(request: gr.Request):
-            self.request = request
-            tape_id = self.request.query_params.get("tape_id")
-            self.files = self.get_tape_files()
-            selected_file = self.files[0]
-            if tape_id and tape_id in self.tape_index:
-                i, j = self.tape_index[tape_id]
-                selected_file = self.files[i]
-                self.selected_tape = j
-                logger.info(f"Selected tape {selected_file}/{j} from query params")
-            return self.update_view(selected_file)
+    def update_view_from_request(self, request: gr.Request):
+        self.request = request
+        tape_id = self.request.query_params.get("tape_id")
+        self.files = self.get_tape_files()
+        selected_file = self.files[0]
+        if tape_id and tape_id in self.tape_index:
+            i, j = self.tape_index[tape_id]
+            selected_file = self.files[i]
+            self.selected_tape = j
+            logger.info(f"Selected tape {selected_file}/{j} from query params")
+        return self.update_view(selected_file)
 
-        gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
+    def save_annotation(self, step: int, annotation: str, tape_id: int):
+        tape = self.tapes[tape_id]
+        time_now = datetime.datetime.now().isoformat()
+        annotator_tape = Tape[Tape, Annotation](
+            metadata=TapeMetadata(other={"made_at": time_now}),
+            context=tape,
+            steps=[Annotation(step=step, text=annotation)],
+        )
+        with stream_yaml_tapes(self.annotation_file, "a") as saver:
+            saver.save(annotator_tape)
+        gr.Info(f'Saved an annotation to "{self.annotation_file}')
+
+    def create_blocks(self):
         with gr.Blocks(analytics_enabled=False) as blocks:
             with gr.Row():
                 with gr.Column(scale=4):
@@ -194,23 +207,37 @@ class TapeBrowser:
                         inputs=[file_selector],
                         outputs=[file_selector, tape_selector, file_label, tape_view, tape_label],
                     )
+                    gr.HTML("<h2> Annotate tape </h2>")
+                    step_selector = gr.Number(0, label="Step")
+                    annotation_text = gr.Textbox("", label="Annotation Text", lines=5)
+                    annotate_button = gr.Button("Annotate")
             tape_selector.input(fn=self.update_tape_view, inputs=tape_selector, outputs=[tape_view, tape_label])
             file_selector.input(
                 fn=self.switch_file,
                 inputs=file_selector,
                 outputs=[file_selector, tape_selector, file_label, tape_view, tape_label],
             )
+            annotate_button.click(
+                fn=self.save_annotation, inputs=[step_selector, annotation_text, tape_selector], outputs=[]
+            )
             blocks.load(
-                get_request_params,
+                self.update_view_from_request,
                 None,
                 outputs=[file_selector, tape_selector, file_label, tape_view, tape_label],
             )
+        return blocks
+
+    def launch(self, server_name: str = "0.0.0.0", port=7860, debug: bool = False, static_dir: str = ""):
+        gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
+
+        self.blocks = self.create_blocks()
+
         if static_dir:
             logger.info(f"Starting FastAPI server with static dir {static_dir}")
             # mount Gradio app to FastAPI app
             app = FastAPI()
             app.mount("/static", StaticFiles(directory=static_dir), name="static")
-            app = gr.mount_gradio_app(app, blocks, path="/")
+            app = gr.mount_gradio_app(app, self.blocks, path="/")
             uvicorn.run(app, host=server_name, port=port)
         else:
-            blocks.launch(server_name=server_name, server_port=port, debug=debug)
+            self.blocks.launch(server_name=server_name, server_port=port, debug=debug)

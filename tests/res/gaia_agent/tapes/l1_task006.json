@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "id": "5a069dfa-3f87-4d6c-be0e-3aaf6db2ce62",
+        "id": "3870bd47-eef7-403a-97fe-f9083fc7cdd7",
         "parent_id": null,
         "author": null,
         "author_tape_id": null,
@@ -30,7 +30,7 @@
     "steps": [
         {
             "metadata": {
-                "id": "362ecfa9-1eb2-496e-b115-85c08edc249e",
+                "id": "02d86908-4327-4582-aef4-fa409cd4f308",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -42,8 +42,8 @@
         },
         {
             "metadata": {
-                "id": "6a8ac32c-2a54-4946-b9db-dc070fb63880",
-                "prompt_id": "2484f5b5-5e0b-4ff4-a239-57fb45af1c98",
+                "id": "85b0b6a2-093c-4de9-8349-d2f5185004ad",
+                "prompt_id": "8e0bcf8b-9845-4d66-88b5-2dc4c4cba33d",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -52,13 +52,13 @@
             "plan": [
                 "Search for the official script of Doctor Who, Series 9, Episode 11.",
                 "Locate the first scene heading in the script.",
-                "Extract the exact name of the location as it appears in that scene heading."
+                "Extract the name of the location as it appears in that scene heading."
             ]
         },
         {
             "metadata": {
-                "id": "87cc29b0-e30e-4655-b1d4-b9f02baf977f",
-                "prompt_id": "5c3943e0-b1d9-419a-aabe-bed73164a4aa",
+                "id": "47ded672-6dde-4b43-a18a-1d0ca205fa4d",
+                "prompt_id": "7e100d18-f30a-48e4-888a-a29ca7e8031e",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -75,19 +75,19 @@
         },
         {
             "metadata": {
-                "id": "212c04f2-3b2c-4d69-aa6b-09bcecbc07df",
-                "prompt_id": "67a78f27-4f30-4af1-9791-f382b3f9cae9",
+                "id": "45725b06-b68b-4ec0-b90d-27f89a2a2ed5",
+                "prompt_id": "238a10e9-861d-4f24-84ee-399a3c6eb0fa",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "search_action",
-            "source": "web_search",
+            "source": "web",
             "query": "Doctor Who Series 9 Episode 11 official script"
         },
         {
             "metadata": {
-                "id": "c58f5560-cd03-4ef6-b3cb-4739170560ec",
+                "id": "7c0998f2-9d34-4f11-bb14-cf520d6b5687",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -125,21 +125,21 @@
         },
         {
             "metadata": {
-                "id": "6ce1a704-1639-4775-a246-34d67e1057de",
-                "prompt_id": "fea1481c-4af1-4ae6-8328-b40e515ad5c7",
+                "id": "6742334a-038b-4a56-9d9a-4b3483e34676",
+                "prompt_id": "2b0207be-d2e3-4607-b21d-c3b5c26d4bf4",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "read_document_action",
             "url": "https://www.bbc.co.uk/writers/documents/doctor-who-s9-ep11-heaven-sent-steven-moffat.pdf",
-            "fact_description": "the name of the location where the Doctor is trapped in the maze",
-            "fact_name": "location name in first scene heading"
+            "fact_description": "the location name as it appears in the first scene heading",
+            "fact_name": "location name"
         },
         {
             "metadata": {
-                "id": "f518df26-9345-4625-87c6-9eb46868fe90",
-                "prompt_id": "fea1481c-4af1-4ae6-8328-b40e515ad5c7",
+                "id": "ef299a07-1dc6-418f-9804-534cba4e196a",
+                "prompt_id": "2b0207be-d2e3-4607-b21d-c3b5c26d4bf4",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -149,7 +149,7 @@
         },
         {
             "metadata": {
-                "id": "04cf39f2-0ff3-4a42-bed8-15b30b46a452",
+                "id": "f70a4d2f-d2fb-4b5c-bd02-2eb852660cb5",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -163,22 +163,22 @@
         },
         {
             "metadata": {
-                "id": "b5fd0660-f7d4-409c-9a63-8f5355361f7d",
-                "prompt_id": "435e265b-12cd-47d2-9d6c-cef80d531838",
+                "id": "b1dc08c0-cbb5-4903-a264-99fd8a9505fd",
+                "prompt_id": "f8d192d8-154a-4566-9a0d-e9ede97a7f85",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "reading_result_thought",
-            "fact_description": "the name of the location where the Doctor is trapped in the maze",
+            "fact_description": "the location name as it appears in the first scene heading",
             "fact_found": true,
             "quote_with_fact": "INT. THE CASTLE - DAY",
             "where_to_look_next": ""
         },
         {
             "metadata": {
-                "id": "995e3431-4ac2-4b9f-a586-3b9c32d91cab",
-                "prompt_id": "435e265b-12cd-47d2-9d6c-cef80d531838",
+                "id": "c92bb9b4-d68a-4814-9df8-985ef924b2e2",
+                "prompt_id": "f8d192d8-154a-4566-9a0d-e9ede97a7f85",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -188,8 +188,8 @@
         },
         {
             "metadata": {
-                "id": "09c10aaa-89b9-4145-a668-fd10952da871",
-                "prompt_id": "8a9c369d-afc8-4f98-832d-d9f790c9ce4e",
+                "id": "10b15c48-6bfa-4fef-a63a-659a93b1a825",
+                "prompt_id": "fd78cb30-79ee-4597-a307-7c4748276d95",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}

@@ -35,7 +35,7 @@ import PIL
 import pptx
 import puremagic
 import requests
-import speech_recognition as sr
+import whisper
 from bs4 import BeautifulSoup
 from readability import Document
 
@@ -448,19 +448,16 @@ class PptxConverter(HtmlConverter):
 
 class WavConverter(DocumentConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
-        # Bail if not a XLSX
+        # Bail if not a WAV
         extension = kwargs.get("file_extension", "")
         if extension.lower() != ".wav":
             return None
 
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(local_path) as source:
-            audio = recognizer.record(source)
-            text_content = recognizer.recognize_whisper(audio).strip()
-
+        model = whisper.load_model("turbo")
+        text_content = model.transcribe(local_path) or "[No speech detected]"
         return DocumentConverterResult(
             title=None,
-            text_content="### Audio Transcript:\n" + ("[No speech detected]" if text_content == "" else text_content),
+            text_content=f"### Audio Transcript:\n{text_content}",
         )
 
 

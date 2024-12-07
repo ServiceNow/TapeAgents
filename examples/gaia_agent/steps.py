@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 from typing import Annotated, Any, Literal, TypeAlias, Union
@@ -6,8 +5,9 @@ from typing import Annotated, Any, Literal, TypeAlias, Union
 from pydantic import BaseModel, Field
 
 from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
-from tapeagents.dialog_tape import AssistantStep, ImageObservation
+from tapeagents.dialog_tape import AssistantStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
+from tapeagents.steps import ImageObservation, VideoObservation, WatchVideoAction
 from tapeagents.utils import get_step_schemas_from_union_type
 
 
@@ -160,11 +160,11 @@ class ReadingResultThought(GaiaThought):
 ################### Actions ###################
 class SearchAction(GaiaAction):
     """
-    Action that provides parameters for a search function call. Could search in the web_search or wikipedia. Search results will be ordered by relevance from top to bottom
+    Action that provides parameters for a search function call. Could search in the web, wikipedia or youtube. Search results will be ordered by relevance from top to bottom
     """
 
     kind: Literal["search_action"] = "search_action"
-    source: str = Field(description="source to search in, could be web_search or wikipedia")
+    source: str = Field(description="source to search in, could be web, wiki or youtube")
     query: str = Field(description="search query")
 
 
@@ -178,7 +178,7 @@ class NextPageAction(GaiaAction):
 
 class ReadDocumentAction(GaiaAction):
     """
-    Action that loads the document, file, image, video or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
+    Action that loads the document, file, image or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
     """
 
     kind: Literal["read_document_action"] = "read_document_action"
@@ -320,12 +320,14 @@ GaiaStep = Union[
     SearchAction,
     ReadDocumentAction,
     NextPageAction,
+    WatchVideoAction,
     ConvertFactAction,
     UseCalculatorAction,
     PythonCodeAction,
     GaiaQuestion,
     SearchResultsObservation,
     PageObservation,
+    VideoObservation,
     CalculationResultObservation,
     CodeResultObservation,
     PreviousFactsObservation,
@@ -355,6 +357,7 @@ GaiaAgentStep: TypeAlias = Annotated[
         SearchAction,
         ReadDocumentAction,
         NextPageAction,
+        WatchVideoAction,
         ConvertFactAction,
         # UseCalculatorAction,
         PythonCodeAction,
@@ -374,6 +377,7 @@ all_steps = get_step_schemas_from_union_type(
             SearchAction,
             ReadDocumentAction,
             NextPageAction,
+            WatchVideoAction,
             PythonCodeAction,
             GaiaAnswer,
         ],
@@ -389,48 +393,9 @@ nocode_steps = get_step_schemas_from_union_type(
             SearchAction,
             ReadDocumentAction,
             NextPageAction,
+            WatchVideoAction,
             GaiaAnswer,
         ],
         Field(discriminator="kind"),
     ]
 )
-
-_step_list = [
-    PlanThought,
-    ListOfFactsThought,
-    SourcesThought,
-    DraftPlansThought,
-    ReadingResultThought,
-    NewFactThought,
-    ReasoningThought,
-    StartSubtask,
-    SearchAction,
-    ReadDocumentAction,
-    NextPageAction,
-    ConvertFactAction,
-    UseCalculatorAction,
-    PythonCodeAction,
-    GaiaQuestion,
-    SearchResultsObservation,
-    PageObservation,
-    CalculationResultObservation,
-    CodeResultObservation,
-    PreviousFactsObservation,
-    GaiaAnswer,
-    ActionExecutionFailure,
-    LLMOutputParsingFailureAction,
-    SetNextNode,
-    AssistantStep,
-]
-
-_kind_to_step = {step.__fields__["kind"].default: step for step in _step_list}
-
-
-def load_step(step_dict: dict) -> GaiaStep:
-    try:
-        step = _kind_to_step[step_dict["kind"]](**step_dict)
-    except Exception:
-        view = step_dict.copy()
-        view.pop("metadata", None)
-        step = AssistantStep(content=json.dumps(view, indent=2, ensure_ascii=False))
-    return step

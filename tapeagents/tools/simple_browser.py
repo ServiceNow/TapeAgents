@@ -23,7 +23,6 @@ import re
 import threading
 import time
 import uuid
-from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse
 
@@ -36,24 +35,13 @@ from termcolor import colored
 
 from tapeagents.core import Prompt
 from tapeagents.llms import LLM
-from tapeagents.utils import FatalError, diff_strings
+from tapeagents.utils import FatalError, acquire_timeout, diff_strings
 
 from .document_converters import (
     FileConversionException,
     FileConverter,
     UnsupportedFormatException,
 )
-
-
-@contextmanager
-def acquire_timeout(lock, timeout):
-    result = lock.acquire(timeout=timeout)
-    try:
-        yield result
-    finally:
-        if result:
-            lock.release()
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -299,7 +287,9 @@ class SimpleTextBrowser:
                 key = query
             logger.info(colored(f"Cache hit for search {query}", "green"))
             self._log.append({"k": query, "v": self._cache[key]})
-            return self._cache[key][:max_results]
+            result = self._cache[key][:max_results]
+            if len(result):
+                return result
         logger.info(colored(f"Search {query} not in cache", "yellow"))
         if self.only_cached_webpages:
             ratios = [(k, ratio(key, k, score_cutoff=0.5)) for k in self._cache.keys()]

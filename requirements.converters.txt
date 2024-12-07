@@ -12,6 +12,9 @@ pdf2image==1.17.0
 pyparsing==3.1.2
 python-pptx==0.6.23
 readability-lxml
-SpeechRecognition[whisper-local]==3.10.4
 xlrd==2.0.1
 youtube-transcript-api==0.6.2
+yt-dlp==2024.11.04
+webvtt-py==0.5.1
+ffmpeg-python==0.2.0
+openai-whisper==20240930

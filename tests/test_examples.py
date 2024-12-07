@@ -1,7 +1,9 @@
 import contextlib
+import gzip
 import json
 import logging
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -11,15 +13,22 @@ from make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
 from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
+from examples.rl_gsm8k.orchestrate_rl import CoTMathAgent, RLMathTape, extract_tape_training_samples
 from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
+from tapeagents.observe import retrieve_all_llm_calls
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
 
 from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
-from examples.delegate_stack import ExampleTape as ExampleTapeStack
-from examples.delegate_stack import Linguist, make_analyze_text_chain
+from examples.delegate_stack import (
+    ExampleTape as ExampleTapeStack,
+)
+from examples.delegate_stack import (
+    Linguist,
+    make_analyze_text_chain,
+)
 from examples.gaia_agent.agent import GaiaAgent
 from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.tape import GaiaTape
@@ -141,16 +150,23 @@ def test_llama_agent_tape_reuse():
 
 
 def test_gaia_agent():
-    # TODO: FIX final steps in the end in test res!
     run_dir = str(res_path / "gaia_agent")
-    llm = mock_llm(run_dir)
-    env = GaiaEnvironment(only_cached_webpages=True)
-    env.browser.set_web_cache(f"{run_dir}/web_cache.jsonl")
-    agent = GaiaAgent.create(llm)
-    tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
-    logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, env, reuse_observations=True)
-    assert fails == 0, f"{fails} failed tapes"
+    db_file = f"{run_dir}/tapedata.sqlite"
+    with gzip.open(f"{run_dir}/tapedata.sqlite.gz", "rb") as f_in:
+        with open(db_file, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    try:
+        llm = mock_llm(run_dir)
+        env = GaiaEnvironment(only_cached_webpages=True, attachment_dir=f"{run_dir}/attachments")
+        env.browser.set_web_cache(f"{run_dir}/web_cache.jsonl")
+        agent = GaiaAgent.create(llm)
+        tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
+        logger.info(f"Validate {len(tapes)} tapes")
+        fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+        assert fails == 0, f"{fails} failed tapes"
+    finally:
+        if os.path.exists(db_file):
+            os.remove(db_file)
 
 
 def test_workarena_agent():
@@ -237,6 +253,22 @@ def test_gsm8k_tuning_samples_prep():
     assert training_samples == new_training_samples
 
 
+def test_rl_gsm8k_data():
+    run_dir = f"{res_path}/rl_gsm8k"
+    sqlite_path = f"{run_dir}/tapedata.sqlite"
+    llm_calls = retrieve_all_llm_calls(sqlite_path)
+    tapes = load_tapes(RLMathTape, run_dir, file_extension=".json")
+    agent = CoTMathAgent.create(mock_llm(run_dir))
+    cfg = DictConfig({"use_rejection_sampling": False, "finetune": {"seq_length": 1024}})
+    training_samples = []
+    for tape in tapes:
+        _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg, llm_calls, strict=False)
+        training_samples.append(training_sample[0])
+    
+    new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
+    assert training_samples == new_training_samples
+
+
 if __name__ == "__main__":
     test_llama_agent()
     test_llama_agent_traces()
@@ -249,3 +281,4 @@ if __name__ == "__main__":
     test_tape_improver()
     test_gsm8k_tuning_tapes_generation()
     test_gsm8k_tuning_samples_prep()
+    test_rl_gsm8k_data()

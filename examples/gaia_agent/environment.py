@@ -6,8 +6,10 @@ from pdf2image import convert_from_path
 
 from tapeagents.core import Action
 from tapeagents.environment import CodeExecutionResult, Environment, ExecuteCode
+from tapeagents.steps import WatchVideoAction
 from tapeagents.tools.calculator import calculate
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
+from tapeagents.tools.media_reader import get_video_observation
 from tapeagents.tools.python_interpreter import run_python_code
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.utils import FatalError
@@ -36,6 +38,7 @@ logger = logging.getLogger(__name__)
 class GaiaEnvironment(Environment):
     def __init__(
         self,
+        attachment_dir: str,
         code_sandbox: ContainerExecutor | None = None,
         image_observations: bool = False,
         **kwargs,
@@ -43,6 +46,7 @@ class GaiaEnvironment(Environment):
         super().__init__()
         self.code_sandbox = code_sandbox
         self.image_observations = image_observations
+        self.attachment_dir = attachment_dir
         self.browser = SimpleTextBrowser(**kwargs)
 
     def react(self, tape: GaiaTape) -> GaiaTape:
@@ -51,9 +55,15 @@ class GaiaEnvironment(Environment):
             try:
                 match action:
                     case SearchAction():
-                        if "web" not in action.source and "wiki" not in action.source:
-                            raise ValueError(f"Supported sources are 'web' and 'wiki', got {action.source}")
-                        query = f"site:wikipedia.org {action.query}" if "wiki" in action.source else action.query
+                        if action.source == "wiki":
+                            query = f"site:wikipedia.org {action.query}"
+                        elif action.source == "youtube":
+                            query = f"site:youtube.com {action.query}"
+                        elif action.source == "web":
+                            query = action.query
+                        else:
+                            raise ValueError(f"Supported sources are 'web', 'wiki' and 'youtube', got {action.source}")
+
                         try:
                             serp = self.browser.get_search_results(query)
                         except Exception as e:
@@ -79,6 +89,11 @@ class GaiaEnvironment(Environment):
                                 error=self.browser._page_error if self.browser._page_error else None,
                             )
                         )
+                    case WatchVideoAction():
+                        video_observation = get_video_observation(
+                            action.video_url, self.attachment_dir, action.start_time, action.end_time
+                        )
+                        tape = tape.append(video_observation)
                     case ConvertFactAction():
                         result = calculate(
                             action.expression,

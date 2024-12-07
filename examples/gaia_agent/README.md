@@ -18,11 +18,14 @@ The agent is free to choose which thoughts and actions to use to satisfy the cur
 Additionally, the Gaia agent implements the initial planning step, which produces a «plan» in the form of a sequence of free-form descriptions of the actions that should be taken to solve the task.
 
 ## Quickstart
-Perform all the following steps from the top folder of the repo.
+Perform all the following steps from the top folder of the repo.  
 First, you need to install the dependencies for file converters:
 ```bash
-pip install -r ../../../requirements.converters.txt
+pip install -r requirements.converters.txt
 ```
+
+Then, make sure you have `FFmpeg` version 7.1.x or newer installed (more details [here](https://github.com/kkroening/ffmpeg-python?tab=readme-ov-file#installing-ffmpeg)).
+
 If you want to use conversion of PDF files to images to preserve tables and complex formatting, please install prerequisites of the pdf2image library as described [in their documentation](https://pypi.org/project/pdf2image/).
 
 Then you can run the agent using the following commands:

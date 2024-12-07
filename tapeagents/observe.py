@@ -10,7 +10,7 @@ import sqlite3
 import threading
 import time
 from typing import Callable, Optional, Type
-
+from litellm.types.utils import ChoiceLogprobs
 from pydantic import BaseModel
 
 from .config import sqlite_db_path
@@ -44,7 +44,9 @@ def migrate_sqlite_schema():
         output TEXT,
         prompt_length_tokens INTEGER,
         output_length_tokens INTEGER,
-        cached INTEGER
+        cached INTEGER,
+        llm_info TEXT,
+        cost REAL
     )
     """)
     conn.commit()
@@ -110,7 +112,7 @@ def erase_sqlite():
     conn.close()  # Close the connection when done
 
 
-def sqlite_writer(call):
+def _do_sqlite3_store_llm_call(call: LLMCall):
     try:
         init_sqlite_if_not_exists()
         with sqlite3.connect(sqlite_db_path(), timeout=30) as conn:
@@ -130,6 +132,8 @@ def sqlite_writer(call):
                     call.prompt_length_tokens,
                     call.output_length_tokens,
                     call.cached,
+                    json.dumps(call.llm_info),
+                    call.cost,
                 ),
             )
             cursor.close()
@@ -150,7 +154,7 @@ def sqlite_store_llm_call(call: LLMCall):
     else:
         # We're not in a context manager, use single-threaded mode
         logger.debug("Using single-threaded SQLite writing mode")
-        sqlite_writer(call)
+        _do_sqlite3_store_llm_call(call)
 
 
 def sqlite_store_tape(tape: Tape):
@@ -171,7 +175,7 @@ def sqlite_store_tape(tape: Tape):
             )
             cursor.close()
     except Exception as e:
-        logger.error(f"Failed to store LLMCall: {e}")
+        logger.error(f"Failed to store Tape: {e}")
 
 
 llm_call_listeners: list[LLMCallListener] = [sqlite_store_llm_call]
@@ -198,6 +202,7 @@ def retrieve_llm_calls(prompt_ids: str | list[str]) -> list[LLMCall]:
             )
             rows = cursor.fetchall()
             for row in rows:
+                # ignore row[0] cause it is alredy in row[2]
                 llm_calls.append(
                     LLMCall(
                         timestamp=row[1],
@@ -206,6 +211,8 @@ def retrieve_llm_calls(prompt_ids: str | list[str]) -> list[LLMCall]:
                         prompt_length_tokens=row[4],
                         output_length_tokens=row[5],
                         cached=row[6],
+                        llm_info=json.loads(row[7]),
+                        cost=row[8],
                     )
                 )
         cursor.close()
@@ -278,11 +285,16 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
     cursor.close()
     calls: list[LLMCall] = []
     for row in rows:
+        output_dict = json.loads(row["output"])
+        # Handle logprobs separately before creating LLMOutput
+        if "logprobs" in output_dict:
+            logprobs = ChoiceLogprobs(**output_dict["logprobs"])
+            output_dict["logprobs"] = logprobs
         calls.append(
             LLMCall(
                 timestamp=row["timestamp"],
                 prompt=Prompt(**json.loads(row["prompt"])),
-                output=LLMOutput(**json.loads(row["output"])),
+                output=LLMOutput(**output_dict),
                 prompt_length_tokens=row["prompt_length_tokens"],
                 output_length_tokens=row["output_length_tokens"],
                 cached=row["cached"],
@@ -331,7 +343,7 @@ class SQLiteWriterThread:
             item = self.write_queue.get()
             if item is None:  # Stop signal
                 break
-            sqlite_writer(item)
+            _do_sqlite3_store_llm_call(item)
             self.write_queue.task_done()
 
     def wait_for_empty(self, timeout: Optional[float] = None) -> bool:

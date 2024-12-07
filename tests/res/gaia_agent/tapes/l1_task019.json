@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "id": "d50ea7aa-998c-4c87-9ffa-3132e853b22d",
+        "id": "d546cc4d-e2d5-4bf4-a14e-a0ae430249bd",
         "parent_id": null,
         "author": null,
         "author_tape_id": null,
@@ -30,7 +30,7 @@
     "steps": [
         {
             "metadata": {
-                "id": "55277263-3086-408c-9917-e5abc4f083fa",
+                "id": "110938aa-a69e-406c-aa1e-6429c566715f",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -42,8 +42,8 @@
         },
         {
             "metadata": {
-                "id": "0f64427c-48a6-4fb9-9472-a77dcd140b8a",
-                "prompt_id": "73fc9fd0-9352-4f38-aa3e-a4cdc952c383",
+                "id": "e1d86117-3a3b-4c01-8db1-70dcc9a39e4c",
+                "prompt_id": "308f8206-112d-4eca-9e0e-da001f8d8088",
                 "node": "plan",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -51,14 +51,14 @@
             "kind": "plan_thought",
             "plan": [
                 "Search for Merriam-Webster's Word of the Day for June 27, 2022.",
-                "Identify the writer quoted in the entry for that specific Word of the Day.",
-                "Extract the relevant information regarding the writer from the search results."
+                "Identify the writer quoted for that specific Word of the Day.",
+                "Extract the relevant information regarding the quote and the writer."
             ]
         },
         {
             "metadata": {
-                "id": "efaa0f25-0e67-413b-91d4-e10659d19a04",
-                "prompt_id": "a1e644f8-9257-42e7-8d6a-358722a0bd70",
+                "id": "f27f4455-70ac-4d8c-b5b7-edc15033dec8",
+                "prompt_id": "6105cdd3-64d8-40c3-beaa-425f0556cdbd",
                 "node": "facts_survey",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -66,30 +66,30 @@
             "kind": "list_of_facts_thought",
             "given_facts": [
                 "The date June 27, 2022",
-                "Merriam-Webster has a Word of the Day feature"
+                "The context is about Merriam-Webster's Word of the Day"
             ],
             "facts_to_lookup": [
                 "Merriam-Webster's Word of the Day for June 27, 2022",
-                "The writer quoted in that Word of the Day entry"
+                "The writer quoted for that Word of the Day"
             ],
             "facts_to_derive": [],
             "facts_to_guess": []
         },
         {
             "metadata": {
-                "id": "c02b4f29-72a0-4ae8-8db8-c9f3e04588fd",
-                "prompt_id": "06dc0962-a65d-4401-93e5-7cb9db230b1e",
+                "id": "370707f4-d91c-4156-801b-947c18f575f2",
+                "prompt_id": "be8a438c-943c-466f-bc0a-0477d64db667",
                 "node": "start_execution",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "search_action",
-            "source": "web_search",
+            "source": "web",
             "query": "Merriam-Webster Word of the Day June 27 2022"
         },
         {
             "metadata": {
-                "id": "4a86fe2a-0445-42fc-bbea-e43ba5749d7b",
+                "id": "fb53c9ee-9a72-458a-8e4d-b5aac5fb917b",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -127,8 +127,8 @@
         },
         {
             "metadata": {
-                "id": "abfe810d-72b8-4412-a874-1971e60ae9d5",
-                "prompt_id": "c83bb2d6-9eb5-487a-b3f5-4bea06a18849",
+                "id": "5cf924b9-bc3a-4503-a856-af5906e49478",
+                "prompt_id": "0c9418aa-1b68-4c60-9a5e-cf0ded7abf76",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -140,8 +140,8 @@
         },
         {
             "metadata": {
-                "id": "1fbc910a-bcbc-4aa3-9ef3-eea4714d680a",
-                "prompt_id": "c83bb2d6-9eb5-487a-b3f5-4bea06a18849",
+                "id": "aa5c5168-2f4a-4a4b-965f-08e1dcc5b294",
+                "prompt_id": "0c9418aa-1b68-4c60-9a5e-cf0ded7abf76",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -151,7 +151,7 @@
         },
         {
             "metadata": {
-                "id": "13e01889-285f-44b5-ac7f-a1b8c452c7fb",
+                "id": "442f3f96-b967-4935-9721-9856dc1d8db8",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -165,8 +165,8 @@
         },
         {
             "metadata": {
-                "id": "776226f9-57a3-49f9-9fc1-9274ffe5561d",
-                "prompt_id": "826c1ea1-538c-403e-a5a8-6994593dcf26",
+                "id": "526a6353-d6e8-4631-beac-0680055b2e57",
+                "prompt_id": "3ce2f660-bd5d-4795-8be7-5733e512627c",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -174,13 +174,13 @@
             "kind": "reading_result_thought",
             "fact_description": "writer quoted for the Word of the Day on June 27, 2022",
             "fact_found": true,
-            "quote_with_fact": "\"War is bad for culture. Not least of all because it turns our cultural institutions into bastions of *jingoism*.\" — Annie Levin, *The New York Observer*, 7 Mar. 2022",
+            "quote_with_fact": "\"War is bad for culture. Not least of all because it turns our cultural institutions into bastions of jingoism.\" — Annie Levin, The New York Observer, 7 Mar. 2022",
             "where_to_look_next": ""
         },
         {
             "metadata": {
-                "id": "c78c8df4-b7ca-4ad9-b0dc-ec47852b0b41",
-                "prompt_id": "826c1ea1-538c-403e-a5a8-6994593dcf26",
+                "id": "785d2dd3-d0aa-4264-b52e-302dfda987c3",
+                "prompt_id": "3ce2f660-bd5d-4795-8be7-5733e512627c",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
@@ -190,15 +190,15 @@
         },
         {
             "metadata": {
-                "id": "54ce6a5a-a931-484f-b534-4a6df15cebd1",
-                "prompt_id": "d59a72a5-dd64-43e5-9e93-9c8959805228",
+                "id": "bacc57ea-6103-430b-91da-112b26abcd95",
+                "prompt_id": "f6a52e75-b102-4587-aa29-45033589f1db",
                 "node": "act",
                 "agent": "GaiaAgent",
                 "other": {}
             },
             "kind": "gaia_answer_action",
             "success": true,
-            "overview": "Identified the writer quoted for the Word of the Day on June 27, 2022.",
+            "overview": "Identified the writer quoted for the Word of the Day from Merriam-Webster.",
             "answer_unit": "",
             "answer": "Annie Levin"
         }
