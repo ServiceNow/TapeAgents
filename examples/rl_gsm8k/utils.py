@@ -1,5 +1,6 @@
 import json
 import logging
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -11,7 +12,10 @@ import numpy as np
 import psutil
 import requests
 import torch
+import yaml
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from tenacity import retry, stop_after_attempt, wait_exponential
+from examples.rl_gsm8k.run_finetune import run_finetuning_loop
 from transformers import PreTrainedTokenizer
 
 from tapeagents.llms import LLMOutput, Prompt
@@ -275,7 +279,7 @@ def calculate_stats(stats):
     }
 
 
-def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str, use_accelerate: bool = False) -> None:
+def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
 

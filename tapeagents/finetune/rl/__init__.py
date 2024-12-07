@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import Callable, Optional
 
+import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
@@ -13,7 +14,7 @@ from transformers import BatchEncoding, PreTrainedModel
 from .utils import (
     StepConfig,
     calculate_advantage,
-    calculate_reward_with_implicit_kl,
+    calculate_rewards_with_implicit_kl,
     masked_mean,
     replace_dataset_column,
 )
@@ -56,7 +57,6 @@ class RLConfig(StepConfig):
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
-
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
     if rl_config:
@@ -183,10 +183,11 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     if config.reward_minus_kl_coef > 0:
         logger.info("Updating Reward with Implicit KL")
-        calculate_reward_with_implicit_kl_ = partial(
-            calculate_reward_with_implicit_kl, reward_minus_kl_coef=config.reward_minus_kl
+        calculate_rewards_with_implicit_kl_ = partial(
+            calculate_rewards_with_implicit_kl, reward_minus_kl_coef=config.reward_minus_kl_coef
         )
-        df["reward"] = df.apply(calculate_reward_with_implicit_kl_, axis=1)
+        df["rewards"] = df.apply(calculate_rewards_with_implicit_kl_, axis=1)
+        df["reward"] = df["rewards"].apply(lambda x: np.mean(x))
 
     # Group by group_id and compute mean and std of reward
     grouped = df.groupby("group_id")["reward"].agg(["mean", "std", "count"]).reset_index()

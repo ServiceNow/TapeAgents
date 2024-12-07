@@ -1,5 +1,5 @@
 defaults:
-  - rl_gsm8k
+  - rl_math
   - _self_
 
 max_agent_forks: 16

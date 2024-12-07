@@ -2,11 +2,12 @@ defaults:
   - finetune: rl_llama31_8b
   - _self_
 
+dataset_name: gsm8k
 n_workers: 32
 get_logprobs_workers: 1
 max_loops: 1
 test_every_n_iterations: 5
-model_path: meta-llama/Meta-Llama-3.1-8B-Instruct
+model_path: /mnt/llmd/base_models/deepseek-math-7b-instruct
 max_agent_forks: 1024
 attempts: 64
 force_restart: false
@@ -14,12 +15,14 @@ max_iterations: 1000
 use_rejection_sampling: false
 llm:
   parameters:
-    max_tokens: 2000
+    max_tokens: 1024 
     temperature: 0.7
 test_llm:
   parameters: 
     max_tokens: ${...llm.parameters.max_tokens}
     temperature: 0.
+    top_p: 1.0
+    top_k: 50
 
 finetune:
   config_name: ${..model_path}
@@ -29,7 +32,7 @@ finetune:
   # One step is one weight update. See the finetuning configuration
   # for the info in how many sequences are used for each weight update.
   save_checkpoint_steps: 10
-  seq_length: 2000
+  seq_length: ${..llm.parameters.max_tokens}
 
 vllm_config:
   vllm_kwargs:
