@@ -166,7 +166,7 @@ class CameraReadyRenderer(BasicRenderer):
                 for attr in foldable_keys:
                     if key.endswith(attr):
                         del dump[key]
-                        content += getattr(step, key, "")
+                        content += str(getattr(step, key, ""))
             text = pretty_yaml(dump) + ("\n" + maybe_fold(content))
 
         # Augment text with media
@@ -202,7 +202,7 @@ class CameraReadyRenderer(BasicRenderer):
         prompt_messages = [f"tool_schemas: {json.dumps(llm_call.prompt.tools, indent=2)}"]
         for m in llm_call.prompt.messages:
             # Replace image encoded in base64 with a placeholder
-            if isinstance(m["content"], list):
+            if "content" in m and isinstance(m["content"], list):
                 for c in m["content"]:
                     if c.get("image_url"):
                         if url := c.get("image_url").get("url"):
