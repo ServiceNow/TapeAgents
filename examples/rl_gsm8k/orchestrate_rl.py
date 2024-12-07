@@ -41,7 +41,7 @@ from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls
+from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls, LLMCall, migrate_sqlite_schema
 
 logger = logging.getLogger(__name__)
 
@@ -275,16 +275,30 @@ def main(cfg: DictConfig):
     run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
     if run is None:
         raise ValueError("Failed to initialize wandb run")
+    
+    # Add migration call here
+    migrate_sqlite_schema()
+    
     state_path = exp_path / "rl_state.json"
     state = load_state(state_path)
     # optionally clean all data at start time
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
 
-    train_dataset = load_dataset("openai/gsm8k", "main", split="train")
-    train_samples = [s for s in train_dataset]
-    test_dataset = load_dataset("openai/gsm8k", "main", split="test")
-    test_samples = [s for s in test_dataset]
+    match cfg.dataset_name:
+        case "math":
+            dataset_long_name = "hendrycks/competition_math"
+            process_fn = process_math_test
+        case "gsm8k":
+            dataset_long_name = "openai/gsm8k"
+            process_fn = process_gsm8k_test
+        case _:
+            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+
+    train_dataset = load_dataset(dataset_long_name, "main", split="train", trust_remote_code=True)
+    train_samples = [process_fn(s) for s in train_dataset]
+    test_dataset = load_dataset(dataset_long_name, "main", split="test", trust_remote_code=True)
+    test_samples = [process_fn(s) for s in test_dataset]
     logging.info(f"Loaded {len(train_samples)} training samples")
     logging.info(f"Loaded {len(test_samples)} test samples")
 

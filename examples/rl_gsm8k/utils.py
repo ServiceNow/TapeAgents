@@ -309,9 +309,15 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
 
     if num_gpus > 1:
         base_cmd[2:2] = [
-            "--multi_gpu",
+            # "--multi_gpu",
             "--num_processes",
             str(num_gpus),
+            "--use_deepspeed",
+            "--deepspeed_config_file",
+            "conf/accelerate/ds_2nodes.json",
+            "--deepspeed_multinode_launcher",
+            "standard",
+            "--same_network",
         ]
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")

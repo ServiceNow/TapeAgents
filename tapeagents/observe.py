@@ -25,23 +25,17 @@ LLMCallListener = Callable[[LLMCall], None]
 TapeListener = Callable[[Tape], None]
 
 
-def init_sqlite_if_not_exists(only_once: bool = True):
+def migrate_sqlite_schema():
     """
-    Ensure that the tables exist in the sqlite database.
-
-    This is only done once per Python process.
-    If you want to change the SQLite path during at run time, you can run this function manually
-    with only_once=False.
-
+    Migrate the SQLite database schema to add any missing columns.
+    Should be called before any other database operations.
     """
-    global _checked_sqlite
-    if _checked_sqlite and only_once:
-        return
-
     path = sqlite_db_path()
-    logger.info(f"use SQLite db at {path}")
+    logger.info(f"Checking schema for SQLite db at {path}")
     conn = sqlite3.connect(path)
     cursor = conn.cursor()
+    
+    # First ensure table exists
     cursor.execute("""               
     CREATE TABLE IF NOT EXISTS LLMCalls (
         prompt_id TEXT PRIMARY KEY,
@@ -53,7 +47,41 @@ def init_sqlite_if_not_exists(only_once: bool = True):
         cached INTEGER
     )
     """)
-    # now create tape table with tape_id index and data column
+    conn.commit()
+    
+    # Get current columns
+    cursor.execute("PRAGMA table_info(LLMCalls)")
+    columns = {row[1] for row in cursor.fetchall()}
+    
+    # Add missing columns
+    if "llm_info" not in columns:
+        logger.info("Adding llm_info column to LLMCalls table")
+        cursor.execute("ALTER TABLE LLMCalls ADD COLUMN llm_info TEXT")
+    
+    if "cost" not in columns:
+        logger.info("Adding cost column to LLMCalls table")
+        cursor.execute("ALTER TABLE LLMCalls ADD COLUMN cost REAL")
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def init_sqlite_if_not_exists(only_once: bool = True):
+    """
+    Ensure that the tables exist in the sqlite database.
+    """
+    global _checked_sqlite
+    if _checked_sqlite and only_once:
+        return
+
+    migrate_sqlite_schema()
+    
+    path = sqlite_db_path()
+    conn = sqlite3.connect(path)
+    cursor = conn.cursor()
+    
+    # Create Tapes table if it doesn't exist
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Tapes (
         tape_id TEXT PRIMARY KEY,
@@ -64,7 +92,10 @@ def init_sqlite_if_not_exists(only_once: bool = True):
         steps TEXT
     )
     """)
+    
+    conn.commit()
     cursor.close()
+    conn.close()
     _checked_sqlite = True
 
 
@@ -85,7 +116,12 @@ def sqlite_writer(call):
         with sqlite3.connect(sqlite_db_path(), timeout=30) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO LLMCalls (prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                """
+                INSERT INTO LLMCalls 
+                (prompt_id, timestamp, prompt, output, prompt_length_tokens, 
+                output_length_tokens, cached, llm_info, cost) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
                 (
                     call.prompt.id,
                     call.timestamp,
@@ -235,7 +271,9 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
 
     conn.row_factory = dict_factory
     cursor = conn.cursor()
-    cursor.execute("SELECT timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached FROM LLMCalls")
+    cursor.execute(
+        "SELECT prompt_id, timestamp, prompt, output, prompt_length_tokens, output_length_tokens, cached, llm_info, cost FROM LLMCalls"
+    )
     rows = cursor.fetchall()
     cursor.close()
     calls: list[LLMCall] = []
@@ -248,6 +286,8 @@ def retrieve_all_llm_calls(sqlite_fpath: str | None = None) -> list[LLMCall]:
                 prompt_length_tokens=row["prompt_length_tokens"],
                 output_length_tokens=row["output_length_tokens"],
                 cached=row["cached"],
+                llm_info=json.loads(row["llm_info"]) if row["llm_info"] is not None else {},
+                cost=row["cost"] if row["cost"] is not None else 0.0,
             )
         )
     return calls
