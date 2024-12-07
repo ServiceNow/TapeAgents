@@ -49,10 +49,10 @@ from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls, LLMCa
 logger = logging.getLogger(__name__)
 
 
-def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
+def annotate_trace_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
     try:
-        ref_logprobs_content = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
-        trace.ref_logprobs = [c.logprob for c in ref_logprobs_content]
+        ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
         return trace
     except Exception as e:
         raise e
@@ -87,7 +87,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
+    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list
 ) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -453,9 +453,9 @@ def main(cfg: DictConfig):
                 **cfg.vllm_config.vllm_kwargs,
             ) as vllm_service_manager:
                 # FIXME: more than 1 worker causes the LLM to run OOM
-                with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
+                with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers) as executor:
                     futures = [
-                        executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
+                        executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace)
                         for trace in all_results["train"]["training_samples"]
                     ]
                     training_samples: List[TrainingText] = [
