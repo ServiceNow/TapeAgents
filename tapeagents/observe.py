@@ -10,7 +10,6 @@ import sqlite3
 import threading
 import time
 from typing import Callable, Optional, Type
-
 from pydantic import BaseModel
 
 from .config import sqlite_db_path

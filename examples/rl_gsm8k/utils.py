@@ -12,7 +12,9 @@ import psutil
 import requests
 import torch
 from tenacity import retry, stop_after_attempt, wait_exponential
+from transformers import PreTrainedTokenizer
 
+from tapeagents.llms import LLMOutput, Prompt
 
 logger = logging.getLogger(__name__)
 
@@ -331,3 +333,17 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
         raise RuntimeError(error_msg) from e
     except Exception as e:
         raise RuntimeError(f"Unexpected error during training: {str(e)}") from e
+
+
+def get_tokens_from_hf_tokenizer(tokenizer: PreTrainedTokenizer | None, prompt: Prompt, output: LLMOutput) -> list:
+    if not tokenizer:
+        return []
+    prompt_token_ids = tokenizer.apply_chat_template(
+        conversation=prompt.messages, tokenize=True, add_generation_prompt=True
+    )
+    text_token_ids = tokenizer.apply_chat_template(
+        prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True
+    )
+    output_token_ids = text_token_ids[len(prompt_token_ids) :]
+    output_tokens = [tokenizer.decode(output_token_id) for output_token_id in output_token_ids]
+    return output_tokens
