@@ -34,11 +34,11 @@ from examples.rl_gsm8k.utils import (
     VLLMServiceManager,
     calculate_stats,
     clean_up,
+    get_tokens_from_hf_tokenizer,
     launch_training,
     load_state,
     save_state,
     setup_logging,
-    get_tokens_from_hf_tokenizer,
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
@@ -87,7 +87,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list[LLMCall], strict: bool = True
+    new_tape: RLMathTape, agent: CoTMathAgent, dataset_name: str, cfg: DictConfig, llm_calls: list
 ) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -154,20 +154,22 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
 
             logprobs = []
             vllm_tokens = []
             if hasattr(llm_call.output, "logprobs"):
-                logprobs_content = llm_call.output.logprobs.content
-                logprobs = [c.logprob for c in logprobs_content]
-                vllm_tokens = [c.token for c in logprobs_content]
+                logprobs_dict = llm_call.output.logprobs
+                logprobs = [c["logprob"] for c in logprobs_dict["content"]]
+                vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
 
-            if (strict and vllm_tokens != hf_tokens) or (not strict and len(logprobs) != llm_call.output_length_tokens):
+            # Note: tokens produced during generation are not always the same as the tokens produced on the full sequence
+            if vllm_tokens != hf_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
-                logprobs_content = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
-                logprobs = [c.logprob for c in logprobs_content]
+                logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+                logprobs = [c["logprob"] for c in logprobs_dict["content"]]
+                new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
+                assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
                 compute_log_probs.append(1)
             else:
                 compute_log_probs.append(0)
@@ -256,7 +258,7 @@ def generate_training_data(
     start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
-    with ThreadPoolExecutor(max_workers=cfg.get_log_probs_workers) as executor:
+    with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers) as executor:
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
             agent=agent,
@@ -344,6 +346,11 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
+    remove_leading_white_space = True if "deepseek" in cfg.model_path else False
+    if remove_leading_white_space:
+        # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
+        logging.info("Removing leading white space from the model. This is necessary for DeepSeek models")
+
     while state["iteration"] <= cfg.max_iterations:
         start_iteration = time.time()
         if os.path.exists(finetune_path / "current"):
@@ -358,6 +365,7 @@ def main(cfg: DictConfig):
             parameters=cfg.llm.parameters,
             use_cache=False,
             collect_logprobs=True,
+            remove_leading_white_space=remove_leading_white_space,
         )
 
         test_llm = TrainableLLM(
@@ -366,6 +374,7 @@ def main(cfg: DictConfig):
             tokenizer_name=str(assistant_model_path),
             parameters=cfg.test_llm.parameters,
             use_cache=False,
+            remove_leading_white_space=remove_leading_white_space,
         )
 
         try:
