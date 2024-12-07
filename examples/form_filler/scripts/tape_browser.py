@@ -10,10 +10,9 @@ from tapeagents.io import load_tapes
 from tapeagents.core import Tape
 from examples.form_filler.user_simulator_agent import UserSimulatorTape
 
-# Syntax: python visualize_formfiller_tapes.py <path_to_tapes_folder> <path_to_sqlite_db> <port>
+# Syntax: python tape_browser.py <path_to_tapes_folder> [<path_to_sqlite_db>] [<port>]
 
 tape_dir = Path(sys.argv[1])
-os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(tape_dir, "tapedata.sqlite")
 
 if len(sys.argv) >= 3:
     os.environ["TAPEAGENTS_SQLITE_DB"] = sys.argv[2]

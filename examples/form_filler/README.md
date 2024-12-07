@@ -42,11 +42,13 @@ The prompts for the nodes are provided in [teacher_agent.yaml](https://github.co
 To test the teacher you need to have user tapes as input.
 We provide a set of 5 initial user tapes in [initial_user_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_user_tapes.yaml) to run the agent on.
 ```bash
+# this will take a while because the teacher agent makes multiple LLM calls
 python -m examples.form_filler.scripts.run_formfiller_agent \
     agent=teacher_agent \
     user_dialogues_path=examples/form_filler/assets/initial_user_tapes.yaml \
     output_path=outputs/agent_tapes/teacher
 ```
+
 If you already ran a [User Agent](#user-agent) with behavior \<B>, you can continue these conversations by setting `user_dialogues_path=outputs/user_tapes/<B>/user_predicted_tapes.yaml`, replacing \<B> with the actual behavior name you used to run a user agent.
 
 By default this script will use the [openrouter_llama3_405b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/openrouter_llama3_405b_temp1.yaml) llm config which uses openrouter to call llama405B.
@@ -58,6 +60,12 @@ This script will produce agent tapes (1 per input user tape) stored in the `outp
 - `teacher_agent_predicted_tapes.yaml`: Successful agent tapes
 - `teacher_agent_failure_tapes.yaml`: Failed agent tapes with an error step as the last step
 - `teacher_agent_stats.json`: The counts of last step types of failed and successful tapes
+
+To see the generated tapes in the tape browser app, run the command below, and then open your browser to http://localhost:7680.
+
+```
+python -m examples.form_filler.scripts.tape_browser outputs/agent_tapes/teacher
+```
 
 ### Student Agent
 The student agent is designed for a small fine-tuned model, therefore it is much simpler.
@@ -85,25 +93,12 @@ python -m examples.form_filler.scripts.run_formfiller_agent \
 If you already ran a [User Agent](#user-agent) with behavior \<B>, you can continue these conversations by setting `user_dialogues_path=outputs/user_tapes/<B>/user_predicted_tapes.yaml`, replacing \<B> with the actual behavior name you used to run a user agent.
 
 By default this script will use the [sft_llama3_8b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/sft_llama3_8b_temp1.yaml) llm config.
-Right now this config uses openrouter to call llama8B, however this config is meant to be used with a **fine-tuned** model. You should change the config `model_name` and `base_url` to map to your pretrained model.
-Otherwise, to use this model you must have an openrouter API key saved into your `TAPEAGENTS_LLM_TOKEN` environment variable.
-You can check the pricing of this model on the [openrouter website](https://openrouter.ai/meta-llama/llama-3.1-8b-instruct)
-To override the llm config used, specify `llm@agent.llm=...` in your command.
+Right now this config uses openrouter to call llama8B, however this config is meant to be used with a **fine-tuned** model. You can change the config `model_name` and `base_url` to map to your finetuned model. LLAMA 3.1 8B is not very good at following the student prompt without finetuning. To better understand how a finetuned student model is supposed to work, you can run the example above with LLAMA 3.1 405B instead by adding `llm@agent.llm=openrouter_llama3_405b_temp1` to the command.
 
 This script will produce agent tapes stored in the `output_path` directory. The structure of the files in the output directory is:
 - `student_agent_predicted_tapes.yaml`: Successful agent tapes
 - `student_agent_failure_tapes.yaml`: Failed agent tapes with an error step as the last step
 - `student_agent_stats.json`: The counts of last step types of failed and successful tapes
-
-## Visualization
-
-To look at the generated tapes in the browser, run the following command:
-```bash
-python -m examples.form_filler.scripts.visualize_formfiller_tapes outputs/agent_tapes/<teacher or student>
-```
-
-Then open your browser to http://localhost:7680
-
 
 ## User Agent
 
@@ -148,8 +143,6 @@ python -m examples.form_filler.scripts.run_user_simulator \
 If you already ran a Teacher [Agent](#teacher-agent) in `outputs/agent_tapes/teacher`, you can set `input_dialogues_path="outputs/agent_tapes/teacher/teacher_predicted_tapes.yaml" \` to continue these teacher agent tapes with the user agent.
 
 By default this script will use the [openrouter_llama3_405b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/openrouter_llama3_405b_temp1.yaml) llm config which uses openrouter to call llama405B.
-To use this model you must have an openrouter API key saved into your `TAPEAGENTS_LLM_TOKEN` environment variable.
-You can check the pricing of this model on the [openrouter website](https://openrouter.ai/meta-llama/llama-3.1-405b-instruct).
 To override the llm config used, specify `llm@user_simulator_agent.llms=...` in your command.
 
 This script will produce 5 *user tapes* and 5 *form filler agent tapes* stored in the `output_path` directory
@@ -216,7 +209,7 @@ Each layer corresponds to a User or Form-filler Agent turn. Even layers (`layer_
 
 For convenience, we merge all agent (resp. user) dialogues into a single file `formfiller_agent_tapes.yaml` (resp. `formfiller_user_tapes.yaml`)
 
-You can visualize the generated dialogues by running
+You can visualize the generated dialogues at each layer I by running
 ```bash
-python -m examples.form_filler.scripts.visualize_formfiller_tapes outputs/make_tape_tree/<layer_idx> <optional: give path to tapedata.sqlite to visualize prompts>
+python -m examples.form_filler.scripts.tape_browser outputs/make_tape_tree/layer_I
 ```
