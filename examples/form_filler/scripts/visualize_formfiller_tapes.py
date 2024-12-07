@@ -35,11 +35,12 @@ class RecursiveTapeBrowser(TapeBrowser):
             logger.info(f"{len(tapes)} FormFillerTape tapes loaded from {fname}")
         except Exception as e:
             try:
-                logger.error(f"Could not load FormFillerTape tapes from {fname}: {e}, trying UserSimulatorTape")
                 tapes = load_tapes(UserSimulatorTape, fname)
                 logger.info(f"{len(tapes)} UserSimulatorTape loaded from {fname}")
             except Exception as e2:
-                logger.error(f"Could not load tapes from {fname}: {e2}")
+                logger.error(f"Could not load tapes from {fname}.")
+                logger.error(f"Tried loading as FormFillerTape, got this error: {e}")
+                logger.error(f"Tried loading as UserSimulatorTape, got this error: {e2}")
         return tapes
     
     def get_tape_files(self) -> list[str]:
