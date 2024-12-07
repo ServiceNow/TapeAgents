@@ -249,7 +249,13 @@ def get_temporary_folder_and_move(output_dir: Path):
     output_dir = output_dir.resolve()
     temporary_path = output_dir.parent / ("~" + output_dir.name)
 
-    if accelerator.is_main_process:
+    # Check if this is the global main process (across all nodes)
+    is_global_main = accelerator.is_main_process and (
+        not hasattr(accelerator.state, "process_index")
+        or accelerator.state.process_index == 0
+    )
+
+    if is_global_main:
         if os.path.exists(temporary_path):
             logger.info(f"Deleting temporary directory {temporary_path}")
             shutil.rmtree(temporary_path)
@@ -260,8 +266,8 @@ def get_temporary_folder_and_move(output_dir: Path):
     yield temporary_path
     accelerator.wait_for_everyone()
 
-    # Move to final path
-    if accelerator.is_main_process:
+    # Move to final path - only done by global main process
+    if is_global_main:
         # delete output_dir if it exists
         if os.path.exists(output_dir):
             logger.info(
