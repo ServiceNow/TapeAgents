@@ -47,7 +47,7 @@ from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls
 logger = logging.getLogger(__name__)
 
 
-def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText | None:
+def annotate_trace_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText | None:
     try:
         trace.ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
         return trace
@@ -99,7 +99,7 @@ def extract_tape_training_samples(
         - Dictionary with statistics (reward, steps, success, no_errors)
     """
     discarded = []
-    compute_log_probs = []
+    compute_logprobs = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
@@ -146,9 +146,9 @@ def extract_tape_training_samples(
                 logprobs = [c["logprob"] for c in logprobs_dict["content"]]
                 new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
                 assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
-                compute_log_probs.append(1)
+                compute_logprobs.append(1)
             else:
-                compute_log_probs.append(0)
+                compute_logprobs.append(0)
 
             trace.reward = reward
             trace.logprobs = logprobs
@@ -174,7 +174,7 @@ def extract_tape_training_samples(
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
-        "compute_log_probs": np.mean(compute_log_probs),
+        "compute_logprobs": np.mean(compute_logprobs) if compute_logprobs else 0,
     }
     return new_tape, training_samples, tape_stats
 
@@ -253,7 +253,7 @@ def generate_training_data(
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_log_probs"])
+            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_logprobs"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
             new_tapes.append(new_tape)
@@ -436,7 +436,7 @@ def main(cfg: DictConfig):
                         # FIXME: more than 1 worker causes the LLM to run OOM
                         with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers) as executor:
                             futures = [
-                                executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
+                                executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace)
                                 for trace in training_samples
                             ]
                             for future in as_completed(futures):
