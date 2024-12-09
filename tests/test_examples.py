@@ -262,12 +262,11 @@ def test_rl_gsm8k_data():
     llm = mock_llm(run_dir)
     llm.tokenizer = transformers.AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
     agent = CoTMathAgent.create(llm)
-    cfg = DictConfig({"use_rejection_sampling": False, "finetune": {"seq_length": 1024}})
+    cfg = DictConfig({"dataset_name": "math", "finetune": {"seq_length": 1024}})
     training_samples = []
     for tape in tapes:
         _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg, llm_calls)
         training_samples.append(training_sample[0])
-
     new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
     assert training_samples == new_training_samples
 
