@@ -209,6 +209,7 @@ class VLLMServiceManager:
             self.stdout_file.close()
         if self.stderr_file:
             self.stderr_file.close()
+        time.sleep(10)
 
     def __enter__(self) -> "VLLMServiceManager":
         self._start_service()
