@@ -1,0 +1,16 @@
+defaults:
+- base
+- _self_
+
+behavior_alias: skip_required
+
+step_types_chain:
+  - RequestFunctionParameters
+  - AssistantStep
+
+step_filters:
+  - _target_: examples.form_filler.user_simulator_filters.ParameterType
+    # cannot skip <--> required & no default
+    required_no_default: true
+
+instruction: The user does not answer and asks to skip this question.

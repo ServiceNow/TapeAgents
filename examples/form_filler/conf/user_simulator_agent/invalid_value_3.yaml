@@ -1,0 +1,37 @@
+defaults:
+- base
+- _self_
+
+
+behavior_alias: invalid_value_3
+
+step_types_chain:
+  - RequestFunctionParameters
+  - AssistantStep
+step_filters:
+  - _target_: examples.form_filler.user_simulator_filters.HasRequiredTemplateParams
+    params:
+      - current_parameter_name
+      - current_parameter_enum_values
+
+instruction:
+  _target_: examples.form_filler.user_simulator_agent.InstructionSampler
+  instructions:
+    invalid: |-
+      Provide an INVALID value for the '{current_parameter_name}' field.
+      A valid value must be one of
+      {current_parameter_enum_values}
+      Your response must clearly differ from these options!
+      Do not use underscore or other special characters!
+      Do not over explain, be specific and brief!
+    multivalue: |-
+      Provide more than one value for the '{current_parameter_name}' field.
+      A valid value must be one of
+      {current_parameter_enum_values}
+      Your response must clearly use more than one of these options!
+      Do not use underscore or other special characters!
+      Do not over explain, be specific and brief!
+  weights:
+    invalid: 1.0
+    multivalue: 1.0
+   

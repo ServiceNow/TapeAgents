@@ -1,0 +1,59 @@
+name: EmployeeTrainingRequest
+description: Request training for a new employee, including modules on coffee preparation,
+  customer service, and point-of-sale operations. This function requires the employee's
+  ID, name, and store location as parameters. The employee ID must be a valid ID in
+  the CoffeeCorp HR system, and the store location must be one of the existing CoffeeCorp
+  store locations. According to CoffeeCorp policy, all new employees must complete
+  the training within 30 days of hire date. The function returns a request ID, the
+  status of the request (either 'pending', 'approved', or'rejected'), and a list of
+  training modules assigned to the employee.
+parameters:
+  type: object
+  properties:
+    employee_id:
+      description: The ID of the new employee.
+      type: integer
+    employee_name:
+      description: The name of the new employee.
+      type: string
+    store_location:
+      description: The location of the CoffeeCorp store where the employee will work.
+      type: string
+      enum:
+      - Seattle
+      - New York
+      - Los Angeles
+    hire_date:
+      description: The date the employee was hired.
+      type: string
+      format: date
+    manager_name:
+      description: The name of the employee's manager.
+      type: string
+  required:
+  - employee_id
+  - employee_name
+  - store_location
+  - hire_date
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the training request.
+      type: string
+    status:
+      description: The status of the training request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    training_modules:
+      description: A list of training modules assigned to the employee.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - training_modules

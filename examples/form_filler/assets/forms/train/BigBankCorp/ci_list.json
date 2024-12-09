@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Open_New_Account",
+    "description": "Request to open a new personal or business bank account with BigBankCorp, including checking, savings, or investment accounts."
+  },
+  {
+    "name": "Loan_Application",
+    "description": "Request for a personal or commercial loan, including mortgages, credit cards, and lines of credit, with BigBankCorp."
+  },
+  {
+    "name": "Investment_Portfolio_Rebalancing",
+    "description": "Request to rebalance an investment portfolio managed by BigBankCorp's wealth management team, including adjusting asset allocations and trading securities."
+  },
+  {
+    "name": "Wire_Transfer_Request",
+    "description": "Request to initiate a domestic or international wire transfer from a BigBankCorp account, including specifying transfer amount and recipient information."
+  },
+  {
+    "name": "Credit_Card_Limit_Increase",
+    "description": "Request to increase the credit limit on a BigBankCorp-issued credit card, including providing income and credit history information."
+  },
+  {
+    "name": "Account_Linkage_Request",
+    "description": "Request to link multiple BigBankCorp accounts, including personal and business accounts, for consolidated online banking access."
+  },
+  {
+    "name": "Stop_Payment_Request",
+    "description": "Request to stop payment on a check or electronic transaction processed by BigBankCorp, including specifying transaction details and reason for stop payment."
+  },
+  {
+    "name": "Account_Update_Notification",
+    "description": "Request to update personal or business account information with BigBankCorp, including changes to address, phone number, or email."
+  },
+  {
+    "name": "Transaction_Dispute_Filing",
+    "description": "Request to dispute a transaction on a BigBankCorp account, including providing transaction details and reason for dispute."
+  },
+  {
+    "name": "Account_Closure_Request",
+    "description": "Request to close a BigBankCorp account, including specifying account details and reason for closure."
+  }
+]

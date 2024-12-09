@@ -1,0 +1,65 @@
+name: Menu Item Proposal
+description: Submit a proposal for a new menu item at CoffeeCorp, including recipe,
+  pricing, and marketing strategy. Please provide the item name, description, ingredients,
+  preparation instructions, suggested price, and target market segment. Note that
+  all proposals must comply with CoffeeCorp's food safety and quality control policies.
+  The proposal will be reviewed by our menu development team, and you will receive
+  a response with a unique request ID, indicating whether your proposal is approved,
+  rejected, or requires further modifications.
+parameters:
+  type: object
+  properties:
+    item_name:
+      description: The name of the proposed menu item
+      type: string
+    item_description:
+      description: A brief description of the proposed menu item
+      type: string
+    ingredients:
+      description: A comma separated list of ingredients used in the proposed menu item
+      type: string
+    preparation_instructions:
+      description: The steps to prepare the proposed menu item
+      type: string
+    suggested_price:
+      description: The suggested price for the proposed menu item
+      type: number
+    target_market_segment:
+      description: The target market segment for the proposed menu item
+      type: string
+      enum:
+      - Students
+      - Professionals
+      - Families
+      - Health-Conscious
+    nutritional_info:
+      description: Optional nutritional information for the proposed menu item
+      type: string
+  required:
+  - item_name
+  - item_description
+  - ingredients
+  - preparation_instructions
+  - suggested_price
+  - target_market_segment
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID assigned to the proposal
+      type: string
+    status:
+      description: The status of the proposal
+      type: string
+      enum:
+      - Approved
+      - Rejected
+      - Modifications Required
+    comments:
+      description: Any additional comments or feedback from the review team
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

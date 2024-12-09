@@ -23,7 +23,7 @@ def run_test_in_tmp_dir(test_name: str):
     shutil.copytree(test_data_dir, tmpdir, dirs_exist_ok=True)
     # force creation of SQLite tables
     tapeagents.observe._checked_sqlite = False
-    yield
+    yield tmpdir
     os.chdir(cur_dir)
 
 

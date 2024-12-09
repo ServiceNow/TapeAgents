@@ -1,0 +1,60 @@
+name: Employee Training and Development
+description: Request training and development programs for DriveCorp employees to enhance
+  skills and knowledge in areas like electric mobility and autonomous driving.
+parameters:
+  type: object
+  properties:
+    employee_id:
+      description: The ID of the employee requesting training.
+      type: integer
+    department:
+      description: The department of the employee.
+      type: string
+      enum:
+      - Sales
+      - Marketing
+      - Engineering
+      - HR
+    desired_training_area:
+      description: The area in which the employee wants to receive training.
+      type: string
+      enum:
+      - Electric Mobility
+      - Autonomous Driving
+      - Data Analysis
+      - Leadership
+    additional_comments:
+      description: Any additional comments or requirements from the employee.
+      type: string
+  required:
+  - employee_id
+  - department
+  - desired_training_area
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the training request.
+      type: string
+    status:
+      description: The status of the training request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    recommended_training_programs:
+      description: A list of recommended training programs.
+      type: array
+      items:
+        type: object
+        properties:
+          program_name:
+            type: string
+          start_date:
+            type: string
+          duration:
+            type: integer
+  required:
+  - request_id
+  - status

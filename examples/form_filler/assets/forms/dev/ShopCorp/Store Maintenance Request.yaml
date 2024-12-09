@@ -1,0 +1,52 @@
+name: Store Maintenance Request
+description: Submit a request for maintenance or repair work at a ShopCorp store location,
+  including details on the issue and expected resolution timeline. This request must
+  be submitted by a authorized personnel and will be reviewed by the maintenance team
+  within 24 hours. The request must include the store location, a detailed description
+  of the issue, and the expected resolution timeline. According to ShopCorp's policy,
+  all maintenance requests must be resolved within 7 days. The request ID will be
+  generated upon submission and the status of the request will be updated to 'pending'
+  initially. The status can be updated to 'in_progress', 'completed', or 'cancelled'
+  by the maintenance team.
+parameters:
+  type: object
+  properties:
+    store_location:
+      description: The location of the ShopCorp store where maintenance is required.
+      type: string
+    issue_description:
+      description: A detailed description of the maintenance issue.
+      type: string
+    expected_resolution_timeline:
+      description: The expected timeline for resolving the maintenance issue.
+      type: string
+    submitted_by:
+      description: The authorized personnel submitting the request.
+      type: string
+      default: System User
+  required:
+  - store_location
+  - issue_description
+  - expected_resolution_timeline
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID generated for the maintenance request.
+      type: string
+    status:
+      description: The current status of the maintenance request.
+      type: string
+      enum:
+      - pending
+      - in_progress
+      - completed
+      - cancelled
+    comments:
+      description: Any additional comments or notes about the maintenance request.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

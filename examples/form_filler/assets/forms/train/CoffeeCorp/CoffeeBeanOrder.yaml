@@ -1,0 +1,57 @@
+name: CoffeeBeanOrder
+description: Place an order for coffee beans from a specific region or farm, specifying
+  quantity and roast level. This function requires a valid region or farm ID, a quantity
+  between 1 and 1000 units, and a roast level of either 'light','medium', or 'dark'.
+  According to CoffeeCorp's sourcing policy, orders from farms with a rating below
+  4/5 will be rejected. The function returns a request ID, the status of the request
+  ('pending', 'approved', or'rejected'), and a list of available shipping dates.
+parameters:
+  type: object
+  properties:
+    region_or_farm_id:
+      description: The ID of the region or farm where the coffee beans are sourced.
+      type: string
+    quantity:
+      description: The number of units of coffee beans to order.
+      type: integer
+      minimum: 1
+      maximum: 1000
+    roast_level:
+      description: The desired roast level of the coffee beans.
+      type: string
+      enum:
+      - light
+      - medium
+      - dark
+    farm_rating:
+      description: The rating of the farm (optional, but required if region_or_farm_id
+        refers to a farm).
+      type: number
+      minimum: 1
+      maximum: 5
+  required:
+  - region_or_farm_id
+  - quantity
+  - roast_level
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    shipping_dates:
+      description: A list of available shipping dates.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - shipping_dates

@@ -1,0 +1,60 @@
+defaults:
+  - /agent: ??? # can be "teacher_agent" or "student_agent" (check out conf/agent)
+  - _self_
+
+# Cannot initialize with defaults list due to multiple user simulator models
+# Instead pass it as a string
+user_simulator_llm: openrouter_llama3_405b_temp1
+
+num_workers: 0
+force_restart_idx: -1  # use -1 to resume from last finished layer or the layer_idx to restart from
+global_count: -1
+
+preambles_path: examples/form_filler/assets/forms/train/BigBankCorp
+output_path: outputs/make_tape_tree/tree_config_small
+
+layers:
+- who: user
+  count: 5
+  probs:
+    init_message_short: 4
+    init_message_ask: 1
+- who: agent
+  count: same
+- who: user
+  count: same
+  probs:
+    ### init behaviors
+    init_message_short: 1
+    ### regular behaviors
+    happy_path: 1
+    # Plausible valid user behaviors
+    multislot_instruct3a: 1
+    skip_optional: 1
+    # Asking about information
+    ask_about_docs: 1
+    # Invalid user behaviors
+    invalid_value_3: 1 
+    skip_required: 1
+- who: agent
+  count: same
+- who: user
+  count: same
+  probs:
+    ### regular behaviors
+    happy_path: 1
+    # Plausible valid user behaviors
+    multislot_instruct3a: 1
+    skip_optional: 1
+    # Asking about information
+    ask_about_docs: 1
+    # Invalid user behaviors
+    invalid_value_3: 1 
+    skip_required: 1
+- who: agent
+  count: same
+- who: user
+  count: same
+  probs: same
+- who: agent
+  count: same

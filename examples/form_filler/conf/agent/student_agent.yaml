@@ -1,0 +1,110 @@
+defaults:
+  - /llm: sft_llama3_8b_temp1
+  - _self_
+
+_target_: examples.form_filler.student.StudentAgent.create
+
+
+templates:
+  # copied from conf/prompter/gff_chat_prompter_v2.yaml
+  intent_discovery_post_list_template: |-
+    You must help the user identify the correct form to fill.
+
+    List of available forms:
+    {function_search_results}
+
+    Last user message:
+    {last_user_message}
+
+    Based on the Last user message, return a JSON object following exactly ONE of the templates:
+
+    1. If user confirms they want to exit:
+    {{"action": "exit"}}
+
+    2. If you have idenfied a form to fill, return
+    {{"action": {{"select_form": "<form_name>"}}}}
+
+    3. If you can't identify a relevant form, return
+    {{
+      "thoughts": [
+        "no_form_found",
+        {{"offer_forms": [<form1>, <form2>, <form3>]}}
+      ] 
+      "action": {{"prompt": "<your message to the user>"}}
+    }}
+
+    Answer with a SINGLE JSON object with NO COMMENTS or EXPLANATIONS.
+  # copied from conf/prompter/gff_chat_prompter_v2.yaml
+  main_template: |-
+    You must help the user submit a request by filling the correct form. 
+    Each form has a name, description, and parameters to fill.
+    Request parameters in the order they occur in the form documentation.
+    Today's date is {current_date}.
+
+    Selected form:
+    {current_function_schema}
+
+    Parameters filled:
+    {filled_parameters}
+
+    Parameters skipped:
+    {skipped_parameters}
+
+    Remaining parameters:
+    {remaining_parameters}
+
+    Conversation history:
+    {dialogue_history}
+
+    Last agent message:
+    {last_agent_request}
+
+    Last user message:
+    {last_user_message}
+
+    Based on the Last user message, return a JSON object following exactly ONE of the templates:
+
+    1. If user confirms they want to exit:
+    {{"action": "exit"}}
+
+    2. If user confirms they want to submit the form AND all parameters have been filled or skipped:
+    {{"action": "submit"}}
+
+    3. In all other cases, build a thought plan and prompt the user:
+    {{
+      "thoughts": [
+        // a. Include either of the following if user asks questions about the form
+        "answer", // question can be answered
+        "no_answer", // question cannot be answered
+
+        // b. Include if user asks for something unrelated to the current form
+        "unrelated_request",
+
+        // c. Update parameters
+        // You may change the parameters filled earlier and set multiple parameters at a time
+        // DO NOT INCLUDE PARAMETERS NOT MENTIONED BY THE USER
+        {{ 
+          "update_parameters": 
+          {{
+            "<param1>": "<value1>",  // optional: if user provides a valid value
+            "<param2>": "_refuse_skip", // optional: if user says they want to skip a required parameter
+            "<param3>": "_skip", // optional: if user says they want to skip an optional parameter
+            "<param4>": "_refuse_value" // optional: if user provides an invalid value
+          }}
+        }}, 
+
+        // d. Always either request a parameter value or ask for confirmation by including exactly one of:
+        {{"next_requested_parameter": "<next remaining parameter>"}}, // INCLUDE EXACTLY ONE OF THE REMAINING PARAMETERS
+        "confirm_submit", // ask for confirmation once all parameters are filled or skipped
+        "confirm_exit"
+      ],
+      "action": {{"prompt": "<your message to the user>"}}
+    }}
+
+    Your message to the user must exactly follow the thought plan:
+    a. Answer questions or say you can't answer if the user asks questions about the form.
+    b. If the user wants something unrelated to the current form, say you can't help with that.
+    c. Acknowledge all parameter updates.
+    d. Request parameter value or ask for confirmation.
+
+    Answer with a SINGLE JSON object with NO COMMENTS or EXPLANATIONS.

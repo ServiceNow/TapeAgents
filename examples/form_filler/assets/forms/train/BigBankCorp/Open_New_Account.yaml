@@ -1,0 +1,76 @@
+name: Open_New_Account
+description: Request to open a new personal or business bank account with BigBankCorp,
+  including checking, savings, or investment accounts. This function requires the
+  customer's personal information, account type, and initial deposit amount. According
+  to BigBankCorp's policies, customers must be at least 18 years old and provide a
+  valid government-issued ID. The function will return a unique request ID, the status
+  of the request (approved, pending, or rejected), and a list of account details if
+  approved.
+parameters:
+  type: object
+  properties:
+    customer_name:
+      description: The full name of the customer
+      type: string
+    customer_age:
+      description: The age of the customer
+      type: integer
+      minimum: 18
+    id_type:
+      description: The type of government-issued ID provided
+      type: string
+      enum:
+      - driver's license
+      - passport
+      - state ID
+    id_number:
+      description: The ID number
+      type: string
+    account_type:
+      description: The type of account to open
+      type: string
+      enum:
+      - checking
+      - savings
+      - investment
+    initial_deposit:
+      description: The initial deposit amount
+      type: number
+    referral_code:
+      description: The referral code (optional)
+      type: string
+  required:
+  - customer_name
+  - customer_age
+  - id_type
+  - id_number
+  - account_type
+  - initial_deposit
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the request
+      type: string
+    status:
+      description: The status of the request
+      type: string
+      enum:
+      - approved
+      - pending
+      - rejected
+    account_details:
+      description: A list of account details if approved
+      type: array
+      items:
+        type: object
+        properties:
+          account_number:
+            description: The account number
+            type: string
+          account_balance:
+            description: The initial account balance
+            type: number
+  required:
+  - request_id
+  - status

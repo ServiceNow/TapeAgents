@@ -1,0 +1,52 @@
+name: Inventory Replenishment Request
+description: Submit a request to replenish inventory for a specific product at a particular
+  store location, including quantity and expected delivery date. This request must
+  adhere to ShopCorp's inventory management policy, which requires a minimum stock
+  level of 10 units for all products. The expected delivery date must be within 7-14
+  business days from the request submission date. The request will be reviewed and
+  approved by the store manager before processing. Upon approval, a unique request
+  ID will be generated and returned to the requester, along with the status of the
+  request, which can be either 'pending', 'approved', or'rejected'.
+parameters:
+  type: object
+  properties:
+    product_id:
+      description: The ID of the product to be replenished
+      type: integer
+    store_location:
+      description: The location of the store where the product is to be replenished
+      type: string
+    quantity:
+      description: The quantity of the product to be replenished
+      type: integer
+    expected_delivery_date:
+      description: The expected delivery date for the replenished product
+      type: string
+      format: date
+    comments:
+      description: Any additional comments or notes about the request
+      type: string
+  required:
+  - product_id
+  - store_location
+  - quantity
+  - expected_delivery_date
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the replenishment request
+      type: string
+    status:
+      description: The status of the replenishment request
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: Any comments or notes about the request
+      type: string
+  required:
+  - request_id
+  - status

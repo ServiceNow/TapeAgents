@@ -1,0 +1,57 @@
+name: PartnershipOpportunitySubmission
+description: Submit a proposal for a partnership opportunity, including details on
+  the partner organization and potential benefits to CoffeeCorp. This function requires
+  the partner organization's name, a brief description of the partnership opportunity,
+  and the expected benefits to CoffeeCorp. The partner organization's name must be
+  a string with a maximum length of 100 characters. The brief description of the partnership
+  opportunity must be a string with a maximum length of 500 characters. The expected
+  benefits to CoffeeCorp must be a string with a maximum length of 500 characters.
+  According to CoffeeCorp's partnership policy, all proposals will be reviewed
+  within 5 business days. The function returns a request ID, a status indicating whether
+  the proposal is pending, approved, or rejected, and a list of comments from the
+  review team.
+parameters:
+  type: object
+  properties:
+    partner_organization_name:
+      description: The name of the partner organization.
+      type: string
+      max_length: 100
+    brief_description:
+      description: A brief description of the partnership opportunity.
+      type: string
+      max_length: 500
+    expected_benefits:
+      description: The expected benefits to CoffeeCorp.
+      type: string
+      max_length: 500
+    contact_email:
+      description: The email address of the contact person.
+      type: string
+      format: email
+  required:
+  - partner_organization_name
+  - brief_description
+  - expected_benefits
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the submitted request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: A list of comments from the review team.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

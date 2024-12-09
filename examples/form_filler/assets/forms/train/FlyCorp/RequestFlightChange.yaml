@@ -1,0 +1,79 @@
+name: RequestFlightChange
+description: Request to change a flight, including original flight details (original
+  flight number, departure date, and departure time), new flight details (new flight
+  number, new departure date, and new departure time), and reason for change. This
+  request is subject to FlyCorp's flight change policy, which allows changes up to
+  24 hours prior to the original flight's scheduled departure time. The request will
+  be processed based on availability and may incur additional fees. The response will
+  include a unique request ID, the status of the request (approved, denied, or pending),
+  and a list of updated flight segments.
+parameters:
+  type: object
+  properties:
+    original_flight_number:
+      description: The original flight number
+      type: string
+    original_departure_date:
+      description: The original departure date
+      type: string
+      format: date
+    original_departure_time:
+      description: The original departure time
+      type: string
+      format: time
+    new_flight_number:
+      description: The new flight number
+      type: string
+    new_departure_date:
+      description: The new departure date
+      type: string
+      format: date
+    new_departure_time:
+      description: The new departure time
+      type: string
+      format: time
+    reason_for_change:
+      description: The reason for changing the flight
+      type: string
+    travel_agent_id:
+      description: The ID of the travel agent making the request (optional)
+      type: string
+  required:
+  - original_flight_number
+  - original_departure_date
+  - original_departure_time
+  - new_flight_number
+  - new_departure_date
+  - new_departure_time
+  - reason_for_change
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the request
+      type: string
+    status:
+      description: The status of the request
+      type: string
+      enum:
+      - approved
+      - denied
+      - pending
+    updated_flight_segments:
+      description: A list of updated flight segments
+      type: array
+      items:
+        type: object
+        properties:
+          flight_number:
+            type: string
+          departure_date:
+            type: string
+            format: date
+          departure_time:
+            type: string
+            format: time
+  required:
+  - request_id
+  - status
+  - updated_flight_segments

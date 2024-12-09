@@ -1,0 +1,66 @@
+name: New Vehicle Design Request
+description: Submit a request for designing a new vehicle model at DriveCorp, including
+  specifications and features. This request must comply with DriveCorp's vehicle design
+  guidelines and policies. The request will be reviewed by the design team and may
+  require additional information or clarification. Parameters include the vehicle
+  type (passenger car, commercial vehicle, motorcycle), target market (Europe, Americas,
+  Asia, Africa), and desired features (electric motor, autonomous driving, sunroof).
+  The return value will include a unique request ID, the status of the request (pending,
+  approved, rejected), and a list of assigned designers.
+parameters:
+  type: object
+  properties:
+    vehicle_type:
+      description: The type of vehicle (passenger car, commercial vehicle, motorcycle)
+      type: string
+      enum:
+      - passenger car
+      - commercial vehicle
+      - motorcycle
+    target_market:
+      description: The target market for the vehicle (Europe, Americas, Asia, Africa)
+      type: string
+      enum:
+      - Europe
+      - Americas
+      - Asia
+      - Africa
+    desired_features:
+      description: The desired features for the vehicle (electric motor, autonomous
+        driving, sunroof, or any combination of these features)
+      type: string
+      enum:
+      - electric motor
+      - autonomous driving
+      - sunroof
+      - electric motor, autonomous driving
+      - electric motor, sunroof
+      - autonomous driving, sunroof
+      - electric motor, autonomous driving, sunroof
+    budget:
+      description: The budget for the vehicle design project
+      type: number
+  required:
+  - vehicle_type
+  - target_market
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the request
+      type: string
+    status:
+      description: The status of the request (pending, approved, rejected)
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    assigned_designers:
+      description: A list of designers assigned to the project
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

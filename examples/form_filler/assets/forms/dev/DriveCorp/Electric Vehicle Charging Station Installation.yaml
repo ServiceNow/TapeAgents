@@ -1,0 +1,61 @@
+name: Electric Vehicle Charging Station Installation
+description: Submit a request for installation of electric vehicle charging stations
+  at DriveCorp facilities. This function requires the facility location, number of
+  charging points, and preferred installation date as mandatory parameters. The facility
+  location must be one of the existing DriveCorp facilities in Europe. The number of
+  charging points must be between 1 and 10. The preferred installation date must be
+  at least 2 weeks from the current date. According to DriveCorp's sustainability policy,
+  at least 20% of the charging points must be equipped with solar panels. The function
+  will return a request ID, the status of the request (either 'pending', 'approved',
+  or'rejected'), and a list of assigned technicians.
+parameters:
+  type: object
+  properties:
+    facility_location:
+      description: The location of the DriveCorp facility where the charging station
+        will be installed.
+      type: string
+      enum:
+      - Berlin
+      - Munich
+      - Hamburg
+    number_of_charging_points:
+      description: The number of charging points to be installed.
+      type: integer
+      minimum: 1
+      maximum: 10
+    preferred_installation_date:
+      description: The preferred date for the installation.
+      type: string
+      format: date
+    solar_panel_equipment:
+      description: Whether at least 20% of the charging points should be equipped
+        with solar panels.
+      type: boolean
+      default: true
+  required:
+  - facility_location
+  - number_of_charging_points
+  - preferred_installation_date
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    assigned_technicians:
+      description: A list of technicians assigned to the installation.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - assigned_technicians

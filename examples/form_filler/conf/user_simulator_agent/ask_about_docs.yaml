@@ -1,0 +1,22 @@
+defaults:
+- base
+- _self_
+  
+behavior_alias: ask_about_docs
+
+step_types_chain:
+  - RequestFunctionParameters
+  - AssistantStep
+step_filters:
+  - _target_: examples.form_filler.user_simulator_filters.HasRequiredTemplateParams
+    params:
+      - documentation_details
+
+instruction: |-
+  Ignore the agent's question and instead ask a question that can be answered with the following form details:
+  {documentation_details}
+
+  First, identify a specific fact stated in the documentation above.
+  Second, ask a question that can be answered with that fact.
+
+  State only the question. Do not explain. Be very specific and brief!

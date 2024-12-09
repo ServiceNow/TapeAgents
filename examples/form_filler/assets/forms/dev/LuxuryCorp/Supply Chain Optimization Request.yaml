@@ -1,0 +1,58 @@
+name: Supply Chain Optimization Request
+description: Submit a request to optimize LuxuryCorp's supply chain operations, including
+  logistics, inventory management, and distribution across 70+ countries. This request
+  must adhere to LuxuryCorp's supply chain optimization policy, which prioritizes sustainability,
+  efficiency, and cost-effectiveness. The request will be processed within 3-5 business
+  days. Parameters include the country of operation, type of optimization, and current
+  inventory levels. The return value will include a unique request ID, the status
+  of the request (pending, approved, or rejected), and a list of recommended optimization
+  strategies.
+parameters:
+  type: object
+  properties:
+    country_of_operation:
+      description: The country where the supply chain optimization is requested.
+      type: string
+    type_of_optimization:
+      description: The type of optimization requested (e.g. logistics, inventory management,
+        distribution).
+      type: string
+      enum:
+      - logistics
+      - inventory_management
+      - distribution
+    current_inventory_levels:
+      description: The current inventory levels in the country of operation.
+      type: integer
+  required:
+  - country_of_operation
+  - type_of_optimization
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID assigned to the request.
+      type: string
+    status:
+      description: The status of the request (pending, approved, or rejected).
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    recommended_strategies:
+      description: A list of recommended optimization strategies.
+      type: array
+      items:
+        type: object
+        properties:
+          strategy_name:
+            description: The name of the optimization strategy.
+            type: string
+          strategy_description:
+            description: A brief description of the optimization strategy.
+            type: string
+  required:
+  - request_id
+  - status
+  - recommended_strategies

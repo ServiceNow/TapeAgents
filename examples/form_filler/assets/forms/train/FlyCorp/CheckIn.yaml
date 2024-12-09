@@ -1,0 +1,58 @@
+name: CheckIn
+description: Request to check-in a passenger for a flight, including seat selection
+  and baggage information. This function requires the passenger's booking reference,
+  flight number, and last name as mandatory parameters. Optionally, the passenger
+  can provide their preferred seat and baggage details. According to FlyCorp's check-in
+  policy, online check-in is available 24 hours prior to the scheduled flight departure
+  time. FlyCorp's baggage policy allows each passenger to check-in up to two bags,
+  with a maximum weight of 23kg each. The function returns a unique request ID, the
+  status of the check-in request (either'success' or 'failed'), and a list of checked-in
+  baggage items.
+parameters:
+  type: object
+  properties:
+    booking_reference:
+      description: The passenger's booking reference.
+      type: string
+    flight_number:
+      description: The flight number.
+      type: string
+    last_name:
+      description: The passenger's last name.
+      type: string
+    preferred_seat:
+      description: The passenger's preferred seat (optional).
+      type: string
+    baggage_details:
+      description: The passenger's baggage details (optional).
+      type: string
+  required:
+  - booking_reference
+  - flight_number
+  - last_name
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the check-in request.
+      type: string
+    status:
+      description: The status of the check-in request.
+      type: string
+      enum:
+      - success
+      - failed
+    checked_baggage:
+      description: A list of checked-in baggage items.
+      type: array
+      items:
+        type: object
+        properties:
+          bag_id:
+            type: string
+          weight:
+            type: number
+  required:
+  - request_id
+  - status
+  - checked_baggage
