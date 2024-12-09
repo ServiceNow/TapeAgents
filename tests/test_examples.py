@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 from examples.form_filler.scripts.prepare_test_assets import get_completions, load_teacher_input_tapes, load_teacher_reference_tapes, load_user_input_tapes, load_user_reference_tapes, get_teacher_agent, get_user_simulator_agent
 from examples.form_filler.environment import FormFillerEnvironment
-from .make_test_data import run_test_in_tmp_dir
+from tests.make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
 from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
@@ -280,15 +280,15 @@ def test_gsm8k_tuning_samples_prep():
 
 
 if __name__ == "__main__":
-    # test_llama_agent()
-    # test_llama_agent_traces()
-    # test_llama_agent_tape_reuse()
-    # test_gaia_agent()
-    # test_workarena_agent()
-    # test_delegate()
-    # test_delegate_stack()
-    # test_data_science()
+    test_llama_agent()
+    test_llama_agent_traces()
+    test_llama_agent_tape_reuse()
+    test_gaia_agent()
+    test_workarena_agent()
+    test_delegate()
+    test_delegate_stack()
+    test_data_science()
     test_form_filler()
-    # test_tape_improver()
-    # test_gsm8k_tuning_tapes_generation()
-    # test_gsm8k_tuning_samples_prep()
+    test_tape_improver()
+    test_gsm8k_tuning_tapes_generation()
+    test_gsm8k_tuning_samples_prep()
