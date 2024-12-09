@@ -10,10 +10,9 @@ from tapeagents.io import load_tapes
 from tapeagents.core import Tape
 from examples.form_filler.user_simulator_agent import UserSimulatorTape
 
-# Syntax: python visualize_formfiller_tapes.py <path_to_tapes_folder> <path_to_sqlite_db> <port>
+# Syntax: python tape_browser.py <path_to_tapes_folder> [<path_to_sqlite_db>] [<port>]
 
 tape_dir = Path(sys.argv[1])
-os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(tape_dir, "tapedata.sqlite")
 
 if len(sys.argv) >= 3:
     os.environ["TAPEAGENTS_SQLITE_DB"] = sys.argv[2]
@@ -35,11 +34,12 @@ class RecursiveTapeBrowser(TapeBrowser):
             logger.info(f"{len(tapes)} FormFillerTape tapes loaded from {fname}")
         except Exception as e:
             try:
-                logger.error(f"Could not load FormFillerTape tapes from {fname}: {e}, trying UserSimulatorTape")
                 tapes = load_tapes(UserSimulatorTape, fname)
                 logger.info(f"{len(tapes)} UserSimulatorTape loaded from {fname}")
             except Exception as e2:
-                logger.error(f"Could not load tapes from {fname}: {e2}")
+                logger.error(f"Could not load tapes from {fname}.")
+                logger.error(f"Tried loading as FormFillerTape, got this error: {e}")
+                logger.error(f"Tried loading as UserSimulatorTape, got this error: {e2}")
         return tapes
     
     def get_tape_files(self) -> list[str]:
