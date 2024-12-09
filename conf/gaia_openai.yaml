@@ -5,7 +5,7 @@ defaults:
 exp_name: gpt4o_val_search1
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-batch: 32
+batch: 1
 
 agent:
   plain_code: false
@@ -14,6 +14,10 @@ env:
   attachment_dir: ${exp_path}/attachments/
   image_observations: true
   use_web_cache: true
+
+studio:
+  tape:
+    null
 
 hydra:
   run:
