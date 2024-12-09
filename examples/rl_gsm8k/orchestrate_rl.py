@@ -28,7 +28,6 @@ from examples.rl_gsm8k.cot_math_agent import (
 )
 from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from examples.rl_gsm8k.deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-
 from examples.rl_gsm8k.deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
 from examples.rl_gsm8k.utils import (
     VLLMServiceManager,
@@ -44,7 +43,7 @@ from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls, LLMCall
+from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_calls
 
 logger = logging.getLogger(__name__)
 
