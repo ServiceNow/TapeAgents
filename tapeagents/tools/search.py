@@ -34,8 +34,11 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
     topic = "videos" if "site:youtube.com" in query else "search"
     payload = json.dumps({"q": query, "location": "United States", "num": max_results})
     headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
-    response = requests.request("POST", f"https://google.serper.dev/{topic}", headers=headers, data=payload)
-    response_dict = response.json()
+    try:
+        response = requests.request("POST", f"https://google.serper.dev/{topic}", headers=headers, data=payload)
+        response_dict = response.json()
+    except Exception as e:
+        raise FatalError(f"Failed to get search results: {e}")
     results = response_dict.get("organic", []) + response_dict.get("videos", []) + response_dict.get("news", [])
     for item in response_dict.get("knowledgeGraph", []):
         results.append({"title": item["title"], "linqk": item.get("website", ""), "snippet": item["description"]})

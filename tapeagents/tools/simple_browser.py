@@ -288,8 +288,6 @@ class SimpleTextBrowser:
         results = web_search(query, max_results)
         if results:
             self._add_to_cache(key, results)
-        # else:
-        #     raise Exception(f"Empty search results for {query}")
         return results[:max_results]
 
     def _fetch_page(self, url: str) -> None:
