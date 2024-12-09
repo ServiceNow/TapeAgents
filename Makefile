@@ -29,7 +29,7 @@ test-slow:
 	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest -m "slow" tests/
 
 test-all:
-@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest tests/
+	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest tests/
 
 clean:
 	@$(CONDA) env remove --name $(ENV_NAME) --yes
