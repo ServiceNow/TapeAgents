@@ -253,8 +253,8 @@ def replay_tape(
 def replay_tapes(
     agent: Agent[TapeType],
     tapes: list[TapeType],
-    start_tapes: list[TapeType] | None = None,
     env: Environment[TapeType] | None = None,
+    start_tapes: list[TapeType] | None = None,
     reuse_observations: bool = False,
     pause_on_error: bool = False,
 ) -> int:
