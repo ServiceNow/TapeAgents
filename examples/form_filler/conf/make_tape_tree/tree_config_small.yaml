@@ -1,5 +1,5 @@
 defaults:
-  - /agent: teacher_agent  # teacher_agent | student_agent
+  - /agent: ??? # can be "teacher_agent" or "student_agent" (check out conf/agent)
   - _self_
 
 # Cannot initialize with defaults list due to multiple user simulator models
@@ -11,7 +11,7 @@ force_restart_idx: -1  # use -1 to resume from last finished layer or the layer_
 global_count: -1
 
 preambles_path: examples/form_filler/assets/forms/train/BigBankCorp
-output_path: ???
+output_path: outputs/make_tape_tree/tree_config_small
 
 layers:
 - who: user

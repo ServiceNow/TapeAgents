@@ -3,8 +3,8 @@ defaults:
   - override hydra/job_logging: verbose2
   - _self_
 
-user_dialogues_path: ???
-output_path: ??? # must be a directory
+user_dialogues_path: examples/form_filler/assets/initial_user_tapes.yaml # replace with path to your user tapes
+output_path: outputs/agent_tapes # must be a directory
 n_workers: 0
 
 hydra:

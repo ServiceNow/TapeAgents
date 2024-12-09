@@ -4,8 +4,6 @@ GREADTH stands for Grounded, REsponsive, Accurate, Disciplined, Transparent and 
 
 ## Requirements
 - Make sure to activate the `tapeagents` conda environment.
-- Install additional requirements for this example `pip install -r requirements.formfiller.txt`
-
 
 ## Form-filler Agent
 
@@ -42,11 +40,8 @@ The prompts for the nodes are provided in [teacher_agent.yaml](https://github.co
 To test the teacher you need to have user tapes as input.
 We provide a set of 5 initial user tapes in [initial_user_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_user_tapes.yaml) to run the agent on.
 ```bash
-# this will take a while because the teacher agent makes multiple LLM calls
-python -m examples.form_filler.scripts.run_formfiller_agent \
-    agent=teacher_agent \
-    user_dialogues_path=examples/form_filler/assets/initial_user_tapes.yaml \
-    output_path=outputs/agent_tapes/teacher
+# this will take a while because the teacher agent makes multiple LLM calls for each agent message
+python -m examples.form_filler.scripts.run_formfiller_agent agent=teacher_agent
 ```
 
 If you already ran a [User Agent](#user-agent) with behavior \<B>, you can continue these conversations by setting `user_dialogues_path=outputs/user_tapes/<B>/user_predicted_tapes.yaml`, replacing \<B> with the actual behavior name you used to run a user agent.
@@ -56,7 +51,8 @@ To use this model you must have an openrouter API key saved into your `TAPEAGENT
 You can check the pricing of this model on the [openrouter website](https://openrouter.ai/meta-llama/llama-3.1-405b-instruct).
 To override the llm config used, specify `llm@agent.llm=...` in your command.
 
-This script will produce agent tapes (1 per input user tape) stored in the `output_path` directory. The structure of the files in the output directory is:
+This script will produce agent tapes (1 per input user tape) stored in `outputs/agent_tapes/` by default (you can set `output_path=...` to change the output directory).
+The structure of the files in the output directory is:
 - `teacher_agent_predicted_tapes.yaml`: Successful agent tapes
 - `teacher_agent_failure_tapes.yaml`: Failed agent tapes with an error step as the last step
 - `teacher_agent_stats.json`: The counts of last step types of failed and successful tapes
@@ -64,7 +60,7 @@ This script will produce agent tapes (1 per input user tape) stored in the `outp
 To see the generated tapes in the tape browser app, run the command below, and then open your browser to http://localhost:7680.
 
 ```
-python -m examples.form_filler.scripts.tape_browser outputs/agent_tapes/teacher
+python -m examples.form_filler.scripts.tape_browser outputs/agent_tapes
 ```
 
 ### Student Agent
@@ -85,17 +81,15 @@ The prompts for the nodes are provided in [student_agent.yaml](https://github.co
 To test the student you need to have user tapes as input.
 We provide a set of 5 initial user tapes in [initial_user_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_user_tapes.yaml) to run the agent on.
 ```bash
-python -m examples.form_filler.scripts.run_formfiller_agent \
-    agent=student_agent \
-    user_dialogues_path=examples/form_filler/assets/initial_user_tapes.yaml \
-    output_path=outputs/agent_tapes/student
+python -m examples.form_filler.scripts.run_formfiller_agent agent=student_agent
 ```
 If you already ran a [User Agent](#user-agent) with behavior \<B>, you can continue these conversations by setting `user_dialogues_path=outputs/user_tapes/<B>/user_predicted_tapes.yaml`, replacing \<B> with the actual behavior name you used to run a user agent.
 
 By default this script will use the [sft_llama3_8b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/sft_llama3_8b_temp1.yaml) llm config.
 Right now this config uses openrouter to call llama8B, however this config is meant to be used with a **fine-tuned** model. You can change the config `model_name` and `base_url` to map to your finetuned model. LLAMA 3.1 8B is not very good at following the student prompt without finetuning. To better understand how a finetuned student model is supposed to work, you can run the example above with LLAMA 3.1 405B instead by adding `llm@agent.llm=openrouter_llama3_405b_temp1` to the command.
 
-This script will produce agent tapes stored in the `output_path` directory. The structure of the files in the output directory is:
+This script will produce agent tapes (1 per input user tape) stored in `outputs/agent_tapes/` by default (you can set `output_path=...` to change the output directory).
+The structure of the files in the output directory is:
 - `student_agent_predicted_tapes.yaml`: Successful agent tapes
 - `student_agent_failure_tapes.yaml`: Failed agent tapes with an error step as the last step
 - `student_agent_stats.json`: The counts of last step types of failed and successful tapes
@@ -117,7 +111,7 @@ UserSimulatorTape = Tape[FormFillerTape, ... | MakeObservation]
 ```
 
 The user agent will then run `self.add_observation(form_filler_tape, user_tape)` to convert its `MakeObservation` steps to `Observation` steps and append them to the input `form_filler_tape`.
-This code can be seen in the `run_user_simulator_agent()` function of [run_user_simulator.py](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/dev/run_user_simulator.py).
+This code can be seen in the `run_user_simulator_agent()` function of [run_user_simulator.py](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/scripts/run_user_simulator.py).
 
 The user agent nodes are defined in [user_simulator_agent.py](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/user_simulator_agent.py) as 
 
@@ -130,25 +124,20 @@ UserSimulatorMainNode
 The main prompt for the user agent is defined in [base.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/user_simulator_agent/base.yaml).
 To test various user behaviors we defined various prompts for the user agent, all defined in [conf/user_simulator_agent/](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/user_simulator_agent).
 
-To test the user you need to have agent tapes as input. We provide 5 starting agent tapes in [initial_agent_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_agent_tapes.yaml).
-The first time you run the user use these starting tapes as input:
+To test the user you need to have agent tapes as input. We provide 5 starting agent tapes in [initial_agent_tapes.yaml](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/assets/initial_agent_tapes.yaml) to run the user on.
 ```bash
-USER_SIMULATOR="init_message_short"  # use init_message_... behaviors on beginning of conversations and any other behaviors defined in conf/user_simulator_agent/ once the user specified its intent.
-python -m examples.form_filler.scripts.run_user_simulator \
-    input_dialogues_path="examples/form_filler/assets/initial_agent_tapes.yaml" \
-    output_path="outputs/user_tapes/${USER_SIMULATOR}" \
-    user_simulator_agent="${USER_SIMULATOR}" \
-    max_continuable_tapes=5  # specify the number of user tapes you want (maximum is the number of tapes in input_dialogues_path)
+# use init_message_... user behaviors on beginning of conversations and any other behaviors defined in conf/user_simulator_agent/ once the user specified its intent.
+python -m examples.form_filler.scripts.run_user_simulator user_simulator_agent=init_message_short
 ```
-If you already ran a Teacher [Agent](#teacher-agent) in `outputs/agent_tapes/teacher`, you can set `input_dialogues_path="outputs/agent_tapes/teacher/teacher_predicted_tapes.yaml" \` to continue these teacher agent tapes with the user agent.
+If you already ran a Teacher [Agent](#teacher-agent) in `outputs/agent_tapes`, you can set `input_dialogues_path=outputs/agent_tapes/teacher_predicted_tapes.yaml` to continue these teacher agent tapes with the user agent.
 
 By default this script will use the [openrouter_llama3_405b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/openrouter_llama3_405b_temp1.yaml) llm config which uses openrouter to call llama405B.
 To override the llm config used, specify `llm@user_simulator_agent.llms=...` in your command.
 
-This script will produce 5 *user tapes* and 5 *form filler agent tapes* stored in the `output_path` directory
+This script will produce user tapes (1 per input agent tape) stored in `outputs/user_tapes/{user_simulator_agent}` by default (you can set `output_path=...` to change the output directory).
 The structure of the files in the output directory is:
 - `user_simulator_tapes.yaml`: all **user** tapes (of type `UserSimulatorTape`) generated by the user agent
-- `user_predicted_tapes.yaml`: successfully continued agent tapes (of type `FormFillerTape`)
+- `user_predicted_tapes.yaml`: successfully continued **agent** tapes (of type `FormFillerTape`) -- use this file as input to continue the dialog with the teacher or student agent.
 - `user_failed_tapes.yaml`: agent tapes that could not be continued
 - `counters.json`: the number of tapes in each file
 
@@ -163,25 +152,19 @@ Synthetic data can be used for:
 
 We generate synthetic dialogues by alternating between calling the Form-filler Agent and User Agent to continue the dialogue tape.
 
-For instance, to generate trees using the [tree_config6](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/make_tape_tree/tree_config6.yaml) configuration on the `FlyCorp` domain, with the **teacher** agent, 
-run the following command (in a tmux window)
+For instance, to generate trees using the [tree_config_small](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/make_tape_tree/tree_config_small.yaml) configuration with the **teacher** agent, run the following command (in a tmux window):
 ```bash
-python -m examples.form_filler.scripts.make_tape_tree \
-  make_tape_tree=tree_config_small \
-  make_tape_tree.output_path=outputs/make_tape_tree \
-  make_tape_tree.preambles_path=examples/form_filler/assets/forms/train/FlyCorp \
-  make_tape_tree.global_count=5 \
-  agent@make_tape_tree.agent=teacher_agent
+python -m examples.form_filler.scripts.make_tape_tree agent@make_tape_tree.agent=teacher_agent
 ```
-This will generate a 8-layer "dialogue tree" with a width of 5 (number of tapes per dialogue turn aka per "layer").
-User Agents are randomly sampled according to a distribution defined in [tree_config6](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/make_tape_tree/tree_config6.yaml).
+This will generate a 8-layer "dialogue tree" with a default width of 5 tapes per dialogue turn. You can set `global_count=...` to change the width of a dialog tree.
+User Agents are randomly sampled according to a distribution defined in [tree_config_small](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/make_tape_tree/tree_config_small.yaml).
 By default this script will use the [openrouter_llama3_405b_temp1](https://github.com/ServiceNow/TapeAgents/blob/formfiller/examples/form_filler/conf/llm/openrouter_llama3_405b_temp1.yaml) llm config which uses openrouter to call llama405B for **both** the teacher and the user agents.
 To use this model you must have an openrouter API key saved into your `TAPEAGENTS_LLM_TOKEN` environment variable.
 You can check the pricing of this model on the [openrouter website](https://openrouter.ai/meta-llama/llama-3.1-405b-instruct).
 You may change the user/agent LLM by overriding `llm@make_tape_tree.agent.llm` or `make_tape_tree.user_simulator_llm` (see Hydra documentation).
 Use `force_restart_idx=-1` to automatically resume from the last layer, or a non-negative value to restart from layer `force_restart_idx` (this will discard all subsequent layers, including the current one).
 
-The resulting folder structure in the `output_path` is a follows:
+The resulting folder structure in the `outputs/make_tape_tree/tree_config_small` is a follows:
 ```
 ./layer_0:
 data.yaml  DONE  user_simulator_tapes.yaml
