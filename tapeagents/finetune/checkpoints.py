@@ -331,12 +331,23 @@ def save_model_only(
         return
 
     if unwrapped_model.__class__.__name__.endswith("DeepSpeedEngine"):
-        unwrapped_model.save_checkpoint(
-            save_dir=output_dir,
-        )
-        logger.info(f"Saved deepspeed checkpoint to {output_dir}")
+        # Only save from main process
+        if accelerator.is_main_process:
+            # Get the underlying transformer model
+            if hasattr(unwrapped_model, 'module'):
+                unwrapped_model_to_save = unwrapped_model.module
+            else:
+                unwrapped_model_to_save = unwrapped_model
+
+            # Save the model using save_pretrained
+            unwrapped_model_to_save.save_pretrained(
+                output_dir,
+                safe_serialization=safe_serialization,
+            )
+            logger.info(f"Saved model to {output_dir} using save_pretrained")
     elif isinstance(unwrapped_model, transformers.PreTrainedModel):
-        unwrapped_model.save_pretrained(  # type: ignore
+        # Standard save_pretrained path
+        unwrapped_model.save_pretrained(
             output_dir,
             is_main_process=accelerator.is_main_process,
             save_function=accelerator.save,
@@ -345,7 +356,7 @@ def save_model_only(
         )
         logger.info(f"Saved model to {output_dir}")
     else:
-        raise ValueError(f"model is neither a deepspeed model nor a transformers.PreTrainedModel: {type(model)}")
+        raise ValueError(f"model is neither a DeepSpeed model nor a transformers.PreTrainedModel: {type(model)}")
 
 
 def save_tokenizer_only(

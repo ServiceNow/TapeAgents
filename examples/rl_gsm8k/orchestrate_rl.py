@@ -182,7 +182,7 @@ def extract_tape_training_samples(
                 training_samples.append(trace)
                 discarded.append(0)
             else:
-                logger.info(f"Discarding trace: {trace.prompt_text} {trace.output_text}")
+                # logger.info(f"Discarding trace: {trace.prompt_text} {trace.output_text}")
                 discarded.append(1)
     tape_stats = {
         "reward": reward,
@@ -192,7 +192,7 @@ def extract_tape_training_samples(
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
-        "compute_log_probs": np.mean(compute_log_probs),
+        "compute_log_probs": np.mean(compute_log_probs) if compute_log_probs else 0,
     }
     return new_tape, training_samples, tape_stats
 
