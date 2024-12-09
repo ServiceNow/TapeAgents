@@ -218,7 +218,8 @@ def test_data_science():
 
 def test_form_filler():
     assets_dir = Path(__file__).parent / 'res' / 'form_filler'
-    env = FormFillerEnvironment.from_spec(Path(__file__).parent.parent / 'examples' / 'form_filler' / 'assets' / 'forms' / 'train' / 'FlyCorp')
+    forms_path = Path(__file__).parent.parent / 'examples' / 'form_filler' / 'assets' / 'forms' / 'train' / 'FlyCorp'
+    env = FormFillerEnvironment.from_spec(forms_path)
 
     teacher_agent = get_teacher_agent()
     user_agent = get_user_simulator_agent()
@@ -233,6 +234,12 @@ def test_form_filler():
     user_input_tapes = load_user_input_tapes()
     teacher_reference_tapes = load_teacher_reference_tapes()
     user_reference_tapes = load_user_reference_tapes()
+
+    # patch envspecs
+    for tape in teacher_input_tapes + teacher_reference_tapes:
+        tape.context.env_spec = str(forms_path)
+    for tape in user_input_tapes + user_reference_tapes:
+        tape.context.context.env_spec = str(forms_path)
 
     # with set_sqlite_db_dir(assets_dir):
     teacher_failures = replay_tapes(teacher_agent, tapes=teacher_reference_tapes, env=env, start_tapes=teacher_input_tapes, reuse_observations=True)
