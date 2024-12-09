@@ -47,7 +47,7 @@ class VLLMServiceManager:
         stdout_file_path: Union[str, Path],
         stderr_file_path: Union[str, Path],
         port: int = 8080,
-        gpu_per_instance: int = 1,
+        gpus_per_model_instance: int = 1,
         verbose: bool = True,
         cuda_device: str = "0",
         host: str = "localhost",
@@ -59,7 +59,7 @@ class VLLMServiceManager:
         self.port = port
         self.ports = []
         self.processes = []
-        self.gpu_per_instance = gpu_per_instance
+        self.gpus_per_model_instance = gpus_per_model_instance
         self.verbose = verbose
         self.cuda_device = cuda_device
         self.host = host
@@ -133,7 +133,7 @@ class VLLMServiceManager:
 
         threads = []
 
-        for i, device_number in enumerate(generate_cuda_device_strings(torch.cuda.device_count(), self.gpu_per_instance )):
+        for i, device_number in enumerate(generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance )):
             port = self.port + i
             # start_llm(device_number, port, assistant_procs, ports)
             thread = threading.Thread(target=self._start_llm, args=(device_number, port))

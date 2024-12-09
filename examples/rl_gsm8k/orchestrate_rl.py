@@ -34,11 +34,11 @@ from examples.rl_gsm8k.utils import (
     VLLMServiceManager,
     calculate_stats,
     clean_up,
+    get_tokens_from_hf_tokenizer,
     launch_training,
     load_state,
     save_state,
     setup_logging,
-    get_tokens_from_hf_tokenizer,
 )
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
@@ -49,10 +49,10 @@ from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls, LLMCa
 logger = logging.getLogger(__name__)
 
 
-def annotate_trace_with_ref_log_probs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
+def annotate_trace_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
     try:
-        ref_logprobs_content = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
-        trace.ref_logprobs = [c.logprob for c in ref_logprobs_content]
+        ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
         return trace
     except Exception as e:
         raise e
@@ -87,7 +87,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list[LLMCall], strict: bool = True
+    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list
 ) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -152,20 +152,22 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
 
             logprobs = []
             vllm_tokens = []
             if hasattr(llm_call.output, "logprobs"):
-                logprobs_content = llm_call.output.logprobs.content
-                logprobs = [c.logprob for c in logprobs_content]
-                vllm_tokens = [c.token for c in logprobs_content]
+                logprobs_dict = llm_call.output.logprobs
+                logprobs = [c["logprob"] for c in logprobs_dict["content"]]
+                vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
 
-            if (strict and vllm_tokens != hf_tokens) or (not strict and len(logprobs) != llm_call.output_length_tokens):
+            # Note: tokens produced during generation are not always the same as the tokens produced on the full sequence
+            if vllm_tokens != hf_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
-                logprobs_content = agent.llm.get_logprobs(trace.prompt_text, trace.output_text).content  # type: ignore
-                logprobs = [c.logprob for c in logprobs_content]
+                logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+                logprobs = [c["logprob"] for c in logprobs_dict["content"]]
+                new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
+                assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
                 compute_log_probs.append(1)
             else:
                 compute_log_probs.append(0)
@@ -254,7 +256,9 @@ def generate_training_data(
     start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
-    with ThreadPoolExecutor(max_workers=torch.cuda.device_count()) as executor:
+
+    with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()) as executor:
+
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
             agent=agent,
@@ -347,6 +351,11 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
+    remove_leading_white_space = True if "deepseek" in cfg.model_path else False
+    if remove_leading_white_space:
+        # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
+        logging.info("Removing leading white space from the model. This is necessary for DeepSeek models")
+
     while state["iteration"] <= cfg.max_iterations:
         start_iteration = time.time()
         if os.path.exists(finetune_path / "current"):
@@ -354,6 +363,24 @@ def main(cfg: DictConfig):
         else:
             assistant_model_path = cfg.model_path
 
+        llm = TrainableLLM(
+            base_url="http://127.0.0.1:8080",
+            model_name=str(assistant_model_path),
+            tokenizer_name=str(assistant_model_path),
+            parameters=cfg.llm.parameters,
+            use_cache=False,
+            collect_logprobs=True,
+            remove_leading_white_space=remove_leading_white_space,
+        )
+
+        test_llm = TrainableLLM(
+            base_url="http://127.0.0.1:8080",
+            model_name=str(assistant_model_path),
+            tokenizer_name=str(assistant_model_path),
+            parameters=cfg.test_llm.parameters,
+            use_cache=False,
+            remove_leading_white_space=remove_leading_white_space,
+        )
 
         try:
             all_results = {}
@@ -362,29 +389,11 @@ def main(cfg: DictConfig):
                 stdout_file_path=exp_path / "assistant_vllm_stdout.log",
                 stderr_file_path=exp_path / "assistant_vllm_stderr.log",
                 port=8080,
-                gpu_per_instance=cfg.gpu_per_instance,
+                gpus_per_model_instance=cfg.gpus_per_model_instance,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **cfg.vllm_config.vllm_kwargs,
             ) as vllm_service_manager:
-                llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=str(assistant_model_path),
-                    tokenizer_name=str(assistant_model_path),
-                    parameters=cfg.llm.parameters,
-                    use_cache=False,
-                    collect_logprobs=True,
-                    remove_leading_white_space=True,
-                )
-
-                test_llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=str(assistant_model_path),
-                    tokenizer_name=str(assistant_model_path),
-                    parameters=cfg.test_llm.parameters,
-                    use_cache=False,
-                    remove_leading_white_space=True,
-                )
                 sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
                 train_tapes = convert_problems_to_tapes(sub_samples, cfg)
                 train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
@@ -437,7 +446,7 @@ def main(cfg: DictConfig):
                 stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
                 port=8090,
                 verbose=True,
-                gpu_per_instance=cfg.gpu_per_instance,
+                gpus_per_model_instance=cfg.gpus_per_model_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **cfg.vllm_config.vllm_kwargs,
             ) as vllm_service_manager:
@@ -452,7 +461,7 @@ def main(cfg: DictConfig):
 
                 with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()) as executor:
                     futures = [
-                        executor.submit(annotate_trace_with_ref_log_probs, basemodel_agent, trace)
+                        executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace)
                         for trace in all_results["train"]["training_samples"]
                     ]
                     training_samples: List[TrainingText] = [
