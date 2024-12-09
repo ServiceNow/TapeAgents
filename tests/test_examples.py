@@ -235,10 +235,10 @@ def test_form_filler():
     user_reference_tapes = load_user_reference_tapes()
 
     # with set_sqlite_db_dir(assets_dir):
-    teacher_failures = replay_tapes(teacher_agent, start_tapes=teacher_input_tapes, tapes=teacher_reference_tapes, env=env, reuse_observations=True)
+    teacher_failures = replay_tapes(teacher_agent, tapes=teacher_reference_tapes, env=env, start_tapes=teacher_input_tapes, reuse_observations=True)
     assert teacher_failures == 0, 'Failed to replay teacher tapes'
     
-    user_failures = replay_tapes(user_agent, start_tapes=user_input_tapes, tapes=user_reference_tapes, env=env, reuse_observations=True)
+    user_failures = replay_tapes(user_agent, tapes=user_reference_tapes, env=env, start_tapes=user_input_tapes, reuse_observations=True)
     assert user_failures == 0, 'Failed to replay user tapes'
 
 
