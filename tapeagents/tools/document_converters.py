@@ -454,11 +454,10 @@ class WavConverter(DocumentConverter):
             return None
 
         model = whisper.load_model("turbo")
-        text_content = model.transcribe(local_path)
-
+        text_content = model.transcribe(local_path) or "[No speech detected]"
         return DocumentConverterResult(
             title=None,
-            text_content="### Audio Transcript:\n" + ("[No speech detected]" if text_content == "" else text_content),
+            text_content=f"### Audio Transcript:\n{text_content}",
         )
 
 

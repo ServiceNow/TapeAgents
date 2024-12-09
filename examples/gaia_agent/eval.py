@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import subprocess
-from typing import Any, Counter
+from typing import Any, Counter, Generator
 
 import yaml
 from huggingface_hub import snapshot_download
@@ -102,32 +102,41 @@ def solve_task(
     level: int,
     retries: int = 3,
     max_loops: int = 50,
-) -> GaiaTape:
+) -> Generator[GaiaTape, None, None]:
+    """Solve GAIA task. 
+    
+    This function is a generator that yields intermediate tapes during the solving process.
+    The last tape will contain the agent's response.
+    
+    """
     start_steps = env.task_to_observations(task)
     solved = None
-    predicted = None
+    result = None
     while not solved and retries:
         tape = GaiaTape(steps=start_steps)
         try:
             for event in main_loop(agent, tape, env, max_loops=max_loops):
-                if event.agent_event and event.agent_event.step:
-                    tape = tape.append(event.agent_event.step)  # type: ignore
-                elif event.observation:
-                    tape = tape.append(event.observation)  # type: ignore
+                if partial_tape := (event.agent_tape or event.env_tape):
+                    tape = partial_tape
+                    tape.metadata = GaiaMetadata.model_validate(
+                            tape.metadata.model_dump() | {"task": task, "level": level}
+                        )                    
+                    yield tape
                 if n_search_repetitions(tape) >= 3:
                     break
         except Exception as e:
             tape.metadata.error = str(e)
             logger.exception(f"Failed to solve task: {e}")
             break
-        predicted = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
-        solved = predicted not in ["", None]
+        result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
+        result = str(result) if result is not None else ""
+        solved = result != ""
         retries -= 1
-    logger.info(f"Expected: {task['Final answer']}, Agent produced: {predicted}")
+    logger.info(f"Expected: {task['Final answer']}, Agent produced: {result}")
     tape.metadata = GaiaMetadata.model_validate(
-        tape.metadata.model_dump() | {"task": task, "result": str(predicted), "level": level}
+        tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
     )
-    return tape
+    yield tape
 
 
 def n_search_repetitions(tape: GaiaTape) -> int:
