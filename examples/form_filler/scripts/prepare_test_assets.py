@@ -204,13 +204,13 @@ def predict_and_compare():
 
 def prepare_test_assets():
     # # # This reads hydra configs from the examples/form_filler/conf directory
-    # validate_and_save_agent_configs()
+    validate_and_save_agent_configs()
 
     # # # Extract some tapes randomly from an existing dialogue tree created by make_tape_tree
-    # extract_random_tapes_from_tape_tree('/mnt/llmd/data/gontiern/make_tape_tree/dec4/train/FlyCorp/teacher_agent_vllm_llama3_405b_temp1/user_vllm_llama3_405b_temp1/tree_config6_size500/',
-    #                                     teacher_layers=(0,2,4),
-    #                                     user_layers=(0,2,4),
-    #                                     n_tapes_per_layer=1)
+    extract_random_tapes_from_tape_tree('/mnt/llmd/data/gontiern/make_tape_tree/dec4/train/FlyCorp/teacher_agent_vllm_llama3_405b_temp1/user_vllm_llama3_405b_temp1/tree_config6_size500/',
+                                        teacher_layers=(0,2,4),
+                                        user_layers=(0,2,4),
+                                        n_tapes_per_layer=1)
 
     # Generate the reference completions
     # If any of the input tapes cause agent failure, you may manually remove them from the input tapes yaml and rerun the script
