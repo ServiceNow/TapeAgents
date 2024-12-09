@@ -28,14 +28,13 @@ from urllib.parse import unquote, urljoin, urlparse
 
 import pathvalidate
 import requests
-from googlesearch import search
 from Levenshtein import ratio
-from tavily import TavilyClient
 from termcolor import colored
 
 from tapeagents.core import Prompt
 from tapeagents.llms import LLM
-from tapeagents.utils import FatalError, acquire_timeout, diff_strings
+from tapeagents.tools.search import web_search
+from tapeagents.utils import FatalError, diff_strings
 
 from .document_converters import (
     FileConversionException,
@@ -46,17 +45,8 @@ from .document_converters import (
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-search_lock = threading.Lock()
+
 flush_lock = threading.Lock()
-
-
-def get_tavily_key():
-    if os.path.exists("TAVILY_API_KEY"):
-        with open("TAVILY_API_KEY") as f:
-            return f.read().strip()
-    key = os.environ.get("TAVILY_API_KEY")
-    if key is None:
-        raise ValueError("TAVILY_API_KEY environment variable must be set.")
 
 
 _FORCE_CACHE_PATH = None  # For testing purposes only
@@ -72,7 +62,6 @@ class SimpleTextBrowser:
         start_page: Optional[str] = None,
         viewport_size: Optional[int] = 32000,
         downloads_folder: str = "/tmp/agent_browser_downloads",
-        use_tavily: bool = False,
         use_web_cache: bool = True,
         only_cached_webpages: bool = False,
         vision_lm: LLM | None = None,
@@ -104,7 +93,6 @@ class SimpleTextBrowser:
 
         self._page_content: str = ""
         self._page_error: int = 0
-        self.tavily = TavilyClient(api_key=get_tavily_key()) if use_tavily else None
         self.converter_kwargs = converter_kwargs or {}
 
         self._find_on_page_query: Union[str, None] = None
@@ -297,17 +285,9 @@ class SimpleTextBrowser:
                 raise FatalError(f'No cache for "{query}"')
             closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
             raise FatalError(f'No cache for "{query}". Closest with score {score}:\n"{closest}"')
-        if self.tavily is not None:
-            serp = self.tavily.search(query=query, search_depth="basic", max_results=max_results) or {"results": []}
-            results = [{"title": r["title"], "url": r["url"], "content": r["content"][:200]} for r in serp["results"]]
-        else:
-            with acquire_timeout(search_lock, 5):
-                results = [
-                    {"title": r.title, "url": r.url, "content": r.description}
-                    for r in search(query, advanced=True, num_results=max_results)
-                ]
-                time.sleep(2)  # Avoid rate limiting of the search engine
-        self._add_to_cache(key, results)
+        results = web_search(query, max_results)
+        if results:
+            self._add_to_cache(key, results)
         return results[:max_results]
 
     def _fetch_page(self, url: str) -> None:
