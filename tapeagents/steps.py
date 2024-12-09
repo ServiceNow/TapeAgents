@@ -121,3 +121,9 @@ def normalize_step_paths(model: Step, root_path: str) -> Step:
 class UnknownStep(Step):
     content: str
     kind: Literal["unknown"] = "unknown"  # type: ignore
+
+
+class Annotation(Action):
+    kind: Literal["annotation"] = "annotation"
+    step: int
+    text: str
