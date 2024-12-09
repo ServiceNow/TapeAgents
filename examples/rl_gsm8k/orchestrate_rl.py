@@ -109,6 +109,7 @@ def extract_tape_training_samples(
     compute_logprobs = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
+    time_hf_tokens = 0
     match cfg.dataset_name:
         case "math":
             eval_fn = eval_math
