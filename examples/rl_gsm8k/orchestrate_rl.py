@@ -28,7 +28,6 @@ from examples.rl_gsm8k.cot_math_agent import (
 )
 from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from examples.rl_gsm8k.deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-
 from examples.rl_gsm8k.deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
 from examples.rl_gsm8k.utils import (
     VLLMServiceManager,
@@ -44,7 +43,7 @@ from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls, LLMCall
+from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_calls
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +106,7 @@ def extract_tape_training_samples(
         - Dictionary with statistics (reward, steps, success, no_errors)
     """
     discarded = []
-    compute_log_probs = []
+    compute_logprobs = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     match cfg.dataset_name:
@@ -168,9 +167,9 @@ def extract_tape_training_samples(
                 logprobs = [c["logprob"] for c in logprobs_dict["content"]]
                 new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
                 assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
-                compute_log_probs.append(1)
+                compute_logprobs.append(1)
             else:
-                compute_log_probs.append(0)
+                compute_logprobs.append(0)
 
             trace.reward = reward
             trace.logprobs = logprobs
@@ -194,7 +193,7 @@ def extract_tape_training_samples(
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
-        "compute_log_probs": np.mean(compute_log_probs),
+        "compute_logprobs": np.mean(compute_logprobs) if compute_logprobs else 0,
     }
     return new_tape, training_samples, tape_stats
 
@@ -276,7 +275,7 @@ def generate_training_data(
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_log_probs"])
+            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_logprobs"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
             training_samples.extend(tape_training_samples)
