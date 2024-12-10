@@ -25,7 +25,7 @@ def main(exp_path: str):
         unsolved = 0
         tapes = []
         for i in range(len(level_tasks)):
-            fname = f"l{level}_task{i}"
+            fname = f"l{level}_task{i:03d}"
             tape_path = os.path.join(exp_path, "tapes", fname + ".json")
             try:
                 tape: GaiaTape = load_tapes(GaiaTape, tape_path)[0]  # type: ignore
