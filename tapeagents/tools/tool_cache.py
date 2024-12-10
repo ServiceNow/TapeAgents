@@ -16,7 +16,7 @@ lock = threading.Lock()
 
 def cached_tool(tool_fn) -> Callable:
     def wrapper(*args, **kwargs):
-        fn_name = getattr(tool_fn, "__name__", repr(callable))
+        fn_name = getattr(tool_fn, "__name__", repr(tool_fn))
         if result := get_from_cache(fn_name, args, kwargs):
             return result
         if _FORCE_CACHE:
