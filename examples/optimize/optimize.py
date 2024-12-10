@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import random
+from typing import Callable
 
 import dspy
 import dspy.evaluate
@@ -10,6 +11,7 @@ import tqdm
 from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
 from omegaconf import DictConfig
+
 from tapeagents.agent import Agent, Node
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import Tape
@@ -26,7 +28,7 @@ from tapeagents.dialog_tape import (
 from tapeagents.environment import ToolEnvironment
 from tapeagents.io import stream_yaml_tapes
 from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
-from tapeagents.llms import LiteLLM, LLMStream
+from tapeagents.llms import LiteLLM, LLMStream, TrainableLLM
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
@@ -58,7 +60,18 @@ def make_llm(cfg: DictConfig) -> LiteLLM:
         "presence_penalty": 0,
         "n": 1,
     }
-    return LiteLLM(model_name="gpt-3.5-turbo", parameters=parameters, use_cache=cfg.llm_cache)
+    if cfg.llm_name.startswith("gpt"):
+        llm = LiteLLM(model_name=cfg.llm_name, parameters=parameters, use_cache=cfg.llm_cache)
+    else:
+        llm = TrainableLLM(
+            base_url="https://api.together.xyz",
+            model_name="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            tokenizer_name="meta-llama/Llama-3.3-70B-Instruct",
+            parameters=dict(temperature=0.01),
+            use_cache=cfg.llm_cache,
+        )
+
+    return llm
 
 
 def make_rag_agent(cfg: DictConfig) -> Agent:
@@ -134,7 +147,8 @@ def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1) 
     agent_copy = agent.model_copy(deep=True)
     for template_name, template in agent_copy.templates.items():
         k_max = min(max_n_demos, len(demos[template_name]))
-        k = rng.randint(0, k_max)  # random number of demos
+        # k = rng.randint(0, k_max)  # random number of demos
+        k = k_max
         template.demos = rng.sample(demos[template_name], k)  # random selection of demos
     return agent_copy
 
@@ -162,14 +176,39 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
         for tape in bad_tapes:
             saver.save(tape)
     # Step 3: Optimize agent from the good tapes
-    if cfg.optimize.optimize_demos:
-        better_agent = optimize_demos(agent, good_tapes, dataset.dev, cfg)
-    else:
-        better_agent = add_demos(agent, good_tapes, cfg.optimize.max_n_demos, seed=cfg.seed)
+    better_agent = optimize_demos(agent, good_tapes, dataset.dev, cfg, metric_mean_retrieval_answer)
     return better_agent
 
 
-def optimize_demos(agent: Agent, good_tapes: list[Tape], val_dataset: list, cfg: DictConfig) -> Agent:
+def metric_accuracy(dataset: list, tapes: list[Tape]) -> float:
+    n_correct = 0
+    for example, tape in zip(dataset, tapes):
+        if is_good_tape(example, tape):
+            n_correct += 1
+    return n_correct / len(dataset)
+
+
+def metric_mean_retrieval_answer(
+    dataset: list, tapes: list[Tape], w_retrieval: float = 0.5, w_answer: float = 0.5
+) -> float:
+    retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
+    answer_accuracy = compute_answer_exact_match(dataset, tapes)
+    metric = retrieval_accuracy * w_retrieval + answer_accuracy * w_answer
+    logger.info(
+        f"Retrieval accuracy: {retrieval_accuracy:.2f} | Answer accuracy: {answer_accuracy:.2f} | Mean: {metric:.2f} "
+    )
+    return metric
+
+
+def metric_retrieval(dataset: list, tapes: list[Tape], w_retrieval: float = 0.5, w_answer: float = 0.5) -> float:
+    retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
+    logger.info(f"Retrieval accuracy: {retrieval_accuracy:.2f}")
+    return retrieval_accuracy
+
+
+def optimize_demos(
+    agent: Agent, good_tapes: list[Tape], val_dataset: list, cfg: DictConfig, metric_fn: Callable[list, list[Tape]]
+) -> Agent:
     """Try N times to `add_demos` (see above), measure val set performance, and keep the best agent"""
     best_agent = agent
     best_metric = 0
@@ -179,12 +218,7 @@ def optimize_demos(agent: Agent, good_tapes: list[Tape], val_dataset: list, cfg:
         new_agent = add_demos(best_agent, good_tapes, cfg.optimize.max_n_demos, seed=cfg.seed + i)
         # Run agent on the validation set to get metric to optimize
         final_tapes = run_agent(new_agent, val_dataset, cfg)
-        retrieval_accuracy = compute_retrieval_accuracy(val_dataset, final_tapes)
-        answer_accuracy = compute_answer_exact_match(val_dataset, final_tapes)
-        metric = retrieval_accuracy * 0.5 + answer_accuracy * 0.5
-        logger.info(
-            f"Optimization attempt {i + 1} | Metric: {metric:.2f} | Retrieval accuracy: {retrieval_accuracy:.2f} | Answer accuracy: {answer_accuracy:.2f}"
-        )
+        metric = metric_fn(val_dataset, final_tapes)
         if metric > best_metric:
             best_metric = metric
             best_agent = new_agent
@@ -199,6 +233,9 @@ def make_agent(cfg: DictConfig) -> Agent:
 
 
 def is_good_tape(example: dspy.primitives.Example, tape, trace=None):
+    if len(tape.steps) < 3:
+        print(tape.metadata.error)
+        raise ValueError("Tape too short")
     pred = dspy.primitives.Example({"answer": str(tape.steps[-1].content).strip(), "context": tape.steps[-3].content})
     tape.metadata.result["groundruth_answer"] = example.answer
     if not dspy.evaluate.answer_exact_match(example, pred):
@@ -227,6 +264,7 @@ def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
         gold_titles = set(map(dspy.evaluate.normalize_text, example["gold_titles"]))
         # TODO: just retrieve the last set of contexts by index, keep it simple
         if len(tape.steps) < 3:
+            print(tape.metadata.error)
             tape.metadata.result["retrieval_accurate"] = False
             continue
         context_step = tape.steps[-3]
@@ -259,14 +297,18 @@ def get_dataset(cfg: DictConfig) -> HotPotQA:
     global _dataset
     if _dataset is None:
         _dataset = HotPotQA(
-            train_seed=1, train_size=cfg.dataset.train_size, eval_seed=2023, dev_size=cfg.dataset.dev_size, test_size=0
+            train_seed=1,
+            train_size=cfg.dataset.train_size,
+            eval_seed=2023,
+            dev_size=cfg.dataset.dev_size,
+            test_size=cfg.dataset.test_size,
         )
     logger.info("Data loaded")
     return _dataset
 
 
-def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset, save_tapes_path: str):
-    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.dev]
+def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset: list, save_tapes_path: str):
+    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset]
     final_tapes = []
     with stream_yaml_tapes(save_tapes_path) as saver:
         for tape in tqdm.tqdm(batch_main_loop(agent, start_tapes, env)):
@@ -297,15 +339,25 @@ def evaluate(cfg: DictConfig):
     agent = make_agent(cfg)
     env = make_env()
     dataset = get_dataset(cfg)
-    tapes_save_path = f"dev_tapes_{cfg.dataset.dev_size}.yaml"
-    final_tapes = batch_run_and_save(agent, env, dataset, tapes_save_path)
-    retrieval_accuracy = compute_retrieval_accuracy(dataset.dev, final_tapes)
-    answer_accuracy = compute_answer_exact_match(dataset.dev, final_tapes)
+    tapes_save_path = f"test_tapes_{cfg.dataset.test_size}.yaml"
+    final_tapes = batch_run_and_save(agent, env, dataset.test, tapes_save_path)
+    accuracy = metric_mean_retrieval_answer(dataset.test, final_tapes)
+    retrieval_accuracy = compute_retrieval_accuracy(dataset.test, final_tapes)
+    answer_accuracy = compute_answer_exact_match(dataset.test, final_tapes)
+    print(f"Accuracy: {accuracy:.2f}")
     print(f"Retrieval accuracy: {retrieval_accuracy:.2f}")
     print(f"Answer accuracy: {answer_accuracy:.2f}")
-    metrics_save_path = f"metrics_{cfg.dataset.dev_size}.json"
+    metrics_save_path = f"metrics_{cfg.dataset.test_size}.json"
     with open(metrics_save_path, "w") as f:
-        json.dump({"retrieval_accuracy": retrieval_accuracy, "answer_accuracy": answer_accuracy}, f, indent=2)
+        json.dump(
+            {
+                "accuracy": accuracy,
+                "retrieval_accuracy": retrieval_accuracy,
+                "answer_accuracy": answer_accuracy,
+            },
+            f,
+            indent=2,
+        )
 
 
 def browse():
