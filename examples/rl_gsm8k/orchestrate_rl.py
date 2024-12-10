@@ -177,6 +177,7 @@ def extract_tape_training_samples(
                     compute_logprobs.append(1)
                 except Exception as e:
                     logger.error(f"Failed to get logprobs: {e}")
+                    discarded.append(1)
                     continue
             else:
                 compute_logprobs.append(0)
