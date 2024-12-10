@@ -285,7 +285,6 @@ def generate_training_data(
             compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_logprobs"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
-            training_samples.extend(tape_training_samples)
 
     end_annotate_tape = time.time()
 
