@@ -112,7 +112,6 @@ def extract_tape_training_samples(
     compute_logprobs = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
-    time_hf_tokens = 0
     match cfg.dataset_name:
         case "math":
             eval_fn = eval_math
@@ -155,9 +154,7 @@ def extract_tape_training_samples(
         for i, llm_call in enumerate(sub_llm_calls[::-1]):
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            start_hf_tokens = time.time()
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
-            time_hf_tokens = time.time() - start_hf_tokens
 
             logprobs = []
             vllm_tokens = []
@@ -204,7 +201,6 @@ def extract_tape_training_samples(
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
         "compute_logprobs": np.mean(compute_logprobs) if compute_logprobs else 0,
-        "time_hf_tokens": time_hf_tokens,
     }
     return new_tape, training_samples, tape_stats
 
@@ -266,7 +262,6 @@ def generate_training_data(
     start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
-    time_hf_tokens = 0
 
     with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
 
@@ -288,7 +283,6 @@ def generate_training_data(
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
             compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_logprobs"])
-            time_hf_tokens += tape_stats["time_hf_tokens"]
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
             training_samples.extend(tape_training_samples)
@@ -312,7 +306,6 @@ def generate_training_data(
             / (end_sampling_from_llm - start_sampling_from_llm),
             f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
             / (end_sampling_from_llm - start_sampling_from_llm),
-            f"execution_time/{split_name}_get_hf_tokens": time_hf_tokens,
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
         },
