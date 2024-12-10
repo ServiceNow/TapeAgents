@@ -1,0 +1,46 @@
+name: StoreRemodelRequest
+description: Request a remodel of an existing store, including updates to layout,
+  decor, and equipment. This function requires the store ID and location as parameters.
+  The store ID must be a valid ID of an existing store, and the location must be a
+  string describing the city and state of the store. The function will return a request
+  ID, which can be used to track the status of the request, and a status, which can
+  be either 'pending', 'approved', or'rejected'. According to CoffeeCorp's policy,
+  all store remodel requests must be approved by the regional manager before the remodel
+  can begin. Additionally, CoffeeCorp's sustainability policy requires that all remodels
+  must include energy-efficient equipment and sustainable materials.
+parameters:
+  type: object
+  properties:
+    store_id:
+      description: The ID of the store to be remodeled.
+      type: integer
+    location:
+      description: The city and state of the store.
+      type: string
+    budget:
+      description: The budget for the remodel (optional).
+      type: number
+  required:
+  - store_id
+  - location
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the remodel request.
+      type: string
+    status:
+      description: The status of the remodel request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: Any additional comments about the remodel request.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

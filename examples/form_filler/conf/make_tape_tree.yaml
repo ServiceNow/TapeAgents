@@ -1,0 +1,8 @@
+defaults:
+- make_tape_tree: tree_config_small
+- override hydra/job_logging: verbose2
+- _self_
+
+hydra:
+  run:
+    dir: ${make_tape_tree.output_path}

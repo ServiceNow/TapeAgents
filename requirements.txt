@@ -16,7 +16,9 @@ openai==1.55.3
 pathvalidate==3.2.0
 podman==5.0
 pydantic==2.9.1
+pyyaml==6.0.2
 seaborn==0.13.2
 tavily-python==0.3.4
 termcolor==2.4.0
 transformers==4.45.2
+tqdm==4.66.5

@@ -1,0 +1,54 @@
+name: Product Return Request
+description: 'Submit a request to return a product to a vendor or supplier, including
+  details on the reason for return and expected credit or refund. This function requires
+  the product ID, reason for return, and expected refund amount as mandatory parameters.
+  The reason for return must be one of the following: ''defective'', ''not as described'',
+  or ''customer remorse''. The expected refund amount must be a positive number. According
+  to ShopCorp''s return policy, products can only be returned within 30 days of purchase.
+  The function will return a request ID, the status of the request (either ''pending'',
+  ''approved'', or''rejected''), and a list of comments from the vendor or supplier.'
+parameters:
+  type: object
+  properties:
+    product_id:
+      description: The ID of the product being returned
+      type: integer
+    reason_for_return:
+      description: The reason for returning the product
+      type: string
+      enum:
+      - defective
+      - not as described
+      - customer remorse
+    expected_refund_amount:
+      description: The expected refund amount
+      type: number
+    purchase_date:
+      description: The date of purchase
+      type: string
+      format: date
+  required:
+  - product_id
+  - reason_for_return
+  - expected_refund_amount
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the return request
+      type: string
+    status:
+      description: The status of the return request
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: A list of comments from the vendor or supplier
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

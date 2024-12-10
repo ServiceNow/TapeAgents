@@ -1,0 +1,42 @@
+name: Supply Chain Disruption Mitigation
+description: Request assistance in mitigating supply chain disruptions affecting DriveCorp's
+  operations.
+parameters:
+  type: object
+  properties:
+    disruption_type:
+      description: Type of supply chain disruption (e.g. parts shortage, logistics
+        issue)
+      type: string
+    affected_plant:
+      description: One of DriveCorp's 120 production plants
+      type: string
+    expected_resolution_date:
+      description: Expected resolution date in YYYY-MM-DD format
+      type: string
+      format: date
+  required:
+  - disruption_type
+  - affected_plant
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: Unique ID of the request
+      type: string
+    status:
+      description: Status of the request
+      type: string
+      enum:
+      - pending
+      - in_progress
+      - resolved
+    recommended_actions:
+      description: List of recommended mitigation actions
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - recommended_actions
