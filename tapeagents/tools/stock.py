@@ -5,9 +5,13 @@ import requests
 from tapeagents.tools.tool_cache import cached_tool
 
 
-@cached_tool
 def get_stock_ticker(company_name: str) -> str:
     """Get company stock ticker from its name."""
+    return _get_stock_ticker(company_name)
+
+
+@cached_tool
+def _get_stock_ticker(company_name: str) -> str:
     yfinance = "https://query2.finance.yahoo.com/v1/finance/search"
     user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
     params = {"q": company_name, "quotes_count": 1, "country": "United States"}
@@ -19,8 +23,7 @@ def get_stock_ticker(company_name: str) -> str:
     return company_code
 
 
-@cached_tool
-def get_stock_data(symbol: str, start_date: str, end_date: str):
+def get_stock_data(symbol: str, start_date: str, end_date: str) -> list[tuple]:
     """Get stock proces for a given symbol and date range.
 
     Args:
@@ -31,6 +34,11 @@ def get_stock_data(symbol: str, start_date: str, end_date: str):
     Returns:
         (list[tuple]): List of tuples, each tuple contains a 'YYYY-MM-DD' date and the stock price.
     """
+    return _get_stock_data(symbol, start_date, end_date)
+
+
+@cached_tool
+def _get_stock_data(symbol: str, start_date: str, end_date: str):
     symbol = symbol.upper()
     # parse timestamps using datetime
     start_timestamp = int(datetime.datetime.strptime(start_date, "%Y-%m-%d").timestamp())
