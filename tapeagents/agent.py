@@ -266,6 +266,19 @@ class Agent(BaseModel, Generic[TapeType]):
         if len(self.llms) > 1:
             raise ValueError("Agent has multiple LLMs. Use llms property to access a specific one.")
         return self.llms[DEFAULT]
+    
+    @property
+    def default_llm(self):
+        """
+        Get the default LLM instance associated with the agent.
+
+        Returns:
+            (LLM): The LLM with DEFAULT name.
+
+        Doesn't raise an error if there are multiple LLMs, unlike the `def llm`
+
+        """
+        return self.llms[DEFAULT]
 
     @property
     def template(self):
@@ -625,9 +638,8 @@ class Agent(BaseModel, Generic[TapeType]):
         """
         if llm_stream is None:
             prompt = self.make_prompt(tape)
-            if len(self.llms) > 1:
-                raise NotImplementedError("TODO: implement LLM choice in the prompt")
-            llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
+            llm_name = prompt.llm_name or DEFAULT
+            llm_stream = self.llms[llm_name].generate(prompt) if prompt else LLMStream(None, prompt)
         for step in self.generate_steps(tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.prompt_id = llm_stream.prompt.id

@@ -327,6 +327,7 @@ class Prompt(BaseModel):
     """
 
     id: str = Field(default_factory=lambda: str(uuid4()))
+    llm_name: str = ""
     tools: list[dict] | None = None
     messages: list[dict] = Field(default_factory=list)
 

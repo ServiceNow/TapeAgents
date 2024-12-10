@@ -116,9 +116,17 @@ class GaiaAgent(Agent):
     plain_code: bool
 
     @classmethod
-    def create(cls, llm: LLM, plain_code: bool = False, **kwargs):
+    def create(cls, llm: LLM, plan_llm: LLM | None = None, plain_code: bool = False, **kwargs):
+        llms = {"default": llm}
+        if plan_llm:
+            llms["plan_llm"] = plan_llm
         nodes = [
-            GaiaNode(name="plan", guidance=PromptRegistry.plan, allowed_steps=plan_steps),
+            GaiaNode(
+                name="plan", 
+                llm_name="plan_llm" if plan_llm else "default",
+                guidance=PromptRegistry.plan,
+                allowed_steps=plan_steps
+            ),
             GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, allowed_steps=plan_steps),
             GaiaNode(
                 name="start_execution",
@@ -133,4 +141,4 @@ class GaiaAgent(Agent):
                 next_node="act",
             ),
         ]
-        return super().create(llm, nodes=nodes, max_iterations=2, plain_code=plain_code, **kwargs)
+        return super().create(llms=llms, nodes=nodes, max_iterations=2, plain_code=plain_code, **kwargs)

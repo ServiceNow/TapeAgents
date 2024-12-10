@@ -38,14 +38,20 @@ def main(cfg: DictConfig) -> None:
     code_path = os.path.join(cfg.exp_path, "code")
     os.makedirs(code_path, exist_ok=True)
     os.makedirs(cfg.env.attachment_dir, exist_ok=True)
-    llm: TrainableLLM = instantiate(cfg.llm)
+    llm = instantiate(cfg.llm)
+    plan_llm = instantiate(cfg.plan_llm) if cfg.get("plan_llm") else None
     try:
         code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
     except Exception as e:
         logger.error(f"Failed to create code sandbox: {e}")
         code_sandbox = None
-    agent = GaiaAgent.create(llm, **cfg.agent)
+    agent = GaiaAgent.create(llm, plan_llm, **cfg.agent)
     tasks = load_dataset(cfg.split)
+    if cfg.get("tasks"):
+        selected_tasks = {}
+        for level, level_tasks in cfg.tasks.items():
+            selected_tasks[level] = [tasks[level][i] for i in level_tasks]
+        tasks = selected_tasks
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     validate_config(cfg, llm, tapes_dir)
     images_dir = os.path.join(cfg.exp_path, "images")

@@ -10,7 +10,7 @@ from pydantic import Field, TypeAdapter, ValidationError
 
 from tapeagents.view import Call, Respond, TapeViewStack
 
-from .agent import Agent, Node
+from .agent import Agent, Node, DEFAULT
 from .core import (
     AgentStep,
     LLMOutput,
@@ -43,6 +43,7 @@ class MonoNode(Node):
         guidance (str): Guidance text attached to the end of the prompt
         system_prompt (str): System prompt used in message construction
         steps_prompt (str): Prompt describing the steps the agent can take
+        llm_name (str): Name of the LLM to use in this node, "default" by default
         agent_step_cls (Any): Class used for step validation, excluded from model
         next_node (str): Identifier for the next node in sequence
 
@@ -57,9 +58,10 @@ class MonoNode(Node):
         ```
     """
 
-    guidance: str = ""  # guidance text that is attached to the end of the prompt
+    guidance: str = ""  
     system_prompt: str = ""
-    steps_prompt: str = ""  # prompt that describes the steps that the agent can take
+    steps_prompt: str = "" 
+    llm_name: str = DEFAULT
     agent_step_cls: Any = Field(exclude=True)
     next_node: str = ""
 
@@ -89,10 +91,11 @@ class MonoNode(Node):
         cleaned_tape = self.prepare_tape(tape)
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
-        if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
+        llm = agent.llms[self.llm_name]
+        if llm.count_tokens(messages) > (llm.context_size - 500):
             cleaned_tape = self.trim_tape(cleaned_tape)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
-        return Prompt(messages=messages)
+        return Prompt(llm_name=self.llm_name, messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
         """
