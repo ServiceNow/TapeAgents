@@ -200,6 +200,7 @@ class VLLMServiceManager:
         self.processes.append(process)
 
     def _cleanup(self) -> None:
+        logger.info(f"Killing {len(self.processes)} vLLM processes")
         for process in self.processes:
             if process and process.pid:
                 self._terminate_with_children(process.pid)

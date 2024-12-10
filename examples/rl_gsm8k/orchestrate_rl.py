@@ -48,13 +48,16 @@ from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_cal
 logger = logging.getLogger(__name__)
 
 
-def annotate_trace_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText) -> TrainingText:
+def annotate_trace_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
     try:
         ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
         trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
         return trace
     except Exception as e:
-        raise e
+        logger.error(f"Failed to get ref logprobs: {e}")
+        if strict:
+            raise e
+        return None
 
 
 def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTape]:
@@ -462,12 +465,13 @@ def main(cfg: DictConfig):
 
                 with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()) as executor:
                     futures = [
-                        executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace)
+                        executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace, strict=False)
                         for trace in all_results["train"]["training_samples"]
                     ]
-                    training_samples: List[TrainingText] = [
+                    training_samples: List[TrainingText] = [ # type: ignore
                         future.result()
-                        for future in tqdm(as_completed(futures), total=len(futures), desc="Annotating traces")
+                        for future in tqdm(as_completed(futures), total=len(futures), desc="Annotating traces") 
+                        if future.result() is not None
                     ]
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
