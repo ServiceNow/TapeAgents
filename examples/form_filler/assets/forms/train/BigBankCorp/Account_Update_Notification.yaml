@@ -1,0 +1,46 @@
+name: Account_Update_Notification
+description: Request to update personal or business account information with BigBankCorp,
+  including changes to address, phone number, or email. This function requires the
+  account ID and the updated information, and returns a request ID and the status
+  of the request. According to BigBankCorp's policies, account updates must be verified
+  by the account holder, and may require additional documentation. This function adheres
+  to BigBankCorp's rules for data privacy and security.
+parameters:
+  type: object
+  properties:
+    account_id:
+      description: The ID of the account to be updated
+      type: integer
+    address:
+      description: The new address of the account holder
+      type: string
+    phone_number:
+      description: The new phone number of the account holder
+      type: string
+    email:
+      description: The new email of the account holder
+      type: string
+  required:
+  - account_id
+  - address
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the update request
+      type: string
+    status:
+      description: The status of the update request
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: Any additional comments or notes about the update request
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

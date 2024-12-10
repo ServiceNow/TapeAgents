@@ -1,0 +1,25 @@
+defaults:
+- base
+- _self_
+
+  
+behavior_alias: skip_optional
+
+step_types_chain:
+  - RequestFunctionParameters
+  - AssistantStep
+
+step_filters:
+  - _target_: examples.form_filler.user_simulator_filters.ParameterType
+    optional_no_default: true
+
+instruction:
+  _target_: examples.form_filler.user_simulator_agent.InstructionSampler
+  instructions:
+    # skip_optional_creative: 'Tell the agent, in a generic but creative way, that you want to ignore the current step. DO NOT explain yourself. Be very scpecific and brief!'
+    # skip_optional_generic: 'Tell the agent that you want to ignore the current step using a generic sentence. DO NOT explain yourself. Be very scpecific and brief!'
+    skip_optional: The user does not answer and asks to skip this question.
+  weights:
+    # skip_optional_creative: 0.5
+    # skip_optional_generic: 0.5
+    skip_optional: 1.0

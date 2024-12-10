@@ -1,0 +1,49 @@
+name: RequestSpecialMeal
+description: Request for a special meal option for a passenger, including meal type
+  and dietary restrictions. This function requires the passenger's booking reference,
+  meal type (vegetarian, gluten-free, etc.), and dietary restrictions (halal, kosher,
+  etc.). According to FlyCorp's policy, special meal requests must be made at least
+  24 hours prior to flight departure. The function will return a request ID, the status
+  of the request (approved, denied, or pending), and a comment indicating any additional
+  information or requirements.
+parameters:
+  type: object
+  properties:
+    booking_reference:
+      description: The passenger's booking reference number.
+      type: string
+    meal_type:
+      description: The type of special meal required (vegetarian, gluten-free, etc.).
+      type: string
+      enum:
+      - vegetarian
+      - gluten-free
+      - halal
+      - kosher
+    dietary_restrictions:
+      description: Any dietary restrictions or allergies (e.g. peanuts, shellfish,
+        etc.).
+      type: string
+  required:
+  - booking_reference
+  - meal_type
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the special meal request.
+      type: string
+    status:
+      description: The status of the special meal request (approved, denied, or pending).
+      type: string
+      enum:
+      - approved
+      - denied
+      - pending
+    comment:
+      description: Any additional information or requirements related to the special
+        meal request.
+      type: string
+  required:
+  - request_id
+  - status

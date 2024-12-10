@@ -1,0 +1,56 @@
+name: RequestWheelchairAssistance
+description: Request for wheelchair assistance for a passenger, including flight details
+  and special requirements. This function requires the passenger's name, flight number,
+  and departure date as mandatory parameters. Additionally, it accepts optional parameters
+  for special requirements such as escort assistance or Braille signage. According
+  to FlyCorp's policy, wheelchair assistance requests must be made at least 48 hours
+  prior to the scheduled flight departure time. The function returns a unique request
+  ID, the status of the request (either 'pending', 'approved', or 'denied'), and a
+  list of assigned assistants.
+parameters:
+  type: object
+  properties:
+    passenger_name:
+      description: The full name of the passenger requiring wheelchair assistance.
+      type: string
+    flight_number:
+      description: The flight number for which wheelchair assistance is requested.
+      type: string
+    departure_date:
+      description: The scheduled departure date of the flight.
+      type: string
+      format: date
+    escort_assistance:
+      description: Whether escort assistance is required (optional).
+      type: boolean
+      default: false
+    braille_signage:
+      description: Whether Braille signage is required (optional).
+      type: boolean
+      default: false
+  required:
+  - passenger_name
+  - flight_number
+  - departure_date
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique identifier for the wheelchair assistance request.
+      type: string
+    status:
+      description: The status of the request (pending, approved, or denied).
+      type: string
+      enum:
+      - pending
+      - approved
+      - denied
+    assigned_assistants:
+      description: A list of assigned assistants for the request.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - assigned_assistants

@@ -1,0 +1,42 @@
+[
+  {
+    "name": "BookFlight",
+    "description": "Request to book a flight for a passenger, including flight details, passenger information, and payment details."
+  },
+  {
+    "name": "CheckIn",
+    "description": "Request to check-in a passenger for a flight, including seat selection and baggage information."
+  },
+  {
+    "name": "UpdateSeatAssignment",
+    "description": "Request to update a passenger's seat assignment on a flight, including seat number and class of service."
+  },
+  {
+    "name": "RequestSpecialMeal",
+    "description": "Request for a special meal option for a passenger, including meal type and dietary restrictions."
+  },
+  {
+    "name": "ReportLostLuggage",
+    "description": "Request to report lost luggage, including flight details, luggage description, and contact information."
+  },
+  {
+    "name": "RequestFlightChange",
+    "description": "Request to change a flight, including original flight details, new flight details, and reason for change."
+  },
+  {
+    "name": "AddAncillaryService",
+    "description": "Request to add an ancillary service to a flight booking, including service type and payment details."
+  },
+  {
+    "name": "RequestRefund",
+    "description": "Request for a refund for a cancelled or changed flight, including flight details and reason for refund."
+  },
+  {
+    "name": "UpdatePassengerInformation",
+    "description": "Request to update a passenger's personal information, including name, contact details, and loyalty program information."
+  },
+  {
+    "name": "RequestWheelchairAssistance",
+    "description": "Request for wheelchair assistance for a passenger, including flight details and special requirements."
+  }
+]

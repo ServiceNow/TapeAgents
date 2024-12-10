@@ -10,7 +10,9 @@ from pathlib import Path
 
 import transformers
 import yaml
-from make_test_data import run_test_in_tmp_dir
+from examples.form_filler.scripts.prepare_test_assets import get_completions, load_teacher_input_tapes, load_teacher_reference_tapes, load_user_input_tapes, load_user_reference_tapes, get_teacher_agent, get_user_simulator_agent
+from examples.form_filler.environment import FormFillerEnvironment
+from tests.make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
 from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
@@ -217,6 +219,39 @@ def test_data_science():
     assert replay_success, "Failed to replay tape"
 
 
+def test_form_filler():
+    assets_dir = Path(__file__).parent / 'res' / 'form_filler'
+    forms_path = Path(__file__).parent.parent / 'examples' / 'form_filler' / 'assets' / 'forms' / 'train' / 'FlyCorp'
+    env = FormFillerEnvironment.from_spec(forms_path)
+
+    teacher_agent = get_teacher_agent()
+    user_agent = get_user_simulator_agent()
+    teacher_mock_llm = ReplayLLM.from_llm(teacher_agent.llms['default'], assets_dir)
+    teacher_agent.llms = {'default':teacher_mock_llm}
+
+    user_mock_llm = ReplayLLM.from_llm(user_agent.llms['default'], assets_dir)
+    user_agent.llms = {'default':user_mock_llm}
+
+    # teacher_output_tapes, user_output_tapes = get_completions(save_as_references=False)
+    teacher_input_tapes = load_teacher_input_tapes()
+    user_input_tapes = load_user_input_tapes()
+    teacher_reference_tapes = load_teacher_reference_tapes()
+    user_reference_tapes = load_user_reference_tapes()
+
+    # patch envspecs
+    for tape in teacher_input_tapes + teacher_reference_tapes:
+        tape.context.env_spec = str(forms_path)
+    for tape in user_input_tapes + user_reference_tapes:
+        tape.context.context.env_spec = str(forms_path)
+
+    # with set_sqlite_db_dir(assets_dir):
+    teacher_failures = replay_tapes(teacher_agent, tapes=teacher_reference_tapes, env=env, start_tapes=teacher_input_tapes, reuse_observations=True)
+    assert teacher_failures == 0, 'Failed to replay teacher tapes'
+    
+    user_failures = replay_tapes(user_agent, tapes=user_reference_tapes, env=env, start_tapes=user_input_tapes, reuse_observations=True)
+    assert user_failures == 0, 'Failed to replay user tapes'
+
+
 def test_tape_improver():
     run_dir = f"{res_path}/tape_improver"
     llm = mock_llm(run_dir)
@@ -280,6 +315,7 @@ if __name__ == "__main__":
     test_delegate()
     test_delegate_stack()
     test_data_science()
+    test_form_filler()
     test_tape_improver()
     test_gsm8k_tuning_tapes_generation()
     test_gsm8k_tuning_samples_prep()

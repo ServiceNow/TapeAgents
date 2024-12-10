@@ -12,10 +12,13 @@ def test_intro_notebook():
     intro_notebook_path = Path("intro.ipynb").resolve()
     assets_path = Path("assets").resolve()
     with testbook.testbook(intro_notebook_path) as tb:
-        with run_test_in_tmp_dir("intro_notebook"):
+        with run_test_in_tmp_dir("intro_notebook") as test_data_dir:
             shutil.copytree(assets_path, Path("assets"))
+            sqlite_path = Path(test_data_dir) / "tapedata.sqlite"
             tb.inject(
                 f"""
+                import os
+                os.environ["TAPEAGENTS_SQLITE_DB"] = "{sqlite_path}"
                 from tapeagents import llms
                 llms._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
                 from tapeagents.tools import simple_browser
@@ -27,3 +30,6 @@ def test_intro_notebook():
                 before=0,
             )
             tb.execute()
+
+if __name__ == "__main__":
+    test_intro_notebook()
