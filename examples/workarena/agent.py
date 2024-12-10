@@ -7,11 +7,11 @@ from tapeagents.agent import Agent
 from tapeagents.core import Prompt
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
+from tapeagents.tools.browser import PageObservation
 from tapeagents.utils import get_step_schemas_from_union_type
 
 from .prompts import PromptRegistry
 from .steps import (
-    PageObservation,
     WorkArenaAction,
     WorkArenaAgentStep,
     WorkArenaBaselineStep,
