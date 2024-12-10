@@ -8,6 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import transformers
 import yaml
 from examples.form_filler.scripts.prepare_test_assets import get_completions, load_teacher_input_tapes, load_teacher_reference_tapes, load_user_input_tapes, load_user_reference_tapes, get_teacher_agent, get_user_simulator_agent
 from examples.form_filler.environment import FormFillerEnvironment
@@ -15,8 +16,10 @@ from tests.make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
 from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
+from examples.rl_gsm8k.orchestrate_rl import CoTMathAgent, RLMathTape, extract_tape_training_samples
 from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
+from tapeagents.observe import retrieve_all_llm_calls
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
 
@@ -286,6 +289,23 @@ def test_gsm8k_tuning_samples_prep():
     assert training_samples == new_training_samples
 
 
+def test_rl_gsm8k_data():
+    run_dir = f"{res_path}/rl_gsm8k"
+    sqlite_path = f"{run_dir}/tapedata.sqlite"
+    llm_calls = retrieve_all_llm_calls(sqlite_path)
+    tapes = load_tapes(RLMathTape, run_dir, file_extension=".json")
+    llm = mock_llm(run_dir)
+    llm.tokenizer = transformers.AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
+    agent = CoTMathAgent.create(llm)
+    cfg = DictConfig({"dataset_name": "math", "finetune": {"seq_length": 1024}})
+    training_samples = []
+    for tape in tapes:
+        _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg, llm_calls)
+        training_samples.append(training_sample[0])
+    new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
+    assert training_samples == new_training_samples
+
+
 if __name__ == "__main__":
     test_llama_agent()
     test_llama_agent_traces()
@@ -299,3 +319,4 @@ if __name__ == "__main__":
     test_tape_improver()
     test_gsm8k_tuning_tapes_generation()
     test_gsm8k_tuning_samples_prep()
+    test_rl_gsm8k_data()
