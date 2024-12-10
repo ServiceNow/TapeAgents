@@ -769,6 +769,7 @@ class TrainableLLM(CachedLLM):
 
         return {"content": completion_log_probs}
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def get_logprobs(self, prompt: str | Prompt, output: str | LLMOutput) -> dict[str, Any]:
         """
         Calculate the log probabilities of the given output based on the provided prompt.
