@@ -2,8 +2,11 @@ import datetime
 
 import requests
 
+from tapeagents.tools.tool_cache import cached_tool
 
-def get_stock_ticker(company_name: str):
+
+@cached_tool
+def get_stock_ticker(company_name: str) -> str:
     """Get company stock ticker from its name."""
     yfinance = "https://query2.finance.yahoo.com/v1/finance/search"
     user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
@@ -16,6 +19,7 @@ def get_stock_ticker(company_name: str):
     return company_code
 
 
+@cached_tool
 def get_stock_data(symbol: str, start_date: str, end_date: str):
     """Get stock proces for a given symbol and date range.
 
@@ -46,12 +50,14 @@ def get_stock_data(symbol: str, start_date: str, end_date: str):
             timestamps = timestamps[::2]
             prices = prices[::2]
 
-        return list(
-            zip(
+        result = [
+            list(pair)
+            for pair in zip(
                 [datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).strftime("%Y-%m-%d") for ts in timestamps],
                 prices,
             )
-        )
+        ]
+        return result
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
