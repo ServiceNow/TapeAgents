@@ -490,7 +490,7 @@ def main(cfg: DictConfig):
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
         for trace in training_samples:
-            with open(rollout_dir / "data.jsonl", "a") as f:
+            with open(rollout_dir / "data.jsonl", "w") as f:
                 if cfg.use_rejection_sampling and trace.reward <= 0:
                     continue
                 f.write(trace.model_dump_json() + "\n")
