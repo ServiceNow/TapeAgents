@@ -169,11 +169,15 @@ def extract_tape_training_samples(
             # Note: tokens produced during generation are not always the same as the tokens produced on the full sequence
             if vllm_tokens != hf_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
-                logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
-                logprobs = [c["logprob"] for c in logprobs_dict["content"]]
-                new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
-                assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
-                compute_logprobs.append(1)
+                try:
+                    logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+                    logprobs = [c["logprob"] for c in logprobs_dict["content"]]
+                    new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
+                    assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
+                    compute_logprobs.append(1)
+                except Exception as e:
+                    logger.error(f"Failed to get logprobs: {e}")
+                    continue
             else:
                 compute_logprobs.append(0)
 
