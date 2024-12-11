@@ -30,6 +30,7 @@ from tapeagents.io import stream_yaml_tapes
 from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
 from tapeagents.llms import LiteLLM, LLMStream, TrainableLLM
 from tapeagents.orchestrator import main_loop
+from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
 from tapeagents.tape_browser import TapeBrowser
@@ -62,14 +63,18 @@ def make_llm(cfg: DictConfig) -> LiteLLM:
     }
     if cfg.llm_name.startswith("gpt"):
         llm = LiteLLM(model_name=cfg.llm_name, parameters=parameters, use_cache=cfg.llm_cache)
-    else:
+    elif cfg.llm_name.startswith("meta-llama"):
+        # See model_name here: https://docs.together.ai/docs/serverless-models
+        # See corresponding tokenizer_name here: https://huggingface.co/meta-llama
         llm = TrainableLLM(
             base_url="https://api.together.xyz",
-            model_name="meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            tokenizer_name="meta-llama/Llama-3.3-70B-Instruct",
+            model_name=cfg.llm_name or "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            tokenizer_name=cfg.llm_tokenizer or "meta-llama/Llama-3.3-70B-Instruct",
             parameters=dict(temperature=0.01),
             use_cache=cfg.llm_cache,
         )
+    else:
+        raise ValueError(f"Unknown LLM: {cfg.llm_name}")
 
     return llm
 
@@ -180,30 +185,28 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
     return better_agent
 
 
-def metric_accuracy(dataset: list, tapes: list[Tape]) -> float:
-    n_correct = 0
-    for example, tape in zip(dataset, tapes):
-        if is_good_tape(example, tape):
-            n_correct += 1
-    return n_correct / len(dataset)
-
-
 def metric_mean_retrieval_answer(
-    dataset: list, tapes: list[Tape], w_retrieval: float = 0.5, w_answer: float = 0.5
+    dataset: list, tapes: list[Tape], run_name: str = "", w_retrieval: float = 0.5, w_answer: float = 0.5
 ) -> float:
     retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
     answer_accuracy = compute_answer_exact_match(dataset, tapes)
-    metric = retrieval_accuracy * w_retrieval + answer_accuracy * w_answer
+    mean_accuracy = retrieval_accuracy * w_retrieval + answer_accuracy * w_answer
     logger.info(
-        f"Retrieval accuracy: {retrieval_accuracy:.2f} | Answer accuracy: {answer_accuracy:.2f} | Mean: {metric:.2f} "
+        f"Retrieval accuracy: {retrieval_accuracy:.3f} | Answer accuracy: {answer_accuracy:.3f} | Mean Accuracy: {mean_accuracy:.3f} "
     )
-    return metric
-
-
-def metric_retrieval(dataset: list, tapes: list[Tape], w_retrieval: float = 0.5, w_answer: float = 0.5) -> float:
-    retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
-    logger.info(f"Retrieval accuracy: {retrieval_accuracy:.2f}")
-    return retrieval_accuracy
+    metrics_save_path = f"metrics_{len(dataset)}{f'_{run_name}' if run_name else ''}.json"
+    metrics = {
+        "mean_accuracy": mean_accuracy,
+        "retrieval_accuracy": retrieval_accuracy,
+        "answer_accuracy": answer_accuracy,
+    }
+    with open(metrics_save_path, "w") as f:
+        json.dump(
+            metrics,
+            f,
+            indent=2,
+        )
+    return mean_accuracy
 
 
 def optimize_demos(
@@ -218,7 +221,7 @@ def optimize_demos(
         new_agent = add_demos(best_agent, good_tapes, cfg.optimize.max_n_demos, seed=cfg.seed + i)
         # Run agent on the validation set to get metric to optimize
         final_tapes = run_agent(new_agent, val_dataset, cfg)
-        metric = metric_fn(val_dataset, final_tapes)
+        metric = metric_fn(val_dataset, final_tapes, run_name=f"validation_{i}")
         if metric > best_metric:
             best_metric = metric
             best_agent = new_agent
@@ -233,9 +236,9 @@ def make_agent(cfg: DictConfig) -> Agent:
 
 
 def is_good_tape(example: dspy.primitives.Example, tape, trace=None):
-    if len(tape.steps) < 3:
-        print(tape.metadata.error)
-        raise ValueError("Tape too short")
+    if len(tape.steps) < 3:  # Error in the tape
+        logger.error(tape.metadata.error)
+        return False
     pred = dspy.primitives.Example({"answer": str(tape.steps[-1].content).strip(), "context": tape.steps[-3].content})
     tape.metadata.result["groundruth_answer"] = example.answer
     if not dspy.evaluate.answer_exact_match(example, pred):
@@ -263,8 +266,7 @@ def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
     for example, tape in zip(examples, tapes):
         gold_titles = set(map(dspy.evaluate.normalize_text, example["gold_titles"]))
         # TODO: just retrieve the last set of contexts by index, keep it simple
-        if len(tape.steps) < 3:
-            print(tape.metadata.error)
+        if len(tape.steps) < 3:  # Error in the tape
             tape.metadata.result["retrieval_accurate"] = False
             continue
         context_step = tape.steps[-3]
@@ -341,27 +343,12 @@ def evaluate(cfg: DictConfig):
     dataset = get_dataset(cfg)
     tapes_save_path = f"test_tapes_{cfg.dataset.test_size}.yaml"
     final_tapes = batch_run_and_save(agent, env, dataset.test, tapes_save_path)
-    accuracy = metric_mean_retrieval_answer(dataset.test, final_tapes)
-    retrieval_accuracy = compute_retrieval_accuracy(dataset.test, final_tapes)
-    answer_accuracy = compute_answer_exact_match(dataset.test, final_tapes)
-    print(f"Accuracy: {accuracy:.2f}")
-    print(f"Retrieval accuracy: {retrieval_accuracy:.2f}")
-    print(f"Answer accuracy: {answer_accuracy:.2f}")
-    metrics_save_path = f"metrics_{cfg.dataset.test_size}.json"
-    with open(metrics_save_path, "w") as f:
-        json.dump(
-            {
-                "accuracy": accuracy,
-                "retrieval_accuracy": retrieval_accuracy,
-                "answer_accuracy": answer_accuracy,
-            },
-            f,
-            indent=2,
-        )
+    metric_mean_retrieval_answer(dataset.test, final_tapes, run_name="test")
 
 
 def browse():
-    browser = TapeBrowser(DialogTape, ".", PrettyRenderer())
+    run_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+    browser = TapeBrowser(DialogTape, run_dir, CameraReadyRenderer())
     browser.launch()
 
 

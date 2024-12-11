@@ -151,12 +151,14 @@ class LLMFunctionTemplate(BaseModel):
         # TODO: streaming
         # TODO: more robust parsing that doesn't rely on ':' and '\n'
         output_text = llm_stream.get_text()
-        prompt_text = llm_stream.prompt.messages[0]["content"]
-        text = prompt_text + "\n" + output_text
-        output_lines = text.split("\n")[-len(self.outputs) :]
+        output_lines = output_text.split("\n")[-len(self.outputs) :]
         output_values = [output_lines[0]] + [line.split(":")[1].strip() for line in output_lines[1:]]
-        for output, value in zip(self.outputs, output_values):
-            yield output.parse(value)
+        for i, output in enumerate(self.outputs):
+            if len(self.outputs) > len(output_values):
+                yield output.parse("LLM SKIPPED OUTPUT")
+                output_values.insert(i, "LLM SKIPPED OUTPUT")
+            else:
+                yield output.parse(output_values[i])
 
 
 class KindRef(BaseModel):

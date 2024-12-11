@@ -47,36 +47,28 @@ That is what we will be learning below.
 Let's benchmark a basic RAG agent. In the basic RAG the user's question is used as the query.
 
 ```bash
-$ python -m examples.optimize.optimize agent=rag target=evaluate 
-Retrieval accuracy: 0.26
-Answer accuracy: 0.54
+$ python -m examples.optimize.optimize agent=rag target=evaluate llm_name=gpt-3.5-turbo
+Retrieval accuracy: 0.213
+Answer accuracy: 0.253
 ```
 
 The retrieval accuracy is not that high. Let's try 2-hop Agentic RAG. In our Agentic RAG example the agent makes two retrieval queries, and the second query is based on the paragraphs that were trieved for the first one.
 
 ```bash
-$ python -m examples.optimize.optimize agent=agentic_rag target=evaluate 
-Retrieval accuracy: 0.50
-Answer accuracy: 0.62
+$ python -m examples.optimize.optimize agent=agentic_rag target=evaluate llm_name=gpt-3.5-turbo
+Retrieval accuracy: 0.427
+Answer accuracy: 0.447
 ```
 
-The retrieval accuracy is higher, but we can do better. Let's optimize the agent's prompts using weak supervision.
+The retrieval accuracy is higher, but we can do better. Let's optimize the agent's prompts using weak supervision. Let's randomly search for the best optimized agent.
 
 ```bash
-$ python -m examples.optimize.optimize agent=agentic_rag optimize.do=true target=evaluate
-Retrieval accuracy: 0.56
-Answer accuracy: 0.52
+$ python -m examples.optimize.optimize agent=agentic_rag target=evaluate llm_name=gpt-3.5-turbo optimize.do=true 
+Retrieval accuracy: 0.567
+Answer accuracy: 0.470
 ```
 
 And this way we get a higher retrieval accuracy, though answer accuracy went down.
-
-Let's randomly search for the best optimized agent.
-
-```bash
-$ python -m examples.optimize.optimize agent=agentic_rag optimize.do=true optimize.optimize_demos=true target=evaluate
-Retrieval accuracy: 0.56
-Answer accuracy: 0.62
-```
 
 Note:
 - we found the quantitative results of this experiment to be very unstable due to the LLM non-determinism and the small training and dev set sizes. In our future work we will add validation of the selected examples and evaluate on a larget dev set.

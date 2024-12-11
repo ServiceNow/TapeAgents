@@ -2,13 +2,14 @@ hydra:
   job:
     chdir: True
   run:
-    dir: outputs/${exp_name}_load=${load_demos}_optimize=${optimize.do}_seed=${seed}
+    dir: outputs/${exp_name}_llm=${llm_name}_load=${load_demos}_optimize=${optimize.do}_seed=${seed}_demos=${optimize.max_n_demos}
 target: evaluate
 exp_name: ${agent}
 seed: 1
 agent: ???
 llm_cache: true
-llm_name: llama
+llm_name: meta-llama/Llama-3.3-70B-Instruct-Turbo
+llm_tokenizer: meta-llama/Llama-3.3-70B-Instruct
 load_demos: false
 optimize:
   do: false
