@@ -1,6 +1,6 @@
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 643d5341-6b21-4ce3-8b60-93e9fea8356a
@@ -34,7 +34,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 6d70e37e-7291-4605-b406-df850f4b3fb6
@@ -68,7 +68,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: cee456e9-9558-48a4-9cc6-fdd7d34f9036
@@ -103,7 +103,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 6454ddf9-8ad4-40f4-a12a-b121465ca079
@@ -138,7 +138,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: dfc4ec83-0858-40bb-a549-65a2b6c96bd1
@@ -431,7 +431,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: c30c4857-fb84-4ea8-92c5-c74848b16194
@@ -709,7 +709,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 46eb50d0-5b7f-4649-bdb8-359fa46e763e
@@ -897,7 +897,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 95612680-ce26-4b03-a1b4-16ad2f491a11
@@ -1223,7 +1223,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 31d329ff-7a28-40de-9832-a83f4015d42a
@@ -1587,7 +1587,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 43448518-9221-4d31-8f02-fa1dfd543af7
@@ -1971,7 +1971,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 23e0a3dc-f633-4294-9e08-2d2b659e9ab3
@@ -2383,7 +2383,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 27cdfe47-a98a-4481-a849-224bcfdc4211
@@ -2755,7 +2755,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: a816accc-e752-42c3-9781-a450179d0c01
@@ -3258,7 +3258,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 04e3de36-7190-4511-a151-cdd1305e2332
@@ -3833,7 +3833,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: 0409e62f-4cb4-4d19-9449-58f508887187
@@ -4408,7 +4408,7 @@ steps:
 ---
 context:
   date: '2024-12-02'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: user_simulator
   author_tape_id: a22dac2a-6bbc-4c6a-9833-4e640e500a5b

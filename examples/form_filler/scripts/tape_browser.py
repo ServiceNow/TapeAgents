@@ -11,7 +11,7 @@ from tapeagents.tape_browser import TapeBrowser
 from ..tape import FormFillerTape
 from ..user_simulator_agent import UserSimulatorTape
 
-# Syntax: python tape_browser.py <path_to_tapes_folder> [<path_to_sqlite_db>] [<port>]
+# Syntax: python -m examples.form_filler.scripts.tape_browser <path_to_tapes_folder> [<path_to_sqlite_db>] [<port>]
 
 tape_dir = Path(sys.argv[1])
 

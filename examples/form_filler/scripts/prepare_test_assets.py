@@ -1,6 +1,7 @@
 import os
 import random
 from pathlib import Path
+import sys
 
 import hydra
 import yaml
@@ -207,14 +208,12 @@ def predict_and_compare():
         assert_same_tape(tape, tape_ref)
 
 
-def prepare_test_assets():
+def prepare_test_assets(tape_tree_path: str):
     # # # This reads hydra configs from the examples/form_filler/conf directory
     validate_and_save_agent_configs()
 
     # # # Extract some tapes randomly from an existing dialogue tree created by make_tape_tree
-    tape_tree_path = Path(
-        "/mnt/llmd/data/gontiern/make_tape_tree/dec4/train/FlyCorp/teacher_agent_vllm_llama3_405b_temp1/user_vllm_llama3_405b_temp1/tree_config6_size500/"
-    )
+    tape_tree_path = Path(tape_tree_path)
     extract_random_tapes_from_tape_tree(
         tape_tree_path,
         teacher_layers=(0, 2, 4),
@@ -235,7 +234,7 @@ def prepare_test_assets():
 
 
 if __name__ == "__main__":
-    # Run this script as python -m examples.form_filler.dev.prepare_test_assets
+    # Run this script as python -m examples.form_filler.scripts.prepare_test_assets <path_to_tape_tree_dir>
     # We do NOT make use of make_test_data because
     # Hydra configuration clashes with make_test_data.py's directory changes (hydra.initialize does not support absolute paths)
-    prepare_test_assets()
+    prepare_test_assets(sys.argv[1])
