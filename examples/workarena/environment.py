@@ -5,10 +5,10 @@ from browsergym.workarena.tasks.base import AbstractServiceNowTask
 
 from tapeagents.core import LLMOutputParsingFailureAction
 from tapeagents.environment import Environment
+from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
 from tapeagents.utils import FatalError
 
-from ..gaia_agent.steps import ActionExecutionFailure
 from .steps import (
     Action,
     FinalAnswerAction,

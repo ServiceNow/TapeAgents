@@ -6,29 +6,21 @@ from pdf2image import convert_from_path
 
 from tapeagents.core import Action
 from tapeagents.environment import CodeExecutionResult, Environment, ExecuteCode
-from tapeagents.steps import WatchVideoAction
-from tapeagents.tools.calculator import calculate
+from tapeagents.steps import ActionExecutionFailure, WatchVideoAction
+from tapeagents.tools.calculator import CalculationResultObservation, UseCalculatorAction, calculate
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.tools.media_reader import get_video_observation
-from tapeagents.tools.python_interpreter import run_python_code
-from tapeagents.tools.simple_browser import SimpleTextBrowser
+from tapeagents.tools.python_interpreter import add_print_to_last_line, run_python_code
+from tapeagents.tools.PythonCodeAction import PythonCodeAction
+from tapeagents.tools.simple_browser import NextPageAction, PageObservation, ReadDocumentAction, SimpleTextBrowser
 from tapeagents.utils import FatalError
 
+from ...tapeagents.tools.search import SearchAction, SearchResultsObservation
 from .steps import (
-    ActionExecutionFailure,
-    CalculationResultObservation,
-    ConvertFactAction,
     GaiaQuestion,
     GaiaStep,
     ImageObservation,
     LLMOutputParsingFailureAction,
-    NextPageAction,
-    PageObservation,
-    PythonCodeAction,
-    ReadDocumentAction,
-    SearchAction,
-    SearchResultsObservation,
-    UseCalculatorAction,
 )
 from .tape import GaiaTape
 
@@ -92,12 +84,6 @@ class GaiaEnvironment(Environment):
                             action.video_url, self.attachment_dir, action.start_time, action.end_time
                         )
                         tape = tape.append(video_observation)
-                    case ConvertFactAction():
-                        result = calculate(
-                            action.expression,
-                            {"value": action.fact_value, action.original_fact_name: action.fact_value},
-                        )
-                        tape = tape.append(CalculationResultObservation(name=action.converted_fact_name, result=result))
                     case UseCalculatorAction():
                         result = calculate(action.expression, action.facts or {})
                         tape = tape.append(CalculationResultObservation(name=action.fact_name, result=result))
@@ -131,12 +117,6 @@ class GaiaEnvironment(Environment):
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape
-
-    def run_restricted_python(self, code: str) -> CodeExecutionResult:
-        logger.warning(f"Code sandbox is not provided, running code locally!\n{code}")
-        result, stdout, stderr = run_python_code(code, {})
-        output = f"{result[:1000].strip()}\n\nstdout:\n{stdout}\n\nstderr:\n{stderr}"
-        return CodeExecutionResult(result=CommandLineCodeResult(output=output, exit_code=0 if not stderr else 1))
 
     def task_to_observations(
         self,
@@ -184,18 +164,6 @@ class GaiaEnvironment(Environment):
             steps[0].content += document_text  # type: ignore
         steps[0].filename = None  # type: ignore
         return steps
-
-
-def add_print_to_last_line(python_code: str) -> str:
-    lines = python_code.splitlines()
-    if "print(" in lines[-1]:
-        return python_code
-    if " = " in lines[-1]:
-        name = lines[-1].split("=")[0].strip()
-        lines.append(f"print({name})")
-    else:
-        lines[-1] = f"print({lines[-1]})"
-    return "\n".join(lines)
 
 
 def pdf_to_images(filename: str, n_pages: int = 3):

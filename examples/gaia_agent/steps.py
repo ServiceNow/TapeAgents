@@ -1,59 +1,25 @@
 import os
 import shutil
-from typing import Annotated, Any, Literal, TypeAlias, Union
+from typing import Any, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from tapeagents.core import Action, Error, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
-from tapeagents.dialog_tape import AssistantStep
+from tapeagents.core import LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
-from tapeagents.steps import ImageObservation, VideoObservation, WatchVideoAction
-from tapeagents.utils import get_step_schemas_from_union_type
+from tapeagents.steps import (
+    ActionExecutionFailure,
+    ImageObservation,
+    ReasoningThought,
+    VideoObservation,
+    WatchVideoAction,
+)
+from tapeagents.tools.calculator import CalculationResultObservation
+from tapeagents.tools.code_executor import PythonCodeAction
+from tapeagents.tools.search import SearchAction, SearchResultsObservation
+from tapeagents.tools.simple_browser import NextPageAction, PageObservation, ReadDocumentAction
 
 
-################### Base Step Classes ###################
-class GaiaThought(Thought):
-    pass
-
-
-class GaiaAction(Action):
-    pass
-
-
-class GaiaObservation(Observation):
-    pass
-
-
-class FactSchema(BaseModel):
-    name: str = Field(
-        description="fact name, should be unique, lowercase, snake_case, without spaces and special characters"
-    )
-    description: str = Field(description="short free-form description of the fact")
-    format: str = Field(description="format of the fact value, could be float, int, bool, string, list, dict, etc.")
-    unit: str = Field(description="unit of the fact value, if applicable, otherwise empty string", default="")
-
-
-class FactSchemaWithValue(FactSchema):
-    value: Any
-
-
-################### Planning Phase Thoughts ###################
-
-
-class DraftPlansThought(GaiaThought):
-    """
-    Thought that contains 3 draft plans to follow to answer the question
-    """
-
-    kind: Literal["draft_plans_thought"] = "draft_plans_thought"
-    plan: list[str] = Field(description="main list of steps to follow to answer the question")
-    alternative_plan: list[str] = Field(description="alternative list of steps to follow to answer the question")
-    alternative_plan2: list[str] = Field(
-        description="another alternative list of steps to follow to answer the question"
-    )
-
-
-class PlanThought(GaiaThought):
+class PlanThought(Thought):
     """
     Thought that contains the plan to follow to answer the question
     """
@@ -62,18 +28,7 @@ class PlanThought(GaiaThought):
     plan: list[str] = Field(description="list of steps to follow to answer the question")
 
 
-class SourcesThought(GaiaThought):
-    """
-    Thought that contains the sources to use to answer the question. It could be web search, wikipedia, local document path and so on
-    """
-
-    kind: Literal["sources_thought"] = "sources_thought"
-    sources: dict[str, str] = Field(
-        description="dictionary of sources to use to answer the question. Key is the source name, value is the string describing the source"
-    )
-
-
-class ListOfFactsThought(GaiaThought):
+class ListOfFactsThought(Thought):
     """
     Thought that contains the list of facts that are needed to answer the question
     """
@@ -97,50 +52,7 @@ class ListOfFactsThought(GaiaThought):
     )
 
 
-################### Thoughts ###################
-
-
-class ReasoningThought(GaiaThought):
-    """
-    Chain of thoughts of logical reasoning to find the answer. Deductive reasoning could be used to produce a new fact. You can use the facts from the previous steps in the reasoning
-    """
-
-    kind: Literal["reasoning_thought"] = "reasoning_thought"
-    reasoning: str
-
-
-class StartSubtask(GaiaThought):
-    """
-    Thought that indicates that you start working on the subtask from the plan. You should always finish previous subtask using finish_subtask_thought before starting a new one
-    """
-
-    kind: Literal["start_subtask_thought"] = "start_subtask_thought"
-    plan_step: str = Field(description="plan step description")
-
-
-class FinishSubtask(GaiaThought):
-    """
-    Thought that indicates that you've finished working on the subtask from the plan. You cannot produce that step right after the start subtask, there MUST be some steps in between
-    """
-
-    kind: Literal["finish_subtask_thought"] = "finish_subtask_thought"
-    plan_step: str = Field(description="plan step description")
-    success: bool = Field(description="True if the subtask was successful, False otherwise")
-    overview: str = Field(
-        description="overview of the subtask. If the subtask was successful, describe the result. If the subtask was unsuccessful, describe the reason for failure"
-    )
-
-
-class NewFactThought(GaiaThought):
-    """
-    Thought that outputs new fact value, extracted from the previous steps.
-    """
-
-    kind: Literal["new_fact_thought"] = "new_fact_thought"
-    fact: str
-
-
-class ReadingResultThought(GaiaThought):
+class ReadingResultThought(Thought):
     """
     Thought that outputs the result of the reading the document page from the previous step
     """
@@ -157,81 +69,7 @@ class ReadingResultThought(GaiaThought):
     )
 
 
-################### Actions ###################
-class SearchAction(GaiaAction):
-    """
-    Action that provides parameters for a search function call. Could search in the web, wikipedia or youtube. Search results will be ordered by relevance from top to bottom
-    """
-
-    kind: Literal["search_action"] = "search_action"
-    source: str = Field(description="source to search in, could be web, wiki or youtube")
-    query: str = Field(description="search query")
-
-
-class NextPageAction(GaiaAction):
-    """
-    Action that returns the next page of the last document
-    """
-
-    kind: Literal["next_page_action"] = "next_page_action"
-
-
-class ReadDocumentAction(GaiaAction):
-    """
-    Action that loads the document, file, image or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
-    """
-
-    kind: Literal["read_document_action"] = "read_document_action"
-    url: str = Field(description="url of the document")
-    fact_description: str = Field(description="description of the fact to look for in the document")
-    fact_name: str = Field(description="fact name to look for in the document")
-
-
-class ConvertFactAction(GaiaAction):
-    """
-    Action to convert the fact value to the requested unit using math expression. If the unit is already correct, just return the value. Be especially careful when dealing with time facts!
-    """
-
-    kind: Literal["convert_fact_action"] = "convert_fact_action"
-    original_fact_name: str = Field(description="original fact name")
-    converted_fact_name: str = Field(description="fact name from list_of_facts_thought")
-    fact_description: str = Field(description="short description of the fact")
-    fact_value: Any = Field(description="original value of the fact")
-    unit: str = Field(description="original unit of the fact value, if applicable, otherwise empty string")
-    requested_unit: str = Field(description="required unit of the fact value")
-    reasoning: str = Field(description="explanation of what the conversion expression should do")
-    expression: str = Field(description="math expression to convert the value")
-
-
-class UseCalculatorAction(GaiaAction):
-    """
-    Action to use calculator to find the new fact. This python math expression uses only the fact names from the previous steps and constants. The expression should be a single line. You can use exp, cos, sin, tan, abs, trunc, sgn, round
-    """
-
-    kind: Literal["use_calculator_action"] = "use_calculator_action"
-    expression: str = Field(description="math expression using previously known fact names and constants")
-    fact_name: str = Field(
-        description="fact name to save calculations result, should be unique, lowercase, snake_case, without spaces and special characters"
-    )
-    fact_unit: str = Field(description="expected unit of the fact value, if applicable, otherwise empty string")
-    facts: dict | None = None
-
-
-class PythonCodeAction(GaiaAction):
-    """
-    Action to execute the python code snippet.
-    """
-
-    kind: Literal["python_code_action"] = "python_code_action"
-    code: str = Field(
-        description="snippet of python code with escaped newlines and quotes to fit json format. Last line should print the result"
-    )
-
-
-################### Observations ###################
-
-
-class GaiaQuestion(GaiaObservation):
+class GaiaQuestion(Observation):
     kind: Literal["question"] = "question"
     content: str
     filename: str | None = None
@@ -249,41 +87,7 @@ class GaiaQuestion(GaiaObservation):
         return cls(content=question_prompt, filename=filename)
 
 
-class SearchResultsObservation(GaiaObservation):
-    kind: Literal["search_results_observation"] = "search_results_observation"
-    query: str
-    serp: list[dict[str, str]]
-
-
-class PageObservation(GaiaObservation):
-    kind: Literal["page_observation"] = "page_observation"
-    text: str
-    current_page: int
-    total_pages: int
-    error: int | None = None
-
-
-class CalculationResultObservation(GaiaObservation):
-    kind: Literal["calculation_result_observation"] = "calculation_result_observation"
-    name: str
-    result: str
-
-
-class CodeResultObservation(GaiaObservation):
-    kind: Literal["code_result_observation"] = "code_result_observation"
-    name: str
-    result: str
-    stdout: str
-    stderr: str
-
-
-class PreviousFactsObservation(GaiaObservation):
-    kind: Literal["previous_facts_observation"] = "previous_facts_observation"
-    reasoning: str = "These facts were gathered in previous steps that were trimmed to fit the context size limit"
-    facts: dict[str, Any]
-
-
-class GaiaAnswer(GaiaAction, StopStep):
+class GaiaAnswer(StopStep):
     """
     Action that indicates that the agent has finished the plan and contains answer or the decsription of failure.
     The answer should use already determined facts without any additional conversion!
@@ -302,100 +106,26 @@ class GaiaAnswer(GaiaAction, StopStep):
     answer: Any = Field(description="short final answer")
 
 
-class ActionExecutionFailure(GaiaObservation, Error):
-    kind: Literal["action_execution_failure"] = "action_execution_failure"
-    error: str
-
-
-GaiaStep = Union[
-    PlanThought,
-    ListOfFactsThought,
-    SourcesThought,
-    DraftPlansThought,
+PLAN_STEPS = (PlanThought, ListOfFactsThought)
+STEPS_WITHOUT_CODE = (
     ReadingResultThought,
-    NewFactThought,
     ReasoningThought,
-    StartSubtask,
-    FinishSubtask,
     SearchAction,
     ReadDocumentAction,
     NextPageAction,
     WatchVideoAction,
-    ConvertFactAction,
-    UseCalculatorAction,
-    PythonCodeAction,
+    GaiaAnswer,
+)
+AGENT_STEPS = STEPS_WITHOUT_CODE + (PythonCodeAction,)
+OBSERVATIONS = (
     GaiaQuestion,
     SearchResultsObservation,
     PageObservation,
+    ImageObservation,
     VideoObservation,
     CalculationResultObservation,
-    CodeResultObservation,
-    PreviousFactsObservation,
-    GaiaAnswer,
-    ActionExecutionFailure,
-    LLMOutputParsingFailureAction,
-    SetNextNode,
-    ImageObservation,
-    ExecuteCode,
     CodeExecutionResult,
-    AssistantStep,
-]
-
-GaiaAgentStep: TypeAlias = Annotated[
-    Union[
-        # thoughts
-        PlanThought,
-        ListOfFactsThought,
-        SourcesThought,
-        DraftPlansThought,
-        ReadingResultThought,
-        NewFactThought,
-        ReasoningThought,
-        StartSubtask,
-        FinishSubtask,
-        # actions
-        SearchAction,
-        ReadDocumentAction,
-        NextPageAction,
-        WatchVideoAction,
-        ConvertFactAction,
-        # UseCalculatorAction,
-        PythonCodeAction,
-        GaiaAnswer,
-    ],
-    Field(discriminator="kind"),
-]
-
-plan_steps = get_step_schemas_from_union_type(
-    Annotated[Union[PlanThought, ListOfFactsThought], Field(discriminator="kind")]
+    ActionExecutionFailure,
 )
-all_steps = get_step_schemas_from_union_type(
-    Annotated[
-        Union[
-            ReadingResultThought,
-            ReasoningThought,
-            SearchAction,
-            ReadDocumentAction,
-            NextPageAction,
-            WatchVideoAction,
-            PythonCodeAction,
-            GaiaAnswer,
-        ],
-        Field(discriminator="kind"),
-    ]
-)
-
-nocode_steps = get_step_schemas_from_union_type(
-    Annotated[
-        Union[
-            ReadingResultThought,
-            ReasoningThought,
-            SearchAction,
-            ReadDocumentAction,
-            NextPageAction,
-            WatchVideoAction,
-            GaiaAnswer,
-        ],
-        Field(discriminator="kind"),
-    ]
-)
+SPECIAL_STEPS = (ExecuteCode, LLMOutputParsingFailureAction, SetNextNode)
+GaiaStep = Union[PLAN_STEPS + AGENT_STEPS + OBSERVATIONS + SPECIAL_STEPS]

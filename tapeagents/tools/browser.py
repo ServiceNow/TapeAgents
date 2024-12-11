@@ -1,6 +1,6 @@
 import os
 from time import sleep
-from typing import Literal
+from typing import Callable, Literal
 from uuid import uuid4
 
 import gymnasium as gym
@@ -11,7 +11,7 @@ from browsergym.utils.obs import IGNORED_AXTREE_PROPERTIES, _process_bid
 from PIL import Image
 from pydantic import Field
 
-from tapeagents.core import Action, Observation, StepMetadata
+from tapeagents.core import Action, Multitool, Observation, StepMetadata
 
 NODES_WITH_BID = [
     "button",
@@ -152,7 +152,7 @@ class ClickAction(Action):
     )
 
 
-class Browser:
+class Browser(Multitool):
     _env: BrowserEnv
     actions: list[type[Action]] = [
         ClickAction,

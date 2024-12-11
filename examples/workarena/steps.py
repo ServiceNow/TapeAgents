@@ -16,7 +16,7 @@ from tapeagents.tools.browser import (
     SelectOptionAction,
 )
 
-from ..gaia_agent.steps import ActionExecutionFailure
+from ...tapeagents.steps import ActionExecutionFailure
 
 
 ################### Base Step Classes ###################

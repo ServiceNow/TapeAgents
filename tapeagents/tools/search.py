@@ -3,9 +3,12 @@ import logging
 import os
 import threading
 import time
+from typing import Literal
 
 import requests
+from pydantic import Field
 
+from tapeagents.core import Action, Observation, Tool
 from tapeagents.utils import FatalError, acquire_timeout
 
 logger = logging.getLogger(__name__)
@@ -44,3 +47,39 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
         results.append({"title": item["title"], "linqk": item.get("website", ""), "snippet": item["description"]})
     logger.info(f"Search response for query '{query}': code {response.status_code}, {len(results)} results")
     return [{"title": r["title"], "url": r["link"], "content": r.get("snippet", "")} for r in results[:max_results]]
+
+
+class SearchAction(Action):
+    """
+    Action that provides parameters for a search function call.
+    Could search in the web, wikipedia or youtube.
+    Search results will be ordered by relevance from top to bottom.
+    """
+
+    kind: Literal["search_action"] = "search_action"
+    source: str = Field(description="source to search in, could be web, wiki or youtube")
+    query: str = Field(description="search query")
+
+
+class SearchResultsObservation(Observation):
+    kind: Literal["search_results_observation"] = "search_results_observation"
+    query: str
+    serp: list[dict[str, str]]
+
+
+class Search(Tool):
+    """
+    Tool that performs a search in the web, wikipedia or youtube
+    """
+
+    action = SearchAction
+    observation = SearchResultsObservation
+
+    def run(self, action: SearchAction) -> SearchResultsObservation:
+        if action.source == "wiki":
+            query = f"site:wikipedia.org {action.query}"
+        elif action.source == "youtube":
+            query = f"site:youtube.com {action.query}"
+        else:
+            query = action.query
+        return SearchResultsObservation(query=action.query, serp=web_search(query))

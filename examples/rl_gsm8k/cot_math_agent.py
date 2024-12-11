@@ -37,11 +37,6 @@ class ReasoningThought(Thought):
     reasoning: str = Field(description="chain of thoughts")
 
 
-MathAgentStep: TypeAlias = Annotated[
-    ReasoningThought,
-    Field(discriminator="kind"),
-]
-
 RLMathTape = Tape[
     None,
     Union[
@@ -69,16 +64,7 @@ class ReasoningNode(MonoNode):
 class CoTMathAgent(Agent):
     @classmethod
     def create(cls, llm: LLM):
-        return super().create(
-            llm,
-            nodes=[
-                ReasoningNode(
-                    name="cot",
-                    agent_step_cls=MathAgentStep,
-                ),
-            ],
-            max_iterations=1,
-        )
+        return super().create(llm, nodes=[ReasoningNode(name="cot", agent_steps=ReasoningThought)], max_iterations=1)
 
 
 class MathEnvironment(Environment):

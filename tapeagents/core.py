@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, List, Literal, TypeAlias, TypeVar
+from typing import Any, Callable, Generic, Iterable, Iterator, List, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import litellm
@@ -431,3 +431,21 @@ ObservationMakerTapeType = TypeVar("ObservationMakerTapeType", bound=Tape)
 class MakeObservation(Action, Generic[StepType]):
     kind: Literal["make_observation"] = "make_observation"
     new_observation: StepType
+
+
+class Tool(BaseModel):
+    action: type[Action]
+    observation: type[Observation]
+
+    def run(self, action: Action) -> Observation:
+        raise NotImplementedError
+
+
+class Multitool:
+    """
+    Multitool is a class that provides a set of functions performing
+    explicitly defined set of actions operating on a shared environment.
+    """
+
+    actions: list[type[Action]]
+    action_map: dict[type[Action], Callable]

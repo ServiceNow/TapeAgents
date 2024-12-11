@@ -23,15 +23,16 @@ import re
 import threading
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse
 
 import pathvalidate
 import requests
 from Levenshtein import ratio
+from pydantic import Field
 from termcolor import colored
 
-from tapeagents.core import Prompt
+from tapeagents.core import Action, Observation, Prompt
 from tapeagents.llms import LLM
 from tapeagents.tools.search import web_search
 from tapeagents.utils import FatalError, diff_strings
@@ -475,3 +476,30 @@ class SimpleTextBrowser:
         except Exception as e:
             raise Exception(f"Failed to load page {url}.\nError: {e}")
         return self.page_content
+
+
+class NextPageAction(Action):
+    """
+    Action that returns the next page of the last document
+    """
+
+    kind: Literal["next_page_action"] = "next_page_action"
+
+
+class ReadDocumentAction(Action):
+    """
+    Action that loads the document, file, image or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
+    """
+
+    kind: Literal["read_document_action"] = "read_document_action"
+    url: str = Field(description="url of the document")
+    fact_description: str = Field(description="description of the fact to look for in the document")
+    fact_name: str = Field(description="fact name to look for in the document")
+
+
+class PageObservation(Observation):
+    kind: Literal["page_observation"] = "page_observation"
+    text: str
+    current_page: int
+    total_pages: int
+    error: int | None = None

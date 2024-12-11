@@ -7,7 +7,9 @@ import math
 import operator
 import re
 from typing import Any
+from typing import Literal as TypingLiteral
 
+from pydantic import Field
 from pyparsing import (
     CaselessLiteral,
     Combine,
@@ -22,17 +24,14 @@ from pyparsing import (
     oneOf,
 )
 
+from tapeagents.core import Action, Observation, Tool
+
 
 def cmp(a, b):
     return (a > b) - (a < b)
 
 
 class NumericStringParser(object):
-    """
-    Most of this code comes from the fourFn.py pyparsing example
-
-    """
-
     def pushFirst(self, strg, loc, toks):
         self.exprStack.append(toks[0])
 
@@ -140,3 +139,36 @@ def calculate(expr: str, values_dict: dict[str, Any]) -> str:
     except Exception:
         str_result = str(result)
     return str_result
+
+
+class UseCalculatorAction(Action):
+    """
+    Action to use calculator to find the new fact. This python math expression uses only the fact names from the previous steps and constants. The expression should be a single line. You can use exp, cos, sin, tan, abs, trunc, sgn, round
+    """
+
+    kind: TypingLiteral["use_calculator_action"] = "use_calculator_action"
+    expression: str = Field(description="math expression using previously known fact names and constants")
+    fact_name: str = Field(
+        description="fact name to save calculations result, should be unique, lowercase, snake_case, without spaces and special characters"
+    )
+    fact_unit: str = Field(description="expected unit of the fact value, if applicable, otherwise empty string")
+    facts: dict | None = None
+
+
+class CalculationResultObservation(Observation):
+    kind: TypingLiteral["calculation_result_observation"] = "calculation_result_observation"
+    name: str
+    result: str
+
+
+class Calculator(Tool):
+    """
+    Tool to evaluate math expressions
+    """
+
+    action = UseCalculatorAction
+    observation = CalculationResultObservation
+
+    def run(self, action: UseCalculatorAction) -> CalculationResultObservation:
+        result = calculate(action.expression, action.facts or {})
+        return CalculationResultObservation(name=action.fact_name, result=result)

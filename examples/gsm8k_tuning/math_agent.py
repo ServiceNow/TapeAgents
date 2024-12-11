@@ -7,8 +7,8 @@ from pydantic import Field
 from tapeagents.agent import Agent
 from tapeagents.core import (
     Action,
-    LLMOutputParsingFailureAction,
     FinalStep,
+    LLMOutputParsingFailureAction,
     Observation,
     SetNextNode,
     Tape,
@@ -69,14 +69,7 @@ class AnswerAction(FinalStep):
     value: int | float | None = Field(description="numerical value of the answer or null if solution is not found")
 
 
-MathAgentStep: TypeAlias = Annotated[
-    Union[
-        UseCalculatorAction,
-        ReasoningThought,
-        AnswerAction,
-    ],
-    Field(discriminator="kind"),
-]
+MathAgentStep = (UseCalculatorAction, ReasoningThought, AnswerAction)
 
 
 MathTape = Tape[
@@ -127,14 +120,14 @@ class MathAgent(Agent):
                     name="start",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
-                    agent_step_cls=MathAgentStep,
+                    agent_steps=MathAgentStep,
                     guidance=START_TASK_GUIDANCE,
                 ),
                 MonoNode(
                     name="default",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
-                    agent_step_cls=MathAgentStep,
+                    agent_steps=MathAgentStep,
                     guidance=HINTS,
                     next_node="default",
                 ),

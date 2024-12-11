@@ -2,31 +2,22 @@ import logging
 from enum import Enum
 from typing import Any
 
-from pydantic import Field
-
 from tapeagents.agent import Agent
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
-from tapeagents.steps import VideoObservation
+from tapeagents.steps import ActionExecutionFailure, VideoObservation
+from tapeagents.tools.calculator import CalculationResultObservation
 from tapeagents.tools.container_executor import extract_code_blocks
+from tapeagents.tools.simple_browser import PageObservation
 
 from .prompts import PromptRegistry
 from .steps import (
-    ActionExecutionFailure,
-    CalculationResultObservation,
-    CodeResultObservation,
-    FinishSubtask,
-    GaiaAgentStep,
+    AGENT_STEPS,
+    STEPS_WITHOUT_CODE,
     GaiaQuestion,
     ListOfFactsThought,
-    NewFactThought,
-    PageObservation,
     PlanThought,
-    SourcesThought,
-    all_steps,
-    nocode_steps,
-    plan_steps,
 )
 from .tape import GaiaTape
 
@@ -44,7 +35,6 @@ class PlanningMode(str, Enum):
 class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = Field(exclude=True, default=GaiaAgentStep)
     allowed_steps: str
 
     def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
@@ -78,9 +68,7 @@ class GaiaNode(MonoNode):
         """
         Make tape shorter to fit llm context size limits
         """
-        finish_subtask_positions = [i for i, step in enumerate(tape) if isinstance(step, FinishSubtask)]
-        # trim either after last finished subtask or at 2/3 of the tape
-        summarization_border = (finish_subtask_positions[-1] + 1) if finish_subtask_positions else int(len(tape) * 0.66)
+        summarization_border = int(len(tape) * 0.66)
         short_tape = tape.model_copy(update=dict(steps=[]))
         pre_tape: GaiaTape = tape[:summarization_border]  # type: ignore
         for step in pre_tape.steps:
@@ -89,11 +77,8 @@ class GaiaNode(MonoNode):
                 (
                     GaiaQuestion,
                     PlanThought,
-                    SourcesThought,
                     ListOfFactsThought,
-                    NewFactThought,
                     CalculationResultObservation,
-                    CodeResultObservation,
                     CodeExecutionResult,
                 ),
             ):
@@ -124,12 +109,12 @@ class GaiaAgent(Agent):
                 name="start_execution",
                 guidance=PromptRegistry.start_execution,
                 steps_prompt=PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps,
-                allowed_steps=nocode_steps if plain_code else all_steps,
+                allowed_steps=STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS,
             ),
             GaiaNode(
                 name="act",
                 steps_prompt=PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps,
-                allowed_steps=nocode_steps if plain_code else all_steps,
+                allowed_steps=STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS,
                 next_node="act",
             ),
         ]

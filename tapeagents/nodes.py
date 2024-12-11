@@ -4,7 +4,7 @@ Nodes are the building blocks of a TapeAgent, representing atomic units of the a
 
 import json
 import logging
-from typing import Any, Generator, Type
+from typing import Annotated, Any, Generator, Type, Union
 
 from pydantic import Field, TypeAdapter, ValidationError
 
@@ -24,7 +24,7 @@ from .core import (
     Tape,
 )
 from .llms import LLMStream
-from .utils import FatalError, sanitize_json_completion
+from .utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class MonoNode(Node):
     guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
-    agent_step_cls: Any = Field(exclude=True)
+    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
     next_node: str = ""
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
@@ -186,7 +186,10 @@ class MonoNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        return self.steps_prompt
+        allowed_steps = get_step_schemas_from_union_type(
+            Annotated[Union[self.agent_steps], Field(discriminator="kind")]
+        )
+        return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
@@ -274,7 +277,7 @@ class MonoNode(Node):
             yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
             return
         try:
-            steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
+            steps = [TypeAdapter(self.agent_steps).validate_python(step_dict) for step_dict in step_dicts]
         except ValidationError as e:
             err_text = ""
             for err in e.errors():
