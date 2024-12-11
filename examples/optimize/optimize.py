@@ -210,7 +210,11 @@ def metric_mean_retrieval_answer(
 
 
 def optimize_demos(
-    agent: Agent, good_tapes: list[Tape], val_dataset: list, cfg: DictConfig, metric_fn: Callable[list, list[Tape]]
+    agent: Agent,
+    good_tapes: list[Tape],
+    val_dataset: list,
+    cfg: DictConfig,
+    metric_fn: Callable[[list, list[Tape]], float],
 ) -> Agent:
     """Try N times to `add_demos` (see above), measure val set performance, and keep the best agent"""
     best_agent = agent
