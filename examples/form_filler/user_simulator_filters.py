@@ -1,16 +1,16 @@
+import logging
 from abc import abstractmethod
 from typing import Any
+
 import numpy as np
 from pydantic import BaseModel
-import logging
 
-from examples.form_filler.schema import FunctionSchema, JsonSchema
-from examples.form_filler.steps import RequestFunctionParameters, InspectFunction
 from tapeagents.core import Step
 
-from examples.form_filler.state import FormFillerState
-from examples.form_filler.tape import FormFillerTape
-
+from .schema import FunctionSchema, JsonSchema
+from .state import FormFillerState
+from .steps import InspectFunction, RequestFunctionParameters
+from .tape import FormFillerTape
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class StepFilter(BaseModel):
 class AlwaysTrue(StepFilter):
     def filter(self, state: FormFillerState, step: Step) -> bool:
         return True
-    
+
 
 def is_nonboolean_enum(param_schema: JsonSchema):
     values = param_schema.get_possible_values()
@@ -51,7 +51,6 @@ def get_parameter_type(parameter_schema: JsonSchema, possible_values: list[Any] 
 
 
 def render_function_doc(schema: FunctionSchema) -> str:
-
     function_doc = schema.with_replaced_refs
 
     doc_as_text = []
@@ -60,9 +59,8 @@ def render_function_doc(schema: FunctionSchema) -> str:
     if function_doc.parameters is not None and function_doc.parameters.properties is not None:
         doc_as_text += "\n\nArgs:"
         for parameter_name, parameter_schema in function_doc.parameters.properties.items():
-
             parameter_type = get_parameter_type(parameter_schema)
-            is_required = (function_doc.parameters.required and parameter_name in function_doc.parameters.required)
+            is_required = function_doc.parameters.required and parameter_name in function_doc.parameters.required
             possible_values = parameter_schema.get_possible_values()
 
             var_info = f"\n- {parameter_name} [{parameter_type}, {'required' if is_required else 'optional'}]: {schema.description or ''}"
@@ -72,7 +70,7 @@ def render_function_doc(schema: FunctionSchema) -> str:
                     [f'{title} ("{const}")' if const != title else f'"{const}"' for const, title in possible_values]
                 )
                 var_info += f" Possible values are [{possible_values_rendered}]."
-            
+
             if parameter_schema.default:
                 # fetch the "title" of the default value "const" if it exists
                 if (
@@ -91,7 +89,7 @@ def render_function_doc(schema: FunctionSchema) -> str:
     else:
         doc_as_text += "There are not arguments for this function"
 
-    doc_as_text = ''.join(doc_as_text)
+    doc_as_text = "".join(doc_as_text)
 
     return doc_as_text
 
@@ -124,7 +122,6 @@ def extract_specific_parameters(all_params: list[str], requested_elements: list[
     return target
 
 
-
 def check_all_parameters_have_mininum_description_len(schema: FunctionSchema) -> bool:
     if schema.with_replaced_refs.parameters is None:
         return False
@@ -135,7 +132,6 @@ def check_all_parameters_have_mininum_description_len(schema: FunctionSchema) ->
     return all(param_desc and len(param_desc.split()) > 2 for param_desc in params_desc)
 
 
-
 def find_requested_enum(state: FormFillerState, step: RequestFunctionParameters) -> list[str]:
     for parameter_name in step.parameters:  # type: ignore
         param_schema = state.function_schemas[step.function].get_parameter_schema(parameter_name)
@@ -144,7 +140,6 @@ def find_requested_enum(state: FormFillerState, step: RequestFunctionParameters)
         if param_values:
             return [param[1] for param in param_values]
     return []
-
 
 
 def get_step_instruction_params(
@@ -197,7 +192,7 @@ def get_step_instruction_params(
     # Extract useful info from function_name
     # named_entity = get_named_entity(function_name=function_name)
     # params["named_entity"] = named_entity
-    params["named_entity"] = function_name    # just put the function name for now
+    params["named_entity"] = function_name  # just put the function name for now
 
     # Details about the parameter that the agent is currently requesting
     curr_param_schema = all_params_schema.properties[current_param]
@@ -207,18 +202,18 @@ def get_step_instruction_params(
     if curr_value_titles:
         params["current_parameter_enum_values"] = "[" + ", ".join(curr_value_titles) + "]"
 
-
     # Choose a previously filled parameter
     if len(filled_params) or len(skipped_params):
         # Choose a parameter we have already filled
         param: str = np.random.choice(filled_params + skipped_params)
         param_schema = all_params_schema.properties[param]
         params["parameter_name"] = param_schema.title or param
-        params["assigned_parameters"] = ", ".join([
-            all_params_schema.properties[p].title
-            if all_params_schema.properties[p].title else p.replace("_", " ")
-            for p in filled_params + skipped_params
-        ])  # type: ignore
+        params["assigned_parameters"] = ", ".join(
+            [
+                all_params_schema.properties[p].title if all_params_schema.properties[p].title else p.replace("_", " ")
+                for p in filled_params + skipped_params
+            ]
+        )  # type: ignore
         if param in filled_params:
             param_value = state.function_parameters_filled.get(function_name, {}).get(param)
             if param_value:
@@ -270,7 +265,6 @@ def get_step_instruction_params(
         params["future_enum_parameter_values"] = "- " + "\n- ".join(future_enum_value_titles)
 
     return params
-
 
 
 class NotYesNoEnum(StepFilter):
@@ -441,7 +435,6 @@ class HasRequestedElements(StepFilter):
         return False
 
 
-
 def extract_placeholder_keys(format_string: str | list[dict[str, str]]) -> list[str]:
     """
     Extracts all placeholders in a string; format() style
@@ -457,6 +450,6 @@ def extract_placeholder_keys(format_string: str | list[dict[str, str]]) -> list[
     elif isinstance(format_string, list):
         keys = []
         for message in format_string:
-            for field_name in extract_placeholder_keys(message['content']):
+            for field_name in extract_placeholder_keys(message["content"]):
                 keys.append(field_name)
         return keys

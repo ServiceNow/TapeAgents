@@ -1,19 +1,31 @@
 import json
-import json
 import logging
 from typing import Any, Generator
 
 from pydantic import BaseModel
-from tapeagents.core import LLMOutputParsingFailureAction, Prompt, SetNextNode
+
 from tapeagents.agent import Agent, Node
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Prompt, SetNextNode
+from tapeagents.dialog_tape import AssistantStep, UserStep
 from tapeagents.llms import LLM, LLMStream
 
-from examples.form_filler.tape import FormFillerTape, prepare_formfiller_template_variables
-from examples.form_filler.utils import render_chat_template, sanitize_json_completion
-from examples.form_filler.steps import *
-from examples.form_filler.state import compute_form_filler_state, update_form_filler_state
-from examples.form_filler.error import FormFillerStateError
-
+from .error import FormFillerStateError
+from .state import compute_form_filler_state, update_form_filler_state
+from .steps import (
+    ACTION_STEPS,
+    I_NOTE_STEPS,
+    I_SHOULD_STEPS,
+    CallFunction,
+    FormFillerStep,
+    GatherValuesThought,
+    InspectFunction,
+    RequestFunctionCallConfirmation,
+    ResolveFunction,
+    UpdateFunctionParameters,
+    VerifyValuesThought,
+)
+from .tape import FormFillerTape, prepare_formfiller_template_variables
+from .utils import render_chat_template, sanitize_json_completion
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +35,8 @@ class StepWrapper(BaseModel):
 
 
 class TeacherAgent(Agent[FormFillerTape]):
-
     @classmethod
-    def create(cls, llm: LLM, templates: dict[str,dict[str, str]]):
+    def create(cls, llm: LLM, templates: dict[str, dict[str, str]]):
         nodes = [
             RoutingNode(),
             IntentDiscoveryNode(),
@@ -38,14 +49,18 @@ class TeacherAgent(Agent[FormFillerTape]):
             CallFunctionNode(),
         ]
         return super().create(name="teacher_formfiller", llms=llm, templates=templates, nodes=nodes)
-    
+
     def generate_steps(self, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
         # compute current tape state
         state = compute_form_filler_state(tape)
-        assert not isinstance(state, FormFillerStateError), f"Tape state should not be an error.\nTAPE:\n{tape}\nSTATE:\n{state}"
+        assert not isinstance(
+            state, FormFillerStateError
+        ), f"Tape state should not be an error.\nTAPE:\n{tape}\nSTATE:\n{state}"
         # try to update state for all predicted steps
         for predicted_step in super().generate_steps(tape, llm_stream):
-            assert isinstance(predicted_step, FormFillerStep), f"Predicted step should be a FormFillerStep, got {predicted_step}"
+            assert isinstance(
+                predicted_step, FormFillerStep
+            ), f"Predicted step should be a FormFillerStep, got {predicted_step}"
             state_or_error = update_form_filler_state(state, predicted_step)
             # stop as soon as there is an error
             if isinstance(state_or_error, FormFillerStateError):
@@ -59,7 +74,9 @@ class TeacherAgent(Agent[FormFillerTape]):
 class RoutingNode(Node):
     name: str = "routing_node"
 
-    def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         if not tape.are_function_candidates_listed:
             assert tape.last_user_step is not None, "User step is required to resolve function"
             yield ResolveFunction(query=tape.last_user_step.content)
@@ -74,7 +91,9 @@ class RoutingNode(Node):
             # If request confirmation is found, we need to check if user confirmed or not
             # Otherwise, continue the chain as normal (i.e. gather, verify, plan, etc.)
             if request_confirmation_found:
-                assert isinstance(tape.steps[-1], UserStep), "Last step should be a UserStep (either they confirm or they don't) when request confirmation is found"
+                assert isinstance(
+                    tape.steps[-1], UserStep
+                ), "Last step should be a UserStep (either they confirm or they don't) when request confirmation is found"
                 yield SetNextNode(next_node="call_function_node")
             else:
                 yield SetNextNode(next_node="intent_discovery_node")
@@ -90,17 +109,19 @@ class IntentDiscoveryNode(Node):
             return Prompt(messages=render_chat_template(agent.templates["intent_discovery_prompt"], template_variables))
         else:
             return Prompt()
-        
+
     def create_template_variables(self, tape: FormFillerTape) -> dict[str, Any]:
         template_values = prepare_formfiller_template_variables(tape)
         template_values["function_search_results"] = (
-            json.dumps(tape.function_candidates_step.model_dump(exclude={"metadata"})["candidates"], indent=2) 
-            if tape.function_candidates_step 
+            json.dumps(tape.function_candidates_step.model_dump(exclude={"metadata"})["candidates"], indent=2)
+            if tape.function_candidates_step
             else "< Not available >"
         )
         return template_values
 
-    def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         if llm_stream:
             inspect_function_found = False
             predicted_steps = parse_completion(llm_stream.get_text())
@@ -130,7 +151,9 @@ class TeacherNode(Node):
         template_variables = self.create_template_variables(agent, tape)
         return Prompt(messages=render_chat_template(agent.templates[self.template_name], template_variables))
 
-    def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         completion = llm_stream.get_text()
         logger.debug(f"teacher agent at node {self.name} --- Prompt: {llm_stream.prompt} --- Completion: {completion}")
         for predicted_step in parse_completion(completion):
@@ -160,7 +183,7 @@ class VerifyValuesNode(TeacherNode):
                 gather_step = step
                 break
 
-        assert gather_step, f"GatherValuesThought should be found in previous steps to be able to VerifyValuesNode"
+        assert gather_step, "GatherValuesThought should be found in previous steps to be able to VerifyValuesNode"
         template_values["extracted_parameters_json"] = json.dumps(gather_step.parameters, indent=2)
 
         return template_values
@@ -179,9 +202,11 @@ class RetrospectivePlanNode(TeacherNode):
                 verify_step = step
                 break
 
-        assert verify_step, f"VerifyValuesThought should be found in previous steps to be able to RetrospectivePlanNode"
+        assert verify_step, "VerifyValuesThought should be found in previous steps to be able to RetrospectivePlanNode"
         template_values["verified_parameters_json"] = json.dumps(verify_step.parameters, indent=2)
-        template_values["retrospective_thoughts_description"] = dict(agent.templates["retrospective_thoughts_description"])
+        template_values["retrospective_thoughts_description"] = dict(
+            agent.templates["retrospective_thoughts_description"]
+        )
 
         return template_values
 
@@ -205,8 +230,10 @@ class ForwardPlanNode(TeacherNode):
         template_values["request_thoughts_description"] = dict(agent.templates["request_thoughts_description"])
 
         return template_values
-    
-    def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+
+    def generate_steps(
+        self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         request_confirmation_found = False
         # yield all predicted steps and check if request confirmation is found
         for step in super().generate_steps(agent, tape, llm_stream):
@@ -239,7 +266,9 @@ class GenerationNode(TeacherNode):
 
         return template_values
 
-    def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         yield from super().generate_steps(agent, tape, llm_stream)  # yield all predicted steps
         # go back to routing node if the agent gets called again
         yield SetNextNode(next_node="routing_node")
@@ -266,7 +295,9 @@ class WriteConfirmationNode(TeacherNode):
 
         return template_values
 
-    def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         yield from super().generate_steps(agent, tape, llm_stream)  # yield all predicted steps
         # hard code the confirmation message with summary of assigned parameters
         yield AssistantStep(
@@ -281,7 +312,9 @@ class CallFunctionNode(TeacherNode):
     template_name: str = "call_function_prompt"
     yield_actions: bool = True  # this node will try to produce a CallFunction Action
 
-    def generate_steps(self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: TeacherAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         call_function_found = False
         assistant_message_found = False
         for step in super().generate_steps(agent, tape, llm_stream):  # yield all predicted steps

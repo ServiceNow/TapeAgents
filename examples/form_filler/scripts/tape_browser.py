@@ -1,14 +1,15 @@
 import logging
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
-from examples.form_filler.tape import FormFillerTape
+from tapeagents.core import Tape
+from tapeagents.io import load_tapes
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
-from tapeagents.io import load_tapes
-from tapeagents.core import Tape
-from examples.form_filler.user_simulator_agent import UserSimulatorTape
+
+from ..tape import FormFillerTape
+from ..user_simulator_agent import UserSimulatorTape
 
 # Syntax: python tape_browser.py <path_to_tapes_folder> [<path_to_sqlite_db>] [<port>]
 
@@ -24,9 +25,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-
 class RecursiveTapeBrowser(TapeBrowser):
-
     def load_tapes(self, fname: str) -> list[Tape]:
         tapes = []
         try:
@@ -41,15 +40,16 @@ class RecursiveTapeBrowser(TapeBrowser):
                 logger.error(f"Tried loading as FormFillerTape, got this error: {e}")
                 logger.error(f"Tried loading as UserSimulatorTape, got this error: {e2}")
         return tapes
-    
+
     def get_tape_files(self) -> list[str]:
-        files = sorted([
-            os.path.join(root, f)
-            for root, _, filenames in os.walk(self.tapes_folder)
-            for f in filenames
-            if f.endswith(self.file_extension)
-            and '.hydra' not in root
-        ])
+        files = sorted(
+            [
+                os.path.join(root, f)
+                for root, _, filenames in os.walk(self.tapes_folder)
+                for f in filenames
+                if f.endswith(self.file_extension) and ".hydra" not in root
+            ]
+        )
         assert files, f"No files found in {self.tapes_folder}"
         logger.info(f"{len(files)} files found in {self.tapes_folder}")
         indexed = 0

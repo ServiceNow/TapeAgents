@@ -3,12 +3,20 @@ import os
 from datetime import datetime
 from typing import Any, Iterator, Tuple
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, Field
 
-from examples.form_filler.schema import FunctionSchema
-from examples.form_filler.steps import *
 from tapeagents.core import Action, Observation, Tape, TapeMetadata, Thought
 from tapeagents.dialog_tape import AssistantStep, UserStep
+
+from .schema import FunctionSchema
+from .steps import (
+    I_NOTE_STEPS,
+    I_SHOULD_STEPS,
+    FormFillerStep,
+    FunctionCandidates,
+    RequestFunctionParameters,
+    UpdateFunctionParameters,
+)
 
 
 class FormFillerContext(BaseModel):
@@ -28,7 +36,7 @@ class FormFillerUserMetadata(TapeMetadata):
 
 
 class FormFillerTape(Tape[FormFillerContext, FormFillerStep]):
-    metadata: FormFillerAgentMetadata | FormFillerUserMetadata = Field(default_factory=FormFillerAgentMetadata)
+    metadata: FormFillerAgentMetadata | FormFillerUserMetadata = Field(default_factory=FormFillerAgentMetadata)  # type: ignore
 
     def get_context_and_predicted_steps(self) -> Tuple[Iterator[FormFillerStep], Iterator[FormFillerStep]]:
         """
