@@ -1,0 +1,58 @@
+name: Brand Ambassador Partnership Request
+description: Request a partnership with a celebrity or influencer to promote LuxuryCorp's
+  brands, including Louis Vuitton, Christian Dior, and Givenchy. This function requires
+  the brand name, ambassador name, and partnership duration as parameters. The brand
+  name must be one of LuxuryCorp's existing brands, and the partnership duration must
+  be between 6 months and 2 years. According to LuxuryCorp's policy, a maximum of 5
+  partnerships can be active at any given time. The function returns a request ID,
+  the status of the request (pending, approved, or rejected), and a list of comments
+  from the review committee.
+parameters:
+  type: object
+  properties:
+    brand_name:
+      description: The name of the LuxuryCorp brand for the partnership.
+      type: string
+      enum:
+      - Louis Vuitton
+      - Christian Dior
+      - Givenchy
+    ambassador_name:
+      description: The name of the celebrity or influencer for the partnership.
+      type: string
+    partnership_duration:
+      description: The duration of the partnership in months.
+      type: integer
+      minimum: 6
+      maximum: 24
+    campaign_budget:
+      description: The budget for the partnership campaign.
+      type: integer
+      default: 100000
+  required:
+  - brand_name
+  - ambassador_name
+  - partnership_duration
+  additional_properties: false
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the partnership request.
+      type: string
+    status:
+      description: The status of the partnership request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: A list of comments from the review committee.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

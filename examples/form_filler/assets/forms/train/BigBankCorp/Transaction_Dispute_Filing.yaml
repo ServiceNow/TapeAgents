@@ -1,0 +1,54 @@
+name: Transaction_Dispute_Filing
+description: 'Request to dispute a transaction on a BigBankCorp account, including
+  providing transaction details and reason for dispute. This function requires the
+  account holder''s ID, transaction ID, and reason for dispute. The reason for dispute
+  must be one of the following: unauthorized transaction, incorrect amount, or duplicate
+  transaction. According to BigBankCorp''s policy, all disputes will be reviewed within
+  5 business days. The request will return a unique request ID, the status of the
+  request (either ''pending'', ''approved'', or ''denied''), and a list of comments
+  from the dispute resolution team.'
+parameters:
+  type: object
+  properties:
+    account_holder_id:
+      description: The ID of the account holder.
+      type: integer
+    transaction_id:
+      description: The ID of the transaction being disputed.
+      type: integer
+    reason_for_dispute:
+      description: The reason for disputing the transaction.
+      type: string
+      enum:
+      - unauthorized transaction
+      - incorrect amount
+      - duplicate transaction
+    additional_comments:
+      description: Any additional comments or information about the dispute.
+      type: string
+  required:
+  - account_holder_id
+  - transaction_id
+  - reason_for_dispute
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the dispute request.
+      type: string
+    status:
+      description: The status of the dispute request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - denied
+    comments:
+      description: A list of comments from the dispute resolution team.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

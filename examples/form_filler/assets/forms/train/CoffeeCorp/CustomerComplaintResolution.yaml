@@ -1,0 +1,52 @@
+name: CustomerComplaintResolution
+description: Submit a resolution to a customer complaint, including details on the
+  issue and steps taken to resolve it. This function requires a complaint ID, a brief
+  description of the issue, and the steps taken to resolve it. The function will return
+  a request ID, the status of the request (either 'pending','resolved', or'rejected'),
+  and a list of comments made by the customer service representative. According to
+  CoffeeCorp's customer complaint resolution policy, all complaints must be resolved
+  within 3 business days. Customer service representatives must provide a clear explanation
+  of the steps taken to resolve the issue and ensure that the customer is satisfied
+  with the resolution.
+parameters:
+  type: object
+  properties:
+    complaint_id:
+      description: The ID of the customer complaint.
+      type: integer
+    issue_description:
+      description: A brief description of the issue.
+      type: string
+    resolution_steps:
+      description: The steps taken to resolve the issue.
+      type: string
+    customer_representative:
+      description: The name of the customer service representative.
+      type: string
+      default: Unknown
+  required:
+  - complaint_id
+  - issue_description
+  - resolution_steps
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - resolved
+      - rejected
+    comments:
+      description: A list of comments made by the customer service representative.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

@@ -1,0 +1,55 @@
+---
+metadata:
+  id: 00000000-0000-0000-0000-000000000000
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000000
+  kind: assistant
+  content: Hi, how can I help you?
+---
+metadata:
+  id: 00000000-0000-0000-0000-000000000001
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000001
+  kind: assistant
+  content: Hi, how can I help you?
+---
+metadata:
+  id: 00000000-0000-0000-0000-000000000002
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000002
+  kind: assistant
+  content: Hi, how can I help you?
+---
+metadata:
+  id: 00000000-0000-0000-0000-000000000003
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000003
+  kind: assistant
+  content: Hi, how can I help you?
+---
+metadata:
+  id: 00000000-0000-0000-0000-000000000004
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000004
+  kind: assistant
+  content: Hi, how can I help you?

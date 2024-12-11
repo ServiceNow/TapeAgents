@@ -162,7 +162,7 @@ class MonoNode(Node):
         """
         messages: list[dict] = [
             {"role": "system", "content": self.system_prompt},
-        ]
+        ] if self.system_prompt else []
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
         for step in tape:

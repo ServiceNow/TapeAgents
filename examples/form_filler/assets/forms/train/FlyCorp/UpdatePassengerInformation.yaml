@@ -1,0 +1,51 @@
+name: UpdatePassengerInformation
+description: Request to update a passenger's personal information, including name,
+  contact details, and loyalty program information. This function requires the passenger's
+  ID, new name, email address, and phone number as mandatory parameters. The loyalty
+  program information is optional. According to FlyCorp's policy, passengers can only
+  update their own information, and the new email address must not be already in use
+  by another passenger. The function returns a request ID, the status of the request
+  (either'success' or 'failed'), and a list of updated loyalty programs.
+parameters:
+  type: object
+  properties:
+    passenger_id:
+      description: The ID of the passenger to update.
+      type: integer
+    new_name:
+      description: The new name of the passenger.
+      type: string
+    email:
+      description: The new email address of the passenger.
+      type: string
+    phone_number:
+      description: The new phone number of the passenger.
+      type: string
+    loyalty_program:
+      description: The new loyalty program information (optional).
+      type: string
+  required:
+  - passenger_id
+  - new_name
+  - email
+  - phone_number
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the update request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - success
+      - failed
+    updated_loyalty_programs:
+      description: A list of updated loyalty programs.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

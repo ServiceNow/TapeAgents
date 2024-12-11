@@ -1,0 +1,55 @@
+name: RequestRefund
+description: 'Request for a refund for a cancelled or changed flight, including flight
+  details and reason for refund. This function requires the flight number, original
+  booking date, and reason for refund as mandatory parameters. The reason for refund
+  must be one of the following: ''flight cancellation'',''schedule change'', or ''voluntary
+  change''. FlyCorp''s refund policy states that refunds will be processed within 7-10
+  business days. The function returns a unique request ID, the status of the request
+  (either ''pending'', ''approved'', or''rejected''), and a list of comments from
+  the FlyCorp customer service team.'
+parameters:
+  type: object
+  properties:
+    flight_number:
+      description: The number of the cancelled or changed flight.
+      type: string
+    original_booking_date:
+      description: The original date of booking.
+      type: string
+      format: date
+    reason_for_refund:
+      description: The reason for requesting a refund.
+      type: string
+      enum:
+      - flight cancellation
+      - schedule change
+      - voluntary change
+    passenger_name:
+      description: The name of the passenger (optional).
+      type: string
+  required:
+  - flight_number
+  - original_booking_date
+  - reason_for_refund
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the refund request.
+      type: string
+    status:
+      description: The status of the refund request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: A list of comments from the FlyCorp customer service team.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

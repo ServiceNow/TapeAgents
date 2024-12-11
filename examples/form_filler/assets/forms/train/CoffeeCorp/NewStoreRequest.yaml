@@ -1,0 +1,66 @@
+name: NewStoreRequest
+description: Submit a request to open a new CoffeeCorp store location, including details
+  on location, staff, and inventory needs. This function requires the location address,
+  city, state, and zip code, as well as the number of staff members and initial inventory
+  quantities. According to CoffeeCorp's policies, all new store locations must be within
+  5 miles of an existing store. The function will return a unique request ID, the
+  status of the request (either 'pending', 'approved', or'rejected'), and a list of
+  recommended inventory items based on the location's demographics.
+parameters:
+  type: object
+  properties:
+    address:
+      description: The street address of the new store location
+      type: string
+    city:
+      description: The city of the new store location
+      type: string
+    state:
+      description: The state of the new store location
+      type: string
+    zip_code:
+      description: The zip code of the new store location
+      type: string
+    num_staff:
+      description: The number of staff members for the new store location
+      type: integer
+    initial_inventory:
+      description: The initial quantity of inventory for the new store location
+      type: integer
+    store_manager_name:
+      description: The name of the store manager (optional)
+      type: string
+  required:
+  - address
+  - city
+  - state
+  - zip_code
+  - num_staff
+  - initial_inventory
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the new store request
+      type: string
+    status:
+      description: The status of the new store request
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    recommended_inventory:
+      description: A list of recommended inventory items based on the location's demographics
+      type: array
+      items:
+        type: object
+        properties:
+          item_name:
+            type: string
+          quantity:
+            type: integer
+  required:
+  - request_id
+  - status
+  - recommended_inventory
