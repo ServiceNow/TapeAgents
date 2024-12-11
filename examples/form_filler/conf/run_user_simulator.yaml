@@ -1,0 +1,16 @@
+defaults:
+  - user_simulator_agent: ??? # can be any behavior defined in conf/user_simulator_agent/
+  - llm@user_simulator_agent.llms: openrouter_llama3_405b_temp1
+  - override hydra/job_logging: verbose2
+  - _self_
+
+input_dialogues_path: examples/form_filler/assets/initial_agent_tapes.yaml # replace with path to your agent tapes
+output_path: outputs/user_tapes/${user_simulator_agent.behavior_alias} # must be a directory
+n_workers: 0
+max_continuable_tapes: -1 # -1 means 1 per valid input tape
+
+hydra:
+  run:
+    dir: ${output_path}
+  job:
+    chdir: false

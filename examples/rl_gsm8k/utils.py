@@ -6,8 +6,8 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, Optional, TextIO, Union
-
+from typing import Dict, Optional, TextIO, Union, List
+import threading
 import numpy as np
 import psutil
 import requests
@@ -22,6 +22,23 @@ from tapeagents.llms import LLMOutput, Prompt
 
 logger = logging.getLogger(__name__)
 
+def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[str]:
+    """
+    Generate a list of CUDA device strings for assigning GPUs to models.
+
+    Args:
+    - total_gpus (int): The total number of GPUs available.
+    - gpus_per_model (int): The number of GPUs required per model.
+
+    Returns:
+    - List[str]: A list of strings, each representing the CUDA devices for a model.
+    """
+    cuda_device_strings = []
+    for start_gpu in range(0, total_gpus, gpus_per_model):
+        end_gpu = start_gpu + gpus_per_model
+        cuda_devices = ",".join(str(i) for i in range(start_gpu, end_gpu))
+        cuda_device_strings.append(cuda_devices)
+    return cuda_device_strings
 
 class VLLMServiceManager:
     def __init__(
@@ -30,6 +47,7 @@ class VLLMServiceManager:
         stdout_file_path: Union[str, Path],
         stderr_file_path: Union[str, Path],
         port: int = 8080,
+        gpus_per_model_instance: int = 1,
         verbose: bool = True,
         cuda_device: str = "0",
         host: str = "localhost",
@@ -39,6 +57,9 @@ class VLLMServiceManager:
         self.stdout_file_path = stdout_file_path
         self.stderr_file_path = stderr_file_path
         self.port = port
+        self.ports = []
+        self.processes = []
+        self.gpus_per_model_instance = gpus_per_model_instance
         self.verbose = verbose
         self.cuda_device = cuda_device
         self.host = host
@@ -47,6 +68,11 @@ class VLLMServiceManager:
         self.stdout_file: Optional[TextIO] = None
         self.stderr_file: Optional[TextIO] = None
         self.stats = {}
+
+    def get_base_urls(self) -> list[str]:
+        return [
+            f"http://127.0.0.1:{port}" for port in self.ports
+        ]
 
     def _terminate_with_children(self, process_id: int) -> None:
         try:
@@ -91,18 +117,45 @@ class VLLMServiceManager:
             logger.info(f"-> Waiting for service at {url}")
             time.sleep(5)
 
-    @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
     def _start_service(self) -> None:
-        tensor_parallel_size = self.cuda_device.count(",") + 1
+        """
+        Launch multiple LLMs in parallel.
+
+        Args:
+        - model_starter (Callable): A function that starts a single LLM.
+        - start_port (int): The port number to start the LLMs on.
+        - num_gpu_required (int): The number of GPUs required per model.
+
+        Returns:
+        - Tuple[List[subprocess.Popen], List[int]]: A tuple containing the list of assistant processes and the list of ports
+
+        """
+
+        threads = []
+
+        for i, device_number in enumerate(generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance )):
+            port = self.port + i
+            # start_llm(device_number, port, assistant_procs, ports)
+            thread = threading.Thread(target=self._start_llm, args=(device_number, port))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+
+    @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
+    def _start_llm(self, cuda_device, port):
+        tensor_parallel_size = cuda_device.count(",") + 1
         kwargs_str = " ".join([f"{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
 
         cmd = (
-            f"OUTLINES_CACHE_DIR=/tmp/.outlines_{self.cuda_device}_{int(time.time())} "
-            f"CUDA_VISIBLE_DEVICES={self.cuda_device} "
+            f"OUTLINES_CACHE_DIR=/tmp/.outlines_{cuda_device}_{int(time.time())} "
+            f"CUDA_VISIBLE_DEVICES={cuda_device} "
             f"python -m vllm.entrypoints.openai.api_server "
             f"--model {self.model_name_or_path} "
             f"--tensor-parallel-size {tensor_parallel_size} "
-            f"--port {self.port} "
+            f"--port {port} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
             f"{kwargs_str}"
@@ -127,27 +180,32 @@ class VLLMServiceManager:
             process_args["stderr"] = self.stderr_file
 
         try:
-            self.process = subprocess.Popen(cmd, **process_args)
+            process = subprocess.Popen(cmd, **process_args)
         except Exception as e:
             logger.error(f"Error occurred: {e}")
             raise e
 
-        vllm_url = f"http://{self.host}:{self.port}/health"
+        vllm_url = f"http://{self.host}:{port}/health"
         headers = {"User-Agent": "vLLM Client"}
 
         start_waiting = time.time()
-        if self._wait_for_service(self.process, vllm_url, headers=headers, timeout=8000):
-            logger.info(f"Student {self.model_name_or_path} model loaded on port {self.port}")
+        if self._wait_for_service(process, vllm_url, headers=headers, timeout=8000):
+            logger.info(f"Student {self.model_name_or_path} model loaded on port {port}")
         else:
             self._cleanup()
             raise Exception("Failed to start the service")
         end_waiting = time.time()
         self.stats["starting_time"] = end_waiting - start_waiting
+        self.ports.append(port)
+        self.processes.append(process)
 
     def _cleanup(self) -> None:
-        if self.process and self.process.pid:
-            self._terminate_with_children(self.process.pid)
-            self.process.wait()
+        logger.info(f"Killing {len(self.processes)} vLLM processes")
+        for process in self.processes:
+            if process and process.pid:
+                logger.info(f"Terminating process with command {process.args}")
+                self._terminate_with_children(process.pid)
+                process.wait()
 
         if self.stdout_file:
             self.stdout_file.close()

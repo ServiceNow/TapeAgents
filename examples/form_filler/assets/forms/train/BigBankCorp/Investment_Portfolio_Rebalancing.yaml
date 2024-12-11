@@ -1,0 +1,60 @@
+name: Investment_Portfolio_Rebalancing
+description: Request to rebalance an investment portfolio managed by BigBankCorp's
+  wealth management team, including adjusting asset allocations and trading securities.
+  This function requires the portfolio ID, target asset allocation, and maximum tolerance
+  for deviation from the target allocation. The function will return a request ID,
+  the status of the request (either 'pending', 'in_progress', or 'completed'), a list
+  of traded securities, and a comment on the rebalancing outcome. According to BigBankCorp's
+  policies, only authorized wealth management advisors can initiate portfolio rebalancing
+  requests, and all requests are subject to review and approval by the risk management
+  team.
+parameters:
+  type: object
+  properties:
+    portfolio_id:
+      description: The unique identifier of the investment portfolio to be rebalanced.
+      type: integer
+    target_asset_allocation:
+      description: The desired asset allocation for the portfolio.
+      type: string
+    max_deviation:
+      description: The maximum allowed deviation from the target asset allocation.
+      type: number
+    advisor_id:
+      description: The ID of the authorized wealth management advisor initiating the
+        request.
+      type: integer
+    dry_run:
+      description: If true, the rebalancing request will be simulated without executing
+        any trades.
+      type: boolean
+      default: false
+  required:
+  - portfolio_id
+  - target_asset_allocation
+  - max_deviation
+  - advisor_id
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique identifier of the rebalancing request.
+      type: string
+    status:
+      description: The status of the rebalancing request.
+      type: string
+      enum:
+      - pending
+      - in_progress
+      - completed
+    traded_securities:
+      description: A list of securities traded during the rebalancing process.
+      type: array
+      items:
+        type: string
+    comment:
+      description: A comment on the rebalancing outcome.
+      type: string
+  required:
+  - request_id
+  - status

@@ -1,0 +1,12 @@
+_target_: examples.form_filler.user_simulator_agent.UserSimulatorAgent.create
+
+behavior_alias: ???
+
+prompt_template:
+  messages:
+  - role: user
+    content: |-
+      Please continue the conversation below:
+      {text}
+
+      Instruction: {instruction}. Answer directly with the user text and nothing else. Be creative and do not make up generic information like 123, Main Street or John Doe.

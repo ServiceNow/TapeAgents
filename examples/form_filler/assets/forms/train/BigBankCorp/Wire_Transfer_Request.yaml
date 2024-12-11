@@ -1,0 +1,64 @@
+name: Wire_Transfer_Request
+description: Request to initiate a domestic or international wire transfer from a
+  BigBankCorp account, specifying transfer amount, recipient information, and adhering
+  to BigBankCorp's policies, including a minimum transfer amount of $100 and a maximum
+  transfer amount of $10,000,000. The request must include the sender's account number,
+  recipient's name, recipient's account number, and transfer amount. The request will
+  return a unique request ID, the status of the request (pending, approved, rejected),
+  and a list of transfer details.
+parameters:
+  type: object
+  properties:
+    sender_account_number:
+      description: The sender's BigBankCorp account number.
+      type: string
+    recipient_name:
+      description: The recipient's full name.
+      type: string
+    recipient_account_number:
+      description: The recipient's account number.
+      type: string
+    transfer_amount:
+      description: The amount to be transferred.
+      type: number
+      minimum: 100
+      maximum: 10000000
+    transfer_date:
+      description: The date of the transfer (optional, defaults to current date).
+      type: string
+      format: date
+  required:
+  - sender_account_number
+  - recipient_name
+  - recipient_account_number
+  - transfer_amount
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the wire transfer request.
+      type: string
+    status:
+      description: The status of the wire transfer request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    transfer_details:
+      description: A list of transfer details.
+      type: array
+      items:
+        type: object
+        properties:
+          transfer_date:
+            description: The date of the transfer.
+            type: string
+            format: date
+          transfer_amount:
+            description: The amount transferred.
+            type: number
+  required:
+  - request_id
+  - status
+  - transfer_details

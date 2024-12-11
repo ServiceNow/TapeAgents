@@ -1,0 +1,9 @@
+# The env variable `TAPEAGENTS_LLM_TOKEN` should be set to your openrouter token.
+_target_: tapeagents.llms.TrainableLLM
+model_name: meta-llama/Llama-3.1-8B-Instruct  # REPLACE WITH PATH TO FINETUNED MODEL
+stream: false
+use_cache: false
+context_size: 128000
+base_url: https://openrouter.ai/api  # REPLACE WITH URL TO INFERENCE SERVER RUNNING `model_name`
+parameters:
+  temperature: 1.0
