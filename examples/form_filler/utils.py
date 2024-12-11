@@ -1,5 +1,4 @@
 
-import sys
 from typing import Any, Type
 from . import steps
 

@@ -3,13 +3,15 @@
 from abc import ABC, abstractmethod
 from io import StringIO
 from typing import Any, Literal, Union
-from typing_extensions import Self
+
 from pydantic import Field, JsonValue
+from typing_extensions import Self
 
-from tapeagents.core import Step, Action, Error
+from tapeagents.core import Action, Error, Step
 
-from examples.form_filler.types import FunctionName, ParameterName
-# from examples.form_filler.steps import FormFillerStep
+from .types import FunctionName, ParameterName
+
+# from .steps import FormFillerStep
 
 
 class FormFillerStateError(ABC, Action, Error):
@@ -20,7 +22,7 @@ class FormFillerStateError(ABC, Action, Error):
     They can be converted to exceptions using the :meth:`to_exc()` method.
     """
 
-    kind: Literal[ # type: ignore
+    kind: Literal[  # type: ignore
         "unknown_function_error",
         "unknown_function_schema_error",
         "invalid_function_schema_error",
@@ -43,7 +45,7 @@ class FormFillerStateError(ABC, Action, Error):
         Convert the error to an exception that can be raised.
         """
         ...
-        
+
     def add_cause(self, cause: Step) -> Self:
         return self.model_copy(update={"cause": cause})
 

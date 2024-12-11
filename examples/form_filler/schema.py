@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from io import StringIO
 import warnings
-from typing import Annotated, Any, Literal, Mapping, Sequence, TypeAlias, Union
+from typing import Any, Literal, Mapping, Sequence, TypeAlias
+
+import jsonref
+import jsonschema
+import referencing.jsonschema
 from pydantic import (
     BaseModel,
-    ConfigDict, 
+    ConfigDict,
     Field,
     FieldSerializationInfo,
     JsonValue,
@@ -14,25 +16,21 @@ from pydantic import (
     TypeAdapter,
     model_serializer,
 )
-import jsonschema
-import jsonref
-import referencing.jsonschema
 from typing_extensions import Self
 
 from tapeagents.core import Observation
-from examples.form_filler.error import (
+
+from .error import (
+    FormFillerStateError,
+    InvalidFunctionParametersError,
     InvalidFunctionParameterSkipError,
     InvalidFunctionParameterValueError,
-    InvalidFunctionParametersError,
     InvalidFunctionReturnValueError,
     InvalidFunctionSchemaError,
     UnknownFunctionParameterError,
     UnknownFunctionSchemaError,
-    FormFillerStateError
 )
-from examples.form_filler.types import FunctionName, ParameterName
-
-
+from .types import FunctionName, ParameterName
 
 JsonType: TypeAlias = Literal["null", "boolean", "object", "array", "number", "string", "integer"]
 
@@ -44,7 +42,7 @@ class JsonSchema(BaseModel):
     See https://json-schema.org/understanding-json-schema/index.html for JSON Schema
     and https://datatracker.ietf.org/doc/html/draft-pbryan-zyp-json-ref-03 for JSON references.
     """
-    
+
     # camel case (e.g. maxLength) is used in the JSON schema standard
     # some of our data uses underscore-separated names (e.g. max_length)
     # with this setting this class can load both
@@ -184,8 +182,6 @@ class JsonSchema(BaseModel):
         else:
             possible_values = []
         return possible_values
-
-
 
 
 class FunctionSchema(Observation):

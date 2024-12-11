@@ -20,7 +20,6 @@ import litellm
 import openai
 import requests
 from Levenshtein import ratio
-from litellm.types.utils import ChatCompletionTokenLogprob, ChoiceLogprobs, TopLogprob
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
@@ -37,6 +36,7 @@ logger = logging.getLogger(__name__)
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
 
 cache_write_lock = threading.Lock()
+transformers = None
 
 
 class LLMEvent(BaseModel):
@@ -587,8 +587,9 @@ class TrainableLLM(CachedLLM):
                         is provided and `_MOCK_TOKENIZER` is not set.
         """
         if self.tokenizer is None:
-            import transformers
-
+            global transformers
+            if transformers is None:
+                import transformers
             name = _MOCK_TOKENIZER if _MOCK_TOKENIZER else (self.tokenizer_name or self.model_name)
             self.tokenizer = transformers.AutoTokenizer.from_pretrained(name)
 

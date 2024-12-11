@@ -20,7 +20,7 @@ USER_SIMULATORS=(
 # Loop over each user simulator agent
 for USER_SIMULATOR in "${USER_SIMULATORS[@]}"; do
   # Run the Python script with the specified arguments
-  python examples/form_filler/scripts/run_user_simulator.py \
+  python -m examples.form_filler.scripts.run_user_simulator \
     input_dialogues_path="${INPUT_PATH}" \
     output_path="${OUTPUT_PREFIX}/${USER_SIMULATOR}" \
     user_simulator_agent="${USER_SIMULATOR}" \
@@ -29,4 +29,4 @@ for USER_SIMULATOR in "${USER_SIMULATORS[@]}"; do
 done
 
 # Visualize 
-python examples/form_filler/scripts/tape_browser.py ${OUTPUT_PATH}
+python -m examples.form_filler.scripts.tape_browser ${OUTPUT_PATH}
