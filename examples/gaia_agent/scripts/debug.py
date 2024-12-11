@@ -13,8 +13,8 @@ from tapeagents.orchestrator import main_loop
 from tapeagents.tools.container_executor import ContainerExecutor
 
 from ..agent import GaiaAgent
-from ..environment import GaiaEnvironment
-from ..eval import load_dataset
+from ..environment import get_env
+from ..eval import load_dataset, task_to_observations
 from ..tape import GaiaMetadata, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
@@ -40,12 +40,10 @@ def main(cfg: DictConfig) -> None:
     except Exception as e:
         logger.error(f"Failed to create code sandbox: {e}")
         code_sandbox = None
-    env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox)
+    env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
     agent = GaiaAgent.create(llm, **cfg.agent)
-    tape = GaiaTape(steps=env.task_to_observations(task))
-    tape.metadata = GaiaMetadata.model_validate(
-        tape.metadata.model_dump() | {"task": task, "level": cfg.level}
-    )
+    tape = GaiaTape(steps=task_to_observations(task))
+    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": cfg.level})
     step_count = 0
     for event in main_loop(agent, tape, env, max_loops=50):
         if event.agent_event and event.agent_event.step:

@@ -8,6 +8,7 @@ from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
 from tapeagents.steps import ActionExecutionFailure, VideoObservation
 from tapeagents.tools.calculator import CalculationResultObservation
+from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import extract_code_blocks
 from tapeagents.tools.simple_browser import PageObservation
 
@@ -91,7 +92,8 @@ class GaiaNode(MonoNode):
     def parse_completion(self, llm_output: str, prompt_id: str):
         if llm_output.strip().startswith("```"):
             code_blocks = extract_code_blocks(llm_output)
-            yield ExecuteCode(code=code_blocks)
+            for code_block in code_blocks:
+                yield PythonCodeAction(code=code_block.code)
         else:
             for step in super().parse_completion(llm_output, prompt_id):
                 yield step

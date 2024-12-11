@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Any, Literal, Union
+from typing import Any, Literal, TypeAlias, Union
 
 from pydantic import Field
 
@@ -128,4 +128,4 @@ OBSERVATIONS = (
     ActionExecutionFailure,
 )
 SPECIAL_STEPS = (ExecuteCode, LLMOutputParsingFailureAction, SetNextNode)
-GaiaStep = Union[PLAN_STEPS + AGENT_STEPS + OBSERVATIONS + SPECIAL_STEPS]
+GaiaStep: TypeAlias = Union[PLAN_STEPS + AGENT_STEPS + OBSERVATIONS + SPECIAL_STEPS]  # type: ignore

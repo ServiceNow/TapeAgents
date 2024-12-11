@@ -24,7 +24,8 @@ from pyparsing import (
     oneOf,
 )
 
-from tapeagents.core import Action, Observation, Tool
+from tapeagents.core import Action, Observation
+from tapeagents.tools.base import Tool
 
 
 def cmp(a, b):

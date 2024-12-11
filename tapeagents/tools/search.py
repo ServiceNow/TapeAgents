@@ -8,7 +8,8 @@ from typing import Literal
 import requests
 from pydantic import Field
 
-from tapeagents.core import Action, Observation, Tool
+from tapeagents.core import Action, Observation
+from tapeagents.tools.base import Tool
 from tapeagents.utils import FatalError, acquire_timeout
 
 logger = logging.getLogger(__name__)
@@ -72,8 +73,9 @@ class Search(Tool):
     Tool that performs a search in the web, wikipedia or youtube
     """
 
-    action = SearchAction
-    observation = SearchResultsObservation
+    action: type[Action] = SearchAction
+    observation: type[Observation] = SearchResultsObservation
+    cached: bool = True
 
     def run(self, action: SearchAction) -> SearchResultsObservation:
         if action.source == "wiki":

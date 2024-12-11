@@ -2,8 +2,9 @@ from typing import Literal
 
 from pydantic import Field
 
-from tapeagents.core import Action, Tool
+from tapeagents.core import Action, Observation
 from tapeagents.environment import CodeExecutionResult
+from tapeagents.tools.base import Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.tools.python_interpreter import logger, run_python_code
 
@@ -24,8 +25,9 @@ class CodeExecutor(Tool):
     Tool to execute the python code snippet.
     """
 
-    action = PythonCodeAction
-    observation = CodeExecutionResult
+    action: type[Action] = PythonCodeAction
+    observation: type[Observation] = CodeExecutionResult
+    cached: bool = True
     sandbox: ContainerExecutor | None = None
 
     def run(self, action: PythonCodeAction) -> CodeExecutionResult:

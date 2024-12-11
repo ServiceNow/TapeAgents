@@ -11,7 +11,6 @@ agent:
   plain_code: false
 
 env:
-  attachment_dir: ${exp_path}/attachments/
   image_observations: true
   use_web_cache: true
 

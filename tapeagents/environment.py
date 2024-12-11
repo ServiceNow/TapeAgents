@@ -11,12 +11,11 @@ from langchain_core.tools import BaseTool, tool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
+from tapeagents.agent import TapeType
+from tapeagents.core import Action, Observation, Tape
+from tapeagents.dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
-
-from .agent import TapeType
-from .core import Action, Observation, Tape
-from .dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
 
 logger = logging.getLogger(__name__)
 

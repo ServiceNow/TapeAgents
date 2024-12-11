@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import atexit
 import logging
+import os
 import re
 import uuid
 from hashlib import md5
@@ -27,6 +28,8 @@ from typing import Any, ClassVar, Dict, List, Optional, Type, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import Self
+
+from examples.gaia_agent.scripts.evaluate import logger
 
 logger = logging.getLogger(__name__)
 
@@ -423,3 +426,14 @@ def silence_pip(code: str, lang: str) -> str:
             if "-qqq" not in line:
                 lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
     return "\n".join(lines)
+
+
+def maybe_get_code_sandbox(exp_path: str):
+    code_path = os.path.join(exp_path, "code")
+    os.makedirs(code_path, exist_ok=True)
+    try:
+        code_sandbox = ContainerExecutor(work_dir=code_path)
+    except Exception as e:
+        logger.error(f"Failed to create code sandbox: {e}")
+        code_sandbox = None
+    return code_sandbox

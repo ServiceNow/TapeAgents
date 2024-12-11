@@ -1,22 +1,25 @@
 import json
 import logging
 import os
+import shutil
 import subprocess
 from typing import Any, Counter, Generator
 
 import yaml
 from huggingface_hub import snapshot_download
+from pdf2image import convert_from_path
 from termcolor import colored
 
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import step_view
+from tapeagents.tools.search import SearchAction
+from tapeagents.tools.simple_browser import SimpleTextBrowser
 
-from ...tapeagents.tools.search import SearchAction
 from .agent import GaiaAgent
-from .environment import GaiaEnvironment
+from .environment import StepToolEnvironment
 from .scorer import question_scorer
-from .steps import GaiaAnswer
+from .steps import GaiaAnswer, GaiaQuestion, ImageObservation
 from .tape import GaiaMetadata, GaiaTape
 
 logger = logging.getLogger(__name__)
@@ -99,7 +102,7 @@ def load_dataset(split: str):
 def solve_task(
     task: dict,
     agent: GaiaAgent,
-    env: GaiaEnvironment,
+    env: StepToolEnvironment,
     level: int,
     retries: int = 3,
     max_loops: int = 50,
@@ -110,7 +113,7 @@ def solve_task(
     The last tape will contain the agent's response.
 
     """
-    start_steps = env.task_to_observations(task)
+    start_steps = task_to_observations(task)
     solved = None
     result = None
     while not solved and retries:
@@ -129,7 +132,7 @@ def solve_task(
             tape.metadata.error = str(e)
             logger.exception(f"Failed to solve task: {e}")
             break
-        result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
+        result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None  # type: ignore
         result = str(result) if result is not None else ""
         solved = result != ""
         retries -= 1
@@ -202,3 +205,65 @@ def get_exp_config_dict(exp_path):
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
     return cfg
+
+
+def pdf_to_images(filename: str, n_pages: int = 3):
+    images = []
+    for i, image in enumerate(convert_from_path(filename)):
+        page_index = i + 1
+        page_fname = filename[:-4] + f"_{page_index}.png"
+        if os.path.exists(page_fname):
+            images.append(page_fname)
+            continue
+        image.save(page_fname)
+        images.append(page_fname)
+    return images[:n_pages], len(images)
+
+
+def task_to_observations(
+    task: dict,
+    image_observations: bool = True,
+    max_doc_length: int = 8000,
+) -> list[GaiaQuestion | ImageObservation]:
+    logger.info(f"Question: {task['Question']}")
+    browser = SimpleTextBrowser()
+    steps: list[GaiaQuestion | ImageObservation] = [GaiaQuestion.from_task(task)]
+    filename: str | None = steps[0].filename  # type: ignore
+    if filename:
+        name, ext = filename.rsplit(".", maxsplit=1)
+        ext = ext.lower()
+        if ext == "zip":
+            folder_name = name
+            os.makedirs(folder_name, exist_ok=True)
+            shutil.unpack_archive(filename, folder_name)
+            document_text = "\n\nArchive contains the following files:\n"
+            for i, file in enumerate(os.listdir(folder_name)):
+                file_path = os.path.join(folder_name, file)
+                content = browser.get_whole_document(file_path)
+                file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
+                if len(file_text) > max_doc_length:
+                    file_text = ""
+                file_text += f"{i+1}. Path to the '{file}': {file_path}"
+                document_text += file_text
+        elif ext in ("png", "jpg", "jpeg") and image_observations:
+            steps.append(ImageObservation(image_path=filename, image_caption="Attached image"))
+            document_text = ""
+        else:
+            attach_doc_text = True
+            if ext == "pdf" and image_observations:
+                images, total_pages = pdf_to_images(filename)
+                if total_pages <= 3:
+                    attach_doc_text = False
+                for i, img_path in enumerate(images):
+                    steps.append(ImageObservation(image_path=img_path, image_caption=f"PDF page {i+1}"))
+            if attach_doc_text:
+                content = browser.get_whole_document(filename)
+                document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
+                if len(document_text) > max_doc_length:
+                    document_text = ""
+                document_text += f"\nPath to the mentioned document: {filename}"
+            else:
+                document_text = "\nDocument pages attached as images below"
+        steps[0].content += document_text  # type: ignore
+    steps[0].filename = None  # type: ignore
+    return steps

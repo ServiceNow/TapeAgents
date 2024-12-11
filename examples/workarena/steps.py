@@ -4,6 +4,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Tape, Thought
 from tapeagents.dialog_tape import DialogContext
+from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import (
     ClickAction,
     GoBackAction,
@@ -15,8 +16,6 @@ from tapeagents.tools.browser import (
     ScrollAction,
     SelectOptionAction,
 )
-
-from ...tapeagents.steps import ActionExecutionFailure
 
 
 ################### Base Step Classes ###################

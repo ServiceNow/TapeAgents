@@ -31,7 +31,7 @@ from examples.delegate_stack import (
     make_analyze_text_chain,
 )
 from examples.gaia_agent.agent import GaiaAgent
-from examples.gaia_agent.environment import GaiaEnvironment
+from examples.gaia_agent.environment import get_env
 from examples.gaia_agent.tape import GaiaTape
 from examples.gsm8k_tuning.math_agent import MathAgent, MathTape
 from examples.llama_agent import LLAMAChatBot
@@ -158,8 +158,7 @@ def test_gaia_agent():
             shutil.copyfileobj(f_in, f_out)
     try:
         llm = mock_llm(run_dir)
-        env = GaiaEnvironment(only_cached_webpages=True, attachment_dir=f"{run_dir}/attachments")
-        env.browser.set_web_cache(f"{run_dir}/web_cache.jsonl")
+        env = get_env(run_dir, code_sandbox=None, only_cached_webpages=True, cache_path=f"{run_dir}/web_cache.jsonl")
         agent = GaiaAgent.create(llm)
         tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
         logger.info(f"Validate {len(tapes)} tapes")

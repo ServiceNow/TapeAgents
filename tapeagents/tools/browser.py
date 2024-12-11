@@ -11,7 +11,8 @@ from browsergym.utils.obs import IGNORED_AXTREE_PROPERTIES, _process_bid
 from PIL import Image
 from pydantic import Field
 
-from tapeagents.core import Action, Multitool, Observation, StepMetadata
+from tapeagents.core import Action, Observation, StepMetadata
+from tapeagents.tools.base import Multitool
 
 NODES_WITH_BID = [
     "button",
