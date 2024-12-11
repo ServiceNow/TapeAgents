@@ -1,0 +1,65 @@
+name: Production Line Optimization
+description: Request optimization of production lines to increase efficiency and reduce
+  costs at DriveCorp. This function takes in the production line ID, current production
+  capacity, and target production capacity as inputs. The function will analyze the
+  production line's current configuration and provide recommendations for optimization.
+  According to DriveCorp's policy, all production line optimizations must adhere to
+  the company's safety and quality standards. The function will return a request ID,
+  the status of the request (either 'pending', 'in_progress', or 'completed'), and
+  a list of recommended changes to the production line configuration. If the request
+  is approved, the function will also return the new production line ID and a comment
+  explaining the changes made.
+parameters:
+  type: object
+  properties:
+    production_line_id:
+      description: The ID of the production line to be optimized.
+      type: integer
+    current_production_capacity:
+      description: The current production capacity of the production line.
+      type: integer
+    target_production_capacity:
+      description: The target production capacity of the production line.
+      type: integer
+    optional_parameter:
+      description: An optional parameter for additional information.
+      type: string
+  required:
+  - production_line_id
+  - current_production_capacity
+  - target_production_capacity
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the optimization request.
+      type: string
+    status:
+      description: The status of the optimization request.
+      type: string
+      enum:
+      - pending
+      - in_progress
+      - completed
+    recommended_changes:
+      description: A list of recommended changes to the production line configuration.
+      type: array
+      items:
+        type: object
+        properties:
+          change_type:
+            description: The type of change (e.g.'machine_replacement', 'process_adjustment').
+            type: string
+          change_description:
+            description: A brief description of the change.
+            type: string
+    new_production_line_id:
+      description: The new ID of the production line if the request is approved.
+      type: integer
+    comment:
+      description: A comment explaining the changes made to the production line.
+      type: string
+  required:
+  - request_id
+  - status
+  - recommended_changes

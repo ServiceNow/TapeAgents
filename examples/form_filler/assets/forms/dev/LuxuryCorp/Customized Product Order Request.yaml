@@ -1,0 +1,71 @@
+name: Customized Product Order Request
+description: "Request a customized product order for a special occasion or bespoke\
+  \ gift, featuring LuxuryCorp's high-end materials and craftsmanship. This function\
+  \ requires the customer's name, email, and phone number, as well as the product\
+  \ category and description. The product category must be one of the following: 'Fashion',\
+  \ 'Leather Goods', 'Perfumery', 'Cosmetics', 'Watches', 'Jewelry', or 'Wines and\
+  \ Spirits'. The description must not exceed 500 characters. According to LuxuryCorp's\
+  \ policy, all customized product orders are subject to a minimum order value of\
+  \ \u20AC1,000. The function will return a unique request ID, the status of the request\
+  \ (either 'Pending', 'Approved', or 'Rejected'), and a list of available materials\
+  \ for the product."
+parameters:
+  type: object
+  properties:
+    customer_name:
+      description: The customer's full name
+      type: string
+    email:
+      description: The customer's email address
+      type: string
+      format: email
+    phone_number:
+      description: The customer's phone number
+      type: string
+    product_category:
+      description: The category of the product
+      type: string
+      enum:
+      - Fashion
+      - Leather Goods
+      - Perfumery
+      - Cosmetics
+      - Watches
+      - Jewelry
+      - Wines and Spirits
+    product_description:
+      description: A brief description of the product
+      type: string
+      max_length: 500
+    special_instructions:
+      description: Any special instructions for the customization (optional)
+      type: string
+      max_length: 1000
+  required:
+  - customer_name
+  - email
+  - phone_number
+  - product_category
+  - product_description
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID for the request
+      type: string
+    status:
+      description: The status of the request
+      type: string
+      enum:
+      - Pending
+      - Approved
+      - Rejected
+    available_materials:
+      description: A list of available materials for the product
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - available_materials

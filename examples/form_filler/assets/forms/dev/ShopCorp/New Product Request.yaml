@@ -1,0 +1,61 @@
+name: New Product Request
+description: Submit a request to introduce a new product to ShopCorp's inventory, including
+  details on product features, pricing, and supplier information. This function requires
+  the product name, description, price, supplier name, and supplier contact information
+  as mandatory parameters. The product category and subcategory are optional parameters.
+  According to ShopCorp's policies, all new product requests must comply with the company's
+  quality and safety standards. The function will return a request ID, the status
+  of the request (either 'pending', 'approved', or'rejected'), and a list of comments
+  from the review team.
+parameters:
+  type: object
+  properties:
+    product_name:
+      description: The name of the new product
+      type: string
+    product_description:
+      description: A brief description of the new product
+      type: string
+    price:
+      description: The price of the new product
+      type: number
+    supplier_name:
+      description: The name of the supplier
+      type: string
+    supplier_contact:
+      description: The contact information of the supplier
+      type: string
+    product_category:
+      description: The category of the new product (optional)
+      type: string
+    product_subcategory:
+      description: The subcategory of the new product (optional)
+      type: string
+  required:
+  - product_name
+  - product_description
+  - price
+  - supplier_name
+  - supplier_contact
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID of the new product request
+      type: string
+    status:
+      description: The status of the new product request
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: A list of comments from the review team
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

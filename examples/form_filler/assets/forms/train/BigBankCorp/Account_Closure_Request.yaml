@@ -1,0 +1,53 @@
+name: Account_Closure_Request
+description: Request to close a BigBankCorp account, specifying account details (account
+  number and type) and reason for closure. According to BigBankCorp's policies, account
+  closure requests can only be submitted by the account holder or authorized representatives.
+  The request will be reviewed and processed within 3-5 business days. Upon successful
+  processing, the account will be closed, and all associated services will be terminated.
+  The request ID and status of the request will be returned, along with a comment
+  indicating the reason for closure.
+parameters:
+  type: object
+  properties:
+    account_number:
+      description: The unique identifier of the account to be closed.
+      type: string
+    account_type:
+      description: The type of account to be closed (e.g. checking, savings, credit
+        card).
+      type: string
+      enum:
+      - checking
+      - savings
+      - credit_card
+    reason_for_closure:
+      description: The reason for closing the account.
+      type: string
+    authorized_representative:
+      description: The name of the authorized representative submitting the request
+        (if applicable).
+      type: string
+  required:
+  - account_number
+  - account_type
+  - reason_for_closure
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique identifier of the account closure request.
+      type: string
+    status:
+      description: The status of the account closure request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comment:
+      description: A comment indicating the reason for closure.
+      type: string
+  required:
+  - request_id
+  - status
+  - comment
