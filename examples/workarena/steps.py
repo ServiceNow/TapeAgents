@@ -127,43 +127,37 @@ class WorkArenaTape(Tape[DialogContext, WorkArenaStep]):
     context: DialogContext = DialogContext(tools=[])
 
 
-WorkArenaBaselineStep: TypeAlias = Annotated[
-    Union[
-        # thoughts
-        ReasoningThought,
-        # browser actions
-        ClickAction,
-        SelectOptionAction,
-        HoverAction,
-        InputTextAction,
-        PressAction,
-        ScrollAction,
-        GoBackAction,
-        GoForwardAction,
-        FinalAnswerAction,
-    ],
-    Field(discriminator="kind"),
-]
+WorkArenaBaselineStep = (
+    # thoughts
+    ReasoningThought,
+    # browser actions
+    ClickAction,
+    SelectOptionAction,
+    HoverAction,
+    InputTextAction,
+    PressAction,
+    ScrollAction,
+    GoBackAction,
+    GoForwardAction,
+    FinalAnswerAction,
+)
 
-WorkArenaAgentStep: TypeAlias = Annotated[
-    Union[
-        # thoughts
-        ReasoningThought,
-        ReflectionThought,
-        # browser actions
-        ClickAction,
-        SelectOptionAction,
-        HoverAction,
-        InputTextAction,
-        PressAction,
-        ScrollAction,
-        # TabFocusAction,
-        # NewTabAction,
-        # CloseTabAction,
-        GoBackAction,
-        GoForwardAction,
-        # GotoPageAction,
-        FinalAnswerAction,
-    ],
-    Field(discriminator="kind"),
-]
+WorkArenaAgentStep = (
+    # thoughts
+    ReasoningThought,
+    ReflectionThought,
+    # browser actions
+    ClickAction,
+    SelectOptionAction,
+    HoverAction,
+    InputTextAction,
+    PressAction,
+    ScrollAction,
+    # TabFocusAction,
+    # NewTabAction,
+    # CloseTabAction,
+    GoBackAction,
+    GoForwardAction,
+    # GotoPageAction,
+    FinalAnswerAction,
+)

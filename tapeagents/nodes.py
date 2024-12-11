@@ -8,10 +8,8 @@ from typing import Annotated, Any, Generator, Type, Union
 
 from pydantic import Field, TypeAdapter, ValidationError
 
-from tapeagents.view import Call, Respond, TapeViewStack
-
-from .agent import Agent, Node
-from .core import (
+from tapeagents.agent import Agent, Node
+from tapeagents.core import (
     AgentStep,
     LLMOutput,
     LLMOutputParsingFailureAction,
@@ -23,8 +21,9 @@ from .core import (
     StopStep,
     Tape,
 )
-from .llms import LLMStream
-from .utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
+from tapeagents.llms import LLMStream
+from tapeagents.utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
+from tapeagents.view import Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ class MonoNode(Node):
         guidance (str): Guidance text attached to the end of the prompt
         system_prompt (str): System prompt used in message construction
         steps_prompt (str): Prompt describing the steps the agent can take
-        agent_step_cls (Any): Class used for step validation, excluded from model
+        agent_steps (Any): Class used for step (or steps) validation, excluded from model
         next_node (str): Identifier for the next node in sequence
 
     Example:
@@ -52,7 +51,7 @@ class MonoNode(Node):
             guidance="Please respond with next action",
             system_prompt="You are a helpful assistant",
             steps_prompt="Available steps: think, act, finish",
-            agent_step_cls=AgentStep
+            agent_steps=AgentStep
         )
         ```
     """
@@ -62,6 +61,11 @@ class MonoNode(Node):
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
     next_node: str = ""
+    _steps_type: Annotated
+
+    def model_post_init(self, __context: Any) -> None:
+        self._steps_type = Annotated[Union[self.agent_steps], Field(discriminator="kind")]
+        super().model_post_init(__context)
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -186,9 +190,7 @@ class MonoNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        allowed_steps = get_step_schemas_from_union_type(
-            Annotated[Union[self.agent_steps], Field(discriminator="kind")]
-        )
+        allowed_steps = get_step_schemas_from_union_type(self._steps_type)
         return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def generate_steps(
@@ -276,8 +278,9 @@ class MonoNode(Node):
             logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
             yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
             return
+
         try:
-            steps = [TypeAdapter(self.agent_steps).validate_python(step_dict) for step_dict in step_dicts]
+            steps = [TypeAdapter(self._steps_type).validate_python(step_dict) for step_dict in step_dicts]
         except ValidationError as e:
             err_text = ""
             for err in e.errors():

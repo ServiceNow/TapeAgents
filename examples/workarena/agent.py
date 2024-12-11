@@ -4,7 +4,7 @@ from typing import Any
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.core import Prompt
+from tapeagents.core import Prompt, Step
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
 from tapeagents.tools.browser import PageObservation
@@ -34,7 +34,7 @@ class WorkArenaBaselineNode(MonoNode):
     """
 
     guidance: str = ""
-    agent_step_cls: Any = Field(exclude=True, default=WorkArenaAgentStep)
+    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True, default=WorkArenaAgentStep)
 
     def make_prompt(self, agent: Any, tape: WorkArenaTape) -> Prompt:
         assert isinstance(tape.steps[1], WorkArenaTask)
@@ -79,10 +79,7 @@ class WorkArenaBaselineNode(MonoNode):
 class WorkArenaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    agent_step_cls: Any = Field(exclude=True, default=WorkArenaAgentStep)
-
-    def get_steps_description(self, tape: WorkArenaTape, agent: Any) -> str:
-        return self.steps_prompt.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaAgentStep))
+    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True, default=WorkArenaAgentStep)
 
     def prepare_tape(self, tape: WorkArenaTape, max_chars: int = 100):
         """
