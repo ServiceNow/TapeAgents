@@ -3,8 +3,9 @@ defaults:
   - _self_
 
 dataset_name: gsm8k
-n_workers: 32
-get_logprobs_workers: 1
+n_workers_per_gpu: 32
+get_logprobs_workers_per_gpu: 1
+gpus_per_model_instance: 1
 max_loops: 1
 test_every_n_iterations: 5
 model_path: /mnt/llmd/base_models/deepseek-math-7b-instruct

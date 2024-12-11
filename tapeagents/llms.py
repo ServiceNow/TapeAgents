@@ -14,6 +14,7 @@ import time
 from abc import ABC, abstractmethod
 from itertools import zip_longest
 from typing import Any, Callable, Generator
+import random
 
 import litellm
 import openai
@@ -490,7 +491,7 @@ class TrainableLLM(CachedLLM):
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
 
-    base_url: str
+    base_url: str | list[str]
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
     # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
@@ -518,8 +519,10 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
+        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        logger.debug(f"POST request to {base_url}/v1/chat/completions")
         r = requests.post(
-            url=f"{self.base_url}/v1/chat/completions",
+            url=f"{base_url}/v1/chat/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,
@@ -648,7 +651,8 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        url = f"{self.base_url}/v1/completions"
+        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        url = f"{base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
         r.raise_for_status()  # raise exception if status code is not in the 200s
@@ -722,8 +726,9 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
+        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
         r = requests.post(
-            url=f"{self.base_url}/v1/chat/completions",
+            url=f"{base_url}/v1/chat/completions",
             json=generation_args,
             headers=headers,
             verify=False,
@@ -762,6 +767,7 @@ class TrainableLLM(CachedLLM):
 
         return {"content": completion_log_probs}
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def get_logprobs(self, prompt: str | Prompt, output: str | LLMOutput) -> dict[str, Any]:
         """
         Calculate the log probabilities of the given output based on the provided prompt.
