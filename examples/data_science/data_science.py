@@ -78,7 +78,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
     )
     org = TeamAgent.create_initiator(
         name="Initiator",
-        init_message=("Make a plot comparing the stocks of ServiceNow and Salesforce" " since beginning of 2024."),
+        init_message=("Make a plot comparing the stocks of Google and Meta since beginning of 2024."),
         teammate=team,
     )
     start_tape = TeamTape(context=None, steps=[])
@@ -90,6 +90,7 @@ def make_world(llm: LLM | None = None, env: Environment | None = None) -> tuple[
 def make_renderers() -> dict[str, BasicRenderer]:
     return {
         "camera-ready": CameraReadyRenderer(),
+        "camera-ready_userview": CameraReadyRenderer(filter_steps=(Call, Respond, Action, Observation)),
         "camera-ready_nocontent": CameraReadyRenderer(show_content=False),
         "camera-ready_nocontent-nollmcalls": CameraReadyRenderer(show_content=False, render_llm_calls=False),
         "full": PrettyRenderer(),
@@ -99,11 +100,15 @@ def make_renderers() -> dict[str, BasicRenderer]:
 
 
 def main(studio: bool):
-    agent, start_tape, env = make_world()
+    now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
+    work_dir = f"outputs/data_science/{now}"
+    env = CodeExecutionEnvironment(ContainerExecutor(work_dir=work_dir))
+
+    agent, start_tape, env = make_world(env=env)
     if studio:
         from tapeagents.studio import Studio
 
-        Studio(agent, start_tape, make_renderers(), env).launch()
+        Studio(agent, start_tape, make_renderers(), env).launch(static_dir=work_dir)
     else:
         final_tape = main_loop(agent, start_tape, env).get_final_tape()
         with open("final_tape.json", "w") as f:
