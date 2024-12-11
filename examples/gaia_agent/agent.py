@@ -1,13 +1,11 @@
 import logging
 from enum import Enum
-from typing import Any
 
 from tapeagents.agent import Agent
-from tapeagents.environment import CodeExecutionResult, ExecuteCode
+from tapeagents.environment import CodeExecutionResult
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
-from tapeagents.steps import ActionExecutionFailure, VideoObservation
-from tapeagents.tools.calculator import CalculationResultObservation
+from tapeagents.steps import ActionExecutionFailure, ReasoningThought, VideoObservation
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import extract_code_blocks
 from tapeagents.tools.simple_browser import PageObservation
@@ -15,10 +13,12 @@ from tapeagents.tools.simple_browser import PageObservation
 from .prompts import PromptRegistry
 from .steps import (
     AGENT_STEPS,
+    PLAN_STEPS,
     STEPS_WITHOUT_CODE,
     GaiaQuestion,
     ListOfFactsThought,
     PlanThought,
+    ReadingResultThought,
 )
 from .tape import GaiaTape
 
@@ -36,13 +36,6 @@ class PlanningMode(str, Enum):
 class GaiaNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
     steps_prompt: str = PromptRegistry.allowed_steps
-    allowed_steps: str
-
-    def get_steps_description(self, tape: GaiaTape, agent: Any) -> str:
-        """
-        Allow different subset of steps based on the agent's configuration
-        """
-        return self.steps_prompt.format(allowed_steps=self.allowed_steps)
 
     def prepare_tape(self, tape: GaiaTape, max_chars: int = 200) -> GaiaTape:
         """
@@ -69,7 +62,7 @@ class GaiaNode(MonoNode):
         """
         Make tape shorter to fit llm context size limits
         """
-        summarization_border = int(len(tape) * 0.66)
+        summarization_border = int(len(tape) * 0.7)
         short_tape = tape.model_copy(update=dict(steps=[]))
         pre_tape: GaiaTape = tape[:summarization_border]  # type: ignore
         for step in pre_tape.steps:
@@ -79,8 +72,9 @@ class GaiaNode(MonoNode):
                     GaiaQuestion,
                     PlanThought,
                     ListOfFactsThought,
-                    CalculationResultObservation,
                     CodeExecutionResult,
+                    ReadingResultThought,
+                    ReasoningThought,
                 ),
             ):
                 short_tape.steps.append(step)
@@ -105,18 +99,18 @@ class GaiaAgent(Agent):
     @classmethod
     def create(cls, llm: LLM, plain_code: bool = False, **kwargs):
         nodes = [
-            GaiaNode(name="plan", guidance=PromptRegistry.plan, allowed_steps=plan_steps),
-            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, allowed_steps=plan_steps),
+            GaiaNode(name="plan", guidance=PromptRegistry.plan, agent_steps=PLAN_STEPS),
+            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, agent_steps=PLAN_STEPS),
             GaiaNode(
                 name="start_execution",
                 guidance=PromptRegistry.start_execution,
                 steps_prompt=PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps,
-                allowed_steps=STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS,
+                agent_steps=STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS,
             ),
             GaiaNode(
                 name="act",
                 steps_prompt=PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps,
-                allowed_steps=STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS,
+                agent_steps=STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS,
                 next_node="act",
             ),
         ]

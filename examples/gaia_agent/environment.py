@@ -49,7 +49,7 @@ def get_env(
     return StepToolEnvironment(
         tools=[
             Search(),
-            CodeExecutor(sandbox=code_sandbox),
+            CodeExecutor(_sandbox=code_sandbox),
             VideoReader(attachment_dir=os.path.join(exp_path, "attachments")),
             SimpleBrowser(exp_path=exp_path, kwargs=kwargs),
         ]
