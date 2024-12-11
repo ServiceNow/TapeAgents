@@ -9,12 +9,12 @@ import hashlib
 import json
 import logging
 import os
+import random
 import threading
 import time
 from abc import ABC, abstractmethod
 from itertools import zip_longest
 from typing import Any, Callable, Generator
-import random
 
 import litellm
 import openai
@@ -914,17 +914,11 @@ class ReplayLLM(LLM):
                 )
                 known_prompts = list(self.outputs.keys())
                 closest, score = closest_prompt(prompt_key, known_prompts)
-                if score >= 0.9:
-                    logger.info(f"Using closest prompt with score {score:.3f}")
-                    output = self.outputs[closest]
-                else:
-                    if score >= 0.7:
-                        logger.warning(f"Closest prompt score {score:.3f}")
-                        for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
-                            logger.warning(
-                                f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n"
-                            )
-                    raise FatalError("prompt not found")
+                if score >= 0.7:
+                    logger.warning(f"Closest prompt score {score:.3f}")
+                    for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
+                        logger.warning(f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n")
+                raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 
         return LLMStream(_implementation(), prompt=prompt)

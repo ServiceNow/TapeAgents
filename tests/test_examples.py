@@ -10,16 +10,24 @@ from pathlib import Path
 
 import transformers
 import yaml
-from examples.form_filler.scripts.prepare_test_assets import get_completions, load_teacher_input_tapes, load_teacher_reference_tapes, load_user_input_tapes, load_user_reference_tapes, get_teacher_agent, get_user_simulator_agent
-from examples.form_filler.environment import FormFillerEnvironment
-from tests.make_test_data import run_test_in_tmp_dir
 from omegaconf import DictConfig
 
+from examples.form_filler.environment import FormFillerEnvironment
+from examples.form_filler.scripts.prepare_test_assets import (
+    get_completions,
+    get_teacher_agent,
+    get_user_simulator_agent,
+    load_teacher_input_tapes,
+    load_teacher_reference_tapes,
+    load_user_input_tapes,
+    load_user_reference_tapes,
+)
 from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
 from examples.rl_gsm8k.orchestrate_rl import CoTMathAgent, RLMathTape, extract_tape_training_samples
 from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
 from tapeagents.observe import retrieve_all_llm_calls
+from tests.make_test_data import run_test_in_tmp_dir
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
 
@@ -220,17 +228,18 @@ def test_data_science():
 
 
 def test_form_filler():
-    assets_dir = Path(__file__).parent / 'res' / 'form_filler'
-    forms_path = Path(__file__).parent.parent / 'examples' / 'form_filler' / 'assets' / 'forms' / 'train' / 'FlyCorp'
+    os.environ["TAPEAGENTS_MOCK_DATE"] = "2024-12-09"
+    assets_dir = Path(__file__).parent / "res" / "form_filler"
+    forms_path = Path(__file__).parent.parent / "examples" / "form_filler" / "assets" / "forms" / "train" / "FlyCorp"
     env = FormFillerEnvironment.from_spec(forms_path)
 
     teacher_agent = get_teacher_agent()
     user_agent = get_user_simulator_agent()
-    teacher_mock_llm = ReplayLLM.from_llm(teacher_agent.llms['default'], assets_dir)
-    teacher_agent.llms = {'default':teacher_mock_llm}
+    teacher_mock_llm = ReplayLLM.from_llm(teacher_agent.llms["default"], assets_dir)
+    teacher_agent.llms = {"default": teacher_mock_llm}
 
-    user_mock_llm = ReplayLLM.from_llm(user_agent.llms['default'], assets_dir)
-    user_agent.llms = {'default':user_mock_llm}
+    user_mock_llm = ReplayLLM.from_llm(user_agent.llms["default"], assets_dir)
+    user_agent.llms = {"default": user_mock_llm}
 
     # teacher_output_tapes, user_output_tapes = get_completions(save_as_references=False)
     teacher_input_tapes = load_teacher_input_tapes()
@@ -245,11 +254,15 @@ def test_form_filler():
         tape.context.context.env_spec = str(forms_path)
 
     # with set_sqlite_db_dir(assets_dir):
-    teacher_failures = replay_tapes(teacher_agent, tapes=teacher_reference_tapes, env=env, start_tapes=teacher_input_tapes, reuse_observations=True)
-    assert teacher_failures == 0, 'Failed to replay teacher tapes'
-    
-    user_failures = replay_tapes(user_agent, tapes=user_reference_tapes, env=env, start_tapes=user_input_tapes, reuse_observations=True)
-    assert user_failures == 0, 'Failed to replay user tapes'
+    teacher_failures = replay_tapes(
+        teacher_agent, tapes=teacher_reference_tapes, env=env, start_tapes=teacher_input_tapes, reuse_observations=True
+    )
+    assert teacher_failures == 0, "Failed to replay teacher tapes"
+
+    user_failures = replay_tapes(
+        user_agent, tapes=user_reference_tapes, env=env, start_tapes=user_input_tapes, reuse_observations=True
+    )
+    assert user_failures == 0, "Failed to replay user tapes"
 
 
 def test_tape_improver():
