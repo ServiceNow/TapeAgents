@@ -6,8 +6,7 @@ import json
 import math
 import operator
 import re
-from typing import Any
-from typing import Literal as TypingLiteral
+from typing import Any, Literal
 
 from pydantic import Field
 from pyparsing import (
@@ -15,7 +14,6 @@ from pyparsing import (
     Combine,
     Forward,
     Group,
-    Literal,
     Optional,
     Word,
     ZeroOrMore,
@@ -23,6 +21,7 @@ from pyparsing import (
     nums,
     oneOf,
 )
+from pyparsing import Literal as ParsingLiteral
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Tool
@@ -51,21 +50,21 @@ class NumericStringParser(object):
         term    :: factor [ multop factor ]*
         expr    :: term [ addop term ]*
         """
-        point = Literal(".")
+        point = ParsingLiteral(".")
         e = CaselessLiteral("E")
         fnumber = Combine(
             Word("+-" + nums, nums) + Optional(point + Optional(Word(nums))) + Optional(e + Word("+-" + nums, nums))
         )
         ident = Word(alphas, alphas + nums + "_$")
-        plus = Literal("+")
-        minus = Literal("-")
-        mult = Literal("*")
-        div = Literal("/")
-        lpar = Literal("(").suppress()
-        rpar = Literal(")").suppress()
+        plus = ParsingLiteral("+")
+        minus = ParsingLiteral("-")
+        mult = ParsingLiteral("*")
+        div = ParsingLiteral("/")
+        lpar = ParsingLiteral("(").suppress()
+        rpar = ParsingLiteral(")").suppress()
         addop = plus | minus
         multop = mult | div
-        expop = Literal("^")
+        expop = ParsingLiteral("^")
         pi = CaselessLiteral("PI")
         expr = Forward()
         atom = (
@@ -147,7 +146,7 @@ class UseCalculatorAction(Action):
     Action to use calculator to find the new fact. This python math expression uses only the fact names from the previous steps and constants. The expression should be a single line. You can use exp, cos, sin, tan, abs, trunc, sgn, round
     """
 
-    kind: TypingLiteral["use_calculator_action"] = "use_calculator_action"
+    kind: Literal["use_calculator_action"] = "use_calculator_action"
     expression: str = Field(description="math expression using previously known fact names and constants")
     fact_name: str = Field(
         description="fact name to save calculations result, should be unique, lowercase, snake_case, without spaces and special characters"
@@ -157,7 +156,7 @@ class UseCalculatorAction(Action):
 
 
 class CalculationResultObservation(Observation):
-    kind: TypingLiteral["calculation_result_observation"] = "calculation_result_observation"
+    kind: Literal["calculation_result_observation"] = "calculation_result_observation"
     name: str
     result: str
 
@@ -167,8 +166,8 @@ class Calculator(Tool):
     Tool to evaluate math expressions
     """
 
-    action = UseCalculatorAction
-    observation = CalculationResultObservation
+    action: type[Action] = UseCalculatorAction
+    observation: type[Observation] = CalculationResultObservation
 
     def run(self, action: UseCalculatorAction) -> CalculationResultObservation:
         result = calculate(action.expression, action.facts or {})

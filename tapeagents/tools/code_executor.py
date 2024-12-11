@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.environment import CodeExecutionResult
@@ -28,15 +28,15 @@ class CodeExecutor(Tool):
     action: type[Action] = PythonCodeAction
     observation: type[Observation] = CodeExecutionResult
     cached: bool = True
-    sandbox: ContainerExecutor | None = None
+    _sandbox: ContainerExecutor | None = None
 
     def run(self, action: PythonCodeAction) -> CodeExecutionResult:
         code = self._add_print_to_last_line(action.code)
-        if self.sandbox is None:
+        if self._sandbox is None:
             logger.warning(f"Code sandbox is not provided, running code locally!\n{code}")
             obs = self._run_restricted_python(code)
         else:
-            result = self.sandbox.execute_code_blocks([CodeBlock(code=code, language="python")])
+            result = self._sandbox.execute_code_blocks([CodeBlock(code=code, language="python")])
             result.output = result.output[:1000].strip()
             obs = CodeExecutionResult(result=result)
         return obs

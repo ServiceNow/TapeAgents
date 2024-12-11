@@ -29,8 +29,6 @@ from typing import Any, ClassVar, Dict, List, Optional, Type, Union
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from examples.gaia_agent.scripts.evaluate import logger
-
 logger = logging.getLogger(__name__)
 
 

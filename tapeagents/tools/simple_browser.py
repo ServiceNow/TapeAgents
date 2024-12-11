@@ -467,23 +467,24 @@ class SimpleBrowser(Multitool):
     observations: tuple[type[Observation], ...] = (PageObservation,)
     exp_path: str
     kwargs: dict[str, Any]
+    _browser: SimpleTextBrowser
 
     def model_post_init(self, __context: Any):
-        self.browser = SimpleTextBrowser(**self.kwargs)
+        self._browser = SimpleTextBrowser(**self.kwargs)
 
     def execute_action(self, action: ReadDocumentAction | NextPageAction) -> PageObservation:
         if isinstance(action, ReadDocumentAction):
-            text, total_pages, error = self.browser.get_page(action.url)
+            text, total_pages, error = self._browser.get_page(action.url)
             obs = PageObservation(text=text, current_page=1, total_pages=total_pages, error=error or None)
         else:
-            text, current_page, total_pages = self.browser.get_next_page()
+            text, current_page, total_pages = self._browser.get_next_page()
             obs = PageObservation(
                 text=text,
                 current_page=current_page,
                 total_pages=total_pages,
-                error=self.browser._page_error if self.browser._page_error else None,
+                error=self._browser._page_error if self._browser._page_error else None,
             )
         return obs
 
     def close(self) -> None:
-        self.browser.flush_log(os.path.join(self.exp_path, "browser_log.jsonl"))
+        self._browser.flush_log(os.path.join(self.exp_path, "browser_log.jsonl"))
