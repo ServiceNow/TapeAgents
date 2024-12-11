@@ -1,28 +1,44 @@
 import json
-import json
 import logging
 from typing import Any, Generator
+
 import pydantic
 
-from tapeagents.core import LLMOutputParsingFailureAction, Prompt, SetNextNode
 from tapeagents.agent import Agent, Node
+from tapeagents.core import LLMOutputParsingFailureAction, Prompt, SetNextNode
+from tapeagents.dialog_tape import AssistantStep
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.utils import sanitize_json_completion
 
-from examples.form_filler.types import FunctionName
-from examples.form_filler.tape import FormFillerTape, prepare_formfiller_template_variables
-from examples.form_filler.steps import *
-from examples.form_filler.state import compute_form_filler_state, update_form_filler_state
-from examples.form_filler.error import FormFillerStateError
-
+from .error import FormFillerStateError
+from .state import compute_form_filler_state, update_form_filler_state
+from .steps import (
+    AnswerFromFunctionSchema,
+    CallFunction,
+    Exit,
+    FormFillerStep,
+    InspectFunction,
+    NoAnswerFromFunctionSchema,
+    RefuseInexistentFunction,
+    RefuseInvalidFunctionParameterSkip,
+    RefuseInvalidFunctionParameterValue,
+    RefuseToEngage,
+    RequestExitConfirmation,
+    RequestFunction,
+    RequestFunctionCallConfirmation,
+    RequestFunctionParameters,
+    ResolveFunction,
+    UpdateFunctionParameters,
+)
+from .tape import FormFillerTape, prepare_formfiller_template_variables
+from .types import FunctionName
 
 logger = logging.getLogger(__name__)
 
 
 class StudentAgent(Agent[FormFillerTape]):
-
     @classmethod
-    def create(cls, llm: LLM, templates: dict[str,dict[str, str]]):
+    def create(cls, llm: LLM, templates: dict[str, dict[str, str]]):
         nodes = [
             CheckFunctionCandidatesNode(),
             IntentDiscoveryNode(),
@@ -33,10 +49,14 @@ class StudentAgent(Agent[FormFillerTape]):
     def generate_steps(self, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
         # compute current tape state
         state = compute_form_filler_state(tape)
-        assert not isinstance(state, FormFillerStateError), f"Tape state should not be an error.\nTAPE:\n{tape}\nSTATE:\n{state}"
+        assert not isinstance(
+            state, FormFillerStateError
+        ), f"Tape state should not be an error.\nTAPE:\n{tape}\nSTATE:\n{state}"
         # try to update state for all predicted steps
         for predicted_step in super().generate_steps(tape, llm_stream):
-            assert isinstance(predicted_step, FormFillerStep), f"Predicted step should be a FormFillerStep, got {predicted_step}"
+            assert isinstance(
+                predicted_step, FormFillerStep
+            ), f"Predicted step should be a FormFillerStep, got {predicted_step}"
             state_or_error = update_form_filler_state(state, predicted_step)
             # stop as soon as there is an error
             if isinstance(state_or_error, FormFillerStateError):
@@ -50,7 +70,9 @@ class StudentAgent(Agent[FormFillerTape]):
 class CheckFunctionCandidatesNode(Node):
     name: str = "check_function_candidates_node"
 
-    def generate_steps(self, agent: StudentAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: StudentAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         if not tape.are_function_candidates_listed:
             assert tape.last_user_step is not None, "User step is required to resolve function"
             yield ResolveFunction(query=tape.last_user_step.content)
@@ -65,20 +87,23 @@ class IntentDiscoveryNode(Node):
         # If no function has been inspected
         if not tape.intent_is_discovered:
             template_variables = self.create_template_variables(tape)
-            return Prompt.from_user_message(agent.templates["intent_discovery_post_list_template"].format(**template_variables))
+            return Prompt.from_user_message(
+                agent.templates["intent_discovery_post_list_template"].format(**template_variables)
+            )
         else:
             return Prompt()
-        
+
     def create_template_variables(self, tape: FormFillerTape) -> dict[str, Any]:
         return {
-            "function_search_results": json.dumps(
-                tape.function_candidates_step.model_dump()["candidates"],
-                indent=2
-            ) if tape.function_candidates_step else "< Not available >",
+            "function_search_results": json.dumps(tape.function_candidates_step.model_dump()["candidates"], indent=2)
+            if tape.function_candidates_step
+            else "< Not available >",
             "last_user_message": tape.last_user_step.content if tape.last_user_step else "< Not available >",
         }
 
-    def generate_steps(self, agent: StudentAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: StudentAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         if llm_stream:
             inspect_function_found = False
             predicted_steps = parse_completion(None, llm_stream.get_text())
@@ -100,7 +125,9 @@ class StudentNode(Node):
         template_variables = prepare_formfiller_template_variables(tape)
         return Prompt.from_user_message(agent.templates["main_template"].format(**template_variables))
 
-    def generate_steps(self, agent: StudentAgent, tape: FormFillerTape, llm_stream: LLMStream) -> Generator[FormFillerStep, None, None]:
+    def generate_steps(
+        self, agent: StudentAgent, tape: FormFillerTape, llm_stream: LLMStream
+    ) -> Generator[FormFillerStep, None, None]:
         assert tape.function_schema_step is not None, "Function schema should already be determined in student node"
         yield from parse_completion(tape.function_schema_step.name, llm_stream.get_text())
         # go back to this node if the agent gets called again
@@ -122,10 +149,12 @@ def parse_completion(function_name: FunctionName | None, completion: str) -> Gen
         yield LLMOutputParsingFailureAction(error=f"Failed to parse agent output.\n\nError: {e}", llm_output=completion)
 
 
-def reconstruct_compact_steps(function_name: FunctionName | None, data: dict[str, Any]) -> Generator[FormFillerStep, None, None]:
-    data.setdefault('thoughts', [])
+def reconstruct_compact_steps(
+    function_name: FunctionName | None, data: dict[str, Any]
+) -> Generator[FormFillerStep, None, None]:
+    data.setdefault("thoughts", [])
 
-    for entry in data['thoughts']:
+    for entry in data["thoughts"]:
         match entry:
             # Intent classification
             case "no_form_found":
@@ -151,15 +180,15 @@ def reconstruct_compact_steps(function_name: FunctionName | None, data: dict[str
                 assigns = {}
                 skips = []
                 for key, value in updates.items():
-                    if value == '_skip':
+                    if value == "_skip":
                         skips.append(key)
-                    elif value == '_refuse_value':
+                    elif value == "_refuse_value":
                         yield RefuseInvalidFunctionParameterValue(
                             function=function_name,
                             parameter=key,
                             parameter_value="unk",
                         )
-                    elif value == '_refuse_skip':
+                    elif value == "_refuse_skip":
                         yield RefuseInvalidFunctionParameterSkip(function=function_name, parameter=key)
                     else:
                         assigns[key] = value
@@ -179,11 +208,11 @@ def reconstruct_compact_steps(function_name: FunctionName | None, data: dict[str
                 yield LLMOutputParsingFailureAction(error=f"Unexpected entry: {entry}", llm_output=str(data))
                 return
 
-    if 'action' not in data:
+    if "action" not in data:
         yield LLMOutputParsingFailureAction(error="No action found in the compact steps", llm_output=str(data))
         return
 
-    match data['action']:
+    match data["action"]:
         case "list_forms":
             yield ResolveFunction(query=None)
         case {"select_form": function_name}:

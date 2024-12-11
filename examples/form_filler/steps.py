@@ -1,13 +1,14 @@
 import json
 from typing import Literal, TypeAlias, Union
-from pydantic import BaseModel, JsonValue, Field
 
-from tapeagents.core import Action, Observation, SetNextNode, StopStep, Thought, LLMOutputParsingFailureAction
-from tapeagents.dialog_tape import UserStep, AssistantStep
+from pydantic import BaseModel, Field, JsonValue
 
-from examples.form_filler.types import FunctionName, ParameterName
-from examples.form_filler.schema import FunctionSchema
-from examples.form_filler.error import _FormFillerStateError
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
+from tapeagents.dialog_tape import AssistantStep, UserStep
+
+from .error import _FormFillerStateError
+from .schema import FunctionSchema
+from .types import FunctionName, ParameterName
 
 
 class FunctionCandidate(BaseModel):
@@ -17,6 +18,7 @@ class FunctionCandidate(BaseModel):
         function: The name of the function.
         short_description: The short description of the function.
     """
+
     function: str
     short_description: str
 
@@ -25,7 +27,7 @@ class ExitStep(AssistantStep, StopStep):
     kind: Literal["exit_step"] = "exit_step"
 
     def llm_view(self) -> str:
-        return "Exiting the conversation."  
+        return "Exiting the conversation."
 
 
 class ResolveFunction(Action):
@@ -137,6 +139,7 @@ class GatherValuesThought(Thought):
     Used in chain of prompting (e.g., multi-node prompter) where each thought is a small step toward generating an agent message.
     This thought is associated with extracting parameters from the user's message.
     """
+
     kind: Literal["gather_values_thought"] = "gather_values_thought"
     function: FunctionName
     parameters: dict[ParameterName, JsonValue] = Field(
@@ -148,7 +151,7 @@ class GatherValuesThought(Thought):
         view = []
         for p_name, p_value in self.parameters.items():
             view.append(f"(intermediate) I extracted {p_name}={str(p_value)}.")
-        return '\n'.join(view)
+        return "\n".join(view)
 
 
 class VerifyValuesThought(Thought):
@@ -156,6 +159,7 @@ class VerifyValuesThought(Thought):
     Used in chain of prompting (e.g., multi-node prompter) where each thought is a small step toward generating an agent message.
     This thought is associated with verifying parameters, extracted from the user's message.
     """
+
     kind: Literal["verify_values_thought"] = "verify_values_thought"
     function: FunctionName
     parameters: dict[ParameterName, JsonValue] = Field(
@@ -171,7 +175,7 @@ class VerifyValuesThought(Thought):
                 view[-1] += f" because {explanation}"
             else:
                 view[-1] += "."
-        return '\n'.join(view)
+        return "\n".join(view)
 
 
 class RefuseInvalidFunctionParameterValue(Thought):
@@ -195,7 +199,7 @@ class RefuseInexistentFunctionParameter(Thought):
     function: FunctionName
 
     def llm_view(self) -> str:
-        return f"I should inform the user that this parameter is not available."
+        return "I should inform the user that this parameter is not available."
 
 
 class RefuseInvalidFunctionParameterSkip(Thought):
@@ -223,7 +227,9 @@ class RefuseToEngage(Thought):
 
 class AnswerFromFunctionSchema(Thought):
     function: FunctionName
-    answerable_questions: list[str] = Field(default=[], description="List of questions derived from the user message that should be answered.")
+    answerable_questions: list[str] = Field(
+        default=[], description="List of questions derived from the user message that should be answered."
+    )
     kind: Literal["answer_from_function_schema_thought"] = "answer_from_function_schema_thought"
 
     def llm_view(self) -> str:
@@ -232,7 +238,9 @@ class AnswerFromFunctionSchema(Thought):
 
 class NoAnswerFromFunctionSchema(Thought):
     function: FunctionName
-    declined_questions: list[str] = Field(default=[], description="List of questions derived from the user message that should be declined.")
+    declined_questions: list[str] = Field(
+        default=[], description="List of questions derived from the user message that should be declined."
+    )
     kind: Literal["no_answer_in_function_schema_thought"] = "no_answer_in_function_schema_thought"
 
     def llm_view(self) -> str:
@@ -273,7 +281,7 @@ FormFillerStep = Union[
     LLMOutputParsingFailureAction,
     SetNextNode,
     StopStep,
-    _FormFillerStateError
+    _FormFillerStateError,
 ]
 
 I_SHOULD_STEPS = Union[
@@ -290,10 +298,4 @@ I_SHOULD_STEPS = Union[
     RefuseToEngage,
 ]
 I_NOTE_STEPS: TypeAlias = UpdateFunctionParameters
-ACTION_STEPS = (
-    AssistantStep,
-    ResolveFunction,
-    InspectFunction,
-    CallFunction,
-    Exit
-)
+ACTION_STEPS = (AssistantStep, ResolveFunction, InspectFunction, CallFunction, Exit)

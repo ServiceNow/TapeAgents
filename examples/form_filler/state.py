@@ -1,16 +1,46 @@
 import logging
 from typing import Literal
-from typing_extensions import Self
+
 from pydantic import BaseModel, Field, JsonValue
+from typing_extensions import Self
 
-
+from tapeagents.core import LLMOutputParsingFailureAction, SetNextNode, StopStep
 from tapeagents.dialog_tape import AssistantStep, UserStep
-from examples.form_filler.types import FunctionName, ParameterName
-from examples.form_filler.schema import FunctionSchema
-from examples.form_filler.steps import *
-from examples.form_filler.tape import FormFillerTape
-from examples.form_filler.error import *
 
+from .error import (
+    FormFillerStateError,
+    InvalidFunctionSchemaError,
+    UnknownFunctionError,
+    UnknownFunctionParameterError,
+    UnknownFunctionSchemaError,
+    ValidFunctionParameterSkipError,
+    ValidFunctionParameterValueError,
+)
+from .schema import FunctionSchema
+from .steps import (
+    AnswerFromFunctionSchema,
+    CallFunction,
+    FormFillerStep,
+    FunctionCandidates,
+    FunctionResult,
+    GatherValuesThought,
+    InspectFunction,
+    NoAnswerFromFunctionSchema,
+    RefuseInexistentFunction,
+    RefuseInexistentFunctionParameter,
+    RefuseInvalidFunctionParameterSkip,
+    RefuseInvalidFunctionParameterValue,
+    RefuseToEngage,
+    RequestExitConfirmation,
+    RequestFunction,
+    RequestFunctionCallConfirmation,
+    RequestFunctionParameters,
+    ResolveFunction,
+    UpdateFunctionParameters,
+    VerifyValuesThought,
+)
+from .tape import FormFillerTape
+from .types import FunctionName, ParameterName
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +59,7 @@ class FormFillerState(BaseModel):
         function_call_results (dict[FunctionName, JsonValue]): The results of the function calls
             that have been made (default: empty dict).
     """
+
     messages: list[UserStep | AssistantStep] = Field(
         default_factory=list, description="The messages that have been exchanged between the user and the assistant."
     )
@@ -92,10 +123,12 @@ class FormFillerState(BaseModel):
         """
         Checks that the function and its schema are known
         """
+
         def _check() -> Literal[True] | FormFillerStateError:
             if function in self.function_schemas:
                 return True
             return UnknownFunctionSchemaError(function=function, message=f"No function schema for function {function}")
+
         return self.check_if_function_known(function) and _check()
 
     def check_if_function_parameter_in_schema(
@@ -106,6 +139,7 @@ class FormFillerState(BaseModel):
         - the function and its schema are known,
         - the parameter is in the schema
         """
+
         def _check() -> Literal[True] | FormFillerStateError:
             if (
                 (parameters := self.function_schemas[function].parameters) is not None
@@ -115,10 +149,7 @@ class FormFillerState(BaseModel):
                 return True
             return UnknownFunctionParameterError(function=function, parameter=parameter)
 
-        return (
-            self.check_if_function_schema_known(function=function)
-            and _check()
-        )
+        return self.check_if_function_schema_known(function=function) and _check()
 
     def check_if_function_parameter_value_valid(
         self: Self,
@@ -132,6 +163,7 @@ class FormFillerState(BaseModel):
         - the parameter is in the schema,
         - the parameter value is valid
         """
+
         def _validate() -> Literal[True] | FormFillerStateError:
             return self.function_schemas[function].validate_parameter_value(
                 parameter=parameter,
@@ -151,6 +183,7 @@ class FormFillerState(BaseModel):
         - the parameter is in the schema,
         - the parameter is skippable
         """
+
         def _check() -> Literal[True] | FormFillerStateError:
             if (function_schema := self.function_schemas.get(function)) is None:
                 return UnknownFunctionSchemaError(
@@ -170,6 +203,7 @@ class FormFillerState(BaseModel):
         - the function and its schema are known,
         - all filled parameter values are valid
         """
+
         def _validate() -> Literal[True] | FormFillerStateError:
             parameter_values = self.function_parameters_filled.get(function, {})
             return self.function_schemas[function].validate_parameter_values(parameter_values=parameter_values)
@@ -207,7 +241,9 @@ class FormFillerState(BaseModel):
                 function=function,
                 message=f"No function schema for function {function}",
             )
-        return self.check_if_function_schema_known(function=function) and function_schema.validate_return_value(return_value=return_value)
+        return self.check_if_function_schema_known(function=function) and function_schema.validate_return_value(
+            return_value=return_value
+        )
 
     def get_requestable_function_parameters(self: Self, function: FunctionName) -> list[ParameterName]:
         """
@@ -251,10 +287,8 @@ def update_form_filler_state(state: FormFillerState, step: FormFillerStep) -> Fo
             # check that all functions are known
             if step.functions:
                 errors = [
-                    check for check in (
-                        new_state.check_if_function_known(function)
-                        for function in step.functions
-                    )
+                    check
+                    for check in (new_state.check_if_function_known(function) for function in step.functions)
                     if not check
                 ]
                 if errors:
@@ -275,11 +309,9 @@ def update_form_filler_state(state: FormFillerState, step: FormFillerStep) -> Fo
         case RequestFunctionParameters():
             # check that the function parameters are in the schema (also checks if the function and its schema are known)
             errors = [
-                check for check in (
-                    new_state.check_if_function_parameter_in_schema(
-                        function=step.function,
-                        parameter=parameter
-                    )
+                check
+                for check in (
+                    new_state.check_if_function_parameter_in_schema(function=step.function, parameter=parameter)
                     for parameter in step.parameters
                 )
                 if not check
@@ -295,7 +327,8 @@ def update_form_filler_state(state: FormFillerState, step: FormFillerStep) -> Fo
             if step.assign:
                 # check that each parameter value is valid (also checks if the function and its schema are known, and that the parameter is in the schema)
                 errors = [
-                    check for check in (
+                    check
+                    for check in (
                         new_state.check_if_function_parameter_value_valid(
                             function=step.function,
                             parameter=parameter,
@@ -313,11 +346,9 @@ def update_form_filler_state(state: FormFillerState, step: FormFillerStep) -> Fo
             if step.skip:
                 # check that each parameter is skippable (also checks if the function and its schema are known, and that the parameter is in the schema)
                 errors = [
-                    check for check in (
-                        new_state.check_if_function_parameter_is_skippable(
-                            function=step.function,
-                            parameter=parameter
-                        )
+                    check
+                    for check in (
+                        new_state.check_if_function_parameter_is_skippable(function=step.function, parameter=parameter)
                         for parameter in step.skip
                     )
                     if not check
@@ -329,16 +360,13 @@ def update_form_filler_state(state: FormFillerState, step: FormFillerStep) -> Fo
                 skipped = new_state.function_parameters_skipped
                 if step.function not in skipped:
                     skipped[step.function] = []
-                for k in step.skip: 
+                for k in step.skip:
                     filled.get(step.function, {}).pop(k, None)
                     skipped[step.function].append(k)
         case GatherValuesThought():
             # update raw function parameters
             new_state = new_state.model_copy(
-                update={
-                    "raw_function_parameters": new_state.raw_function_parameters
-                    | {step.function: step.parameters}
-                }
+                update={"raw_function_parameters": new_state.raw_function_parameters | {step.function: step.parameters}}
             )
         case VerifyValuesThought():
             # update function parameters verified
@@ -374,12 +402,22 @@ def update_form_filler_state(state: FormFillerState, step: FormFillerStep) -> Fo
             # in all these cases, we just need to check that the function and its schema are known
             if not (error := new_state.check_if_function_schema_known(step.function)):
                 return error.add_cause(step)
-        case ResolveFunction() | RequestExitConfirmation() | RefuseInexistentFunction() | RefuseToEngage() | LLMOutputParsingFailureAction() | SetNextNode() | StopStep():
+        case (
+            ResolveFunction()
+            | RequestExitConfirmation()
+            | RefuseInexistentFunction()
+            | RefuseToEngage()
+            | LLMOutputParsingFailureAction()
+            | SetNextNode()
+            | StopStep()
+        ):
             # in all these cases, there is nothing to check and nothing to update the state
             pass
         case _:
             # unknown step type: we should verify that they do not need to be handled
-            logger.warning(f"Unknown step type: {step}. Verify that it does not need to be handled while updating form filler state. Will be ignored.")
+            logger.warning(
+                f"Unknown step type: {step}. Verify that it does not need to be handled while updating form filler state. Will be ignored."
+            )
 
     return new_state
 
