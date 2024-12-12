@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import time
@@ -8,7 +7,6 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.config import is_debug_mode
-from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
 from tapeagents.parallel_processing import choose_processor
 from tapeagents.tools.container_executor import maybe_get_code_sandbox
@@ -51,7 +49,6 @@ def main(cfg: DictConfig) -> None:
         (agent, llm, cfg.env, code_sandbox, task, cfg.exp_path, i, level)
         for level, level_tasks in tasks.items()
         for i, task in enumerate(level_tasks)
-        if not task_already_solved(i, level, tapes_dir)
     ]
     if cfg.get("n_tasks"):
         args = args[: cfg.n_tasks]  # run only the first n_tasks
@@ -75,21 +72,10 @@ def validate_config(cfg, llm, tapes_dir):
     os.makedirs(tapes_dir, exist_ok=True)
 
 
-def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
-    tape_name = f"l{level}_task{i:03d}"
-    tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
-    result = None
-    if os.path.exists(tape_path):
-        with open(tape_path) as f:
-            tape_dict = json.load(f)
-        result = tape_dict["metadata"]["result"]
-    return os.path.exists(tape_path) and result not in ["", None, "None"]
-
-
 def task_worker(args: tuple):
     agent, cfg, code_sandbox, task, i, level = args
     env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
-    solve_task(task, agent, env, level, i, cfg.exp_path)
+    solve_task(task, agent, env, level, i, cfg.exp_path, cfg.retries, cfg.aggregate_majority, cfg.max_iterations)
     env.close()
 
 

@@ -106,9 +106,9 @@ def solve_task(
     level: int,
     task_number: int,
     exp_path: str,
-    retries: int = 3,
-    aggregate_majority: int = 3,
-    max_loops: int = 50,
+    retries: int,
+    aggregate_majority: int,
+    max_iterations: int,
 ) -> GaiaTape:
     """Solve GAIA task.
 
@@ -129,6 +129,9 @@ def solve_task(
     while len(results) < aggregate_majority and attempt < (retries * aggregate_majority):
         tape = GaiaTape(steps=start_steps)
         filename = f"l{level}_task{task_number:03d}_attempt{attempt}"
+        if tape_exist_with_result(filename, tapes_dir):
+            logger.info(f"Tape already exist with result: {filename}, skip")
+            continue
         metadata = GaiaMetadata(
             task=task,
             level=level,
@@ -137,7 +140,7 @@ def solve_task(
             attempt_number=attempt,
         )
         try:
-            for event in main_loop(agent, tape, env, max_loops=max_loops):
+            for event in main_loop(agent, tape, env, max_loops=max_iterations):
                 if partial_tape := (event.agent_tape or event.env_tape):
                     tape = partial_tape
                     tape.metadata = metadata
@@ -286,3 +289,13 @@ def task_to_observations(task: dict, max_doc_length: int = 8000) -> list[GaiaQue
         steps[0].content += document_text  # type: ignore
     steps[0].filename = None  # type: ignore
     return steps
+
+
+def tape_exist_with_result(tape_name: str, tapes_dir: str) -> bool:
+    result = ""
+    tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
+    if os.path.exists(tape_path):
+        with open(tape_path) as f:
+            tape_dict = json.load(f)
+        result = tape_dict["metadata"]["result"]
+    return os.path.exists(tape_path) and result not in ["", None, "None", "none"]
