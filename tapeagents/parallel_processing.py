@@ -191,9 +191,67 @@ def lazy_thread_pool_processor(
                     raise RuntimeError("Producer thread is still alive after timeout")
 
 
+def eager_thread_pool_processor(
+    stream: Iterable[InputType],
+    worker_func: Callable[[InputType], OutputType],
+    n_workers: int,
+    initializer: None | Callable[..., None] = None,
+    initargs: tuple[Any, ...] = (),
+    ordered: bool = False
+) -> Generator[OutputType | Exception, None, None]:
+    """
+    Processes a stream of items in a thread pool with eager processing.
+
+    Unlike lazy processing, this processor submits all tasks to the thread pool 
+    upfront and returns results as they complete.
+
+    Args:
+        stream: Input generator that yields items to process
+        worker_func: Function to process each item
+        n_workers: Number of worker threads
+        initializer: Optional initializer function for worker threads
+        initargs: Arguments for the initializer function
+        ordered: If True, yield results in the order of input stream
+
+    Yields:
+        Processed results or exceptions for each input item
+    """
+    # Special case for no workers (sequential processing)
+    if n_workers == 0:
+        yield from (worker_func(item) for item in stream)
+        return
+
+    with ThreadPoolExecutor(
+        max_workers=n_workers,
+        initializer=initializer,
+        initargs=initargs
+    ) as executor:
+        # Submit all tasks upfront
+        if ordered:
+            # Preserve order of inputs
+            futures = []
+            for item in stream:
+                futures.append(executor.submit(worker_func, item))
+            
+            # Yield results in original order
+            for future in futures:
+                try:
+                    yield future.result()
+                except Exception as e:
+                    yield e
+        else:
+            # Yield results as they complete (out of order)
+            futures = [executor.submit(worker_func, item) for item in stream]
+            
+            for future in as_completed(futures):
+                try:
+                    yield future.result()
+                except Exception as e:
+                    yield e
+
 def choose_processor(n_workers: int):
     return (
-        partial(process_pool_processor, n_workers=n_workers)
+        partial(eager_thread_pool_processor, n_workers=n_workers)
         if n_workers > 0 and not is_debug_mode()
         else partial(sequential_processor, n_workers=1)
     )
