@@ -1,7 +1,7 @@
 import logging
 import os
 
-from tapeagents.core import Action, Tape
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Tape
 from tapeagents.environment import Environment
 from tapeagents.tools.base import Multitool, Tool
 from tapeagents.tools.code_executor import CodeExecutor
@@ -26,6 +26,8 @@ class StepToolEnvironment(Environment):
 
     def react(self, tape: Tape) -> Tape:
         for action in self.last_actions(tape):
+            if isinstance(action, LLMOutputParsingFailureAction):
+                continue
             action_type = type(action)
             if action_type not in self.action_map:
                 raise Exception(f"Unknown action: {action_type}")
