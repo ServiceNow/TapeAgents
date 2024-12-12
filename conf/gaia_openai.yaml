@@ -2,7 +2,7 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_val_toolenv_debug1
+exp_name: gpt4o_val_toolenv1
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
 batch: 1

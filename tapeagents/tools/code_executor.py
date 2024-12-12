@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.environment import CodeExecutionResult

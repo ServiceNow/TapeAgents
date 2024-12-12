@@ -37,7 +37,8 @@ def get_from_cache(fn_name: str, args: tuple, kwargs: dict) -> Any:
                 for line in f:
                     data = json.loads(line)
                     tool_cache = _cache.get(data["fn_name"], {})
-                    tool_cache[json.dumps((data["args"], data["kwargs"]))] = data["result"]
+                    key = json.dumps((data["args"], data["kwargs"]), sort_keys=True)
+                    tool_cache[key] = data["result"]
                     _cache[data["fn_name"]] = tool_cache
     key = json.dumps((args, kwargs), sort_keys=True)
     result = _cache.get(fn_name, {}).get(key)

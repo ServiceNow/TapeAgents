@@ -22,6 +22,8 @@ from tapeagents.core import (
     Tape,
 )
 from tapeagents.llms import LLMStream
+from tapeagents.tools.code_executor import PythonCodeAction
+from tapeagents.tools.container_executor import extract_code_blocks
 from tapeagents.utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
 
@@ -164,9 +166,9 @@ class MonoNode(Node):
                        Messages from tape are added with roles based on step type.
                        If guidance exists, it's added as the final user message.
         """
-        messages: list[dict] = [
-            {"role": "system", "content": self.system_prompt},
-        ] if self.system_prompt else []
+        messages: list[dict] = []
+        if self.system_prompt:
+            messages.append({"role": "system", "content": self.system_prompt})
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
         for step in tape:
@@ -270,6 +272,11 @@ class MonoNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
+        if llm_output.strip().startswith("```"):  # handle special case of code blocks
+            for code_block in extract_code_blocks(llm_output):
+                yield PythonCodeAction(code=code_block.code)
+            return
+
         try:
             step_dicts = json.loads(sanitize_json_completion(llm_output))
             if isinstance(step_dicts, dict):
