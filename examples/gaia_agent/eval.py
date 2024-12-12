@@ -133,26 +133,34 @@ def solve_task(
         if tape_exist_with_result(filename, tapes_dir):
             logger.info(f"Tape already exist with result: {filename}, skip")
             continue
+        try:
+            for event in main_loop(agent, tape, env, max_loops=max_iterations):
+                if partial_tape := (event.agent_tape or event.env_tape):
+                    tape = partial_tape
+                    tape.metadata = tape.metadata.model_copy(
+                        update=dict(
+                            task=task,
+                            level=level,
+                            task_number=task_number,
+                            filename=filename,
+                            attempt_number=attempt,
+                            finished=False,
+                        )
+                    )
+                    save_json_tape(tape, tapes_dir, f"{filename}_unfinished")
+                if n_search_repetitions(tape) >= 3:
+                    break
+        except Exception as e:
+            logger.error(f"Failed to solve task: {e}")
         metadata = GaiaMetadata(
             task=task,
             level=level,
             task_number=task_number,
             filename=filename,
             attempt_number=attempt,
-            finished=False,
         )
-        try:
-            for event in main_loop(agent, tape, env, max_loops=max_iterations):
-                if partial_tape := (event.agent_tape or event.env_tape):
-                    tape = partial_tape
-                    save_json_tape(tape, tapes_dir, f"{filename}_unfinished")
-                if n_search_repetitions(tape) >= 3:
-                    break
-        except Exception as e:
-            logger.error(f"Failed to solve task: {e}")
-        metadata.finished = True
         if isinstance(tape.steps[-1], GaiaAnswer) and tape.steps[-1].answer not in ["None", "none"]:
-            metadata.result = tape.steps[-1].answer
+            metadata.result = str(tape.steps[-1].answer)
         attempt += 1
         tape.metadata = metadata
         tmp_file = os.path.join(tapes_dir, f"{filename}_unfinished.json")
