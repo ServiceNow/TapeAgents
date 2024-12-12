@@ -304,6 +304,7 @@ class MonoNode(Node):
             return
         for step in steps:
             step.metadata.prompt_id = prompt_id
+            step.metadata.other["guidance"] = self.guidance
             yield step
 
     def trim_tape(self, tape: Tape) -> Tape:
