@@ -106,7 +106,6 @@ class GaiaAnswer(StopStep):
     answer: Any = Field(description="short final answer")
 
 
-PLAN_STEPS = (PlanThought, ListOfFactsThought)
 STEPS_WITHOUT_CODE = (
     ReadingResultThought,
     ReasoningThought,
@@ -127,5 +126,5 @@ OBSERVATIONS = (
     CodeExecutionResult,
     ActionExecutionFailure,
 )
-SPECIAL_STEPS = (ExecuteCode, LLMOutputParsingFailureAction, SetNextNode)
-GaiaStep: TypeAlias = Union[PLAN_STEPS + AGENT_STEPS + OBSERVATIONS + SPECIAL_STEPS]  # type: ignore
+OTHER_STEPS = (PlanThought, ListOfFactsThought, ExecuteCode, LLMOutputParsingFailureAction, SetNextNode)
+GaiaStep: TypeAlias = Union[AGENT_STEPS + OBSERVATIONS + OTHER_STEPS]  # type: ignore

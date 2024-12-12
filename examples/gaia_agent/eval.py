@@ -220,11 +220,7 @@ def pdf_to_images(filename: str, n_pages: int = 3):
     return images[:n_pages], len(images)
 
 
-def task_to_observations(
-    task: dict,
-    image_observations: bool = True,
-    max_doc_length: int = 8000,
-) -> list[GaiaQuestion | ImageObservation]:
+def task_to_observations(task: dict, max_doc_length: int = 8000) -> list[GaiaQuestion | ImageObservation]:
     logger.info(f"Question: {task['Question']}")
     browser = SimpleTextBrowser()
     steps: list[GaiaQuestion | ImageObservation] = [GaiaQuestion.from_task(task)]
@@ -245,12 +241,12 @@ def task_to_observations(
                     file_text = ""
                 file_text += f"{i+1}. Path to the '{file}': {file_path}"
                 document_text += file_text
-        elif ext in ("png", "jpg", "jpeg") and image_observations:
+        elif ext in ("png", "jpg", "jpeg"):
             steps.append(ImageObservation(image_path=filename, image_caption="Attached image"))
             document_text = ""
         else:
             attach_doc_text = True
-            if ext == "pdf" and image_observations:
+            if ext == "pdf":
                 images, total_pages = pdf_to_images(filename)
                 if total_pages <= 3:
                     attach_doc_text = False
