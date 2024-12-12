@@ -137,6 +137,7 @@ class LLM(BaseModel, ABC):
 
     token_count: int = 0
     _log: list = []
+    stats: dict = defaultdict(list)
 
     @abstractmethod
     def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
@@ -204,6 +205,7 @@ class LLM(BaseModel, ABC):
             cached (bool, optional): Indicates whether the output was retrieved from cache. Defaults to False.
         """
 
+        start_log_output = time.time()
         prompt_length_tokens = self.count_tokens(prompt.messages)
         if message.content:
             # lstrip the left spaces from the assistant message because the chat template will add one
@@ -229,6 +231,14 @@ class LLM(BaseModel, ABC):
         )
         self._log.append(llm_call.model_dump())
         observe_llm_call(llm_call)
+        time_log_output = time.time() - start_log_output
+        self.stats["time_log_output"].append(time_log_output)
+
+    def get_stats(self) -> dict:
+        return {
+            "time_send_request": np.mean(self.stats["time_send_request"]) if self.stats["time_send_request"] else 0,
+            "time_log_output": np.mean(self.stats["time_log_output"]) if self.stats["time_log_output"] else 0,
+        }
 
 
 # Use this variable to force all LLMs to use cache from the sqlite DB
@@ -498,7 +508,6 @@ class TrainableLLM(CachedLLM):
     collect_logprobs: bool = False
     # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
     remove_leading_white_space: bool = False
-    logs: dict = defaultdict(list)
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -533,7 +542,7 @@ class TrainableLLM(CachedLLM):
             verify=False,
         )
         time_send_request = time.time() - start_send_request
-        self.logs["time_send_request"].append(time_send_request)
+        self.stats["time_send_request"].append(time_send_request)
         if not r.ok:
             logger.error(f"Failed to get completion: {r.text}")
             r.raise_for_status()
@@ -580,10 +589,6 @@ class TrainableLLM(CachedLLM):
         self.log_output(prompt, output)
         yield LLMEvent(output=output)
 
-    def get_logs(self) -> dict:
-        return {
-            "time_send_request": np.mean(self.logs["time_send_request"]) if self.logs["time_send_request"] else 0,
-        }
 
     def load_tokenizer(self):
         """

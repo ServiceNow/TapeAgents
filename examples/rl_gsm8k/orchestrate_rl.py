@@ -431,8 +431,8 @@ def main(cfg: DictConfig):
 
         logger.info(f"Collected {len(training_samples)} training samples")
         stats = all_results["train"]["stats"]
-        llm_logs = {f"llm/{k}": v for k, v in llm.get_logs().items()}
-        stats.update(llm_logs)
+        llm_stats = {f"llm/{k}": v for k, v in llm.get_stats().items()}
+        stats.update(llm_stats)
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
             stats.update(all_results["test"]["stats"])
             time_evaluation = stats["execution_time/test_make_data"]
