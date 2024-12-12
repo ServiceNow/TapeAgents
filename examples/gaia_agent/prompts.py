@@ -8,7 +8,7 @@ short_format_instruction = (
 )
 
 PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {short_format_instruction}'
-START_EXECUTION = f"""Let's start executing the plan step by step, using allowed steps described earlier. {short_format_instruction}"""
+START = f"""Let's start executing the plan step by step, using allowed steps described earlier. {short_format_instruction}"""
 THINK_AFTER_OBSERVATION = f""""Lets think step by step about the observation, how it affects the plan and what should be done next. {short_format_instruction}"""
 
 ALLOWED_STEPS = """
@@ -55,7 +55,7 @@ Respond with list_of_facts_thought.
 class PromptRegistry:
     system_prompt = SYSTEM_PROMPT
     plan = PLAN
-    start_execution = START_EXECUTION
+    start = START
     facts_survey = FACTS_SURVEY
     allowed_steps = ALLOWED_STEPS
     allowed_steps_code = ALLOWED_STEPS_CODE

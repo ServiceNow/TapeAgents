@@ -19,7 +19,7 @@ from tapeagents.tools.search import SearchAction, SearchResultsObservation
 from tapeagents.tools.simple_browser import NextPageAction, PageObservation, ReadDocumentAction
 
 
-class PlanThought(Thought):
+class Plan(Thought):
     """
     Thought that contains the plan to follow to answer the question
     """
@@ -28,12 +28,12 @@ class PlanThought(Thought):
     plan: list[str] = Field(description="list of steps to follow to answer the question")
 
 
-class ListOfFactsThought(Thought):
+class FactsSurvey(Thought):
     """
     Thought that contains the list of facts that are needed to answer the question
     """
 
-    kind: Literal["list_of_facts_thought"] = "list_of_facts_thought"
+    kind: Literal["facts_survey_thought"] = "facts_survey_thought"
     given_facts: list[str] = Field(
         description="list of facts that are already given in the question",
         default=[],
@@ -126,5 +126,5 @@ OBSERVATIONS = (
     CodeExecutionResult,
     ActionExecutionFailure,
 )
-OTHER_STEPS = (PlanThought, ListOfFactsThought, ExecuteCode, LLMOutputParsingFailureAction, SetNextNode)
+OTHER_STEPS = (Plan, FactsSurvey, ExecuteCode, LLMOutputParsingFailureAction, SetNextNode)
 GaiaStep: TypeAlias = Union[AGENT_STEPS + OBSERVATIONS + OTHER_STEPS]  # type: ignore

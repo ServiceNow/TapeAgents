@@ -1,35 +1,12 @@
-import logging
-from enum import Enum
-
 from tapeagents.agent import Agent
-from tapeagents.environment import CodeExecutionResult
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
-from tapeagents.steps import ActionExecutionFailure, ReasoningThought, VideoObservation
-from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.container_executor import extract_code_blocks
+from tapeagents.steps import ActionExecutionFailure, VideoObservation
 from tapeagents.tools.simple_browser import PageObservation
 
 from .prompts import PromptRegistry
-from .steps import (
-    AGENT_STEPS,
-    STEPS_WITHOUT_CODE,
-    GaiaQuestion,
-    ListOfFactsThought,
-    PlanThought,
-    ReadingResultThought,
-)
+from .steps import AGENT_STEPS, STEPS_WITHOUT_CODE, FactsSurvey, Plan
 from .tape import GaiaTape
-
-logger = logging.getLogger(__name__)
-
-
-class PlanningMode(str, Enum):
-    simple = "simple"
-    facts_and_sources = "facts_and_sources"
-    multiplan = "multiplan"
-    replan_after_sources = "replan_after_sources"
-    reflect = "reflect"
 
 
 class GaiaNode(MonoNode):
@@ -57,24 +34,14 @@ class GaiaNode(MonoNode):
 
 
 class GaiaAgent(Agent):
-    plain_code: bool
-
     @classmethod
     def create(cls, llm: LLM, plain_code: bool = False, **kwargs):
+        steps_prompt = PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps
+        steps = STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS
         nodes = [
-            GaiaNode(name="plan", guidance=PromptRegistry.plan, agent_steps=PlanThought),
-            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, agent_steps=ListOfFactsThought),
-            GaiaNode(
-                name="start_execution",
-                guidance=PromptRegistry.start_execution,
-                steps_prompt=PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps,
-                agent_steps=STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS,
-            ),
-            GaiaNode(
-                name="act",
-                steps_prompt=PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps,
-                agent_steps=STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS,
-                next_node="act",
-            ),
+            GaiaNode(name="plan", guidance=PromptRegistry.plan, agent_steps=Plan),
+            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, agent_steps=FactsSurvey),
+            GaiaNode(name="start", guidance=PromptRegistry.start, steps_prompt=steps_prompt, agent_steps=steps),
+            GaiaNode(name="act", steps_prompt=steps_prompt, agent_steps=steps, next_node="act"),
         ]
-        return super().create(llm, nodes=nodes, max_iterations=2, plain_code=plain_code, **kwargs)
+        return super().create(llm, nodes=nodes, max_iterations=2, **kwargs)
