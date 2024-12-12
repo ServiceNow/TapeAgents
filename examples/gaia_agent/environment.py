@@ -26,9 +26,10 @@ class StepToolEnvironment(Environment):
 
     def react(self, tape: Tape) -> Tape:
         for action in self.last_actions(tape):
-            if action not in self.action_map:
-                raise Exception(f"Unknown action: {type(action)}")
-            tool = self.action_map[action]
+            action_type = type(action)
+            if action_type not in self.action_map:
+                raise Exception(f"Unknown action: {action_type}")
+            tool = self.action_map[action_type]
             observation = tool.run(action)
             tape = tape.append(observation)
         return tape

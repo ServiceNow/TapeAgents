@@ -10,10 +10,9 @@ short_format_instruction = (
 PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {short_format_instruction}'
 START_EXECUTION = f"""Let's start executing the plan step by step, using allowed steps described earlier. {short_format_instruction}"""
 THINK_AFTER_OBSERVATION = f""""Lets think step by step about the observation, how it affects the plan and what should be done next. {short_format_instruction}"""
-THINK_AFTER_CALCULATION = f"""Produce the reasoning thought step with the thoughts about plausbility and sensibility of the results of the recent calculation. {short_format_instruction}"""
 
 ALLOWED_STEPS = """
-You can use the following tools: search the web, read web page or document, python code, and reasoning.
+You can use the following tools: search the web, read web page or document, python code for computations and modeling, and reasoning.
 You are allowed to produce ONLY steps with the following json schemas:
 {allowed_steps}
 Do not reproduce schema when producing the steps, use it as a reference.
@@ -31,13 +30,6 @@ print(result)
 ```
 Note that the last code line should print the result.
 Do not reproduce schema when producing the steps, use it as a reference.
-"""
-
-FILENAME = "The question is about {ext} file {filename}"
-
-MLM = """Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
-
-{prompt}
 """
 
 FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability. 
@@ -59,20 +51,12 @@ Respond with list_of_facts_thought.
 {short_format_instruction}
 """
 
-IS_SUBTASK_FINISHED = """Assess if the subtask objective has been fully achieved. If the objective has been achieved or if we're stuck, finish working on the subtask by producing finish_subtask_thought with the status and description.
-If the objective has not been achieved, produce the next step.
-"""
-
 
 class PromptRegistry:
     system_prompt = SYSTEM_PROMPT
     plan = PLAN
     start_execution = START_EXECUTION
-    filename = FILENAME
-    mlm = MLM
     facts_survey = FACTS_SURVEY
     allowed_steps = ALLOWED_STEPS
     allowed_steps_code = ALLOWED_STEPS_CODE
-    is_subtask_finished = IS_SUBTASK_FINISHED
     think_after_observation = THINK_AFTER_OBSERVATION
-    think_after_calculation = THINK_AFTER_CALCULATION

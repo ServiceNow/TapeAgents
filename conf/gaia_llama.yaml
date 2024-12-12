@@ -11,7 +11,6 @@ agent:
   subtasks: false
 
 env:
-  image_observations: false
   use_web_cache: true
 
 hydra:

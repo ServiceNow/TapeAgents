@@ -13,7 +13,6 @@ from tapeagents.tools.simple_browser import PageObservation
 from .prompts import PromptRegistry
 from .steps import (
     AGENT_STEPS,
-    PLAN_STEPS,
     STEPS_WITHOUT_CODE,
     GaiaQuestion,
     ListOfFactsThought,
@@ -58,31 +57,6 @@ class GaiaNode(MonoNode):
         trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[-3:]))
         return trimmed_tape
 
-    def trim_tape(self, tape: GaiaTape) -> GaiaTape:
-        """
-        Make tape shorter to fit llm context size limits
-        """
-        summarization_border = int(len(tape) * 0.7)
-        short_tape = tape.model_copy(update=dict(steps=[]))
-        pre_tape: GaiaTape = tape[:summarization_border]  # type: ignore
-        for step in pre_tape.steps:
-            if isinstance(
-                step,
-                (
-                    GaiaQuestion,
-                    PlanThought,
-                    ListOfFactsThought,
-                    CodeExecutionResult,
-                    ReadingResultThought,
-                    ReasoningThought,
-                ),
-            ):
-                short_tape.steps.append(step)
-        for step in tape.steps[summarization_border:]:
-            short_tape.steps.append(step)
-        logger.info(f"Tape reduced from {len(tape)} to {len(short_tape)} steps")
-        return short_tape
-
     def parse_completion(self, llm_output: str, prompt_id: str):
         if llm_output.strip().startswith("```"):
             code_blocks = extract_code_blocks(llm_output)
@@ -99,8 +73,8 @@ class GaiaAgent(Agent):
     @classmethod
     def create(cls, llm: LLM, plain_code: bool = False, **kwargs):
         nodes = [
-            GaiaNode(name="plan", guidance=PromptRegistry.plan, agent_steps=PLAN_STEPS),
-            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, agent_steps=PLAN_STEPS),
+            GaiaNode(name="plan", guidance=PromptRegistry.plan, agent_steps=PlanThought),
+            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, agent_steps=ListOfFactsThought),
             GaiaNode(
                 name="start_execution",
                 guidance=PromptRegistry.start_execution,

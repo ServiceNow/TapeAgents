@@ -1,17 +1,19 @@
 defaults:
-  - llm: gpt4o
+  - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_val_search1
+exp_name: gpt4o_val_toolenv_debug1
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
 batch: 1
+
+level: 1
+task: 0
 
 agent:
   plain_code: false
 
 env:
-  image_observations: true
   use_web_cache: true
 
 studio:

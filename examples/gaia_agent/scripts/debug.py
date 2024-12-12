@@ -78,9 +78,6 @@ def main(cfg: DictConfig) -> None:
     save_json_tape(tape, tapes_dir, tape_name)
     logger.info(f"Saved tape to {tapes_dir}/{tape_name}.json")
 
-    if code_sandbox:
-        code_sandbox.stop()
-
 
 if __name__ == "__main__":
     main()
