@@ -30,15 +30,12 @@ class Tool(BaseModel):
         assert isinstance(action, self.action)
         tool_name = self.__class__.__name__
         if self.cached:
-            logger.debug(f"Checking cache for {tool_name}")
             obs_dict = get_from_cache(tool_name, args=(), kwargs=action.llm_dict())
-            if obs_dict:
-                logger.debug(f"Cache hit for {tool_name}")
+            if obs_dict is not None:
                 return self.observation.model_validate(obs_dict)
         try:
             observation = self.execute_action(action)
             if self.cached:
-                logger.debug(f"Adding to cache for {tool_name}")
                 add_to_cache(tool_name, args=(), kwargs=action.llm_dict(), result=observation.llm_dict())
         except FatalError:
             raise

@@ -44,9 +44,9 @@ def get_from_cache(fn_name: str, args: tuple, kwargs: dict) -> Any:
     key = json.dumps((args, kwargs), sort_keys=True)
     result = _cache.get(fn_name, {}).get(key)
     if result is not None:
-        logger.info(colored(f"Tool cache hit '{fn_name}', args {args}, kwargs {kwargs}", "green"))
+        logger.info(colored(f"Tool cache hit for {fn_name}", "green"))
     else:
-        logger.info(colored(f"Tool cache miss '{fn_name}', args {args}, kwargs {kwargs}", "yellow"))
+        logger.info(colored(f"Tool cache miss for {fn_name}", "yellow"))
     return result
 
 

@@ -34,6 +34,8 @@ class GaiaNode(MonoNode):
 
 
 class GaiaAgent(Agent):
+    name: str = "gaia_agent_v3"
+
     @classmethod
     def create(cls, llm: LLM, plain_code: bool = False, **kwargs):
         steps_prompt = PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps
