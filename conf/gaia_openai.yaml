@@ -5,7 +5,7 @@ defaults:
 exp_name: gpt4o_mini_val_toolenv1
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-batch: 1
+batch: 32
 
 agent:
   plain_code: false
