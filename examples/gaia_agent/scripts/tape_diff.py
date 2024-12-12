@@ -37,8 +37,8 @@ class TapeDiffGUI:
     def load_tapes(self, fname: str) -> tuple[list[GaiaTape], dict[str, LLMCall], str]:
         tapes: list[GaiaTape] = load_tapes(GaiaTape, fname)  # type: ignore
         llm_calls = {}  # TODO: load prompts
-        acc, n_solved = calculate_accuracy(tapes)
-        header = f"Accuracy: {acc:.2f}%, {n_solved} out of {len(tapes)}"
+        acc, n_solved, total, _ = calculate_accuracy(tapes)
+        header = f"Accuracy: {acc:.2f}%, {n_solved} out of {total}"
         return tapes, llm_calls, header
 
     def tape_name(self, n: int, tape: GaiaTape, tape2: GaiaTape | None) -> str:

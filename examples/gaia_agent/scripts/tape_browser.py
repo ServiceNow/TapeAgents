@@ -70,15 +70,12 @@ class GaiaTapeBrowser(TapeBrowser):
         return html, label
 
     def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
-        acc, n_solved = calculate_accuracy(tapes)
+        acc, n_solved, total, empty = calculate_accuracy(tapes)
         errors = defaultdict(int)
         prompt_tokens_num = 0
         output_tokens_num = 0
         total_cost = 0.0
-        no_result = 0
         for tape in tapes:
-            if tape.metadata.result in ["", None, "None"]:
-                no_result += 1
             if tape.metadata.error:
                 errors["fatal"] += 1
             if tape.metadata.terminated:
@@ -101,11 +98,11 @@ class GaiaTapeBrowser(TapeBrowser):
                     errors["parsing"] += 1
                 elif step.kind == "action_execution_failure":
                     errors[f"{last_action.kind}"] += 1
-        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}"
+        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {total}"
         html += f"</h2>Prompts tokens total: {prompt_tokens_num}, output tokens total: {output_tokens_num}, cost total: {total_cost:.2f}"
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
-            html += f"<h2>No result: {no_result}</h2>"
+            html += f"<h2>No result: {empty}</h2>"
             html += f"<h2>Errors</h2>{errors_str}"
         return html
 

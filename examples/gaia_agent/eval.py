@@ -3,7 +3,8 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import Any, Counter, Generator
+from collections import defaultdict
+from typing import Any, Counter
 
 import yaml
 from huggingface_hub import snapshot_download
@@ -41,27 +42,27 @@ def tape_correct(tape: GaiaTape) -> bool:
     return question_scorer(predicted, golden)
 
 
-def calculate_accuracy(tapes: list[GaiaTape], show_intermediate=False, show_wrong=False):
+def calculate_accuracy(tapes: list[GaiaTape]):
     accs = []
+    empty = 0
     accuracy = 0.0
+    best_tapes = []
+    attempts = defaultdict(list)
     for tape in tapes:
-        correct = tape_correct(tape)
-        if show_wrong and not correct:
-            for step in tape:
-                print("-" * 80)
-                print(step_view(step))
-            print("=" * 120)
-
-        accs.append(int(correct))
-        accuracy = sum(accs) * 100 / len(accs)
-        if show_intermediate:
-            print(
-                tape.metadata.task["Final answer"],
-                "|",
-                colored(str(tape.metadata.result), "green" if correct else "red"),
-            )
-            print(f"{len(accs)}: Accuracy {accuracy:.2f}")
-    return accuracy, sum(accs)
+        attempts[tape.metadata.task["task_id"]].append(tape)
+    for task_attempts in attempts.values():
+        results = [tape.metadata.result for tape in task_attempts]
+        best_idx = majority_vote(results)
+        logger.warning(
+            f"Task {task_attempts[0].metadata.level}-{task_attempts[0].metadata.task_number}, {len(task_attempts)} attempts, voted: {task_attempts[best_idx].metadata.result} of {results}"
+        )
+        best_tapes.append(task_attempts[best_idx])
+    for tape in best_tapes:
+        if not tape.metadata.result:
+            empty += 1
+        accs.append(int(tape_correct(tape)))
+    accuracy = sum(accs) * 100 / len(accs)
+    return accuracy, sum(accs), len(accs), empty
 
 
 def majority_vote(results: list[Any]) -> int:
@@ -214,8 +215,8 @@ def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> l
 def ensemble_files(tape_dirs: list[str], out_dir: str = ""):
     tapes: list[list[GaiaTape]] = [load_tapes(GaiaTape, tape_dir, file_extension=".json") for tape_dir in tape_dirs]  # type: ignore
     ensembled_tapes = ensemble_results(tapes)
-    acc, num = calculate_accuracy(ensembled_tapes, show_intermediate=False)
-    logger.info(f"Ensembled {len(tape_dirs)} accuracy: {acc:.2f} ({num} of {len(ensembled_tapes)})")
+    acc, num, total, _ = calculate_accuracy(ensembled_tapes)
+    logger.info(f"Ensembled {len(tape_dirs)} accuracy: {acc:.2f} ({num} of {total})")
     if out_dir:
         out_tapes_dir = os.path.join(out_dir, "tapes")
         os.makedirs(out_tapes_dir)
