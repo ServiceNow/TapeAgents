@@ -138,6 +138,7 @@ def solve_task(
             task_number=task_number,
             filename=filename,
             attempt_number=attempt,
+            finished=False,
         )
         try:
             for event in main_loop(agent, tape, env, max_loops=max_iterations):
@@ -148,6 +149,7 @@ def solve_task(
                     break
         except Exception as e:
             logger.error(f"Failed to solve task: {e}")
+        metadata.finished = True
         if isinstance(tape.steps[-1], GaiaAnswer) and tape.steps[-1].answer not in ["None", "none"]:
             metadata.result = tape.steps[-1].answer
         attempt += 1

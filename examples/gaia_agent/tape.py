@@ -10,8 +10,9 @@ from .steps import GaiaStep
 
 class GaiaMetadata(TapeMetadata):
     task: dict = Field(default_factory=dict)
-    result: str = ""
+    result: Any = ""
     terminated: bool = False
+    finished: bool = True
     attempt_number: int = 0
     level: int = 0
     task_number: int = 0

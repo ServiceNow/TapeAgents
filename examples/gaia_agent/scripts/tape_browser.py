@@ -110,29 +110,35 @@ class GaiaTapeBrowser(TapeBrowser):
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
-        error = "F" if tape.metadata.error else ""
-        if tape.metadata.terminated:
-            error = "T"
+        meta = tape.metadata
+        errors = []
+        if meta.error:
+            errors.append("F")
+        if meta.terminated:
+            errors.append("T")
         last_action = None
         for step in tape:
             if isinstance(step, Action):
                 last_action = step
             if step.kind == "search_results_observation" and not step.serp:
-                error += "se"
+                errors.append("se")
             elif step.kind == "page_observation" and step.error:
-                error += "br"
+                errors.append("br")
             elif step.kind == "llm_output_parsing_failure_action":
-                error += "pa"
+                errors.append("pa")
             elif step.kind == "action_execution_failure" and last_action:
-                error += last_action.kind[:2]
-        mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
-        if tape.metadata.task.get("file_name"):
+                errors.append(last_action.kind[:2])
+        mark = "+" if tape_correct(tape) else ("" if meta.result else "∅")
+        if meta.task.get("file_name"):
             mark += "📁"
-        if error:
+        if errors:
+            error = "/".join(list(set(errors)))
             mark += f"[{error}]"
         if mark:
             mark += " "
-        return f"{i+1} {mark}{tape[0].content[:32]}"  # type: ignore
+        preview = tape.steps[0].content[:32]
+        finish = "" if meta.finished else "⏳"
+        return f"{finish}{meta.level}_{meta.task_number}_{meta.attempt_number} {mark}{preview}"  # type: ignore
 
     def get_tape_label(self, tape: GaiaTape) -> str:
         llm_calls_num = 0
