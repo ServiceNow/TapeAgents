@@ -370,25 +370,6 @@ def main(cfg: DictConfig):
         else:
             assistant_model_path = cfg.model_path
 
-        llm = TrainableLLM(
-            base_url="http://127.0.0.1:8080",
-            model_name=str(assistant_model_path),
-            tokenizer_name=str(assistant_model_path),
-            parameters=cfg.llm.parameters,
-            use_cache=False,
-            collect_logprobs=True,
-            remove_leading_white_space=remove_leading_white_space,
-        )
-
-        test_llm = TrainableLLM(
-            base_url="http://127.0.0.1:8080",
-            model_name=str(assistant_model_path),
-            tokenizer_name=str(assistant_model_path),
-            parameters=cfg.test_llm.parameters,
-            use_cache=False,
-            remove_leading_white_space=remove_leading_white_space,
-        )
-
         try:
             all_results = {}
             with VLLMServiceManager(
@@ -404,6 +385,25 @@ def main(cfg: DictConfig):
                 sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
                 train_tapes = convert_problems_to_tapes(sub_samples, cfg)
                 train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
+                llm = TrainableLLM(
+                    base_url=vllm_service_manager.get_base_urls(),
+                    model_name=str(assistant_model_path),
+                    tokenizer_name=str(assistant_model_path),
+                    parameters=cfg.llm.parameters,
+                    use_cache=False,
+                    collect_logprobs=True,
+                    remove_leading_white_space=remove_leading_white_space,
+                )
+
+                test_llm = TrainableLLM(
+                    base_url=vllm_service_manager.get_base_urls(),
+                    model_name=str(assistant_model_path),
+                    tokenizer_name=str(assistant_model_path),
+                    parameters=cfg.test_llm.parameters,
+                    use_cache=False,
+                    remove_leading_white_space=remove_leading_white_space,
+                )
+
                 train_agent = CoTMathAgent.create(llm=llm)
 
                 splits = [("train", train_agent, train_tapes)]
