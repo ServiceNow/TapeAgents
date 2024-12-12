@@ -142,7 +142,7 @@ class CodeExecutionEnvironment(Environment):
                 return tape
 
 
-class StepToolEnvironment(Environment):
+class ToolCollectionEnvironment(Environment):
     action_map: dict[type[Action], Tool | Multitool]
 
     def __init__(self, tools: list[Tool | Multitool]) -> None:

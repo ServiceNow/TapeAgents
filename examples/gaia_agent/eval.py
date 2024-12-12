@@ -10,7 +10,7 @@ from huggingface_hub import snapshot_download
 from pdf2image import convert_from_path
 from termcolor import colored
 
-from tapeagents.environment import StepToolEnvironment
+from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import step_view
@@ -102,7 +102,7 @@ def load_dataset(split: str):
 def solve_task(
     task: dict,
     agent: GaiaAgent,
-    env: StepToolEnvironment,
+    env: ToolCollectionEnvironment,
     level: int,
     retries: int = 3,
     max_loops: int = 50,

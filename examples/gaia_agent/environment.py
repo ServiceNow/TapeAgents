@@ -1,6 +1,6 @@
 import logging
 
-from tapeagents.environment import StepToolEnvironment
+from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tools.code_executor import CodeExecutor
 from tapeagents.tools.container_executor import ContainerExecutor
 from tapeagents.tools.media_reader import VideoReader
@@ -14,8 +14,8 @@ def get_env(
     exp_path: str,
     code_sandbox: ContainerExecutor | None = None,
     **kwargs,
-) -> StepToolEnvironment:
-    return StepToolEnvironment(
+) -> ToolCollectionEnvironment:
+    return ToolCollectionEnvironment(
         tools=[
             Search(),
             CodeExecutor(_sandbox=code_sandbox),
