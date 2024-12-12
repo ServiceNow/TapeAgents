@@ -128,6 +128,7 @@ def solve_task(
     attempt = 0
     top_result = ""
     while len(results) < aggregate_majority and attempt < (retries * aggregate_majority):
+        attempt += 1
         tape = GaiaTape(steps=start_steps)
         filename = f"l{level}_task{task_number:03d}_attempt{attempt}"
         if tape_exist_with_result(filename, tapes_dir):
@@ -145,6 +146,7 @@ def solve_task(
                             filename=filename,
                             attempt_number=attempt,
                             finished=False,
+                            result="",
                         )
                     )
                     save_json_tape(tape, tapes_dir, f"{filename}_unfinished")
@@ -161,7 +163,6 @@ def solve_task(
         )
         if isinstance(tape.steps[-1], GaiaAnswer) and tape.steps[-1].answer not in ["None", "none"]:
             metadata.result = str(tape.steps[-1].answer)
-        attempt += 1
         tape.metadata = metadata
         tmp_file = os.path.join(tapes_dir, f"{filename}_unfinished.json")
         if os.path.exists(tmp_file):
