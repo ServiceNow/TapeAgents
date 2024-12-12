@@ -103,7 +103,7 @@ class GaiaAnswer(StopStep):
     success: bool = Field(description="True if the task was successful, False otherwise")
     overview: str = Field(description="overview of the task")
     answer_unit: str = Field(description="unit of the answer, if applicable, otherwise empty string")
-    answer: Any = Field(description="short final answer")
+    answer: str = Field(description="short final answer")
 
 
 STEPS_WITHOUT_CODE = (
