@@ -86,19 +86,11 @@ def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
     return os.path.exists(tape_path) and result not in ["", None, "None"]
 
 
-def task_worker(args: tuple) -> int:
-    agent, llm, cfg_env, code_sandbox, task, exp_path, i, level = args
-    tapes_dir = os.path.join(exp_path, "tapes")
-    images_dir = os.path.join(exp_path, "images")
-    tape_name = f"l{level}_task{i:03d}"
-    env = get_env(exp_path, code_sandbox=code_sandbox, **cfg_env)
-
-    for tape in solve_task(task, agent, env, level):
-        save_json_tape(tape, tapes_dir, tape_name)
-    save_tape_images(tape, images_dir)
-    logger.info(f"Task {tape_name} solved, saved to {tapes_dir}")
+def task_worker(args: tuple):
+    agent, cfg, code_sandbox, task, i, level = args
+    env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
+    solve_task(task, agent, env, level, i, cfg.exp_path)
     env.close()
-    return 1
 
 
 if __name__ == "__main__":

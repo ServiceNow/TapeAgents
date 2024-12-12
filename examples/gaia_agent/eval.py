@@ -11,7 +11,7 @@ from pdf2image import convert_from_path
 from termcolor import colored
 
 from tapeagents.environment import ToolCollectionEnvironment
-from tapeagents.io import load_tapes, save_json_tape
+from tapeagents.io import load_tapes, save_json_tape, save_tape_images
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import step_view
 from tapeagents.tools.search import SearchAction
@@ -104,43 +104,66 @@ def solve_task(
     agent: GaiaAgent,
     env: ToolCollectionEnvironment,
     level: int,
+    task_number: int,
+    exp_path: str,
     retries: int = 3,
+    aggregate_majority: int = 3,
     max_loops: int = 50,
-) -> Generator[GaiaTape, None, None]:
+) -> GaiaTape:
     """Solve GAIA task.
 
     This function is a generator that yields intermediate tapes during the solving process.
     The last tape will contain the agent's response.
 
     """
+    assert aggregate_majority % 2 > 0, "Aggregate majority should be an odd number"
+    assert retries < 10, "Too many retries, should not be more than 10"
+    assert aggregate_majority <= retries, "Aggregate majority should be less than or equal to retries"
+
+    tapes_dir = os.path.join(exp_path, "tapes")
+    majority = (aggregate_majority // 2 + 1) if aggregate_majority > 1 else 1
     start_steps = task_to_observations(task)
-    solved = None
-    result = None
-    while not solved and retries:
+    results = []
+    attempt = 0
+    top_result = ""
+    while len(results) < aggregate_majority and attempt < (retries * aggregate_majority):
         tape = GaiaTape(steps=start_steps)
+        filename = f"l{level}_task{task_number:03d}_attempt{attempt}"
+        metadata = GaiaMetadata(
+            task=task,
+            level=level,
+            task_number=task_number,
+            filename=filename,
+            attempt_number=attempt,
+        )
         try:
             for event in main_loop(agent, tape, env, max_loops=max_loops):
                 if partial_tape := (event.agent_tape or event.env_tape):
                     tape = partial_tape
-                    tape.metadata = GaiaMetadata.model_validate(
-                        tape.metadata.model_dump() | {"task": task, "level": level}
-                    )
-                    yield tape
+                    tape.metadata = metadata
+                    save_json_tape(tape, tapes_dir, f"{filename}_unfinished")
                 if n_search_repetitions(tape) >= 3:
                     break
         except Exception as e:
-            tape.metadata.error = str(e)
-            logger.exception(f"Failed to solve task: {e}")
-            break
-        result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None  # type: ignore
-        result = str(result) if result is not None else ""
-        solved = result != ""
-        retries -= 1
-    logger.info(f"Expected: {task['Final answer']}, Agent produced: {result}")
-    tape.metadata = GaiaMetadata.model_validate(
-        tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
-    )
-    yield tape
+            logger.error(f"Failed to solve task: {e}")
+        if isinstance(tape.steps[-1], GaiaAnswer) and tape.steps[-1].answer not in ["None", "none"]:
+            metadata.result = tape.steps[-1].answer
+        attempt += 1
+        tape.metadata = metadata
+        tmp_file = os.path.join(tapes_dir, f"{filename}_unfinished.json")
+        if os.path.exists(tmp_file):
+            os.unlink(tmp_file)
+        save_json_tape(tape, tapes_dir, filename)
+        save_tape_images(tape, os.path.join(exp_path, "images"))
+        if metadata.result:
+            results.append(metadata.result)
+            counts = Counter(results)
+            top_result, num_occured = counts.most_common(1)[0]
+            if num_occured >= majority:
+                logger.info(f"Majority reached: {top_result} ({num_occured} of {len(results)}), break")
+                break
+    logger.info(f"Expected: {task['Final answer']}, Agent produced: {top_result}")
+    return tape  # type: ignore
 
 
 def n_search_repetitions(tape: GaiaTape) -> int:
