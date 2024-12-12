@@ -166,7 +166,7 @@ def test_gaia_agent():
         agent = GaiaAgent.create(llm)
         tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
         logger.info(f"Validate {len(tapes)} tapes")
-        fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+        fails = replay_tapes(agent, tapes, env, reuse_observations=True, stop_on_error=True)
         assert fails == 0, f"{fails} failed tapes"
     finally:
         if os.path.exists(db_file):
@@ -179,7 +179,7 @@ def test_workarena_agent():
     agent = WorkArenaAgent.create(llm)
     tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, reuse_observations=True)
+    fails = replay_tapes(agent, tapes, reuse_observations=True, stop_on_error=True)
     assert fails == 0, f"{fails} failed tapes"
 
 

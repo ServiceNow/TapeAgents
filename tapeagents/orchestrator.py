@@ -256,7 +256,7 @@ def replay_tapes(
     env: Environment[TapeType] | None = None,
     start_tapes: list[TapeType] | None = None,
     reuse_observations: bool = False,
-    pause_on_error: bool = False,
+    stop_on_error: bool = False,
 ) -> int:
     """
     Validate the list of tapes with the agent and environment.
@@ -268,15 +268,21 @@ def replay_tapes(
     for i, tape in enumerate(tapes):
         logger.debug(f"Tape {i}")
         try:
-            matched = replay_tape(agent, tape, env, start_tape=start_tapes[i] if start_tapes else None, reuse_observations=reuse_observations)
+            matched = replay_tape(
+                agent,
+                tape,
+                env,
+                start_tape=start_tapes[i] if start_tapes else None,
+                reuse_observations=reuse_observations,
+            )
             if not matched:
                 raise FatalError("Tape mismatch")
             ok += 1
-        except FatalError as f:
-            logger.error(colored(f"Fatal error: {f}, skip tape {tape.metadata.id}", "red"))
+        except FatalError as e:
+            logger.error(colored(f"Fatal error: {e}, skip tape {tape.metadata.id}", "red"))
             fails += 1
-            if pause_on_error:
-                input("Press Enter to continue...")
+            if stop_on_error:
+                raise e
 
         logger.debug(colored(f"Ok: {ok}, Fails: {fails}", "green"))
     return fails
