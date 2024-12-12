@@ -129,8 +129,9 @@ def solve_task(
         attempt += 1
         tape = GaiaTape(steps=start_steps)
         filename = f"l{level}_task{task_number:03d}_attempt{attempt}"
-        if tape_exist_with_result(filename, tapes_dir):
+        if old_result := tape_result(filename, tapes_dir):
             logger.info(f"Tape already exist with result: {filename}, skip")
+            results.append(old_result)
             continue
         try:
             for event in main_loop(agent, tape, env, max_loops=max_iterations):
@@ -300,11 +301,11 @@ def task_to_observations(task: dict, max_doc_length: int = 8000) -> list[GaiaQue
     return steps
 
 
-def tape_exist_with_result(tape_name: str, tapes_dir: str) -> bool:
+def tape_result(tape_name: str, tapes_dir: str) -> str:
     result = ""
     tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
     if os.path.exists(tape_path):
         with open(tape_path) as f:
             tape_dict = json.load(f)
         result = tape_dict["metadata"]["result"]
-    return os.path.exists(tape_path) and result not in ["", None, "None", "none"]
+    return result
