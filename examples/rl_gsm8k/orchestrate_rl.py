@@ -247,10 +247,13 @@ def generate_training_data(
     with SQLiteWriterThread():
         main_loops = batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers_per_gpu * torch.cuda.device_count())
         new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
+    end_sampling_from_llm = time.time()
+
+    start_dumping_tapes = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
+    time_dumping_tapes = time.time() - start_dumping_tapes
 
-    end_sampling_from_llm = time.time()
     start_reading_sqlite = time.time()
     if split_name == "train":
         llm_calls = retrieve_all_llm_calls()
@@ -305,6 +308,7 @@ def generate_training_data(
             / (end_sampling_from_llm - start_sampling_from_llm),
             f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
             / (end_sampling_from_llm - start_sampling_from_llm),
+            f"execution_time/{split_name}_dumping_tapes": time_dumping_tapes,
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
