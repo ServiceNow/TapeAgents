@@ -412,8 +412,9 @@ class VideoReader(Tool):
     action: type[Action] = WatchVideoAction
     observation: type[Observation] = VideoObservation
     cached: bool = True
-    attachment_dir: str
+    exp_path: str
 
     def execute_action(self, action: WatchVideoAction) -> VideoObservation:
-        os.makedirs(self.attachment_dir, exist_ok=True)
-        return get_video_observation(action.video_url, self.attachment_dir, action.start_time, action.end_time)
+        attachment_dir = os.path.join(self.exp_path, "attachments")
+        os.makedirs(attachment_dir, exist_ok=True)
+        return get_video_observation(action.video_url, attachment_dir, action.start_time, action.end_time)

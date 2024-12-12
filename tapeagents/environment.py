@@ -12,8 +12,9 @@ from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
 from tapeagents.agent import TapeType
-from tapeagents.core import Action, Observation, Tape
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
 from tapeagents.dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
+from tapeagents.tools.base import Multitool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 
@@ -139,3 +140,34 @@ class CodeExecutionEnvironment(Environment):
                 return tape.append(CodeExecutionResult(result=result))
             case _:
                 return tape
+
+
+class StepToolEnvironment(Environment):
+    action_map: dict[type[Action], Tool | Multitool]
+
+    def __init__(self, tools: list[Tool | Multitool]) -> None:
+        super().__init__()
+        self.tools = tools
+        self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
+        multitools = [tool for tool in tools if isinstance(tool, Multitool)]
+        for multitool in multitools:
+            self.action_map |= {action: multitool for action in multitool.actions}
+
+    def react(self, tape: Tape) -> Tape:
+        for action in self.last_actions(tape):
+            if isinstance(action, LLMOutputParsingFailureAction):
+                continue
+            action_type = type(action)
+            if action_type not in self.action_map:
+                raise Exception(f"Unknown action: {action_type}")
+            tool = self.action_map[action_type]
+            observation = tool.run(action)
+            tape = tape.append(observation)
+        return tape
+
+    def close(self) -> None:
+        for tool in self.tools:
+            tool.close()
+
+    def last_actions(self, tape: Tape) -> list[Action]:
+        return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]

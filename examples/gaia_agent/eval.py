@@ -10,6 +10,7 @@ from huggingface_hub import snapshot_download
 from pdf2image import convert_from_path
 from termcolor import colored
 
+from tapeagents.environment import StepToolEnvironment
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import step_view
@@ -17,7 +18,6 @@ from tapeagents.tools.search import SearchAction
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 
 from .agent import GaiaAgent
-from .environment import StepToolEnvironment
 from .scorer import question_scorer
 from .steps import GaiaAnswer, GaiaQuestion, ImageObservation
 from .tape import GaiaMetadata, GaiaTape

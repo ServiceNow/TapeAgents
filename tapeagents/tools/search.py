@@ -14,9 +14,8 @@ from tapeagents.utils import FatalError
 logger = logging.getLogger(__name__)
 
 
-def web_search(query: str, max_results: int = 5, timeout_sec: int = 5) -> list[dict]:
+def web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
     results = []
-    attempts = 3
     while not results and attempts > 0:
         attempts -= 1
         try:
@@ -24,7 +23,8 @@ def web_search(query: str, max_results: int = 5, timeout_sec: int = 5) -> list[d
         except Exception as e:
             logger.warning(f"Failed to fetch search results: {e}")
         if not results:
-            time.sleep(1)
+            logger.warning(f"Empty search results, retrying in {retry_pause} seconds")
+            time.sleep(retry_pause)
     return results
 
 
