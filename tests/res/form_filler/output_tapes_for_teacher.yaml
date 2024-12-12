@@ -1,6 +1,6 @@
 context:
   date: '2024-12-09'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: teacher_formfiller
   author_tape_id: null
@@ -176,7 +176,7 @@ steps:
 ---
 context:
   date: '2024-12-09'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: teacher_formfiller
   author_tape_id: null
@@ -539,7 +539,7 @@ steps:
 ---
 context:
   date: '2024-12-09'
-  env_spec: /mnt/llmd/data/gontiern/catalog_items/for_open_release/train/FlyCorp
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
 metadata:
   author: teacher_formfiller
   author_tape_id: null

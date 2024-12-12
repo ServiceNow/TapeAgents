@@ -1,29 +1,36 @@
 import json
-from pathlib import Path
 import logging
+import traceback
+from pathlib import Path
 
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
-import traceback
 from tqdm import tqdm
 
-from examples.form_filler.tape import FormFillerAgentMetadata, FormFillerUserMetadata, FormFillerTape
-
-from examples.form_filler.user_simulator_agent import SampleUserInstructionThought, UserSimulatorAgent, UserSimulatorError, UserSimulatorTape
 from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.parallel_processing import lazy_thread_pool_processor
 
+from ..tape import FormFillerAgentMetadata, FormFillerTape, FormFillerUserMetadata
+from ..user_simulator_agent import (
+    SampleUserInstructionThought,
+    UserSimulatorAgent,
+    UserSimulatorError,
+    UserSimulatorTape,
+)
 
 logger = logging.getLogger(__name__)
 
 
-
-def run_user_simulator_agent(form_filler_tape: FormFillerTape, user_simulator_agent: UserSimulatorAgent) -> tuple[None|Exception, FormFillerTape, None|UserSimulatorTape]:
+def run_user_simulator_agent(
+    form_filler_tape: FormFillerTape, user_simulator_agent: UserSimulatorAgent
+) -> tuple[None | Exception, FormFillerTape, None | UserSimulatorTape]:
     # assert this tape is a user tape or user_simulator_agent tape
-    assert form_filler_tape.context is not None, f'Tape context is None'
-    assert isinstance(form_filler_tape.metadata, (FormFillerAgentMetadata)), f'Tape metadata is not of type FormFillerUserMetadata or FormFillerAgentMetadata'
-    
+    assert form_filler_tape.context is not None, "Tape context is None"
+    assert isinstance(
+        form_filler_tape.metadata, (FormFillerAgentMetadata)
+    ), "Tape metadata is not of type FormFillerUserMetadata or FormFillerAgentMetadata"
+
     user_simulator_agent_tape = None
     try:
         # Convert formfiller tape to UserSimulatorAgent tape
@@ -46,21 +53,19 @@ def run_user_simulator_agent(form_filler_tape: FormFillerTape, user_simulator_ag
     except Exception as e:
         # Return input formfiller tape
         if user_simulator_agent_tape is not None:  # if make_own_tape didn't fail
-            user_simulator_agent_tape.steps.append(UserSimulatorError(error=str(e) + '\n' + traceback.format_exc()))
+            user_simulator_agent_tape.steps.append(UserSimulatorError(error=str(e) + "\n" + traceback.format_exc()))
 
         return e, form_filler_tape, user_simulator_agent_tape
     return None, continued_tape, user_simulator_agent_tape
 
 
-
 @hydra.main(config_path="../conf", config_name="run_user_simulator", version_base="1.2")
 def main(cfg: DictConfig):
-
-    output_path = Path(cfg.output_path) # must be a directory
+    output_path = Path(cfg.output_path)  # must be a directory
     output_path.mkdir(exist_ok=True, parents=True)
 
-    logger.info(f'Hydra runtime dir: {hydra.core.hydra_config.HydraConfig.get().runtime.output_dir}')
-    logger.info(f'Output path: {output_path}')
+    logger.info(f"Hydra runtime dir: {hydra.core.hydra_config.HydraConfig.get().runtime.output_dir}")
+    logger.info(f"Output path: {output_path}")
 
     input_dialogues_path = cfg.input_dialogues_path
 
@@ -82,8 +87,10 @@ def main(cfg: DictConfig):
         lazy_thread_pool_processor(
             stream=tqdm(
                 valid_tapes,
-                total=min(len(valid_tapes), cfg.max_continuable_tapes) if cfg.max_continuable_tapes >= 0 else len(valid_tapes),
-                desc="Running user simulator agent"
+                total=min(len(valid_tapes), cfg.max_continuable_tapes)
+                if cfg.max_continuable_tapes >= 0
+                else len(valid_tapes),
+                desc="Running user simulator agent",
             ),
             worker_func=lambda tape: run_user_simulator_agent(tape, user_simulator_agent),
             n_workers=cfg.n_workers,
@@ -101,7 +108,9 @@ def main(cfg: DictConfig):
             failed_tapes.append(form_filler_tape)
 
         else:
-            logger.debug(f"Successfully continued tape {form_filler_tape.metadata.id} with {form_filler_tape.metadata.n_added_steps} steps")
+            logger.debug(
+                f"Successfully continued tape {form_filler_tape.metadata.id} with {form_filler_tape.metadata.n_added_steps} steps"
+            )
             predicted_tapes.append(form_filler_tape)
 
     counters = {
@@ -115,16 +124,16 @@ def main(cfg: DictConfig):
     with open(output_path / "counters.json", "w") as f:
         json.dump(counters, f, indent=2)
 
-    with stream_yaml_tapes(output_path / "user_simulator_tapes.yaml") as saver: 
+    with stream_yaml_tapes(output_path / "user_simulator_tapes.yaml") as saver:
         for tape in tqdm(user_simulator_tapes, desc="Saving user simulator tapes"):
             saver.save(tape)
 
-    with stream_yaml_tapes(output_path / "user_predicted_tapes.yaml") as saver: 
+    with stream_yaml_tapes(output_path / "user_predicted_tapes.yaml") as saver:
         for tape in tqdm(predicted_tapes, desc="Saving predicted tapes"):
             saver.save(tape)
 
     if failed_tapes:
-        with stream_yaml_tapes(output_path / "user_failed_tapes.yaml") as saver: 
+        with stream_yaml_tapes(output_path / "user_failed_tapes.yaml") as saver:
             for tape in tqdm(failed_tapes, desc="Saving failed tapes"):
                 saver.save(tape)
 

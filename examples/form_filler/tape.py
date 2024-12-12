@@ -1,13 +1,22 @@
+import json
+import os
 from datetime import datetime
 from typing import Any, Iterator, Tuple
-from pydantic import BaseModel, Field, TypeAdapter
-import json
 
-from tapeagents.core import Tape, TapeMetadata, Thought, Observation, Action
-from tapeagents.dialog_tape import UserStep, AssistantStep
+from pydantic import BaseModel, Field
 
-from examples.form_filler.steps import *
-from examples.form_filler.schema import FunctionSchema
+from tapeagents.core import Action, Observation, Tape, TapeMetadata, Thought
+from tapeagents.dialog_tape import AssistantStep, UserStep
+
+from .schema import FunctionSchema
+from .steps import (
+    I_NOTE_STEPS,
+    I_SHOULD_STEPS,
+    FormFillerStep,
+    FunctionCandidates,
+    RequestFunctionParameters,
+    UpdateFunctionParameters,
+)
 
 
 class FormFillerContext(BaseModel):
@@ -21,13 +30,13 @@ class FormFillerAgentMetadata(TapeMetadata):
 
 class FormFillerUserMetadata(TapeMetadata):
     last_agent_tape_id: str | None = None
-    user_behavior: str = ''
-    user_secondary_behavior: str = ''
+    user_behavior: str = ""
+    user_secondary_behavior: str = ""
     other: dict[str, Any] = {}
 
 
 class FormFillerTape(Tape[FormFillerContext, FormFillerStep]):
-    metadata: FormFillerAgentMetadata | FormFillerUserMetadata = Field(default_factory=FormFillerAgentMetadata)
+    metadata: FormFillerAgentMetadata | FormFillerUserMetadata = Field(default_factory=FormFillerAgentMetadata)  # type: ignore
 
     def get_context_and_predicted_steps(self) -> Tuple[Iterator[FormFillerStep], Iterator[FormFillerStep]]:
         """
@@ -50,15 +59,15 @@ class FormFillerTape(Tape[FormFillerContext, FormFillerStep]):
 
         # put back the steps in order
         return reversed(context_steps), reversed(predicted_steps)
-    
+
     @property
     def predicted_steps(self) -> Iterator[FormFillerStep]:
         return self.get_context_and_predicted_steps()[1]
-    
+
     @property
     def context_steps(self) -> Iterator[FormFillerStep]:
         return self.get_context_and_predicted_steps()[0]
-    
+
     @property
     def last_action(self) -> Action | None:
         for step in reversed(self.steps):
@@ -125,7 +134,7 @@ class FormFillerTape(Tape[FormFillerContext, FormFillerStep]):
             if isinstance(step, FunctionSchema):
                 return step
         return None
-    
+
     @property
     def intent_is_discovered(self) -> bool:
         return self.function_schema_step is not None
@@ -154,10 +163,10 @@ class FormFillerTape(Tape[FormFillerContext, FormFillerStep]):
         messages = []
         for step in self.steps:
             if isinstance(step, UserStep):
-                messages.append(f'User: {step.content}')
+                messages.append(f"User: {step.content}")
             elif isinstance(step, AssistantStep):
-                messages.append(f'Agent: {step.content}')
-        return '\n'.join(messages)
+                messages.append(f"Agent: {step.content}")
+        return "\n".join(messages)
 
 
 def prepare_formfiller_template_variables(tape: FormFillerTape) -> dict[str, Any]:
@@ -165,11 +174,10 @@ def prepare_formfiller_template_variables(tape: FormFillerTape) -> dict[str, Any
     Prepare common template variables from a form filler tape that are mainly used for making prompts
     """
     template_values = {
-        "current_date": datetime.now().strftime("%Y-%m-%d"),
-        "current_function_schema": tape.function_schema_step.model_dump_json(
-            indent=2,
-            exclude={"return_value"}
-        ) if tape.function_schema_step else "< Not available >",
+        "current_date": os.environ.get("TAPEAGENTS_MOCK_DATE", datetime.now().strftime("%Y-%m-%d")),
+        "current_function_schema": tape.function_schema_step.model_dump_json(indent=2, exclude={"return_value"})
+        if tape.function_schema_step
+        else "< Not available >",
         "current_parameter": "",
         "filled_parameters": {},
         "skipped_parameters": set(),
@@ -208,8 +216,10 @@ def prepare_formfiller_template_variables(tape: FormFillerTape) -> dict[str, Any
         if function_schema_step is not None:
             function_parameters = function_schema_step.parameter_names
             next_parameter_to_request = [
-                parameter for parameter in function_parameters 
-                if parameter not in template_values["filled_parameters"] and parameter not in template_values["skipped_parameters"]
+                parameter
+                for parameter in function_parameters
+                if parameter not in template_values["filled_parameters"]
+                and parameter not in template_values["skipped_parameters"]
             ]
             if next_parameter_to_request:
                 template_values["current_parameter"] = next_parameter_to_request[0]
@@ -228,6 +238,8 @@ def prepare_formfiller_template_variables(tape: FormFillerTape) -> dict[str, Any
     # remove last agent message and last user message from conversation history
     if len(template_values["dialogue_history"]) > 1:
         template_values["dialogue_history"] = template_values["dialogue_history"][:-2]
-    template_values["dialogue_history"] = "\n".join(template_values["dialogue_history"]) or "No dialogue history so far."
+    template_values["dialogue_history"] = (
+        "\n".join(template_values["dialogue_history"]) or "No dialogue history so far."
+    )
 
     return template_values

@@ -1,30 +1,29 @@
-from functools import lru_cache
 import logging
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
 
-from examples.form_filler.tape import FormFillerTape
-from examples.form_filler.steps import Exit, FunctionCandidates, FunctionCandidate, ResolveFunction, InspectFunction, CallFunction
-from examples.form_filler.schema import FunctionSchema
-from examples.form_filler.types import FunctionName
-
-from tapeagents.environment import Environment, NoActionsToReactTo
 from tapeagents.core import Error
 from tapeagents.dialog_tape import AssistantStep
+from tapeagents.environment import Environment, NoActionsToReactTo
 
+from .schema import FunctionSchema
+from .steps import CallFunction, Exit, FunctionCandidate, FunctionCandidates, InspectFunction, ResolveFunction
+from .tape import FormFillerTape
+from .types import FunctionName
 
 logger = logging.getLogger(__name__)
 
 
 @lru_cache
 def load_schemas(path: Path) -> list[FunctionSchema]:
-    logger.debug(f"Cache miss: loading schemas from {path}")  
+    logger.debug(f"Cache miss: loading schemas from {path}")
     result = []
-    if path.is_dir():  
-        for file_path in path.resolve().glob('**/*.yaml'):
+    if path.is_dir():
+        for file_path in path.resolve().glob("**/*.yaml"):
             result.extend(load_schemas(file_path))
-    else:    
+    else:
         with open(path) as f:
             for obj in yaml.safe_load_all(f):
                 result.append(FunctionSchema.model_validate(obj))
@@ -32,7 +31,6 @@ def load_schemas(path: Path) -> list[FunctionSchema]:
 
 
 class FormFillerEnvironment(Environment[FormFillerTape]):
-
     def __init__(self, available_schemas: dict[FunctionName, FunctionSchema]):
         self.available_schemas: dict[FunctionName, FunctionSchema] = available_schemas
 

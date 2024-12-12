@@ -1,35 +1,32 @@
-from collections import Counter
-from datetime import datetime
 import json
 import logging
 import math
-from pathlib import Path
 import random
 import shutil
 import traceback
+from collections import Counter
+from datetime import datetime
+from pathlib import Path
 from typing import Any, Generator, Literal
 
 import hydra
-from omegaconf import DictConfig
-from pydantic import BaseModel
 from hydra.core.global_hydra import GlobalHydra
 from hydra.utils import instantiate
+from omegaconf import DictConfig
+from pydantic import BaseModel
 from tqdm import tqdm
-
-from examples.form_filler.error import UnknownError
-from examples.form_filler.scripts.run_formfiller_agent import run_formfiller_agent
-from examples.form_filler.scripts.run_user_simulator import run_user_simulator_agent
-from examples.form_filler.tape import FormFillerAgentMetadata, FormFillerContext, FormFillerTape
-from examples.form_filler.user_simulator_agent import UserSimulatorAgent
-from examples.form_filler.user_simulator_agent import UserSimulatorTape
 
 from tapeagents.agent import Agent
 from tapeagents.core import Error
-from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.dialog_tape import AssistantStep
+from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.parallel_processing import lazy_thread_pool_processor
 
-
+from ..error import UnknownError
+from ..tape import FormFillerAgentMetadata, FormFillerContext, FormFillerTape
+from ..user_simulator_agent import UserSimulatorAgent, UserSimulatorTape
+from .run_formfiller_agent import run_formfiller_agent
+from .run_user_simulator import run_user_simulator_agent
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +39,7 @@ def export_merged_dialogues(output_path: Path, num_layer):
     all_formfiller_agent_successes: list[FormFillerTape] = []
     all_formfiller_agent_failures: list[FormFillerTape] = []
     for i in range(num_layer):
-        logger.info(f'Processing layer {i}')
+        logger.info(f"Processing layer {i}")
 
         if i % 2 == 0:  # user layer
             all_formfiller_user_tapes.extend(
@@ -68,7 +65,9 @@ def export_merged_dialogues(output_path: Path, num_layer):
         "formfiller_user_tapes.yaml": Counter(),
         "user_simulator_tapes.yaml": Counter(),
     }
-    logger.info(f'Saving {len(all_formfiller_agent_successes)} successful agent forks to {output_path / "formfiller_agent_tapes.yaml"}')
+    logger.info(
+        f'Saving {len(all_formfiller_agent_successes)} successful agent forks to {output_path / "formfiller_agent_tapes.yaml"}'
+    )
     with stream_yaml_tapes(output_path / "formfiller_agent_tapes.yaml") as saver:
         for tape in all_formfiller_agent_successes:
             stats["formfiller_agent_tapes.yaml"][tape.last_action.kind] += 1
@@ -76,7 +75,9 @@ def export_merged_dialogues(output_path: Path, num_layer):
 
     if all_formfiller_agent_failures:
         stats["formfiller_agent_tape_failures.yaml"] = Counter()
-        logger.info(f'Saving {len(all_formfiller_agent_failures)} failed agent forks to {output_path / "formfiller_agent_tape_failures.yaml"}')
+        logger.info(
+            f'Saving {len(all_formfiller_agent_failures)} failed agent forks to {output_path / "formfiller_agent_tape_failures.yaml"}'
+        )
         with stream_yaml_tapes(output_path / "formfiller_agent_tape_failures.yaml") as saver:
             for tape in all_formfiller_agent_failures:
                 stats["formfiller_agent_tape_failures.yaml"][tape.last_action.kind] += 1
@@ -103,6 +104,7 @@ class Layer(BaseModel):
     """
     Layer definitions for user and agent
     """
+
     who: Literal["user", "agent"]
     count: int
     probs: dict[str, float] = {}
@@ -118,9 +120,7 @@ def delete_layer_dialogues(output_path: Path, layer_idx: int):
     return False
 
 
-def resume_last_completed_layer(
-    output_path: Path, force_restart_idx: int = -1
-) -> tuple[int, list[FormFillerTape]]:
+def resume_last_completed_layer(output_path: Path, force_restart_idx: int = -1) -> tuple[int, list[FormFillerTape]]:
     """
     Return the last completed layer's dialogues and index
     Layers are marked as done by creating a file named 'DONE' in the layer folder.
@@ -146,8 +146,8 @@ def resume_last_completed_layer(
     logger.info(f"-> Last completed layer: {last_completed_layer_idx}")
     if last_completed_layer_idx >= 0:
         # Load dialogues from last completed layer
-        last_completed_layer_dialogues = load_tapes(FormFillerTape, 
-            Path(output_path) / f"layer_{last_completed_layer_idx}" / "data.yaml"
+        last_completed_layer_dialogues = load_tapes(
+            FormFillerTape, Path(output_path) / f"layer_{last_completed_layer_idx}" / "data.yaml"
         )
     return last_completed_layer_idx, last_completed_layer_dialogues
 
@@ -162,13 +162,13 @@ def parse_layers(layer_objs: list[dict[str, Any]], global_count: int = -1) -> li
     previous_layer = None
     for layer_obj in layer_objs:
         if layer_obj.get("probs") == "same":
-            assert layer_obj["who"] == "user", f"copy_probs is only supported for user layers"
-            assert previous_user_layer is not None, f"No previous user layer to copy probabilities from"
+            assert layer_obj["who"] == "user", "copy_probs is only supported for user layers"
+            assert previous_user_layer is not None, "No previous user layer to copy probabilities from"
             layer_obj["probs"] = previous_user_layer.probs
         if global_count >= 0:
             layer_obj["count"] = global_count
         elif layer_obj.get("count") == "same":
-            assert previous_layer is not None, f"No previous layer to copy count from"
+            assert previous_layer is not None, "No previous layer to copy count from"
             layer_obj["count"] = previous_layer.count
 
         layer = Layer.model_validate(layer_obj)
@@ -189,8 +189,7 @@ def make_tape_tree(
     previous_layer_idx: int = -1,  # -1 if no previous layer
     previous_layer_dialogues: list[FormFillerTape] = [],  # must be empty at first layer
     num_workers: int = 0,
-) -> Generator[tuple[int, list[FormFillerTape], list[FormFillerTape], list[UserSimulatorTape]|None], None, None]:
-
+) -> Generator[tuple[int, list[FormFillerTape], list[FormFillerTape], list[UserSimulatorTape] | None], None, None]:
     if previous_layer_idx == -1:
         assert not previous_layer_dialogues, "previous_layer_dialogues must be empty at the first layer"
 
@@ -204,9 +203,7 @@ def make_tape_tree(
                     env_spec=env_spec,
                     date=str(datetime.now().date()),
                 ),
-                steps=[
-                    AssistantStep(content="Hi, how can I help you?")
-                ],
+                steps=[AssistantStep(content="Hi, how can I help you?")],
             )
         ]
     else:
@@ -224,7 +221,6 @@ def make_tape_tree(
         logger.info(f"*************** Processing Layer {current_layer_idx} ***************")
 
         if layer.who == "user":
-
             # (1) get all the tapes that each user behavior can continue
             continuable_tapes_per_behavior = {}
             for behavior in layer.probs:
@@ -236,19 +232,30 @@ def make_tape_tree(
                     if user_simulator_agent.can_continue(tape):
                         continuable_tapes.append(tape)
                     else:
-                        pass #logger.debug(f"Skipping tape {tape.metadata.id} as it is not continuable")
-                logger.info(f"Continuable tapes for behavior {behavior}: {len(continuable_tapes)}/{len(previous_layer_dialogues)} total tapes")
+                        pass  # logger.debug(f"Skipping tape {tape.metadata.id} as it is not continuable")
+                logger.info(
+                    f"Continuable tapes for behavior {behavior}: {len(continuable_tapes)}/{len(previous_layer_dialogues)} total tapes"
+                )
 
                 random.shuffle(continuable_tapes)  # shuffle in place
 
                 continuable_tapes_per_behavior[behavior] = continuable_tapes
-            assert sum(map(len, continuable_tapes_per_behavior.values())) > 0, "No continuable tapes found for any behavior"
+            assert (
+                sum(map(len, continuable_tapes_per_behavior.values())) > 0
+            ), "No continuable tapes found for any behavior"
 
             # (2) compute the number of tapes to continue for each behavior based on the config probs
-            continuable_counts = {behavior: prob for behavior, prob in layer.probs.items() if continuable_tapes_per_behavior[behavior]}
-            behavior_counts = {behavior: math.ceil(layer.count * prob / sum(continuable_counts.values())) for behavior, prob in continuable_counts.items()}
-            logger.info(f'Will continue these behaviors with these counts: {behavior_counts}')
-            logger.info(f'These behaviors could not be continued: {set(layer.probs.keys()) - set(behavior_counts.keys())}')
+            continuable_counts = {
+                behavior: prob for behavior, prob in layer.probs.items() if continuable_tapes_per_behavior[behavior]
+            }
+            behavior_counts = {
+                behavior: math.ceil(layer.count * prob / sum(continuable_counts.values()))
+                for behavior, prob in continuable_counts.items()
+            }
+            logger.info(f"Will continue these behaviors with these counts: {behavior_counts}")
+            logger.info(
+                f"These behaviors could not be continued: {set(layer.probs.keys()) - set(behavior_counts.keys())}"
+            )
 
             # (3) generate the user simulator tapes
             user_simulator_tapes = []
@@ -264,12 +271,13 @@ def make_tape_tree(
                 logger.info(f"Continuable tapes after repeating: {len(continuable_tapes)}")
 
                 try:
-
-                    for i, (exception, form_filler_tape, user_simulator_tape) in enumerate(lazy_thread_pool_processor(
+                    for i, (exception, form_filler_tape, user_simulator_tape) in enumerate(
+                        lazy_thread_pool_processor(
                             stream=tqdm(continuable_tapes, desc=f"Making User Layer with behavior {behavior}"),
                             worker_func=lambda tape: run_user_simulator_agent(tape, user_simulator_agent),
                             n_workers=num_workers,
-                    )):
+                        )
+                    ):
                         if i >= behavior_count:
                             logger.warning(f"Reached limit of behavior_count={behavior_count}")
                             break
@@ -280,26 +288,28 @@ def make_tape_tree(
                             logger.error(f"Tape {form_filler_tape.metadata.id} failed with error: {exception}")
                             logger.exception(exception, exc_info=exception)
                             current_layer_failures.append(form_filler_tape)
-                        elif any(isinstance(step, Error) for step in form_filler_tape.steps):  # should not happen since input formfiller_tapes are valid and we only add a UserStep
+                        elif any(
+                            isinstance(step, Error) for step in form_filler_tape.steps
+                        ):  # should not happen since input formfiller_tapes are valid and we only add a UserStep
                             logger.error(f"Tape {form_filler_tape.metadata.id} had LLM parsing failure")
                             current_layer_failures.append(form_filler_tape)
                         else:
-                            logger.debug(f"Successfully continued tape {form_filler_tape.metadata.id} with {form_filler_tape.metadata.n_added_steps} steps")
+                            logger.debug(
+                                f"Successfully continued tape {form_filler_tape.metadata.id} with {form_filler_tape.metadata.n_added_steps} steps"
+                            )
                             current_layer_dialogues.append(form_filler_tape)
 
-                except Exception as e:
+                except Exception:
                     logger.error(f"Skipped behavior {behavior}")
                     traceback.print_exc()
 
             yield current_layer_idx, current_layer_dialogues, current_layer_failures, user_simulator_tapes
 
-
         elif layer.who == "agent":
-
             for result in lazy_thread_pool_processor(
-                    stream=tqdm(previous_layer_dialogues, desc='Making Agent Layer'),
-                    worker_func=lambda tape: run_formfiller_agent(tape, agent),
-                    n_workers=num_workers,
+                stream=tqdm(previous_layer_dialogues, desc="Making Agent Layer"),
+                worker_func=lambda tape: run_formfiller_agent(tape, agent),
+                n_workers=num_workers,
             ):
                 if isinstance(result, Exception):
                     logger.exception(f"Error while running lazy_thread_pool_processor: {result}", exc_info=result)
@@ -308,7 +318,9 @@ def make_tape_tree(
                     input_tape, result = result
                     if isinstance(result, Exception):
                         logger.exception(f"Error while running run_formfiller_agent: {result}", exc_info=result)
-                        predicted_tape = input_tape.model_copy(update=dict(steps=input_tape.steps + [UnknownError(message=str(result))]))
+                        predicted_tape = input_tape.model_copy(
+                            update=dict(steps=input_tape.steps + [UnknownError(message=str(result))])
+                        )
                     else:
                         predicted_tape = result
 
@@ -317,7 +329,9 @@ def make_tape_tree(
                     logger.error(f"Agent failed to complete tape {predicted_tape.metadata.id}")
                 else:
                     current_layer_dialogues.append(predicted_tape)
-                    logger.debug(f"Agent successfully completed tape {predicted_tape.metadata.id} with {predicted_tape.metadata.n_added_steps} steps")
+                    logger.debug(
+                        f"Agent successfully completed tape {predicted_tape.metadata.id} with {predicted_tape.metadata.n_added_steps} steps"
+                    )
 
             yield current_layer_idx, current_layer_dialogues, current_layer_failures, None
 
@@ -332,7 +346,7 @@ def main(cfg: DictConfig):
     # Initialize the agent
     agent = instantiate(cfg.agent)
 
-    if agent.llm.parameters['temperature'] < 0.2:
+    if agent.llm.parameters["temperature"] < 0.2:
         raise ValueError("Completion engine temperature must be >= 0.2")
 
     # Parse all layer specifications
@@ -340,7 +354,7 @@ def main(cfg: DictConfig):
     num_workers: int = cfg.num_workers
 
     # Instantiate all user simulator agents
-    logger.info(f"Instantiating all user simulator agents")
+    logger.info("Instantiating all user simulator agents")
     user_simulator_agents: dict[str, UserSimulatorAgent] = {}
     GlobalHydra.instance().clear()
     hydra.initialize(config_path="../conf", version_base="1.2")
@@ -356,7 +370,7 @@ def main(cfg: DictConfig):
                     ],
                 )
                 user_simulator_agents[behavior_name] = instantiate(my_cfg.user_simulator_agent)
-                if user_simulator_agents[behavior_name].llm.parameters['temperature'] < 0.2:  # type: ignore
+                if user_simulator_agents[behavior_name].llm.parameters["temperature"] < 0.2:  # type: ignore
                     raise ValueError("User completion engine temperature must be >= 0.2")
 
     logger.info(f"-> {len(user_simulator_agents)} user simulator agents instantiated")
@@ -378,12 +392,20 @@ def main(cfg: DictConfig):
     ):
         # Save tapes
         logger.info(f"Saving dialogues from layer {current_layer_idx} at {cfg.output_path}")
-        save_layer_dialogues(cfg.output_path, current_layer_idx, current_layer_dialogues, current_layer_failures, user_simulator_tapes)
+        save_layer_dialogues(
+            cfg.output_path, current_layer_idx, current_layer_dialogues, current_layer_failures, user_simulator_tapes
+        )
 
     export_merged_dialogues(cfg.output_path, num_layer=len(layers))
 
 
-def save_layer_dialogues(output_path: Path, layer_idx: int, dialogues: list[FormFillerTape], failures: list[FormFillerTape], user_simulator_tapes: list[UserSimulatorTape] | None = None):
+def save_layer_dialogues(
+    output_path: Path,
+    layer_idx: int,
+    dialogues: list[FormFillerTape],
+    failures: list[FormFillerTape],
+    user_simulator_tapes: list[UserSimulatorTape] | None = None,
+):
     layer_path = Path(output_path) / f"layer_{layer_idx}"
     layer_path.mkdir(parents=True, exist_ok=True)
 
