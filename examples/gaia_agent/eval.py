@@ -143,7 +143,6 @@ def solve_task(
             for event in main_loop(agent, tape, env, max_loops=max_iterations):
                 if partial_tape := (event.agent_tape or event.env_tape):
                     tape = partial_tape
-                    tape.metadata = metadata
                     save_json_tape(tape, tapes_dir, f"{filename}_unfinished")
                 if n_search_repetitions(tape) >= 3:
                     break
