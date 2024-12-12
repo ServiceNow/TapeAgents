@@ -359,7 +359,7 @@ def main(cfg: DictConfig):
         # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
         logging.info("Removing leading white space from the model. This is necessary for DeepSeek models")
 
-    while state["iteration"] <= cfg.max_iterations:
+    while state["iteration"] < cfg.max_iterations:
         start_iteration = time.time()
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
@@ -442,6 +442,10 @@ def main(cfg: DictConfig):
             stats,
             step=state["iteration"],
         )
+
+        if state["iteration"] + 1 == cfg.max_iterations:
+            # No need to continue if we are at the final iteration
+            break
 
         start_basemodel_logprobs = time.time()
         try:
