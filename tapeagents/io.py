@@ -183,8 +183,15 @@ def load_tapes(tape_class: Type[TapeType], path: Path | str, file_extension: str
 
 def load_legacy_tapes(tape_class: Type[TapeType], path: Path | str, step_class: Type | TypeAdapter) -> list[TapeType]:
     tapes = []
-    data = load_tape_dicts(path, ".json")
-    for tape_dict in data:
+    tape_dicts = []
+    paths = sorted([os.path.join(path, f) for f in os.listdir(path) if f.endswith(".json")])
+    for path in paths:
+        try:
+            with open(path) as f:
+                tape_dicts.append(json.load(f))
+        except OSError as e:
+            logger.warning(f"Failed to load tape from {path}: {e}")
+    for tape_dict in tape_dicts:
         try:
             tape = tape_class.model_validate(tape_dict)
         except Exception:
