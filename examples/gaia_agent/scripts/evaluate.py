@@ -46,7 +46,7 @@ def main(cfg: DictConfig) -> None:
     n_workers = cfg.batch or 0
     processor = choose_processor(n_workers)
     args = [
-        (agent, llm, cfg.env, code_sandbox, task, cfg.exp_path, i, level)
+        (agent, cfg, code_sandbox, task, i, level)
         for level, level_tasks in tasks.items()
         for i, task in enumerate(level_tasks)
     ]
