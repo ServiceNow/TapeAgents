@@ -467,7 +467,7 @@ class SimpleBrowser(Multitool):
     observations: tuple[type[Observation], ...] = (PageObservation,)
     exp_path: str
     kwargs: dict[str, Any]
-    _browser: SimpleTextBrowser
+    _browser: SimpleTextBrowser = None  # type: ignore
 
     def model_post_init(self, __context: Any):
         self._browser = SimpleTextBrowser(**self.kwargs)

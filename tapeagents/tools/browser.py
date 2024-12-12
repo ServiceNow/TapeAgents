@@ -154,7 +154,6 @@ class ClickAction(Action):
 
 
 class Browser(Multitool):
-    _env: BrowserEnv
     actions: tuple[type[Action], ...] = (
         ClickAction,
         GotoPageAction,
@@ -168,6 +167,7 @@ class Browser(Multitool):
     )
     observations: tuple[type[Observation], ...] = (PageObservation,)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
+    _env: BrowserEnv = None  # type: ignore
 
     def __init__(
         self,
@@ -212,7 +212,7 @@ class Browser(Multitool):
             return self.action_map[action_type](action)
         raise ValueError(f"Unknown action: {action_type}")
 
-    def start_task(self, task_id: str, seed: int, **kwargs) -> dict:
+    def start_task(self, task_id: str = "tapeagents/new_task", seed: int = 1, **kwargs) -> dict:
         self._env = gym.make(
             task_id,
             headless=self.headless,

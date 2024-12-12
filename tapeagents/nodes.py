@@ -63,7 +63,7 @@ class MonoNode(Node):
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
     next_node: str = ""
-    _steps_type: Annotated
+    _steps_type: Any = None
 
     def model_post_init(self, __context: Any) -> None:
         self._steps_type = Annotated[Union[self.agent_steps], Field(discriminator="kind")]

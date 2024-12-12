@@ -42,29 +42,18 @@ class GaiaNode(MonoNode):
         """
         tape = super().prepare_tape(tape)  # type: ignore
         steps = []
-        for step in tape.steps[:-3]:
-            if isinstance(step, PageObservation):
-                short_text = f"{step.text[:max_chars]}\n..." if len(step.text) > max_chars else step.text
-                new_step = step.model_copy(update=dict(text=short_text))
-            elif isinstance(step, ActionExecutionFailure):
-                short_error = f"{step.error[:max_chars]}\n..." if len(step.error) > max_chars else step.error
-                new_step = step.model_copy(update=dict(error=short_error))
+        steps_border = -3
+        for step in tape.steps[:steps_border]:
+            if isinstance(step, PageObservation) and len(step.text) > max_chars:
+                trimmed_step = step.model_copy(update=dict(text=f"{step.text[:max_chars]}\n..."))
+            elif isinstance(step, ActionExecutionFailure) and len(step.error) > max_chars:
+                trimmed_step = step.model_copy(update=dict(error=f"{step.error[:max_chars]}\n..."))
             elif isinstance(step, VideoObservation):
-                new_step = step.model_copy(update=dict(video_contact_sheet_paths=None, subtitle_text=None))
+                trimmed_step = step.model_copy(update=dict(video_contact_sheet_paths=None, subtitle_text=None))
             else:
-                new_step = step
-            steps.append(new_step)
-        trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[-3:]))
-        return trimmed_tape
-
-    def parse_completion(self, llm_output: str, prompt_id: str):
-        if llm_output.strip().startswith("```"):
-            code_blocks = extract_code_blocks(llm_output)
-            for code_block in code_blocks:
-                yield PythonCodeAction(code=code_block.code)
-        else:
-            for step in super().parse_completion(llm_output, prompt_id):
-                yield step
+                trimmed_step = step
+            steps.append(trimmed_step)
+        return tape.model_copy(update=dict(steps=steps + tape.steps[steps_border:]))
 
 
 class GaiaAgent(Agent):

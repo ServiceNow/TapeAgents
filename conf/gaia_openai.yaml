@@ -7,9 +7,6 @@ exp_path: outputs/gaia/runs/${exp_name}
 split: validation
 batch: 1
 
-level: 1
-task: 0
-
 agent:
   plain_code: false
 
