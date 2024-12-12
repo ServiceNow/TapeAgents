@@ -309,10 +309,10 @@ class CachedLLM(LLM):
     def _add_to_cache(self, key: str, event_dict: dict):
         if not self.use_cache:
             return
+        if key not in self._cache:
+            self._cache[key] = []
+        self._cache[key].append(event_dict)
         with cache_write_lock:
-            if key not in self._cache:
-                self._cache[key] = []
-            self._cache[key].append(event_dict)
             with open(self._cache_file, "a") as f:
                 f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 

@@ -4,6 +4,8 @@ import os
 import threading
 from typing import Any, Callable
 
+from termcolor import colored
+
 _CACHE_PATH = "tool_cache.jsonl"
 _FORCE_CACHE = False
 _cache = {}
@@ -29,21 +31,22 @@ def cached_tool(tool_fn) -> Callable:
 
 
 def get_from_cache(fn_name: str, args: tuple, kwargs: dict) -> Any:
-    with lock:
-        if _FORCE_CACHE:
-            assert os.path.exists(_CACHE_PATH), f"Cache file {_CACHE_PATH} does not exist"
-        if not _cache and os.path.exists(_CACHE_PATH):
-            with open(_CACHE_PATH, "r") as f:
-                for line in f:
-                    data = json.loads(line)
-                    tool_cache = _cache.get(data["fn_name"], {})
-                    key = json.dumps((data["args"], data["kwargs"]), sort_keys=True)
-                    tool_cache[key] = data["result"]
-                    _cache[data["fn_name"]] = tool_cache
+    if _FORCE_CACHE:
+        assert os.path.exists(_CACHE_PATH), f"Cache file {_CACHE_PATH} does not exist"
+    if not _cache and os.path.exists(_CACHE_PATH):
+        with open(_CACHE_PATH, "r") as f:
+            for line in f:
+                data = json.loads(line)
+                tool_cache = _cache.get(data["fn_name"], {})
+                key = json.dumps((data["args"], data["kwargs"]), sort_keys=True)
+                tool_cache[key] = data["result"]
+                _cache[data["fn_name"]] = tool_cache
     key = json.dumps((args, kwargs), sort_keys=True)
     result = _cache.get(fn_name, {}).get(key)
     if result is not None:
-        logger.debug(f"Cache hit for {fn_name} with args {args} and kwargs {kwargs}")
+        logger.info(colored(f"Tool cache hit '{fn_name}', args {args}, kwargs {kwargs}", "green"))
+    else:
+        logger.info(colored(f"Tool cache miss '{fn_name}', args {args}, kwargs {kwargs}", "yellow"))
     return result
 
 
@@ -55,14 +58,4 @@ def add_to_cache(fn_name: str, args: tuple, kwargs: dict, result: Any):
     _cache[fn_name] = tool_cache
     with lock:
         with open(_CACHE_PATH, "a") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "fn_name": fn_name,
-                        "args": args,
-                        "kwargs": kwargs,
-                        "result": result,
-                    }
-                )
-                + "\n"
-            )
+            f.write(json.dumps({"fn_name": fn_name, "args": args, "kwargs": kwargs, "result": result}) + "\n")

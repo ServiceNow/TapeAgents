@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import threading
 import time
 from typing import Literal
 
@@ -10,23 +9,21 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Tool
-from tapeagents.utils import FatalError, acquire_timeout
+from tapeagents.utils import FatalError
 
 logger = logging.getLogger(__name__)
 
-search_lock = threading.Lock()
-
 
 def web_search(query: str, max_results: int = 5, timeout_sec: int = 5) -> list[dict]:
-    with acquire_timeout(search_lock, timeout_sec):
-        results = []
-        attempts = 3
-        while not results and attempts > 0:
-            attempts -= 1
-            try:
-                results = serper_search(query, max_results=max_results)
-            except Exception as e:
-                logger.warning(f"Failed to fetch search results: {e}")
+    results = []
+    attempts = 3
+    while not results and attempts > 0:
+        attempts -= 1
+        try:
+            results = serper_search(query, max_results=max_results)
+        except Exception as e:
+            logger.warning(f"Failed to fetch search results: {e}")
+        if not results:
             time.sleep(1)
     return results
 

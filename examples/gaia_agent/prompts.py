@@ -47,6 +47,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
     3. Facts to derive
     4. Educated guesses
 
+Respond with facts_survey_thought.
 {short_format_instruction}
 """
 

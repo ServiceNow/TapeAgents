@@ -374,9 +374,10 @@ class SimpleTextBrowser:
                 f.write(json.dumps(item) + "\n")
         self._cache_buffer = []
 
-    def flush_log(self, browser_log_path: str):
-        with flush_lock:
-            if len(self._log):
+    def flush_log(self, exp_dir: str):
+        browser_log_path = os.path.join(exp_dir, "browser_log.jsonl")
+        if len(self._log):
+            with flush_lock:
                 with open(browser_log_path, "a") as wf:
                     for line in self._log:
                         wf.write(json.dumps(line) + "\n")
@@ -487,4 +488,4 @@ class SimpleBrowser(Multitool):
         return obs
 
     def close(self) -> None:
-        self._browser.flush_log(os.path.join(self.exp_path, "browser_log.jsonl"))
+        self._browser.flush_log(self.exp_path)
