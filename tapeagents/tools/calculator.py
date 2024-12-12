@@ -169,6 +169,6 @@ class Calculator(Tool):
     action: type[Action] = UseCalculatorAction
     observation: type[Observation] = CalculationResultObservation
 
-    def run(self, action: UseCalculatorAction) -> CalculationResultObservation:
+    def execute_action(self, action: UseCalculatorAction) -> CalculationResultObservation:
         result = calculate(action.expression, action.facts or {})
         return CalculationResultObservation(name=action.fact_name, result=result)

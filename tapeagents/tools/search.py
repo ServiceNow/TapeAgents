@@ -77,7 +77,7 @@ class Search(Tool):
     observation: type[Observation] = SearchResultsObservation
     cached: bool = True
 
-    def run(self, action: SearchAction) -> SearchResultsObservation:
+    def execute_action(self, action: SearchAction) -> SearchResultsObservation:
         if action.source == "wiki":
             query = f"site:wikipedia.org {action.query}"
         elif action.source == "youtube":

@@ -41,7 +41,8 @@ def get_from_cache(fn_name: str, args: tuple, kwargs: dict) -> Any:
                     _cache[data["fn_name"]] = tool_cache
     key = json.dumps((args, kwargs), sort_keys=True)
     result = _cache.get(fn_name, {}).get(key)
-    logger.info(f"Cache hit for {fn_name} with args {args} and kwargs {kwargs}: {result is not None}")
+    if result is not None:
+        logger.debug(f"Cache hit for {fn_name} with args {args} and kwargs {kwargs}")
     return result
 
 

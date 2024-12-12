@@ -30,7 +30,7 @@ class CodeExecutor(Tool):
     cached: bool = True
     _sandbox: ContainerExecutor | None = None
 
-    def run(self, action: PythonCodeAction) -> CodeExecutionResult:
+    def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
         code = self._add_print_to_last_line(action.code)
         if self._sandbox is None:
             logger.warning(f"Code sandbox is not provided, running code locally!\n{code}")

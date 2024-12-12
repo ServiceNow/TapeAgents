@@ -1,6 +1,6 @@
 import os
 from time import sleep
-from typing import Callable, Literal
+from typing import Literal
 from uuid import uuid4
 
 import gymnasium as gym
@@ -155,7 +155,7 @@ class ClickAction(Action):
 
 class Browser(Multitool):
     _env: BrowserEnv
-    actions: list[type[Action]] = [
+    actions: tuple[type[Action], ...] = (
         ClickAction,
         GotoPageAction,
         GoBackAction,
@@ -165,7 +165,8 @@ class Browser(Multitool):
         PressAction,
         ScrollAction,
         SelectOptionAction,
-    ]
+    )
+    observations: tuple[type[Observation], ...] = (PageObservation,)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
 
     def __init__(
@@ -204,6 +205,12 @@ class Browser(Multitool):
             os.makedirs(self.traces_dir, exist_ok=True)
             os.makedirs(self.record_video_dir, exist_ok=True)
             os.makedirs(self.screenshots_dir, exist_ok=True)
+
+    def execute_action(self, action: Action) -> PageObservation:
+        action_type = type(action)
+        if action_type in self.action_map:
+            return self.action_map[action_type](action)
+        raise ValueError(f"Unknown action: {action_type}")
 
     def start_task(self, task_id: str, seed: int, **kwargs) -> dict:
         self._env = gym.make(

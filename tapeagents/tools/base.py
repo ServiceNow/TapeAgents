@@ -28,19 +28,24 @@ class Tool(BaseModel):
 
     def run(self, action: Action) -> Observation:
         assert isinstance(action, self.action)
+        tool_name = self.__class__.__name__
         if self.cached:
-            obs_dict = get_from_cache(self.__name__, args=(), kwargs=action.llm_dict())
+            logger.debug(f"Checking cache for {tool_name}")
+            obs_dict = get_from_cache(tool_name, args=(), kwargs=action.llm_dict())
             if obs_dict:
+                logger.debug(f"Cache hit for {tool_name}")
                 return self.observation.model_validate(obs_dict)
         try:
             observation = self.execute_action(action)
             if self.cached:
-                add_to_cache(self.__name__, args=(), kwargs=action.llm_dict(), result=observation.llm_dict())
+                logger.debug(f"Adding to cache for {tool_name}")
+                add_to_cache(tool_name, args=(), kwargs=action.llm_dict(), result=observation.llm_dict())
         except FatalError:
             raise
         except Exception as e:
             logger.error(f"Action failure: {e}")
-            observation = ActionExecutionFailure(error=str(e))
+            short_error = str(e)[:1000]
+            observation = ActionExecutionFailure(error=short_error)
         assert isinstance(observation, (self.observation, ActionExecutionFailure))
         return observation
 
