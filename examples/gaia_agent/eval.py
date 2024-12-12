@@ -9,12 +9,10 @@ from typing import Any, Counter
 import yaml
 from huggingface_hub import snapshot_download
 from pdf2image import convert_from_path
-from termcolor import colored
 
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.io import load_tapes, save_json_tape, save_tape_images
 from tapeagents.orchestrator import main_loop
-from tapeagents.renderers import step_view
 from tapeagents.tools.search import SearchAction
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 
@@ -61,7 +59,7 @@ def calculate_accuracy(tapes: list[GaiaTape]):
         if not tape.metadata.result:
             empty += 1
         accs.append(int(tape_correct(tape)))
-    accuracy = sum(accs) * 100 / len(accs)
+    accuracy = (sum(accs) * 100 / len(accs)) if accs else 0.0
     return accuracy, sum(accs), len(accs), empty
 
 
