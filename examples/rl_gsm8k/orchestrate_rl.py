@@ -307,6 +307,8 @@ def generate_training_data(
             / (end_sampling_from_llm - start_sampling_from_llm),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
+            f"{split_name}_prompt_tokens": prompt_tokens,
+            f"{split_name}_output_tokens": output_tokens,
         },
     }
     return new_tapes, training_samples, stats
@@ -429,6 +431,8 @@ def main(cfg: DictConfig):
 
         logger.info(f"Collected {len(training_samples)} training samples")
         stats = all_results["train"]["stats"]
+        llm_logs = {f"llm/{k}": v for k, v in llm.get_logs().items()}
+        stats.update(llm_logs)
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
             stats.update(all_results["test"]["stats"])
             time_evaluation = stats["execution_time/test_make_data"]

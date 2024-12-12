@@ -4,6 +4,7 @@ Wrapper for interacting with external and hosted large language models (LLMs).
 
 from __future__ import annotations
 
+from collections import defaultdict
 import datetime
 import hashlib
 import json
@@ -24,6 +25,7 @@ from litellm.types.utils import ChatCompletionTokenLogprob, ChoiceLogprobs, TopL
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
+import numpy as np
 
 from .config import DB_DEFAULT_FILENAME
 from .core import LLMOutput, Prompt, TrainingText
@@ -496,6 +498,7 @@ class TrainableLLM(CachedLLM):
     collect_logprobs: bool = False
     # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
     remove_leading_white_space: bool = False
+    logs: dict = defaultdict(list)
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -521,6 +524,7 @@ class TrainableLLM(CachedLLM):
             )
         base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
         logger.debug(f"POST request to {base_url}/v1/chat/completions")
+        start_send_request = time.time()
         r = requests.post(
             url=f"{base_url}/v1/chat/completions",
             json=data | self.parameters,
@@ -528,6 +532,8 @@ class TrainableLLM(CachedLLM):
             stream=self.stream,
             verify=False,
         )
+        time_send_request = time.time() - start_send_request
+        self.logs["time_send_request"].append(time_send_request)
         if not r.ok:
             logger.error(f"Failed to get completion: {r.text}")
             r.raise_for_status()
@@ -573,6 +579,11 @@ class TrainableLLM(CachedLLM):
                 raise e
         self.log_output(prompt, output)
         yield LLMEvent(output=output)
+
+    def get_logs(self) -> dict:
+        return {
+            "time_send_request": np.mean(self.logs["time_send_request"]) if self.logs["time_send_request"] else 0,
+        }
 
     def load_tokenizer(self):
         """
