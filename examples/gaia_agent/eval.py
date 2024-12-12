@@ -47,7 +47,8 @@ def calculate_accuracy(tapes: list[GaiaTape]):
     best_tapes = []
     attempts = defaultdict(list)
     for tape in tapes:
-        attempts[tape.metadata.task["task_id"]].append(tape)
+        if tape.metadata.finished:
+            attempts[tape.metadata.task["task_id"]].append(tape)
     for task_attempts in attempts.values():
         results = [tape.metadata.result for tape in task_attempts]
         best_idx = majority_vote(results)
