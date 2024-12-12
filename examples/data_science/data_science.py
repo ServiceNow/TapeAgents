@@ -102,7 +102,7 @@ def make_renderers() -> dict[str, BasicRenderer]:
 def main(studio: bool):
     now = f"{datetime.datetime.now():%Y%m%d%H%M%S}"
     work_dir = f"outputs/data_science/{now}"
-    env = CodeExecutionEnvironment(ContainerExecutor(work_dir=work_dir))
+    env = CodeExecutionEnvironment(ContainerExecutor(work_dir=work_dir, timeout=60 * 5))
 
     agent, start_tape, env = make_world(env=env)
     if studio:
