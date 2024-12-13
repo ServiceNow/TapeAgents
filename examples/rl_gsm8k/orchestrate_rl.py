@@ -249,6 +249,7 @@ def generate_training_data(
     end_sampling_from_llm = time.time()
 
     start_dumping_tapes = time.time()
+    #FIXME: pydantic warnings
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
     time_dumping_tapes = time.time() - start_dumping_tapes
