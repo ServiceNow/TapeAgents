@@ -13,6 +13,7 @@ from tapeagents.steps import (
     VideoObservation,
     WatchVideoAction,
 )
+from tapeagents.tools.browser import GotoPageAction, ScrollAction
 from tapeagents.tools.calculator import CalculationResultObservation
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.search import SearchAction, SearchResultsObservation
@@ -106,15 +107,15 @@ class GaiaAnswer(StopStep):
     answer: Any = Field(description="short final answer")
 
 
+SIMPLE_BROWSER_ACTIONS = (ReadDocumentAction, NextPageAction)
+BROWSER_ACTIONS = (GotoPageAction, ScrollAction)
 STEPS_WITHOUT_CODE = (
     ReadingResultThought,
     ReasoningThought,
     SearchAction,
-    ReadDocumentAction,
-    NextPageAction,
     WatchVideoAction,
     GaiaAnswer,
-)
+) + BROWSER_ACTIONS
 AGENT_STEPS = STEPS_WITHOUT_CODE + (PythonCodeAction,)
 OBSERVATIONS = (
     GaiaQuestion,
