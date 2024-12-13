@@ -76,6 +76,7 @@ class GaiaTapeBrowser(TapeBrowser):
         output_tokens_num = 0
         total_cost = 0.0
         no_result = 0
+        actions = defaultdict(int)
         for tape in tapes:
             if tape.metadata.result in ["", None, "None"]:
                 no_result += 1
@@ -86,6 +87,7 @@ class GaiaTapeBrowser(TapeBrowser):
             last_action = None
             for step in tape:
                 if isinstance(step, Action):
+                    actions[step.kind] += 1
                     last_action = step
                 if step.kind == "search_results_observation" and not step.serp:
                     errors["search_empty"] += 1
@@ -101,12 +103,17 @@ class GaiaTapeBrowser(TapeBrowser):
                     errors["parsing"] += 1
                 elif step.kind == "action_execution_failure":
                     errors[f"{last_action.kind}"] += 1
-        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}"
-        html += f"</h2>Prompts tokens total: {prompt_tokens_num}, output tokens total: {output_tokens_num}, cost total: {total_cost:.2f}"
+        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
+        html += (
+            f"Prompts tokens: {prompt_tokens_num}<br>Output tokens: {output_tokens_num}<br>Cost: {total_cost:.2f} USD"
+        )
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
             html += f"<h2>No result: {no_result}</h2>"
             html += f"<h2>Errors</h2>{errors_str}"
+        if actions:
+            actions_str = "<br>".join(f"{k}: {v}" for k, v in actions.items())
+            html += f"<h2>Actions usage:</h2>{actions_str}"
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:

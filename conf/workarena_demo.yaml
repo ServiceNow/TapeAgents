@@ -7,7 +7,6 @@ exp_path: ../workarena/runs/${exp_name}
 agent: baseline
 env:
   exp_path: ${exp_path}
-  baseline_obs: True
   headless: False
 seeds: [42]
 

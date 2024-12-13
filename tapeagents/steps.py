@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from tapeagents.core import Action, Observation, Step
+from tapeagents.core import Action, Error, Observation, Step, Thought
 from tapeagents.utils import image_base64_message
 
 logger = logging.getLogger(__name__)
@@ -127,3 +127,17 @@ class Annotation(Action):
     kind: Literal["annotation"] = "annotation"
     step: int
     text: str
+
+
+class ReasoningThought(Thought):
+    """
+    Chain of thoughts of logical reasoning to find the answer. Deductive reasoning could be used to produce a new fact. You can use the facts from the previous steps in the reasoning
+    """
+
+    kind: Literal["reasoning_thought"] = "reasoning_thought"
+    reasoning: str
+
+
+class ActionExecutionFailure(Observation, Error):
+    kind: Literal["action_execution_failure"] = "action_execution_failure"
+    error: str

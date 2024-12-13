@@ -1,29 +1,30 @@
 import json
 import logging
 import os
-import threading
 import time
+from typing import Literal
 
 import requests
+from pydantic import Field
 
-from tapeagents.utils import FatalError, acquire_timeout
+from tapeagents.core import Action, Observation
+from tapeagents.tools.base import Tool
+from tapeagents.utils import FatalError
 
 logger = logging.getLogger(__name__)
 
-search_lock = threading.Lock()
 
-
-def web_search(query: str, max_results: int = 5, timeout_sec: int = 5) -> list[dict]:
-    with acquire_timeout(search_lock, timeout_sec):
-        results = []
-        attempts = 3
-        while not results and attempts > 0:
-            attempts -= 1
-            try:
-                results = serper_search(query, max_results=max_results)
-            except Exception as e:
-                logger.warning(f"Failed to fetch search results: {e}")
-            time.sleep(1)
+def web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
+    results = []
+    while not results and attempts > 0:
+        attempts -= 1
+        try:
+            results = serper_search(query, max_results=max_results)
+        except Exception as e:
+            logger.warning(f"Failed to fetch search results: {e}")
+        if not results:
+            logger.warning(f"Empty search results, retrying in {retry_pause} seconds")
+            time.sleep(retry_pause)
     return results
 
 
@@ -44,3 +45,40 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
         results.append({"title": item["title"], "linqk": item.get("website", ""), "snippet": item["description"]})
     logger.info(f"Search response for query '{query}': code {response.status_code}, {len(results)} results")
     return [{"title": r["title"], "url": r["link"], "content": r.get("snippet", "")} for r in results[:max_results]]
+
+
+class SearchAction(Action):
+    """
+    Action that provides parameters for a search function call.
+    Could search in the web, wikipedia or youtube.
+    Search results will be ordered by relevance from top to bottom.
+    """
+
+    kind: Literal["search_action"] = "search_action"
+    source: str = Field(description="source to search in, could be web, wiki or youtube")
+    query: str = Field(description="search query")
+
+
+class SearchResultsObservation(Observation):
+    kind: Literal["search_results_observation"] = "search_results_observation"
+    query: str
+    serp: list[dict[str, str]]
+
+
+class Search(Tool):
+    """
+    Tool that performs a search in the web, wikipedia or youtube
+    """
+
+    action: type[Action] = SearchAction
+    observation: type[Observation] = SearchResultsObservation
+    cached: bool = True
+
+    def execute_action(self, action: SearchAction) -> SearchResultsObservation:
+        if action.source == "wiki":
+            query = f"site:wikipedia.org {action.query}"
+        elif action.source == "youtube":
+            query = f"site:youtube.com {action.query}"
+        else:
+            query = action.query
+        return SearchResultsObservation(query=action.query, serp=web_search(query))

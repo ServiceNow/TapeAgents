@@ -23,17 +23,17 @@ import re
 import threading
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse
 
 import pathvalidate
 import requests
 from Levenshtein import ratio
+from pydantic import Field
 from termcolor import colored
 
-from tapeagents.core import Prompt
-from tapeagents.llms import LLM
-from tapeagents.tools.search import web_search
+from tapeagents.core import Action, Observation
+from tapeagents.tools.base import Multitool
 from tapeagents.utils import FatalError, diff_strings
 
 from .document_converters import (
@@ -64,7 +64,7 @@ class SimpleTextBrowser:
         downloads_folder: str = "/tmp/agent_browser_downloads",
         use_web_cache: bool = True,
         only_cached_webpages: bool = False,
-        vision_lm: LLM | None = None,
+        cache_path: str = "web_cache.jsonl",
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
         converter_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -80,16 +80,7 @@ class SimpleTextBrowser:
         self.request_kwargs = request_kwargs or {"headers": {"User-Agent": self.user_agent}}
         self.request_kwargs["headers"] = self.request_kwargs.get("headers", {})
 
-        def img2text(messages: list[dict]) -> str:
-            assert vision_lm
-            for event in vision_lm.generate(Prompt(messages=messages)):
-                if event.output and event.output.content:
-                    logger.debug("Image caption", event.output.content)
-                    return event.output.content
-            raise Exception("No answer from vision model")
-
-        mlm_client = img2text if vision_lm else None
-        self._mdconvert = FileConverter(mlm_client=mlm_client)
+        self._mdconvert = FileConverter()
 
         self._page_content: str = ""
         self._page_error: int = 0
@@ -103,14 +94,14 @@ class SimpleTextBrowser:
         self._cache = {}
         self._log = []
         self._cache_buffer = []
-        self._cache_filename = "web_cache.jsonl"
+        self.cache_path = cache_path
         if _FORCE_CACHE_PATH:
-            self._cache_filename = _FORCE_CACHE_PATH
-            logger.warning(f"Using forced cache file {self._cache_filename}")
+            self.cache_path = _FORCE_CACHE_PATH
+            logger.warning(f"Using forced cache file {self.cache_path}")
             self.only_cached_webpages = True
-            assert os.path.exists(self._cache_filename), "Forced cache file not found"
-        if os.path.exists(self._cache_filename):
-            with open(self._cache_filename) as f:
+            assert os.path.exists(self.cache_path), "Forced cache file not found"
+        if os.path.exists(self.cache_path):
+            with open(self.cache_path) as f:
                 for line in f:
                     data = json.loads(line)
                     self._cache[data["k"]] = data["v"]
@@ -263,33 +254,6 @@ class SimpleTextBrowser:
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def get_search_results(self, query: str, max_results: int = 5) -> list[dict]:
-        """Get search results for the query.
-
-        Return list of dictionaries with keys 'title', 'url', and 'content'.
-
-        """
-        key = query.lower().strip()
-        if self.use_web_cache and (key in self._cache or query in self._cache):
-            if query in self._cache:
-                key = query
-            logger.info(colored(f"Cache hit for search {query}", "green"))
-            self._log.append({"k": query, "v": self._cache[key]})
-            result = self._cache[key][:max_results]
-            if len(result):
-                return result
-        logger.info(colored(f"Search {query} not in cache", "yellow"))
-        if self.only_cached_webpages:
-            ratios = [(k, ratio(key, k, score_cutoff=0.5)) for k in self._cache.keys()]
-            if not len(ratios):
-                raise FatalError(f'No cache for "{query}"')
-            closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
-            raise FatalError(f'No cache for "{query}". Closest with score {score}:\n"{closest}"')
-        results = web_search(query, max_results)
-        if results:
-            self._add_to_cache(key, results)
-        return results[:max_results]
-
     def _fetch_page(self, url: str) -> None:
         download_path = ""
         response = None
@@ -398,12 +362,6 @@ class SimpleTextBrowser:
             header = f"Title: {self.page_title}\n=======================\n" if self.page_title else ""
         return header + self.viewport.strip()
 
-    def set_web_cache(self, cache_filename: str) -> None:
-        with open(cache_filename) as f:
-            for line in f:
-                data = json.loads(line)
-                self._cache[data["k"]] = data["v"]
-
     def _add_to_cache(self, key: str, value: Any) -> None:
         self._cache[key] = value
         self._log.append({"k": key, "v": value})
@@ -411,14 +369,15 @@ class SimpleTextBrowser:
         self.flush_cache()
 
     def flush_cache(self):
-        with open(self._cache_filename, "a") as f:
+        with open(self.cache_path, "a") as f:
             for item in self._cache_buffer:
                 f.write(json.dumps(item) + "\n")
         self._cache_buffer = []
 
-    def flush_log(self, browser_log_path: str):
-        with flush_lock:
-            if len(self._log):
+    def flush_log(self, exp_dir: str):
+        browser_log_path = os.path.join(exp_dir, "browser_log.jsonl")
+        if len(self._log):
+            with flush_lock:
                 with open(browser_log_path, "a") as wf:
                     for line in self._log:
                         wf.write(json.dumps(line) + "\n")
@@ -475,3 +434,58 @@ class SimpleTextBrowser:
         except Exception as e:
             raise Exception(f"Failed to load page {url}.\nError: {e}")
         return self.page_content
+
+
+class NextPageAction(Action):
+    """
+    Action that returns the next page of the last document
+    """
+
+    kind: Literal["next_page_action"] = "next_page_action"
+
+
+class ReadDocumentAction(Action):
+    """
+    Action that loads the document, file, image or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
+    """
+
+    kind: Literal["read_document_action"] = "read_document_action"
+    url: str = Field(description="url of the document")
+    fact_description: str = Field(description="description of the fact to look for in the document")
+    fact_name: str = Field(description="fact name to look for in the document")
+
+
+class PageObservation(Observation):
+    kind: Literal["page_observation"] = "page_observation"
+    text: str
+    current_page: int
+    total_pages: int
+    error: int | None = None
+
+
+class SimpleBrowser(Multitool):
+    actions: tuple[type[Action], ...] = (ReadDocumentAction, NextPageAction)
+    observations: tuple[type[Observation], ...] = (PageObservation,)
+    exp_path: str
+    kwargs: dict[str, Any]
+    _browser: SimpleTextBrowser = None  # type: ignore
+
+    def model_post_init(self, __context: Any):
+        self._browser = SimpleTextBrowser(**self.kwargs)
+
+    def execute_action(self, action: ReadDocumentAction | NextPageAction) -> PageObservation:
+        if isinstance(action, ReadDocumentAction):
+            text, total_pages, error = self._browser.get_page(action.url)
+            obs = PageObservation(text=text, current_page=1, total_pages=total_pages, error=error or None)
+        else:
+            text, current_page, total_pages = self._browser.get_next_page()
+            obs = PageObservation(
+                text=text,
+                current_page=current_page,
+                total_pages=total_pages,
+                error=self._browser._page_error if self._browser._page_error else None,
+            )
+        return obs
+
+    def close(self) -> None:
+        self._browser.flush_log(self.exp_path)

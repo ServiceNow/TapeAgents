@@ -10,7 +10,6 @@ exp_path: ../workarena/runs/${exp_name}
 agent: guided
 env:
   exp_path: ${exp_path}
-  baseline_obs: False
   headless: True
 seeds: [0, 42, 1337, 900, 103]
   

@@ -12,7 +12,9 @@ import whisper
 import yt_dlp
 from whisper.utils import get_writer
 
-from tapeagents.steps import VideoObservation
+from tapeagents.core import Action, Observation
+from tapeagents.steps import VideoObservation, WatchVideoAction
+from tapeagents.tools.base import Tool
 from tapeagents.utils import acquire_timeout
 
 logger = logging.getLogger(__name__)
@@ -404,3 +406,15 @@ class YTDLogger(object):
 def ytd_progress_hook(d: dict) -> None:
     if d["status"] == "finished":
         logger.info("Done downloading, now converting ...")
+
+
+class VideoReader(Tool):
+    action: type[Action] = WatchVideoAction
+    observation: type[Observation] = VideoObservation
+    cached: bool = True
+    exp_path: str
+
+    def execute_action(self, action: WatchVideoAction) -> VideoObservation:
+        attachment_dir = os.path.join(self.exp_path, "attachments")
+        os.makedirs(attachment_dir, exist_ok=True)
+        return get_video_observation(action.video_url, attachment_dir, action.start_time, action.end_time)

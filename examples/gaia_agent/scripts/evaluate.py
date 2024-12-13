@@ -11,10 +11,10 @@ from tapeagents.config import is_debug_mode
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
 from tapeagents.parallel_processing import choose_processor
-from tapeagents.tools.container_executor import ContainerExecutor
+from tapeagents.tools.container_executor import maybe_get_code_sandbox
 
 from ..agent import GaiaAgent
-from ..environment import GaiaEnvironment
+from ..environment import get_env
 from ..eval import get_exp_config_dict, load_dataset, solve_task
 
 logger = logging.getLogger(__name__)
@@ -35,15 +35,8 @@ def main(cfg: DictConfig) -> None:
     next run.
     """
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
-    code_path = os.path.join(cfg.exp_path, "code")
-    os.makedirs(code_path, exist_ok=True)
-    os.makedirs(cfg.env.attachment_dir, exist_ok=True)
     llm: TrainableLLM = instantiate(cfg.llm)
-    try:
-        code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
-    except Exception as e:
-        logger.error(f"Failed to create code sandbox: {e}")
-        code_sandbox = None
+    code_sandbox = maybe_get_code_sandbox(cfg.exp_path)
     agent = GaiaAgent.create(llm, **cfg.agent)
     tasks = load_dataset(cfg.split)
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
@@ -70,8 +63,6 @@ def main(cfg: DictConfig) -> None:
             break
     dt = time.perf_counter() - dt
     logger.info(f"Done, elapsed time: {dt:.2f} sec")
-    # if code_sandbox:
-    #    code_sandbox.stop()
 
 
 def validate_config(cfg, llm, tapes_dir):
@@ -100,13 +91,13 @@ def task_worker(args: tuple) -> int:
     tapes_dir = os.path.join(exp_path, "tapes")
     images_dir = os.path.join(exp_path, "images")
     tape_name = f"l{level}_task{i:03d}"
-    env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox, **cfg_env)
+    env = get_env(exp_path, code_sandbox=code_sandbox, **cfg_env)
 
     for tape in solve_task(task, agent, env, level):
         save_json_tape(tape, tapes_dir, tape_name)
     save_tape_images(tape, images_dir)
     logger.info(f"Task {tape_name} solved, saved to {tapes_dir}")
-    env.browser.flush_log(os.path.join(exp_path, "browser_log.jsonl"))
+    env.close()
     return 1
 
 
