@@ -472,7 +472,7 @@ def main(cfg: DictConfig):
 
                 basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
-                with ThreadPoolExecutor(max_workers=1) as executor:
+                with ThreadPoolExecutor(max_workers=torch.cuda.device_count()) as executor:
                     futures = [
                         executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace, strict=False)
                         for trace in all_results["train"]["training_samples"]
