@@ -89,7 +89,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig, llm_calls: list
+    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig
 ) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -143,15 +143,14 @@ def extract_tape_training_samples(
 
     training_samples: list[TrainingText] = []
     if split_name == "train":
-        prompt_ids = [step.metadata.prompt_id for step in new_tape.steps if step.metadata.prompt_id]
-        sub_llm_calls = [call for call in llm_calls if call.prompt.id in prompt_ids]
-        # Sort sub_llm_calls to match the order of prompt_ids
         # For each LLM interaction in the tape:
         # - Create a training sample from the prompt and output
         # - Get log probabilities of the output tokens
         # - Set group ID for tracking
-        sub_llm_calls = sorted(sub_llm_calls, key=lambda call: prompt_ids.index(call.prompt.id))
-        for i, llm_call in enumerate(sub_llm_calls[::-1]):
+        for step in new_tape.steps:
+            if not step.metadata.llm_call:
+                continue
+            llm_call = step.metadata.llm_call
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
@@ -254,13 +253,6 @@ def generate_training_data(
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
     time_dumping_tapes = time.time() - start_dumping_tapes
 
-    start_reading_sqlite = time.time()
-    if split_name == "train":
-        llm_calls = retrieve_all_llm_calls()
-    else:
-        llm_calls = []
-    end_reading_sqlite = time.time()
-
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
     prompt_tokens = 0
@@ -273,7 +265,6 @@ def generate_training_data(
             agent=agent,
             split_name=split_name,
             cfg=cfg,
-            llm_calls=llm_calls,
         )
         futures = [executor.submit(extract_tape_training_samples_partial, new_tape) for new_tape in new_tapes]
         # Wrap futures with tqdm for progress tracking
@@ -303,7 +294,6 @@ def generate_training_data(
             f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
-            f"execution_time/{split_name}_reading_sqlite": end_reading_sqlite - start_reading_sqlite,
             f"execution_time/{split_name}_output_tokens_per_second": output_tokens
             / (end_sampling_from_llm - start_sampling_from_llm),
             f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens

@@ -221,6 +221,7 @@ class MonoNode(Node):
                     assert event.output.content
                     for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
                         step = self.postprocess_step(tape, new_steps, step)
+                        step.metadata.llm_call = event.llm_call 
                         new_steps.append(step)
                         yield step
             if not cnt:

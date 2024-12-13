@@ -56,6 +56,7 @@ class LLMEvent(BaseModel):
 
     chunk: str | None = None
     output: LLMOutput | None = None
+    llm_call: LLMCall | None = None
 
 
 class LLMStream:
@@ -230,9 +231,14 @@ class LLM(BaseModel, ABC):
             token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens
         )
         self._log.append(llm_call.model_dump())
-        observe_llm_call(llm_call)
+        # TODO: should be a flag
+        if False:
+            observe_llm_call(llm_call)
         time_log_output = time.time() - start_log_output
         self.stats["time_log_output"].append(time_log_output)
+        # TODO: should be a flag
+        if True:
+            return llm_call
 
     def get_stats(self) -> dict:
         return {
@@ -463,8 +469,8 @@ class LiteLLM(CachedLLM):
             assert isinstance(response, litellm.ModelResponse)
             assert isinstance(response.choices[0], litellm.utils.Choices)
             output = response.choices[0].message
-        self.log_output(prompt, output)
-        yield LLMEvent(output=output)
+        llm_call = self.log_output(prompt, output)
+        yield LLMEvent(output=output, llm_call=llm_call)
 
     def make_training_text(self, *args, **kwargs) -> TrainingText:
         """
@@ -586,8 +592,8 @@ class TrainableLLM(CachedLLM):
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
-        self.log_output(prompt, output)
-        yield LLMEvent(output=output)
+        llm_call = self.log_output(prompt, output)
+        yield LLMEvent(output=output, llm_call=llm_call)
 
 
     def load_tokenizer(self):
