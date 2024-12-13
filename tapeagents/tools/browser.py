@@ -179,7 +179,7 @@ class Browser(Multitool):
     axtree: bool = False
     viewport_size: int = 64000
     headless: bool = True
-    log_path: str | None = None
+    exp_path: str | None = None
     page_load_time_sec: int = 2
     gym_kwargs: dict = {}
 
@@ -210,11 +210,11 @@ class Browser(Multitool):
             ScrollAction: self.scroll,
             TabFocusAction: self.tab_focus,
         }
-        if self.log_path:
-            assert os.path.isdir(self.log_path)
-            self._traces_dir = os.path.join(self.log_path, "playwright_traces")
-            self._record_video_dir = os.path.join(self.log_path, "videos")
-            self._screenshots_dir = os.path.join(self.log_path, "screenshots")
+        if self.exp_path:
+            assert os.path.isdir(self.exp_path)
+            self._traces_dir = os.path.join(self.exp_path, "playwright_traces")
+            self._record_video_dir = os.path.join(self.exp_path, "videos")
+            self._screenshots_dir = os.path.join(self.exp_path, "screenshots")
             os.makedirs(self._traces_dir, exist_ok=True)
             os.makedirs(self._record_video_dir, exist_ok=True)
             os.makedirs(self._screenshots_dir, exist_ok=True)

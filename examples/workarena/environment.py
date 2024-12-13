@@ -28,7 +28,7 @@ class WorkArenaEnvironment(Environment):
 
     def __init__(self, exp_path: str, headless: bool = True) -> None:
         super().__init__()
-        self.browser = Browser(headless=headless, log_path=exp_path, axtree=True)
+        self.browser = Browser(headless=headless, exp_path=exp_path, axtree=True)
 
     def start_task(
         self, task_entrypoint: type[AbstractServiceNowTask], seed: int = 42
