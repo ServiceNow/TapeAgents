@@ -28,7 +28,7 @@ class WorkArenaEnvironment(Environment):
 
     def __init__(self, exp_path: str, headless: bool = True) -> None:
         super().__init__()
-        self.browser = Browser(headless=headless, log_path=exp_path)
+        self.browser = Browser(headless=headless, log_path=exp_path, axtree=True)
 
     def start_task(
         self, task_entrypoint: type[AbstractServiceNowTask], seed: int = 42
@@ -75,10 +75,8 @@ class WorkArenaEnvironment(Environment):
                 action_type = type(action)
                 if action_type == LLMOutputParsingFailureAction:
                     continue
-                elif action_type not in self.browser.action_map:
-                    raise Exception(f"Unknown action: {action_type}")
-                observation = self.browser.action_map[action_type](action)
-                tape = tape.append(observation)
+                observation = self.browser.run(action)
+                tape = tape.append(observation)  # type: ignore
             except FatalError:
                 raise
             except Exception as e:

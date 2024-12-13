@@ -1,13 +1,22 @@
 import os
+import re
 from time import sleep
-from typing import Literal
+from typing import Any, Callable, Literal
 from uuid import uuid4
 
 import gymnasium as gym
+import markdownify
 import numpy as np
 from browsergym.core.action.highlevel import HighLevelActionSet
 from browsergym.core.env import BrowserEnv
-from browsergym.utils.obs import IGNORED_AXTREE_PROPERTIES, _process_bid
+from browsergym.utils.obs import (
+    IGNORED_AXTREE_PROPERTIES,
+    _process_bid,
+    flatten_axtree_to_str,
+    flatten_dom_to_str,
+    prune_html,
+)
+from bs4 import BeautifulSoup
 from PIL import Image
 from pydantic import Field
 
@@ -167,23 +176,27 @@ class Browser(Multitool):
     )
     observations: tuple[type[Observation], ...] = (PageObservation,)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
-    _env: BrowserEnv = None  # type: ignore
+    axtree: bool = False
+    viewport_size: int = 64000
+    headless: bool = True
+    log_path: str | None = None
+    page_load_time_sec: int = 2
+    gym_kwargs: dict = {}
 
-    def __init__(
-        self,
-        viewport_size: int = 64000,
-        headless: bool = True,
-        log_path: str | None = None,
-        page_load_time_sec: int = 2,
-    ) -> None:
-        self.viewport_size = viewport_size
-        self.headless = headless
-        self.page_load_time_sec = page_load_time_sec
-        self.current_page = ""
-        self.current_viewport = 1
-        self.n_viewports = 1
-        self.log_path = log_path
-        self.action_map = {
+    _env: BrowserEnv = None  # type: ignore
+    _current_page: str = ""
+    _current_viewport: int = 0
+    _n_viewports: int = 1
+    _action_map: dict[type[Action], Callable] = {}
+    _traces_dir: str | None = None
+    _record_video_dir: str | None = None
+    _screenshots_dir: str | None = None
+
+    def model_post_init(self, __context: Any):
+        self._current_page = ""
+        self._current_viewport = 1
+        self._n_viewports = 1
+        self._action_map = {
             ClickAction: self.click,
             SelectOptionAction: self.select_option,
             CloseTabAction: self.close_tab,
@@ -197,26 +210,38 @@ class Browser(Multitool):
             ScrollAction: self.scroll,
             TabFocusAction: self.tab_focus,
         }
-        if log_path:
-            assert os.path.isdir(log_path)
-            self.traces_dir = os.path.join(log_path, "playwright_traces")
-            self.record_video_dir = os.path.join(log_path, "videos")
-            self.screenshots_dir = os.path.join(log_path, "screenshots")
-            os.makedirs(self.traces_dir, exist_ok=True)
-            os.makedirs(self.record_video_dir, exist_ok=True)
-            os.makedirs(self.screenshots_dir, exist_ok=True)
+        if self.log_path:
+            assert os.path.isdir(self.log_path)
+            self._traces_dir = os.path.join(self.log_path, "playwright_traces")
+            self._record_video_dir = os.path.join(self.log_path, "videos")
+            self._screenshots_dir = os.path.join(self.log_path, "screenshots")
+            os.makedirs(self._traces_dir, exist_ok=True)
+            os.makedirs(self._record_video_dir, exist_ok=True)
+            os.makedirs(self._screenshots_dir, exist_ok=True)
+
+        self._env = gym.make(
+            "browsergym/openended",
+            headless=self.headless,
+            record_video_dir=self._record_video_dir,
+            action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
+            timeout=60000,
+            task_kwargs={"start_url": "about:blank"},
+            **self.gym_kwargs,
+        )  # type: ignore
+        self._env.reset()
+        self._env.context.tracing.start(screenshots=True, snapshots=True)
 
     def execute_action(self, action: Action) -> PageObservation:
         action_type = type(action)
-        if action_type in self.action_map:
-            return self.action_map[action_type](action)
+        if action_type in self._action_map:
+            return self._action_map[action_type](action)
         raise ValueError(f"Unknown action: {action_type}")
 
-    def start_task(self, task_id: str = "tapeagents/new_task", seed: int = 1, **kwargs) -> dict:
+    def start_task(self, task_id: str, seed: int = 1, **kwargs) -> dict:
         self._env = gym.make(
             task_id,
             headless=self.headless,
-            record_video_dir=self.record_video_dir,
+            record_video_dir=self._record_video_dir,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
             timeout=60000,
             **kwargs,
@@ -236,38 +261,49 @@ class Browser(Multitool):
         return info
 
     def close(self, task_name: str):
-        self._env.context.tracing.stop(path=os.path.join(self.traces_dir, f"{task_name}.zip"))
+        self._env.context.tracing.stop(path=os.path.join(self._traces_dir, f"{task_name}.zip"))
         self._env.close()
 
     def _screenshot_to_img_file(self, image) -> str:
-        if self.screenshots_dir is None:
+        if self._screenshots_dir is None:
             return ""
         if isinstance(image, np.ndarray):
             image = Image.fromarray(image)
         if image.mode in ("RGBA", "LA"):
             image = image.convert("RGB")
         pic_uid = uuid4().hex
-        img_path = os.path.join(self.screenshots_dir, f"{pic_uid}.png")
+        img_path = os.path.join(self._screenshots_dir, f"{pic_uid}.png")
         image.save(img_path)
-        return os.path.relpath(img_path, self.screenshots_dir)
+        return os.path.relpath(img_path, self._screenshots_dir)
 
     def perform_action(self, action_text: str) -> PageObservation:
         self._env.page.set_default_timeout(60000)
-        obs, reward, terminated, truncated, info = self._env.step(action_text)
-        last_action_error = self.format_error(obs["last_action_error"])
-        accessibility_tree = obs["axtree_object"]
-        screen_path = self._screenshot_to_img_file(obs["screenshot"])
-        text = self.get_viewport(accessibility_tree)
-        obs = PageObservation(
-            text=text,
-            current_page=self.current_viewport,
-            total_pages=self.n_viewports,
+        obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
+        last_action_error = self.format_error(obs_dict["last_action_error"])
+        if self.axtree:
+            content = flatten_axtree(obs_dict["axtree_object"])
+        else:
+            html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
+            content = self.html_to_markdown(html_content)
+
+        screen_path = self._screenshot_to_img_file(obs_dict["screenshot"])
+        observation = PageObservation(
+            text=self.get_viewport(content),
+            current_page=self._current_viewport,
+            total_pages=self._n_viewports,
             last_action_error=last_action_error,
             metadata=StepMetadata(other=dict(reward=reward, truncated=truncated, info=info)),
         )
-        obs.metadata.other["screenshot_path"] = screen_path
-        obs.metadata.other["env_finished"] = terminated
-        return obs
+        observation.metadata.other["screenshot_path"] = screen_path
+        observation.metadata.other["env_finished"] = terminated
+        return observation
+
+    def html_to_markdown(self, html_content):
+        soup = BeautifulSoup(html_content, "html.parser")
+        content = markdownify.MarkdownConverter(strip=["img"]).convert_soup(soup)
+        content = re.sub(r"\n\s+", "\n", content)
+        content = re.sub(r"\n\n+", "\n\n", content)
+        return content
 
     def format_error(self, err: str) -> str:
         logs_separator = "Call log:"
@@ -280,18 +316,14 @@ class Browser(Multitool):
         return err
 
     def scroll(self, direction: str) -> PageObservation:
-        if direction == "down" and self.current_viewport < self.n_viewports:
-            self.current_viewport += 1
-        elif direction == "up" and self.current_viewport > 1:
-            self.current_viewport -= 1
-        page = self.current_page[
-            self.viewport_size * (self.current_viewport - 1) : self.viewport_size * self.current_viewport
+        if direction == "down" and self._current_viewport < self._n_viewports:
+            self._current_viewport += 1
+        elif direction == "up" and self._current_viewport > 1:
+            self._current_viewport -= 1
+        page = self._current_page[
+            self.viewport_size * (self._current_viewport - 1) : self.viewport_size * self._current_viewport
         ]
-        return PageObservation(
-            text=page,
-            current_page=self.current_viewport,
-            total_pages=self.n_viewports,
-        )
+        return PageObservation(text=page, current_page=self._current_viewport, total_pages=self._n_viewports)
 
     def goto_page(self, action: GotoPageAction) -> PageObservation:
         return self.perform_action(f"goto('{action.url}')")
@@ -332,12 +364,12 @@ class Browser(Multitool):
     def next_page(self) -> PageObservation:
         return self.scroll("down")
 
-    def get_viewport(self, accessibility_tree: dict) -> str:
-        self.current_page = flatten_axtree(accessibility_tree)
-        self.n_viewports = len(self.current_page) // self.viewport_size + 1
-        self.current_viewport = 1
-        return self.current_page[
-            self.viewport_size * (self.current_viewport - 1) : self.viewport_size * self.current_viewport
+    def get_viewport(self, content: str) -> str:
+        self._current_page = content
+        self._n_viewports = len(self._current_page) // self.viewport_size + 1
+        self._current_viewport = 1
+        return self._current_page[
+            self.viewport_size * (self._current_viewport - 1) : self.viewport_size * self._current_viewport
         ]
 
 
