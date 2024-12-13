@@ -261,7 +261,9 @@ def generate_training_data(
     prompt_tokens = 0
     output_tokens = 0
 
-    with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
+    #with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
+    from concurrent.futures import ProcessPoolExecutor
+    with ProcessPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
 
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
