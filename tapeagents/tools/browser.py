@@ -49,7 +49,8 @@ class PageObservation(Observation):
 
 class GotoPageAction(Action):
     """
-    Action that opens the page with the provided URL in the current tab
+    Action that opens the page with the provided URL and returns the first page of its content.
+    To read the following pages use scroll_action.
     """
 
     kind: Literal["goto_page_action"] = "goto_page_action"
@@ -99,7 +100,7 @@ class TabFocusAction(Action):
 
 class ScrollAction(Action):
     """
-    Action that scrolls the page in the provided direction
+    Action that scrolls the page in the provided direction and returns the next page of content.
     """
 
     kind: Literal["scroll_action"] = "scroll_action"
