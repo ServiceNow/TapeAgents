@@ -45,8 +45,31 @@ from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_calls
 from tapeagents.orchestrator import main_loop
+import multiprocessing as mp
+from functools import partial
+from concurrent.futures import as_completed
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+class MultiprocessingPoolExecutor:
+    def __init__(self, max_workers=None):
+        self.max_workers = max_workers or max(1, mp.cpu_count() - 1)
+        self.pool = mp.Pool(processes=self.max_workers)
+        self._futures = []
+
+    def submit(self, fn, *args, **kwargs):
+        # Create a Future-like object to mimic ThreadPoolExecutor behavior
+        future = mp.pool.AsyncResult(self.pool, fn, args=args, kwds=kwargs)
+        self._futures.append(future)
+        return future
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.pool.close()
+        self.pool.join()
 
 
 def annotate_trace_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
@@ -260,10 +283,10 @@ def generate_training_data(
     start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
+    
 
     #with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
-    from concurrent.futures import ProcessPoolExecutor
-    with ProcessPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
+    with MultiprocessingPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
 
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
