@@ -251,7 +251,7 @@ def eager_thread_pool_processor(
 
 def choose_processor(n_workers: int):
     return (
-        partial(lazy_thread_pool_processor, n_workers=n_workers)
+        partial(eager_thread_pool_processor, n_workers=n_workers)
         if n_workers > 0 and not is_debug_mode()
         else partial(sequential_processor, n_workers=1)
     )
