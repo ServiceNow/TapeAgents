@@ -363,7 +363,7 @@ def generate_training_data(
             split_name=split_name,
             cfg=cfg,
         )
-        futures = [executor.submit(extract_tape_training_samples_partial, tape) for tape in tapes]
+        futures = [executor.submit(extract_tape_training_samples_partial, new_tape) for new_tape in new_tapes]
         # Wrap futures with tqdm for progress tracking
         new_tapes = []
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
