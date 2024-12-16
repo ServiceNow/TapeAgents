@@ -360,7 +360,6 @@ def generate_training_data(
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
             agent=agent,
-            env=env,
             split_name=split_name,
             cfg=cfg,
         )
