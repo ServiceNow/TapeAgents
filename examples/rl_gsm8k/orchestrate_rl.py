@@ -417,14 +417,8 @@ def main(cfg: DictConfig):
                     llm_stats = agent.llm.get_stats()
                     more_llm_stats = {}
                     for k, v in llm_stats.items():
-                        if "per_worker" in k:
-                            new_k = k.replace("_per_worker", "")
-                            more_llm_stats.update(
-                                {
-                                    f"{new_k}_per_gpu": v * cfg.n_workers_per_gpu,
-                                    f"{new_k}_total": v * cfg.n_workers_per_gpu * torch.cuda.device_count(),
-                                }
-                            )
+                        if "per_second" in k:
+                            more_llm_stats.update({f"{k}_per_gpu": v / torch.cuda.device_count()})
                     llm_stats.update(more_llm_stats)
                     llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
                     stats.update(llm_stats)

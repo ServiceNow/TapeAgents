@@ -138,6 +138,7 @@ class LLM(BaseModel, ABC):
 
     token_count: int = 0
     _log: list = []
+    start_time: None | float = None
     stats: dict = defaultdict(list)
 
     @abstractmethod
@@ -248,8 +249,8 @@ class LLM(BaseModel, ABC):
             "time_log_output": np.mean(self.stats["time_log_output"]) if self.stats["time_log_output"] else 0,
             "prompt_length_tokens": np.mean(self.stats["prompt_length_tokens"]) if self.stats["prompt_length_tokens"] else 0,
             "output_length_tokens": np.mean(self.stats["output_length_tokens"]) if self.stats["output_length_tokens"] else 0,
-            "output_tokens_per_second_per_worker": np.sum(self.stats["output_length_tokens"]) / np.sum(self.stats["time_send_request"]) if self.stats["time_send_request"] else 0,
-            "prompt_tokens_per_second_per_worker": np.sum(self.stats["prompt_length_tokens"]) / np.sum(self.stats["time_send_request"]) if self.stats["time_send_request"] else 0,
+            "output_tokens_per_second": np.sum(self.stats["output_length_tokens"]) / (time.time() - self.start_time) if self.start_time else 0,
+            "prompt_tokens_per_second": np.sum(self.stats["prompt_length_tokens"]) / (time.time() - self.start_time) if self.start_time else 0,
         }
 
 
@@ -527,6 +528,8 @@ class TrainableLLM(CachedLLM):
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
+        if self.start_time is None:
+            self.start_time = time.time()
         headers = {"Content-Type": "application/json"}
         if self.api_token:
             headers |= {"Authorization": f"Bearer {self.api_token}"}
