@@ -22,20 +22,6 @@ logger = logging.getLogger(__name__)
 _DEFAULT_N_WORKERS = 16
 
 
-def worker_func(input: tuple[TapeType, Environment], agent, max_loops, strict) -> TapeType | Exception:
-    start_tape, env = input
-    try:
-        result = main_loop(agent, start_tape, env, max_loops=max_loops).get_final_tape()
-    except Exception as e:
-        if is_debug_mode() or strict:
-            return e
-        return start_tape.model_copy(
-            update=dict(metadata=TapeMetadata(parent_id=start_tape.metadata.id, error=traceback.format_exc()))
-        )
-    result.metadata.parent_id = start_tape.metadata.id
-    return result
-
-
 def batch_main_loop(
     agent: Agent[TapeType],
     tapes: list[TapeType],
@@ -48,9 +34,22 @@ def batch_main_loop(
     if not isinstance(environments, list):
         environments = [environments] * len(tapes)
 
+    def worker_func(input: tuple[TapeType, Environment], agent, max_loops, strict) -> TapeType | Exception:
+        start_tape, env = input
+        try:
+            result = main_loop(agent, start_tape, env, max_loops=max_loops).get_final_tape()
+        except Exception as e:
+            if is_debug_mode() or strict:
+                return e
+            return start_tape.model_copy(
+                update=dict(metadata=TapeMetadata(parent_id=start_tape.metadata.id, error=traceback.format_exc()))
+            )
+        result.metadata.parent_id = start_tape.metadata.id
+        return result
+
     processor = choose_processor(n_workers=n_workers)
-    worker_func_ = partial(worker_func, agent=agent, max_loops=max_loops, strict=strict)
-    for smth in processor(zip(tapes, environments), worker_func_):
+    worker_func_partial = partial(worker_func, agent=agent, max_loops=max_loops, strict=strict)
+    for smth in processor(zip(tapes, environments), worker_func_partial):
         if isinstance(smth, Tape):
             yield smth
         else:
