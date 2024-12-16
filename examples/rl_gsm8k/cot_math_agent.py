@@ -55,7 +55,7 @@ RLMathTape = Tape[
 class ReasoningNode(MonoNode):
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
         try:
-            step: Union[Task, ReasoningThought, LLMOutputParsingFailureAction] = ReasoningThought(reasoning=completion)
+            step = ReasoningThought(reasoning=completion)
         except Exception as e:
             logger.info(f"Failed to parse agent output: {completion}\n\nError: {e}")
             yield LLMOutputParsingFailureAction(
