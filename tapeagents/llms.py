@@ -209,7 +209,6 @@ class LLM(BaseModel, ABC):
         start_log_output = time.time()
         prompt_length_tokens = self.count_tokens(prompt.messages)
         if message.content:
-            # lstrip the left spaces from the assistant message because the chat template will add one
             output_length_tokens = (
                 self.count_tokens(prompt.messages + [{"role": "assistant", "content": message.content}])
                 - prompt_length_tokens

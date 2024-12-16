@@ -75,7 +75,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
             stored in metadata.
     """
     tapes: list[RLMathTape] = []
-    for problem in problems:
+    for problem in tqdm(problems, desc="Converting problems to tapes", unit="problem"):
         start_step = Task(
             task=problem["task"],
             metadata=StepMetadata(
