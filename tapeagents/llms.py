@@ -196,7 +196,7 @@ class LLM(BaseModel, ABC):
         """
         return {"input": 0, "output": 0}
 
-    def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False):
+    def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False) -> None | LLMCall:
         """
         Logs the output of an LLM (Language Model) call along with its metadata.
 
@@ -231,13 +231,14 @@ class LLM(BaseModel, ABC):
         )
         self._log.append(llm_call.model_dump())
         # TODO: should be a flag
-        if False:
+        if True:
+            maybe_llm_call = llm_call
+        else:
             observe_llm_call(llm_call)
+            maybe_llm_call = None
         time_log_output = time.time() - start_log_output
         self.stats["time_log_output"].append(time_log_output)
-        # TODO: should be a flag
-        if True:
-            return llm_call
+        return maybe_llm_call
 
     def get_stats(self) -> dict:
         return {
@@ -591,8 +592,8 @@ class TrainableLLM(CachedLLM):
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
-        llm_call = self.log_output(prompt, output)
-        yield LLMEvent(output=output, llm_call=llm_call)
+        maybe_llm_call: None | LLMCall = self.log_output(prompt, output)
+        yield LLMEvent(output=output, llm_call=maybe_llm_call)
 
 
     def load_tokenizer(self):
