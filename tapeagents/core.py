@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, List, Literal, TypeAlias, TypeVar, Optional
+from typing import Any, Generic, Iterable, Iterator, List, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import litellm

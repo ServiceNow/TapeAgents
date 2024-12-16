@@ -471,8 +471,8 @@ class LiteLLM(CachedLLM):
             assert isinstance(response, litellm.ModelResponse)
             assert isinstance(response.choices[0], litellm.utils.Choices)
             output = response.choices[0].message
-        llm_call = self.log_output(prompt, output)
-        yield LLMEvent(output=output, llm_call=llm_call)
+        self.log_output(prompt, output)
+        yield LLMEvent(output=output)
 
     def make_training_text(self, *args, **kwargs) -> TrainingText:
         """
