@@ -246,6 +246,10 @@ class LLM(BaseModel, ABC):
         return {
             "time_send_request": np.mean(self.stats["time_send_request"]) if self.stats["time_send_request"] else 0,
             "time_log_output": np.mean(self.stats["time_log_output"]) if self.stats["time_log_output"] else 0,
+            "prompt_length_tokens": np.mean(self.stats["prompt_length_tokens"]) if self.stats["prompt_length_tokens"] else 0,
+            "output_length_tokens": np.mean(self.stats["output_length_tokens"]) if self.stats["output_length_tokens"] else 0,
+            "output_tokens_per_second": np.sum(self.stats["output_length_tokens"]) / np.sum(self.stats["time_send_request"]) if self.stats["time_send_request"] else 0,
+            "prompt_tokens_per_second": np.sum(self.stats["prompt_length_tokens"]) / np.sum(self.stats["time_send_request"]) if self.stats["time_send_request"] else 0,
         }
 
 
