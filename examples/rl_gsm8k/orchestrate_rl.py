@@ -415,6 +415,15 @@ def main(cfg: DictConfig):
                     )
 
                     llm_stats = agent.llm.get_stats()
+                    for k, v in llm_stats.items():
+                        if "per_worker" in k:
+                            new_k = k.replace("_per_worker", "")
+                            llm_stats.update(
+                                {
+                                    f"{new_k}_per_gpu": v * cfg.n_workers_per_gpu,
+                                    f"{new_k}_total": v * cfg.n_workers_per_gpu * torch.cuda.device_count(),
+                                }
+                            )
                     llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
                     stats.update(llm_stats)
 
