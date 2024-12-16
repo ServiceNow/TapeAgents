@@ -75,7 +75,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
             stored in metadata.
     """
     tapes: list[RLMathTape] = []
-    for problem in tqdm(problems, desc="Converting problems to tapes", unit="problem"):
+    for problem in tqdm(problems, desc="Converting problems to unique tapes", unit="problem"):
         start_step = Task(
             task=problem["task"],
             metadata=StepMetadata(
@@ -150,9 +150,9 @@ def extract_tape_training_samples(
         # - Get log probabilities of the output tokens
         # - Set group ID for tracking
         for step in new_tape.steps:
-            if not step.metadata.llm_call:
+            if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
                 continue
-            llm_call = step.metadata.llm_call
+            llm_call = step.metadata.other["llm_call"]
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
@@ -243,27 +243,25 @@ def generate_training_data(
     training_samples: List[TrainingText] = []
 
     logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
-    #start_sampling_from_llm = time.time()
+    # start_sampling_from_llm = time.time()
 
-    #with SQLiteWriterThread():
+    # with SQLiteWriterThread():
     #    main_loops = batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers_per_gpu * torch.cuda.device_count())
     #    new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
-    #end_sampling_from_llm = time.time()
+    # end_sampling_from_llm = time.time()
 
-    #start_dumping_tapes = time.time()
+    # start_dumping_tapes = time.time()
     ##FIXME: pydantic warnings
-    #with open(tapes_dir / "tapes.json", "w") as f:
+    # with open(tapes_dir / "tapes.json", "w") as f:
     #    json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
-    #time_dumping_tapes = time.time() - start_dumping_tapes
+    # time_dumping_tapes = time.time() - start_dumping_tapes
 
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
-    
 
     with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
-
         extract_tape_training_samples_partial = partial(
             extract_tape_training_samples,
             agent=agent,
@@ -299,15 +297,15 @@ def generate_training_data(
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            #f"execution_time/{split_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
+            # f"execution_time/{split_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
             f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
-            #f"execution_time/{split_name}_output_tokens_per_second": output_tokens
-            #/ (end_sampling_from_llm - start_sampling_from_llm),
-            #f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
-            #/ (end_sampling_from_llm - start_sampling_from_llm),
-            #f"execution_time/{split_name}_dumping_tapes": time_dumping_tapes,
+            # f"execution_time/{split_name}_output_tokens_per_second": output_tokens
+            # / (end_sampling_from_llm - start_sampling_from_llm),
+            # f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
+            # / (end_sampling_from_llm - start_sampling_from_llm),
+            # f"execution_time/{split_name}_dumping_tapes": time_dumping_tapes,
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
@@ -476,9 +474,9 @@ def main(cfg: DictConfig):
                         executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace, strict=False)
                         for trace in all_results["train"]["training_samples"]
                     ]
-                    training_samples: List[TrainingText] = [ # type: ignore
+                    training_samples: List[TrainingText] = [  # type: ignore
                         future.result()
-                        for future in tqdm(as_completed(futures), total=len(futures), desc="Annotating traces") 
+                        for future in tqdm(as_completed(futures), total=len(futures), desc="Annotating traces")
                         if future.result() is not None
                     ]
                 refmodel_vllm_stats = vllm_service_manager.get_stats()

@@ -4,7 +4,6 @@ Wrapper for interacting with external and hosted large language models (LLMs).
 
 from __future__ import annotations
 
-from collections import defaultdict
 import datetime
 import hashlib
 import json
@@ -14,17 +13,18 @@ import random
 import threading
 import time
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from itertools import zip_longest
 from typing import Any, Callable, Generator
 
 import litellm
+import numpy as np
 import openai
 import requests
 from Levenshtein import ratio
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
-import numpy as np
 
 from .config import DB_DEFAULT_FILENAME
 from .core import LLMOutput, Prompt, TrainingText
@@ -225,6 +225,8 @@ class LLM(BaseModel, ABC):
             cached=cached,
             llm_info=self.get_info(),
         )
+        self.stats["prompt_length_tokens"].append(prompt_length_tokens)
+        self.stats["output_length_tokens"].append(output_length_tokens)
         token_costs = self.get_token_costs()
         llm_call.cost = (
             token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens

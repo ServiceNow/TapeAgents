@@ -55,7 +55,6 @@ class StepMetadata(BaseModel):
         node (str): The node that produced the step.
         agent (str): The agent that produced the step.
         other (dict[str, Any]): A dictionary to store additional metadata related to the step.
-        llm_call (LLMCall, optional): An optional field to store the call to the language model.
     """
 
     id: str = Field(default_factory=lambda: str(uuid4()))
@@ -63,7 +62,6 @@ class StepMetadata(BaseModel):
     node: str = ""
     agent: str = ""
     other: dict[str, Any] = Field(default_factory=dict)
-    llm_call: Optional[LLMCall] = None  
 
 
 class Step(BaseModel):
