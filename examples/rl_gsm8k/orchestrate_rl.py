@@ -90,7 +90,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, env, split_name: str, cfg: DictConfig
+    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig
 ) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -123,7 +123,6 @@ def extract_tape_training_samples(
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    new_tape = main_loop(agent, new_tape, env, max_loops=1).get_final_tape()
     if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
         # LLM produced a step that was unparsable. Negative reward.
         no_error, reward, success = 0, -1, 0
@@ -206,6 +205,103 @@ def extract_tape_training_samples(
     return new_tape, training_samples, tape_stats
 
 
+def faster_generate_training_data(
+    agent: CoTMathAgent,
+    tapes: list[RLMathTape],
+    cfg: DictConfig,
+    env: MathEnvironment,
+    tapes_dir: Path,
+    split_name: str,
+) -> Tuple[List[RLMathTape], List[TrainingText], Dict[str, float]]:
+    """
+    Generate complete tapes and training samples from a list of initialized tapes.
+
+    Args:
+        agent: Agent that interacts with the math environment
+        tapes: List of tapes initialized with math problems
+        cfg: Configuration
+        env: Environment with tools
+        tapes_dir: Directory to save processed episodes
+        split_name: Name of split ('train' or other)
+
+    Returns:
+        Tuple containing:
+        - List of completed RLMathTapes
+        - List of training samples with rewards and logprobs
+        - Dictionary of performance statistics and execution times
+    """
+
+    start_make_data = time.time()
+    os.makedirs(tapes_dir, exist_ok=True)
+    reward_stats = defaultdict(list)
+    step_stats = defaultdict(list)
+    no_errors_stats = defaultdict(list)
+    success_stats = defaultdict(list)
+    discarded_stats = defaultdict(list)
+    compute_logprobs_stats = defaultdict(list)
+    training_samples: List[TrainingText] = []
+
+    logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
+
+    logger.info("Starting data creation")
+    start_annotate_tape = time.time()
+    prompt_tokens = 0
+    output_tokens = 0
+
+    def generate_and_extract_tape_training_samples(
+        tape: RLMathTape, agent: CoTMathAgent, env, split_name: str, cfg: DictConfig
+    ):
+        new_tape = main_loop(agent, tape, env, max_loops=cfg.max_loops).get_final_tape()
+        return extract_tape_training_samples(new_tape, agent, split_name, cfg)
+
+    with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
+        generate_and_extract_tape_training_samples_partial = partial(
+            generate_and_extract_tape_training_samples,
+            agent=agent,
+            env=env,
+            split_name=split_name,
+            cfg=cfg,
+        )
+        futures = [executor.submit(generate_and_extract_tape_training_samples_partial, tape) for tape in tapes]
+        # Wrap futures with tqdm for progress tracking
+        new_tapes = []
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
+            new_tape, tape_training_samples, tape_stats = future.result()
+            new_tapes.append(new_tape)
+            training_samples.extend(tape_training_samples)
+            reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
+            step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
+            success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
+            no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
+            discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
+            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_logprobs"])
+            prompt_tokens += tape_stats["prompt_tokens"]
+            output_tokens += tape_stats["output_tokens"]
+
+    end_annotate_tape = time.time()
+    with open(tapes_dir / "tapes.json", "w") as f:
+        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
+
+    end_make_data = time.time()
+
+    stats = {
+        **{f"{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
+        **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
+        **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
+        **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+        **{
+            f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
+            f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
+            f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
+            f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
+            f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
+            f"{split_name}_prompt_tokens": prompt_tokens,
+            f"{split_name}_output_tokens": output_tokens,
+        },
+    }
+    return new_tapes, training_samples, stats
+
+
 def generate_training_data(
     agent: CoTMathAgent,
     tapes: list[RLMathTape],
@@ -243,18 +339,17 @@ def generate_training_data(
     training_samples: List[TrainingText] = []
 
     logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
-    # start_sampling_from_llm = time.time()
+    start_sampling_from_llm = time.time()
+    main_loops = batch_main_loop(
+        agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()
+    )
+    new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
+    end_sampling_from_llm = time.time()
 
-    # with SQLiteWriterThread():
-    #    main_loops = batch_main_loop(agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers_per_gpu * torch.cuda.device_count())
-    #    new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
-    # end_sampling_from_llm = time.time()
-
-    # start_dumping_tapes = time.time()
-    ##FIXME: pydantic warnings
-    # with open(tapes_dir / "tapes.json", "w") as f:
-    #    json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
-    # time_dumping_tapes = time.time() - start_dumping_tapes
+    start_dumping_tapes = time.time()
+    with open(tapes_dir / "tapes.json", "w") as f:
+        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
+    time_dumping_tapes = time.time() - start_dumping_tapes
 
     logger.info("Starting data creation")
     start_annotate_tape = time.time()
@@ -297,15 +392,15 @@ def generate_training_data(
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            # f"execution_time/{split_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
+            f"execution_time/{split_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
             f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
-            # f"execution_time/{split_name}_output_tokens_per_second": output_tokens
-            # / (end_sampling_from_llm - start_sampling_from_llm),
-            # f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
-            # / (end_sampling_from_llm - start_sampling_from_llm),
-            # f"execution_time/{split_name}_dumping_tapes": time_dumping_tapes,
+            f"execution_time/{split_name}_output_tokens_per_second": output_tokens
+            / (end_sampling_from_llm - start_sampling_from_llm),
+            f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
+            / (end_sampling_from_llm - start_sampling_from_llm),
+            f"execution_time/{split_name}_dumping_tapes": time_dumping_tapes,
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
@@ -414,9 +509,14 @@ def main(cfg: DictConfig):
                     splits.append(("test", test_agent, test_tapes))
                 for split_name, agent, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
-                    new_tapes, training_samples, stats = generate_training_data(
-                        agent, tapes, cfg, env, tapes_dir, split_name
-                    )
+                    if cfg.faster_generate_training_data:
+                        new_tapes, training_samples, stats = faster_generate_training_data(
+                            agent, tapes, cfg, env, tapes_dir, split_name
+                        )
+                    else:
+                        new_tapes, training_samples, stats = generate_training_data(
+                            agent, tapes, cfg, env, tapes_dir, split_name
+                        )
 
                     llm_stats = agent.llm.get_stats()
                     more_llm_stats = {}
@@ -480,7 +580,9 @@ def main(cfg: DictConfig):
 
                 basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
-                with ThreadPoolExecutor(max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()) as executor:
+                with ThreadPoolExecutor(
+                    max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
+                ) as executor:
                     futures = [
                         executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace, strict=False)
                         for trace in all_results["train"]["training_samples"]
