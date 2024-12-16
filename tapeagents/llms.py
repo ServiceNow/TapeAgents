@@ -135,6 +135,8 @@ class LLM(BaseModel, ABC):
     context_size: int = 32000
     tokenizer_name: str = ""
     tokenizer: Any = None
+    log_llm_call_to_sqlite: bool = True
+    log_llm_call_to_tape: bool = False
 
     token_count: int = 0
     _log: list = []
@@ -233,12 +235,9 @@ class LLM(BaseModel, ABC):
             token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens
         )
         self._log.append(llm_call.model_dump())
-        # TODO: should be a flag
-        if True:
-            maybe_llm_call = llm_call
-        else:
+        maybe_llm_call = llm_call if self.log_llm_call_to_tape else None
+        if self.log_llm_call_to_sqlite:
             observe_llm_call(llm_call)
-            maybe_llm_call = None
         time_log_output = time.time() - start_log_output
         self.stats["time_log_output"].append(time_log_output)
         return maybe_llm_call

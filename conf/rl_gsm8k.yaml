@@ -42,7 +42,6 @@ vllm_config:
     # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
     --enable-chunked-prefill: ""
 
-
 output_dir: outputs/rl_gsm8k
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 
