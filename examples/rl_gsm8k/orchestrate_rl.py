@@ -20,6 +20,7 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
+wandb.require("core")
 from .cot_math_agent import (
     CoTMathAgent,
     MathEnvironment,
@@ -377,8 +378,7 @@ def main(cfg: DictConfig):
                     use_cache=False,
                     collect_logprobs=True,
                     remove_leading_white_space=remove_leading_white_space,
-                    log_llm_call_to_sqlite=False,
-                    log_llm_call_to_tape=True,
+                    observe_llm_calls=False
                 )
 
                 test_llm = TrainableLLM(
@@ -388,8 +388,7 @@ def main(cfg: DictConfig):
                     parameters=cfg.test_llm.parameters,
                     use_cache=False,
                     remove_leading_white_space=remove_leading_white_space,
-                    log_llm_call_to_sqlite=False,
-                    log_llm_call_to_tape=True,
+                    observe_llm_calls=False
                 )
 
                 train_agent = CoTMathAgent.create(llm=llm)

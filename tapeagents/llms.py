@@ -67,6 +67,8 @@ class LLMStream:
     - Extract complete LLM output
     - Get the assistant's response text
 
+    LLMStream stores the LLM call object when the generator yields it.
+
     Attributes:
         generator: Generator yielding LLMEvents or None if empty
         prompt: The prompt used to generate the LLM response:
@@ -91,7 +93,10 @@ class LLMStream:
     def __next__(self) -> LLMEvent:
         if self.generator is None:
             raise StopIteration
-        return next(self.generator)
+        event = next(self.generator)
+        if event.llm_call:
+            self.llm_call = event.llm_call
+        return event
 
     def get_output(self) -> LLMOutput:
         """Returns first LLMOutput found in events"""
@@ -122,7 +127,8 @@ class LLM(BaseModel, ABC):
         tokenizer_name (str): Name of the tokenizer used
         tokenizer (Any): Tokenizer instance
         token_count (int): Running count of tokens processed
-        _log (list): Internal log of LLM calls
+        observe_llm_calls (bool): Flag to enable observation of LLM calls
+
 
     Note:
         This is an abstract class and requires implementation of the abstract methods
@@ -134,8 +140,7 @@ class LLM(BaseModel, ABC):
     context_size: int = 32000
     tokenizer_name: str = ""
     tokenizer: Any = None
-    log_llm_call_to_sqlite: bool = True
-    log_llm_call_to_tape: bool = False
+    observe_llm_calls: bool = True
 
     token_count: int = 0
     _log: list = []
@@ -233,12 +238,11 @@ class LLM(BaseModel, ABC):
             token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens
         )
         self._log.append(llm_call.model_dump())
-        maybe_llm_call = llm_call if self.log_llm_call_to_tape else None
-        if self.log_llm_call_to_sqlite:
+        if self.observe_llm_calls:
             observe_llm_call(llm_call)
         time_log_output = time.time() - start_log_output
         self._stats["time_log_output"].append(time_log_output)
-        return maybe_llm_call
+        return llm_call
 
     def get_stats(self) -> dict:
         return {
@@ -594,8 +598,8 @@ class TrainableLLM(CachedLLM):
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
-        maybe_llm_call: None | LLMCall = self.log_output(prompt, output)
-        yield LLMEvent(output=output, llm_call=maybe_llm_call)
+        llm_call = self.log_output(prompt, output)
+        yield LLMEvent(output=output, llm_call=llm_call)
 
 
     def load_tokenizer(self):
