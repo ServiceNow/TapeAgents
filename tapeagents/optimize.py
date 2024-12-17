@@ -15,11 +15,10 @@ logger = logging.getLogger(__name__)
 def optimize_demos(
     agent: Agent,
     good_tapes: list[Tape],
-    val_dataset: list,
     n_demos: int,
     random_sample: int,
     seed: int,
-    metric_fn: Callable[[list, list[Tape]], float],
+    metric_fn: Callable[[list[Tape]], float],
     run_agent_fn: Callable[[Agent, list[Tape]], list[Tape]],
 ) -> Agent:
     """
@@ -34,8 +33,8 @@ def optimize_demos(
         new_agent = add_demos(best_agent, good_tapes, n_demos, seed=seed + i)
         save_agent(new_agent, f"agent_{best_agent_id}.yaml")
         # Run agent on the validation set to get metric to optimize
-        final_tapes = run_agent_fn(new_agent, val_dataset)
-        metric = metric_fn(val_dataset, final_tapes, f"optimization_{i}")
+        final_tapes = run_agent_fn(new_agent)
+        metric = metric_fn(final_tapes, f"optimization_{i}")
         if metric > best_metric:
             best_metric = metric
             best_agent = new_agent

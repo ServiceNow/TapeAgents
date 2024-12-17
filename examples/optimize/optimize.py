@@ -10,10 +10,9 @@ import tqdm
 from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
 from omegaconf import DictConfig
-
 from tapeagents.agent import Agent, Node
 from tapeagents.batch import batch_main_loop
-from tapeagents.core import Tape
+from tapeagents.core import StepMetadata, Tape
 from tapeagents.dialog_tape import (
     AssistantStep,
     AssistantThought,
@@ -137,9 +136,9 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
     return agent
 
 
-def run_agent(agent: Agent, dataset: list, cfg: DictConfig) -> tuple[list[Tape], list[Tape]]:
+def run_agent(agent: Agent, dataset: list[dspy.primitives.Example], cfg: DictConfig) -> tuple[list[Tape], list[Tape]]:
     env = make_env(cfg.optimize.n_paragraphs)
-    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset]
+    start_tapes = make_start_tapes(dataset)
     final_tapes = list(tqdm.tqdm(batch_main_loop(agent, start_tapes, env)))
     return final_tapes
 
@@ -149,8 +148,8 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
     dataset = get_dataset(cfg)
     final_tapes = run_agent(agent, dataset.train, cfg)
     # Step 2: filter out good tapes
-    good_tapes = [t for example, t in zip(dataset.train, final_tapes) if is_good_tape(example, t)]
-    bad_tapes = [t for t in final_tapes if t not in good_tapes]
+    good_tapes = [tape for tape in final_tapes if is_good_tape(tape)]
+    bad_tapes = [tape for tape in final_tapes if tape not in good_tapes]
     logger.info(f"{len(good_tapes)} good tapes out of {len(final_tapes)}")
     # Save all tapes for observability
     with stream_yaml_tapes("good_training_tapes.yaml") as saver:
@@ -160,42 +159,49 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
         for tape in bad_tapes:
             saver.save(tape)
     # Step 3: Optimize agent from the good tapes
-    run_agent_with_defaults = partial(run_agent, cfg=cfg)
+    run_agent_with_val_dataset = partial(run_agent, dataset=dataset.dev, cfg=cfg)
     better_agent = optimize_demos(
         agent,
         good_tapes,
-        dataset.dev,
         cfg.optimize.max_n_demos,
         cfg.optimize.max_optimize_tries,
         cfg.seed,
         metric_mean_retrieval_answer,
-        run_agent_with_defaults,
+        run_agent_with_val_dataset,
     )
     return better_agent
 
 
 def metric_mean_retrieval_answer(
-    dataset: list, tapes: list[Tape], run_name: str = "", w_retrieval: float = 0.5, w_answer: float = 0.5
+    tapes: list[Tape],
+    run_name: str = "",
+    w_retrieval: float = 0.5,
+    w_answer: float = 0.5,
 ) -> float:
-    retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
-    answer_accuracy = compute_answer_exact_match(dataset, tapes)
+    # Compute metrics
+    retrieval_accuracy = compute_retrieval_accuracy(tapes)
+    answer_accuracy = compute_answer_exact_match(tapes)
     mean_accuracy = retrieval_accuracy * w_retrieval + answer_accuracy * w_answer
-    logger.info(
-        f"Retrieval accuracy: {retrieval_accuracy:.3f} | Answer accuracy: {answer_accuracy:.3f} | Mean Accuracy: {mean_accuracy:.3f} "
-    )
-    metrics_save_path = f"metrics_{len(dataset)}{f'_{run_name}' if run_name else ''}.json"
     metrics = {
         "mean_accuracy": mean_accuracy,
         "retrieval_accuracy": retrieval_accuracy,
         "answer_accuracy": answer_accuracy,
     }
-    with open(metrics_save_path, "w") as f:
+    # Log metrics and save
+    logger.info(metrics)
+    metrics_save_path = f"metrics_{len(tapes)}{f'_{run_name}' if run_name else ''}.json"
+    save_metrics(metrics, metrics_save_path)
+
+    return mean_accuracy
+
+
+def save_metrics(metrics: dict, path: str) -> None:
+    with open(path, "w") as f:
         json.dump(
             metrics,
             f,
             indent=2,
         )
-    return mean_accuracy
 
 
 def make_agent(cfg: DictConfig) -> Agent:
@@ -205,19 +211,19 @@ def make_agent(cfg: DictConfig) -> Agent:
     return agent
 
 
-def is_good_tape(example: dspy.primitives.Example, tape, trace=None):
+def is_good_tape(tape):
     if len(tape.steps) < 3:  # Error in the tape
         logger.error(tape.metadata.error)
         return False
     pred = dspy.primitives.Example({"answer": str(tape.steps[-1].content).strip(), "context": tape.steps[-3].content})
-    tape.metadata.result["groundruth_answer"] = example.answer
-    if not dspy.evaluate.answer_exact_match(example, pred):
+    expected_answer = dspy.primitives.Example({"answer": tape.steps[0].metadata.other["answer"]})
+    if not dspy.evaluate.answer_exact_match(expected_answer, pred):
         tape.metadata.result["reason"] = "bad answer"
         return False
-    if not dspy.evaluate.answer_passage_match(example, pred):
+    if not dspy.evaluate.answer_passage_match(expected_answer, pred):
         tape.metadata.result["reason"] = "answer not in context"
         return False
-    queries = [example.question]
+    queries = [tape.steps[0].content]
     queries += [step.tool_calls[0].function.arguments["query"] for step in tape if isinstance(step, ToolCalls)]
     if max([len(q) for q in queries]) > 200:
         tape.metadata.result["reason"] = "long query"
@@ -231,34 +237,36 @@ def is_good_tape(example: dspy.primitives.Example, tape, trace=None):
     return True
 
 
-def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
+def compute_retrieval_accuracy(tapes: list[Tape]):
     n_correct = 0
-    for example, tape in zip(examples, tapes):
-        gold_titles = set(map(dspy.evaluate.normalize_text, example["gold_titles"]))
-        # TODO: just retrieve the last set of contexts by index, keep it simple
+    for tape in tapes:
+        gold_titles = set(map(dspy.evaluate.normalize_text, tape.steps[0].metadata.other["gold_titles"]))
         if len(tape.steps) < 3:  # Error in the tape
             tape.metadata.result["retrieval_accurate"] = False
             continue
+        # TODO: just retrieve the last set of contexts by index, keep it simple
         context_step = tape.steps[-3]
         found_titles = [c.split(" | ")[0] for c in context_step.content]
         found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
         ok = gold_titles.issubset(found_titles)
         tape.metadata.result["retrieval_accurate"] = ok
         n_correct += int(ok)
-    return n_correct / len(examples)
+    return n_correct / len(tapes)
 
 
-def compute_answer_exact_match(examples: list, tapes: list[Tape]):
+def compute_answer_exact_match(tapes: list[Tape]):
     n_correct = 0
-    for example, tape in zip(examples, tapes):
-        tape.metadata.result["groundruth_answer"] = example.answer
-        if isinstance(answer := tape.steps[-1], AssistantStep):
+    for tape in tapes:
+        expected_answer = tape.steps[0].metadata.other["answer"]
+        answer_step = tape.steps[-1]
+        answer_text = str(answer_step.content).strip()
+        if isinstance(answer_step, AssistantStep):
             ok = dspy.evaluate.answer_exact_match(
-                example, dspy.primitives.Example({"answer": str(answer.content).strip()})
+                dspy.primitives.Example({"answer": expected_answer}), dspy.primitives.Example({"answer": answer_text})
             )
             tape.metadata.result["answer_accurate"] = ok
             n_correct += int(ok)
-    return n_correct / len(examples)
+    return n_correct / len(tapes)
 
 
 _dataset = None
@@ -279,8 +287,27 @@ def get_dataset(cfg: DictConfig) -> HotPotQA:
     return _dataset
 
 
-def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset: list, save_tapes_path: str):
-    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset]
+def make_start_tapes(dataset: list[dspy.primitives.Example]) -> list[DialogTape]:
+    # Note: gold_titles are not present on the training set
+    return [
+        DialogTape(
+            steps=[
+                UserStep(
+                    metadata=StepMetadata(
+                        other={"answer": example["answer"], "gold_titles": example.get("gold_titles", set())}
+                    ),
+                    content=example["question"],
+                )
+            ],
+        )
+        for example in dataset
+    ]
+
+
+def batch_run_and_save(
+    agent: Agent, env: ToolEnvironment, dataset: list[dspy.primitives.Example], save_tapes_path: str
+):
+    start_tapes = make_start_tapes(dataset)
     final_tapes = []
     with stream_yaml_tapes(save_tapes_path) as saver:
         for tape in tqdm.tqdm(batch_main_loop(agent, start_tapes, env)):
@@ -313,7 +340,7 @@ def evaluate(cfg: DictConfig):
     dataset = get_dataset(cfg)
     tapes_save_path = f"test_tapes_{cfg.dataset.test_size}.yaml"
     final_tapes = batch_run_and_save(agent, env, dataset.test, tapes_save_path)
-    metric_mean_retrieval_answer(dataset.test, final_tapes, run_name="test")
+    metric_mean_retrieval_answer(final_tapes, run_name="test")
 
 
 def browse():
