@@ -6,6 +6,7 @@ from typing import Callable
 
 from .agent import Agent
 from .dialog_tape import Tape
+from .io import save_agent
 from .llm_function import LLMFunctionNode
 
 logger = logging.getLogger(__name__)
@@ -25,17 +26,21 @@ def optimize_demos(
     Try `random_sample` times to `add_demos()` (see below), measure validation set performance, and keep the best agent.
     """
     best_agent = agent
+    best_agent_id = 0
     best_metric = 0
 
     for i in range(random_sample):
         # Add demos to the agent with a different seed for each attempt
         new_agent = add_demos(best_agent, good_tapes, n_demos, seed=seed + i)
+        save_agent(new_agent, f"agent_{best_agent_id}.yaml")
         # Run agent on the validation set to get metric to optimize
         final_tapes = run_agent_fn(new_agent, val_dataset)
         metric = metric_fn(val_dataset, final_tapes, f"optimization_{i}")
         if metric > best_metric:
             best_metric = metric
             best_agent = new_agent
+            best_agent_id = i
+    save_agent(best_agent, f"best_agent_{best_agent_id}.yaml")
     return best_agent
 
 
