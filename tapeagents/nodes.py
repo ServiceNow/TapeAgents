@@ -223,7 +223,7 @@ class MonoNode(Node):
                         step = self.postprocess_step(tape, new_steps, step)
                         if event.llm_call:
                             step.metadata.other.update({
-                                "llm_call": event.llm_call,
+                                "llm_call": event.llm_call.model_dump(),
                             })
                         new_steps.append(step)
                         yield step

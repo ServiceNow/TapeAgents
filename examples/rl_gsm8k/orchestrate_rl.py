@@ -151,7 +151,7 @@ def extract_tape_training_samples(
         for step in new_tape.steps:
             if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
                 continue
-            llm_call = step.metadata.other["llm_call"]
+            llm_call = LLMCall(**step.metadata.other["llm_call"])
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)

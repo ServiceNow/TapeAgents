@@ -14,7 +14,6 @@ from omegaconf import DictConfig
 
 from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
-from tapeagents.observe import retrieve_all_llm_calls
 from tests.make_test_data import run_test_in_tmp_dir
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
