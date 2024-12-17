@@ -152,7 +152,7 @@ def extract_tape_training_samples(
         for step in new_tape.steps:
             if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
                 continue
-            llm_call = LLMCall(**step.metadata.other["llm_call"])
+            llm_call = step.metadata.other["llm_call"]
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
@@ -425,7 +425,7 @@ def main(cfg: DictConfig):
                     }
 
                     # Log results
-                    logger.info(f"{cfg.dataset_name} {split_name.capitalize()} Results:")
+                    logger.info(f"{cfg.dataset_name} {split_name} stats:")
                     for stat_name, stat_value in stats.items():
                         logger.info(f"{stat_name}: {stat_value}")
                 assistant_vllm_stats = vllm_service_manager.get_stats()
@@ -481,20 +481,21 @@ def main(cfg: DictConfig):
                     ]
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
+                time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
 
         except Exception as e:
             logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
             raise e
 
-        time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
-        wandb.log(
-            {
-                "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
-                "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
-                "execution_time/starting_refmodel_vllm": refmodel_starting_time,
-            },
-            step=state["iteration"],
-        )
+        logprob_stats = {
+            "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
+            "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
+            "execution_time/starting_refmodel_vllm": refmodel_starting_time,
+        }
+        logger.info(f"Logprob population stats:")
+        for stat_name, stat_value in logprob_stats.items():
+            logger.info(f"{stat_name}: {stat_value}")
+        wandb.log(logprob_stats, step=state["iteration"])
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
         with open(rollout_dir / "data.jsonl", "w") as f:
