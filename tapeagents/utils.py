@@ -5,6 +5,7 @@ Various utility functions.
 import base64
 import difflib
 import json
+import logging
 import os
 from contextlib import contextmanager
 from typing import Any
@@ -12,6 +13,8 @@ from typing import Any
 import jsonref
 from pydantic import TypeAdapter
 from termcolor import colored
+
+logger = logging.getLogger(__name__)
 
 
 # Custom exception for fatal errors
@@ -113,6 +116,30 @@ def image_base64_message(image_path: str) -> dict:
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+
+
+def get_relative_path_to_root(path, root_path):
+    """
+    Example:
+    path=/a/b/c/d/file.txt
+    root_path=b/c/
+    returns d/file.txt
+    """
+    # Normalize the paths
+    path = os.path.normpath(path)
+    root_path = os.path.normpath(root_path)
+
+    # Find the index of root_path in path
+    index = path.find(root_path)
+
+    if index == -1:
+        logger.warning("root_path not found in path")
+        return os.path.basename(path)
+
+    # Extract the relative path
+    relative_path = path[index + len(root_path) :]
+
+    return relative_path.lstrip(os.sep)
 
 
 @contextmanager
