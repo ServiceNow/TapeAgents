@@ -49,7 +49,7 @@ from tapeagents.orchestrator import main_loop
 logger = logging.getLogger(__name__)
 
 
-def annotate_trace_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
+def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
     try:
         ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
         trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
@@ -244,7 +244,7 @@ def generate_training_data(
     logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
 
     logger.info("Starting data creation")
-    start_annotate_tape = time.time()
+    start_generation = time.time()
     prompt_tokens = 0
     output_tokens = 0
 
@@ -278,7 +278,7 @@ def generate_training_data(
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
 
-    end_annotate_tape = time.time()
+    end_generation = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
 
@@ -290,7 +290,7 @@ def generate_training_data(
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
+            f"execution_time/{split_name}_generation": end_generation - start_generation,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
@@ -406,9 +406,14 @@ def main(cfg: DictConfig):
                     )
 
                     llm_stats = agent.llm.get_stats()
-                    more_llm_stats = {}
+                    generation_took = stats[f"execution_time/{split_name}_generation"]
+                    more_llm_stats = {
+                        "generation_output_tokens/s": llm_stats["total_prompt_tokens"] / generation_took,
+                        "generation_prompt_tokens/s": llm_stats["total_output_tokens"] / generation_took,
+                        "generation_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / generation_took,
+                    }
                     for k, v in llm_stats.items():
-                        if "per_second" in k:
+                        if "/s" in k:
                             more_llm_stats.update({f"{k}_per_gpu": v / torch.cuda.device_count()})
                     llm_stats.update(more_llm_stats)
                     llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
@@ -442,7 +447,6 @@ def main(cfg: DictConfig):
             step=state["iteration"],
         )
 
-        start_basemodel_logprobs = time.time()
         try:
             with VLLMServiceManager(
                 model_name_or_path=cfg.model_path,
@@ -463,11 +467,12 @@ def main(cfg: DictConfig):
 
                 basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
+                start_basemodel_logprobs = time.time()
                 with ThreadPoolExecutor(
                     max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
                 ) as executor:
                     futures = [
-                        executor.submit(annotate_trace_with_ref_logprobs, basemodel_agent, trace, strict=False)
+                        executor.submit(annotate_traces_with_ref_logprobs, basemodel_agent, trace, strict=False)
                         for trace in all_results["train"]["training_samples"]
                     ]
                     training_samples: List[TrainingText] = [  # type: ignore
@@ -530,6 +535,8 @@ def main(cfg: DictConfig):
         )
         state["iteration"] += 1
         save_state(state, state_path)
+
+    logger.info(f'Finished training after {state["iteration"]} iterations')
 
 
 if __name__ == "__main__":
