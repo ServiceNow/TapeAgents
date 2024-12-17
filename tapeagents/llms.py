@@ -141,6 +141,7 @@ class LLM(BaseModel, ABC):
     token_count: int = 0
     _log: list = []
     start_time: None | float = None
+    end_time: float = time.time()
     stats: dict = defaultdict(list)
 
     @abstractmethod
@@ -248,8 +249,8 @@ class LLM(BaseModel, ABC):
             "time_log_output": np.mean(self.stats["time_log_output"]) if self.stats["time_log_output"] else 0,
             "prompt_length_tokens": np.mean(self.stats["prompt_length_tokens"]) if self.stats["prompt_length_tokens"] else 0,
             "output_length_tokens": np.mean(self.stats["output_length_tokens"]) if self.stats["output_length_tokens"] else 0,
-            "output_tokens_per_second": np.sum(self.stats["output_length_tokens"]) / (time.time() - self.start_time) if self.start_time else 0,
-            "prompt_tokens_per_second": np.sum(self.stats["prompt_length_tokens"]) / (time.time() - self.start_time) if self.start_time else 0,
+            "output_tokens_per_second": np.sum(self.stats["output_length_tokens"]) / (self.end_time - self.start_time) if self.start_time else 0,
+            "prompt_tokens_per_second": np.sum(self.stats["prompt_length_tokens"]) / (self.end_time - self.start_time) if self.start_time else 0,
         }
 
 
@@ -601,6 +602,7 @@ class TrainableLLM(CachedLLM):
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
         maybe_llm_call: None | LLMCall = self.log_output(prompt, output)
+        self.end_time = time.time()
         yield LLMEvent(output=output, llm_call=maybe_llm_call)
 
 
