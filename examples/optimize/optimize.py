@@ -1,8 +1,7 @@
 import json
 import logging
 import os
-import random
-from typing import Callable
+from functools import partial
 
 import dspy
 import dspy.evaluate
@@ -29,6 +28,7 @@ from tapeagents.environment import ToolEnvironment
 from tapeagents.io import stream_yaml_tapes
 from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
 from tapeagents.llms import LiteLLM, LLMStream, TrainableLLM
+from tapeagents.optimize import optimize_demos
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.renderers.pretty import PrettyRenderer
@@ -137,27 +137,6 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
     return agent
 
 
-def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1) -> Agent:
-    """Extract demos for function templates from the given tapes.
-
-    When there is too many demos, select random ones.
-
-    """
-    demos = {template_name: [] for template_name in agent.templates}
-    for tape in tapes:
-        for node, index in agent.get_node_runs(tape):
-            if isinstance(node, LLMFunctionNode):
-                demos[node.template_name].append(node.extract_demo(agent, tape, index))
-    rng = random.Random(seed)
-    agent_copy = agent.model_copy(deep=True)
-    for template_name, template in agent_copy.templates.items():
-        k_max = min(max_n_demos, len(demos[template_name]))
-        # k = rng.randint(0, k_max)  # random number of demos
-        k = k_max
-        template.demos = rng.sample(demos[template_name], k)  # random selection of demos
-    return agent_copy
-
-
 def run_agent(agent: Agent, dataset: list, cfg: DictConfig) -> tuple[list[Tape], list[Tape]]:
     env = make_env(cfg.optimize.n_paragraphs)
     start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset]
@@ -181,7 +160,17 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
         for tape in bad_tapes:
             saver.save(tape)
     # Step 3: Optimize agent from the good tapes
-    better_agent = optimize_demos(agent, good_tapes, dataset.dev, cfg, metric_mean_retrieval_answer)
+    run_agent_with_defaults = partial(run_agent, cfg=cfg)
+    better_agent = optimize_demos(
+        agent,
+        good_tapes,
+        dataset.dev,
+        cfg.optimize.max_n_demos,
+        cfg.optimize.max_optimize_tries,
+        cfg.seed,
+        metric_mean_retrieval_answer,
+        run_agent_with_defaults,
+    )
     return better_agent
 
 
@@ -207,29 +196,6 @@ def metric_mean_retrieval_answer(
             indent=2,
         )
     return mean_accuracy
-
-
-def optimize_demos(
-    agent: Agent,
-    good_tapes: list[Tape],
-    val_dataset: list,
-    cfg: DictConfig,
-    metric_fn: Callable[[list, list[Tape]], float],
-) -> Agent:
-    """Try N times to `add_demos` (see above), measure val set performance, and keep the best agent"""
-    best_agent = agent
-    best_metric = 0
-
-    for i in range(cfg.optimize.max_optimize_tries):
-        # Add demos to the agent with a different seed for each attempt
-        new_agent = add_demos(best_agent, good_tapes, cfg.optimize.max_n_demos, seed=cfg.seed + i)
-        # Run agent on the validation set to get metric to optimize
-        final_tapes = run_agent(new_agent, val_dataset, cfg)
-        metric = metric_fn(val_dataset, final_tapes, run_name=f"validation_{i}")
-        if metric > best_metric:
-            best_metric = metric
-            best_agent = new_agent
-    return best_agent
 
 
 def make_agent(cfg: DictConfig) -> Agent:
