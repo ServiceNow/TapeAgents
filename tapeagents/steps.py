@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import Field
 
 from tapeagents.core import Action, Observation, Step
-from tapeagents.utils import image_base64_message
+from tapeagents.utils import get_relative_path_to_root, image_base64_message
 
 logger = logging.getLogger(__name__)
 
@@ -76,46 +76,49 @@ class VideoObservation(Observation):
         return llm_view
 
 
-def normalize_step_paths(model: Step, root_path: str) -> Step:
+def normalize_step_paths(step: Step, root_path: str) -> Step:
     """
     Normalizes the paths in the step to be relative to the root_path folder.
     This is needed for tape replay from different environment paths.
     This also prevents prompts to contain full paths, which can be sensitive.
     """
-
-    def get_relative_path_to_root(path, root_path):
-        """
-        Example:
-        path=/a/b/c/d/file.txt
-        root_path=b/c/
-        returns d/file.txt
-        """
-        # Normalize the paths
-        path = os.path.normpath(path)
-        root_path = os.path.normpath(root_path)
-
-        # Find the index of root_path in path
-        index = path.find(root_path)
-
-        if index == -1:
-            logger.warning("root_path not found in path")
-            return os.path.basename(path)
-
-        # Extract the relative path
-        relative_path = path[index + len(root_path) :]
-
-        return relative_path.lstrip(os.sep)
-
-    for key, _ in model.model_fields.items():
+    s = step.model_copy()
+    for key, _ in s.model_fields.items():
         if key.endswith(("_path", "_paths")):
-            value = getattr(model, key)
+            value = getattr(s, key)
             if isinstance(value, list):
-                setattr(model, key, [get_relative_path_to_root(path, root_path) for path in value])
+                setattr(s, key, [get_relative_path_to_root(path, root_path) for path in value])
             elif isinstance(value, str):
-                setattr(model, key, get_relative_path_to_root(value, root_path))
+                setattr(s, key, get_relative_path_to_root(value, root_path))
             else:
                 raise ValueError(f"Expected a list or string, got {type(value)}")
-    return model
+    return s
+
+
+def update_step_paths(step: Step, dir: str) -> Step:
+    """
+    Updates the paths in the step to be relative to the provided directory.
+
+    Parameters:
+    step (Step): The step object containing paths to be updated.
+    dir (str): The directory to which the paths should be made relative.
+
+    Returns:
+    Step: The updated step object with paths relative to the provided directory.
+    """
+    s = step.model_copy()
+    if hasattr(s, "local_dir"):
+        s.local_dir = dir
+    for key, _ in s.model_fields.items():
+        if key.endswith(("_path", "_paths")):
+            value = getattr(s, key)
+            if isinstance(value, list):
+                setattr(s, key, [os.path.join(dir, os.path.basename(path)) for path in value])
+            elif isinstance(value, str):
+                setattr(s, key, os.path.join(dir, os.path.basename(value)))
+            else:
+                raise ValueError(f"Expected a list or string, got {type(value)}")
+    return s
 
 
 class UnknownStep(Step):
