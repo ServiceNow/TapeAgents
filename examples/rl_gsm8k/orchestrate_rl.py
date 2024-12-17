@@ -20,16 +20,16 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
-from examples.rl_gsm8k.cot_math_agent import (
+from .cot_math_agent import (
     CoTMathAgent,
     MathEnvironment,
     RLMathTape,
     Task,
 )
-from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
-from examples.rl_gsm8k.deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-from examples.rl_gsm8k.deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
-from examples.rl_gsm8k.utils import (
+from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
+from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
+from .deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
+from .utils import (
     VLLMServiceManager,
     calculate_stats,
     clean_up,
@@ -205,7 +205,7 @@ def extract_tape_training_samples(
     return new_tape, training_samples, tape_stats
 
 
-def new_generate_training_data(
+def generate_training_data(
     agent: CoTMathAgent,
     tapes: list[RLMathTape],
     cfg: DictConfig,
@@ -293,113 +293,6 @@ def new_generate_training_data(
             f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
-            f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
-            f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
-            f"{split_name}_prompt_tokens": prompt_tokens,
-            f"{split_name}_output_tokens": output_tokens,
-        },
-    }
-    return new_tapes, training_samples, stats
-
-
-def generate_training_data(
-    agent: CoTMathAgent,
-    tapes: list[RLMathTape],
-    cfg: DictConfig,
-    env: MathEnvironment,
-    tapes_dir: Path,
-    split_name: str,
-) -> Tuple[List[RLMathTape], List[TrainingText], Dict[str, float]]:
-    """
-    Generate complete tapes and training samples from a list of initialized tapes.
-
-    Args:
-        agent: Agent that interacts with the math environment
-        tapes: List of tapes initialized with math problems
-        cfg: Configuration
-        env: Environment with tools
-        tapes_dir: Directory to save processed episodes
-        split_name: Name of split ('train' or other)
-
-    Returns:
-        Tuple containing:
-        - List of completed RLMathTapes
-        - List of training samples with rewards and logprobs
-        - Dictionary of performance statistics and execution times
-    """
-
-    start_make_data = time.time()
-    os.makedirs(tapes_dir, exist_ok=True)
-    reward_stats = defaultdict(list)
-    step_stats = defaultdict(list)
-    no_errors_stats = defaultdict(list)
-    success_stats = defaultdict(list)
-    discarded_stats = defaultdict(list)
-    compute_logprobs_stats = defaultdict(list)
-    training_samples: List[TrainingText] = []
-
-    logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
-    start_sampling_from_llm = time.time()
-    main_loops = batch_main_loop(
-        agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()
-    )
-    new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
-    end_sampling_from_llm = time.time()
-
-    start_dumping_tapes = time.time()
-    with open(tapes_dir / "tapes.json", "w") as f:
-        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
-    time_dumping_tapes = time.time() - start_dumping_tapes
-
-    logger.info("Starting data creation")
-    start_annotate_tape = time.time()
-    prompt_tokens = 0
-    output_tokens = 0
-
-    with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
-        extract_tape_training_samples_partial = partial(
-            extract_tape_training_samples,
-            agent=agent,
-            split_name=split_name,
-            cfg=cfg,
-        )
-        futures = [executor.submit(extract_tape_training_samples_partial, new_tape) for new_tape in new_tapes]
-        # Wrap futures with tqdm for progress tracking
-        new_tapes = []
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
-            new_tape, tape_training_samples, tape_stats = future.result()
-            new_tapes.append(new_tape)
-            training_samples.extend(tape_training_samples)
-            reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
-            step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
-            success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
-            no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
-            discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_logprobs"])
-            prompt_tokens += tape_stats["prompt_tokens"]
-            output_tokens += tape_stats["output_tokens"]
-
-    end_annotate_tape = time.time()
-    with open(tapes_dir / "tapes.json", "w") as f:
-        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
-
-    end_make_data = time.time()
-
-    stats = {
-        **{f"{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
-        **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
-        **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
-        **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
-        **{
-            f"execution_time/{split_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
-            f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
-            f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
-            f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
-            f"execution_time/{split_name}_output_tokens_per_second": output_tokens
-            / (end_sampling_from_llm - start_sampling_from_llm),
-            f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
-            / (end_sampling_from_llm - start_sampling_from_llm),
-            f"execution_time/{split_name}_dumping_tapes": time_dumping_tapes,
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
@@ -508,14 +401,9 @@ def main(cfg: DictConfig):
                     splits.append(("test", test_agent, test_tapes))
                 for split_name, agent, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
-                    if cfg.new_generate_training_data:
-                        new_tapes, training_samples, stats = new_generate_training_data(
-                            agent, tapes, cfg, env, tapes_dir, split_name
-                        )
-                    else:
-                        new_tapes, training_samples, stats = generate_training_data(
-                            agent, tapes, cfg, env, tapes_dir, split_name
-                        )
+                    new_tapes, training_samples, stats = generate_training_data(
+                        agent, tapes, cfg, env, tapes_dir, split_name
+                    )
 
                     llm_stats = agent.llm.get_stats()
                     more_llm_stats = {}
@@ -553,10 +441,6 @@ def main(cfg: DictConfig):
             stats,
             step=state["iteration"],
         )
-
-        if state["iteration"] + 1 == cfg.max_iterations:
-            # No need to continue if we are at the final iteration
-            break
 
         start_basemodel_logprobs = time.time()
         try:
