@@ -34,7 +34,7 @@ def batch_main_loop(
     if not isinstance(environments, list):
         environments = [environments] * len(tapes)
 
-    def worker_func(input: tuple[TapeType, Environment], agent, max_loops, strict) -> TapeType | Exception:
+    def worker_func(input: tuple[TapeType, Environment], agent: Agent, max_loops: int, strict: bool) -> TapeType | Exception:
         start_tape, env = input
         try:
             result = main_loop(agent, start_tape, env, max_loops=max_loops).get_final_tape()
