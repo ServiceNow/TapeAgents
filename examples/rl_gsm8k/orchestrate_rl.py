@@ -245,7 +245,6 @@ def generate_training_data(
     logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
 
     logger.info("Starting data creation")
-    start_generation = time.time()
     prompt_tokens = 0
     output_tokens = 0
 
@@ -279,9 +278,10 @@ def generate_training_data(
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
 
-    end_generation = time.time()
+    start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
+    end_dump = time.time() - start_dump
 
     end_make_data = time.time()
 
@@ -291,7 +291,7 @@ def generate_training_data(
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            f"execution_time/{split_name}_generation": end_generation - start_generation,
+            f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
