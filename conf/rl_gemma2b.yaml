@@ -17,10 +17,10 @@ finetune:
     reward_minus_kl_coef: 0.0
     kl_coef: 0.0
     use_advantages: false
+  save_checkpoint_steps: 156 # 5000 / 8 * 4, better than 8 in Alex's original run
   
 use_rejection_sampling: true
 test_every_n_iterations: 10
-save_checkpoint_steps: 156 # 5000 / 8 * 4, better than 8 in Alex's original run
 model_path: /mnt/llmd/base_models/gemma-2-2b-it
 
 
