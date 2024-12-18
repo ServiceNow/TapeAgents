@@ -21,6 +21,11 @@ from .lora import has_lora_checkpoint, lora_load, lora_save, prepare_lora_model
 from .types import ModelClass, TrainingMetrics
 
 
+def is_deepspeed_model(model) -> bool:
+    """Check if model is a DeepSpeed engine instance."""
+    return model.__class__.__name__.endswith("DeepSpeedEngine")
+
+
 def get_auto_model_class(
     model_class: ModelClass,
 ) -> Type[_BaseAutoModelClass]:
@@ -163,7 +168,7 @@ def _save_training_state(
         not os.path.exists(training_state_dir) or training_state_dir.is_dir()
     ), f"output_dir {training_state_dir} must be a directory"
 
-    if model.__class__.__name__.endswith("DeepSpeedEngine"):
+    if is_deepspeed_model(model):
         # Save both model and optimizer, as well as lr_scheduler if supported by deepspeed
         logger.info("Save deepspeed training state")
         client_state = dict(extra_training_state)
@@ -203,7 +208,7 @@ def load_training_checkpoint(
         not os.path.exists(training_state_dir) or training_state_dir.is_dir()
     ), f"output_dir {training_state_dir} must be a directory"
 
-    if model.__class__.__name__.endswith("DeepSpeedEngine"):
+    if is_deepspeed_model(model):
         logger.info("Load deepspeed training state")
         # This magically loads optimizer and lr_scheduler states (if they were saved)
         # (the passed optimizer and lr_scheduler arguments will be ignored)
@@ -321,7 +326,7 @@ def save_model_only(
 
     logger.info(f"Save model to {output_dir}")
 
-    if model.__class__.__name__.endswith("DeepSpeedEngine"):
+    if is_deepspeed_model(model):
         logger.info(f"Saving through deepspeed engine path {output_dir}")
         # saving using DeepSpeed's checkpoint mechanism
         model.save_checkpoint(save_dir=output_dir)
