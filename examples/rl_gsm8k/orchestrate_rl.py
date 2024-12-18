@@ -250,6 +250,7 @@ def generate_training_data(
     new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
     end_sampling_from_llm = time.time()
 
+
     start_dumping_tapes = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
@@ -295,7 +296,7 @@ def generate_training_data(
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            f"execution_time/{split_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
+            f"execution_time/{split_name}_generation": end_sampling_from_llm - start_sampling_from_llm,
             f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
