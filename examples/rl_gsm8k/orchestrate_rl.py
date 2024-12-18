@@ -160,15 +160,22 @@ def extract_tape_training_samples(
             logprobs = [c["logprob"] for c in llm_call.logprobs]
             vllm_tokens = [c["token"] for c in llm_call.logprobs]
 
+            # Huggingface tokenizer for Gemma2B adds an extra newline at the end of the chat template.
+            # Try to detect this and fix.
+            if len(vllm_tokens) == len(hf_tokens) - 1 and vllm_tokens == hf_tokens[:-1] and hf_tokens[-1] == "\n":
+                # The last token is a newline, add it to the vLLM tokens
+                vllm_tokens.append("\n")
+                logprobs.append(-20.0)
+
             # Note: tokens produced during generation are not always the same as the tokens produced on the full sequence
             if vllm_tokens != hf_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
                 try:
-                    import pdb; pdb.set_trace()
-                    logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
-                    logprobs = [c["logprob"] for c in logprobs_dict["content"]]
-                    new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
+                    new_logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+                    new_logprobs = [c["logprob"] for c in new_logprobs_dict["content"]]
+                    new_vllm_tokens = [c["token"] for c in new_logprobs_dict["content"]]
                     assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
+                    logprobs = new_logprobs
                     compute_logprobs.append(1)
                 except Exception as e:
                     logger.error(f"Failed to get logprobs: {e}")
@@ -249,7 +256,7 @@ def generate_training_data(
         tape: RLMathTape, agent: CoTMathAgent, env, split_name: str, cfg: DictConfig
     ):
         new_tape = main_loop(agent, tape, env, max_loops=cfg.max_loops).get_final_tape()
-        assert new_tape.steps[1].reasoning == new_tape.steps[1].metadata.other["llm_call"].output
+        assert new_tape.steps[1].reasoning == new_tape.steps[1].metadata.other["llm_call"].output.content
         return extract_tape_training_samples(new_tape, agent, split_name, cfg)
 
     with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
