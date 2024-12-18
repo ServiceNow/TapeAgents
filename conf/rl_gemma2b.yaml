@@ -21,6 +21,7 @@ finetune:
 use_rejection_sampling: true
 test_every_n_iterations: 10
 save_checkpoint_steps: 156 # 5000 / 8 * 4, better than 8 in Alex's original run
+model_path: /mnt/llmd/base_models/gemma-2-2b-it
 
 
 # https://wandb.ai/apiche/tapeagents/runs/dec13_math_gemma_faster_lr_0_000001_attempts_8_pass_8_checkpoint_8_reinforce/overview
