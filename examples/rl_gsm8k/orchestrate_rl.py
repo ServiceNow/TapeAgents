@@ -243,27 +243,31 @@ def generate_training_data(
     training_samples: List[TrainingText] = []
 
     logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
+    start_sampling_from_llm = time.time()
+    main_loops = batch_main_loop(
+        agent, tapes, env, max_loops=cfg.max_loops, n_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()
+    )
+    new_tapes = list(tqdm(main_loops, total=len(tapes), desc="Run the agent", unit="tape"))
+    end_sampling_from_llm = time.time()
+
+    start_dumping_tapes = time.time()
+    with open(tapes_dir / "tapes.json", "w") as f:
+        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
+    time_dumping_tapes = time.time() - start_dumping_tapes
 
     logger.info("Starting data creation")
-    start_generation = time.time()
+    start_annotate_tape = time.time()
     prompt_tokens = 0
     output_tokens = 0
 
-    def generate_and_extract_tape_training_samples(
-        tape: RLMathTape, agent: CoTMathAgent, env, split_name: str, cfg: DictConfig
-    ):
-        new_tape = main_loop(agent, tape, env, max_loops=cfg.max_loops).get_final_tape()
-        return extract_tape_training_samples(new_tape, agent, split_name, cfg)
-
     with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
-        generate_and_extract_tape_training_samples_partial = partial(
-            generate_and_extract_tape_training_samples,
+        extract_tape_training_samples_partial = partial(
+            extract_tape_training_samples,
             agent=agent,
-            env=env,
             split_name=split_name,
             cfg=cfg,
         )
-        futures = [executor.submit(generate_and_extract_tape_training_samples_partial, tape) for tape in tapes]
+        futures = [executor.submit(extract_tape_training_samples_partial, new_tape) for new_tape in new_tapes]
         # Wrap futures with tqdm for progress tracking
         new_tapes = []
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
@@ -279,7 +283,7 @@ def generate_training_data(
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
 
-    end_generation = time.time()
+    end_annotate_tape = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
 
@@ -291,9 +295,15 @@ def generate_training_data(
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            f"execution_time/{split_name}_generation": end_generation - start_generation,
+            f"execution_time/{split_name}_sampling_from_llm": end_sampling_from_llm - start_sampling_from_llm,
+            f"execution_time/{split_name}_annotate_tapes": end_annotate_tape - start_annotate_tape,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
+            f"execution_time/{split_name}_output_tokens_per_second": output_tokens
+            / (end_sampling_from_llm - start_sampling_from_llm),
+            f"execution_time/{split_name}_prompt_tokens_per_second": prompt_tokens
+            / (end_sampling_from_llm - start_sampling_from_llm),
+            f"execution_time/{split_name}_dumping_tapes": time_dumping_tapes,
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
