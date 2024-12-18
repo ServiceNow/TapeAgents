@@ -342,8 +342,8 @@ def main(cfg: DictConfig):
     train_samples = [process_fn(s) for s in train_dataset]
     test_dataset = load_dataset(dataset_long_name, "main", split="test", trust_remote_code=True)
     test_samples = [process_fn(s) for s in test_dataset]
-    logging.info(f"Loaded {len(train_samples)} training samples")
-    logging.info(f"Loaded {len(test_samples)} test samples")
+    logger.info(f"Loaded {len(train_samples)} training samples")
+    logger.info(f"Loaded {len(test_samples)} test samples")
 
     env = MathEnvironment()
 
@@ -354,7 +354,7 @@ def main(cfg: DictConfig):
     remove_leading_white_space = True if "deepseek" in cfg.model_path else False
     if remove_leading_white_space:
         # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
-        logging.info("Removing leading white space from the model. This is necessary for DeepSeek models")
+        logger.info("Removing leading white space from the model. This is necessary for DeepSeek models")
 
     while state["iteration"] <= cfg.max_iterations:
         start_iteration = time.time()
@@ -495,7 +495,9 @@ def main(cfg: DictConfig):
 
         finetune_cfg = cfg.copy()
 
-        interrupt_train_steps = int((state["iteration"] + 1) * finetune_cfg.finetune.save_checkpoint_steps)
+        checkpoint_steps = finetune_cfg.finetune.save_checkpoint_steps
+        interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps - 1)
+
         finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
         finetune_cfg.output_dir = str(finetune_path)
         finetune_cfg.finetune.data = {"data_parts_train": [{"path": str(rollout_dir)}]}
