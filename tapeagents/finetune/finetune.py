@@ -140,39 +140,8 @@ def run_finetuning_loop(
     accelerator.wait_for_everyone()
     dt = log_time(dt, "finetune/data_load")
 
-    is_deepspeed = getattr(accelerator.state, "deepspeed_plugin", None) is not None
-
-    if not is_deepspeed:
-        optimizer = get_optimizer(args.optim, model, args.learning_rate, args.weight_decay)
-        lr_scheduler = get_scheduler(args.lr_scheduler_type, optimizer, args.num_warmup_steps, args.max_train_steps)
-    else:
-        from accelerate.utils import DummyOptim, DummyScheduler
-
-        optimizer_kwargs = {
-            "params": model.parameters(),
-            "lr": args.learning_rate,
-            "weight_decay": args.weight_decay,
-        }
-
-        optimizer = DummyOptim(params=model.parameters())  # Minimal DummyOptim
-
-        scheduler_kwargs = {
-            "warmup_min_lr": 0.0,
-            "warmup_max_lr": args.learning_rate,
-            "warmup_num_steps": args.num_warmup_steps,
-            "total_num_steps": args.max_train_steps,
-        }
-
-        lr_scheduler = DummyScheduler(
-            optimizer,
-            **scheduler_kwargs
-        )
-
-        # update DeepSpeed plugin config
-        if hasattr(accelerator.state, "deepspeed_plugin"):
-            ds_plugin = accelerator.state.deepspeed_plugin
-            ds_plugin.deepspeed_config["optimizer"]["params"]["lr"] = args.learning_rate
-            ds_plugin.deepspeed_config["optimizer"]["params"]["weight_decay"] = args.weight_decay
+    optimizer = get_optimizer(args.optim, model, args.learning_rate, args.weight_decay)
+    lr_scheduler = get_scheduler(args.lr_scheduler_type, optimizer, args.num_warmup_steps, args.max_train_steps)
 
     # Wrap everything with HF Accelerator
     (
