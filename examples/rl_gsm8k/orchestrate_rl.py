@@ -44,7 +44,7 @@ from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
-from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls, LLMCall, migrate_sqlite_schema
+from tapeagents.observe import SQLiteWriterThread, retrieve_all_llm_calls, LLMCall
 
 logger = logging.getLogger(__name__)
 
@@ -318,10 +318,6 @@ def main(cfg: DictConfig):
     run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
     if run is None:
         raise ValueError("Failed to initialize wandb run")
-    
-    # Add migration call here
-    migrate_sqlite_schema()
-    
     state_path = exp_path / "rl_state.json"
     state = load_state(state_path)
     # optionally clean all data at start time
