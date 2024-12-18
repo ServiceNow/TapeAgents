@@ -338,13 +338,12 @@ def calculate_stats(stats):
 def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
+    Automatically detects multinode setup if GPU count > 8 (single node capacity).
 
     Args:
-        config_path (str): Path to the training config file
-        cfg: Configuration object containing accelerate_cfg_path
-
-    Returns:
-        float: Training duration in seconds
+        config_dir (str): Path to the training config directory
+        config_name (str): Name of the config file
+        accelerate_cfg_path (str): Path to accelerate config
 
     Raises:
         ValueError: If no GPUs are available
@@ -355,7 +354,9 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str)
     if num_gpus == 0:
         raise ValueError("No GPUs available for finetuning")
 
-    # Construct command based on GPU count
+    # Determine if we're in a multinode setup (more than 8 GPUs indicates multiple nodes)
+    is_multinode = num_gpus > 8
+
     base_cmd = [
         "accelerate",
         "launch",
@@ -371,16 +372,19 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str)
 
     if num_gpus > 1:
         base_cmd[2:2] = [
-            # "--multi_gpu",
             "--num_processes",
             str(num_gpus),
             "--use_deepspeed",
             "--deepspeed_config_file",
-            "conf/accelerate/ds_2nodes.json",
-            "--deepspeed_multinode_launcher",
-            "standard",
-            "--same_network",
+            "conf/accelerate/deepspeed_stage3_bf16.json",
         ]
+        
+        if is_multinode:
+            base_cmd.extend([
+                "--deepspeed_multinode_launcher",
+                "standard",
+                "--same_network",
+            ])
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
     try:
