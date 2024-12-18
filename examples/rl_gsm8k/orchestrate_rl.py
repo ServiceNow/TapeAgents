@@ -315,9 +315,21 @@ def main(cfg: DictConfig):
     setup_logging(exp_path)
     logger.info(f"Current dir: {os.getcwd()}, output dir: {cfg.output_dir}")
     cfg.finetune.wandb_id = exp_path.name
-    run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
-    if run is None:
-        raise ValueError("Failed to initialize wandb run")
+    
+    # Initialize wandb and handle failure gracefully
+    try:
+        run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
+    except Exception as e:
+        logger.warning(f"Failed to initialize wandb: {e}. Continuing without wandb logging.")
+        run = None
+    
+    def safe_wandb_log(metrics, step):
+        if run is not None:
+            try:
+                wandb.log(metrics, step=step)
+            except Exception as e:
+                logger.warning(f"Failed to log to wandb: {e}")
+
     state_path = exp_path / "rl_state.json"
     state = load_state(state_path)
     # optionally clean all data at start time
@@ -429,10 +441,7 @@ def main(cfg: DictConfig):
             time_evaluation = stats["execution_time/test_make_data"]
         else:
             time_evaluation = 0
-        wandb.log(
-            stats,
-            step=state["iteration"],
-        )
+        safe_wandb_log(stats, step=state["iteration"])
 
         start_basemodel_logprobs = time.time()
         try:
@@ -472,7 +481,7 @@ def main(cfg: DictConfig):
             raise e
 
         time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
-        wandb.log(
+        safe_wandb_log(
             {
                 "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
                 "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
@@ -512,7 +521,7 @@ def main(cfg: DictConfig):
         )
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
-        wandb.log(
+        safe_wandb_log(
             {
                 "execution_time/finetune": time_finetune,
                 "execution_time/iteration": time_iteration,
