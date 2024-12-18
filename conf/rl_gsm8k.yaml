@@ -44,6 +44,7 @@ vllm_config:
 
 output_dir: outputs/rl_gsm8k_deepspeed
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
+use_deepspeed: false
 
 hydra:
   run:

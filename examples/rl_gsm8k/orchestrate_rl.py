@@ -504,7 +504,12 @@ def main(cfg: DictConfig):
         OmegaConf.save(finetune_cfg, config_path)
 
         start_finetune = time.time()
-        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path)
+        launch_training(
+            str(conf_dir), 
+            str(state["iteration"]), 
+            cfg.accelerate_cfg_path,
+            use_deepspeed=cfg.use_deepspeed  # defaults to False
+        )
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
         wandb.log(
