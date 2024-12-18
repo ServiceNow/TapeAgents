@@ -380,19 +380,6 @@ def save_tokenizer_only(
         logger.info(f"Save tokenizer to {output_dir}")
         tokenizer.save_pretrained(output_dir)
 
-        # Update config.json if it exists to match tokenizer vocab size
-        config_path = output_dir / "config.json"
-        if config_path.exists():
-            import json
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-
-            logger.info("Updating config.json with correct vocab size")
-            config['vocab_size'] = len(tokenizer)
-
-            with open(config_path, 'w') as f:
-                json.dump(config, f, indent=2)
-
 
 def remove_results(current_dir, intermediate_root_dir, training_state_dir, log_dir):
     logger.info("Cleaning up checkpoints and training state")
