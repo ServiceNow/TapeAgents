@@ -281,7 +281,7 @@ def generate_training_data(
     start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
-    end_dump = time.time() - start_dump
+    end_dump = time.time()
 
     end_make_data = time.time()
 
@@ -405,11 +405,11 @@ def main(cfg: DictConfig):
                     )
 
                     llm_stats = agent.llm.get_stats()
-                    generation_took = stats[f"execution_time/{split_name}_generation"]
+                    make_data_took = stats[f"execution_time/{split_name}_make_data"]
                     more_llm_stats = {
-                        "generation_output_tokens/s": llm_stats["total_prompt_tokens"] / generation_took,
-                        "generation_prompt_tokens/s": llm_stats["total_output_tokens"] / generation_took,
-                        "generation_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / generation_took,
+                        "make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
+                        "make_data_prompt_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
+                        "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / make_data_took,
                     }
                     for k, v in llm_stats.items():
                         if "/s" in k:
