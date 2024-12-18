@@ -18,12 +18,16 @@ def init_wandb(
     cfg: DictConfig,
     run_dir: Path,
     config_for_wandb: DictConfig | dict,
-) -> wandb_run.Run:
-    """Initialize W&B.
+) -> wandb_run.Run | None:
+    """Initialize W&B on the main process only.
 
     config_for_wandb is the configuration that will be logged to W&B.
-
+    Returns None if not on main process.
     """
+    # Only initialize on main process (rank 0)
+    if os.environ.get('RANK', '0') != '0':
+        return None
+
     if config_for_wandb is None:
         config_for_wandb = cfg.dict()
 
