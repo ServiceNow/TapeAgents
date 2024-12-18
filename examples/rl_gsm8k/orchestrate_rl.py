@@ -184,7 +184,7 @@ def extract_tape_training_samples(
                 training_samples.append(trace)
                 discarded.append(0)
             else:
-                # logger.info(f"Discarding trace: {trace.prompt_text} {trace.output_text}")
+                logger.debug(f"Discarding trace: {trace.prompt_text} {trace.output_text}")
                 discarded.append(1)
     tape_stats = {
         "reward": reward,
