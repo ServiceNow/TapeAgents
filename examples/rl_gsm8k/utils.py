@@ -359,18 +359,19 @@ def launch_training(
         ValueError: If no GPUs are available
         RuntimeError: If training process fails
     """
-    # # environment variables
-    # GLOBAL_RANK = int(os.environ.get("RANK",0))
-    # MASTER_PORT = int(os.environ.get("MASTER_PORT"))
-    # MASTER_ADDRESS = os.environ.get("MASTER_ADDR")
-    # # this is same as number_of_replicas
-    # WORLD_SIZE = int(os.environ.get("WORLD_SIZE", 2))
+    # environment variables
+    GLOBAL_RANK = int(os.environ.get("RANK", 0))
+    MASTER_PORT = int(os.environ.get("MASTER_PORT"))
+    MASTER_ADDRESS = os.environ.get("MASTER_ADDR")
+    # this is same as number_of_replicas
+    WORLD_SIZE = int(os.environ.get("WORLD_SIZE", 2))
 
     # Check GPU availability
     num_gpus = torch.cuda.device_count()
     print('###############################')
     print(f"Number of GPUs: {num_gpus}")
     print('###############################')
+    is_multinode = num_gpus > 8
     if num_gpus == 0:
         raise ValueError("No GPUs available for finetuning")
 
@@ -396,6 +397,20 @@ def launch_training(
                 "--deepspeed_config_file",
                 "conf/accelerate/deepspeed_stage3_bf16.json",
             ]
+            if is_multinode:
+                base_cmd.extend([
+                    "--num_machines",
+                    WORLD_SIZE,
+                    "--machine_rank",
+                    GLOBAL_RANK,
+                    "--main_process_ip",
+                    MASTER_ADDRESS,
+                    "--main_process_port",
+                    MASTER_PORT,
+                    "--deepspeed_multinode_launcher",
+                    "standard",
+                    "--same_network",
+                ])
         else:
             base_cmd[2:2] = [
                 "--multi_gpu",
