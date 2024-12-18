@@ -585,20 +585,21 @@ class TrainableLLM(CachedLLM):
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
+                logprobs = None
                 if self.collect_logprobs:
-                    completion_log_probs = data["choices"][0]["logprobs"]["content"]
-
-                    if self.tokenizer.eos_token and content.endswith(self.tokenizer.eos_token):
-                        # the eos was added in the case where self.collect_logprobs is True
-                        # TapeAgents is not expecting the eos token in the completion
-                        content = content[: -len(self.tokenizer.eos_token)]
-                    output = LLMOutput(content=content, logprobs={"content": completion_log_probs})
-                else:
-                    output = LLMOutput(content=content)
+                    logprobs = data["choices"][0]["logprobs"]["content"]
+                    # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
+                    for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
+                        if content.endswith(eos_str):
+                            # the eos was added in the case where self.collect_logprobs is True
+                            # TapeAgents is not expecting the eos token in the completion
+                            content = content[: -len(eos_str)]
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
+        output = LLMOutput(content=content)
         llm_call = self.log_output(prompt, output)
+        llm_call.logprobs = logprobs
         yield LLMEvent(output=output, llm_call=llm_call)
 
 

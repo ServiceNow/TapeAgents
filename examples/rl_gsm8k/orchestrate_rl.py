@@ -157,17 +157,14 @@ def extract_tape_training_samples(
 
             hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
 
-            logprobs = []
-            vllm_tokens = []
-            if hasattr(llm_call.output, "logprobs"):
-                logprobs_dict = llm_call.output.logprobs
-                logprobs = [c["logprob"] for c in logprobs_dict["content"]]
-                vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
+            logprobs = [c["logprob"] for c in llm_call.logprobs]
+            vllm_tokens = [c["token"] for c in llm_call.logprobs]
 
             # Note: tokens produced during generation are not always the same as the tokens produced on the full sequence
             if vllm_tokens != hf_tokens:
                 # the online vLLM tokenizer does not agree with the HF tokenizer
                 try:
+                    import pdb; pdb.set_trace()
                     logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
                     logprobs = [c["logprob"] for c in logprobs_dict["content"]]
                     new_vllm_tokens = [c["token"] for c in logprobs_dict["content"]]
@@ -252,6 +249,7 @@ def generate_training_data(
         tape: RLMathTape, agent: CoTMathAgent, env, split_name: str, cfg: DictConfig
     ):
         new_tape = main_loop(agent, tape, env, max_loops=cfg.max_loops).get_final_tape()
+        assert new_tape.steps[1].reasoning == new_tape.steps[1].metadata.other["llm_call"].output
         return extract_tape_training_samples(new_tape, agent, split_name, cfg)
 
     with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
@@ -265,7 +263,7 @@ def generate_training_data(
         futures = [executor.submit(generate_and_extract_tape_training_samples_partial, tape) for tape in tapes]
         # Wrap futures with tqdm for progress tracking
         new_tapes = []
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Processing tapes", unit="tape"):
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Generating tapes", unit="tape"):
             new_tape, tape_training_samples, tape_stats = future.result()
             new_tapes.append(new_tape)
             training_samples.extend(tape_training_samples)
@@ -476,7 +474,7 @@ def main(cfg: DictConfig):
                     ]
                     training_samples: List[TrainingText] = [  # type: ignore
                         future.result()
-                        for future in tqdm(as_completed(futures), total=len(futures), desc="Annotating traces")
+                        for future in tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
                         if future.result() is not None
                     ]
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
