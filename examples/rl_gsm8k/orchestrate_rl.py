@@ -564,7 +564,7 @@ def main(cfg: DictConfig):
                 model_name_or_path=cfg.model_path,
                 stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
                 stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
-                port=8081,
+                port=8180,
                 verbose=True,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
