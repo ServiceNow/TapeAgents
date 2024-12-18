@@ -330,9 +330,6 @@ def main(cfg: DictConfig):
             except Exception as e:
                 logger.warning(f"Failed to log to wandb: {e}")
 
-    # Add migration call here
-    migrate_sqlite_schema()
-    
     state_path = exp_path / "rl_state.json"
     state = load_state(state_path)
     # optionally clean all data at start time
