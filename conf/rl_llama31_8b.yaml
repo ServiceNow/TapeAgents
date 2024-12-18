@@ -1,0 +1,23 @@
+defaults:
+  - rl_gsm8k
+  - _self_
+
+finetune:
+  rl:
+    algo: reinforce
+    kl_coef: 0.0
+    reward_minus_kl_coef: 0.0
+    use_advantages: false
+    relu_log_p_weights: true
+  train_batch_size: 4
+  gradient_accumulation_passes: 16
+  learning_rate: 1e-6
+force_restart: true
+max_agent_forks: 5000
+model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
+n_workers_per_gpu: 32
+get_logprobs_workers_per_gpu: 1
+use_rejection_sampling: true
+test_every_n_iterations: 10
+attempts: 8
+dataset_name: gsm8k
