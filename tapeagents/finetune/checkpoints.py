@@ -249,13 +249,7 @@ def get_temporary_folder_and_move(output_dir: Path):
     output_dir = output_dir.resolve()
     temporary_path = output_dir.parent / ("~" + output_dir.name)
 
-    # Check if this is the global main process (across all nodes)
-    is_global_main = accelerator.is_main_process and (
-        not hasattr(accelerator.state, "process_index")
-        or accelerator.state.process_index == 0
-    )
-
-    if is_global_main:
+    if accelerator.is_main_process:
         if os.path.exists(temporary_path):
             logger.info(f"Deleting temporary directory {temporary_path}")
             shutil.rmtree(temporary_path)
@@ -266,8 +260,8 @@ def get_temporary_folder_and_move(output_dir: Path):
     yield temporary_path
     accelerator.wait_for_everyone()
 
-    # Move to final path - only done by global main process
-    if is_global_main:
+    # Move to final path
+    if accelerator.is_main_process:
         # delete output_dir if it exists
         if os.path.exists(output_dir):
             logger.info(
@@ -313,41 +307,54 @@ def save_model_only(
         - config.json
     and either:
         - pytorch_model.bin (single-file model), OR
-        - pytorch_model-XXXXX-of-XXXXX.bin (multi-file model) and pytorch_model.bin.index.json
+        - pytorch_model-XXXXX-of-XXXXX.bin (multi-file model) and pytorch_model.bin.index.json OR
+        - the safetensors versions of the files above
 
     Note that this does not save optimizer, lr_scheduler, scaler, etc.
-    Use only for later JGA evaluation, not for resuming training
+    Use only for inference or later JGA evaluation, not for resuming training
 
-    Must be called on *all* accelerate processes because all of them must save their shards.
+    The accelerate version must be called on *all* accelerate processes because all of them must save their shards.
+    The DeepSpeed version is only called on the main process because the checkpointing and conversion mechanism will gather the shards from all processes.
     """
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
     accelerator.wait_for_everyone()
 
     logger.info(f"Save model to {output_dir}")
 
+    if model.__class__.__name__.endswith("DeepSpeedEngine"):
+        logger.info(f"Saving through deepspeed engine path {output_dir}")
+        # saving using DeepSpeed's checkpoint mechanism
+        model.save_checkpoint(save_dir=output_dir)
+
+        # convert to HF format on main process
+        if accelerator.is_main_process:
+            from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
+            logger.info("Converting DeepSpeed checkpoint to HF format")
+
+            convert_zero_checkpoint_to_fp32_state_dict(
+                checkpoint_dir=output_dir,
+                output_dir=output_dir,
+                tag=None,  # will use 'global_step{step}' from DeepSpeed
+                safe_serialization=safe_serialization
+            )
+
+            # save the updated config with correct vocabulary size
+            logger.info("Saving config.json with correct vocabulary size")
+            unwrapped_model = model.module
+            config = unwrapped_model.config
+            config.save_pretrained(output_dir)
+
+            logger.info(f"Saved converted checkpoint to {output_dir}")
+        return
+
     unwrapped_model = accelerator.unwrap_model(model) if unwrap else model
     if lora:
         lora_save(output_dir, unwrapped_model)
         return
 
-    if unwrapped_model.__class__.__name__.endswith("DeepSpeedEngine"):
-        # Only save from main process
-        if accelerator.is_main_process:
-            # Get the underlying transformer model
-            if hasattr(unwrapped_model, 'module'):
-                unwrapped_model_to_save = unwrapped_model.module
-            else:
-                unwrapped_model_to_save = unwrapped_model
-
-            # Save the model using save_pretrained
-            unwrapped_model_to_save.save_pretrained(
-                output_dir,
-                safe_serialization=safe_serialization,
-            )
-            logger.info(f"Saved model to {output_dir} using save_pretrained")
+    # for non-deepspeed models
     elif isinstance(unwrapped_model, transformers.PreTrainedModel):
-        # Standard save_pretrained path
-        unwrapped_model.save_pretrained(
+        unwrapped_model.save_pretrained(  # type: ignore
             output_dir,
             is_main_process=accelerator.is_main_process,
             save_function=accelerator.save,
@@ -356,7 +363,7 @@ def save_model_only(
         )
         logger.info(f"Saved model to {output_dir}")
     else:
-        raise ValueError(f"model is neither a DeepSpeed model nor a transformers.PreTrainedModel: {type(model)}")
+        raise ValueError(f"model is neither a deepspeed model nor a transformers.PreTrainedModel: {type(model)}")
 
 
 def save_tokenizer_only(
@@ -372,6 +379,19 @@ def save_tokenizer_only(
     if accelerator.is_main_process:
         logger.info(f"Save tokenizer to {output_dir}")
         tokenizer.save_pretrained(output_dir)
+
+        # Update config.json if it exists to match tokenizer vocab size
+        config_path = output_dir / "config.json"
+        if config_path.exists():
+            import json
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+
+            logger.info("Updating config.json with correct vocab size")
+            config['vocab_size'] = len(tokenizer)
+
+            with open(config_path, 'w') as f:
+                json.dump(config, f, indent=2)
 
 
 def remove_results(current_dir, intermediate_root_dir, training_state_dir, log_dir):
