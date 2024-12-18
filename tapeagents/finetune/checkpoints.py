@@ -343,8 +343,8 @@ def save_model_only(
                 safe_serialization=safe_serialization
             )
 
-            # save the updated config with correct vocabulary size
-            logger.info("Saving config.json with correct vocabulary size")
+            # save model config
+            logger.info("Save model config (config.json)")
             unwrapped_model = model.module
             config = unwrapped_model.config
             config.save_pretrained(output_dir)
