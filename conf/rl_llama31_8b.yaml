@@ -21,3 +21,4 @@ use_rejection_sampling: true
 test_every_n_iterations: 10
 attempts: 8
 dataset_name: gsm8k
+use_deepspeed: true
