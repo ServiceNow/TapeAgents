@@ -1,0 +1,34 @@
+defaults:
+  - rl_gsm8k
+  - _self_
+
+dataset_name: math
+max_agent_forks: 5000
+attempts: 8
+
+finetune:
+  train_batch_size: 4
+  gradient_accumulation_passes: 8
+  gradient_clipping_threshold: 1.0
+  learning_rate: 0.000001
+  weight_decay: 0.1 # why?
+  rl:
+    algo: reinforce
+    reward_minus_kl_coef: 0.0
+    kl_coef: 0.0
+    use_advantages: false
+  save_checkpoint_steps: 156 # 5000 / 8 * 4, better than 8 in Alex's original run
+  
+use_rejection_sampling: true
+test_every_n_iterations: 10
+model_path: /mnt/llmd/base_models/gemma-2-2b-it
+
+
+# https://wandb.ai/apiche/tapeagents/runs/dec13_math_gemma_faster_lr_0_000001_attempts_8_pass_8_checkpoint_8_reinforce/overview
+#
+# --config-name rl_math finetune.rl.algo=reinforce finetune.train_batch_size=4
+# finetune.gradient_accumulation_passes=8 finetune.rl.reward_minus_kl_coef=0.0 
+# finetune.rl.kl_coef=0.0 test_every_n_iterations=10 finetune.learning_rate=0.000001
+#  finetune.gradient_clipping_threshold=1.0 finetune.save_checkpoint_steps=8 finetune.weight_decay=0.1
+#   finetune.rl.use_advantages=false max_agent_forks=5000 attempts=8 use_rejection_sampling=true 
+#   model_path=google/gemma-2-2b-it output_dir=/mnt/llmd/results/exps/alex/gsm8k/dec13_math_gemma_faster_lr_0_000001_attempts_8_pass_8_checkpoint_8_reinforce

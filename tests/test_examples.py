@@ -43,7 +43,7 @@ from examples.tape_improver import tape_improver
 from examples.workarena.agent import WorkArenaAgent
 from examples.workarena.steps import WorkArenaTape
 from tapeagents.config import DB_DEFAULT_FILENAME
-from tapeagents.core import AgentStep, TrainingText
+from tapeagents.core import AgentStep, LLMCall, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
@@ -309,6 +309,9 @@ def test_rl_gsm8k_data():
     cfg = DictConfig({"dataset_name": "math", "finetune": {"seq_length": 1024}})
     training_samples = []
     for tape in tapes:
+        for step in tape:
+            if llm_call_data := step.metadata.other.get("llm_call"):
+                step.metadata.other["llm_call"] = LLMCall(**llm_call_data)
         _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg)
         training_samples.append(training_sample[0])
     new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
