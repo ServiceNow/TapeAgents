@@ -196,7 +196,9 @@ def extract_tape_training_samples(
                 training_samples.append(trace)
                 discarded.append(0)
             else:
+                logger.debug(f"Discarding trace: {trace.prompt_text} {trace.output_text}")
                 discarded.append(1)
+
     tape_stats = {
         "reward": reward,
         "steps": len(new_tape.steps),
@@ -205,6 +207,7 @@ def extract_tape_training_samples(
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
+
         "compute_logprobs": np.mean(compute_logprobs) if compute_logprobs else 0,
     }
     return new_tape, training_samples, tape_stats
@@ -335,12 +338,12 @@ def main(cfg: DictConfig):
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    train_dataset = load_dataset(dataset_long_name, "main", split="train")
+    train_dataset = load_dataset(dataset_long_name, "main", split="train", trust_remote_code=True)
     train_samples = [process_fn(s) for s in train_dataset]
-    test_dataset = load_dataset(dataset_long_name, "main", split="test")
+    test_dataset = load_dataset(dataset_long_name, "main", split="test", trust_remote_code=True)
     test_samples = [process_fn(s) for s in test_dataset]
-    logging.info(f"Loaded {len(train_samples)} training samples")
-    logging.info(f"Loaded {len(test_samples)} test samples")
+    logger.info(f"Loaded {len(train_samples)} training samples")
+    logger.info(f"Loaded {len(test_samples)} test samples")
 
     env = MathEnvironment()
 
@@ -351,7 +354,7 @@ def main(cfg: DictConfig):
     remove_leading_white_space = True if "deepseek" in cfg.model_path else False
     if remove_leading_white_space:
         # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
-        logging.info("Removing leading white space from the model. This is necessary for DeepSeek models")
+        logger.info("Removing leading white space from the model. This is necessary for DeepSeek models")
 
     while state["iteration"] < cfg.max_iterations:
         start_iteration = time.time()
@@ -512,7 +515,9 @@ def main(cfg: DictConfig):
 
         finetune_cfg = cfg.copy()
 
-        interrupt_train_steps = int((state["iteration"] + 1) * finetune_cfg.finetune.save_checkpoint_steps)
+        checkpoint_steps = finetune_cfg.finetune.save_checkpoint_steps
+        interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps - 1)
+
         finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
         finetune_cfg.output_dir = str(finetune_path)
         finetune_cfg.finetune.data = {"data_parts_train": [{"path": str(rollout_dir)}]}
@@ -523,7 +528,12 @@ def main(cfg: DictConfig):
         OmegaConf.save(finetune_cfg, config_path)
 
         start_finetune = time.time()
-        launch_training(str(conf_dir), str(state["iteration"]), cfg.accelerate_cfg_path)
+        launch_training(
+            str(conf_dir), 
+            str(state["iteration"]), 
+            cfg.accelerate_cfg_path,
+            use_deepspeed=cfg.use_deepspeed  # defaults to False
+        )
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
         wandb.log(

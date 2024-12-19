@@ -43,8 +43,9 @@ vllm_config:
     --enable-chunked-prefill: ""
     --max-num-batched-tokens: 256
 
-output_dir: outputs/rl_gsm8k
+output_dir: outputs/rl_gsm8k_deepspeed
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
+use_deepspeed: false
 
 hydra:
   run:
