@@ -48,10 +48,9 @@ class LLMEvent(BaseModel):
     intermediate chunks of output and the final complete output.
 
     Attributes:
-        chunk (str, optional): A partial text output from the LLM stream. None if this
-            event represents a complete output.
-        output (LLMOutput, optional): The complete output from the LLM. None if this
-            event represents a partial chunk.
+        chunk (str, optional): A partial text output from the LLM stream. 
+        output (LLMOutput, optional): The complete output from the LLM.
+        llm_call (LLMCall, optional): The entire LLMCall object.
     """
 
     chunk: str | None = None
@@ -67,6 +66,8 @@ class LLMStream:
     - Iterate through events
     - Extract complete LLM output
     - Get the assistant's response text
+
+    LLMStream stores the LLM call object when the generator yields it.
 
     Attributes:
         generator: Generator yielding LLMEvents or None if empty
@@ -92,7 +93,10 @@ class LLMStream:
     def __next__(self) -> LLMEvent:
         if self.generator is None:
             raise StopIteration
-        return next(self.generator)
+        event = next(self.generator)
+        if event.llm_call:
+            self.llm_call = event.llm_call
+        return event
 
     def get_output(self) -> LLMOutput:
         """Returns first LLMOutput found in events"""
@@ -123,7 +127,8 @@ class LLM(BaseModel, ABC):
         tokenizer_name (str): Name of the tokenizer used
         tokenizer (Any): Tokenizer instance
         token_count (int): Running count of tokens processed
-        _log (list): Internal log of LLM calls
+        observe_llm_calls (bool): Flag to enable observation of LLM calls
+
 
     Note:
         This is an abstract class and requires implementation of the abstract methods
@@ -135,14 +140,11 @@ class LLM(BaseModel, ABC):
     context_size: int = 32000
     tokenizer_name: str = ""
     tokenizer: Any = None
-    log_llm_call_to_sqlite: bool = True
-    log_llm_call_to_tape: bool = False
+    observe_llm_calls: bool = True
 
     token_count: int = 0
     _log: list = []
-    start_time: None | float = None
-    end_time: float = time.time()
-    stats: dict = defaultdict(list)
+    _stats: dict = defaultdict(list)
 
     @abstractmethod
     def generate(self, prompt: Prompt, **kwargs) -> LLMStream:
@@ -229,28 +231,25 @@ class LLM(BaseModel, ABC):
             cached=cached,
             llm_info=self.get_info(),
         )
-        self.stats["prompt_length_tokens"].append(prompt_length_tokens)
-        self.stats["output_length_tokens"].append(output_length_tokens)
+        self._stats["prompt_length_tokens"].append(prompt_length_tokens)
+        self._stats["output_length_tokens"].append(output_length_tokens)
         token_costs = self.get_token_costs()
         llm_call.cost = (
             token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens
         )
         self._log.append(llm_call.model_dump())
-        maybe_llm_call = llm_call if self.log_llm_call_to_tape else None
-        if self.log_llm_call_to_sqlite:
+        if self.observe_llm_calls:
             observe_llm_call(llm_call)
         time_log_output = time.time() - start_log_output
-        self.stats["time_log_output"].append(time_log_output)
-        return maybe_llm_call
+        self._stats["time_log_output"].append(time_log_output)
+        return llm_call
 
     def get_stats(self) -> dict:
         return {
-            "time_send_request": np.mean(self.stats["time_send_request"]) if self.stats["time_send_request"] else 0,
-            "time_log_output": np.mean(self.stats["time_log_output"]) if self.stats["time_log_output"] else 0,
-            "prompt_length_tokens": np.mean(self.stats["prompt_length_tokens"]) if self.stats["prompt_length_tokens"] else 0,
-            "output_length_tokens": np.mean(self.stats["output_length_tokens"]) if self.stats["output_length_tokens"] else 0,
-            "output_tokens_per_second": np.sum(self.stats["output_length_tokens"]) / (self.end_time - self.start_time) if self.start_time else 0,
-            "prompt_tokens_per_second": np.sum(self.stats["prompt_length_tokens"]) / (self.end_time - self.start_time) if self.start_time else 0,
+            "time_send_request": np.mean(self._stats["time_send_request"]) if self._stats["time_send_request"] else 0,
+            "time_log_output": np.mean(self._stats["time_log_output"]) if self._stats["time_log_output"] else 0,
+            "total_prompt_tokens": np.sum(self._stats["prompt_length_tokens"]) if self._stats["prompt_length_tokens"] else 0,
+            "total_output_tokens": np.sum(self._stats["output_length_tokens"]) if self._stats["output_length_tokens"] else 0,
         }
 
 
@@ -528,8 +527,6 @@ class TrainableLLM(CachedLLM):
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
-        if self.start_time is None:
-            self.start_time = time.time()
         headers = {"Content-Type": "application/json"}
         if self.api_token:
             headers |= {"Authorization": f"Bearer {self.api_token}"}
@@ -557,7 +554,7 @@ class TrainableLLM(CachedLLM):
             verify=False,
         )
         time_send_request = time.time() - start_send_request
-        self.stats["time_send_request"].append(time_send_request)
+        self._stats["time_send_request"].append(time_send_request)
         if not r.ok:
             logger.error(f"Failed to get completion: {r.text}")
             r.raise_for_status()
@@ -588,22 +585,22 @@ class TrainableLLM(CachedLLM):
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
+                logprobs = None
                 if self.collect_logprobs:
-                    completion_log_probs = data["choices"][0]["logprobs"]["content"]
-
-                    if self.tokenizer.eos_token and content.endswith(self.tokenizer.eos_token):
-                        # the eos was added in the case where self.collect_logprobs is True
-                        # TapeAgents is not expecting the eos token in the completion
-                        content = content[: -len(self.tokenizer.eos_token)]
-                    output = LLMOutput(content=content, logprobs={"content": completion_log_probs})
-                else:
-                    output = LLMOutput(content=content)
+                    logprobs = data["choices"][0]["logprobs"]["content"]
+                    # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
+                    for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
+                        if content.endswith(eos_str):
+                            # the eos was added in the case where self.collect_logprobs is True
+                            # TapeAgents is not expecting the eos token in the completion
+                            content = content[: -len(eos_str)]
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
-        maybe_llm_call: None | LLMCall = self.log_output(prompt, output)
-        self.end_time = time.time()
-        yield LLMEvent(output=output, llm_call=maybe_llm_call)
+        output = LLMOutput(content=content)
+        llm_call = self.log_output(prompt, output)
+        llm_call.logprobs = logprobs
+        yield LLMEvent(output=output, llm_call=llm_call)
 
 
     def load_tokenizer(self):
