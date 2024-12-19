@@ -14,7 +14,6 @@ from omegaconf import DictConfig
 
 from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
-from tapeagents.observe import retrieve_all_llm_calls
 from tests.make_test_data import run_test_in_tmp_dir
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
@@ -44,7 +43,7 @@ from examples.tape_improver import tape_improver
 from examples.workarena.agent import WorkArenaAgent
 from examples.workarena.steps import WorkArenaTape
 from tapeagents.config import DB_DEFAULT_FILENAME
-from tapeagents.core import AgentStep, TrainingText
+from tapeagents.core import AgentStep, LLMCall, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
@@ -303,8 +302,6 @@ def test_gsm8k_tuning_samples_prep():
 
 def test_rl_gsm8k_data():
     run_dir = f"{res_path}/rl_gsm8k"
-    sqlite_path = f"{run_dir}/tapedata.sqlite"
-    llm_calls = retrieve_all_llm_calls(sqlite_path)
     tapes = load_tapes(RLMathTape, run_dir, file_extension=".json")
     llm = mock_llm(run_dir)
     llm.tokenizer = transformers.AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
@@ -312,7 +309,10 @@ def test_rl_gsm8k_data():
     cfg = DictConfig({"dataset_name": "math", "finetune": {"seq_length": 1024}})
     training_samples = []
     for tape in tapes:
-        _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg, llm_calls)
+        for step in tape:
+            if llm_call_data := step.metadata.other.get("llm_call"):
+                step.metadata.other["llm_call"] = LLMCall(**llm_call_data)
+        _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg)
         training_samples.append(training_sample[0])
     new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
     assert training_samples == new_training_samples
