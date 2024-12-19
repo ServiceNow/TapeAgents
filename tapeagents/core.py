@@ -372,7 +372,7 @@ class LLMCall(BaseModel):
     cached: bool
     llm_info: dict = {}
     cost: float = 0
-    logprobs: list = []
+    logprobs: list = Field(default_factory=list, exclude=True)
 
 
 AnnotatorTape = Tape[TapeType, StepType]
