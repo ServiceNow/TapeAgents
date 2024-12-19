@@ -2,6 +2,7 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/ServiceNow/TapeAgents?logo=bookstack&logoColor=white)](https://github.com/ServiceNow/TapeAgents/releases)
 [![PyPI - Version](https://img.shields.io/pypi/v/TapeAgents?logo=pypi&logoColor=white)](https://pypi.org/project/TapeAgents/)
+[![Paper](https://img.shields.io/badge/Arxiv-Paper-B31B1B?logo=arxiv)](https://arxiv.org/abs/2412.08445)
 [![Documentation](https://img.shields.io/badge/MkDocs-Documentation-blue?logo=materialformkdocs&logoColor=white)](https://servicenow.github.io/TapeAgents/)
 ![Build Status](https://github.com/ServiceNow/TapeAgents/actions/workflows/build.yml/badge.svg)
 ![Tests Status](https://github.com/ServiceNow/TapeAgents/actions/workflows/python-tests.yml/badge.svg)
