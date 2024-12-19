@@ -1,0 +1,67 @@
+name: Price Change Request
+description: Request a price change for an existing product in ShopCorp's inventory,
+  including justification for the change and expected impact on sales. This function
+  requires the product ID, current price, proposed new price, and a brief justification
+  for the change. The justification must be at least 50 characters and at most 200
+  characters. The expected impact on sales must be a numerical value between -100%
+  and 100%. According to ShopCorp's pricing policy, all price changes must be approved
+  by the pricing manager. The function returns a request ID, the status of the request
+  (either 'pending', 'approved', or'rejected'), and a list of comments from the pricing
+  manager.
+parameters:
+  type: object
+  properties:
+    product_id:
+      description: The ID of the product for which the price change is requested.
+      type: integer
+    current_price:
+      description: The current price of the product.
+      type: number
+    proposed_new_price:
+      description: The proposed new price for the product.
+      type: number
+    justification:
+      description: A brief justification for the price change.
+      type: string
+      min_length: 50
+      max_length: 200
+    expected_impact_on_sales:
+      description: The expected impact on sales as a percentage.
+      type: number
+      minimum: -100
+      maximum: 100
+    urgency_level:
+      description: The level of urgency for the price change request (optional).
+      type: string
+      enum:
+      - high
+      - medium
+      - low
+  required:
+  - product_id
+  - current_price
+  - proposed_new_price
+  - justification
+  - expected_impact_on_sales
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the price change request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    comments:
+      description: A list of comments from the pricing manager.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

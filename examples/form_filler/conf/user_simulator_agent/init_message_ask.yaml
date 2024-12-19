@@ -1,0 +1,23 @@
+defaults:
+- base
+- _self_
+
+behavior_alias: init_message_ask
+
+step_types_chain:
+- AssistantStep
+
+step_filters:
+- _target_: examples.form_filler.user_simulator_filters.HasNoFunction
+
+instruction: |-
+    Write one sentence acting as a user that ask the agent what requests can it perform.
+
+    if: agent only said hi
+    then: ask the agent what can it do for you.
+    otherwise: ask the agent what *else* can it do for you.
+
+    Important rules:
+    - Do not ask to perform a specific task.
+    - Do not explain yourself, be very brief.
+    - Write only one sentence with less than 20 words.

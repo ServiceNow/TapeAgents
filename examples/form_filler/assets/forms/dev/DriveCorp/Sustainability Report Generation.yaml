@@ -1,0 +1,51 @@
+name: Sustainability Report Generation
+description: 'Request generation of sustainability reports highlighting DriveCorp''s
+  environmental impact and progress towards carbon neutrality. This function requires
+  two parameters:''report_type'' (string, either ''annual'' or ''quarterly'') and
+  ''year'' (integer, between 2010 and current year). The function will return a report
+  ID (string), the status of the request (enum: ''pending'', ''in_progress'', ''completed'',
+  ''failed''), and a list of report sections (list of strings). According to DriveCorp''s
+  policy, sustainability reports are generated quarterly and annually, and must be
+  reviewed by the sustainability team before publication. Reports are stored in the
+  DriveCorp document management system and are accessible to all employees.'
+parameters:
+  type: object
+  properties:
+    report_type:
+      description: The type of report to generate (annual or quarterly)
+      type: string
+      enum:
+      - annual
+      - quarterly
+    year:
+      description: The year for which the report is generated
+      type: integer
+      minimum: 2010
+    department:
+      description: The department requesting the report (optional)
+      type: string
+  required:
+  - report_type
+  - year
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the generated request
+      type: string
+    status:
+      description: The status of the request
+      type: string
+      enum:
+      - pending
+      - in_progress
+      - completed
+      - failed
+    report_sections:
+      description: A list of sections included in the report (optional)
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

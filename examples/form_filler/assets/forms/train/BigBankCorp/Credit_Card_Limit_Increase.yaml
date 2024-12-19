@@ -1,0 +1,59 @@
+name: Credit_Card_Limit_Increase
+description: Request to increase the credit limit on a BigBankCorp-issued credit card,
+  including providing income and credit history information. This function requires
+  the customer's ID, current credit limit, desired credit limit, annual income, and
+  credit score. According to BigBankCorp's policies, the desired credit limit cannot
+  exceed 5 times the customer's annual income. The function will return a request
+  ID, the status of the request (approved, rejected, or pending), and a comment explaining
+  the reason for the decision. If approved, the new credit limit will be returned.
+parameters:
+  type: object
+  properties:
+    customer_id:
+      description: The unique identifier of the customer.
+      type: integer
+    current_credit_limit:
+      description: The current credit limit of the customer's credit card.
+      type: number
+    desired_credit_limit:
+      description: The desired new credit limit.
+      type: number
+    annual_income:
+      description: The customer's annual income.
+      type: number
+    credit_score:
+      description: The customer's credit score.
+      type: integer
+    additional_info:
+      description: Any additional information the customer wants to provide to support
+        their request.
+      type: string
+  required:
+  - customer_id
+  - current_credit_limit
+  - desired_credit_limit
+  - annual_income
+  - credit_score
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique identifier of the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - approved
+      - rejected
+      - pending
+    comment:
+      description: A comment explaining the reason for the decision.
+      type: string
+    new_credit_limit:
+      description: The new credit limit if the request is approved.
+      type: number
+  required:
+  - request_id
+  - status
+  - comment

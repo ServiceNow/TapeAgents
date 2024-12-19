@@ -229,10 +229,12 @@ def run_finetuning_loop(
             step_took = time.time() - time_before
 
             metrics_dict = {}
+            time_to_stop = training_metrics.completed_steps >= final_train_steps
             time_to_log = training_metrics.completed_steps % args.log_each_n_steps == 0
             time_to_save = (training_metrics.completed_steps % args.save_checkpoint_steps == 0) or (
                 len(args.also_save_steps) and training_metrics.completed_steps in args.also_save_steps
             )
+            time_to_save = time_to_save and not time_to_stop
             if time_to_log or time_to_save:
                 dt = log_time(dt, "finetune/interim_eval")
                 metrics_dict.update(

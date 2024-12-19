@@ -1,0 +1,174 @@
+---
+metadata:
+  id: 430221a2-f00f-47be-838e-12592e16c68b
+  parent_id: 00000000-0000-0000-0000-000000000000
+  author: user_simulator
+  author_tape_id: a6aa4b9f-7cda-4bd2-b17e-1dbaca36069a
+  n_added_steps: 1
+  error: null
+  result: {}
+  last_agent_tape_id: 00000000-0000-0000-0000-000000000000
+  user_behavior: init_message_short
+  user_secondary_behavior: default_instruction
+  other: {}
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000000
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other: {}
+  kind: assistant
+  content: Hi, how can I help you?
+- metadata:
+    id: bfa0acea-267b-4b11-abfb-834824bfc270
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other:
+      alias: init_message_short
+  kind: user
+  content: i want to open a new savings account on behalf of my elderly mother pippa
+    for her monthly grocery expenses.
+---
+metadata:
+  id: 7a0e1760-5868-463f-96a3-7024d55505a9
+  parent_id: 00000000-0000-0000-0000-000000000001
+  author: user_simulator
+  author_tape_id: 6ecc0be7-c8e5-4670-b497-617849f7d1df
+  n_added_steps: 1
+  error: null
+  result: {}
+  last_agent_tape_id: 00000000-0000-0000-0000-000000000001
+  user_behavior: init_message_short
+  user_secondary_behavior: default_instruction
+  other: {}
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000001
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other: {}
+  kind: assistant
+  content: Hi, how can I help you?
+- metadata:
+    id: 58e59c7c-6d51-4f93-aae7-8fa2572a461a
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other:
+      alias: init_message_short
+  kind: user
+  content: I need to request investment portfolio rebalancing as soon as possible
+    today.
+---
+metadata:
+  id: 71c99add-4c9c-40a7-96af-13ca09a78b5f
+  parent_id: 00000000-0000-0000-0000-000000000002
+  author: user_simulator
+  author_tape_id: 9ace8163-a658-4233-a96c-15b0ef63d9b1
+  n_added_steps: 1
+  error: null
+  result: {}
+  last_agent_tape_id: 00000000-0000-0000-0000-000000000002
+  user_behavior: init_message_short
+  user_secondary_behavior: default_instruction
+  other: {}
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000002
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other: {}
+  kind: assistant
+  content: Hi, how can I help you?
+- metadata:
+    id: 1d4fec3f-62e6-4706-a6d1-26fc042129c1
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other:
+      alias: init_message_short
+  kind: user
+  content: I need to rebalance my investment portfolio across all asset classes as
+    soon as possible.
+---
+metadata:
+  id: e9e32df0-221b-4079-9c50-79cffa83d74e
+  parent_id: 00000000-0000-0000-0000-000000000003
+  author: user_simulator
+  author_tape_id: 732d49f1-1edb-4b01-9074-d8844fa214a2
+  n_added_steps: 1
+  error: null
+  result: {}
+  last_agent_tape_id: 00000000-0000-0000-0000-000000000003
+  user_behavior: init_message_short
+  user_secondary_behavior: default_instruction
+  other: {}
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000003
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other: {}
+  kind: assistant
+  content: Hi, how can I help you?
+- metadata:
+    id: 2f568b83-6243-46fd-ac89-d33a1ddf515e
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other:
+      alias: init_message_short
+  kind: user
+  content: I need to initiate a new account linkage request for my existing bank statements.
+---
+metadata:
+  id: 33c6199b-719a-416e-a929-05fff7533cd3
+  parent_id: 00000000-0000-0000-0000-000000000004
+  author: user_simulator
+  author_tape_id: 4243e4c9-e697-495a-86c4-0c257898e9f9
+  n_added_steps: 1
+  error: null
+  result: {}
+  last_agent_tape_id: 00000000-0000-0000-0000-000000000004
+  user_behavior: init_message_short
+  user_secondary_behavior: default_instruction
+  other: {}
+context:
+  env_spec: examples/form_filler/assets/forms/train/BigBankCorp
+  date: '2024-12-01'
+steps:
+- metadata:
+    id: 12345678-9012-3456-8900-000000000004
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other: {}
+  kind: assistant
+  content: Hi, how can I help you?
+- metadata:
+    id: 21bf8969-31c8-44ce-9074-a4c1a75c0730
+    prompt_id: ''
+    node: ''
+    agent: ''
+    other:
+      alias: init_message_short
+  kind: user
+  content: i want to open a new account with my name as leandro ruiz in the savings
+    category.

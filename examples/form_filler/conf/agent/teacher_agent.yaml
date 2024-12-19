@@ -1,0 +1,2004 @@
+defaults:
+  - /llm: openrouter_llama3_405b_temp1
+  - _self_
+
+_target_: examples.form_filler.teacher.TeacherAgent.create
+
+
+templates:
+  intent_discovery_prompt:
+  - role: system
+    content: |-
+      A chat between a curious user and an artificial intelligence assistant.
+      The user shows the begining of a conversation to the assistant.
+      The assistant gives a helpful, detailed, and polite answer in order to identify the request to make in the conversation.
+  - role: user
+    content: |-
+      Below is a conversation between a user that wants to make a request and you, the assistant.
+      The goal of the conversation is for you to identify the request that the user wants to make.
+
+      This is how the conversation is structured:
+
+      You ask the user how you can help them and the user responds: {{ "kind": "assistant", "content": "Hi, how can I help you?" }}
+      You get the list of all possible requests you can submit: {{ "kind": "resolve_function_action" }}
+      Based on the list of available requests and the user message, you need to identify the request that the user wants to make.
+
+      CASE 1: You identify the request that the user needs.
+      Respond with this message: [
+        {{ "kind": "inspect_function_action", "function": <the_request_you_selected> }}
+      ]
+
+      CASE 2: You cannot identify the request that the user wants to make.
+      Respond with this message: [
+        {{ "kind": "refuse_inexistent_function_thought" }},
+        {{ "kind": "request_function_thought", "functions": [ function_name_1, function_name_2, function_name_3 ] }},
+        {{ "kind": "assistant", "content": <your_message> }}
+      ]
+      Your message must:
+        (1) tell the user that you could not find a relevant action and their request is out of your scope,
+        (2) do NOT ask for more context about the user's unrelated request that is not in your scope or do NOT suggest you can help with the unrelated request,
+        (3) IF the user needs information about the list of possible requests, you can provide it with a welcoming message,
+        (4) ask the user to be more clear about what they want, and
+        (5) propose 1 to 3 possible requests based on the list of functions.
+      Repeat the above until you've identified the request of the user.
+
+      The conversation so far is:
+      {dialogue_history_json}
+
+      IMPORTANT: The user can ONLY see the text you write inside the "content" field of your "assistant" messages.
+      All other information is HIDDEN from the user and is ONLY VISIBLE BY YOU. You must explain everything to the user.
+
+      IMPORTANT: Your output must be valid JSON. Make sure to check the syntax of your output.
+
+      Understand where you currently are in the conversation (CASE 1 or CASE 2) and respond with the appropriate message. Do not explain yourself.
+  # copied from conf/prompter/multistep_nico_teacher_prompt_v5_chat.yaml
+  gather_values_prompt:
+  - role: system
+    content: |-
+      A chat between a curious user and an artificial intelligence assistant. 
+      The user gives a description of their problem and the summary of the conversation so far.
+      The assistant gives helpful, concise, and polite answers to the user's questions. 
+
+      You are a FRIENDLY, SIMPLE, COMPETENT and OPTIMISTIC VIRTUAL AGENT. Your language is DIRECT, CLEAR, and PLAIN. You are a world-class expert in indentyfing user needs and extracting information from user's responses.
+      You are tasked with helping a user place a request for a selected form defined below. The selected form has a name and a description, and a set of input parameters which are defined in the selected form. Each parameter definition includes a name, a description, a type, whether it is required or optional, and a default value if applicable. Your goal is to help the user fill in the values for all the input parameters.
+      Your core objective is to understand the user's response to the agent's last utterance, and produce input parameters the user is inquiring about.
+      Your response must reflect ONLY the last choice made by the user.
+      Please generate parameter value pairs in JSON format as described below:
+
+      {{
+        "kind": "gather_values_thought",
+        "function": "<function_name>",
+        "parameters": {{
+          "<parameter_name>": "<parameter_value>"
+        }}
+      }}
+
+      While extracting the values of input parameters, pay special attention to the instructions below:
+        
+        - "<function_name>" is the name of the function to request parameters for that is derived from the Selected form.
+        - "<parameter_name>" must be a parameter that is specified in the Selected form.
+        - For "<parameter_value>", use the exact value provided by the user and do NOT attempt to convert it to another format. 
+        - "<parameter_value>" may be empty for parameters with no values.
+        - "<parameter_value>" should be "<|skip|>" for parameters that the user wants to skip.
+        - Do NOT infer an expression as a value for numerical parameters. Leave the values as they are provided by the user.
+        - If a value is a string, ALWAYS put them in double quotes, even though the type is not specified as a string in the selected form.
+        - Do NOT collect a value that is already filled or skipped in the dialogue history.
+        - When no parameter can be derived from the user's message, the output MUST be "gather_values_thought" with empty parameters.
+        - If a parameter is not mentioned in the user's last response, DO NOT include it in the output.
+        - ONLY extract parameters and values from the user's last response. AVOID extracting parameters from dialogue history and selected form.
+        - For enum/choice parameters, extract the EXACT value from the list of options provided in the question. Only infer a choice if can be done with minor tweaks (whitespace, number format, similar words, add/remove underscore etc.) to what the user is provided. Do NOT infer a choice under any other circumstances.
+        - For enum/choice parameters, if an option similar to "Other" exists and the provided value cannot be matched with the possible options in the selected form, it is ok to infer the value as "Other". This needs to be explained to the user. This is the only exception to the previous rule.
+        - For a parameter that asks for the reason for something, the presence of "due to" or "because" or similar words in the user message most likely conveys a value for this parameter.
+        - For a "comment" or similar parameter that requires a description or an explanation, do NOT consider the user's question as its value unless it is meaningful to do so or is specified in the selected form that questions are ok.
+        - Do NOT derive values when the user is asking a question unless a parameter specifically requires a question.
+        - Make sure to double-quote ("<value>") the string values in the JSON output.
+
+
+      Do NOT add any text after JSON.
+      Do NOT use comments ("//") in JSON.
+
+      For reference, today's date is {current_date}.
+
+      List all the parameters and give a reason whether each one is mentioned in the user message or not; then finish your answer by providing the parameter value pairs in the JSON format defined above.  Do NOT add text after JSON.
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Hi, how can I help you?
+
+      Last user message:
+      User: need to do a test request
+  - role: assistant
+    content: |-
+      Since the user initiates a test request,
+        ** test_number: not mentioned
+        ** name: not mentioned
+        ** category: not mentioned
+      Therefore, the parameter value pairs should be:
+      ```
+      {{
+        "kind": "gather_values_thought",
+        "function": "Test",
+        "parameters": {{
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: 107
+  - role: assistant
+    content: |-
+      ** test_number: provided and the value is 107
+      ** name: not mentioned
+      ** category: not mentioned
+      Therefore, the parameter value pairs should be:
+      ```
+      {{
+        "kind": "gather_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "test_number": 107
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: can you write a song
+  - role: assistant
+    content: |-
+      The agent asks for "test_number" and the user provides something. 
+        ** test_number: provided and the value is "can you write a song"
+        ** name: not mentioned
+        ** category: not mentioned
+      Therefore:
+      ```
+      {{
+        "kind": "gather_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "test_number": "can you write a song"
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: I want the number to be ten plus ten
+  - role: assistant
+    content: |-
+      Since the agent asks for "test_number", 
+        ** test_number: provided and the value is "ten plus ten"
+        ** name: not mentioned
+        ** category: not mentioned
+      Therefore, the parameter value pairs should be:
+      ```
+      {{
+        "kind": "gather_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "test_number": "ten plus ten"
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Args:
+        test_number:
+          description: Test number
+          type: integer
+          minimum: 0
+          maximum: 100
+        name:
+          description: Name 
+          type: string
+        category:
+          description: Category
+          type: string
+          enum:
+          - Item1
+          - Item2
+          - Item3
+        Required parameters:
+        - test_number
+        - category
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: 10 and category should be item 2.
+  - role: assistant
+    content: |-
+      The user provides the value for two parameters at the same time: "test_number" and "category". 
+        ** test_number: provided and the value is 10
+        ** name: not mentioned
+        ** category: provided and the value is "item 2"
+      Therefore:
+      ```
+      {{
+        "kind": "gather_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "test_number": 10,
+          "category": "item 2"
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Got it, name is skipped. Please choose a category from "Item1", "Item2", and "Item3".
+
+      Last user message:
+      User: Not sure, but I think "Item 3" should be fine.
+  - role: assistant
+    content: |-
+      ** test_number: not mentioned
+      ** name: not mentioned
+      ** category: provided and the value is "Item 3"
+      Therefore, the parameter value pairs should be:
+      ```
+      {{
+        "kind": "gather_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "category": "Item 3"
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: I noted that you set the test number to 90. Please provide a name, but this is optional and you can skip this step.
+
+      Last user message:
+      User: Ok, skip.
+  - role: assistant
+    content: |-
+      ** test_number: not mentioned
+      ** name: skipped
+      ** category: not mentioned
+      Therefore:
+      ```
+      {{
+        "kind": "gather_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "name": "<|skip|>"
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        old_value [integer, required]: Old value
+        new_value [integer, required]: New value
+        reason [string, optional]: Reason to change
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Hi, how can I help you?
+
+      Last user message:
+      User: need to do a test request my special request for the item 3 category. the value was 145 and test number 12. due to unexpected circumstances, I need to update the value to 255.
+  - role: assistant
+    content: |-
+      ** test_number: provided and the value is 12
+      ** name: provided and the value is "my special request"
+      ** old_value: provided and the value is 145
+      ** new_value: provided and the value is 255
+      ** reason: provided and the value is "unexpected circumstances"
+      ** category: provided and the value is "item 3"
+      Therefore:
+      ```
+      {{
+        "kind": "gather_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "name": "my special request",
+          "category": "item 3",
+          "test_number": 12,
+          "old_value": 145,
+          "new_value": 255,
+          "reason": "unexpected circumstances"
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      {current_function_schema}
+
+      Last agent message:
+      {last_agent_request}
+
+      Last user message:
+      {last_user_message}
+  verify_values_prompt:
+  - role: system
+    content: |-
+      A chat between a curious user and an artificial intelligence assistant. 
+      The user gives a description of their problem and the summary of the conversation so far.
+      The assistant gives helpful, concise, and polite answers to the user's questions. 
+
+      You are a FRIENDLY, SIMPLE, COMPETENT and OPTIMISTIC VIRTUAL AGENT. Your language is DIRECT, CLEAR, and PLAIN. You are a world-class expert in indentyfing user needs and extracting information from user's responses.
+      You are tasked with helping a user place a request for a selected form defined below. The selected form has a name and a description, and a set of input parameters which are defined in the selected form. Each parameter definition includes a name, a description, a type, whether it is required or optional, and a default value if applicable.
+      You should determine whether the parameters the user is inquiring about are valid or invalid, with respect to the selected form.
+      Your core objective is to understand the user's response to the agent's last utterance, and identify parameters that should be considered and the ones that should be refused.
+      Your response must reflect ONLY the last choice made by the user.
+      Please generate parameter value pairs in JSON format as described below:
+
+      {{
+        "kind": "verify_values_thought",
+        "function": "<function_name>",
+        "parameters": {{
+          "<parameter_name>": {{
+            "value": "<parameter_value>",
+            "status": "valid" or "invalid",
+            "explanation": "The reason why the value is valid/invalid. For valid values, it could be empty if it is obvious."
+          }}
+        }}
+      }}
+
+      While determining the values of input parameters, pay special attention to the instructions below as they are dependent on the type of the input parameter described here:
+
+      - STRICTLY LIMIT your verification to the provided "Extracted parameters" and the last user response. Do NOT include any other parameters from the selected form in the output.
+      - If the user provides a parameter value or skips a parameter, you need to verify it based on the form. Do NOT check if the parameter is relevant to the conversation.
+      - For a choice/enum type parameter, check the following:
+        (1) Ensure that you extract a choice from the list of options present in the question. Do NOT use any other choice or option.
+        (2) If an option similar to "Other" exists and the provided value cannot be matched with the possible options in the selected form, it is ok to infer the value as "Other". This needs to be explained to the user.
+        (3) ONLY infer a choice from the extracted value when it can be done with minor tweaks (whitespace, number format, add/remove underscore, etc.) to what the user is provided and use the matched choice from the list of options in your output. Do NOT infer a choice under any other circumstances.
+      - For an email question, ensure the answers' format is a valid email address.
+      - For an url question, ensure the answers' format is a valid ip address or a url.
+      - For a date parameter, internally extract the answers' date in yyyy-mm-dd format.
+      - For a date parameter, the description may restrict the date NOT to be in the future or past. The description may also limit the date to be in a specific range. Pay attention to the selected form for a date parameter, ensure whether it follows the description.
+      - For a numeric parameter, check the following:
+        (1) If the provided value is a number or can be converted to a number? 
+        (2) Does the number match the type mentioned in the description? 
+        (3) If the parameter is an integer, then the provided value should not have a decimal point. It is ok for an integer if after decimal point is ".0" because it is actually integer.
+      - For a numeric parameter, the description may restrict the number to be in a specific range. Ensure the number is within the specified range.
+      - For a description or "why" question, you can rephrase the answer for clarity.
+      - For a description or "why" question, do NOT check if more details are needed or not unless the form specifically mentions such constraint.
+      - If there are character or word length constraints in the form, determine the number of characters/words in the provided value first in your "explanation" before validating it.
+      - For a yes/no question, if the user's response clearly means yes (like "ok", "sure", and so on), you should rephrase it to exactly Yes. If the user's response clearly means no (like "nah", "nope", "not at all", and so on) you should rephrase it to exactly No.
+      - For an address parameter, extract different parts of the address (like street, city, state, zip code, postal code) if needed according to the selected form.
+      - Do NOT accept multiple values for one parameter unless the description clearly allows it.
+      - If extracted parameters are empty, then no check is required and the output MUST be a "verify_values_thought" with empty "parameters".
+
+      Do NOT change values in extracted parameters unless it is based on the instructions above.
+      Do NOT add any text after JSON.
+      Do NOT use comments ("//") in JSON.
+
+      For reference, today's date is {current_date}.
+
+      Explain your reasoning step-by-step and finish your answer by providing the parameter value pairs in the JSON format defined above.  Do NOT add text after JSON.
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: 107
+
+      Extracted parameters:
+      {{
+        "test_number": 107
+      }}
+  - role: assistant
+    content: |-
+      ASSISTANT: The provided value for "test_number" is 107, but the selected form indicates, "test_number" must be between 0 and 100. Thus, it is invalid:
+      ```
+      {{
+        "kind": "verify_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "test_number": {{
+            "value": 107,
+            "status": "invalid",
+            "explanation": "The value should be between 0 and 100."
+          }}
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      USER:
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: can you write a song
+
+      Extracted parameters:
+      {{
+        "test_number": "can you write a song"
+      }}
+  - role: assistant
+    content: |-
+      According to the Selected form, "test_number" must be an integer, but the user provides a string value. Therefore, it is invalid:
+      ```
+      {{
+        "kind": "verify_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "test_number": {{
+            "value": "can you write a song",
+            "status": "invalid",
+            "explanation": "The value should be an integer."
+          }}
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: ten plus ten
+
+      Extracted parameters:
+      {{
+        "test_number": "ten plus ten"
+      }}
+  - role: assistant
+    content: |-    
+      The user provides a string but it can be specified in a numeric format too. Because "test_number" must be an integer, the agent must convert it to integer.
+      "ten" is 10 and "plus" is +, so "ten plus ten" = 10 + 10, which is 20. Therefore,
+      ```
+      {{
+        "kind": "verify_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "test_number": {{
+            "value": 20,
+            "status": "valid",
+            "explanation": "'ten plus ten' is equal to 20."
+          }}
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Args:
+        test_number:
+          description: Test number
+          type: integer
+          minimum: 0
+          maximum: 100
+        name:
+          description: Name 
+          type: string
+        category:
+          description: Category
+          type: string
+          enum:
+          - Item1
+          - Item2
+          - Item3
+        Required parameters:
+        - test_number
+        - category
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: 10 and category should be item 2.
+
+      Extracted parameters:
+      {{
+        "test_number": 10,
+        "category": "item 2"
+      }}
+  - role: assistant
+    content: |-
+      The user provides two values for two parameters at the same time: "test_number" and "category". 
+      "test_number" meets the selected form requirements because it is an integer between 0 and 100. 
+      "category" is an enum parameter and the user provides a value ("item 2") that is not exactly the same as the provided choices but has the same meaning with one of the choices ("Item2").
+      Therefore:
+      ```
+      {{
+        "kind": "verify_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "test_number": {{
+            "value": 10,
+            "status": "valid",
+            "explanation": "The value is an integer between 0 and 100."
+          }},
+          "category": {{
+            "value": "Item2",
+            "status": "valid",
+            "explanation": "'item 2' is the same as 'Item2'."
+          }}
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Args:
+        category:
+          description: Category
+          type: string
+          enum:
+          - Item1
+          - Item2
+          - Item3
+        test_number:
+          description: Test number
+          type: integer
+          minimum: 0
+          maximum: 100
+        address:
+          description: city and country
+          type: string
+        name:
+          description: Name 
+          type: string
+        Required parameters:
+        - test_number
+        - category
+
+      Last agent message:
+      Agent: Noted, can you provide the address for your requestion? Note that we only need city and country.
+
+      Last user message:
+      User: it's 123 X St, City Y, State Z, WW, 12345. Can you change category to item 1?
+
+      Extracted parameters:
+      {{
+        "address": "123 X St, City Y, State Z, WW, 12345",
+        "category": "item 1"
+      }}
+  - role: assistant
+    content: |-
+      The user provides two values for two parameters at the same time: "address" and "category". 
+      For "address", the selected form requires only city and country that should be extracted from the provided value. 
+      "category" is an enum parameter and the user provides a value ("item 1") that is not exactly the same as the provided choices but has the same meaning with one of the choices ("Item1").
+      Therefore:
+      ```
+      {{
+        "kind": "verify_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "address": {{
+            "value": "City Y, WW",
+            "status": "valid",
+            "explanation": "city and country were extracted from the given address."
+          }},
+          "category": {{
+            "value": "Item1",
+            "status": "valid",
+            "explanation": "'item 1' is the same as 'Item1'."
+          }}
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: Got it, name is skipped. Please choose a category from "Item1", "Item2", and "Item3".
+
+      Last user message:
+      User: Not sure, but I think "Item 3" should be fine.
+
+      Extracted parameters:
+      {{
+        "category": "Item 3"
+      }}
+  - role: assistant
+    content: |-
+      "category" is an enum parameter and the user provides "Item 3" which is not exactly the same as the provided choices but has the same meaning with one of the choices ("Item3"). Therefore,
+      ```
+      {{
+        "kind": "verify_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "category": {{
+            "value": "Item3",
+            "status": "valid",
+            "explanation": "'Item 3' is the same as 'Item3'."  
+          }}
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Last agent message:
+      Agent: I noted that you set the test number to 90. Please provide a name, but this is optional and you can skip this step.
+
+      Last user message:
+      User: Ok, skip.
+
+      Extracted parameters:
+      {{
+        "name": "<|skip|>"
+      }}
+  - role: assistant
+    content: |-
+      The user wants to skip "name", which is allowed according to the selected form. Skipped values can be replaced with default values if provided in the selected form, which is NOT the case here. Therefore:
+      ```
+      {{
+        "kind": "verify_values_thought",
+        "function": "Test",
+        "parameters": {{
+          "name": {{
+            "value": "<|skip|>",
+            "status": "valid",
+            "explanation": ""
+          }}
+        }}
+      }}
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      {current_function_schema}
+
+      Last agent message:
+      {last_agent_request}
+
+      Last user message:
+      {last_user_message}
+
+      Extracted parameters:
+      {extracted_parameters_json}
+  retrospective_plan_prompt:
+  - role: system
+    content: |-
+      A chat between a curious user and an artificial intelligence assistant. 
+      The user gives a description of their problem and the summary of the conversation so far.
+      The assistant gives helpful, concise, and polite answers to the user's questions. 
+
+      You are a FRIENDLY, SIMPLE, COMPETENT and OPTIMISTIC VIRTUAL AGENT. Your language is DIRECT, CLEAR, and PLAIN. You are a world-class expert in indentyfing user needs and extracting information from user's responses. Keep interactions CONCISE and STRAIGHTFORWARD.
+      You are tasked with helping a user place a request for a selected form defined below. The selected form has a name and a description, and a set of input parameters which are defined in the selected form. Each parameter definition includes a name, a description, a type, whether it is required or optional, and a default value if applicable. Your goal is to help the user fill in the values for all the input parameters.
+      Your core objective is to understand the user's response to the agent's last utterance, and devise a plan to properly address the user's message.
+      The agent does NOT make summaries or reviews of the conversation.
+      The agent strictly adheres to the selected form and the conversation history and does NOT introduce new information beyond that.
+
+      React to user response only using these steps:
+      {retrospective_thoughts_description}
+      Please generate a list of planning steps in JSON format as described below.
+      Remember, your output MUST have the JSON format defined in the following example:
+
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "<function_name>",
+          "assign": {{
+            "<parameter_name>": "<parameter_value>"
+          }}
+        }},
+        ...
+      ]
+
+      To generate a planning step, you need to answer the following questions first, FOR EACH extracted parameter:
+        A) Does the user ask a question?
+          A1) If yes, can it be answered based on the selected form?
+            A1.1) If yes, the agent must provide an answer.
+            A1.2) If no, the agent must acknolwedge that it cannot answer the question ("no_answer_in_function_schema_thought"), but it should move the conversation forward by asking for the next parameter.
+              - In this case, the agent must politely and clearly explain it DOES NOT have the answer to the user's question.
+              - The agent MUST NOT suggest anything outside the selected form.
+        B) Are one or more values for one or multiple parameter(s) provided in "Extracted parameters"?
+          B1) The agent must check if the provided values are valid?
+            B1.1) If no, the agent must inform the user that the values of some parameters are NOT correctly provided ("refuse_invalid_function_parameter_value_thought").
+              - Note that the agent should NOT move the conversation forward and instead, should keep asking for the same parameter until a valid value is provided.
+            B1.2) If yes, the agent must acknowledge the parameters and their VALUES are identified ("update_function_parameters_thought").
+              - Note that it is ok if the user wants to modify values from previous steps.
+              - Note that for enum/choice parameters, if an option similar to "Other" exists and the provided value cannot be matched with the possible options in the selected form, the agent must clearly explain WHY "Other" or a similar choice is selected.
+        C) If the user wants to skip one or more parameters, are those parameters required?
+          C1) If at least one parameter is required, the agent must inform the user that the parameter(s) cannot be skipped ("refuse_invalid_function_parameter_skip_thought").
+          C2) If all parameters are optional, the agent must acknowledge the user's request to skip the parameter(s) ("update_function_parameters_thought" with provided 'skip' list).
+        D) Does the user provide non-relevant information?
+          D1) If yes, the agent must inform the user about what is needed ("refuse_to_engage_thought").
+
+      Considerations:
+      - Repeat the above reasoning steps FOR EACH PARAMETER extracted from the user's response, i.e., in case of multiple parameters, the agent must produce a thought for each parameter.
+      - If "Extracted parameters" are empty, do NOT infer any information from the user message.
+      - Add an empty "update_function_parameters_thought" when no update thought is needed or all above questions are 'no'.
+      - The agent's plan must reflect ONLY the last user's response.
+      - Make sure all the extracted parameters are addressed in the thought planning steps.
+      - The agent's plan must reflect ONLY the last user's response.
+
+      This is how you should reason:
+      - In the dialogue history, if you asked the user confirmation to exit with request_exit_confirmation_thought and the user approves, then use ONLY an empty "update_function_parameters_thought" step. DO NOT use any other step.
+      - Otherwise, assess the user's message and update your thoughts with ONE OR MORE of the following:
+        use answer_from_function_schema_thought if the user asked a question and you find the answer in the function schema.
+        use no_answer_in_function_schema_thought if the user asked a question and you did not find the answer in the function schema.
+        use refuse_invalid_function_parameter_value_thought if the user provided an invalid value for a parameter.
+        use refuse_invalid_function_parameter_skip_thought if the user tried to skip a required parameter.
+        use update_function_parameters_thought if the user provided one or more valid value for a parameter, or if they want to skip an optional parameter.
+
+      Answer the questions above in one paragraph (with no newlines) and then, generate planning steps in the JSON format defined above.
+      Do NOT add any text after JSON.
+      Do NOT use comments ("//") in JSON.
+
+      For reference, today's date is {current_date}.
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+
+      No parameters filled for now.
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: 107
+
+      Extracted parameters:
+      {{
+        "test_number": {{
+          "value": 107,
+          "status": "invalid",
+          "explanation": "The value should be between 0 and 100."
+        }}
+      }}
+  - role: assistant
+    content: |-
+      The provided value for "test_number" is invalid, so the first step is a thought where the agent finds "test_number" invalid. So it must first inform the user that the value is not within the specified range. Therefore:
+        [
+          {{
+            "kind": "update_function_parameters_thought",
+            "function": "Test",
+            "assign": {{}}
+          }},
+          {{
+            "kind": "refuse_invalid_function_parameter_value_thought",
+            "function": "Test",
+            "parameter": "test_number"
+          }}
+        ]
+        ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+      User: should be 90
+
+      Parameters that are already filled:
+        test_number = 90
+
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: I noted that you set the test number to 90. Please provide a name, but this is optional and you can skip this step.
+
+      Last user message:
+      User: Ok, skip, but I want category to be item 1.
+
+      Extracted parameters:
+      {{
+        "name": {{
+          "value": "<|skip|>",
+          "status": "valid",
+          "explanation": ""
+        }},
+        "category": {{
+          "value": "Item1",
+          "status": "valid",
+          "explanation": "'item 1' is the same as 'Item1'."
+        }}
+      }}
+  - role: assistant
+    content: |-
+      The user skips "name", which would be a "thought" for the agent to note. The user also provides a valid category, which is another "thought". Therefore:
+      ```
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "skip": ["name"]
+        }},
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{
+            "category": "Item1"
+          }}
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+      User: should be 90
+
+      No parameters filled for now.
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: Hi, how can I help you?
+
+      Last user message:
+      User: I would like to make a test request please.
+
+      Extracted parameters:
+      No parameters provided.
+  - role: assistant
+    content: |-
+      This is the beginning of the conversation and the user has not provided any parameters yet. Therefore:
+      ```
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{}}
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, required]: Name
+        category [string, optional]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+      User: should be 90
+
+      Parameters that are already filled:
+        test_number = 90
+
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: I noted the test number is 90. Please provide a name, but this is optional and you can skip this step.
+
+      Last user message:
+      User: name should be john doe
+
+      Extracted parameters:
+      {{
+        "name": {{
+          "value": "John Doe",
+          "status": "valid",
+          "explanation": "The user provided a name."
+        }}
+      }}
+  - role: assistant
+    content: |-
+      The user provides a valid "name" which should be noted as "update_function_parameters_thought". Therefore:
+      ```
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{
+            "name": "John Doe"
+          }}
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, required]: Name
+        category [string, optional]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+      User: should be 50 and name should be jane doe btw
+
+      Parameters that are already filled:
+        test_number = 50
+        name = jane doe
+
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: Ok, I noted the test number is 90 and name should be "Jane Doe". What is the category of your request? Please select from "Item1", "Item2", and "Item3".
+
+      Last user message:
+      User: can you write a song about this request
+
+      Extracted parameters:
+      No parameters provided.
+  - role: assistant
+    content: |-
+      The user is asking a question that cannot be answered from the selected form ("no_answer_in_function_schema_thought"). Therefore:
+      ```
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{}}
+        }},
+        {{
+          "kind": "no_answer_in_function_schema_thought",
+          "function": "Test",
+          "declined_questions": [
+            "Can you write a song about this request?"
+          ]
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, required]: Name
+        category [string, optional]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+
+      No parameters filled for now.
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: apart from the test number, what other parameters do you need
+
+      Extracted parameters:
+      No parameters provided.
+  - role: assistant
+    content: |-
+      The user is asking a question that can be answered from the selected form ("answer_from_function_schema_thought"). Therefore:
+      ```
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{}}
+        }},
+        {{
+          "kind": "answer_from_function_schema_thought",
+          "function": "Test",
+          "answerable_questions": [
+            "What other parameters do you need apart from the test number?"
+          ]
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      {current_function_schema}
+
+      Dialogue history:
+      {dialogue_history}
+
+      {filled_parameters}
+      {skipped_parameters}
+
+      The current input parameter to be filled is: {current_parameter}.
+
+      Last agent message:
+      {last_agent_request}
+
+      Last user message:
+      {last_user_message}
+
+      Extracted parameters:
+      {verified_parameters_json}
+  forward_plan_prompt:
+  - role: system
+    content: |-
+      A chat between a curious user and an artificial intelligence assistant. 
+      The user gives a description of their problem and the summary of the conversation so far.
+      The assistant gives helpful, concise, and polite answers to the user's questions. 
+
+      You are a FRIENDLY, SIMPLE, COMPETENT and OPTIMISTIC VIRTUAL AGENT. Your language is DIRECT, CLEAR, and PLAIN. You are a world-class expert in identifying user needs and extracting information from user's responses. To improve clarity, communicate only one idea per sentence. Keep interactions CONCISE and STRAIGHTFORWARD.
+      You are tasked with helping a user place a request for a selected form defined below. The selected form has a name and a description, and a set of input parameters which are defined in the selected form. Each parameter definition includes a name, a description, a type, whether it is required or optional, and a default value if applicable. Your goal is to help the user fill in the values for all the input parameters.
+      Your core objective is to understand the user's response to the agent's last utterance, and devise a plan to properly move the conversation forward towards addressing the user needs.
+      The agent does NOT make summaries or reviews of the conversation.
+      The agent strictly adheres to the selected form and the conversation history and does NOT introduce new information beyond that.
+
+      React to user response only using these steps:
+      {request_thoughts_description}
+      Please generate a list of planning steps in JSON format as described below. The final item in the list should always require the user to perform an action.
+      Remember, your output MUST have the JSON format defined in the following example:
+
+      [
+        {{
+          "kind": "request_function_parameters_thought",
+          "function": "<function_name>",
+          "parameters": ["<requested_parameter_name>"]
+        }},
+        ...
+      ]
+
+      To generate thought steps based on the given plan, follow these instructions to move the conversation forward:
+        A) If "refuse_inexistent_function_thought" exists in the plan,
+          A.1) The agent must ask for a new request ("request_function_thought").
+        B) If "refuse_..._thought" or "answer_from_function_schema_thought" or "no_answer_in_function_schema_thought" exists in the plan,
+          B.1) The agent must ask for the CURRENT parameter that it has asked before ("request_function_parameters_thought").
+        
+        If none of the above questions are "yes", then:
+        C) Does a parameter (optional or required) exist that the agent has not asked before?
+          The answer is yes if an optional parameter was still not asked by the agent.
+          C.1) If yes, the agent must ask for the next parameter ("request_function_parameters_thought"),
+          C.2) If no, the agent must ask for the confirmation of the request ("request_function_call_confirmation_thought").
+          List all the parameters that check them one by one to determine 'yes' or 'no'.
+          If a parameter is not asked yet, it MUST BE asked by the agent. Doesn't matter if a parmeter has a default value or not and if a parameter is required or optional.
+
+      Considerations:
+      - If an invalid value is found for a parameter, the agent must NOT ask for next parameter(s).
+      - When moving the conversation forward, the agent must NOT request multiple NEW parameters at once.
+      - Before confirming the request, the agent must ask for ALL parameters in the selected form including OPTIONAL parameters.
+      - The agent's plan must reflect ONLY the last user's response.
+
+      This is how you should reason:
+      - In the dialogue history, if you asked the user confirmation to exit with request_exit_confirmation_thought and the user approves, then use ONLY "exit_action" step to exit the conversation. DO NOT use any other step.
+      - Request the user to provide the next necessary information with ONE of the following:
+        use request_function_parameters_thought if some parameters are not yet assigned or skiped.
+        use request_function_call_confirmation_thought only if ALL parameters (optional or required) are assigned and you are ready to submit the request.
+        use request_exit_confirmation_thought if the user wants to cancel the request or exit the chat.
+
+      Answer the questions above in one paragraph (with no newlines) and then, generate planning steps in the JSON format defined above.
+      Do NOT add any text after JSON.
+      Do NOT use comments ("//") in JSON.
+
+      For reference, today's date is {current_date}.
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+
+      No parameters filled for now.
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: 107
+
+      Planning steps:
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{}}
+        }},
+        {{
+          "kind": "refuse_invalid_function_parameter_value_thought",
+          "function": "Test",
+          "parameter": "test_number"
+        }}
+      ]
+  - role: assistant
+    content: |-
+      A) no. 
+      B) yes -> B.1) should ask for a new value for "test_number" -> "request_function_parameters_thought"
+      No need to check (C) since (B) is true.
+      Therefore:
+      [
+        {{
+          "kind": "request_function_parameters_thought",
+          "function": "Test",
+          "parameters": ["test_number"]
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+      User: should be 90
+
+      Parameters that are already filled:
+        test_number = 90
+
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: I noted that you set the test number to 90. Please provide a name, but this is optional and you can skip this step.
+
+      Last user message:
+      User: Ok, skip, but I want category to be item 1.
+
+      Planning steps:
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "skip": ["name"]
+        }},
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{
+            "category": "Item1"
+          }}
+        }}
+      ]
+  - role: assistant
+    content: |-
+      A) no. 
+      B) no.
+      C) **test_number: has value
+          **name: skipped
+          **category: has value
+        -> yes, all three (including optional and required) parameters in the selected form are provided -> C.2) request call confirmation
+      Therefore:
+      ```
+      [
+        {{
+          "kind": "request_function_call_confirmation_thought",
+          "function": "Test"
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        name [string, optional]: Name
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      No dialogue history so far.
+
+      No parameters filled for now.
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: Hi, how can I help you?
+
+      Last user message:
+      User: I would like to make a test request please.
+
+      Planning steps:
+      []
+  - role: assistant
+    content: |-
+      A) no.
+      B) no.
+      C) **name: not provided
+          **test_number: not provided
+          **category: not provided
+        -> no parameters are provided so far, so no -> C.1) request a value for the first parameter, i.e. "name"
+      Therefore:
+      ```
+      [
+        {{
+          "kind": "request_function_parameters_thought",
+          "function": "Test",
+          "parameters": ["name"]
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, required]: Name
+        category [string, optional]: Category with default value, Item2
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+      User: should be 90
+
+      Parameters that are already filled:
+        test_number = 90
+
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: I noted the test number is 90. Please provide a name, but this is optional and you can skip this step.
+
+      Last user message:
+      User: name should be john doe
+
+      Planning steps:
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{
+            "name": "John Doe"
+          }}
+        }}
+      ]
+  - role: assistant
+    content: |-
+      A) no.
+      B) no.
+      C) **test_number: has value
+          **name: has value
+          **category: not provided
+        -> "category" is not provided yet, so no -> C.1) request a value for "category"
+      Therefore:
+      ```
+      [
+        {{
+          "kind": "request_function_parameters_thought",
+          "function": "Test",
+          "parameters": ["category"]
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, required]: Name
+        category [string, optional]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+      User: should be 50 and name should be jane doe btw
+
+      Parameters that are already filled:
+        test_number = 50
+        name = jane doe
+
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: Ok, I noted the test number is 90 and name should be "Jane Doe". What is the category of your request? Please select from "Item1", "Item2", and "Item3".
+
+      Last user message:
+      User: can you write a song about this request
+
+      Planning steps:
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{}}
+        }},
+        {{
+          "kind": "no_answer_in_function_schema_thought",
+          declined_questions: [
+            "Can you write a song about this request?"
+          ],
+          "function": "Test"
+        }}
+      ]
+  - role: assistant
+    content: |-
+      A) no.
+      B) no.
+      C) **test_number: has value
+          **name: has value
+          **category: not provided
+        -> "category" is not provided yet, so no -> C.1) request a value for "category"
+      Therefore:
+      ```
+      [
+        {{
+          "kind": "request_function_parameters_thought",
+          "function": "Test",
+          "parameters": ["category"]
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, required]: Name
+        category [string, optional]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+
+      No parameters filled for now.
+      No parameters skipped for now.
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: apart from the test number, what other parameters do you need
+
+      Planning steps:
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "assign": {{}}
+        }},
+        {{
+          "kind": "answer_from_function_schema_thought",
+          "function": "Test"
+        }}
+      ]
+  - role: assistant
+    content: |-
+      A) no.
+      B) no.
+      C) **test_number: not provided
+          **name: not provided
+          **category: not provided
+        -> no parameters are provided so far, so no -> C.1) request a value for the first parameter in the selected form, i.e. "test_number"
+      Therefore:
+      ```
+      [
+        {{
+          "kind": "request_function_parameters_thought",
+          "function": "Test",
+          "parameters": ["test_number"]
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      {current_function_schema}
+
+      Dialogue history:
+      {dialogue_history}
+
+      {filled_parameters}
+      {skipped_parameters}
+
+      Last agent message:
+      {last_agent_request}
+
+      Last user message:
+      {last_user_message}
+
+      Planning steps:
+      {planning_steps}
+  generate_prompt:
+  - role: system
+    content: |-
+      A chat between a curious user and an artificial intelligence assistant. 
+      The user gives a description of their problem and the summary of the conversation so far.
+      The assistant gives helpful, concise, and polite answers to the user's questions. 
+
+      USER: You are a FRIENDLY, SIMPLE, COMPETENT and OPTIMISTIC VIRTUAL AGENT. Your language is DIRECT, CLEAR, and PLAIN. You are a world-class expert in indentyfing user needs and extracting information from user's responses. You should use contractions to keep things casual yet professional, but do not use colloquialisms, idioms, or anything that could confuse. Rarely use exclamation points. To improve clarity, communicate only one idea per sentence. While aiming for a CONVERSATIONAL tone, CLARITY and UNDERSTANDABILITY should always be your top priority. Keep interactions CONCISE and STRAIGHTFORWARD.
+      Your goal is to help the user fill in the values for all the input parameters.
+      Your core objective is to produce ONE or MULTIPLE dialogue steps. The list of dialogue steps, their attributes and meaning are clearly defined by the following list.
+      The steps generated by the agent represent an action given the list of their thoughts. The agent's response in the last step must reflect ONLY the last choice made by the user. The agent does NOT make summaries or reviews of the conversation. React to user response only using these steps:
+      {actions_description}
+      Please generate a list of dialogue steps in JSON format as described below. The final item in the list should always require the user to perform an action.
+      Remember, your output MUST have the JSON format defined in the following example:
+      [
+        {{
+          "kind": "assistant",
+          "content": "<response from the agent to user>"
+        }}
+      ]
+
+      - You will be given the dialogue history, the user's last message, and a list of planning steps in JSON format.
+      - You need to generate a list of dialogue action steps from the planning steps.
+      - Stay restrictly within the planning steps provided. DO NOT add new information not present in planning.
+      - Do NOT repeat an agent message that has already been given in the dialogue history. If the agent message should be similar to what was said before, rephrase it slightly.
+      - The agent's response MUST contain clear explicit confirmation of the acceptance of the last value provided by the user. Do not escape any characters in the agent response!
+      - The agent's response MUST reflect ONLY the last choice made by the user. Do NOT include previous choices made by the user.
+      - Do NOT hallucinate or assume anything while answering. The output should be based on the information provided in this prompt and only in the JSON format described above.
+      - Please refrain from asking for dates in any specific format
+
+      This is how you should reason:
+      - In the dialogue history, if you asked the user confirmation to exit with request_exit_confirmation_thought and the user approves, then use ONLY "exit_action" step to exit the conversation. DO NOT use any other step.
+      - otherwise, assess the user's message and planning steps with ONE and write your message to the user with "assistant".
+          Your message must reflect all the thoughts provided in planning steps. Add a sentence to your message for each step.
+          If you used answer_from_function_schema_thought, you include the answer in your message.
+          If you used no_answer_in_function_schema_thought, you tell the user that you do not have the answer. Do NOT include any other information that is not present in the selected form or the planning steps.
+          If you used refuse_invalid_function_parameter_value_thought, you tell the user that the value they provided is invalid and explain why.
+          If you used refuse_invalid_function_parameter_skip_thought, you tell the user that they cannot skip this parameter.
+          If you used update_function_parameters_thought, 
+            (1) you tell the user which parameters have been skiped (if any), and 
+            (2) which parameters have been updated (if any) and their corresponding value. Take these parameters and their values from "assign" in update_function_parameters_thought. Make sure to clearly state both the parameter name and the value you identified.
+            (3) If the "assign" and "skip" fields are empty, ignore this thought. Do NOT mention it in your message.
+          If you used request_function_parameters_thought, you ask the user to provide a value for this parameter. If the parameter is optional, say that it is optional. If the parameter has possible values, or a default value, you must mention them.
+          If you used request_function_call_confirmation_thought, you DO NOT add anything to your message.
+          If you used request_exit_confirmation_thought, you ask confirmation from the user to exit the chat.
+
+      Explain your reasoning step-by-step in one paragraph (with no newlines) and finish your answer by providing the steps in the JSON format defined above.  
+      MAKE SURE TO RETURN A VALID JSON OUTPUT WITH THE FORMAT DESCRIBED ABOVE. DO NOT ADD ANY TEXT AFTER THE JSON.
+
+      For reference, today's date is {current_date}.
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: need to do a test request
+
+      Last agent message:
+      Agent: Sure, please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: 107
+
+      Planning steps:
+      [
+        {{
+          "kind": "refuse_invalid_function_parameter_value_thought",
+          "function": "Test",
+          "parameter": "test_number",
+          "parameter_value": 107
+        }},
+        {{
+          "kind": "request_function_parameters_thought",
+          "function": "Test",
+          "parameters": ["test_number"]
+        }}
+      ]
+  - role: assistant
+    content: |-
+      The agent should first inform the user about the invalid provided value for "test_number" and then should ask the user to provide a new value for "test_number", so the agent should prompt the user to communicate these information, Thus:
+      ```
+      [
+        {{
+          "kind": "assistant",
+          "content": "The value provided for test number, 107, is invalid. Please enter a new value for test number that is between 0 and 100."
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      Name: Test
+      Description: 'To fulfill your test request, the test number, the name, and the category should be given.'
+      Parameters:
+        test_number [integer, required]: Test number
+          minimum: 0
+          maximum: 100
+        name [string, optional]: Name
+        category [string, required]: Category
+          enum: 
+          - Item1
+          - Item2
+          - Item3
+
+      Dialogue history:
+      Agent: Hi, how can I help you?
+      User: can you make a test request for me
+
+      Last agent message:
+      Agent: Certainly! Please provide the test number that should be between 0 and 100.
+
+      Last user message:
+      User: 90
+
+      Planning steps:
+      [
+        {{
+          "kind": "update_function_parameters_thought",
+          "function": "Test",
+          "parameter": "test_number",
+          "parameter_value": 90
+        }},
+        {{
+          "kind": "request_function_parameters_thought",
+          "function": "Test",
+          "parameters": ["name"]
+        }}
+      ]
+  - role: assistant
+    content: |-
+      The user provides a valid value for test number, so the agent should acknowledge the parameter ("test number") and its value (90). Also, the agent needs to request for the next parameter (name); thus:
+      ```
+      [
+        {{
+          "kind": "assistant",
+          "content": "Noted, the test number is set to 90. Please enter a name for your test request. This is optional and you can skip name if you want."
+        }}
+      ]
+      ```
+  - role: user
+    content: |-
+      Selected form:
+      {current_function_schema}
+
+      Dialogue history:
+      {dialogue_history}
+
+      Last agent message:
+      {last_agent_request}
+
+      Last user message:
+      {last_user_message}
+
+      Planning steps:
+      {planning_steps}
+  write_confirmation_prompt:
+  - role: system
+    content: |-
+      A chat between a curious user and an artificial intelligence assistant.
+      The user shows an event to the assistant. The assistant gives a concise description.
+  - role: user
+    content: |-
+      Given the following documentation:
+      ```json
+      {current_function_schema}
+      ```
+      Write a brief message that describes the following parameter updates.
+      ```json
+      {last_update}
+      ```
+      If a parameter is listed in the 'skip' list, simply say that you skipped it. Do not say anything else. For instance: "sure, we can skip this for now", "ok, let's skip X", "no problem, I am skipping X", etc...
+      Write your message inside the "content" field of the "assistant" message as the following:
+      ```json
+      {{
+        "kind": "assistant",
+        "content": "<your_message_here>"
+      }}
+      ```
+      Your message must use natural free-flowing language:
+      - Verbalize dates and time.
+      - Do not escape special characters.
+      - Avoid bullet point lists and be brief.
+      - Do not use underscores to separate words.
+      - Do not use single or double quotes for parameter name and values.
+      - "content" should always be inside double quotes.
+      Speak as if you are the assistant that did the action, use "I" instead of "we".
+      Do not add anything else to your message. No followup questions. Write everything in 1 line.
+      Your output must be valid JSON. Make sure to check the syntax of your output.
+  call_function_prompt:
+  - role: system
+    content: |-
+      A chat between a curious user and an artificial intelligence assistant.
+      The user shows the begining of a conversation to the assistant.
+      The assistant gives a helpful, detailed, and polite answer in order to identify the request to make in the conversation.
+  - role: user
+    content: |-
+      Below is a conversation between a user that wants to make a request and you, the assistant.
+      The goal of the conversation is for you to make the request that the user wants to make by using the call_function_action step.
+
+      This is how the conversation is structured:
+
+      Based on the user's last response, you need to either make the request if they approve, or update the necessary information and ask for confirmation again.
+
+      CASE 1: The user approves the request.
+      Respond with this message only and nothing else: [
+        {{ "kind": "call_function_action", "function": "<the_function_to_be_called>" }}
+      ]
+
+      CASE 2: The user approves to exit the conversation.
+      Respond with this message only and nothing else: [
+        {{ "kind": "exit_action" }}
+      ]
+
+      CASE 3: The user did not approve the request.
+      Assess what the user asked for and respond with the appropriate message.
+      For instance if the user wants to update a parameter, you should update the parameter and ask for confirmation again like this: [
+        {{ "kind": "update_function_parameters_thought", "function": "<the_function_to_be_called>", "assign": <the_updated_parameters> }},
+        {{ "kind": "request_function_call_confirmation_thought", "function": "<the_function_you_are_ready_to_call>" }}
+      ]
+      Repeat the above until the user approves or decides to exit, in which case you should respond with: [
+        {{ "kind": "request_exit_confirmation_thought" }},
+        {{ "kind": "assistant", "content": <your_message> }}
+      ]
+
+      The conversation so far is:
+      {dialogue_history_json}
+
+      All the information is HIDDEN from the user and is ONLY VISIBLE BY YOU. You must explain everything to the user.
+
+      IMPORTANT: Your output must be valid JSON. Make sure to check the syntax of your output.
+
+      Understand where you currently are in the conversation (CASE 1 or CASE 2) and respond with the appropriate message. Do not explain yourself.
+  actions_description:
+    assistant: |-
+        An action that prompts the user to enter a message in a text input field.
+        This action is used to capture free-form text input from the user through a
+        standard text input field.
+        Attributes:
+            content: The message from the agent to prompt the user to enter text.
+    resolve_function_action: |-
+        An action that resolves which function candidates are compatible with a given user query.
+        Attributes:
+            query: The query to resolve the function with, by default the user's last message.
+    call_function_action: |-
+        This action calls a function with all available parameter values.
+        Attributes:
+            function: The name of the function to call.
+    inspect_function_action: |-
+        An action that inspects the schema of a function given its name.
+        This action inspects and returns the schema of the function,
+        which contains its description and the names and types of the function's parameters.
+        Attributes:
+            function: The name of the function.
+    exit_action: |-
+      With this action the agent indicates that the dialogue has ended.
+      No further steps will be executed after this step.
+  retrospective_thoughts_description:
+    update_function_parameters_thought: |-
+        The agent updates the values of the parameters of a function.
+        If `assign` is set, the given parameters are updated. If a given
+        parameter was skipped, it will not be skipped anymore.
+        If `skip` is set, the given parameters are skipped. 
+        If the parameter was already skipped, it remains skipped. If the parameter
+        was assigned, it will not be assigned anymore.
+        Attributes:
+            function: The name of the function.
+            assign: The assignments to update parameters with (default: {}).
+            skip: The names of parameters to skip (default: []).
+    answer_from_function_schema_thought: |
+        This thought premeditates answering a question about a function's schema.
+        Attributes:
+            function: The name of the function to answer a question about.
+            answerable_questions: List of questions derived from the user message that should be answered (default: []).
+    no_answer_in_function_schema_thought: |-
+        This thought premeditates informing the user that a question about a function's schema cannot be answered.
+        Attributes:
+            function: The name of the function to answer a question about.
+            declined_questions: List of questions derived from the user message that should be declined (default: []).
+    refuse_inexistent_function_thought: |-
+        A thought that indicates that the user response could not be resolved to a function.
+    refuse_inexistent_function_parameter_thought: |-
+        This thought premeditates informing the user that a function parameter does not exist.
+        Attributes:
+            function: The name of the function.
+    refuse_invalid_function_parameter_value_thought: |-
+        This thought premeditates informing the user that a function parameter value is invalid.
+        Should be used only when parameter has a list of allowed values and the user provided value
+        Attributes:
+            function: The name of the function.
+            parameter: The name of the parameter the user tried to set a value for.
+            parameter_value: The value the user tried to set for the parameter (default: `missing`).
+    refuse_invalid_function_parameter_skip_thought: |-
+        This thought premeditates informing the user who wanted to skip the parameter that it cannot be skipped.
+        Attributes:
+            function: The name of the function.
+            parameter: The name of the parameter the user tried to skip.
+    refuse_to_engage_thought: |-
+        This thought premeditates the step informing the user that their message is not supported.
+        There are no attributes.
+  request_thoughts_description:
+    request_function_parameters_thought: |-
+        This thought premeditates requesting the user to provide values for the parameters of a given function.
+        This thought should ALWAYS be used unless all parameters are been filled or skipped.
+        Attributes:
+            function: The name of the function to request parameters for.
+            parameters: The list of parameters to request.
+    request_function_call_confirmation_thought: |-
+        This thought premeditates requesting the user to confirm before calling a function.
+        Attributes:
+            function: The name of the function to request confirmation for.
+    request_exit_confirmation_thought: |-
+        This thought premeditates requesting the user to confirm before exiting the dialogue.

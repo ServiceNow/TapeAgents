@@ -1,0 +1,1007 @@
+context:
+  date: '2024-12-09'
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
+metadata:
+  author: teacher_formfiller
+  author_tape_id: null
+  error: null
+  id: b46b3bde-7965-4a8c-ac7b-79a378112ba6
+  last_user_tape_id: 53b2b056-08e4-40f4-80db-de3337bcaf20
+  n_added_steps: 4
+  parent_id: 56345d01-2f9f-451d-803b-cd1378a3f116
+  result: {}
+steps:
+- content: Hi, how can I help you?
+  kind: assistant
+  metadata:
+    agent: ''
+    id: b793a360-1216-4639-89a3-073a8c27f014
+    node: ''
+    other: {}
+    prompt_id: ''
+- content: What can you do for me?
+  kind: user
+  metadata:
+    agent: ''
+    id: 8f82f01e-e9e0-4acf-ad34-db9a386a78f3
+    node: ''
+    other:
+      alias: init_message_ask
+    prompt_id: ''
+- kind: resolve_function_action
+  metadata:
+    agent: teacher_formfiller
+    id: e6abf9e6-ef99-4879-bd74-7ac3619ff9d6
+    node: routing_node
+    other: {}
+    prompt_id: 02e874f8-6071-4495-9201-fc3c8c8a8f26
+  query: What can you do for me?
+- candidates:
+  - function: AddAncillaryService
+    short_description: Request to add an ancillary service to a flight booking, including
+      service type and payment details. This function requires the flight booking
+      ID, service type (either 'baggage' or'meal'), and payment method (either 'credit
+      card' or 'cash'). According to FlyCorp's policy, only one ancillary service
+      can be added per flight booking. If the service is successfully added, the function
+      returns a request ID, the status of the request ('pending', 'approved', or'rejected'),
+      and a list of the updated services associated with the flight booking. If the
+      service is already added, the function returns an error message.
+  - function: BookFlight
+    short_description: Request to book a flight for a passenger, including flight
+      details, passenger information, and payment details. This function requires
+      the passenger's first and last name, email address, phone number, and payment
+      method. The flight details include the departure and arrival airports, departure
+      date, and class of service. According to FlyCorp's policies, passengers must
+      be at least 18 years old to book a flight, and payment must be made using a
+      valid credit card. The function returns a request ID, the status of the request
+      (either 'pending', 'approved', or'rejected'), and a list of flight details.
+  - function: CheckIn
+    short_description: Request to check-in a passenger for a flight, including seat
+      selection and baggage information. This function requires the passenger's booking
+      reference, flight number, and last name as mandatory parameters. Optionally,
+      the passenger can provide their preferred seat and baggage details. According
+      to FlyCorp's check-in policy, online check-in is available 24 hours prior to
+      the scheduled flight departure time. FlyCorp's baggage policy allows each passenger
+      to check-in up to two bags, with a maximum weight of 23kg each. The function
+      returns a unique request ID, the status of the check-in request (either'success'
+      or 'failed'), and a list of checked-in baggage items.
+  - function: ReportLostLuggage
+    short_description: 'Request to report lost luggage, including flight details,
+      luggage description, and contact information. This function requires the passenger''s
+      name, flight number, departure date, luggage type, and contact email. The luggage
+      type must be one of the following: suitcase, backpack, handbag, or other. The
+      function will return a request ID, the status of the request (either ''pending'',
+      ''in_progress'', or''resolved''), and a comment from the FlyCorp customer service
+      team. According to FlyCorp''s policy, all lost luggage reports must be submitted
+      within 24 hours of flight arrival. FlyCorp is not responsible for lost luggage
+      that is not reported within this timeframe.'
+  - function: RequestFlightChange
+    short_description: Request to change a flight, including original flight details
+      (original flight number, departure date, and departure time), new flight details
+      (new flight number, new departure date, and new departure time), and reason
+      for change. This request is subject to FlyCorp's flight change policy, which
+      allows changes up to 24 hours prior to the original flight's scheduled departure
+      time. The request will be processed based on availability and may incur additional
+      fees. The response will include a unique request ID, the status of the request
+      (approved, denied, or pending), and a list of updated flight segments.
+  - function: RequestRefund
+    short_description: 'Request for a refund for a cancelled or changed flight, including
+      flight details and reason for refund. This function requires the flight number,
+      original booking date, and reason for refund as mandatory parameters. The reason
+      for refund must be one of the following: ''flight cancellation'',''schedule
+      change'', or ''voluntary change''. FlyCorp''s refund policy states that refunds
+      will be processed within 7-10 business days. The function returns a unique request
+      ID, the status of the request (either ''pending'', ''approved'', or''rejected''),
+      and a list of comments from the FlyCorp customer service team.'
+  - function: RequestSpecialMeal
+    short_description: Request for a special meal option for a passenger, including
+      meal type and dietary restrictions. This function requires the passenger's booking
+      reference, meal type (vegetarian, gluten-free, etc.), and dietary restrictions
+      (halal, kosher, etc.). According to FlyCorp's policy, special meal requests
+      must be made at least 24 hours prior to flight departure. The function will
+      return a request ID, the status of the request (approved, denied, or pending),
+      and a comment indicating any additional information or requirements.
+  - function: RequestWheelchairAssistance
+    short_description: Request for wheelchair assistance for a passenger, including
+      flight details and special requirements. This function requires the passenger's
+      name, flight number, and departure date as mandatory parameters. Additionally,
+      it accepts optional parameters for special requirements such as escort assistance
+      or Braille signage. According to FlyCorp's policy, wheelchair assistance requests
+      must be made at least 48 hours prior to the scheduled flight departure time.
+      The function returns a unique request ID, the status of the request (either
+      'pending', 'approved', or 'denied'), and a list of assigned assistants.
+  - function: UpdatePassengerInformation
+    short_description: Request to update a passenger's personal information, including
+      name, contact details, and loyalty program information. This function requires
+      the passenger's ID, new name, email address, and phone number as mandatory parameters.
+      The loyalty program information is optional. According to FlyCorp's policy,
+      passengers can only update their own information, and the new email address
+      must not be already in use by another passenger. The function returns a request
+      ID, the status of the request (either'success' or 'failed'), and a list of updated
+      loyalty programs.
+  - function: UpdateSeatAssignment
+    short_description: Request to update a passenger's seat assignment on a flight,
+      including seat number and class of service. This function requires the passenger's
+      booking reference, flight number, and new seat assignment details. According
+      to FlyCorp's policies, seat assignments can only be updated up to 24 hours prior
+      to the scheduled flight departure time. Additionally, FlyCorp's rules dictate
+      that passengers in Basic Economy class are not eligible for seat selection.
+      The function returns a request ID, the status of the request (either'success'
+      or 'failed'), and a list of available seats on the flight.
+  kind: function_candidates
+  metadata:
+    agent: ''
+    id: 7488fff4-aab4-4c65-8a8c-4f6dd956bcc3
+    node: ''
+    other: {}
+    prompt_id: ''
+- kind: refuse_inexistent_function_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 5ece6e95-ad0b-4e1b-836f-d8a0f76db42b
+    node: intent_discovery_node
+    other: {}
+    prompt_id: 7f671834-f6b0-4d4c-9c69-94ba3044c3ed
+- functions:
+  - BookFlight
+  - RequestFlightChange
+  - RequestRefund
+  kind: request_function_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 80de3da6-5906-4909-b4a4-66fa05920a57
+    node: intent_discovery_node
+    other: {}
+    prompt_id: 7f671834-f6b0-4d4c-9c69-94ba3044c3ed
+- content: 'I couldn''t find a relevant action for your request. It seems that your
+    request is out of my scope. If you need information about the list of possible
+    requests, I can provide it to you. To better assist you, could you please be more
+    clear about what you want? Here are a few possible requests that might be helpful:
+    booking a flight, requesting a flight change, or requesting a refund.'
+  kind: assistant
+  metadata:
+    agent: teacher_formfiller
+    id: db5d85a5-a8d0-462e-9e92-cff97ece2045
+    node: intent_discovery_node
+    other: {}
+    prompt_id: 7f671834-f6b0-4d4c-9c69-94ba3044c3ed
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: a5f9cdd9-a50c-49c8-92ae-05a2017ada6f
+    node: intent_discovery_node
+    other: {}
+    prompt_id: 7f671834-f6b0-4d4c-9c69-94ba3044c3ed
+  next_node: intent_discovery_node
+---
+context:
+  date: '2024-12-09'
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
+metadata:
+  author: teacher_formfiller
+  author_tape_id: null
+  error: null
+  id: 16a06408-7d4d-4cc0-86a7-1b6d05014096
+  last_user_tape_id: fa900ccf-54f1-45c7-b378-c6486095dbe0
+  n_added_steps: 9
+  parent_id: fa900ccf-54f1-45c7-b378-c6486095dbe0
+  result: {}
+steps:
+- content: Hi, how can I help you?
+  kind: assistant
+  metadata:
+    agent: ''
+    id: b793a360-1216-4639-89a3-073a8c27f014
+    node: ''
+    other: {}
+    prompt_id: ''
+- content: I need to update my aunt's passenger information for her upcoming flight
+    to Paris.
+  kind: user
+  metadata:
+    agent: ''
+    id: 4c189963-e2dc-476b-a979-89de18541cd9
+    node: ''
+    other:
+      alias: init_message_short
+    prompt_id: ''
+- kind: resolve_function_action
+  metadata:
+    agent: teacher_formfiller
+    id: 21114c61-863d-46e7-93fd-58c1431fd369
+    node: routing_node
+    other: {}
+    prompt_id: 61fb22c6-b983-489a-9a9f-eec4065b496e
+  query: I need to update my aunt's passenger information for her upcoming flight
+    to Paris.
+- candidates:
+  - function: AddAncillaryService
+    short_description: Request to add an ancillary service to a flight booking, including
+      service type and payment details. This function requires the flight booking
+      ID, service type (either 'baggage' or'meal'), and payment method (either 'credit
+      card' or 'cash'). According to FlyCorp's policy, only one ancillary service
+      can be added per flight booking. If the service is successfully added, the function
+      returns a request ID, the status of the request ('pending', 'approved', or'rejected'),
+      and a list of the updated services associated with the flight booking. If the
+      service is already added, the function returns an error message.
+  - function: BookFlight
+    short_description: Request to book a flight for a passenger, including flight
+      details, passenger information, and payment details. This function requires
+      the passenger's first and last name, email address, phone number, and payment
+      method. The flight details include the departure and arrival airports, departure
+      date, and class of service. According to FlyCorp's policies, passengers must
+      be at least 18 years old to book a flight, and payment must be made using a
+      valid credit card. The function returns a request ID, the status of the request
+      (either 'pending', 'approved', or'rejected'), and a list of flight details.
+  - function: CheckIn
+    short_description: Request to check-in a passenger for a flight, including seat
+      selection and baggage information. This function requires the passenger's booking
+      reference, flight number, and last name as mandatory parameters. Optionally,
+      the passenger can provide their preferred seat and baggage details. According
+      to FlyCorp's check-in policy, online check-in is available 24 hours prior to
+      the scheduled flight departure time. FlyCorp's baggage policy allows each passenger
+      to check-in up to two bags, with a maximum weight of 23kg each. The function
+      returns a unique request ID, the status of the check-in request (either'success'
+      or 'failed'), and a list of checked-in baggage items.
+  - function: ReportLostLuggage
+    short_description: 'Request to report lost luggage, including flight details,
+      luggage description, and contact information. This function requires the passenger''s
+      name, flight number, departure date, luggage type, and contact email. The luggage
+      type must be one of the following: suitcase, backpack, handbag, or other. The
+      function will return a request ID, the status of the request (either ''pending'',
+      ''in_progress'', or''resolved''), and a comment from the FlyCorp customer service
+      team. According to FlyCorp''s policy, all lost luggage reports must be submitted
+      within 24 hours of flight arrival. FlyCorp is not responsible for lost luggage
+      that is not reported within this timeframe.'
+  - function: RequestFlightChange
+    short_description: Request to change a flight, including original flight details
+      (original flight number, departure date, and departure time), new flight details
+      (new flight number, new departure date, and new departure time), and reason
+      for change. This request is subject to FlyCorp's flight change policy, which
+      allows changes up to 24 hours prior to the original flight's scheduled departure
+      time. The request will be processed based on availability and may incur additional
+      fees. The response will include a unique request ID, the status of the request
+      (approved, denied, or pending), and a list of updated flight segments.
+  - function: RequestRefund
+    short_description: 'Request for a refund for a cancelled or changed flight, including
+      flight details and reason for refund. This function requires the flight number,
+      original booking date, and reason for refund as mandatory parameters. The reason
+      for refund must be one of the following: ''flight cancellation'',''schedule
+      change'', or ''voluntary change''. FlyCorp''s refund policy states that refunds
+      will be processed within 7-10 business days. The function returns a unique request
+      ID, the status of the request (either ''pending'', ''approved'', or''rejected''),
+      and a list of comments from the FlyCorp customer service team.'
+  - function: RequestSpecialMeal
+    short_description: Request for a special meal option for a passenger, including
+      meal type and dietary restrictions. This function requires the passenger's booking
+      reference, meal type (vegetarian, gluten-free, etc.), and dietary restrictions
+      (halal, kosher, etc.). According to FlyCorp's policy, special meal requests
+      must be made at least 24 hours prior to flight departure. The function will
+      return a request ID, the status of the request (approved, denied, or pending),
+      and a comment indicating any additional information or requirements.
+  - function: RequestWheelchairAssistance
+    short_description: Request for wheelchair assistance for a passenger, including
+      flight details and special requirements. This function requires the passenger's
+      name, flight number, and departure date as mandatory parameters. Additionally,
+      it accepts optional parameters for special requirements such as escort assistance
+      or Braille signage. According to FlyCorp's policy, wheelchair assistance requests
+      must be made at least 48 hours prior to the scheduled flight departure time.
+      The function returns a unique request ID, the status of the request (either
+      'pending', 'approved', or 'denied'), and a list of assigned assistants.
+  - function: UpdatePassengerInformation
+    short_description: Request to update a passenger's personal information, including
+      name, contact details, and loyalty program information. This function requires
+      the passenger's ID, new name, email address, and phone number as mandatory parameters.
+      The loyalty program information is optional. According to FlyCorp's policy,
+      passengers can only update their own information, and the new email address
+      must not be already in use by another passenger. The function returns a request
+      ID, the status of the request (either'success' or 'failed'), and a list of updated
+      loyalty programs.
+  - function: UpdateSeatAssignment
+    short_description: Request to update a passenger's seat assignment on a flight,
+      including seat number and class of service. This function requires the passenger's
+      booking reference, flight number, and new seat assignment details. According
+      to FlyCorp's policies, seat assignments can only be updated up to 24 hours prior
+      to the scheduled flight departure time. Additionally, FlyCorp's rules dictate
+      that passengers in Basic Economy class are not eligible for seat selection.
+      The function returns a request ID, the status of the request (either'success'
+      or 'failed'), and a list of available seats on the flight.
+  kind: function_candidates
+  metadata:
+    agent: ''
+    id: b0bdc4d5-4690-4bfd-849e-670939d8dc8a
+    node: ''
+    other: {}
+    prompt_id: ''
+- function: UpdatePassengerInformation
+  kind: inspect_function_action
+  metadata:
+    agent: teacher_formfiller
+    id: c8713af3-a2c3-4b4e-8f19-b29ba1227d96
+    node: intent_discovery_node
+    other: {}
+    prompt_id: 63e4615b-7438-451c-ae74-acd8b892f119
+- description: Request to update a passenger's personal information, including name,
+    contact details, and loyalty program information. This function requires the passenger's
+    ID, new name, email address, and phone number as mandatory parameters. The loyalty
+    program information is optional. According to FlyCorp's policy, passengers can
+    only update their own information, and the new email address must not be already
+    in use by another passenger. The function returns a request ID, the status of
+    the request (either'success' or 'failed'), and a list of updated loyalty programs.
+  kind: function_schema
+  metadata:
+    agent: ''
+    id: 97c82dd9-b8ff-4626-87da-ed071bc449cc
+    node: ''
+    other: {}
+    prompt_id: ''
+  name: UpdatePassengerInformation
+  parameters:
+    properties:
+      email:
+        description: The new email address of the passenger.
+        type: string
+      loyalty_program:
+        description: The new loyalty program information (optional).
+        type: string
+      new_name:
+        description: The new name of the passenger.
+        type: string
+      passenger_id:
+        description: The ID of the passenger to update.
+        type: integer
+      phone_number:
+        description: The new phone number of the passenger.
+        type: string
+    required:
+    - passenger_id
+    - new_name
+    - email
+    - phone_number
+    type: object
+  return_value:
+    properties:
+      request_id:
+        description: The ID of the update request.
+        type: string
+      status:
+        description: The status of the request.
+        enum:
+        - success
+        - failed
+        type: string
+      updated_loyalty_programs:
+        description: A list of updated loyalty programs.
+        items:
+          type: string
+        type: array
+    required:
+    - request_id
+    - status
+    type: object
+- function: UpdatePassengerInformation
+  kind: gather_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 2e37d66e-1d02-4a2a-b93d-fac2a88f2a94
+    node: gather_values_node
+    other: {}
+    prompt_id: f1ded87a-4971-4fa3-80f5-1081d87848ec
+  parameters: {}
+- function: UpdatePassengerInformation
+  kind: verify_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 89babd64-c345-4151-9e70-788d25d117fa
+    node: verify_values_node
+    other: {}
+    prompt_id: 16c98081-da24-4f03-b7d9-a3125b185395
+  parameters: {}
+- assign: {}
+  function: UpdatePassengerInformation
+  kind: update_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: b777571d-5324-47a4-817b-3097bc77a5d4
+    node: retrospective_plan_node
+    other: {}
+    prompt_id: e43a5d2d-da6e-4da4-a650-619c5ff5125f
+  skip: []
+- declined_questions:
+  - Can I update my aunt's passenger information?
+  function: UpdatePassengerInformation
+  kind: no_answer_in_function_schema_thought
+  metadata:
+    agent: teacher_formfiller
+    id: c9399a9a-3698-4638-a76d-517adf74624b
+    node: retrospective_plan_node
+    other: {}
+    prompt_id: e43a5d2d-da6e-4da4-a650-619c5ff5125f
+- function: UpdatePassengerInformation
+  kind: request_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 594656a9-b146-43d5-9af0-acebf962fd6c
+    node: forward_plan_node
+    other: {}
+    prompt_id: 10ff43b9-4180-49eb-a2d7-b29e24510b18
+  parameters:
+  - passenger_id
+- content: Unfortunately, passengers can only update their own information. Please
+    enter the passenger's ID, noting that it should be the ID of the passenger making
+    the request.
+  kind: assistant
+  metadata:
+    agent: teacher_formfiller
+    id: 053752e6-82c0-4d85-9a22-9ab8af500bf9
+    node: generation_node
+    other: {}
+    prompt_id: 55b257cb-9b8c-4406-a21a-09c84ab38897
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: 6a69bef7-9ca2-4276-9952-f300cca751ce
+    node: generation_node
+    other: {}
+    prompt_id: 55b257cb-9b8c-4406-a21a-09c84ab38897
+  next_node: routing_node
+- content: Can we skip this part? My aunt is 80 years old and I've been handling all
+    the travel arrangements for her, she won't know how to do this.
+  kind: user
+  metadata:
+    agent: ''
+    id: ea246369-9049-462a-abb1-ecb853a5566d
+    node: ''
+    other:
+      alias: skip_required
+    prompt_id: ''
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: 17b2fa67-51f8-4738-89d8-c4fb64a91328
+    node: routing_node
+    other: {}
+    prompt_id: d9eceebb-f7a1-4081-a8db-17a287d94401
+  next_node: intent_discovery_node
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: f21cf2a7-75d5-4385-bfbf-7805c603b78f
+    node: intent_discovery_node
+    other: {}
+    prompt_id: fa0962f0-960b-4f1d-b824-49dcf12109e7
+  next_node: gather_values_node
+- function: UpdatePassengerInformation
+  kind: gather_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 824aa35e-b24a-452c-b1e7-8758e5b5b275
+    node: gather_values_node
+    other: {}
+    prompt_id: 9639da86-8348-4585-b9bf-e9951c895d14
+  parameters: {}
+- function: UpdatePassengerInformation
+  kind: verify_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 623e8f9c-d066-4c0f-bcd8-e337b214f8e5
+    node: verify_values_node
+    other: {}
+    prompt_id: 12f93336-2cf1-40dd-939a-3e9f06b43ec5
+  parameters: {}
+- assign: {}
+  function: UpdatePassengerInformation
+  kind: update_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 6a0140bc-be93-410c-a19d-eca0ce838dd3
+    node: retrospective_plan_node
+    other: {}
+    prompt_id: 30508ac5-f9af-4e63-b7b5-460d2dda570a
+  skip: []
+- function: UpdatePassengerInformation
+  kind: refuse_invalid_function_parameter_skip_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 26f1b5cb-7be6-4222-8081-b3104a5f30f5
+    node: retrospective_plan_node
+    other: {}
+    prompt_id: 30508ac5-f9af-4e63-b7b5-460d2dda570a
+  parameter: passenger_id
+- function: UpdatePassengerInformation
+  kind: request_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 8e108f72-d25c-4eb1-a9e2-7d2c5fc3cc55
+    node: forward_plan_node
+    other: {}
+    prompt_id: 7ef5a693-bb58-4707-8edf-ea50a0677ad7
+  parameters:
+  - passenger_id
+- content: Unfortunately, we cannot skip the passenger ID as passengers can only update
+    their own information. Please enter the passenger's ID, noting that it should
+    be the ID of the passenger making the request.
+  kind: assistant
+  metadata:
+    agent: teacher_formfiller
+    id: 9b47f377-31ab-4320-86cb-3c8afaf64b39
+    node: generation_node
+    other: {}
+    prompt_id: acd9a31c-80b7-4404-a6c3-7a6b064a2022
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: 025eb133-2038-4f0d-9abb-0c13231d46ea
+    node: generation_node
+    other: {}
+    prompt_id: acd9a31c-80b7-4404-a6c3-7a6b064a2022
+  next_node: routing_node
+---
+context:
+  date: '2024-12-09'
+  env_spec: examples/form_filler/assets/forms/train/FlyCorp
+metadata:
+  author: teacher_formfiller
+  author_tape_id: null
+  error: null
+  id: d276712b-f93a-4613-808a-30e78f9ca6ee
+  last_user_tape_id: d2c0e6da-f72f-409e-afa2-cfbc3cce2d8e
+  n_added_steps: 8
+  parent_id: d2c0e6da-f72f-409e-afa2-cfbc3cce2d8e
+  result: {}
+steps:
+- content: Hi, how can I help you?
+  kind: assistant
+  metadata:
+    agent: ''
+    id: b793a360-1216-4639-89a3-073a8c27f014
+    node: ''
+    other: {}
+    prompt_id: ''
+- content: I need to check in for my flight that leaves in a couple of hours.
+  kind: user
+  metadata:
+    agent: ''
+    id: 190488de-eee5-423c-ac7c-d26fe33738c2
+    node: ''
+    other:
+      alias: init_message_short
+    prompt_id: ''
+- kind: resolve_function_action
+  metadata:
+    agent: teacher_formfiller
+    id: 6c9d399e-f843-4b2c-ab1f-8316160eaf6d
+    node: routing_node
+    other: {}
+    prompt_id: 500a3183-99cd-47c4-9802-f742126772db
+  query: I need to check in for my flight that leaves in a couple of hours.
+- candidates:
+  - function: AddAncillaryService
+    short_description: Request to add an ancillary service to a flight booking, including
+      service type and payment details. This function requires the flight booking
+      ID, service type (either 'baggage' or'meal'), and payment method (either 'credit
+      card' or 'cash'). According to FlyCorp's policy, only one ancillary service
+      can be added per flight booking. If the service is successfully added, the function
+      returns a request ID, the status of the request ('pending', 'approved', or'rejected'),
+      and a list of the updated services associated with the flight booking. If the
+      service is already added, the function returns an error message.
+  - function: BookFlight
+    short_description: Request to book a flight for a passenger, including flight
+      details, passenger information, and payment details. This function requires
+      the passenger's first and last name, email address, phone number, and payment
+      method. The flight details include the departure and arrival airports, departure
+      date, and class of service. According to FlyCorp's policies, passengers must
+      be at least 18 years old to book a flight, and payment must be made using a
+      valid credit card. The function returns a request ID, the status of the request
+      (either 'pending', 'approved', or'rejected'), and a list of flight details.
+  - function: CheckIn
+    short_description: Request to check-in a passenger for a flight, including seat
+      selection and baggage information. This function requires the passenger's booking
+      reference, flight number, and last name as mandatory parameters. Optionally,
+      the passenger can provide their preferred seat and baggage details. According
+      to FlyCorp's check-in policy, online check-in is available 24 hours prior to
+      the scheduled flight departure time. FlyCorp's baggage policy allows each passenger
+      to check-in up to two bags, with a maximum weight of 23kg each. The function
+      returns a unique request ID, the status of the check-in request (either'success'
+      or 'failed'), and a list of checked-in baggage items.
+  - function: ReportLostLuggage
+    short_description: 'Request to report lost luggage, including flight details,
+      luggage description, and contact information. This function requires the passenger''s
+      name, flight number, departure date, luggage type, and contact email. The luggage
+      type must be one of the following: suitcase, backpack, handbag, or other. The
+      function will return a request ID, the status of the request (either ''pending'',
+      ''in_progress'', or''resolved''), and a comment from the FlyCorp customer service
+      team. According to FlyCorp''s policy, all lost luggage reports must be submitted
+      within 24 hours of flight arrival. FlyCorp is not responsible for lost luggage
+      that is not reported within this timeframe.'
+  - function: RequestFlightChange
+    short_description: Request to change a flight, including original flight details
+      (original flight number, departure date, and departure time), new flight details
+      (new flight number, new departure date, and new departure time), and reason
+      for change. This request is subject to FlyCorp's flight change policy, which
+      allows changes up to 24 hours prior to the original flight's scheduled departure
+      time. The request will be processed based on availability and may incur additional
+      fees. The response will include a unique request ID, the status of the request
+      (approved, denied, or pending), and a list of updated flight segments.
+  - function: RequestRefund
+    short_description: 'Request for a refund for a cancelled or changed flight, including
+      flight details and reason for refund. This function requires the flight number,
+      original booking date, and reason for refund as mandatory parameters. The reason
+      for refund must be one of the following: ''flight cancellation'',''schedule
+      change'', or ''voluntary change''. FlyCorp''s refund policy states that refunds
+      will be processed within 7-10 business days. The function returns a unique request
+      ID, the status of the request (either ''pending'', ''approved'', or''rejected''),
+      and a list of comments from the FlyCorp customer service team.'
+  - function: RequestSpecialMeal
+    short_description: Request for a special meal option for a passenger, including
+      meal type and dietary restrictions. This function requires the passenger's booking
+      reference, meal type (vegetarian, gluten-free, etc.), and dietary restrictions
+      (halal, kosher, etc.). According to FlyCorp's policy, special meal requests
+      must be made at least 24 hours prior to flight departure. The function will
+      return a request ID, the status of the request (approved, denied, or pending),
+      and a comment indicating any additional information or requirements.
+  - function: RequestWheelchairAssistance
+    short_description: Request for wheelchair assistance for a passenger, including
+      flight details and special requirements. This function requires the passenger's
+      name, flight number, and departure date as mandatory parameters. Additionally,
+      it accepts optional parameters for special requirements such as escort assistance
+      or Braille signage. According to FlyCorp's policy, wheelchair assistance requests
+      must be made at least 48 hours prior to the scheduled flight departure time.
+      The function returns a unique request ID, the status of the request (either
+      'pending', 'approved', or 'denied'), and a list of assigned assistants.
+  - function: UpdatePassengerInformation
+    short_description: Request to update a passenger's personal information, including
+      name, contact details, and loyalty program information. This function requires
+      the passenger's ID, new name, email address, and phone number as mandatory parameters.
+      The loyalty program information is optional. According to FlyCorp's policy,
+      passengers can only update their own information, and the new email address
+      must not be already in use by another passenger. The function returns a request
+      ID, the status of the request (either'success' or 'failed'), and a list of updated
+      loyalty programs.
+  - function: UpdateSeatAssignment
+    short_description: Request to update a passenger's seat assignment on a flight,
+      including seat number and class of service. This function requires the passenger's
+      booking reference, flight number, and new seat assignment details. According
+      to FlyCorp's policies, seat assignments can only be updated up to 24 hours prior
+      to the scheduled flight departure time. Additionally, FlyCorp's rules dictate
+      that passengers in Basic Economy class are not eligible for seat selection.
+      The function returns a request ID, the status of the request (either'success'
+      or 'failed'), and a list of available seats on the flight.
+  kind: function_candidates
+  metadata:
+    agent: ''
+    id: 0e40406b-f198-430b-854a-a2ecaeda0440
+    node: ''
+    other: {}
+    prompt_id: ''
+- function: CheckIn
+  kind: inspect_function_action
+  metadata:
+    agent: teacher_formfiller
+    id: a2231192-d434-446a-a657-c8060d78fd79
+    node: intent_discovery_node
+    other: {}
+    prompt_id: 51f0e383-980f-4c8e-95e6-96baeea0039a
+- description: Request to check-in a passenger for a flight, including seat selection
+    and baggage information. This function requires the passenger's booking reference,
+    flight number, and last name as mandatory parameters. Optionally, the passenger
+    can provide their preferred seat and baggage details. According to FlyCorp's check-in
+    policy, online check-in is available 24 hours prior to the scheduled flight departure
+    time. FlyCorp's baggage policy allows each passenger to check-in up to two bags,
+    with a maximum weight of 23kg each. The function returns a unique request ID,
+    the status of the check-in request (either'success' or 'failed'), and a list of
+    checked-in baggage items.
+  kind: function_schema
+  metadata:
+    agent: ''
+    id: 582f3218-456f-46d6-807d-5c10cef35890
+    node: ''
+    other: {}
+    prompt_id: ''
+  name: CheckIn
+  parameters:
+    properties:
+      baggage_details:
+        description: The passenger's baggage details (optional).
+        type: string
+      booking_reference:
+        description: The passenger's booking reference.
+        type: string
+      flight_number:
+        description: The flight number.
+        type: string
+      last_name:
+        description: The passenger's last name.
+        type: string
+      preferred_seat:
+        description: The passenger's preferred seat (optional).
+        type: string
+    required:
+    - booking_reference
+    - flight_number
+    - last_name
+    type: object
+  return_value:
+    properties:
+      checked_baggage:
+        description: A list of checked-in baggage items.
+        items:
+          properties:
+            bag_id:
+              type: string
+            weight:
+              type: number
+          type: object
+        type: array
+      request_id:
+        description: A unique ID for the check-in request.
+        type: string
+      status:
+        description: The status of the check-in request.
+        enum:
+        - success
+        - failed
+        type: string
+    required:
+    - request_id
+    - status
+    - checked_baggage
+    type: object
+- function: CheckIn
+  kind: gather_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: b3c61e6a-2904-4e0e-be12-55b1f8c9d1ed
+    node: gather_values_node
+    other: {}
+    prompt_id: 1dc22b6d-0c27-4c9a-8362-fbf28fe873a7
+  parameters: {}
+- function: CheckIn
+  kind: verify_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 391e9c89-e33a-4645-9dee-156acb76dc80
+    node: verify_values_node
+    other: {}
+    prompt_id: 7f300e84-ae19-4bae-9106-607d4a86c097
+  parameters: {}
+- assign: {}
+  function: CheckIn
+  kind: update_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: db53a9f6-7d67-4470-9b99-db7b2495d8ae
+    node: retrospective_plan_node
+    other: {}
+    prompt_id: 179424a3-4e10-4721-8929-a9248e78b6b9
+  skip: []
+- function: CheckIn
+  kind: request_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: e58c1837-1e4e-423f-a870-116b2c5907e6
+    node: forward_plan_node
+    other: {}
+    prompt_id: ad5c54a0-405f-418f-b4a0-bd259a2b9abc
+  parameters:
+  - booking_reference
+- content: To start the check-in process, please enter your booking reference.
+  kind: assistant
+  metadata:
+    agent: teacher_formfiller
+    id: a09371e7-cf52-4e66-803b-6498ac5261d6
+    node: generation_node
+    other: {}
+    prompt_id: aa65cdb1-9a93-4e99-8c65-5b7985c96723
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: 1713288a-3430-45a4-8540-60268e51d1b1
+    node: generation_node
+    other: {}
+    prompt_id: aa65cdb1-9a93-4e99-8c65-5b7985c96723
+  next_node: routing_node
+- content: My booking reference is GK7XL8, my last name is Stephens, I have one large
+    checked bag that weighs 25 kilograms and one carry-on, and I believe my flight
+    number is DL158 to Los Angeles.
+  kind: user
+  metadata:
+    agent: ''
+    id: e1292815-1c52-44bd-b310-027bb01c5293
+    node: ''
+    other:
+      alias: multislot_instruct3c
+    prompt_id: ''
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: e5c03065-1c82-4002-920b-ccbfd2e544f6
+    node: routing_node
+    other: {}
+    prompt_id: 7f67da4c-d4a5-467e-8e1c-3377427381fc
+  next_node: intent_discovery_node
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: 27cc29a8-9050-45bc-b881-bb0d9ffb96f2
+    node: intent_discovery_node
+    other: {}
+    prompt_id: 877c1fd9-8e77-4ea2-b51c-4ddcef86d27a
+  next_node: gather_values_node
+- function: CheckIn
+  kind: gather_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: e114a4ac-db2f-480f-87b8-13115ca61c4d
+    node: gather_values_node
+    other: {}
+    prompt_id: 362f9f31-ed7c-461c-938b-dbc61b1e9cf4
+  parameters:
+    baggage_details: one large checked bag that weighs 25 kilograms and one carry-on
+    booking_reference: GK7XL8
+    flight_number: DL158
+    last_name: Stephens
+- function: CheckIn
+  kind: verify_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 8ea70dd9-1c6e-4b50-8e2f-45f39efa1326
+    node: verify_values_node
+    other: {}
+    prompt_id: 6127c724-7658-4e1e-950f-00eb8c797ba9
+  parameters:
+    baggage_details:
+      explanation: one of the checked bags exceeds the allowed weight of 23 kilograms
+      status: invalid
+      value: one large checked bag that weighs 25 kilograms and one carry-on
+    booking_reference:
+      explanation: ''
+      status: valid
+      value: GK7XL8
+    flight_number:
+      explanation: ''
+      status: valid
+      value: DL158
+    last_name:
+      explanation: ''
+      status: valid
+      value: Stephens
+- assign:
+    booking_reference: GK7XL8
+    flight_number: DL158
+    last_name: Stephens
+  function: CheckIn
+  kind: update_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: adebd6fd-8b31-4693-98a7-6a0e98b86a99
+    node: retrospective_plan_node
+    other: {}
+    prompt_id: 99028194-2465-471c-ab54-3da7d827d64e
+  skip: []
+- function: CheckIn
+  kind: refuse_invalid_function_parameter_value_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 686de9d3-9b1a-48fa-b92f-0b3336340104
+    node: retrospective_plan_node
+    other: {}
+    prompt_id: 99028194-2465-471c-ab54-3da7d827d64e
+  parameter: baggage_details
+  parameter_value: null
+- function: CheckIn
+  kind: request_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 602a6940-bd69-4267-8e9b-18ce1b877204
+    node: forward_plan_node
+    other: {}
+    prompt_id: b38cc699-8b3d-48b6-a858-0914e3170ae1
+  parameters:
+  - baggage_details
+- content: Noted, your booking reference is GK7XL8, flight number is DL158, and last
+    name is Stephens. The baggage details provided contains a checked bag that exceeds
+    the weight limit of 23kg. Please re-enter the baggage details with the correct
+    weight.
+  kind: assistant
+  metadata:
+    agent: teacher_formfiller
+    id: 17d48120-7650-4334-aaee-3b3418a86fe0
+    node: generation_node
+    other: {}
+    prompt_id: 72764ab7-b573-476d-9cf5-f257bab2710d
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: fdffc70d-00c6-47fc-b552-6a2c02552a74
+    node: generation_node
+    other: {}
+    prompt_id: 72764ab7-b573-476d-9cf5-f257bab2710d
+  next_node: routing_node
+- content: Look, can we just skip the baggage weight for now, I'm certain it's fine
+    and I really need to get checked in as soon as possible.
+  kind: user
+  metadata:
+    agent: ''
+    id: 965e661b-2e99-477d-a5f0-9c6f5d62fa44
+    node: ''
+    other:
+      alias: skip_optional
+    prompt_id: ''
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: 454fbf98-2e34-4506-88c6-de445cb9daff
+    node: routing_node
+    other: {}
+    prompt_id: 4aa68635-4160-4534-9796-ab230bff6765
+  next_node: intent_discovery_node
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: 73ec8c27-1bd1-44c1-a55d-26f995341764
+    node: intent_discovery_node
+    other: {}
+    prompt_id: fa797059-415b-4d05-81dd-8733e843cbff
+  next_node: gather_values_node
+- function: CheckIn
+  kind: gather_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 5de1efc8-bc52-4106-abe1-872bcf343e34
+    node: gather_values_node
+    other: {}
+    prompt_id: 0f61cc8f-6b72-4eb2-b6e4-251788e615ac
+  parameters:
+    baggage_details: <|skip|>
+- function: CheckIn
+  kind: verify_values_thought
+  metadata:
+    agent: teacher_formfiller
+    id: b71d1ec1-ee27-4a67-a1c4-148720d21125
+    node: verify_values_node
+    other: {}
+    prompt_id: 6ed0392b-ca6c-414d-8f8a-cb8f36626d99
+  parameters:
+    baggage_details:
+      explanation: ''
+      status: valid
+      value: <|skip|>
+- assign: {}
+  function: CheckIn
+  kind: update_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: 893c543d-ec37-4813-9a09-8b3f11d1ad03
+    node: retrospective_plan_node
+    other: {}
+    prompt_id: 2003554c-81eb-4fd0-8430-272ef0ddda27
+  skip:
+  - baggage_details
+- function: CheckIn
+  kind: request_function_parameters_thought
+  metadata:
+    agent: teacher_formfiller
+    id: b0c7086e-f552-4c4f-a5db-65063931f075
+    node: forward_plan_node
+    other: {}
+    prompt_id: d1baca0a-8550-4fe5-8cc5-d67b782ee781
+  parameters:
+  - preferred_seat
+- content: Noted, baggage details has been skipped. Now, please enter your preferred
+    seat, if any.
+  kind: assistant
+  metadata:
+    agent: teacher_formfiller
+    id: 329e6f80-4fec-4cf7-bf1c-1180fda1068a
+    node: generation_node
+    other: {}
+    prompt_id: f64e2d75-6f68-4fe2-bc5d-6e5e82eb1a54
+- kind: set_next_node
+  metadata:
+    agent: teacher_formfiller
+    id: 1ab2db49-34fd-4935-8443-fd0c6079890d
+    node: generation_node
+    other: {}
+    prompt_id: f64e2d75-6f68-4fe2-bc5d-6e5e82eb1a54
+  next_node: routing_node

@@ -1,0 +1,53 @@
+name: Vehicle Recalls and Updates
+description: Request management of vehicle recalls and software updates for DriveCorp's
+  fleet.
+parameters:
+  type: object
+  properties:
+    vin:
+      description: The vehicle identification number.
+      type: string
+    recall_update_type:
+      description: The type of recall or update (e.g. safety, software, etc.).
+      type: string
+      enum:
+      - safety
+      - software
+      - other
+    reason:
+      description: The reason for the request.
+      type: string
+    requestor_email:
+      description: The email address of the requestor (optional).
+      type: string
+  required:
+  - vin
+  - recall_update_type
+  - reason
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique identifier for the request.
+      type: string
+    status:
+      description: The status of the request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    affected_vehicles:
+      description: A list of vehicles affected by the recall or update.
+      type: array
+      items:
+        type: object
+        properties:
+          vin:
+            type: string
+          vehicle_model:
+            type: string
+  required:
+  - request_id
+  - status
+  - affected_vehicles

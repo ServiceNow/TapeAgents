@@ -1,0 +1,57 @@
+name: In-Store Experience Enhancement Request
+description: Submit a request to enhance the in-store experience at LuxuryCorp's retail
+  locations, including interior design, visual merchandising, and customer service
+  training. This request must be submitted by a store manager or above, and must include
+  a detailed description of the proposed enhancements. The request will be reviewed
+  by the LuxuryCorp Retail Experience team, and may require additional information
+  or clarification. Upon approval, the request will be assigned a unique request ID,
+  and the status will be updated to 'In Progress'. The requester will receive regular
+  updates on the status of the request, which may include 'Approved', 'In Progress',
+  'On Hold', or 'Completed'.
+parameters:
+  type: object
+  properties:
+    requester_title:
+      description: The title of the person submitting the request (e.g. Store Manager,
+        Regional Manager, etc.)
+      type: string
+    requester_email:
+      description: The email address of the person submitting the request
+      type: string
+    store_location:
+      description: The location of the store where the enhancements are being requested
+      type: string
+    proposed_enhancements:
+      description: A detailed description of the proposed enhancements
+      type: string
+    budget:
+      description: The proposed budget for the enhancements
+      type: number
+      default: 0
+  required:
+  - requester_title
+  - requester_email
+  - store_location
+  - proposed_enhancements
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The unique ID assigned to the request
+      type: string
+    status:
+      description: The current status of the request
+      type: string
+      enum:
+      - Approved
+      - In Progress
+      - On Hold
+      - Completed
+    comments:
+      description: Any additional comments or notes about the request
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status

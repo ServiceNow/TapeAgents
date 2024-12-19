@@ -1,0 +1,73 @@
+name: InventoryAdjustmentRequest
+description: 'Request an adjustment to inventory levels, including reasons for the
+  adjustment and expected impact on sales. This function requires the store location,
+  item ID, adjustment quantity, and reason for adjustment as parameters. The reason
+  for adjustment must be one of the following: ''Stocktake discrepancy'', ''Damaged
+  goods'', ''Supplier error'', or ''Other''. The expected impact on sales must be
+  a numerical value between 0 and 100. According to CoffeeCorp''s inventory management
+  policy, all inventory adjustments must be approved by the store manager before being
+  processed. The function returns a request ID, the status of the request (either
+  ''Pending'', ''Approved'', or ''Rejected''), and a list of affected items.'
+parameters:
+  type: object
+  properties:
+    store_location:
+      description: The location of the store where the inventory adjustment is being
+        made.
+      type: string
+    item_id:
+      description: The ID of the item for which the inventory adjustment is being
+        made.
+      type: integer
+    adjustment_quantity:
+      description: The quantity of the item to be adjusted.
+      type: integer
+    reason_for_adjustment:
+      description: The reason for the inventory adjustment.
+      type: string
+      enum:
+      - Stocktake discrepancy
+      - Damaged goods
+      - Supplier error
+      - Other
+    expected_impact_on_sales:
+      description: The expected impact on sales as a percentage.
+      type: number
+      minimum: 0
+      maximum: 100
+    comments:
+      description: Optional comments about the inventory adjustment.
+      type: string
+  required:
+  - store_location
+  - item_id
+  - adjustment_quantity
+  - reason_for_adjustment
+  - expected_impact_on_sales
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the inventory adjustment request.
+      type: string
+    status:
+      description: The status of the inventory adjustment request.
+      type: string
+      enum:
+      - Pending
+      - Approved
+      - Rejected
+    affected_items:
+      description: A list of items affected by the inventory adjustment.
+      type: array
+      items:
+        type: object
+        properties:
+          item_id:
+            type: integer
+          new_quantity:
+            type: integer
+  required:
+  - request_id
+  - status
+  - affected_items
