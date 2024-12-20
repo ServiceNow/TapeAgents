@@ -367,7 +367,7 @@ def launch_training(
     WORLD_SIZE = int(os.environ.get("WORLD_SIZE", 2))
 
     # Check GPU availability
-    num_gpus = torch.cuda.device_count()
+    num_gpus = torch.cuda.device_count() * int(os.environ.get("WORLD_SIZE", 1))
     print('###############################')
     print(f"Number of GPUs: {num_gpus}")
     print('###############################')
@@ -378,53 +378,64 @@ def launch_training(
     base_cmd = [
         "accelerate",
         "launch",
-        "--mixed_precision=bf16",
         "--config_file",
         accelerate_cfg_path,
-        "examples/rl_gsm8k/run_finetune.py",
-        "--config-dir",
-        config_dir,
-        "--config-name",
-        config_name,
+        "--mixed_precision=bf16",
     ]
-
     if num_gpus > 1:
         if use_deepspeed:
-            base_cmd[2:2] = [
+            base_cmd.extend([
                 "--num_processes",
                 str(num_gpus),
-                "--use_deepspeed",
-                "--deepspeed_config_file",
-                "conf/accelerate/deepspeed_stage3_bf16.json",
-            ]
+            ])
             if is_multinode:
                 base_cmd.extend([
                     "--num_machines",
-                    WORLD_SIZE,
+                    str(WORLD_SIZE),
                     "--machine_rank",
-                    GLOBAL_RANK,
+                    str(GLOBAL_RANK),
                     "--main_process_ip",
                     MASTER_ADDRESS,
                     "--main_process_port",
-                    MASTER_PORT,
+                    str(MASTER_PORT),
+                ])
+            base_cmd.extend([
+                "--use_deepspeed",
+                "--deepspeed_config_file",
+                "conf/accelerate/ds_multinode.json",
+            ])
+            if is_multinode:
+                base_cmd.extend([
                     "--deepspeed_multinode_launcher",
                     "standard",
                     "--same_network",
                 ])
         else:
-            base_cmd[2:2] = [
+            base_cmd.extend([
                 "--multi_gpu",
                 "--num_processes",
                 str(num_gpus),
-            ]
+            ])
+
+    base_cmd.extend([
+        "examples/rl_gsm8k/run_finetune.py",
+        "--config-dir",
+        config_dir,
+        "--config-name",
+        config_name,
+    ])
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
+    # try:
+    #     os.execvp(base_cmd[0], base_cmd)
+    # except Exception as e:
+    #     raise RuntimeError(f"Failed to launch training: {str(e)}")
     try:
         subprocess.run(
             base_cmd,
-            check=True,  # Raises CalledProcessError if return code != 0
-            text=True,
-            capture_output=False,
+            env=os.environ.copy(),  # Ensure subprocess inherits environment variables
+            shell=False,
+            check=True,   # Raises CalledProcessError if return code != 0
         )
 
     except subprocess.CalledProcessError as e:
