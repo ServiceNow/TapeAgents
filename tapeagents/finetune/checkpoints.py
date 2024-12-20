@@ -285,6 +285,7 @@ def save_model_and_tokenizer(
     tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
     lora: bool = False,
     safe_serialization: bool = False,
+    convert_to_hf: bool = False,
 ):
     logger.info("Saving model and tokenizer")
     with get_temporary_folder_and_move(output_dir) as temp_dir:
@@ -294,6 +295,7 @@ def save_model_and_tokenizer(
             unwrap=True,
             lora=lora,
             safe_serialization=safe_serialization,
+            convert_to_hf=convert_to_hf,
         )
         save_tokenizer_only(temp_dir, tokenizer)
 
@@ -304,6 +306,7 @@ def save_model_only(
     unwrap: bool = True,
     lora: bool = False,
     safe_serialization: bool = False,
+    convert_to_hf: bool = False,
 ):
     """
     Save model weights and config.
@@ -320,6 +323,7 @@ def save_model_only(
 
     The accelerate version must be called on *all* accelerate processes because all of them must save their shards.
     The DeepSpeed version is only called on the main process because the checkpointing and conversion mechanism will gather the shards from all processes.
+    The DeepSpeed conversion is only done for the `current` weights
     """
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
     accelerator.wait_for_everyone()
@@ -331,8 +335,8 @@ def save_model_only(
         # saving using DeepSpeed's checkpoint mechanism
         model.save_checkpoint(save_dir=output_dir)
 
-        # convert to HF format on main process
-        if accelerator.is_main_process:
+        # Only convert to HF format if requested (e.g. for inference checkpoints)
+        if convert_to_hf and accelerator.is_main_process:
             from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
             logger.info("Converting DeepSpeed checkpoint to HF format")
 
