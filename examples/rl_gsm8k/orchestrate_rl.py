@@ -357,6 +357,7 @@ def main(cfg: DictConfig):
         logger.info("Removing leading white space from the model. This is necessary for DeepSeek models")
 
     while state["iteration"] < cfg.max_iterations:
+        logger.info(f"Starting iteration {state['iteration']}")
         start_iteration = time.time()
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
