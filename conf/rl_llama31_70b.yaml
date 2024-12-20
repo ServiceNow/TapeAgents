@@ -9,8 +9,8 @@ finetune:
     reward_minus_kl_coef: 0.0
     use_advantages: false
     relu_log_p_weights: true
-  train_batch_size: 4
-  gradient_accumulation_passes: 16
+  train_batch_size: 1
+  gradient_accumulation_passes: 32
   learning_rate: 1e-6
 force_restart: true
 max_agent_forks: 5000
