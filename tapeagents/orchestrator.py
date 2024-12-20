@@ -15,6 +15,7 @@ from .agent import Agent
 from .core import AgentEvent, Observation, Step, StopStep, TapeType
 from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
 from .renderers import step_view
+from .steps import update_step_paths
 from .utils import FatalError, diff_dicts
 
 logger = logging.getLogger(__name__)
@@ -214,6 +215,9 @@ def replay_tape(
             observations: list[Step] = []
             for step in tape.steps[new_steps_count:]:
                 if isinstance(step, Observation):
+                    if env and hasattr(env, "attachment_dir"):
+                        logger.warning(f"Update step local_dir to: {env.attachment_dir}")
+                        step = update_step_paths(step, env.attachment_dir)
                     observations.append(step)
                 else:
                     break
@@ -268,7 +272,13 @@ def replay_tapes(
     for i, tape in enumerate(tapes):
         logger.debug(f"Tape {i}")
         try:
-            matched = replay_tape(agent, tape, env, start_tape=start_tapes[i] if start_tapes else None, reuse_observations=reuse_observations)
+            matched = replay_tape(
+                agent,
+                tape,
+                env,
+                start_tape=start_tapes[i] if start_tapes else None,
+                reuse_observations=reuse_observations,
+            )
             if not matched:
                 raise FatalError("Tape mismatch")
             ok += 1

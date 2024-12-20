@@ -60,8 +60,11 @@ def main(cfg: DictConfig) -> None:
         for i, task in enumerate(level_tasks)
         if not task_already_solved(i, level, tapes_dir)
     ]
-    if cfg.get("n_tasks"):
-        args = args[: cfg.n_tasks]  # run only the first n_tasks
+    if task_id := cfg.get("task_id"):
+        if type(task_id) is int:
+            args = [args[task_id]]
+        elif type(task_id) is str:
+            args = args[slice(*map(int, task_id.split(":")))]  # run only the task in range x:y
     logger.info(f"Evaluate {len(args)} unsolved tasks using {n_workers} workers")
     for tape_ready in processor(args, task_worker):
         if isinstance(tape_ready, Exception):
