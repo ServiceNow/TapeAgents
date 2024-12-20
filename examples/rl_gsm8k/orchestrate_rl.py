@@ -5,7 +5,6 @@ import multiprocessing
 import os
 import random
 import time
-import torch.distributed as dist
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
@@ -326,14 +325,17 @@ def main(cfg: DictConfig):
     setup_logging(exp_path)
     logger.info(f"Current dir: {os.getcwd()}, output dir: {cfg.output_dir}")
     cfg.finetune.wandb_id = exp_path.name
-    
-    # Initialize wandb and handle failure gracefully
+
+    # sync nodes after initial setup
+    if torch.distributed.is_initialized():
+        torch.distributed.barrier()
+
     try:
         run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
     except Exception as e:
-        logger.warning(f"Failed to initialize wandb: {e}. Continuing without wandb logging.")
+        logger.warning(f"We should be getting this if we are not in the main process: {e}.")
         run = None
-    
+
     def safe_wandb_log(metrics, step):
         if run is not None:
             try:
@@ -387,68 +389,68 @@ def main(cfg: DictConfig):
             else:
                 assistant_model_path = cfg.model_path
 
-        try:
-            all_results = {}
-            with VLLMServiceManager(
-                model_name_or_path=assistant_model_path,
-                stdout_file_path=exp_path / "assistant_vllm_stdout.log",
-                stderr_file_path=exp_path / "assistant_vllm_stderr.log",
-                port=8080,
-                gpus_per_model_instance=cfg.gpus_per_model_instance,
-                verbose=True,
-                cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **cfg.vllm_config.vllm_kwargs,
-            ) as vllm_service_manager:
-                sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
-                train_tapes = convert_problems_to_tapes(sub_samples, cfg)
-                train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
-                llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=str(assistant_model_path),
-                    tokenizer_name=str(assistant_model_path),
-                    parameters=cfg.llm.parameters,
-                    use_cache=False,
-                    collect_logprobs=True,
-                    remove_leading_white_space=remove_leading_white_space,
-                    observe_llm_calls=False
-                )
-
-                test_llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=str(assistant_model_path),
-                    tokenizer_name=str(assistant_model_path),
-                    parameters=cfg.test_llm.parameters,
-                    use_cache=False,
-                    remove_leading_white_space=remove_leading_white_space,
-                    observe_llm_calls=False
-                )
-
-                train_agent = CoTMathAgent.create(llm=llm)
-
-                splits = [("train", train_agent, train_tapes)]
-                if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                    test_tapes = convert_problems_to_tapes(test_samples, cfg)
-                    test_agent = CoTMathAgent.create(llm=test_llm)
-                    splits.append(("test", test_agent, test_tapes))
-                for split_name, agent, tapes in splits:
-                    tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
-                    new_tapes, training_samples, stats = generate_training_data(
-                        agent, tapes, cfg, env, tapes_dir, split_name
+            try:
+                all_results = {}
+                with VLLMServiceManager(
+                    model_name_or_path=assistant_model_path,
+                    stdout_file_path=exp_path / "assistant_vllm_stdout.log",
+                    stderr_file_path=exp_path / "assistant_vllm_stderr.log",
+                    port=8080,
+                    gpus_per_model_instance=cfg.gpus_per_model_instance,
+                    verbose=True,
+                    cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+                    **cfg.vllm_config.vllm_kwargs,
+                ) as vllm_service_manager:
+                    sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
+                    train_tapes = convert_problems_to_tapes(sub_samples, cfg)
+                    train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
+                    llm = TrainableLLM(
+                        base_url=vllm_service_manager.get_base_urls(),
+                        model_name=str(assistant_model_path),
+                        tokenizer_name=str(assistant_model_path),
+                        parameters=cfg.llm.parameters,
+                        use_cache=False,
+                        collect_logprobs=True,
+                        remove_leading_white_space=remove_leading_white_space,
+                        observe_llm_calls=False
                     )
 
-                    llm_stats = agent.llm.get_stats()
-                    make_data_took = stats[f"execution_time/{split_name}_make_data"]
-                    more_llm_stats = {
-                        "make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
-                        "make_data_prompt_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
-                        "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / make_data_took,
-                    }
-                    for k, v in llm_stats.items():
-                        if "/s" in k:
-                            more_llm_stats.update({f"{k}_per_gpu": v / torch.cuda.device_count()})
-                    llm_stats.update(more_llm_stats)
-                    llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
-                    stats.update(llm_stats)
+                    test_llm = TrainableLLM(
+                        base_url=vllm_service_manager.get_base_urls(),
+                        model_name=str(assistant_model_path),
+                        tokenizer_name=str(assistant_model_path),
+                        parameters=cfg.test_llm.parameters,
+                        use_cache=False,
+                        remove_leading_white_space=remove_leading_white_space,
+                        observe_llm_calls=False
+                    )
+
+                    train_agent = CoTMathAgent.create(llm=llm)
+
+                    splits = [("train", train_agent, train_tapes)]
+                    if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
+                        test_tapes = convert_problems_to_tapes(test_samples, cfg)
+                        test_agent = CoTMathAgent.create(llm=test_llm)
+                        splits.append(("test", test_agent, test_tapes))
+                    for split_name, agent, tapes in splits:
+                        tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
+                        new_tapes, training_samples, stats = generate_training_data(
+                            agent, tapes, cfg, env, tapes_dir, split_name
+                        )
+
+                        llm_stats = agent.llm.get_stats()
+                        make_data_took = stats[f"execution_time/{split_name}_make_data"]
+                        more_llm_stats = {
+                            "make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
+                            "make_data_prompt_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
+                            "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / make_data_took,
+                        }
+                        for k, v in llm_stats.items():
+                            if "/s" in k:
+                                more_llm_stats.update({f"{k}_per_gpu": v / torch.cuda.device_count()})
+                        llm_stats.update(more_llm_stats)
+                        llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
+                        stats.update(llm_stats)
 
                         all_results[split_name] = {
                             "new_tapes": new_tapes,
@@ -456,11 +458,11 @@ def main(cfg: DictConfig):
                             "stats": stats,
                         }
 
-                    # Log results
-                    logger.info(f"{cfg.dataset_name} {split_name} stats:")
-                    for stat_name, stat_value in stats.items():
-                        logger.info(f"{stat_name}: {stat_value}")
-                assistant_vllm_stats = vllm_service_manager.get_stats()
+                        # Log results
+                        logger.info(f"{cfg.dataset_name} {split_name} stats:")
+                        for stat_name, stat_value in stats.items():
+                            logger.info(f"{stat_name}: {stat_value}")
+                    assistant_vllm_stats = vllm_service_manager.get_stats()
 
             except Exception as e:
                 logger.error(colored(f"Failed to solve task: {e}", "red"))
@@ -473,66 +475,69 @@ def main(cfg: DictConfig):
                 time_evaluation = stats["execution_time/test_make_data"]
             else:
                 time_evaluation = 0
-            safe_wandb_log(stats, step=state["iteration"])
+            safe_wandb_log(
+                stats,
+                step=state["iteration"],
+            )
 
-        try:
-            with VLLMServiceManager(
-                model_name_or_path=cfg.model_path,
-                stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
-                stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
-                port=8180,
-                verbose=True,
-                gpus_per_model_instance=cfg.gpus_per_model_instance,
-                cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **cfg.vllm_config.vllm_kwargs,
-            ) as vllm_service_manager:
-                basemodel_llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=cfg.model_path,
-                    tokenizer_name=cfg.model_path,
-                    parameters=dict(temperature=0.7),
-                )
+            try:
+                with VLLMServiceManager(
+                    model_name_or_path=cfg.model_path,
+                    stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
+                    stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
+                    port=8180,
+                    verbose=True,
+                    gpus_per_model_instance=cfg.gpus_per_model_instance,
+                    cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
+                    **cfg.vllm_config.vllm_kwargs,
+                ) as vllm_service_manager:
+                    basemodel_llm = TrainableLLM(
+                        base_url=vllm_service_manager.get_base_urls(),
+                        model_name=cfg.model_path,
+                        tokenizer_name=cfg.model_path,
+                        parameters=dict(temperature=0.7),
+                    )
 
                     basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
-                start_basemodel_logprobs = time.time()
-                with ThreadPoolExecutor(
-                    max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
-                ) as executor:
-                    futures = [
-                        executor.submit(annotate_traces_with_ref_logprobs, basemodel_agent, trace, strict=False)
-                        for trace in all_results["train"]["training_samples"]
-                    ]
-                    training_samples: List[TrainingText] = [  # type: ignore
-                        future.result()
-                        for future in tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
-                        if future.result() is not None
-                    ]
-                refmodel_vllm_stats = vllm_service_manager.get_stats()
-                refmodel_starting_time = refmodel_vllm_stats["starting_time"]
-                time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
+                    start_basemodel_logprobs = time.time()
+                    with ThreadPoolExecutor(
+                        max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
+                    ) as executor:
+                        futures = [
+                            executor.submit(annotate_traces_with_ref_logprobs, basemodel_agent, trace, strict=False)
+                            for trace in all_results["train"]["training_samples"]
+                        ]
+                        training_samples: List[TrainingText] = [  # type: ignore
+                            future.result()
+                            for future in tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
+                            if future.result() is not None
+                        ]
+                    refmodel_vllm_stats = vllm_service_manager.get_stats()
+                    refmodel_starting_time = refmodel_vllm_stats["starting_time"]
+                    time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
 
             except Exception as e:
                 logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
                 raise e
 
-        logprob_stats = {
-            "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
-            "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
-            "execution_time/starting_refmodel_vllm": refmodel_starting_time,
-        }
-        logger.info(f"Logprob population stats:")
-        for stat_name, stat_value in logprob_stats.items():
-            logger.info(f"{stat_name}: {stat_value}")
-        wandb.log(logprob_stats, step=state["iteration"])
-        rollout_dir = exp_path / "rollouts" / str(state["iteration"])
-        os.makedirs(rollout_dir, exist_ok=True)
-        with open(rollout_dir / "data.jsonl", "w") as f:
-            for trace in training_samples:
-                if cfg.use_rejection_sampling and trace.reward <= 0:
-                    continue
-                f.write(trace.model_dump_json() + "\n")
-                f.flush()
+            logprob_stats = {
+                "execution_time/populating_ref_logprobs": time_populating_ref_logprobs,
+                "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
+                "execution_time/starting_refmodel_vllm": refmodel_starting_time,
+            }
+            logger.info(f"Logprob population stats:")
+            for stat_name, stat_value in logprob_stats.items():
+                logger.info(f"{stat_name}: {stat_value}")
+            safe_wandb_log(logprob_stats, step=state["iteration"])
+            rollout_dir = exp_path / "rollouts" / str(state["iteration"])
+            os.makedirs(rollout_dir, exist_ok=True)
+            with open(rollout_dir / "data.jsonl", "w") as f:
+                for trace in training_samples:
+                    if cfg.use_rejection_sampling and trace.reward <= 0:
+                        continue
+                    f.write(trace.model_dump_json() + "\n")
+                    f.flush()
 
             finetune_cfg = cfg.copy()
 
@@ -548,17 +553,22 @@ def main(cfg: DictConfig):
             config_path = conf_dir / f"{state['iteration']}.yaml"
             OmegaConf.save(finetune_cfg, config_path)
 
-        # Synchronize all processes before starting fine-tuning
-        if dist.is_initialized():
-            dist.barrier()
+        # sync nodes before starting training
+        if torch.distributed.is_initialized():
+            torch.distributed.barrier()
 
         start_finetune = time.time()
         launch_training(
             str(conf_dir), 
             str(state["iteration"]), 
             cfg.accelerate_cfg_path,
-            use_deepspeed=cfg.use_deepspeed  # defaults to False
+            use_deepspeed=cfg.use_deepspeed
         )
+        
+        # sync all nodes before next iteration
+        if torch.distributed.is_initialized():
+            torch.distributed.barrier()
+
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
         safe_wandb_log(
