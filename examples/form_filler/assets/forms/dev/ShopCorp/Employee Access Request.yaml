@@ -1,0 +1,61 @@
+name: Employee Access Request
+description: Request access to specific ShopCorp systems or applications for a new
+  or existing employee, including justification for access and supervisor approval.
+  This function requires the employee's ID, job title, and the systems/applications
+  they need access to, along with a justification for the access. The supervisor's
+  approval is also required. According to ShopCorp's policy, all access requests must
+  be approved by the supervisor before being granted. The function returns a request
+  ID, the status of the request (pending, approved, or rejected), and a list of granted
+  access.
+parameters:
+  type: object
+  properties:
+    employee_id:
+      description: The ID of the employee requesting access.
+      type: integer
+    job_title:
+      description: The job title of the employee requesting access.
+      type: string
+    systems_access:
+      description: The systems/applications the employee needs access to (separated with commas).
+      type: string
+    justification:
+      description: The justification for the access request.
+      type: string
+    supervisor_approval:
+      description: Did your supervisor approve the access request?
+      type: string
+      enum:
+      - 'No'
+      - 'Yes'
+    department:
+      description: The department of the employee requesting access (optional).
+      type: string
+  required:
+  - employee_id
+  - job_title
+  - systems_access
+  - justification
+  - supervisor_approval
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: The ID of the access request.
+      type: string
+    status:
+      description: The status of the access request.
+      type: string
+      enum:
+      - pending
+      - approved
+      - rejected
+    granted_access:
+      description: The list of granted access.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - granted_access

@@ -1,3 +1,4 @@
+beautifulsoup4==4.12.3
 easyocr==1.7.1
 lxml[html_clean]==5.2.2
 mammoth==1.8.0

@@ -1,0 +1,22 @@
+defaults:
+- base
+- _self_
+
+behavior_alias: happy_path
+
+step_types_chain:
+- AssistantStep
+
+step_filters:
+- _target_: examples.form_filler.user_simulator_filters.HasAnyFunction
+
+instruction:
+  _target_: examples.form_filler.user_simulator_agent.InstructionSampler
+  instructions:
+    respond: 'Reply to the agent and answer its question. DO NOT ask followup questions.'
+    respond_short: 'Reply with a short answer to the agent. DO NOT explain yourself. Be very scpecific and brief!'
+    respond_detail: 'Reply with a detailed answer to the agent. DO NOT ask followup questions.'
+  weights:
+    respond: 1
+    respond_short: 1
+    respond_detail: 1

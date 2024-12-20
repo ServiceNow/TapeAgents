@@ -1,0 +1,51 @@
+name: Partnership with Emerging Designer Request
+description: Request a partnership with an emerging designer or fashion talent to
+  collaborate on a limited-edition collection or capsule line. This request requires
+  the designer's name, brand name, and a brief description of the proposed collaboration.
+  The request will be reviewed by the LuxuryCorp Fashion Committee, and if approved,
+  a partnership agreement will be sent to the designer. According to LuxuryCorp's policy,
+  only one partnership per year is allowed with an emerging designer. The request
+  will be processed within 10 business days. The return value will include a unique
+  request ID, the status of the request (approved, rejected, or pending), and a list
+  of comments from the committee members.
+parameters:
+  type: object
+  properties:
+    designer_name:
+      description: The name of the emerging designer.
+      type: string
+    brand_name:
+      description: The name of the emerging designer's brand.
+      type: string
+    collaboration_description:
+      description: A brief description of the proposed collaboration.
+      type: string
+    contact_email:
+      description: The email address of the emerging designer (optional).
+      type: string
+  required:
+  - designer_name
+  - brand_name
+  - collaboration_description
+return_value:
+  type: object
+  properties:
+    request_id:
+      description: A unique ID assigned to the request.
+      type: string
+    status:
+      description: The status of the request (approved, rejected, or pending).
+      type: string
+      enum:
+      - approved
+      - rejected
+      - pending
+    comments:
+      description: A list of comments from the committee members.
+      type: array
+      items:
+        type: string
+  required:
+  - request_id
+  - status
+  - comments

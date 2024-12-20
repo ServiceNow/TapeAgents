@@ -23,7 +23,7 @@ def run_test_in_tmp_dir(test_name: str):
     shutil.copytree(test_data_dir, tmpdir, dirs_exist_ok=True)
     # force creation of SQLite tables
     tapeagents.observe._checked_sqlite = False
-    yield
+    yield tmpdir
     os.chdir(cur_dir)
 
 
@@ -80,4 +80,6 @@ if __name__ == "__main__":
             with run_in_tmp_dir_to_make_test_data("data_science"):
                 data_science.main(studio=False)
         case _:
-            raise Exception("Usage: python -m tests.make_test_data [delegate_stack | intro_notebook | tape_improver]")
+            raise Exception(
+                "Usage: python -m tests.make_test_data [delegate_stack | intro_notebook | tape_improver | data_science]"
+            )
