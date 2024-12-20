@@ -259,14 +259,16 @@ def run_finetuning_loop(
 
             if time_to_save:
                 # Overwrite latest model at pytorch_model.bin (for later JGA evaluation *and* for resuming training)
+                # conversion to HF format is done only for DeepSpeed models
                 save_model_and_tokenizer(
                     current_dir,
                     model,
                     tokenizer,
                     args.lora.enabled,
                     safe_serialization=args.use_safetensors,
+                    convert_to_hf=True,
                 )
-                # Save training state to training_state.pt (for resuming).
+                # Save training state to training_state.pt (for resuming)
                 save_training_state(
                     training_state_dir,
                     model,
@@ -298,6 +300,7 @@ def run_finetuning_loop(
                         tokenizer,
                         args.lora.enabled,
                         safe_serialization=args.use_safetensors,
+                        convert_to_hf=False,
                     )
                     dt = log_time(dt, "finetune/interim_save")
                     try:
