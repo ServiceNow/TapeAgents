@@ -1,8 +1,8 @@
 import json
 import logging
 import os
-import pathlib
 import random
+from typing import Callable
 
 import dspy
 import dspy.evaluate
@@ -28,8 +28,9 @@ from tapeagents.dialog_tape import (
 from tapeagents.environment import ToolEnvironment
 from tapeagents.io import stream_yaml_tapes
 from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
-from tapeagents.llms import LiteLLM, LLMStream
+from tapeagents.llms import LiteLLM, LLMStream, TrainableLLM
 from tapeagents.orchestrator import main_loop
+from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
 from tapeagents.tape_browser import TapeBrowser
@@ -40,8 +41,6 @@ from .load_demos import load_agentic_rag_demos, load_rag_demos
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
-res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
 
 
 def make_env(n_paragraphs: int = 3) -> ToolEnvironment:
@@ -62,7 +61,22 @@ def make_llm(cfg: DictConfig) -> LiteLLM:
         "presence_penalty": 0,
         "n": 1,
     }
-    return LiteLLM(model_name="gpt-3.5-turbo", parameters=parameters, use_cache=cfg.llm_cache)
+    if cfg.llm_name.startswith("gpt"):
+        llm = LiteLLM(model_name=cfg.llm_name, parameters=parameters, use_cache=cfg.llm_cache)
+    elif cfg.llm_name.startswith("meta-llama"):
+        # See model_name here: https://docs.together.ai/docs/serverless-models
+        # See corresponding tokenizer_name here: https://huggingface.co/meta-llama
+        llm = TrainableLLM(
+            base_url="https://api.together.xyz",
+            model_name=cfg.llm_name or "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            tokenizer_name=cfg.llm_tokenizer or "meta-llama/Llama-3.3-70B-Instruct",
+            parameters=dict(temperature=0.01),
+            use_cache=cfg.llm_cache,
+        )
+    else:
+        raise ValueError(f"Unknown LLM: {cfg.llm_name}")
+
+    return llm
 
 
 def make_rag_agent(cfg: DictConfig) -> Agent:
@@ -123,7 +137,7 @@ def make_agentic_rag_agent(cfg: DictConfig) -> Agent:
     return agent
 
 
-def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
+def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1) -> Agent:
     """Extract demos for function templates from the given tapes.
 
     When there is too many demos, select random ones.
@@ -137,30 +151,85 @@ def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1):
     rng = random.Random(seed)
     agent_copy = agent.model_copy(deep=True)
     for template_name, template in agent_copy.templates.items():
-        k = min(max_n_demos, len(demos[template_name]))
-        template.demos = rng.sample(demos[template_name], k)
+        k_max = min(max_n_demos, len(demos[template_name]))
+        # k = rng.randint(0, k_max)  # random number of demos
+        k = k_max
+        template.demos = rng.sample(demos[template_name], k)  # random selection of demos
     return agent_copy
 
 
-def optimize_agent(agent: Agent, cfg: DictConfig):
-    # Step 1: run agent on the training set
-    dataset = get_dataset(cfg)
+def run_agent(agent: Agent, dataset: list, cfg: DictConfig) -> tuple[list[Tape], list[Tape]]:
     env = make_env(cfg.optimize.n_paragraphs)
-    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.train]
+    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset]
     final_tapes = list(tqdm.tqdm(batch_main_loop(agent, start_tapes, env)))
+    return final_tapes
+
+
+def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
+    # Step 1: Run agent on the training set
+    dataset = get_dataset(cfg)
+    final_tapes = run_agent(agent, dataset.train, cfg)
     # Step 2: filter out good tapes
     good_tapes = [t for example, t in zip(dataset.train, final_tapes) if is_good_tape(example, t)]
+    bad_tapes = [t for t in final_tapes if t not in good_tapes]
     logger.info(f"{len(good_tapes)} good tapes out of {len(final_tapes)}")
     # Save all tapes for observability
     with stream_yaml_tapes("good_training_tapes.yaml") as saver:
         for tape in good_tapes:
             saver.save(tape)
     with stream_yaml_tapes("bad_training_tapes.yaml") as saver:
-        for tape in final_tapes:
-            if tape not in good_tapes:
-                saver.save(tape)
-    better_agent = add_demos(agent, good_tapes, cfg.optimize.max_n_demos, seed=cfg.seed)
+        for tape in bad_tapes:
+            saver.save(tape)
+    # Step 3: Optimize agent from the good tapes
+    better_agent = optimize_demos(agent, good_tapes, dataset.dev, cfg, metric_mean_retrieval_answer)
     return better_agent
+
+
+def metric_mean_retrieval_answer(
+    dataset: list, tapes: list[Tape], run_name: str = "", w_retrieval: float = 0.5, w_answer: float = 0.5
+) -> float:
+    retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
+    answer_accuracy = compute_answer_exact_match(dataset, tapes)
+    mean_accuracy = retrieval_accuracy * w_retrieval + answer_accuracy * w_answer
+    logger.info(
+        f"Retrieval accuracy: {retrieval_accuracy:.3f} | Answer accuracy: {answer_accuracy:.3f} | Mean Accuracy: {mean_accuracy:.3f} "
+    )
+    metrics_save_path = f"metrics_{len(dataset)}{f'_{run_name}' if run_name else ''}.json"
+    metrics = {
+        "mean_accuracy": mean_accuracy,
+        "retrieval_accuracy": retrieval_accuracy,
+        "answer_accuracy": answer_accuracy,
+    }
+    with open(metrics_save_path, "w") as f:
+        json.dump(
+            metrics,
+            f,
+            indent=2,
+        )
+    return mean_accuracy
+
+
+def optimize_demos(
+    agent: Agent,
+    good_tapes: list[Tape],
+    val_dataset: list,
+    cfg: DictConfig,
+    metric_fn: Callable[[list, list[Tape]], float],
+) -> Agent:
+    """Try N times to `add_demos` (see above), measure val set performance, and keep the best agent"""
+    best_agent = agent
+    best_metric = 0
+
+    for i in range(cfg.optimize.max_optimize_tries):
+        # Add demos to the agent with a different seed for each attempt
+        new_agent = add_demos(best_agent, good_tapes, cfg.optimize.max_n_demos, seed=cfg.seed + i)
+        # Run agent on the validation set to get metric to optimize
+        final_tapes = run_agent(new_agent, val_dataset, cfg)
+        metric = metric_fn(val_dataset, final_tapes, run_name=f"validation_{i}")
+        if metric > best_metric:
+            best_metric = metric
+            best_agent = new_agent
+    return best_agent
 
 
 def make_agent(cfg: DictConfig) -> Agent:
@@ -171,7 +240,10 @@ def make_agent(cfg: DictConfig) -> Agent:
 
 
 def is_good_tape(example: dspy.primitives.Example, tape, trace=None):
-    pred = dspy.primitives.Example({"answer": tape.steps[-1].content, "context": tape.steps[-3].content})
+    if len(tape.steps) < 3:  # Error in the tape
+        logger.error(tape.metadata.error)
+        return False
+    pred = dspy.primitives.Example({"answer": str(tape.steps[-1].content).strip(), "context": tape.steps[-3].content})
     tape.metadata.result["groundruth_answer"] = example.answer
     if not dspy.evaluate.answer_exact_match(example, pred):
         tape.metadata.result["reason"] = "bad answer"
@@ -181,13 +253,13 @@ def is_good_tape(example: dspy.primitives.Example, tape, trace=None):
         return False
     queries = [example.question]
     queries += [step.tool_calls[0].function.arguments["query"] for step in tape if isinstance(step, ToolCalls)]
-    if max([len(q) for q in queries]) > 100:
+    if max([len(q) for q in queries]) > 200:
         tape.metadata.result["reason"] = "long query"
         return False
     if any(
         dspy.evaluate.answer_exact_match_str(queries[idx], queries[:idx], frac=0.8) for idx in range(2, len(queries))
     ):
-        tape.metadata.result = "repeated query"
+        tape.metadata.result["reason"] = "repeated query"
         return False
     tape.metadata.result["reason"] = "good tape"
     return True
@@ -198,6 +270,9 @@ def compute_retrieval_accuracy(examples: list, tapes: list[Tape]):
     for example, tape in zip(examples, tapes):
         gold_titles = set(map(dspy.evaluate.normalize_text, example["gold_titles"]))
         # TODO: just retrieve the last set of contexts by index, keep it simple
+        if len(tape.steps) < 3:  # Error in the tape
+            tape.metadata.result["retrieval_accurate"] = False
+            continue
         context_step = tape.steps[-3]
         found_titles = [c.split(" | ")[0] for c in context_step.content]
         found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
@@ -212,7 +287,9 @@ def compute_answer_exact_match(examples: list, tapes: list[Tape]):
     for example, tape in zip(examples, tapes):
         tape.metadata.result["groundruth_answer"] = example.answer
         if isinstance(answer := tape.steps[-1], AssistantStep):
-            ok = dspy.evaluate.answer_exact_match(example, dspy.primitives.Example({"answer": answer.content}))
+            ok = dspy.evaluate.answer_exact_match(
+                example, dspy.primitives.Example({"answer": str(answer.content).strip()})
+            )
             tape.metadata.result["answer_accurate"] = ok
             n_correct += int(ok)
     return n_correct / len(examples)
@@ -221,17 +298,23 @@ def compute_answer_exact_match(examples: list, tapes: list[Tape]):
 _dataset = None
 
 
-def get_dataset(cfg: DictConfig):
+def get_dataset(cfg: DictConfig) -> HotPotQA:
     logger.info("Loading data ...")
     global _dataset
     if _dataset is None:
-        _dataset = HotPotQA(train_seed=1, train_size=20, eval_seed=2023, dev_size=cfg.dataset.dev_size, test_size=0)
+        _dataset = HotPotQA(
+            train_seed=1,
+            train_size=cfg.dataset.train_size,
+            eval_seed=2023,
+            dev_size=cfg.dataset.dev_size,
+            test_size=cfg.dataset.test_size,
+        )
     logger.info("Data loaded")
     return _dataset
 
 
-def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset, save_tapes_path: str):
-    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset.dev]
+def batch_run_and_save(agent: Agent, env: ToolEnvironment, dataset: list, save_tapes_path: str):
+    start_tapes = [DialogTape(steps=[UserStep(content=example["question"])]) for example in dataset]
     final_tapes = []
     with stream_yaml_tapes(save_tapes_path) as saver:
         for tape in tqdm.tqdm(batch_main_loop(agent, start_tapes, env)):
@@ -262,19 +345,14 @@ def evaluate(cfg: DictConfig):
     agent = make_agent(cfg)
     env = make_env()
     dataset = get_dataset(cfg)
-    tapes_save_path = f"dev_tapes_{cfg.dataset.dev_size}.yaml"
-    final_tapes = batch_run_and_save(agent, env, dataset, tapes_save_path)
-    retrieval_accuracy = compute_retrieval_accuracy(dataset.dev, final_tapes)
-    answer_accuracy = compute_answer_exact_match(dataset.dev, final_tapes)
-    print(f"Retrieval accuracy: {retrieval_accuracy:.2f}")
-    print(f"Answer accuracy: {answer_accuracy:.2f}")
-    metrics_save_path = f"metrics_{cfg.dataset.dev_size}.json"
-    with open(metrics_save_path, "w") as f:
-        json.dump({"retrieval_accuracy": retrieval_accuracy, "answer_accuracy": answer_accuracy}, f, indent=2)
+    tapes_save_path = f"test_tapes_{cfg.dataset.test_size}.yaml"
+    final_tapes = batch_run_and_save(agent, env, dataset.test, tapes_save_path)
+    metric_mean_retrieval_answer(dataset.test, final_tapes, run_name="test")
 
 
 def browse():
-    browser = TapeBrowser(DialogTape, ".", PrettyRenderer())
+    run_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+    browser = TapeBrowser(DialogTape, run_dir, CameraReadyRenderer())
     browser.launch()
 
 
