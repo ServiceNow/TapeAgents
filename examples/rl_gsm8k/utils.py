@@ -69,6 +69,11 @@ class VLLMServiceManager:
         self.stderr_file: Optional[TextIO] = None
         self.stats = {}
 
+        # Add node rank awareness
+        self.node_rank = int(os.environ.get("RANK", 0))
+        self.port_offset = self.node_rank * 1000  # Ensure different port ranges for each node
+        self.port = port + self.port_offset
+
     def get_base_urls(self) -> list[str]:
         return [
             f"http://127.0.0.1:{port}" for port in self.ports
@@ -133,9 +138,9 @@ class VLLMServiceManager:
 
         threads = []
 
-        for i, device_number in enumerate(generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance )):
+        for i, device_number in enumerate(generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance)):
+            # Adjust port based on both node rank and GPU index
             port = self.port + i
-            # start_llm(device_number, port, assistant_procs, ports)
             thread = threading.Thread(target=self._start_llm, args=(device_number, port))
             threads.append(thread)
             thread.start()
@@ -356,47 +361,83 @@ def launch_training(
         ValueError: If no GPUs are available
         RuntimeError: If training process fails
     """
+    # environment variables
+    GLOBAL_RANK = int(os.environ.get("RANK", 0))
+    MASTER_PORT = int(os.environ.get("MASTER_PORT"))
+    MASTER_ADDRESS = os.environ.get("MASTER_ADDR")
+    # this is same as number_of_replicas
+    WORLD_SIZE = int(os.environ.get("WORLD_SIZE", 2))
+
     # Check GPU availability
-    num_gpus = torch.cuda.device_count()
+    num_gpus = torch.cuda.device_count() * int(os.environ.get("WORLD_SIZE", 1))
+    print('###############################')
+    print(f"Number of GPUs: {num_gpus}")
+    print('###############################')
+    is_multinode = num_gpus > 8
     if num_gpus == 0:
         raise ValueError("No GPUs available for finetuning")
 
     base_cmd = [
         "accelerate",
         "launch",
-        "--mixed_precision=bf16",
         "--config_file",
         accelerate_cfg_path,
+        "--mixed_precision=bf16",
+    ]
+    if num_gpus > 1:
+        if use_deepspeed:
+            base_cmd.extend([
+                "--num_processes",
+                str(num_gpus),
+            ])
+            if is_multinode:
+                base_cmd.extend([
+                    "--num_machines",
+                    str(WORLD_SIZE),
+                    "--machine_rank",
+                    str(GLOBAL_RANK),
+                    "--main_process_ip",
+                    MASTER_ADDRESS,
+                    "--main_process_port",
+                    str(MASTER_PORT),
+                ])
+            base_cmd.extend([
+                "--use_deepspeed",
+                "--deepspeed_config_file",
+                "conf/accelerate/ds_multinode.json",
+            ])
+            if is_multinode:
+                base_cmd.extend([
+                    "--deepspeed_multinode_launcher",
+                    "standard",
+                    "--same_network",
+                ])
+        else:
+            base_cmd.extend([
+                "--multi_gpu",
+                "--num_processes",
+                str(num_gpus),
+            ])
+
+    base_cmd.extend([
         "examples/rl_gsm8k/run_finetune.py",
         "--config-dir",
         config_dir,
         "--config-name",
         config_name,
-    ]
-
-    if num_gpus > 1:
-        if use_deepspeed:
-            base_cmd[2:2] = [
-                "--num_processes",
-                str(num_gpus),
-                "--use_deepspeed",
-                "--deepspeed_config_file",
-                "conf/accelerate/deepspeed_stage3_bf16.json",
-            ]
-        else:
-            base_cmd[2:2] = [
-                "--multi_gpu",
-                "--num_processes",
-                str(num_gpus),
-            ]
+    ])
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
+    # try:
+    #     os.execvp(base_cmd[0], base_cmd)
+    # except Exception as e:
+    #     raise RuntimeError(f"Failed to launch training: {str(e)}")
     try:
         subprocess.run(
             base_cmd,
-            check=True,  # Raises CalledProcessError if return code != 0
-            text=True,
-            capture_output=False,
+            env=os.environ.copy(),  # Ensure subprocess inherits environment variables
+            shell=False,
+            check=True,   # Raises CalledProcessError if return code != 0
         )
 
     except subprocess.CalledProcessError as e:
