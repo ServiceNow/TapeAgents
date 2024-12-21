@@ -416,8 +416,8 @@ def main(cfg: DictConfig):
                     llm_stats = agent.llm.get_stats()
                     make_data_took = stats[f"execution_time/{split_name}_make_data"]
                     more_llm_stats = {
-                        "make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
-                        "make_data_prompt_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
+                        "make_data_output_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
+                        "make_data_prompt_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
                         "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / make_data_took,
                     }
                     for k, v in llm_stats.items():
