@@ -34,6 +34,8 @@ class TrainingText(BaseModel):
     reward: float = 0.0
     logprobs: List[float] = Field(default_factory=list)
     ref_logprobs: List[float] = Field(default_factory=list)
+    input_ids: List[int] = Field(default_factory=list)
+    labels: List[int] = Field(default_factory=list)
     group_id: str | None = None
 
     @property
