@@ -48,7 +48,7 @@ class LLMEvent(BaseModel):
     intermediate chunks of output and the final complete output.
 
     Attributes:
-        chunk (str, optional): A partial text output from the LLM stream. 
+        chunk (str, optional): A partial text output from the LLM stream.
         output (LLMOutput, optional): The complete output from the LLM.
         llm_call (LLMCall, optional): The entire LLMCall object.
     """
@@ -248,8 +248,12 @@ class LLM(BaseModel, ABC):
         return {
             "time_send_request": np.mean(self._stats["time_send_request"]) if self._stats["time_send_request"] else 0,
             "time_log_output": np.mean(self._stats["time_log_output"]) if self._stats["time_log_output"] else 0,
-            "total_prompt_tokens": np.sum(self._stats["prompt_length_tokens"]) if self._stats["prompt_length_tokens"] else 0,
-            "total_output_tokens": np.sum(self._stats["output_length_tokens"]) if self._stats["output_length_tokens"] else 0,
+            "total_prompt_tokens": np.sum(self._stats["prompt_length_tokens"])
+            if self._stats["prompt_length_tokens"]
+            else 0,
+            "total_output_tokens": np.sum(self._stats["output_length_tokens"])
+            if self._stats["output_length_tokens"]
+            else 0,
         }
 
 
@@ -525,6 +529,32 @@ class TrainableLLM(CachedLLM):
         super().model_post_init(__context)
         self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
 
+    def process_logprobs(self, prompt_logprobs, completion_logprobs) -> list[dict[str, Any]]:
+        logprobs = [
+            {
+                "token_id": self.tokenizer.bos_token_id,
+                "generated": 0,
+                "token": self.tokenizer.bos_token,
+                "logprob": None,
+            }
+        ]
+        for logprob in prompt_logprobs:
+            if logprob:
+                for k, v in logprob.items():
+                    logprobs.append({**v, **{"token_id": int(k), "generated": 0}})
+
+        for logprob in completion_logprobs:
+            if logprob:
+                # drop  by
+                logprob.update(
+                    {
+                        "generated": 1,
+                        "token_id": self.tokenizer.encode(logprob["token"], add_special_tokens=False)[0],
+                    }
+                )
+                logprobs.append(logprob)
+        return logprobs
+
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
         headers = {"Content-Type": "application/json"}
@@ -541,6 +571,7 @@ class TrainableLLM(CachedLLM):
                     "logprobs": 1,
                     "include_stop_str_in_output": True,
                     "skip_special_tokens": False,
+                    "echo": True,
                 }
             )
         base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
@@ -587,7 +618,9 @@ class TrainableLLM(CachedLLM):
 
                 logprobs = None
                 if self.collect_logprobs:
-                    logprobs = data["choices"][0]["logprobs"]["content"]
+                    prompt_logprobs = data["prompt_logprobs"]
+                    completion_logprobs = data["choices"][0]["logprobs"]["content"]
+                    logprobs = self.process_logprobs(prompt_logprobs, completion_logprobs)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
                     for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
                         if content.endswith(eos_str):
@@ -601,7 +634,6 @@ class TrainableLLM(CachedLLM):
         llm_call = self.log_output(prompt, output)
         llm_call.logprobs = logprobs
         yield LLMEvent(output=output, llm_call=llm_call)
-
 
     def load_tokenizer(self):
         """
@@ -639,6 +671,49 @@ class TrainableLLM(CachedLLM):
         self.load_tokenizer()
         return trainable_llm_make_training_text(prompt, output, self.tokenizer)
 
+    def new_get_logprobs(self, prompt_token_ids: list[int]):
+        if not self.tokenizer:
+            self.load_tokenizer()
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+
+        generation_args = {
+            "model": self.model_name,
+            # "prompt": prompt_text,
+            "prompt": prompt_token_ids,
+            "temperature": 0.0,
+            "max_tokens": 0,
+            "logprobs": 1,
+            "echo": True,
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output,
+            "skip_special_tokens": False,
+            "n": 1,  # number of completions to generate
+            "stream": False,  # return a single completion and not a stream of lines
+        }
+        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        url = f"{base_url}/v1/completions"
+        logger.debug(f"POST request to {url}")
+        r = requests.post(url, json=generation_args, headers=headers, verify=False)
+        r.raise_for_status()  # raise exception if status code is not in the 200s
+        try:
+            response = r.json()
+            tokens = response["choices"][0]["logprobs"]["tokens"]
+            logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
+        except Exception as e:
+            raise RuntimeError(f"Generation API wrong response: {r.text}", e)
+        logprobs = [
+            {
+                "logprob": lp,
+                "top_logprobs": [],
+                "token": t,
+                "token_id": self.tokenizer.encode(t, add_special_tokens=False)[0],
+            }
+            for lp, t in zip(logprobs, tokens)
+        ]
+        return {"content": logprobs}
+
     def get_logprobs_complete(self, prompt: str, output: str) -> dict[str, Any]:
         """
         Get the log probabilities of the tokens in the output given the prompt.
@@ -669,9 +744,11 @@ class TrainableLLM(CachedLLM):
             prompt = prompt[len(self.tokenizer.bos_token) :]
 
         prompt_text = prompt + output
+        prompt_token_ids = self.tokenizer.encode(prompt_text, add_special_tokens=False)
         generation_args = {
             "model": self.model_name,
-            "prompt": prompt_text,
+            # "prompt": prompt_text,
+            "prompt": prompt_token_ids,
             "temperature": 0.0,
             "max_tokens": 0,
             "logprobs": 1,
@@ -816,6 +893,8 @@ class TrainableLLM(CachedLLM):
             return self.get_logprobs_complete(prompt=prompt, output=output)
         elif isinstance(prompt, Prompt) and isinstance(output, LLMOutput):
             return self.get_logprobs_chat_complete(prompt=prompt, output=output)
+        elif isinstance(prompt, list) and isinstance(output, list):
+            pass
         else:
             raise ValueError("Invalid input types")
 

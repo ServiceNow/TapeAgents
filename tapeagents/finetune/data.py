@@ -132,6 +132,10 @@ def preprocess_fn(
         encoding["offset_mapping"],  # type: ignore
         predicted_spans,
     )
+    if "input_ids" in entry:
+        # Overwrite the input_ids and labels with the provided values.
+        encoding["input_ids"] = entry["input_ids"]
+        encoding["labels"] = entry["labels"]
     if is_rl:
         encoding = prepare_rl_fields(
             encoding,
