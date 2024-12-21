@@ -545,20 +545,21 @@ class TrainableLLM(CachedLLM):
 
         for logprob in completion_logprobs:
             if logprob:
-                if logprob["token"] == "":
-                    #TODO: how should we handle empty tokens?
-                    continue
-                # drop  by
                 try:
+                    token_id = self.tokenizer.encode(logprob["token"], add_special_tokens=False)
+                    if not len(token_id):
+                        #TODO: how should we handle empty tokens?
+                        continue
                     logprob.update(
                         {
                             "generated": 1,
-                            "token_id": self.tokenizer.encode(logprob["token"], add_special_tokens=False)[0],
+                            "token_id": token_id[0],
                         }
                     )
+                    logprobs.append(logprob)
                 except Exception as e:
                     logger.error(f"Failed to process logprobs: {logprob}")
-                logprobs.append(logprob)
+                    logger.error(e)
         return logprobs
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
