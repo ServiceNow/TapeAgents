@@ -545,17 +545,23 @@ class TrainableLLM(CachedLLM):
 
         for logprob in completion_logprobs:
             if logprob:
+                if logprob["token"] == "":
+                    #TODO: how should we handle empty tokens?
+                    continue
                 # drop  by
-                logprob.update(
-                    {
-                        "generated": 1,
-                        "token_id": self.tokenizer.encode(logprob["token"], add_special_tokens=False)[0],
-                    }
-                )
+                try:
+                    logprob.update(
+                        {
+                            "generated": 1,
+                            "token_id": self.tokenizer.encode(logprob["token"], add_special_tokens=False)[0],
+                        }
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to process logprobs: {logprob}")
                 logprobs.append(logprob)
         return logprobs
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
         headers = {"Content-Type": "application/json"}
         if self.api_token:
