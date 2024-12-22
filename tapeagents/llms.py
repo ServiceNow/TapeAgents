@@ -541,23 +541,24 @@ class TrainableLLM(CachedLLM):
                     "generated": 0,
                 }
             )
+        for logprob in completion_logprobs:
+            if logprob:
+                try:
+                    token_id = self.tokenizer.encode(logprob["token"], add_special_tokens=False)
+                    if not len(token_id):
+                        # TODO: how should we handle empty tokens?
+                        continue
+                    logprob.update(
+                        {
+                            "generated": 1,
+                            "token_id": token_id[0],
+                        }
+                    )
+                    logprobs.append(logprob)
+                except Exception as e:
+                    logger.error(f"Failed to process logprobs: {logprob}")
+                    logger.error(e)
 
-        for token, token_log_prob in zip(completion_logprobs["tokens"], completion_logprobs["token_logprobs"]):
-            try:
-                token_id = self.tokenizer.encode(token, add_special_tokens=False)
-                if not len(token_id):
-                    # TODO: how should we handle empty tokens?
-                    continue
-                logprob = {
-                    "generated": 1,
-                    "token_id": token_id[0],
-                    "token": token,
-                    "logprob": token_log_prob,
-                }
-                logprobs.append(logprob)
-            except Exception as e:
-                logger.error(f"Failed to process logprobs: {logprob}")
-                logger.error(e)
         return logprobs
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
@@ -565,14 +566,10 @@ class TrainableLLM(CachedLLM):
         headers = {"Content-Type": "application/json"}
         if self.api_token:
             headers |= {"Authorization": f"Bearer {self.api_token}"}
-        prompt_token_ids = self.tokenizer.apply_chat_template(
-            prompt.messages, add_special_tokens=True, add_generation_prompt=True
-        )
-        # prompt_decoded = self.tokenizer.decode(prompt_token_ids, skip_special_tokens=False)
         data = {
             "model": self.model_name,
-            "prompt": prompt_token_ids,
-            # "stream": self.stream,
+            "messages": prompt.messages,
+            "stream": self.stream,
         }
         if self.collect_logprobs:
             data.update(
@@ -587,7 +584,7 @@ class TrainableLLM(CachedLLM):
         logger.debug(f"POST request to {base_url}/v1/chat/completions")
         start_send_request = time.time()
         r = requests.post(
-            url=f"{base_url}/v1/completions",
+            url=f"{base_url}/v1/chat/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,
@@ -617,13 +614,17 @@ class TrainableLLM(CachedLLM):
         else:
             data = r.json()
             try:
-                content = data["choices"][0]["text"]
+                content = data["choices"][0]["message"]["content"]
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
                 logprobs = None
                 if self.collect_logprobs:
-                    completion_logprobs = data["choices"][0]["logprobs"]
+                    prompt_token_ids = self.tokenizer.apply_chat_template(
+                        prompt.messages, add_special_tokens=True, add_generation_prompt=True
+                    )
+                    # prompt_decoded = self.tokenizer.decode(prompt_token_ids, skip_special_tokens=False)
+                    completion_logprobs = data["choices"][0]["logprobs"]["content"]
                     logprobs = self.process_logprobs(prompt_token_ids, completion_logprobs)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
                     for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
