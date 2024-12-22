@@ -713,7 +713,7 @@ class TrainableLLM(CachedLLM):
                 "token": t,
                 "token_id": self.tokenizer.encode(t, add_special_tokens=False)[0],
             }
-            for lp, t in zip(logprobs, tokens)
+            for lp, t in zip(logprobs, tokens) if t != ""
         ]
         return {"content": logprobs}
 
