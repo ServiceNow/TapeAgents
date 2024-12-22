@@ -522,8 +522,6 @@ class TrainableLLM(CachedLLM):
     base_url: str | list[str]
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
-    # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
-    remove_leading_white_space: bool = False
 
     def model_post_init(self, __context):
         super().model_post_init(__context)

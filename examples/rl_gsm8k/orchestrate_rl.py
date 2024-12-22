@@ -318,10 +318,6 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
-    remove_leading_white_space = True if "deepseek" in cfg.model_path else False
-    if remove_leading_white_space:
-        # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
-        logger.info("Removing leading white space from the model. This is necessary for DeepSeek models")
 
     while state["iteration"] < cfg.max_iterations:
         start_iteration = time.time()
@@ -352,7 +348,6 @@ def main(cfg: DictConfig):
                     parameters=cfg.llm.parameters,
                     use_cache=False,
                     collect_logprobs=True,
-                    remove_leading_white_space=remove_leading_white_space,
                     observe_llm_calls=False
                 )
 
@@ -362,7 +357,6 @@ def main(cfg: DictConfig):
                     tokenizer_name=str(assistant_model_path),
                     parameters=cfg.test_llm.parameters,
                     use_cache=False,
-                    remove_leading_white_space=remove_leading_white_space,
                     observe_llm_calls=False
                 )
 
