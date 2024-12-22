@@ -41,7 +41,7 @@ vllm_config:
     --gpu-memory-utilization: 0.9
     # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
     --enable-chunked-prefill: ""
-    --enable-prefix-caching: ""
+    #--enable-prefix-caching: ""
   ref_vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 
     --gpu-memory-utilization: 0.9
