@@ -53,8 +53,12 @@ logger = logging.getLogger(__name__)
 
 def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
     try:
-        ref_logprobs = agent.llm.new_get_logprobs(trace.input_ids)  # type: ignore
-        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]][-len(trace.logprobs) :]
+        prompt_token_ids, completion_token_ids = (
+            trace.input_ids[: -len(trace.logprobs)],
+            trace.input_ids[-len(trace.logprobs) :],
+        )
+        ref_logprobs = agent.llm.get_logprobs(prompt_token_ids, completion_token_ids)  # type: ignore
+        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
         return trace
     except Exception as e:
         logger.error(f"Failed to get ref logprobs: {e}")

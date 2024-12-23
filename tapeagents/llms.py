@@ -532,7 +532,7 @@ class TrainableLLM(CachedLLM):
         for id in prompt_token_ids:
             logprobs.append(
                 {
-                    "logprob": 0,
+                    "logprob": None,
                     "top_logprobs": [],
                     "token": self.tokenizer.decode([id]),
                     "token_id": id,
@@ -575,7 +575,6 @@ class TrainableLLM(CachedLLM):
                     "logprobs": 1,
                     "include_stop_str_in_output": True,
                     "skip_special_tokens": False,
-                    "echo": False,
                 }
             )
         base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
@@ -674,7 +673,7 @@ class TrainableLLM(CachedLLM):
         self.load_tokenizer()
         return trainable_llm_make_training_text(prompt, output, self.tokenizer)
 
-    def new_get_logprobs(self, prompt_token_ids: list[int]):
+    def get_logprobs_token_ids(self, prompt_token_ids: list[int], completion_token_ids: list[int]) -> dict[str, Any]:
         if not self.tokenizer:
             self.load_tokenizer()
 
@@ -684,8 +683,7 @@ class TrainableLLM(CachedLLM):
 
         generation_args = {
             "model": self.model_name,
-            # "prompt": prompt_text,
-            "prompt": prompt_token_ids,
+            "prompt": prompt_token_ids + completion_token_ids,
             "temperature": 0.0,
             "max_tokens": 0,
             "logprobs": 0,
@@ -706,13 +704,9 @@ class TrainableLLM(CachedLLM):
             logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
         except Exception as e:
             raise RuntimeError(f"Generation API wrong response: {r.text}", e)
-        logprobs = [
-            {
-                "logprob": None,
-                "token": self.tokenizer.bos_token,
-            }
-        ]
-        for lp in response["choices"][0]["prompt_logprobs"]:
+        logprobs = []
+        completion_logprobs = response["choices"][0]["prompt_logprobs"][-len(completion_token_ids) :]
+        for lp in completion_logprobs:
             if lp:
                 for k, v in lp.items():
                     v.update({"generated": 0, "token_id": k})
@@ -749,11 +743,9 @@ class TrainableLLM(CachedLLM):
             prompt = prompt[len(self.tokenizer.bos_token) :]
 
         prompt_text = prompt + output
-        prompt_token_ids = self.tokenizer.encode(prompt_text, add_special_tokens=False)
         generation_args = {
             "model": self.model_name,
-            # "prompt": prompt_text,
-            "prompt": prompt_token_ids,
+            "prompt": prompt_text,
             "temperature": 0.0,
             "max_tokens": 0,
             "logprobs": 1,
@@ -880,7 +872,7 @@ class TrainableLLM(CachedLLM):
         return {"content": completion_log_probs}
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
-    def get_logprobs(self, prompt: str | Prompt, output: str | LLMOutput) -> dict[str, Any]:
+    def get_logprobs(self, prompt: str | Prompt | list[int], output: str | LLMOutput | list[int]) -> dict[str, Any]:
         """
         Calculate the log probabilities of the given output based on the provided prompt.
 
@@ -899,7 +891,7 @@ class TrainableLLM(CachedLLM):
         elif isinstance(prompt, Prompt) and isinstance(output, LLMOutput):
             return self.get_logprobs_chat_complete(prompt=prompt, output=output)
         elif isinstance(prompt, list) and isinstance(output, list):
-            pass
+            return self.get_logprobs_token_ids(prompt_token_ids=prompt, completion_token_ids=output)
         else:
             raise ValueError("Invalid input types")
 
