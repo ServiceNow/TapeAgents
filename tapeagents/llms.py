@@ -688,7 +688,7 @@ class TrainableLLM(CachedLLM):
             "prompt": prompt_token_ids,
             "temperature": 0.0,
             "max_tokens": 0,
-            "logprobs": 1,
+            "logprobs": 0,
             "echo": True,
             "include_stop_str_in_output": True,  # self.include_stop_str_in_output,
             "skip_special_tokens": False,
@@ -708,13 +708,15 @@ class TrainableLLM(CachedLLM):
             raise RuntimeError(f"Generation API wrong response: {r.text}", e)
         logprobs = [
             {
-                "logprob": lp,
-                "top_logprobs": [],
-                "token": t,
-                "token_id": self.tokenizer.encode(t, add_special_tokens=False)[0],
+                "logprob": None,
+                "token": self.tokenizer.bos_token,
             }
-            for lp, t in zip(logprobs, tokens) if t != ""
         ]
+        for lp in response["choices"][0]["prompt_logprobs"]:
+            if lp:
+                for k, v in lp.items():
+                    v.update({"generated": 0, "token_id": k})
+                    logprobs.append(v)
         return {"content": logprobs}
 
     def get_logprobs_complete(self, prompt: str, output: str) -> dict[str, Any]:

@@ -20,6 +20,7 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
+
 wandb.require("core")
 from .cot_math_agent import (
     CoTMathAgent,
@@ -153,16 +154,13 @@ def extract_tape_training_samples(
                 continue
             llm_call = step.metadata.other["llm_call"]
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-            
+
             input_ids = [lp["token_id"] for lp in llm_call.logprobs]
             labels = [lp["token_id"] for lp in llm_call.logprobs if lp["generated"]]
             labels = [-100] * (len(input_ids) - len(labels)) + labels
 
             trace.input_ids = input_ids
             trace.labels = labels
-            #TODO: token log probs look a bit off
-            ref_logprobs = agent.llm.new_get_logprobs(trace.input_ids) 
-
 
             trace.reward = reward
             trace.logprobs = [lp["logprob"] for lp in llm_call.logprobs if lp["generated"]]
@@ -348,7 +346,7 @@ def main(cfg: DictConfig):
                     parameters=cfg.llm.parameters,
                     use_cache=False,
                     collect_logprobs=True,
-                    observe_llm_calls=False
+                    observe_llm_calls=False,
                 )
 
                 test_llm = TrainableLLM(
@@ -357,7 +355,7 @@ def main(cfg: DictConfig):
                     tokenizer_name=str(assistant_model_path),
                     parameters=cfg.test_llm.parameters,
                     use_cache=False,
-                    observe_llm_calls=False
+                    observe_llm_calls=False,
                 )
 
                 train_agent = CoTMathAgent.create(llm=llm)
@@ -378,7 +376,8 @@ def main(cfg: DictConfig):
                     more_llm_stats = {
                         "make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
                         "make_data_prompt_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
-                        "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / make_data_took,
+                        "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"])
+                        / make_data_took,
                     }
                     for k, v in llm_stats.items():
                         if "/s" in k:
@@ -490,10 +489,10 @@ def main(cfg: DictConfig):
 
         start_finetune = time.time()
         launch_training(
-            str(conf_dir), 
-            str(state["iteration"]), 
+            str(conf_dir),
+            str(state["iteration"]),
             cfg.accelerate_cfg_path,
-            use_deepspeed=cfg.use_deepspeed  # defaults to False
+            use_deepspeed=cfg.use_deepspeed,  # defaults to False
         )
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
