@@ -59,6 +59,7 @@ def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, 
         )
         ref_logprobs = agent.llm.get_logprobs(prompt_token_ids, completion_token_ids)  # type: ignore
         trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
+        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
         return trace
     except Exception as e:
         logger.error(f"Failed to get ref logprobs: {e}")
