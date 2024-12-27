@@ -10,6 +10,7 @@ import hydra
 import tqdm
 from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
+from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
 from tapeagents.agent import Agent, Node
@@ -351,7 +352,7 @@ def evaluate(cfg: DictConfig):
 
 
 def browse():
-    run_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+    run_dir = HydraConfig.get().runtime.output_dir
     browser = TapeBrowser(DialogTape, run_dir, CameraReadyRenderer())
     browser.launch()
 
