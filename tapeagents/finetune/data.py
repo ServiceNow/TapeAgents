@@ -132,7 +132,7 @@ def preprocess_fn(
         encoding["offset_mapping"],  # type: ignore
         predicted_spans,
     )
-    if "input_ids" in entry:
+    if "input_ids" in entry and entry["input_ids"]:
         logger.info("Overwriting input_ids and labels with provided values")
         # Overwrite the input_ids and labels with the provided values.
         encoding["input_ids"] = entry["input_ids"]
