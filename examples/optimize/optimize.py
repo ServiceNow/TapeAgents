@@ -29,7 +29,7 @@ from tapeagents.dialog_tape import (
 from tapeagents.environment import ToolEnvironment
 from tapeagents.io import stream_yaml_tapes
 from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
-from tapeagents.llms import LiteLLM, LLMStream, TrainableLLM
+from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.renderers.pretty import PrettyRenderer
@@ -59,24 +59,10 @@ def make_llm(cfg: DictConfig) -> LiteLLM:
         "max_tokens": 150,
         "top_p": 1,
         "frequency_penalty": 0,
-        "presence_penalty": 0,
         "n": 1,
     }
-    if cfg.llm_name.startswith("gpt"):
-        llm = LiteLLM(model_name=cfg.llm_name, parameters=parameters, use_cache=cfg.llm_cache)
-    elif cfg.llm_name.startswith("meta-llama"):
-        # See model_name here: https://docs.together.ai/docs/serverless-models
-        # See corresponding tokenizer_name here: https://huggingface.co/meta-llama
-        llm = TrainableLLM(
-            base_url="https://api.together.xyz",
-            model_name=cfg.llm_name or "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            tokenizer_name=cfg.llm_tokenizer or "meta-llama/Llama-3.3-70B-Instruct",
-            parameters=dict(temperature=0.01),
-            use_cache=cfg.llm_cache,
-        )
-    else:
-        raise ValueError(f"Unknown LLM: {cfg.llm_name}")
 
+    llm = LiteLLM(model_name=cfg.llm_name, parameters=parameters, use_cache=cfg.llm_cache)
     return llm
 
 
@@ -357,7 +343,7 @@ def browse():
     browser.launch()
 
 
-@hydra.main(version_base=None, config_path="../../conf", config_name="hotpot_qa")
+@hydra.main(version_base=None, config_path="../../conf", config_name="optimize_hotpotqa")
 def main(cfg: DictConfig):
     print(f"Running in {os.getcwd()}")
     match cfg.target:

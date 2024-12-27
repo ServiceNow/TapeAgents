@@ -17,7 +17,6 @@ from itertools import zip_longest
 from typing import Any, Callable, Generator
 
 import litellm
-import openai
 import requests
 from Levenshtein import ratio
 from pydantic import BaseModel, Field
@@ -429,9 +428,12 @@ class LiteLLM(CachedLLM):
                     **self.parameters,
                 )
                 break
-            except openai.APITimeoutError:
+            except litellm.Timeout:
                 logger.error("API Timeout, retrying in 1 sec")
                 time.sleep(1.0)
+            except tuple(litellm.LITELLM_EXCEPTION_TYPES) as e:
+                logger.error(e)
+                break
         if self.stream:
             buffer = []
             for part in response:
