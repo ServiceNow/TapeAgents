@@ -138,9 +138,7 @@ def add_demos(agent: Agent, tapes: list[Tape], max_n_demos: int, seed: int = 1) 
     rng = random.Random(seed)
     agent_copy = agent.model_copy(deep=True)
     for template_name, template in agent_copy.templates.items():
-        k_max = min(max_n_demos, len(demos[template_name]))
-        # k = rng.randint(0, k_max)  # random number of demos
-        k = k_max
+        k = min(max_n_demos, len(demos[template_name]))
         template.demos = rng.sample(demos[template_name], k)  # random selection of demos
     return agent_copy
 
