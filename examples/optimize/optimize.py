@@ -173,6 +173,7 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
 def metric_mean_retrieval_answer(
     dataset: list, tapes: list[Tape], run_name: str = "", w_retrieval: float = 0.5, w_answer: float = 0.5
 ) -> float:
+    """Compute the weighted average of the retrival and answer accuracy"""
     retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
     answer_accuracy = compute_answer_exact_match(dataset, tapes)
     mean_accuracy = retrieval_accuracy * w_retrieval + answer_accuracy * w_answer
