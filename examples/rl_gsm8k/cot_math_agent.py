@@ -69,16 +69,19 @@ class ReasoningNode(MonoNode):
 class CoTMathAgent(Agent):
     @classmethod
     def create(cls, llm: LLM):
-        return super().create(
+        agent = super().create(
             llm,
             nodes=[
                 ReasoningNode(
                     name="cot",
                     agent_step_cls=MathAgentStep,
+                    store_llm_calls=True,
                 ),
             ],
             max_iterations=1,
         )
+        agent.store_llm_calls = True
+        return agent
 
 
 class MathEnvironment(Environment):
