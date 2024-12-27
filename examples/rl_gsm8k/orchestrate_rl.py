@@ -427,7 +427,7 @@ def main(cfg: DictConfig):
                 verbose=True,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **cfg.vllm_config.ref_vllm_kwargs,
+                **cfg.vllm_config.vllm_kwargs,
             ) as vllm_service_manager:
                 basemodel_llm = TrainableLLM(
                     base_url=vllm_service_manager.get_base_urls(),
