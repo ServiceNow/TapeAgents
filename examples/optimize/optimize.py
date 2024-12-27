@@ -166,11 +166,11 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
         for tape in bad_tapes:
             saver.save(tape)
     # Step 3: Optimize agent from the good tapes
-    better_agent = optimize_demos(agent, good_tapes, dataset.dev, cfg, metric_mean_retrieval_answer)
+    better_agent = optimize_demos(agent, good_tapes, dataset.dev, cfg, compute_weighted_accuracy)
     return better_agent
 
 
-def metric_mean_retrieval_answer(
+def compute_weighted_accuracy(
     dataset: list, tapes: list[Tape], run_name: str = "", w_retrieval: float = 0.5, w_answer: float = 0.5
 ) -> float:
     """Compute the weighted average of the retrival and answer accuracy"""
@@ -333,7 +333,7 @@ def evaluate(cfg: DictConfig):
     dataset = get_dataset(cfg)
     tapes_save_path = f"test_tapes_{cfg.dataset.test_size}.yaml"
     final_tapes = batch_run_and_save(agent, env, dataset.test, tapes_save_path)
-    metric_mean_retrieval_answer(dataset.test, final_tapes, run_name="test")
+    compute_weighted_accuracy(dataset.test, final_tapes, run_name="test")
 
 
 def browse():
