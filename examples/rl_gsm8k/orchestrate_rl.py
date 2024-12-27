@@ -323,6 +323,7 @@ def main(cfg: DictConfig):
     finetune_path = exp_path / "finetune"
 
     while state["iteration"] < cfg.max_iterations:
+        logger.info(f"Starting iteration {state['iteration']}")
         start_iteration = time.time()
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
