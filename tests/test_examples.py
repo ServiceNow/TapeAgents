@@ -20,8 +20,13 @@ sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import 
 
 from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
-from examples.delegate_stack import ExampleTape as ExampleTapeStack
-from examples.delegate_stack import Linguist, make_analyze_text_chain
+from examples.delegate_stack import (
+    ExampleTape as ExampleTapeStack,
+)
+from examples.delegate_stack import (
+    Linguist,
+    make_analyze_text_chain,
+)
 from examples.form_filler.environment import FormFillerEnvironment
 from examples.form_filler.scripts.prepare_test_assets import (
     get_teacher_agent,
@@ -38,7 +43,11 @@ from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tap
 from examples.gsm8k_tuning.math_agent import MathAgent, MathTape
 from examples.llama_agent import LLAMAChatBot
 from examples.optimize.optimize import make_agentic_rag_agent, make_env
-from examples.rl_gsm8k.orchestrate_rl import CoTMathAgent, RLMathTape, extract_tape_training_samples
+from examples.rl_gsm8k.orchestrate_rl import (
+    CoTMathAgent,
+    RLMathTape,
+    extract_tape_training_samples,
+)
 from examples.tape_improver import tape_improver
 from examples.workarena.agent import WorkArenaAgent
 from examples.workarena.steps import WorkArenaTape
@@ -272,8 +281,19 @@ def test_tape_improver():
     assert replay_success, "Failed to replay tape"
 
 
-def test_optimize():
-    with run_test_in_tmp_dir("optimize"):
+def test_optimize_gpt35():
+    with run_test_in_tmp_dir("optimize/gpt-4o-mini"):
+        with open("config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent = make_agentic_rag_agent(cfg)
+        env = make_env()
+        tape = DialogTape.model_validate(load_tape_dict(""))
+        replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
+        assert replay_success, "Failed to replay tape"
+
+
+def test_optimize_gpt4():
+    with run_test_in_tmp_dir("optimize/gpt-3.5-turbo"):
         with open("config.yaml") as f:
             cfg = DictConfig(yaml.safe_load(f))
         agent = make_agentic_rag_agent(cfg)
