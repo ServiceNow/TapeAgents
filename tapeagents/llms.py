@@ -461,7 +461,7 @@ class LiteLLM(CachedLLM):
                 time.sleep(1.0)
             except tuple(litellm.LITELLM_EXCEPTION_TYPES) as e:
                 logger.error(e)
-                break
+                raise e
         if self.stream:
             buffer = []
             for part in response:
