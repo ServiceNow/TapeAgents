@@ -1,0 +1,22 @@
+target: run
+exp_name: make_test
+seed: 1
+agent: agentic_rag
+llm_name: gpt-3.5-turbo
+llm_cache: true
+load_demos: false
+optimize:
+  do: false
+  n_paragraphs: 2
+  max_n_demos: 4
+  max_optimize_tries: 10
+rag:
+  partial_demos: true
+  demos: true
+agentic_rag:
+  max_hops: 2
+dataset:
+  train_size: 50
+  dev_size: 100
+  test_size: 300
+question: How many storeys are in the castle that David Gregory inherited?

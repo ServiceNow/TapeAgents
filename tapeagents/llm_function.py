@@ -4,14 +4,24 @@ Optimizable llm functions.
 
 from __future__ import annotations
 
+import logging
+import re
 from typing import Any, Type
 
 from pydantic import BaseModel
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Prompt, Step, Tape
-from tapeagents.dialog_tape import AssistantStep, AssistantThought, FunctionCall, ToolCall, ToolCalls
+from tapeagents.dialog_tape import (
+    AssistantStep,
+    AssistantThought,
+    FunctionCall,
+    ToolCall,
+    ToolCalls,
+)
 from tapeagents.llms import LLMStream
+
+logger = logging.getLogger(__name__)
 
 LLM_FUNCTION_TEMPLATE = """{function_desc}
 {partial_demos}
@@ -144,11 +154,42 @@ class LLMFunctionTemplate(BaseModel):
     def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
         # TODO: streaming
         # TODO: more robust parsing that doesn't rely on ':' and '\n'
+        output_values = []
         output_text = llm_stream.get_text()
-        prompt_text = llm_stream.prompt.messages[0]["content"]
-        text = prompt_text + "\n" + output_text
-        output_lines = text.split("\n")[-len(self.outputs) :]
-        output_values = [output_lines[0]] + [line.split(":")[1].strip() for line in output_lines[1:]]
+        for output in self.outputs:
+            if isinstance(output, ThoughtOutput):
+                # Find the variable output prefix in the llm output
+                values = re.split(output.prefix, output_text, flags=re.IGNORECASE)
+                if len(values) == 2:
+                    value = values[1].split("\n")[0].strip()  # heuristic for the end of the output
+                else:
+                    # llm output doesn't repeat prefix
+                    values = re.split(r"^[A-z]+:", output_text, flags=re.IGNORECASE)
+                    # make sure it is not another type of output
+                    if len(values) < 2:
+                        value = output_text.split("\n")[0].strip()  # heuristic for the end of the output
+                    else:
+                        value = ""
+                output_values.append(value)
+            elif isinstance(output, ToolCallOutput):
+                values = re.split(f"{output.arg_name}:", output_text, flags=re.IGNORECASE)
+                if len(values) < 2:
+                    break
+                value = values[1].split("\n")[0].strip()  # heuristic for the end of the argument
+                output_values.append(value)
+            elif isinstance(output, AssistantOutput):
+                values = re.split(f"{output.name}:", output_text, flags=re.IGNORECASE)
+                if len(values) < 2:
+                    break
+                value = values[1].split("\n")[0].strip()  # heuristic for the end of the argument
+                output_values.append(value)
+            else:
+                raise NotImplementedError(f"Output type {output} not implemented")
+
+        if len(output_values) != len(self.outputs):
+            logger.warning(f"Could not find all outputs in output_text: {output_text}\nOutput found: {output_values}")
+            pass
+
         for output, value in zip(self.outputs, output_values):
             yield output.parse(value)
 

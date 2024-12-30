@@ -6,10 +6,13 @@ import tempfile
 from pathlib import Path
 
 import testbook
+import yaml
+from omegaconf import DictConfig
 
 import tapeagents.observe
 from examples import delegate_stack
 from examples.data_science import data_science
+from examples.optimize import optimize
 from examples.tape_improver import tape_improver
 
 
@@ -29,6 +32,7 @@ def run_test_in_tmp_dir(test_name: str):
 
 @contextlib.contextmanager
 def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
+    cur_dir = os.getcwd()
     tmpdir = tempfile.mkdtemp()
     os.chdir(tmpdir)
     try:
@@ -52,6 +56,7 @@ def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
         print("To update test data, run these commands:")
         print(f"mkdir {test_data_dir}")
         print(f"TMP={tmpdir}; cp {cp_source} {test_data_dir}")
+    os.chdir(cur_dir)
 
 
 if __name__ == "__main__":
@@ -79,7 +84,14 @@ if __name__ == "__main__":
         case ["data_science"]:
             with run_in_tmp_dir_to_make_test_data("data_science"):
                 data_science.main(studio=False)
+        case ["optimize"]:
+            models = ["gpt-3.5-turbo", "gpt-4o-mini"]
+            for model in models:
+                with open(f"tests/res/optimize/{model}/config.yaml") as f:
+                    cfg = DictConfig(yaml.safe_load(f))
+                with run_in_tmp_dir_to_make_test_data(f"optimize/{model}", keep_llm_cache=True):
+                    optimize.run(cfg)
         case _:
             raise Exception(
-                "Usage: python -m tests.make_test_data [delegate_stack | intro_notebook | tape_improver | data_science]"
+                "Usage: python -m tests.make_test_data [delegate_stack | intro_notebook | tape_improver | data_science | optimize]"
             )

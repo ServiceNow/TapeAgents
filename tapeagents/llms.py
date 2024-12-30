@@ -19,7 +19,6 @@ from typing import Any, Callable, Generator
 
 import litellm
 import numpy as np
-import openai
 import requests
 from Levenshtein import ratio
 from pydantic import BaseModel, Field
@@ -48,7 +47,7 @@ class LLMEvent(BaseModel):
     intermediate chunks of output and the final complete output.
 
     Attributes:
-        chunk (str, optional): A partial text output from the LLM stream. 
+        chunk (str, optional): A partial text output from the LLM stream.
         output (LLMOutput, optional): The complete output from the LLM.
         llm_call (LLMCall, optional): The entire LLMCall object.
     """
@@ -248,8 +247,12 @@ class LLM(BaseModel, ABC):
         return {
             "time_send_request": np.mean(self._stats["time_send_request"]) if self._stats["time_send_request"] else 0,
             "time_log_output": np.mean(self._stats["time_log_output"]) if self._stats["time_log_output"] else 0,
-            "total_prompt_tokens": np.sum(self._stats["prompt_length_tokens"]) if self._stats["prompt_length_tokens"] else 0,
-            "total_output_tokens": np.sum(self._stats["output_length_tokens"]) if self._stats["output_length_tokens"] else 0,
+            "total_prompt_tokens": np.sum(self._stats["prompt_length_tokens"])
+            if self._stats["prompt_length_tokens"]
+            else 0,
+            "total_output_tokens": np.sum(self._stats["output_length_tokens"])
+            if self._stats["output_length_tokens"]
+            else 0,
         }
 
 
@@ -453,9 +456,12 @@ class LiteLLM(CachedLLM):
                     **self.parameters,
                 )
                 break
-            except openai.APITimeoutError:
+            except litellm.Timeout:
                 logger.error("API Timeout, retrying in 1 sec")
                 time.sleep(1.0)
+            except tuple(litellm.LITELLM_EXCEPTION_TYPES) as e:
+                logger.error(e)
+                raise e
         if self.stream:
             buffer = []
             for part in response:
@@ -603,7 +609,6 @@ class TrainableLLM(CachedLLM):
         llm_call = self.log_output(prompt, output)
         llm_call.logprobs = logprobs
         yield LLMEvent(output=output, llm_call=llm_call)
-
 
     def load_tokenizer(self):
         """

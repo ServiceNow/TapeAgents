@@ -3,12 +3,18 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
-from examples.optimize.load_demos import load_agentic_rag_demos, load_rag_demos
 from examples.optimize.func_templates import make_answer_template, make_query_template
+from examples.optimize.load_demos import load_agentic_rag_demos, load_rag_demos
+from tapeagents.core import LLMOutput, Prompt
 from tapeagents.dialog_tape import ToolResult, UserStep
-from tapeagents.llm_function import Input, LLMFunctionTemplate, AssistantOutput, RationaleOutput
+from tapeagents.llm_function import (
+    AssistantOutput,
+    Input,
+    LLMFunctionTemplate,
+    RationaleOutput,
+)
+from tapeagents.llms import LLMEvent, LLMStream
 from tapeagents.utils import diff_strings
-
 
 TEST_INPUT_STEP1 = UserStep(
     content="What is the nationality of the chef and restaurateur featured in Restaurant: Impossible?"
@@ -103,3 +109,66 @@ def test_query_prompt():
     if render != gold:
         print(diff_strings(render, gold))
         assert False
+
+
+def test_generate_steps_answer_template():
+    ## gpt-3.5-turbo
+    llm_output = "Answer: Anakin Skywalker is Leia's father."
+    func = make_answer_template()
+    steps = list(func.generate_steps(llm_stream=_llm_sream(llm_output), agent=None, tape=None))
+    assert steps[0].kind == "assistant_thought"
+    assert steps[0].content == ""
+    assert steps[1].kind == "assistant"
+    assert steps[1].content == "Anakin Skywalker is Leia's father."
+
+    llm_output = "determine the familial connection. Anakin Skywalker is the father of Luke Skywalker and Leia Organa. Therefore, he is Leia's father.  \nAnswer: Father"
+    steps = list(func.generate_steps(llm_stream=_llm_sream(llm_output), agent=None, tape=None))
+    assert steps[0].kind == "assistant_thought"
+    assert (
+        steps[0].content
+        == "determine the familial connection. Anakin Skywalker is the father of Luke Skywalker and Leia Organa. Therefore, he is Leia's father."
+    )
+    assert steps[1].kind == "assistant"
+    assert steps[1].content == "Father"
+
+
+def test_generate_steps_query_template():
+    # gpt-3.5-turbo
+    llm_output = ' produce the query. We know that Anakin Skywalker is the father of Princess Leia. Therefore, we need to search for the relationship between a father and daughter.\nQuery: "relationship between father and daughter" site:wikipedia.org'
+
+    func = make_query_template()
+    steps = list(func.generate_steps(llm_stream=_llm_sream(llm_output), agent=None, tape=None))
+    assert steps[0].kind == "assistant_thought"
+    assert (
+        steps[0].content
+        == "produce the query. We know that Anakin Skywalker is the father of Princess Leia. Therefore, we need to search for the relationship between a father and daughter."
+    )
+    assert steps[1].kind == "assistant"
+    assert steps[1].tool_calls[0].function.name == "retrieve"
+    assert (
+        steps[1].tool_calls[0].function.arguments["query"]
+        == '"relationship between father and daughter" site:wikipedia.org'
+    )
+
+    # gpt-4o-mini
+    llm_output = "Context: N/A  \nQuestion: What relation is Anakin Skywalker to Princess Leia?  \nReasoning: Let's think step by step in order to identify the familial connections between Anakin Skywalker and Princess Leia. We need to find information about Anakin Skywalker’s identity, his family, and how that relates to Princess Leia. We will search for details about Anakin's lineage and any connections to Leia.  \nQuery: \"Anakin Skywalker family relation to Princess Leia\""
+
+    steps = list(func.generate_steps(llm_stream=_llm_sream(llm_output), agent=None, tape=None))
+    assert steps[0].kind == "assistant_thought"
+    assert (
+        steps[0].content
+        == "identify the familial connections between Anakin Skywalker and Princess Leia. We need to find information about Anakin Skywalker’s identity, his family, and how that relates to Princess Leia. We will search for details about Anakin's lineage and any connections to Leia."
+    )
+    assert steps[1].kind == "assistant"
+    assert steps[1].tool_calls[0].function.name == "retrieve"
+    assert steps[1].tool_calls[0].function.arguments["query"] == '"Anakin Skywalker family relation to Princess Leia"'
+
+
+def _llm_sream(output: str):
+    def _generator(output: str):
+        yield LLMEvent(output=LLMOutput(content=output))
+
+    return LLMStream(_generator(output), Prompt())
+
+
+# llm_output_gpt35 = 'produce the answer. We know that Rainer Maria Rilke\'s novel "The Notebooks of Malte Laurids Brigge" greatly influenced Jean-Paul Sartre. \nAnswer: Jean-Paul Sartre'
