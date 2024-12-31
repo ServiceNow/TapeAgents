@@ -229,7 +229,6 @@ def compute_retrieval_accuracy(tapes: list[Tape]):
         if len(tape.steps) < 3:  # Error in the tape
             tape.metadata.result["retrieval_accurate"] = False
             continue
-        # TODO: just retrieve the last set of contexts by index, keep it simple
         context_step = tape.steps[-3]
         found_titles = [c.split(" | ")[0] for c in context_step.content]
         found_titles = set(map(dspy.evaluate.normalize_text, found_titles))
