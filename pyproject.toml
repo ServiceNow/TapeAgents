@@ -60,7 +60,7 @@ markers = [
 [tool.tox]
 min_version = "4"
 requires = ["tox-uv>=1"]
-env_list = ["type", "3.10", "3.11", "3.12"]
+env_list = ["type", "3.10", "3.11", "3.12", "3.13"]
 skip_missing_interpreters = false
 
 [tool.tox.env_run_base]

@@ -29,7 +29,7 @@
         "agent": "Agent",
         "other": {}
       },
-      "content": " produce the query. We know that David Gregory inherited a castle, and we are curious about the number of storeys it has. To find this information, we can search for the architectural details of the castle he inherited.",
+      "content": "produce the query. We know that David Gregory inherited a castle, and we are curious about the number of storeys it has. To find this information, we can search for the architectural details of the castle he inherited.",
       "kind": "assistant_thought"
     },
     {
@@ -93,7 +93,7 @@
         "agent": "Agent",
         "other": {}
       },
-      "content": " produce the query. We know that David Gregory inherited Kinnairdy Castle in 1664. To find out how many storeys are in the castle, we need to search for information about the castle's structure.",
+      "content": "produce the query. We know that David Gregory inherited Kinnairdy Castle in 1664. To find out how many storeys are in the castle, we need to search for information about the castle's structure.",
       "kind": "assistant_thought"
     },
     {
