@@ -16,7 +16,7 @@ def optimize_demos(
     agent: Agent,
     good_tapes: list[Tape],
     n_demos: int,
-    random_sample: int,
+    n_iterations: int,
     seed: int,
     metric_fn: Callable[[list[Tape]], float],
     run_agent_fn: Callable[[Agent, list[Tape]], list[Tape]],
@@ -28,7 +28,7 @@ def optimize_demos(
     best_agent_id = 0
     best_metric = 0
 
-    for i in range(random_sample):
+    for i in range(n_iterations):
         # Add demos to the agent with a different seed for each attempt
         new_agent = add_demos(best_agent, good_tapes, n_demos, seed=seed + i)
         save_agent(new_agent, f"agent_{best_agent_id}.yaml")
