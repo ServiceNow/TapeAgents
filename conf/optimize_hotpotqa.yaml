@@ -7,9 +7,8 @@ target: evaluate
 exp_name: ${agent}
 seed: 1
 agent: ???
+llm_name: together_ai/meta-llama/Llama-3.3-70B-Instruct-Turbo
 llm_cache: true
-llm_name: meta-llama/Llama-3.3-70B-Instruct-Turbo
-llm_tokenizer: meta-llama/Llama-3.3-70B-Instruct
 load_demos: false
 optimize:
   do: false

@@ -68,7 +68,7 @@ Retrieval accuracy: 0.567
 Answer accuracy: 0.470
 ```
 
-And this way we get a higher retrieval accuracy, though answer accuracy went down.
+And this way we get a higher retrieval accuracy and the answer accuracy is also higher!
 
 Note:
 - we found the quantitative results of this experiment to be very unstable due to the LLM non-determinism and the small training and dev set sizes. In our future work we will add validation of the selected examples and evaluate on a larget dev set.

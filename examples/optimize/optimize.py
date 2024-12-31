@@ -9,7 +9,9 @@ import hydra
 import tqdm
 from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
+from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
+
 from tapeagents.agent import Agent, Node
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import StepMetadata, Tape
@@ -26,7 +28,7 @@ from tapeagents.dialog_tape import (
 from tapeagents.environment import ToolEnvironment
 from tapeagents.io import stream_yaml_tapes
 from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
-from tapeagents.llms import LiteLLM, LLMStream, TrainableLLM
+from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.optimize import optimize_demos
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
@@ -57,24 +59,10 @@ def make_llm(cfg: DictConfig) -> LiteLLM:
         "max_tokens": 150,
         "top_p": 1,
         "frequency_penalty": 0,
-        "presence_penalty": 0,
         "n": 1,
     }
-    if cfg.llm_name.startswith("gpt"):
-        llm = LiteLLM(model_name=cfg.llm_name, parameters=parameters, use_cache=cfg.llm_cache)
-    elif cfg.llm_name.startswith("meta-llama"):
-        # See model_name here: https://docs.together.ai/docs/serverless-models
-        # See corresponding tokenizer_name here: https://huggingface.co/meta-llama
-        llm = TrainableLLM(
-            base_url="https://api.together.xyz",
-            model_name=cfg.llm_name or "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            tokenizer_name=cfg.llm_tokenizer or "meta-llama/Llama-3.3-70B-Instruct",
-            parameters=dict(temperature=0.01),
-            use_cache=cfg.llm_cache,
-        )
-    else:
-        raise ValueError(f"Unknown LLM: {cfg.llm_name}")
 
+    llm = LiteLLM(model_name=cfg.llm_name, parameters=parameters, use_cache=cfg.llm_cache)
     return llm
 
 
@@ -166,21 +154,18 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
         cfg.optimize.max_n_demos,
         cfg.optimize.max_optimize_tries,
         cfg.seed,
-        metric_mean_retrieval_answer,
+        compute_weighted_accuracy,
         run_agent_with_val_dataset,
     )
     return better_agent
 
 
-def metric_mean_retrieval_answer(
-    tapes: list[Tape],
-    run_name: str = "",
-    w_retrieval: float = 0.5,
-    w_answer: float = 0.5,
+def compute_weighted_accuracy(
+    dataset: list, tapes: list[Tape], run_name: str = "", w_retrieval: float = 0.5, w_answer: float = 0.5
 ) -> float:
-    # Compute metrics
-    retrieval_accuracy = compute_retrieval_accuracy(tapes)
-    answer_accuracy = compute_answer_exact_match(tapes)
+    """Compute the weighted average of the retrival and answer accuracy"""
+    retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
+    answer_accuracy = compute_answer_exact_match(dataset, tapes)
     mean_accuracy = retrieval_accuracy * w_retrieval + answer_accuracy * w_answer
     metrics = {
         "mean_accuracy": mean_accuracy,
@@ -340,16 +325,16 @@ def evaluate(cfg: DictConfig):
     dataset = get_dataset(cfg)
     tapes_save_path = f"test_tapes_{cfg.dataset.test_size}.yaml"
     final_tapes = batch_run_and_save(agent, env, dataset.test, tapes_save_path)
-    metric_mean_retrieval_answer(final_tapes, run_name="test")
+    compute_weighted_accuracy(dataset.test, final_tapes, run_name="test")
 
 
 def browse():
-    run_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+    run_dir = HydraConfig.get().runtime.output_dir
     browser = TapeBrowser(DialogTape, run_dir, CameraReadyRenderer())
     browser.launch()
 
 
-@hydra.main(version_base=None, config_path="../../conf", config_name="hotpot_qa")
+@hydra.main(version_base=None, config_path="../../conf", config_name="optimize_hotpotqa")
 def main(cfg: DictConfig):
     print(f"Running in {os.getcwd()}")
     match cfg.target:
