@@ -20,23 +20,23 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
 ]
 dependencies = [
-  "browsergym==0.13.0",
-  "fastapi==0.115.5",
-  "gradio==5.5.0",
-  "hydra-core==1.3.2",
-  "jsonref==1.1.0",
-  "langchain-community==0.0.38",
-  "langchain-core==0.1.52",
-  "levenshtein==0.25.1",
-  "litellm==1.51.2",
-  "openai==1.55.3",
-  "pathvalidate==3.2.0",
-  "podman==5.0",
-  "pydantic==2.9.1",
-  "pyyaml==6.0.2",
-  "tavily-python==0.3.4",
-  "termcolor==2.4.0",
-  "tqdm==4.66.5",
+  "browsergym~=0.13",
+  "fastapi~=0.115",
+  "gradio~=5.5",
+  "hydra-core~=1.3",
+  "jsonref~=1.1",
+  "langchain-community~=0.0",
+  "langchain-core~=0.1",
+  "levenshtein~=0.25",
+  "litellm~=1.51",
+  "openai~=1.55",
+  "pathvalidate~=3.2",
+  "podman~=5.0",
+  "pydantic~=2.9",
+  "pyyaml~=6.0",
+  "tavily-python~=0.3",
+  "termcolor~=2.4",
+  "tqdm~=4.66",
 ]
 
 [project.urls]
@@ -44,59 +44,52 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "dspy-ai==2.4.10",
-  "flake8==6.0.0",
-  "ipykernel==6.29.5",
-  "mkdocs==1.6.1",
-  "mkdocs-gen-files==0.5.0",
-  "mkdocs-git-revision-date-localized-plugin==1.3.0",
-  "mkdocs-literate-nav==0.6.1",
-  "mkdocs-material==9.5.46",
-  "mkdocs-section-index==0.3.9",
-  "mkdocstrings==0.27.0",
-  "mkdocstrings-python==1.12.2",
-  "nbconvert==7.16.4",
-  "pytest==8.3.3",
-  "ruff==0.6.6",
-  "testbook==0.4.2",
-  "tox>=4",
+  "dspy-ai~=2.4",
+  "flake8~=6.0",
+  "ipykernel~=6.29",
+  "mkdocs~=1.6",
+  "mkdocs-gen-files~=0.5",
+  "mkdocs-git-revision-date-localized-plugin~=1.3",
+  "mkdocs-literate-nav~=0.6",
+  "mkdocs-material~=9.5",
+  "mkdocs-section-index~=0.3",
+  "mkdocstrings~=0.27",
+  "mkdocstrings-python~=1.12",
+  "nbconvert~=7.16",
+  "pytest~=8.3",
+  "ruff~=0.6",
+  "testbook~=0.4",
+  "tox~=4.0",
 ]
 
 [project.optional-dependencies]
 converters = [
-  "beautifulsoup4==4.12.3",
-  "easyocr==1.7.1",
-  "ffmpeg-python==0.2.0",
-  "lxml[html-clean]==5.2.2",
-  "mammoth==1.8.0",
-  "markdownify==0.13.1",
-  "openai-whisper==20240930",
-  "openpyxl==3.1.5",
-  "pandas==2.2.2",
-  "pdf2image==1.17.0",
-  "pdfminer==20191125",
-  "pdfminer-six==20240706",
-  "puremagic==1.26",
-  "pydub==0.25.1",
-  "pyparsing==3.1.2",
-  "python-pptx==0.6.23",
-  "readability-lxml>=0.8.1",
-  "webvtt-py==0.5.1",
-  "xlrd==2.0.1",
-  "youtube-transcript-api==0.6.2",
-  "yt-dlp==2024.11.4",
+  "beautifulsoup4~=4.12",
+  "easyocr~=1.7",
+  "ffmpeg-python~=0.2",
+  "lxml[html-clean]~=5.2",
+  "mammoth~=1.8",
+  "markdownify~=0.13",
+  "openai-whisper>=20240930",
+  "openpyxl~=3.1",
+  "pandas~=2.2",
+  "pdf2image~=1.17",
+  "pdfminer>=20191125",
+  "pdfminer-six>=20240706",
+  "puremagic~=1.26",
+  "pydub~=0.25",
+  "pyparsing~=3.1",
+  "python-pptx~=0.6",
+  "readability-lxml>=0.8",
+  "webvtt-py~=0.5",
+  "xlrd~=2.0",
+  "youtube-transcript-api~=0.6",
+  "yt-dlp>=2024.11.4",
 ]
-
-# [project.scripts]
-# ok = "ok.py"
-
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-# [tool.uv]
-# default-groups = ["converters", "dev"]
 
 [tool.black]
 line-length = 120
