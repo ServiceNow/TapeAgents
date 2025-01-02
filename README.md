@@ -90,7 +90,9 @@ Other notable examples that demonstrate the main aspects of the framework:
 
 # Learn more 
 
-See our [technical report](https://www.servicenow.com/research/TapeAgentsFramework.pdf) on TapeAgents.
+See our full TapeAgents [documentation](https://servicenow.github.io/TapeAgents/).
+
+For an in-depth understanding of the design principles, architecture, and research behind TapeAgents, see our [technical report](https://arxiv.org/abs/2412.08445).
 
 # Contacts
 
