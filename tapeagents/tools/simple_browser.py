@@ -460,7 +460,7 @@ class PageObservation(Observation):
     text: str
     current_page: int
     total_pages: int
-    error: int | None = None
+    error: int | str | None = None
 
 
 class SimpleBrowser(Multitool):

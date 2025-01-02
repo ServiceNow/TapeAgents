@@ -12,7 +12,6 @@ from browsergym.core.env import BrowserEnv
 from browsergym.utils.obs import (
     IGNORED_AXTREE_PROPERTIES,
     _process_bid,
-    flatten_axtree_to_str,
     flatten_dom_to_str,
     prune_html,
 )
@@ -22,6 +21,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation, StepMetadata
 from tapeagents.tools.base import Multitool
+from tapeagents.tools.simple_browser import PageObservation
 
 NODES_WITH_BID = [
     "button",
@@ -37,14 +37,6 @@ NODES_WITH_BID = [
     "LabelText",
     "tab",
 ]
-
-
-class PageObservation(Observation):
-    kind: Literal["page_observation"] = "page_observation"
-    text: str
-    current_page: int
-    total_pages: int
-    last_action_error: str = ""
 
 
 class GotoPageAction(Action):
@@ -181,7 +173,7 @@ class Browser(Multitool):
     viewport_size: int = 64000
     headless: bool = True
     exp_path: str | None = None
-    page_load_time_sec: int = 2
+    page_load_time_sec: int = 5
     gym_kwargs: dict = {}
 
     _env: BrowserEnv = None  # type: ignore
@@ -280,7 +272,7 @@ class Browser(Multitool):
     def perform_action(self, action_text: str) -> PageObservation:
         self._env.page.set_default_timeout(60000)
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
-        last_action_error = self.format_error(obs_dict["last_action_error"])
+        error = self.format_error(obs_dict["last_action_error"])
         if self.axtree:
             content = flatten_axtree(obs_dict["axtree_object"])
         else:
@@ -292,7 +284,7 @@ class Browser(Multitool):
             text=self.get_viewport(content),
             current_page=self._current_viewport,
             total_pages=self._n_viewports,
-            last_action_error=last_action_error,
+            error=error,
             metadata=StepMetadata(other=dict(reward=reward, truncated=truncated, info=info)),
         )
         observation.metadata.other["screenshot_path"] = screen_path
