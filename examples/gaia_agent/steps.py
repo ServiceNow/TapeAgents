@@ -13,7 +13,7 @@ from tapeagents.steps import (
     VideoObservation,
     WatchVideoAction,
 )
-from tapeagents.tools.browser import GotoPageAction, ScrollAction
+from tapeagents.tools.browser import ClickAction, GotoPageAction, ScrollAction
 from tapeagents.tools.calculator import CalculationResultObservation
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.search import SearchAction, SearchResultsObservation
@@ -108,7 +108,7 @@ class GaiaAnswer(StopStep):
 
 
 SIMPLE_BROWSER_ACTIONS = (ReadDocumentAction, NextPageAction)
-BROWSER_ACTIONS = (GotoPageAction, ScrollAction)
+BROWSER_ACTIONS = (GotoPageAction, ScrollAction, ClickAction)
 STEPS_WITHOUT_CODE = (
     ReadingResultThought,
     ReasoningThought,
