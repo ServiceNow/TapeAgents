@@ -1,7 +1,7 @@
 import os
 import random
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import hydra
 import yaml
@@ -14,8 +14,7 @@ from ..tape import FormFillerTape
 from ..user_simulator_agent import UserSimulatorTape
 from .run_formfiller_agent import run_formfiller_agent
 
-assets_folder = Path(__file__).parent.parent.parent.parent / "tests" / "res" / "form_filler"
-
+assets_folder = Path(__file__).parent.parent.parent.parent / "tests" / "examples" / "res" / "form_filler"
 
 input_tapes_for_teacher_path = assets_folder / "input_tapes_for_teacher.yaml"
 input_tapes_for_user_path = assets_folder / "input_tapes_for_user.yaml"
