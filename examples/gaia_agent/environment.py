@@ -21,7 +21,7 @@ def get_env(
     return ToolCollectionEnvironment(
         tools=[
             Search(),
-            CodeExecutor(_sandbox=code_sandbox),
+            CodeExecutor(sandbox=code_sandbox),
             VideoReader(exp_path=exp_path),
             browser,
         ]

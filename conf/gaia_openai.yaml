@@ -2,7 +2,8 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_val_gym_debug1
+exp_name: gpt4o_mini_val_gym1
+
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
 batch: 32
