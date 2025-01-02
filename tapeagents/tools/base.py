@@ -56,7 +56,7 @@ class Tool(BaseModel):
         pass
 
 
-class Multitool:
+class Multitool(BaseModel):
     """
     Multitool is a class that provides a set of functions performing
     explicitly defined set of actions operating on a shared stateful environment.
