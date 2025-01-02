@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.environment import CodeExecutionResult
@@ -11,7 +11,7 @@ from tapeagents.tools.python_interpreter import logger, run_python_code
 
 class PythonCodeAction(Action):
     """
-    Action to execute the python code snippet.
+    Action to execute the python code snippet. Can be used to perform calculations, simulations or data processing.
     """
 
     kind: Literal["python_code_action"] = "python_code_action"  # type: ignore
@@ -25,18 +25,20 @@ class CodeExecutor(Tool):
     Tool to execute the python code snippet.
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     action: type[Action] = PythonCodeAction
     observation: type[Observation] = CodeExecutionResult
     cached: bool = True
-    _sandbox: ContainerExecutor | None = None
+    sandbox: ContainerExecutor | None = Field(exclude=True, default=None)
 
     def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
         code = self._add_print_to_last_line(action.code)
-        if self._sandbox is None:
+        if self.sandbox is None:
             logger.warning(f"Code sandbox is not provided, running code locally!\n{code}")
             obs = self._run_restricted_python(code)
         else:
-            result = self._sandbox.execute_code_blocks([CodeBlock(code=code, language="python")])
+            result = self.sandbox.execute_code_blocks([CodeBlock(code=code, language="python")])
             result.output = result.output[:1000].strip()
             obs = CodeExecutionResult(result=result)
         return obs

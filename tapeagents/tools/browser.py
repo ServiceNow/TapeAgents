@@ -12,7 +12,6 @@ from browsergym.core.env import BrowserEnv
 from browsergym.utils.obs import (
     IGNORED_AXTREE_PROPERTIES,
     _process_bid,
-    flatten_axtree_to_str,
     flatten_dom_to_str,
     prune_html,
 )
@@ -22,6 +21,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation, StepMetadata
 from tapeagents.tools.base import Multitool
+from tapeagents.tools.simple_browser import PageObservation
 
 NODES_WITH_BID = [
     "button",
@@ -39,17 +39,10 @@ NODES_WITH_BID = [
 ]
 
 
-class PageObservation(Observation):
-    kind: Literal["page_observation"] = "page_observation"
-    text: str
-    current_page: int
-    total_pages: int
-    last_action_error: str = ""
-
-
 class GotoPageAction(Action):
     """
-    Action that opens the page with the provided URL in the current tab
+    Action that opens the page with the provided URL and returns the first page of its content.
+    To read the following pages use scroll_action.
     """
 
     kind: Literal["goto_page_action"] = "goto_page_action"
@@ -99,7 +92,7 @@ class TabFocusAction(Action):
 
 class ScrollAction(Action):
     """
-    Action that scrolls the page in the provided direction
+    Action that scrolls the page in the provided direction and returns the next page of content.
     """
 
     kind: Literal["scroll_action"] = "scroll_action"
@@ -179,8 +172,8 @@ class Browser(Multitool):
     axtree: bool = False
     viewport_size: int = 64000
     headless: bool = True
-    log_path: str | None = None
-    page_load_time_sec: int = 2
+    exp_path: str | None = None
+    page_load_time_sec: int = 5
     gym_kwargs: dict = {}
 
     _env: BrowserEnv = None  # type: ignore
@@ -210,11 +203,11 @@ class Browser(Multitool):
             ScrollAction: self.scroll,
             TabFocusAction: self.tab_focus,
         }
-        if self.log_path:
-            assert os.path.isdir(self.log_path)
-            self._traces_dir = os.path.join(self.log_path, "playwright_traces")
-            self._record_video_dir = os.path.join(self.log_path, "videos")
-            self._screenshots_dir = os.path.join(self.log_path, "screenshots")
+        if self.exp_path:
+            assert os.path.isdir(self.exp_path)
+            self._traces_dir = os.path.join(self.exp_path, "playwright_traces")
+            self._record_video_dir = os.path.join(self.exp_path, "videos")
+            self._screenshots_dir = os.path.join(self.exp_path, "screenshots")
             os.makedirs(self._traces_dir, exist_ok=True)
             os.makedirs(self._record_video_dir, exist_ok=True)
             os.makedirs(self._screenshots_dir, exist_ok=True)
@@ -279,7 +272,7 @@ class Browser(Multitool):
     def perform_action(self, action_text: str) -> PageObservation:
         self._env.page.set_default_timeout(60000)
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
-        last_action_error = self.format_error(obs_dict["last_action_error"])
+        error = self.format_error(obs_dict["last_action_error"])
         if self.axtree:
             content = flatten_axtree(obs_dict["axtree_object"])
         else:
@@ -291,7 +284,7 @@ class Browser(Multitool):
             text=self.get_viewport(content),
             current_page=self._current_viewport,
             total_pages=self._n_viewports,
-            last_action_error=last_action_error,
+            error=error,
             metadata=StepMetadata(other=dict(reward=reward, truncated=truncated, info=info)),
         )
         observation.metadata.other["screenshot_path"] = screen_path

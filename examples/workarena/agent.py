@@ -67,8 +67,8 @@ class WorkArenaBaselineNode(MonoNode):
                 prompts.append(f"## step {i}")
                 prompts.append(step.llm_view(indent=None))
                 i += 1
-            elif isinstance(step, PageObservation) and step.last_action_error:
-                prompts.append(f"Error from previous action: {step.last_action_error}")
+            elif isinstance(step, PageObservation) and step.error:
+                prompts.append(f"Error from previous action: {step.error}")
         if len(prompts):
             prompt = "# History of interaction with the task:\n" + "\n".join(prompts) + "\n"
         else:
