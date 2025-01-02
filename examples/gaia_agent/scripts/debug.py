@@ -40,7 +40,6 @@ def main(cfg: DictConfig) -> None:
     except Exception as e:
         logger.error(f"Failed to create code sandbox: {e}")
         code_sandbox = None
-        exit(1)
     env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
     agent = GaiaAgent.create(llm, **cfg.agent)
     tape = GaiaTape(steps=task_to_observations(task))
