@@ -353,6 +353,13 @@ LLMOutput: TypeAlias = litellm.utils.Message
 """Type alias for the output of the language model."""
 
 
+class TokenLogprob(BaseModel):
+    logprob: float = 0.
+    token: str
+    token_id: int
+    generated: int
+
+
 class LLMCall(BaseModel):
     """
     LLMCall stores info about a call to a language model.

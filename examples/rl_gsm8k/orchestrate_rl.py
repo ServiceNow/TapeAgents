@@ -21,7 +21,6 @@ from tqdm import tqdm
 
 import wandb
 
-wandb.require("core")
 from .cot_math_agent import (
     CoTMathAgent,
     MathEnvironment,
