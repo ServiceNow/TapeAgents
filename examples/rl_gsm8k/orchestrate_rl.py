@@ -1,4 +1,5 @@
 import copy
+from itertools import chain
 import json
 import logging
 import multiprocessing
@@ -6,7 +7,7 @@ import os
 import random
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -21,9 +22,10 @@ from tqdm import tqdm
 
 import wandb
 
+from tapeagents.agent import Agent
+
 from .cot_math_agent import (
     CoTMathAgent,
-    MathEnvironment,
     RLMathTape,
     Task,
 )
@@ -57,7 +59,7 @@ def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, 
             trace.input_ids[-len(trace.logprobs) :],
         )
         ref_logprobs = agent.llm.get_logprobs(prompt_token_ids, completion_token_ids)  # type: ignore
-        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
+        trace.ref_logprobs = [c.logprob for c in ref_logprobs["content"]]
         assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
         return trace
     except Exception as e:
@@ -97,7 +99,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 def extract_tape_training_samples(
     new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig
-) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
+) -> Tuple[List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
 
@@ -159,15 +161,15 @@ def extract_tape_training_samples(
             llm_call = step.metadata.other["llm_call"]
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            input_ids = [lp["token_id"] for lp in llm_call.logprobs]
-            labels = [lp["token_id"] for lp in llm_call.logprobs if lp["generated"]]
+            input_ids = [lp.token_id for lp in llm_call.logprobs]
+            labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
             labels = [-100] * (len(input_ids) - len(labels)) + labels
 
             trace.input_ids = input_ids
             trace.labels = labels
 
             trace.reward = reward
-            trace.logprobs = [lp["logprob"] for lp in llm_call.logprobs if lp["generated"]]
+            trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
             trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
@@ -182,14 +184,13 @@ def extract_tape_training_samples(
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
     }
-    return new_tape, training_samples, tape_stats
+    return training_samples, tape_stats
 
 
 def generate_training_data(
-    agent: CoTMathAgent,
+    agent_replicas: list[CoTMathAgent],
     tapes: list[RLMathTape],
     cfg: DictConfig,
-    env: MathEnvironment,
     tapes_dir: Path,
     split_name: str,
 ) -> Tuple[List[RLMathTape], List[TrainingText], Dict[str, float]]:
@@ -200,7 +201,6 @@ def generate_training_data(
         agent: Agent that interacts with the math environment
         tapes: List of tapes initialized with math problems
         cfg: Configuration
-        env: Environment with tools
         tapes_dir: Directory to save processed episodes
         split_name: Name of split ('train' or other)
 
@@ -220,45 +220,30 @@ def generate_training_data(
     discarded_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
-    logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
+    logger.info(f"Run the agent on {cfg.dataset_name} {split_name}")
 
-    logger.info("Starting data creation")
     prompt_tokens = 0
     output_tokens = 0
 
-    def generate_and_extract_tape_training_samples(
-        tape: RLMathTape, agent: CoTMathAgent, env, split_name: str, cfg: DictConfig
-    ):
-        new_tape = main_loop(agent, tape, env, max_loops=cfg.max_loops).get_final_tape()
-        assert new_tape.steps[1].reasoning == new_tape.steps[1].metadata.other["llm_call"].output.content
-        return extract_tape_training_samples(new_tape, agent, split_name, cfg)
-
-    with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
-        generate_and_extract_tape_training_samples_partial = partial(
-            generate_and_extract_tape_training_samples,
-            agent=agent,
-            env=env,
-            split_name=split_name,
-            cfg=cfg,
-        )
-        futures = [executor.submit(generate_and_extract_tape_training_samples_partial, tape) for tape in tapes]
-        # Wrap futures with tqdm for progress tracking
-        new_tapes = []
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Generating tapes", unit="tape"):
-            new_tape, tape_training_samples, tape_stats = future.result()
-            new_tapes.append(new_tape)
-            training_samples.extend(tape_training_samples)
-            reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
-            step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
-            success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
-            no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
-            discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-            prompt_tokens += tape_stats["prompt_tokens"]
-            output_tokens += tape_stats["output_tokens"]
+    start_making_tapes = time.time()
+    with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
+        replica_tapes = [tapes[i::len(agent_replicas)] for i in range(len(agent_replicas))]
+        final_tapes = list(chain(*list(executor.map(Agent.run_batch, agent_replicas, replica_tapes))))
+    logger.info(f"Making tapes took {time.time() - start_making_tapes}")
+    for new_tape in tqdm(final_tapes, total=len(final_tapes), desc="Extracting training data from tapes", unit="tape"):
+        tape_training_samples, tape_stats = extract_tape_training_samples(new_tape, agent_replicas[0], split_name, cfg)
+        training_samples.extend(tape_training_samples)
+        reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
+        step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
+        success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
+        no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
+        discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
+        prompt_tokens += tape_stats["prompt_tokens"]
+        output_tokens += tape_stats["output_tokens"]
 
     start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
-        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
+        json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
     end_dump = time.time()
 
     end_make_data = time.time()
@@ -271,13 +256,13 @@ def generate_training_data(
         **{
             f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
-            f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
+            f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
             f"{split_name}_output_tokens": output_tokens,
         },
     }
-    return new_tapes, training_samples, stats
+    return final_tapes, training_samples, stats
 
 
 @hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
@@ -314,9 +299,6 @@ def main(cfg: DictConfig):
     logger.info(f"Loaded {len(train_samples)} training samples")
     logger.info(f"Loaded {len(test_samples)} test samples")
 
-    env = MathEnvironment()
-
-    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(exp_path, "llm_calls.sqlite")
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
@@ -333,8 +315,8 @@ def main(cfg: DictConfig):
             all_results = {}
             with VLLMServiceManager(
                 model_name_or_path=assistant_model_path,
-                stdout_file_path=exp_path / "assistant_vllm_stdout.log",
-                stderr_file_path=exp_path / "assistant_vllm_stderr.log",
+                stdout_file_prefix=str(exp_path / "assistant_vllm_stdout"),
+                stderr_file_prefix=str(exp_path / "assistant_vllm_stderr"),
                 port=8080,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 verbose=True,
@@ -344,39 +326,45 @@ def main(cfg: DictConfig):
                 sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
                 train_tapes = convert_problems_to_tapes(sub_samples, cfg)
                 train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
-                llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=str(assistant_model_path),
-                    tokenizer_name=str(assistant_model_path),
-                    parameters=cfg.llm.parameters,
-                    use_cache=False,
-                    collect_logprobs=True,
-                    observe_llm_calls=False,
-                )
+                train_llms = [
+                    TrainableLLM(
+                        base_url=base_url,
+                        model_name=str(assistant_model_path),
+                        tokenizer_name=str(assistant_model_path),
+                        parameters=cfg.llm.parameters,
+                        use_cache=False,
+                        collect_logprobs=True,
+                        observe_llm_calls=False,
+                    )
+                    for base_url in vllm_service_manager.get_base_urls()
+                ]
 
-                test_llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=str(assistant_model_path),
-                    tokenizer_name=str(assistant_model_path),
-                    parameters=cfg.test_llm.parameters,
-                    use_cache=False,
-                    observe_llm_calls=False,
-                )
+                test_llms = [
+                    TrainableLLM(
+                        base_url=vllm_service_manager.get_base_urls(),
+                        model_name=str(assistant_model_path),
+                        tokenizer_name=str(assistant_model_path),
+                        parameters=cfg.test_llm.parameters,
+                        use_cache=False,
+                        observe_llm_calls=False,
+                    )
+                    for base_url in vllm_service_manager.get_base_urls()
+                ]
 
-                train_agent = CoTMathAgent.create(llm=llm)
+                train_agent_replicas = [CoTMathAgent.create(llm=llm) for llm in train_llms]
 
-                splits = [("train", train_agent, train_tapes)]
+                splits = [("train", train_agent_replicas, train_tapes)]
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                     test_tapes = convert_problems_to_tapes(test_samples, cfg)
-                    test_agent = CoTMathAgent.create(llm=test_llm)
-                    splits.append(("test", test_agent, test_tapes))
-                for split_name, agent, tapes in splits:
+                    test_agent_replicas = [CoTMathAgent.create(llm=llm) for llm in test_llms]
+                    splits.append(("test", test_agent_replicas, test_tapes))
+                for split_name, agent_replicas, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
                     new_tapes, training_samples, stats = generate_training_data(
-                        agent, tapes, cfg, env, tapes_dir, split_name
+                        agent_replicas, tapes, cfg, tapes_dir, split_name
                     )
 
-                    llm_stats = agent.llm.get_stats()
+                    llm_stats = agent_replicas[0].llm.get_stats()
                     make_data_took = stats[f"execution_time/{split_name}_make_data"]
                     more_llm_stats = {
                         "make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
@@ -422,8 +410,8 @@ def main(cfg: DictConfig):
         try:
             with VLLMServiceManager(
                 model_name_or_path=cfg.model_path,
-                stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
-                stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
+                stdout_file_prefix=exp_path / "basemodel_vllm_stdout.log",
+                stderr_file_prefix=exp_path / "basemodel_vllm_stderr.log",
                 port=8180,
                 verbose=True,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,

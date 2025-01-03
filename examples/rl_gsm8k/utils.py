@@ -44,8 +44,8 @@ class VLLMServiceManager:
     def __init__(
         self,
         model_name_or_path: Union[str, Path],
-        stdout_file_path: Union[str, Path],
-        stderr_file_path: Union[str, Path],
+        stdout_file_prefix: str,
+        stderr_file_prefix: str,
         port: int = 8080,
         gpus_per_model_instance: int = 1,
         verbose: bool = True,
@@ -54,8 +54,8 @@ class VLLMServiceManager:
         **kwargs,
     ):
         self.model_name_or_path = model_name_or_path
-        self.stdout_file_path = stdout_file_path
-        self.stderr_file_path = stderr_file_path
+        self.stdout_file_prefix = stdout_file_prefix
+        self.stderr_file_prefix = stderr_file_prefix
         self.port = port
         self.ports = []
         self.processes = []
@@ -65,8 +65,7 @@ class VLLMServiceManager:
         self.host = host
         self.kwargs = kwargs
         self.process: Optional[subprocess.Popen] = None
-        self.stdout_file: Optional[TextIO] = None
-        self.stderr_file: Optional[TextIO] = None
+        self.open_files: list[TextIO] = []
         self.stats = {}
 
     def get_base_urls(self) -> list[str]:
@@ -97,6 +96,7 @@ class VLLMServiceManager:
 
     def _wait_for_service(self, process: subprocess.Popen, url, headers=None, timeout=120) -> bool:
         start_time = time.time()
+        logger.info(f"-> Waiting for service at {url}")
         while True:
             try:
                 response = requests.get(url, headers=headers, timeout=1)
@@ -113,9 +113,7 @@ class VLLMServiceManager:
             if process.poll() is not None:
                 logger.error("-> Service process has terminated")
                 return False
-
-            logger.info(f"-> Waiting for service at {url}")
-            time.sleep(5)
+            time.sleep(1.)
 
     def _start_service(self) -> None:
         """
@@ -174,10 +172,14 @@ class VLLMServiceManager:
         }
 
         if self.verbose:
-            self.stdout_file = open(self.stdout_file_path, "w")
-            self.stderr_file = open(self.stderr_file_path, "w")
-            process_args["stdout"] = self.stdout_file
-            process_args["stderr"] = self.stderr_file
+            stdout_path = self.stdout_file_prefix + f"_{cuda_device}.log"
+            stderr_path = self.stderr_file_prefix + f"_{cuda_device}.log"
+            logger.info(f"See vLLM outputs in {stdout_path} and {stderr_path}")
+            stdout_file = open(stdout_path, "w")
+            stderr_file = open(stderr_path, "w")
+            process_args["stdout"] = stdout_file
+            process_args["stderr"] = stderr_file
+            self.open_files.extend([stdout_file, stderr_file])
 
         try:
             process = subprocess.Popen(cmd, **process_args)
@@ -207,16 +209,18 @@ class VLLMServiceManager:
                 self._terminate_with_children(process.pid)
                 process.wait()
 
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
+        
+        for f in self.open_files:
+            f.close()
 
     def __enter__(self) -> "VLLMServiceManager":
+        self.ports = list(range(8080, 8088))
+        return self
         self._start_service()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        return None
         self._cleanup()
 
     def get_stats(self):
@@ -294,10 +298,6 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
     logger.info("Cleaning up checkpoints and training state")
     # list of files to remove
     files = [
-        target_path / "assistant_vllm_stdout.log",
-        target_path / "assistant_vllm_stderr.log",
-        target_path / "basemodel_vllm_stdout.log",
-        target_path / "basemodel_vllm_stderr.log",
         target_path / "debug.log",
         target_path / "error.log",
         target_path / "info.log",
