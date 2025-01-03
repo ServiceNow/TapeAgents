@@ -9,7 +9,6 @@ from typing import Any
 import datasets
 import transformers
 import wandb
-wandb.require("core")
 from omegaconf import DictConfig
 from wandb.sdk import wandb_run
 
