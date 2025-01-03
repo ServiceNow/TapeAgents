@@ -2,7 +2,7 @@ cff-version: 1.2.0
 title: >-
   TapeAgents: a Holistic Framework for Agent Development and
   Optimization
-message: 'If you use this software, please cite it as below.'
+message: 'If you want to refer to our paper or code, please cite it as below.'
 type: software
 authors:
   - family-names: Bahdanau
