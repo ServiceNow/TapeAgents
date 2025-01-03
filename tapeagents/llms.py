@@ -550,7 +550,7 @@ class TrainableLLM(CachedLLM):
                     token_id = self.tokenizer.encode(logprob["token"], add_special_tokens=False)
                     if not len(token_id):
                         # TODO: how should we handle empty tokens?
-                        logger.error(f"Empty token: {logprob}")
+                        logger.debug(f"Empty token: {logprob}")
                         continue
                     logprobs.append(TokenLogprob(
                         token_id=token_id[0],

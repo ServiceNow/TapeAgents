@@ -9,9 +9,11 @@ from typing import Generator, Generic, Sequence
 
 from pydantic import BaseModel
 
+from tapeagents.llms import LLMEvent, LLMStream, TrainableLLM
+
 from .agent import Agent, Annotator, ObservationMaker
 from .config import is_debug_mode
-from .core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadata, TapeType
+from .core import AgentStep, AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadata, TapeType
 from .environment import Environment
 from .io import stream_yaml_tapes
 from .orchestrator import main_loop
