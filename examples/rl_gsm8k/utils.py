@@ -214,13 +214,10 @@ class VLLMServiceManager:
             f.close()
 
     def __enter__(self) -> "VLLMServiceManager":
-        self.ports = list(range(8080, 8088))
-        return self
         self._start_service()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        return None
         self._cleanup()
 
     def get_stats(self):

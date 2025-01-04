@@ -59,7 +59,7 @@ def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, 
             trace.input_ids[-len(trace.logprobs) :],
         )
         ref_logprobs = agent.llm.get_logprobs(prompt_token_ids, completion_token_ids)  # type: ignore
-        trace.ref_logprobs = [c.logprob for c in ref_logprobs["content"]]
+        trace.ref_logprobs = [c['logprob'] for c in ref_logprobs["content"]]
         assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
         return trace
     except Exception as e:
@@ -187,13 +187,19 @@ def extract_tape_training_samples(
     return training_samples, tape_stats
 
 
+def batch_run_agent_replica(agent: CoTMathAgent, tapes: list[RLMathTape]) -> tuple[Agent, list[RLMathTape]]:
+    final_tapes = agent.run_batch(tapes)
+    # There is some statistics that we track in the agent in a mutable way
+    return agent, final_tapes
+
+
 def generate_training_data(
     agent_replicas: list[CoTMathAgent],
     tapes: list[RLMathTape],
     cfg: DictConfig,
     tapes_dir: Path,
     split_name: str,
-) -> Tuple[List[RLMathTape], List[TrainingText], Dict[str, float]]:
+) -> Tuple[list[CoTMathAgent], List[RLMathTape], List[TrainingText], Dict[str, float]]:
     """
     Generate complete tapes and training samples from a list of initialized tapes.
 
@@ -228,7 +234,9 @@ def generate_training_data(
     start_making_tapes = time.time()
     with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
         replica_tapes = [tapes[i::len(agent_replicas)] for i in range(len(agent_replicas))]
-        final_tapes = list(chain(*list(executor.map(Agent.run_batch, agent_replicas, replica_tapes))))
+        results = list(executor.map(batch_run_agent_replica, agent_replicas, replica_tapes))
+        final_tapes = list(chain(*[r[1] for r in results]))
+        agent_replicas = [r[0] for r in results]
     logger.info(f"Making tapes took {time.time() - start_making_tapes}")
     for new_tape in tqdm(final_tapes, total=len(final_tapes), desc="Extracting training data from tapes", unit="tape"):
         tape_training_samples, tape_stats = extract_tape_training_samples(new_tape, agent_replicas[0], split_name, cfg)
@@ -262,7 +270,7 @@ def generate_training_data(
             f"{split_name}_output_tokens": output_tokens,
         },
     }
-    return final_tapes, training_samples, stats
+    return agent_replicas, final_tapes, training_samples, stats
 
 
 @hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
@@ -321,7 +329,7 @@ def main(cfg: DictConfig):
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **cfg.vllm_config.vllm_kwargs,
+                **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.actor_vllm_kwargs)),
             ) as vllm_service_manager:
                 sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
                 train_tapes = convert_problems_to_tapes(sub_samples, cfg)
@@ -360,24 +368,20 @@ def main(cfg: DictConfig):
                     splits.append(("test", test_agent_replicas, test_tapes))
                 for split_name, agent_replicas, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
-                    new_tapes, training_samples, stats = generate_training_data(
+                    agent_replicas_with_stats, new_tapes, training_samples, stats = generate_training_data(
                         agent_replicas, tapes, cfg, tapes_dir, split_name
                     )
 
-                    llm_stats = agent_replicas[0].llm.get_stats()
+                    llm_stats = agent_replicas_with_stats[0].llm.get_stats()
                     make_data_took = stats[f"execution_time/{split_name}_make_data"]
-                    more_llm_stats = {
-                        "make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
-                        "make_data_prompt_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
-                        "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"])
-                        / make_data_took,
-                    }
-                    for k, v in llm_stats.items():
-                        if "/s" in k:
-                            more_llm_stats.update({f"{k}_per_gpu": v / torch.cuda.device_count()})
-                    llm_stats.update(more_llm_stats)
                     llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
+                    throughput_stats = {
+                        "prompt_tokens_per_sec": stats["train_prompt_tokens"] / make_data_took,
+                        "output_tokens_per_sec": stats["train_output_tokens"] / make_data_took,
+                        "total_tokens_per_sec": (stats["train_prompt_tokens"] + stats["train_output_tokens"]) / make_data_took,
+                    }
                     stats.update(llm_stats)
+                    stats.update(throughput_stats)
 
                     all_results[split_name] = {
                         "new_tapes": new_tapes,
@@ -410,13 +414,13 @@ def main(cfg: DictConfig):
         try:
             with VLLMServiceManager(
                 model_name_or_path=cfg.model_path,
-                stdout_file_prefix=exp_path / "basemodel_vllm_stdout.log",
-                stderr_file_prefix=exp_path / "basemodel_vllm_stderr.log",
+                stdout_file_prefix=str(exp_path / "basemodel_vllm_stdout"),
+                stderr_file_prefix=str(exp_path / "basemodel_vllm_stderr"),
                 port=8180,
                 verbose=True,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **cfg.vllm_config.vllm_kwargs,
+                **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.ref_vllm_kwargs))
             ) as vllm_service_manager:
                 basemodel_llm = TrainableLLM(
                     base_url=vllm_service_manager.get_base_urls(),

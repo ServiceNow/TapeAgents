@@ -46,6 +46,10 @@ vllm_config:
     --disable-log-requests: ""
     --max-num-seqs: 1024 
     --enforce-eager: ""
+  actor_vllm_kwargs:
+    --num-scheduler-steps: 16
+  ref_vllm_kwargs:
+    --num-scheduler-steps: 1
 
 output_dir: outputs/rl_gsm8k_deepspeed
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
