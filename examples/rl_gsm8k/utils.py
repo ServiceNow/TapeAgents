@@ -43,9 +43,8 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
 class VLLMServiceManager:
     def __init__(
         self,
+        service_name: str,
         model_name_or_path: Union[str, Path],
-        stdout_file_prefix: str,
-        stderr_file_prefix: str,
         port: int = 8080,
         gpus_per_model_instance: int = 1,
         verbose: bool = True,
@@ -54,8 +53,9 @@ class VLLMServiceManager:
         **kwargs,
     ):
         self.model_name_or_path = model_name_or_path
-        self.stdout_file_prefix = stdout_file_prefix
-        self.stderr_file_prefix = stderr_file_prefix
+        self.service_name = service_name
+        self.stdout_file_prefix = f"{service_name}_stdout"
+        self.stderr_file_prefix = f"{service_name}_stderr"
         self.port = port
         self.ports = []
         self.processes = []
@@ -192,7 +192,7 @@ class VLLMServiceManager:
 
         start_waiting = time.time()
         if self._wait_for_service(process, vllm_url, headers=headers, timeout=8000):
-            logger.info(f"Student {self.model_name_or_path} model loaded on port {port}")
+            logger.info(f"{self.service_name} {self.model_name_or_path} model loaded on port {port}")
         else:
             self._cleanup()
             raise Exception("Failed to start the service")

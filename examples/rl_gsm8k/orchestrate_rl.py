@@ -322,9 +322,8 @@ def main(cfg: DictConfig):
         try:
             all_results = {}
             with VLLMServiceManager(
+                service_name="actor",
                 model_name_or_path=assistant_model_path,
-                stdout_file_prefix=str(exp_path / "assistant_vllm_stdout"),
-                stderr_file_prefix=str(exp_path / "assistant_vllm_stderr"),
                 port=8080,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 verbose=True,
@@ -376,9 +375,9 @@ def main(cfg: DictConfig):
                     make_data_took = stats[f"execution_time/{split_name}_make_data"]
                     llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
                     throughput_stats = {
-                        "prompt_tokens_per_sec": stats["train_prompt_tokens"] / make_data_took,
-                        "output_tokens_per_sec": stats["train_output_tokens"] / make_data_took,
-                        "total_tokens_per_sec": (stats["train_prompt_tokens"] + stats["train_output_tokens"]) / make_data_took,
+                        "prompt_tokens_per_sec": stats[f"{split_name}_prompt_tokens"] / make_data_took,
+                        "output_tokens_per_sec": stats[f"{split_name}_output_tokens"] / make_data_took,
+                        "total_tokens_per_sec": (stats[f"{split_name}_prompt_tokens"] + stats[f"{split_name}_output_tokens"]) / make_data_took,
                     }
                     stats.update(llm_stats)
                     stats.update(throughput_stats)
@@ -413,9 +412,8 @@ def main(cfg: DictConfig):
 
         try:
             with VLLMServiceManager(
+                service_name="reference",
                 model_name_or_path=cfg.model_path,
-                stdout_file_prefix=str(exp_path / "basemodel_vllm_stdout"),
-                stderr_file_prefix=str(exp_path / "basemodel_vllm_stderr"),
                 port=8180,
                 verbose=True,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
