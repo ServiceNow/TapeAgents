@@ -43,6 +43,7 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
 class VLLMServiceManager:
     def __init__(
         self,
+        exp_path: Path, 
         service_name: str,
         model_name_or_path: Union[str, Path],
         port: int = 8080,
@@ -54,8 +55,8 @@ class VLLMServiceManager:
     ):
         self.model_name_or_path = model_name_or_path
         self.service_name = service_name
-        self.stdout_file_prefix = f"{service_name}_stdout"
-        self.stderr_file_prefix = f"{service_name}_stderr"
+        self.stdout_file_prefix = str(exp_path / f"{service_name}_stdout")
+        self.stderr_file_prefix = str(exp_path / f"{service_name}_stderr")
         self.port = port
         self.ports = []
         self.processes = []

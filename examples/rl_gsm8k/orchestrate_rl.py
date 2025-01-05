@@ -322,6 +322,7 @@ def main(cfg: DictConfig):
         try:
             all_results = {}
             with VLLMServiceManager(
+                exp_path=exp_path,
                 service_name="actor",
                 model_name_or_path=assistant_model_path,
                 port=8080,
@@ -412,6 +413,7 @@ def main(cfg: DictConfig):
 
         try:
             with VLLMServiceManager(
+                exp_path=exp_path,
                 service_name="reference",
                 model_name_or_path=cfg.model_path,
                 port=8180,
