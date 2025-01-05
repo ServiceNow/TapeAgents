@@ -39,9 +39,6 @@ vllm_config:
   vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 
     --gpu-memory-utilization: 0.9
-    # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
-    # --enable-chunked-prefill: ""
-    # --max-num-batched-tokens: 256
     --num-scheduler-steps: 16
     --disable-log-requests: ""
     --max-num-seqs: 1024 
@@ -50,6 +47,9 @@ vllm_config:
     --num-scheduler-steps: 16
   ref_vllm_kwargs:
     --num-scheduler-steps: 1
+     # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
+    --enable-chunked-prefill: ""
+    --max-num-batched-tokens: 256
 
 output_dir: outputs/rl_gsm8k_deepspeed
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
