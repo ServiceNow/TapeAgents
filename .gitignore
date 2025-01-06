@@ -102,12 +102,12 @@ cython_debug/
 *.jsonl
 !/tests/**/*.jsonl
 
+*.sqlite
+!tests/**/**.sqlite
+
 *.zip
 
 *.log
-
-*.sqlite
-!tests/**.sqlite
 
 # Weights & Biases
 /wandb/
