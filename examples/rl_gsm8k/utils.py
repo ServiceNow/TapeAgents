@@ -155,6 +155,7 @@ class VLLMServiceManager:
             f"--model {self.model_name_or_path} "
             f"--tensor-parallel-size {tensor_parallel_size} "
             f"--port {port} "
+            "--return-tokens-as-token-ids "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
             f"{kwargs_str}"

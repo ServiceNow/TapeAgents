@@ -544,7 +544,6 @@ class TrainableLLM(CachedLLM):
             logprobs.append(
                 TokenLogprob(
                     token_id=id,
-                    token=self.tokenizer.decode([id]),
                     logprob=0.0,
                     generated=0,
                 )
@@ -552,15 +551,9 @@ class TrainableLLM(CachedLLM):
         for logprob in completion_logprobs:
             if logprob:
                 try:
-                    token_id = self.tokenizer.encode(logprob["token"], add_special_tokens=False)
-                    if not len(token_id):
-                        # TODO: how should we handle empty tokens?
-                        logger.debug(f"Empty token: {logprob}")
-                        continue
                     logprobs.append(
                         TokenLogprob(
-                            token_id=token_id[0],
-                            token=logprob["token"],
+                            token_id=logprob["token_id"],
                             logprob=logprob["logprob"],
                             generated=1,
                         )
@@ -706,8 +699,10 @@ class TrainableLLM(CachedLLM):
                     # /v1/completions returns logprobs in a format different to /v1/chat/completions
                     # Before calling self.process_logprobs, we need to convert the logprobs to a
                     # list of dicts format similar to /v1/chat/completions
+                    
+                    #'tokens': ['token_id:1271', 'token_id:1505', '
                     chat_completion_logprobs = [
-                        {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
+                        {"token_id": int(completion_logprobs["tokens"][j].split(":")[-1]), "logprob": completion_logprobs["token_logprobs"][j]}
                         for j in range(len(completion_logprobs["tokens"]))
                     ]
                     logprobs = self.make_llm_call_logprobs(prompt_token_ids[i], chat_completion_logprobs)
