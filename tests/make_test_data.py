@@ -21,7 +21,7 @@ def run_test_in_tmp_dir(test_name: str):
     """Copy test resources to a temporary directory and run the test there"""
     cur_dir = os.getcwd()
     tmpdir = tempfile.mkdtemp()
-    test_data_dir = Path(f"tests/res/{test_name}").resolve()
+    test_data_dir = Path(f"{test_name}").resolve()
     os.chdir(tmpdir)
     shutil.copytree(test_data_dir, tmpdir, dirs_exist_ok=True)
     # force creation of SQLite tables

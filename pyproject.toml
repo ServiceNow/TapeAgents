@@ -56,3 +56,36 @@ markers = [
   "gpu: requires gpu",
   "multi_gpu: requires more than 1 gpu",
 ]
+
+[tool.tox]
+min_version = "4"
+requires = ["tox-uv>=1"]
+env_list = ["type", "3.10", "3.11", "3.12", "3.13"]
+skip_missing_interpreters = false
+
+[tool.tox.env_run_base]
+description = "Run test under {base_python}"
+deps = [
+  "pytest>=8"
+]
+commands = [
+  [
+    "pytest",
+    "-s",
+    "--color=yes",
+    "-m",
+    "not slow",
+    "tests/",
+    "--ignore=tests/finetune/",
+    "--ignore=tests/examples/",
+  ],
+]
+
+[tool.tox.env.type]
+description = "run type check on code base"
+deps = [
+  "mypy==1.11.2",
+  "types-cachetools>=5.5.0.20240820",
+  "types-chardet>=5.0.4.6",
+]
+commands = [["mypy", "tapeagents"]]
