@@ -522,8 +522,6 @@ class TrainableLLM(CachedLLM):
     base_url: str | list[str]
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
-    # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
-    remove_leading_white_space: bool = False
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -535,7 +533,39 @@ class TrainableLLM(CachedLLM):
         """
         return (self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)).rstrip("/")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
+    def process_logprobs(self, prompt_token_ids, completion_logprobs) -> list[dict[str, Any]]:
+        logprobs = []
+        for id in prompt_token_ids:
+            logprobs.append(
+                {
+                    "logprob": None,
+                    "top_logprobs": [],
+                    "token": self.tokenizer.decode([id]),
+                    "token_id": id,
+                    "generated": 0,
+                }
+            )
+        for logprob in completion_logprobs:
+            if logprob:
+                try:
+                    token_id = self.tokenizer.encode(logprob["token"], add_special_tokens=False)
+                    if not len(token_id):
+                        # TODO: how should we handle empty tokens?
+                        continue
+                    logprob.update(
+                        {
+                            "generated": 1,
+                            "token_id": token_id[0],
+                        }
+                    )
+                    logprobs.append(logprob)
+                except Exception as e:
+                    logger.error(f"Failed to process logprobs: {logprob}")
+                    logger.error(e)
+
+        return logprobs
+
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
         headers = {"Content-Type": "application/json"}
         if self.api_token:
@@ -588,18 +618,17 @@ class TrainableLLM(CachedLLM):
             data = r.json()
             try:
                 content = data["choices"][0]["message"]["content"]
-                if self.remove_leading_white_space:
-                    # vllm sometimes adds a whitespace at the beginning of the completion
-                    if content[0] == " ":
-                        content = content[1:]
-                    else:
-                        logger.error(f"Expected leading white space in completion: \n{content}")
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
                 logprobs = None
                 if self.collect_logprobs:
-                    logprobs = data["choices"][0]["logprobs"]["content"]
+                    prompt_token_ids = self.tokenizer.apply_chat_template(
+                        prompt.messages, add_special_tokens=True, add_generation_prompt=True
+                    )
+                    # prompt_decoded = self.tokenizer.decode(prompt_token_ids, skip_special_tokens=False)
+                    completion_logprobs = data["choices"][0]["logprobs"]["content"]
+                    logprobs = self.process_logprobs(prompt_token_ids, completion_logprobs)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
                     for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
                         if content.endswith(eos_str):
@@ -649,6 +678,46 @@ class TrainableLLM(CachedLLM):
         """
         self.load_tokenizer()
         return trainable_llm_make_training_text(prompt, output, self.tokenizer)
+
+    def get_logprobs_token_ids(self, prompt_token_ids: list[int], completion_token_ids: list[int]) -> dict[str, Any]:
+        if not self.tokenizer:
+            self.load_tokenizer()
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+
+        generation_args = {
+            "model": self.model_name,
+            "prompt": prompt_token_ids + completion_token_ids,
+            "temperature": 0.0,
+            "max_tokens": 0,
+            "logprobs": 0,
+            "echo": True,
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output,
+            "skip_special_tokens": False,
+            "n": 1,  # number of completions to generate
+            "stream": False,  # return a single completion and not a stream of lines
+        }
+        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        url = f"{base_url}/v1/completions"
+        logger.debug(f"POST request to {url}")
+        r = requests.post(url, json=generation_args, headers=headers, verify=False)
+        r.raise_for_status()  # raise exception if status code is not in the 200s
+        try:
+            response = r.json()
+            tokens = response["choices"][0]["logprobs"]["tokens"]
+            logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
+        except Exception as e:
+            raise RuntimeError(f"Generation API wrong response: {r.text}", e)
+        logprobs = []
+        completion_logprobs = response["choices"][0]["prompt_logprobs"][-len(completion_token_ids) :]
+        for lp in completion_logprobs:
+            if lp:
+                for k, v in lp.items():
+                    v.update({"generated": 0, "token_id": k})
+                    logprobs.append(v)
+        return {"content": logprobs}
 
     def get_logprobs_complete(self, prompt: str, output: str) -> dict[str, Any]:
         """
@@ -809,7 +878,7 @@ class TrainableLLM(CachedLLM):
         return {"content": completion_log_probs}
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2))
-    def get_logprobs(self, prompt: str | Prompt, output: str | LLMOutput) -> dict[str, Any]:
+    def get_logprobs(self, prompt: str | Prompt | list[int], output: str | LLMOutput | list[int]) -> dict[str, Any]:
         """
         Calculate the log probabilities of the given output based on the provided prompt.
 
@@ -827,6 +896,8 @@ class TrainableLLM(CachedLLM):
             return self.get_logprobs_complete(prompt=prompt, output=output)
         elif isinstance(prompt, Prompt) and isinstance(output, LLMOutput):
             return self.get_logprobs_chat_complete(prompt=prompt, output=output)
+        elif isinstance(prompt, list) and isinstance(output, list):
+            return self.get_logprobs_token_ids(prompt_token_ids=prompt, completion_token_ids=output)
         else:
             raise ValueError("Invalid input types")
 
