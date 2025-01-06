@@ -49,7 +49,7 @@ vllm_config:
     --num-scheduler-steps: 1
      # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
     --enable-chunked-prefill: ""
-    --max-num-batched-tokens: 256
+    --max-num-batched-tokens: 1024
 
 output_dir: outputs/rl_gsm8k_deepspeed
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
