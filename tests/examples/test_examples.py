@@ -273,21 +273,41 @@ def test_tape_improver():
 
 
 def test_optimize_gpt35():
-    with run_test_in_tmp_dir("optimize/gpt-4o-mini"):
+    assets_dir = f"{res_path}/optimize/gpt-3.5-turbo"
+    with run_test_in_tmp_dir(assets_dir):
         with open("config.yaml") as f:
             cfg = DictConfig(yaml.safe_load(f))
         agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
         env = make_env()
         tape = DialogTape.model_validate(load_tape_dict(""))
         replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
         assert replay_success, "Failed to replay tape"
 
 
-def test_optimize_gpt4():
-    with run_test_in_tmp_dir("optimize/gpt-3.5-turbo"):
+def test_optimize_gpt4o_mini():
+    assets_dir = f"{res_path}/optimize/gpt-4o-mini"
+    with run_test_in_tmp_dir(assets_dir):
         with open("config.yaml") as f:
             cfg = DictConfig(yaml.safe_load(f))
         agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
+        env = make_env()
+        tape = DialogTape.model_validate(load_tape_dict(""))
+        replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
+        assert replay_success, "Failed to replay tape"
+
+
+def test_optimize_llama33_70b():
+    assets_dir = f"{res_path}/optimize/llama-3.3-70b-instruct"
+    with run_test_in_tmp_dir(assets_dir):
+        with open("config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
         env = make_env()
         tape = DialogTape.model_validate(load_tape_dict(""))
         replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
@@ -305,3 +325,6 @@ if __name__ == "__main__":
     test_data_science()
     test_form_filler()
     test_tape_improver()
+    test_optimize_gpt35()
+    test_optimize_gpt4o_mini()
+    test_optimize_llama33_70b()
