@@ -20,7 +20,7 @@ Key features:
 - Serve your agent with response streaming
 - Optimize your agent's configuration using successful tapes; finetune the LLM using revised tapes.
 
-![TapeAgents Overview](https://github.com/ServiceNow/TapeAgents/raw/main/assets/overview.png)
+![TapeAgents Overview](assets/overview.jpg)
 
 The Tape-centric design of TapeAgents will help you at all stages of your project:
 
