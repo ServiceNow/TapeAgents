@@ -114,24 +114,32 @@ def preprocess_fn(
     seq_length: int,
     is_rl: bool = False,
 ) -> BatchEncoding:
-    encoding = tokenizer(
-        entry["text"],
-        return_offsets_mapping=True,
-        max_length=seq_length,
-        truncation=True,
-    )
-    if "predicted_spans" in entry:
-        predicted_spans = entry["predicted_spans"]
+    if "input_ids" in entry and entry["input_ids"]:
+        # build the `encoding` object from the given tokenization
+        encoding = BatchEncoding()
+        encoding["input_ids"] = entry["input_ids"]
+        encoding["labels"] = entry["labels"]
+        encoding["attention_mask"] = [1] * len(entry["input_ids"])
     else:
-        text_length = len(entry["text"])
-        predicted_chars = entry.get("n_predicted", text_length)
-        predicted_spans = [(text_length - predicted_chars, text_length)]
-    validate_spans(entry["text"], predicted_spans)
-    encoding["labels"], _ = mask_labels(
-        encoding["input_ids"],  # type: ignore
-        encoding["offset_mapping"],  # type: ignore
-        predicted_spans,
-    )
+        # tokenize text to build the `encoding` object
+        encoding = tokenizer(
+            entry["text"],
+            return_offsets_mapping=True,
+            max_length=seq_length,
+            truncation=True,
+        )
+        if "predicted_spans" in entry:
+            predicted_spans = entry["predicted_spans"]
+        else:
+            text_length = len(entry["text"])
+            predicted_chars = entry.get("n_predicted", text_length)
+            predicted_spans = [(text_length - predicted_chars, text_length)]
+        validate_spans(entry["text"], predicted_spans)
+        encoding["labels"], _ = mask_labels(
+            encoding["input_ids"],  # type: ignore
+            encoding["offset_mapping"],  # type: ignore
+            predicted_spans,
+        )
     if is_rl:
         encoding = prepare_rl_fields(
             encoding,
