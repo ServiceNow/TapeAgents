@@ -349,7 +349,7 @@ def main(cfg: DictConfig):
 
                 test_llms = [
                     TrainableLLM(
-                        base_url=vllm_service_manager.get_base_urls(),
+                        base_url=base_url,
                         model_name=str(assistant_model_path),
                         tokenizer_name=str(assistant_model_path),
                         parameters=cfg.test_llm.parameters,

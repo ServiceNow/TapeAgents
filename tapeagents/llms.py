@@ -111,12 +111,12 @@ class LLMStream:
         if not o.role == "assistant" or o.content is None:
             raise ValueError("LLM did not produce an assistant message")
         return o.content
-    
+
     def get_llm_call(self) -> LLMCall:
         """Returns the LLMCall object"""
         for event in self:
             if event.llm_call:
-                break 
+                break
         return self.llm_call
 
 
@@ -261,6 +261,7 @@ class LLM(BaseModel, ABC):
             "total_output_tokens": np.sum(self._stats["output_length_tokens"])
             if self._stats["output_length_tokens"]
             else 0,
+            "time_preprocess": np.mean(self._stats["time_preprocess"]) if self._stats["time_preprocess"] else 0,
         }
 
 
@@ -534,16 +535,20 @@ class TrainableLLM(CachedLLM):
         super().model_post_init(__context)
         self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
 
-    def make_llm_call_logprobs(self, prompt_token_ids: list[int], completion_logprobs: list[dict]) -> list[TokenLogprob]:
+    def make_llm_call_logprobs(
+        self, prompt_token_ids: list[int], completion_logprobs: list[dict]
+    ) -> list[TokenLogprob]:
         """Construct homogenous list of TokenLogprob's for prompt and completion tokens"""
         logprobs = []
         for id in prompt_token_ids:
-            logprobs.append(TokenLogprob(
-                token_id=id,
-                token=self.tokenizer.decode([id]),
-                logprob=0.,
-                generated=0,
-            ))
+            logprobs.append(
+                TokenLogprob(
+                    token_id=id,
+                    token=self.tokenizer.decode([id]),
+                    logprob=0.0,
+                    generated=0,
+                )
+            )
         for logprob in completion_logprobs:
             if logprob:
                 try:
@@ -552,12 +557,14 @@ class TrainableLLM(CachedLLM):
                         # TODO: how should we handle empty tokens?
                         logger.debug(f"Empty token: {logprob}")
                         continue
-                    logprobs.append(TokenLogprob(
-                        token_id=token_id[0],
-                        token=logprob["token"],
-                        logprob=logprob["logprob"],
-                        generated=1,
-                    ))
+                    logprobs.append(
+                        TokenLogprob(
+                            token_id=token_id[0],
+                            token=logprob["token"],
+                            logprob=logprob["logprob"],
+                            generated=1,
+                        )
+                    )
                 except Exception as e:
                     logger.error(f"Failed to process logprobs: {logprob}")
                     logger.error(e)
@@ -653,7 +660,7 @@ class TrainableLLM(CachedLLM):
             headers |= {"Authorization": f"Bearer {self.api_token}"}
 
         prompt_token_ids = [
-            self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True) 
+            self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
             for p in prompts
         ]
         data = {
@@ -685,7 +692,8 @@ class TrainableLLM(CachedLLM):
             logger.error(f"Failed to get completion: {r.text}")
             r.raise_for_status()
         data = r.json()
-        result = [] 
+        result = []
+        start_preprocess_time = time.time()
         for i in range(len(prompts)):
             try:
                 content = data["choices"][i]["text"]
@@ -696,14 +704,11 @@ class TrainableLLM(CachedLLM):
                 if self.collect_logprobs:
                     completion_logprobs = data["choices"][i]["logprobs"]
                     # /v1/completions returns logprobs in a format different to /v1/chat/completions
-                    # Before calling self.process_logprobs, we need to convert the logprobs to a 
+                    # Before calling self.process_logprobs, we need to convert the logprobs to a
                     # list of dicts format similar to /v1/chat/completions
                     chat_completion_logprobs = [
-                        {
-                            "token": completion_logprobs["tokens"][i], 
-                            "logprob": completion_logprobs["token_logprobs"][i]
-                        }
-                        for i in range(len(completion_logprobs["tokens"]))
+                        {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
+                        for j in range(len(completion_logprobs["tokens"]))
                     ]
                     logprobs = self.make_llm_call_logprobs(prompt_token_ids[i], chat_completion_logprobs)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
@@ -719,6 +724,8 @@ class TrainableLLM(CachedLLM):
             llm_call = self.log_output(prompts[i], output)
             llm_call.logprobs = logprobs
             result.append(llm_call)
+        end_preprocess_time = time.time()
+        self._stats["time_preprocess"].append(end_preprocess_time - start_preprocess_time)
         return result
 
     def load_tokenizer(self):
