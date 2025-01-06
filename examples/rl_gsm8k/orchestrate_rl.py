@@ -44,6 +44,7 @@ from .utils import (
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.llms import TrainableLLM
 from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_calls
 from tapeagents.orchestrator import main_loop
@@ -162,7 +163,9 @@ def extract_tape_training_samples(
 
             input_ids = [lp["token_id"] for lp in llm_call.logprobs]
             labels = [lp["token_id"] for lp in llm_call.logprobs if lp["generated"]]
-            labels = [-100] * (len(input_ids) - len(labels)) + labels
+            # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+            # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
             trace.input_ids = input_ids
             trace.labels = labels
