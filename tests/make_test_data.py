@@ -31,7 +31,7 @@ def run_test_in_tmp_dir(test_name: str):
 
 
 @contextlib.contextmanager
-def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
+def run_in_tmp_dir_to_make_test_data(test_group, test_name: str, keep_llm_cache=False):
     cur_dir = os.getcwd()
     tmpdir = tempfile.mkdtemp()
     os.chdir(tmpdir)
@@ -51,7 +51,7 @@ def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
                     continue
                 created_files.append(os.path.relpath(os.path.join(root, file), tmpdir))
         cp_source = " ".join(f"$TMP/{f}" for f in created_files)
-        test_data_dir = f"tests/res/{test_name}"
+        test_data_dir = f"tests/{test_group}/res/{test_name}"
         print("Saved test data to ", tmpdir)
         print("To update test data, run these commands:")
         print(f"mkdir {test_data_dir}")
@@ -62,12 +62,12 @@ def run_in_tmp_dir_to_make_test_data(test_name: str, keep_llm_cache=False):
 if __name__ == "__main__":
     match sys.argv[1:]:
         case ["delegate_stack"]:
-            with run_in_tmp_dir_to_make_test_data("delegate_stack"):
+            with run_in_tmp_dir_to_make_test_data("examples", "delegate_stack"):
                 delegate_stack.main()
         case ["intro_notebook"]:
             intro_notebook_path = Path("intro.ipynb").resolve()
             assets_path = Path("assets").resolve()
-            with run_in_tmp_dir_to_make_test_data("intro_notebook", keep_llm_cache=True):
+            with run_in_tmp_dir_to_make_test_data("examples", "intro_notebook", keep_llm_cache=True):
                 shutil.copytree(assets_path, Path("assets"))
                 with testbook.testbook(intro_notebook_path) as tb:
                     tb.inject(
@@ -79,17 +79,21 @@ if __name__ == "__main__":
                     )
                     tb.execute()
         case ["tape_improver"]:
-            with run_in_tmp_dir_to_make_test_data("tape_improver"):
+            with run_in_tmp_dir_to_make_test_data("examples", "tape_improver"):
                 tape_improver.main("run improver")
         case ["data_science"]:
-            with run_in_tmp_dir_to_make_test_data("data_science"):
+            with run_in_tmp_dir_to_make_test_data("examples", "data_science"):
                 data_science.main(studio=False)
         case ["optimize"]:
-            models = ["gpt-3.5-turbo", "gpt-4o-mini"]
+            models = [
+                # "gpt-3.5-turbo",
+                "gpt-4o-mini",
+                # "llama-3.3-70b-instruct"
+            ]
             for model in models:
-                with open(f"tests/res/optimize/{model}/config.yaml") as f:
+                with open(f"tests/examples/res/optimize/{model}/config.yaml") as f:
                     cfg = DictConfig(yaml.safe_load(f))
-                with run_in_tmp_dir_to_make_test_data(f"optimize/{model}", keep_llm_cache=True):
+                with run_in_tmp_dir_to_make_test_data("examples", f"optimize/{model}", keep_llm_cache=True):
                     optimize.run(cfg)
         case _:
             raise Exception(
