@@ -93,6 +93,7 @@ cython_debug/
 
 # data
 /outputs/
+/examples/**/outputs/
 /data/
 
 *cache*.json
