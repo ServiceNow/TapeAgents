@@ -184,6 +184,7 @@ class Browser(Multitool):
     _traces_dir: str | None = None
     _record_video_dir: str | None = None
     _screenshots_dir: str | None = None
+    _task_id: str = ""
 
     def model_post_init(self, __context: Any):
         self._current_page = ""
@@ -231,6 +232,7 @@ class Browser(Multitool):
         raise ValueError(f"Unknown action: {action_type}")
 
     def start_task(self, task_id: str, seed: int = 1, **kwargs) -> dict:
+        self._task_id = task_id
         self._env = gym.make(
             task_id,
             headless=self.headless,
@@ -253,8 +255,9 @@ class Browser(Multitool):
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
-    def close(self, task_name: str):
-        self._env.context.tracing.stop(path=os.path.join(self._traces_dir, f"{task_name}.zip"))
+    def close(self):
+        assert self._traces_dir is not None
+        self._env.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
         self._env.close()
 
     def _screenshot_to_img_file(self, image) -> str:
