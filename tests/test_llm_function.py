@@ -11,7 +11,7 @@ from tapeagents.llm_function import (
     AssistantOutput,
     Input,
     LLMFunctionTemplate,
-    RationaleOutput,
+    ReasoningOutput,
 )
 from tapeagents.llms import LLMEvent, LLMStream
 from tapeagents.utils import diff_strings
@@ -65,7 +65,7 @@ def test_dspy_cot_prompt():
         desc="Answer questions with short factoid answers.",
         inputs=[Input(name="question")],
         outputs=[
-            RationaleOutput.for_output("answer"),
+            ReasoningOutput.for_output("answer"),
             AssistantOutput(name="answer", desc="often between 1 and 5 words"),
         ],
     )
@@ -171,4 +171,11 @@ def _llm_sream(output: str):
     return LLMStream(_generator(output), Prompt())
 
 
-# llm_output_gpt35 = 'produce the answer. We know that Rainer Maria Rilke\'s novel "The Notebooks of Malte Laurids Brigge" greatly influenced Jean-Paul Sartre. \nAnswer: Jean-Paul Sartre'
+if __name__ == "__main__":
+    test_dspy_qa_prompt()
+    test_dspy_cot_prompt()
+    test_fewshot_prompt()
+    test_query_prompt()
+    test_generate_steps_answer_template()
+    test_generate_steps_query_template()
+    test_generate_steps_query_template()
