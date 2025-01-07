@@ -680,8 +680,7 @@ class TrainableLLM(CachedLLM):
             stream=self.stream,
             verify=False,
         )
-        time_send_request = time.time() - start_send_request
-        self._stats["time_send_request"].append(time_send_request)
+        self._stats["time_send_request"].append(time.time() - start_send_request)
         if not r.ok:
             logger.error(f"Failed to get completion: {r.text}")
             r.raise_for_status()
