@@ -1,0 +1,6 @@
+defaults:
+  - rl_gsm8k
+  - _self_
+
+model_path: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
+dataset_name: numina 
