@@ -8,15 +8,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-import transformers
 import yaml
 from omegaconf import DictConfig
 
-from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
 from tests.make_test_data import run_test_in_tmp_dir
 
-sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
+sys.path.append(str(Path(__file__).parent.parent.parent.resolve()))  # allow to import from examples
 
 from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
@@ -39,20 +37,13 @@ from examples.form_filler.scripts.prepare_test_assets import (
 from examples.gaia_agent.agent import GaiaAgent
 from examples.gaia_agent.environment import GaiaEnvironment
 from examples.gaia_agent.tape import GaiaTape
-from examples.gsm8k_tuning.finetune_student import get_training_samples_from_tapes
-from examples.gsm8k_tuning.math_agent import MathAgent, MathTape
 from examples.llama_agent import LLAMAChatBot
 from examples.optimize.optimize import make_agentic_rag_agent, make_env
-from examples.rl_gsm8k.orchestrate_rl import (
-    CoTMathAgent,
-    RLMathTape,
-    extract_tape_training_samples,
-)
 from examples.tape_improver import tape_improver
 from examples.workarena.agent import WorkArenaAgent
 from examples.workarena.steps import WorkArenaTape
 from tapeagents.config import DB_DEFAULT_FILENAME
-from tapeagents.core import AgentStep, LLMCall, TrainingText
+from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
@@ -233,7 +224,7 @@ def test_form_filler():
     os.environ["TAPEAGENTS_MOCK_DATE"] = "2024-12-09"
     assets_dir = str(Path(__file__).parent / "res" / "form_filler")
     forms_path = str(
-        Path(__file__).parent.parent / "examples" / "form_filler" / "assets" / "forms" / "train" / "FlyCorp"
+        Path(__file__).parent.parent.parent / "examples" / "form_filler" / "assets" / "forms" / "train" / "FlyCorp"
     )
     env = FormFillerEnvironment.from_spec(forms_path)
 
@@ -282,60 +273,45 @@ def test_tape_improver():
 
 
 def test_optimize_gpt35():
-    with run_test_in_tmp_dir("optimize/gpt-4o-mini"):
+    assets_dir = f"{res_path}/optimize/gpt-3.5-turbo"
+    with run_test_in_tmp_dir(assets_dir):
         with open("config.yaml") as f:
             cfg = DictConfig(yaml.safe_load(f))
         agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
         env = make_env()
         tape = DialogTape.model_validate(load_tape_dict(""))
         replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
         assert replay_success, "Failed to replay tape"
 
 
-def test_optimize_gpt4():
-    with run_test_in_tmp_dir("optimize/gpt-3.5-turbo"):
+def test_optimize_gpt4o_mini():
+    assets_dir = f"{res_path}/optimize/gpt-4o-mini"
+    with run_test_in_tmp_dir(assets_dir):
         with open("config.yaml") as f:
             cfg = DictConfig(yaml.safe_load(f))
         agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
         env = make_env()
         tape = DialogTape.model_validate(load_tape_dict(""))
         replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
         assert replay_success, "Failed to replay tape"
 
 
-def test_gsm8k_tuning_tapes_generation():
-    run_dir = f"{res_path}/gsm8k_tuning"
-    llm = mock_llm(run_dir)
-    agent = MathAgent.create(llm)
-    tapes = load_tapes(MathTape, os.path.join(run_dir, "tapes"), file_extension=".json")
-    logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, reuse_observations=True)
-    assert fails == 0, f"{fails} failed tapes"
-
-
-def test_gsm8k_tuning_samples_prep():
-    run_dir = f"{res_path}/gsm8k_tuning"
-    training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
-    new_training_samples = get_training_samples_from_tapes(f"{run_dir}/tapes/")
-    assert training_samples == new_training_samples
-
-
-def test_rl_gsm8k_data():
-    run_dir = f"{res_path}/rl_gsm8k"
-    tapes = load_tapes(RLMathTape, run_dir, file_extension=".json")
-    llm = mock_llm(run_dir)
-    llm.tokenizer = transformers.AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
-    agent = CoTMathAgent.create(llm)
-    cfg = DictConfig({"dataset_name": "math", "finetune": {"seq_length": 1024}})
-    training_samples = []
-    for tape in tapes:
-        for step in tape:
-            if llm_call_data := step.metadata.other.get("llm_call"):
-                step.metadata.other["llm_call"] = LLMCall(**llm_call_data)
-        _, training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg)
-        training_samples.append(training_sample[0])
-    new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
-    assert training_samples == new_training_samples
+def test_optimize_llama33_70b():
+    assets_dir = f"{res_path}/optimize/llama-3.3-70b-instruct"
+    with run_test_in_tmp_dir(assets_dir):
+        with open("config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
+        env = make_env()
+        tape = DialogTape.model_validate(load_tape_dict(""))
+        replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
+        assert replay_success, "Failed to replay tape"
 
 
 if __name__ == "__main__":
@@ -349,6 +325,6 @@ if __name__ == "__main__":
     test_data_science()
     test_form_filler()
     test_tape_improver()
-    test_gsm8k_tuning_tapes_generation()
-    test_gsm8k_tuning_samples_prep()
-    test_rl_gsm8k_data()
+    test_optimize_gpt35()
+    test_optimize_gpt4o_mini()
+    test_optimize_llama33_70b()

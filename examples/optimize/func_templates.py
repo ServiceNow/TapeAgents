@@ -3,7 +3,7 @@ from tapeagents.llm_function import (
     AssistantOutput,
     Input,
     LLMFunctionTemplate,
-    RationaleOutput,
+    ReasoningOutput,
     ToolCallOutput,
 )
 
@@ -27,7 +27,7 @@ def make_answer_template() -> LLMFunctionTemplate:
             Input(name="question"),
         ],
         outputs=[
-            RationaleOutput.for_output("answer"),
+            ReasoningOutput.for_output("answer"),
             AssistantOutput(name="answer", desc="often between 1 and 5 words"),
         ],
     )
@@ -41,7 +41,7 @@ def make_query_template() -> LLMFunctionTemplate:
             Input(name="question"),
         ],
         outputs=[
-            RationaleOutput.for_output("query"),
+            ReasoningOutput.for_output("query"),
             ToolCallOutput(name="query", tool_name="retrieve", arg_name="query"),
         ],
     )

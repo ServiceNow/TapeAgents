@@ -56,7 +56,7 @@ def make_env(n_paragraphs: int = 3) -> ToolEnvironment:
 def make_llm(cfg: DictConfig) -> LiteLLM:
     parameters = {
         "temperature": 0.0,
-        "max_tokens": 150,
+        "max_tokens": 1024,
         "top_p": 1,
         "frequency_penalty": 0,
         "n": 1,
