@@ -51,22 +51,20 @@ from tapeagents.orchestrator import main_loop
 
 logger = logging.getLogger(__name__)
 
-
-def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
+def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
+    prompt_token_ids = []
+    completion_token_ids = []
+    for trace in traces:
+        prompt_token_ids.append(trace.input_ids[: -len(trace.logprobs)])
+        completion_token_ids.append(trace.input_ids[-len(trace.logprobs) :])
     try:
-        prompt_token_ids, completion_token_ids = (
-            trace.input_ids[: -len(trace.logprobs)],
-            trace.input_ids[-len(trace.logprobs) :],
-        )
-        ref_logprobs = agent.llm.get_logprobs(prompt_token_ids, completion_token_ids)  # type: ignore
-        trace.ref_logprobs = [c['logprob'] for c in ref_logprobs["content"]]
-        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
-        return trace
+        all_ref_logprobs = llm.get_batch_logprobs_token_ids(prompt_token_ids, completion_token_ids)
     except Exception as e:
         logger.error(f"Failed to get ref logprobs: {e}")
-        if strict:
-            raise e
-        return None
+        return
+    for trace, ref_logprobs in zip(traces, all_ref_logprobs):
+        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
+        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logpros)} != {len(trace.logprobs)}"
 
 
 def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTape]:
@@ -422,28 +420,32 @@ def main(cfg: DictConfig):
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.ref_vllm_kwargs))
             ) as vllm_service_manager:
-                basemodel_llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=cfg.model_path,
-                    tokenizer_name=cfg.model_path,
-                    parameters=dict(temperature=0.7),
-                )
-
-                basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
+                ref_llms = [
+                    TrainableLLM(
+                        base_url=url, 
+                        model_name=cfg.model_path,
+                        tokenizer_name=cfg.model_path,
+                        parameters=dict(temperature=0.7),
+                    ) for url in vllm_service_manager.get_base_urls()
+                ]
 
                 start_basemodel_logprobs = time.time()
+                training_samples = all_results["train"]["training_samples"]
                 with ThreadPoolExecutor(
                     max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
                 ) as executor:
-                    futures = [
-                        executor.submit(annotate_traces_with_ref_logprobs, basemodel_agent, trace, strict=False)
-                        for trace in all_results["train"]["training_samples"]
-                    ]
-                    training_samples: List[TrainingText] = [  # type: ignore
-                        future.result()
-                        for future in tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
-                        if future.result() is not None
-                    ]
+                    chunk_size = 64
+                    futures = []
+                    for chunk_id, chunk_offset in enumerate(range(0, len(training_samples), chunk_size)):
+                        ref_llm = ref_llms[chunk_id % len(ref_llms)]
+                        chunk = training_samples[chunk_offset: chunk_offset + chunk_size]
+                        futures.append(
+                            executor.submit(batch_annotate_traces_with_ref_logprobs, ref_llm, chunk)
+                        )                    
+                    # Reference logprobs are added in-place
+                    futures = tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
+                    _ = [future.result() for future in futures]
+
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
                 time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
