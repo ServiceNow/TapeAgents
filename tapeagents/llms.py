@@ -551,9 +551,11 @@ class TrainableLLM(CachedLLM):
         for logprob in completion_logprobs:
             if logprob:
                 try:
+                    # We assume that the server was launched with --return-tokens-as-token-ids
+                    # and that the tokens are provided as: ['token_id:1271', 'token_id:1505', '
                     logprobs.append(
                         TokenLogprob(
-                            token_id=logprob["token_id"],
+                            token_id=int(logprob["token"].split(":")[-1]),
                             logprob=logprob["logprob"],
                             generated=1,
                         )
@@ -566,6 +568,7 @@ class TrainableLLM(CachedLLM):
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
+        self.load_tokenizer()
         headers = {"Content-Type": "application/json"}
         if self.api_token:
             headers |= {"Authorization": f"Bearer {self.api_token}"}
@@ -627,7 +630,6 @@ class TrainableLLM(CachedLLM):
                     )
                     # prompt_decoded = self.tokenizer.decode(prompt_token_ids, skip_special_tokens=False)
                     completion_logprobs = data["choices"][0]["logprobs"]["content"]
-                    # TODO: fix to use the token_ids
                     logprobs = self.make_llm_call_logprobs(prompt_token_ids, completion_logprobs)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
                     for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
@@ -700,10 +702,8 @@ class TrainableLLM(CachedLLM):
                     # Before calling self.process_logprobs, we need to convert the logprobs to a
                     # list of dicts format similar to /v1/chat/completions
                     
-                    # We assume that the server was launched with --return-tokens-as-token-ids
-                    # and that the tokens are provided as: ['token_id:1271', 'token_id:1505', '
                     chat_completion_logprobs = [
-                        {"token_id": int(completion_logprobs["tokens"][j].split(":")[-1]), "logprob": completion_logprobs["token_logprobs"][j]}
+                        {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
                         for j in range(len(completion_logprobs["tokens"]))
                     ]
                     logprobs = self.make_llm_call_logprobs(prompt_token_ids[i], chat_completion_logprobs)
