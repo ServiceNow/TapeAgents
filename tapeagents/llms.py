@@ -700,7 +700,8 @@ class TrainableLLM(CachedLLM):
                     # Before calling self.process_logprobs, we need to convert the logprobs to a
                     # list of dicts format similar to /v1/chat/completions
                     
-                    #'tokens': ['token_id:1271', 'token_id:1505', '
+                    # We assume that the server was launched with --return-tokens-as-token-ids
+                    # and that the tokens are provided as: ['token_id:1271', 'token_id:1505', '
                     chat_completion_logprobs = [
                         {"token_id": int(completion_logprobs["tokens"][j].split(":")[-1]), "logprob": completion_logprobs["token_logprobs"][j]}
                         for j in range(len(completion_logprobs["tokens"]))
