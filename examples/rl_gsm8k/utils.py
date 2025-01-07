@@ -155,7 +155,7 @@ class VLLMServiceManager:
             f"--model {self.model_name_or_path} "
             f"--tensor-parallel-size {tensor_parallel_size} "
             f"--port {port} "
-            "--return-tokens-as-token-ids "
+            f"--seed {cuda_device} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
             f"{kwargs_str}"
@@ -216,13 +216,11 @@ class VLLMServiceManager:
             f.close()
 
     def __enter__(self) -> "VLLMServiceManager":
-        #self._start_service()
-        self.ports = [8080, 8081]
+        self._start_service()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        return None
-        #self._cleanup()
+        self._cleanup()
 
     def get_stats(self):
         return self.stats

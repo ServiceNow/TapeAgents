@@ -627,6 +627,7 @@ class TrainableLLM(CachedLLM):
                     )
                     # prompt_decoded = self.tokenizer.decode(prompt_token_ids, skip_special_tokens=False)
                     completion_logprobs = data["choices"][0]["logprobs"]["content"]
+                    # TODO: fix to use the token_ids
                     logprobs = self.make_llm_call_logprobs(prompt_token_ids, completion_logprobs)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
                     for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
