@@ -787,8 +787,6 @@ class TrainableLLM(CachedLLM):
         r.raise_for_status()  # raise exception if status code is not in the 200s
         try:
             response = r.json()
-            tokens = response["choices"][0]["logprobs"]["tokens"]
-            logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
         except Exception as e:
             raise RuntimeError(f"Generation API wrong response: {r.text}", e)
         logprobs = []
@@ -799,6 +797,49 @@ class TrainableLLM(CachedLLM):
                     v.update({"generated": 0, "token_id": k})
                     logprobs.append(v)
         return {"content": logprobs}
+    
+    def get_batch_logprobs_token_ids(self, prompt_token_ids: list[list[int]], completion_token_ids: list[list[int]]) -> list[dict[str, Any]]: 
+        if not self.tokenizer:
+            self.load_tokenizer()
+        batch_size = len(prompt_token_ids)
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+
+        generation_args = {
+            "model": self.model_name,
+            "prompt": [pids + cids for pids, cids in zip(prompt_token_ids, completion_token_ids)],
+            "temperature": 0.0,
+            "max_tokens": 0,
+            "logprobs": 0,
+            "echo": True,
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output, 
+            "skip_special_tokens": False,
+            "n": 1,  # number of completions to generate
+            "stream": False,  # return a single completion and not a stream of lines
+        }
+        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        url = f"{base_url}/v1/completions"
+        logger.debug(f"POST request to {url}")
+        r = requests.post(url, json=generation_args, headers=headers, verify=False)
+        r.raise_for_status()
+
+        try:
+            response = r.json()
+        except Exception as e:
+            raise RuntimeError(f"Generation API wrong response: {r.text}", e)
+
+        all_logprobs = []
+        for i in range(batch_size):
+            logprobs = []
+            for lp in response["choices"][i]["prompt_logprobs"][-len(completion_token_ids[i]):]:
+                if lp:
+                    for k, v in lp.items():
+                        v.update({"generated": 0, "token_id": k})
+                        logprobs.append(v)
+            all_logprobs.append({"content": logprobs})
+        return all_logprobs
 
     def get_logprobs_complete(self, prompt: str, output: str) -> dict[str, Any]:
         """
