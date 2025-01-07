@@ -261,7 +261,7 @@ class LLM(BaseModel, ABC):
             "total_output_tokens": np.sum(self._stats["output_length_tokens"])
             if self._stats["output_length_tokens"]
             else 0,
-            "time_preprocess": np.mean(self._stats["time_preprocess"]) if self._stats["time_preprocess"] else 0,
+            "time_postprocess_llm_response": np.mean(self._stats["time_postprocess_llm_response"]) if self._stats["time_postprocess_llm_response"] else 0,
         }
 
 
@@ -686,7 +686,7 @@ class TrainableLLM(CachedLLM):
             r.raise_for_status()
         data = r.json()
         result = []
-        start_preprocess_time = time.time()
+        start_postprocess_time = time.time()
         for i in range(len(prompts)):
             try:
                 content = data["choices"][i]["text"]
@@ -720,8 +720,7 @@ class TrainableLLM(CachedLLM):
             llm_call = self.log_output(prompts[i], output)
             llm_call.logprobs = logprobs
             result.append(llm_call)
-        end_preprocess_time = time.time()
-        self._stats["time_preprocess"].append(end_preprocess_time - start_preprocess_time)
+        self._stats["time_postprocess_llm_response"].append(time.time() - start_postprocess_time)
         return result
 
     def load_tokenizer(self):
