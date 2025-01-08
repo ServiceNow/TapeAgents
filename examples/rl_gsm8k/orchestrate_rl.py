@@ -478,7 +478,7 @@ def main(cfg: DictConfig):
         finetune_cfg = cfg.copy()
 
         checkpoint_steps = finetune_cfg.finetune.save_checkpoint_steps
-        interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps - 1)
+        interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps)
 
         finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
         finetune_cfg.output_dir = str(finetune_path)
