@@ -13,10 +13,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from tapeagents.core import Tape, TapeMetadata
-from tapeagents.steps import Annotation
 from tapeagents.io import load_tapes, stream_yaml_tapes
 from tapeagents.observe import retrieve_tape_llm_calls
 from tapeagents.renderers.basic import BasicRenderer
+from tapeagents.steps import Annotation
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +192,7 @@ class TapeBrowser:
         gr.Info(f'Saved an annotation to "{self.annotation_file}')
 
     def create_blocks(self):
-        with gr.Blocks(analytics_enabled=False) as blocks:
+        with gr.Blocks(analytics_enabled=False, title="TapeAgents Browser") as blocks:
             with gr.Row():
                 with gr.Column(scale=4):
                     tape_view = gr.HTML("")
@@ -228,8 +228,6 @@ class TapeBrowser:
         return blocks
 
     def launch(self, server_name: str = "0.0.0.0", port=7860, debug: bool = False, static_dir: str = ""):
-        gr.set_static_paths(paths=["outputs/"])  # Allow HTML to load files (img) from this directory
-
         self.blocks = self.create_blocks()
 
         if static_dir:

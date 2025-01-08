@@ -21,6 +21,11 @@ from .lora import has_lora_checkpoint, lora_load, lora_save, prepare_lora_model
 from .types import ModelClass, TrainingMetrics
 
 
+def is_deepspeed_model(model) -> bool:
+    """Check if model is a DeepSpeed engine instance."""
+    return model.__class__.__name__.endswith("DeepSpeedEngine")
+
+
 def get_auto_model_class(
     model_class: ModelClass,
 ) -> Type[_BaseAutoModelClass]:
@@ -163,7 +168,7 @@ def _save_training_state(
         not os.path.exists(training_state_dir) or training_state_dir.is_dir()
     ), f"output_dir {training_state_dir} must be a directory"
 
-    if model.__class__.__name__.endswith("DeepSpeedEngine"):
+    if is_deepspeed_model(model):
         # Save both model and optimizer, as well as lr_scheduler if supported by deepspeed
         logger.info("Save deepspeed training state")
         client_state = dict(extra_training_state)
@@ -203,7 +208,7 @@ def load_training_checkpoint(
         not os.path.exists(training_state_dir) or training_state_dir.is_dir()
     ), f"output_dir {training_state_dir} must be a directory"
 
-    if model.__class__.__name__.endswith("DeepSpeedEngine"):
+    if is_deepspeed_model(model):
         logger.info("Load deepspeed training state")
         # This magically loads optimizer and lr_scheduler states (if they were saved)
         # (the passed optimizer and lr_scheduler arguments will be ignored)
@@ -307,28 +312,52 @@ def save_model_only(
         - config.json
     and either:
         - pytorch_model.bin (single-file model), OR
-        - pytorch_model-XXXXX-of-XXXXX.bin (multi-file model) and pytorch_model.bin.index.json
+        - pytorch_model-XXXXX-of-XXXXX.bin (multi-file model) and pytorch_model.bin.index.json OR
+        - the safetensors versions of the files above
 
     Note that this does not save optimizer, lr_scheduler, scaler, etc.
-    Use only for later JGA evaluation, not for resuming training
+    Use only for inference or later JGA evaluation, not for resuming training
 
-    Must be called on *all* accelerate processes because all of them must save their shards.
+    The accelerate version must be called on *all* accelerate processes because all of them must save their shards.
+    The DeepSpeed version is only called on the main process because the checkpointing and conversion mechanism will gather the shards from all processes.
     """
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
     accelerator.wait_for_everyone()
 
     logger.info(f"Save model to {output_dir}")
 
+    if is_deepspeed_model(model):
+        logger.info(f"Saving through deepspeed engine path {output_dir}")
+        # saving using DeepSpeed's checkpoint mechanism
+        model.save_checkpoint(save_dir=output_dir)
+
+        # convert to HF format on main process
+        if accelerator.is_main_process:
+            from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
+            logger.info("Converting DeepSpeed checkpoint to HF format")
+
+            convert_zero_checkpoint_to_fp32_state_dict(
+                checkpoint_dir=output_dir,
+                output_dir=output_dir,
+                tag=None,  # will use 'global_step{step}' from DeepSpeed
+                safe_serialization=safe_serialization
+            )
+
+            # save model config
+            logger.info("Save model config (config.json)")
+            unwrapped_model = model.module
+            config = unwrapped_model.config
+            config.save_pretrained(output_dir)
+
+            logger.info(f"Saved converted checkpoint to {output_dir}")
+        return
+
     unwrapped_model = accelerator.unwrap_model(model) if unwrap else model
     if lora:
         lora_save(output_dir, unwrapped_model)
         return
 
-    if unwrapped_model.__class__.__name__.endswith("DeepSpeedEngine"):
-        unwrapped_model.save_checkpoint(
-            save_dir=output_dir,
-        )
-        logger.info(f"Saved deepspeed checkpoint to {output_dir}")
+    # for non-deepspeed models
     elif isinstance(unwrapped_model, transformers.PreTrainedModel):
         unwrapped_model.save_pretrained(  # type: ignore
             output_dir,
