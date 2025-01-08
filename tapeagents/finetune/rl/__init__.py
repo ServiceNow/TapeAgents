@@ -130,10 +130,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
             loss = -masked_mean(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
-    if not torch.isfinite(loss).all():
-        logger.warning("Loss is not finite and will be discarded")
-        loss = torch.nan_to_num(loss)
-
+    
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),
