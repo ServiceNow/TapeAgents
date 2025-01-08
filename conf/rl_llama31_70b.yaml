@@ -9,8 +9,8 @@ finetune:
     reward_minus_kl_coef: 0.0
     use_advantages: false
     relu_log_p_weights: true
-  train_batch_size: 1
-  gradient_accumulation_passes: 32
+  train_batch_size: 2
+  gradient_accumulation_passes: 16
   learning_rate: 1e-6
 force_restart: true
 max_agent_forks: 5000
@@ -23,3 +23,4 @@ test_every_n_iterations: 10
 attempts: 8
 dataset_name: gsm8k
 use_deepspeed: true
+keep_intermediate_checkpoints: false
