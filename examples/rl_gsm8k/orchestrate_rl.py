@@ -20,6 +20,7 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
+
 wandb.require("core")
 from .cot_math_agent import (
     CoTMathAgent,
@@ -43,6 +44,7 @@ from .utils import (
 from tapeagents.batch import batch_main_loop
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.llms import TrainableLLM
 from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_calls
 from tapeagents.orchestrator import main_loop
@@ -52,8 +54,13 @@ logger = logging.getLogger(__name__)
 
 def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
     try:
-        ref_logprobs = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
+        prompt_token_ids, completion_token_ids = (
+            trace.input_ids[: -len(trace.logprobs)],
+            trace.input_ids[-len(trace.logprobs) :],
+        )
+        ref_logprobs = agent.llm.get_logprobs(prompt_token_ids, completion_token_ids)  # type: ignore
         trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
+        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
         return trace
     except Exception as e:
         logger.error(f"Failed to get ref logprobs: {e}")
@@ -111,7 +118,6 @@ def extract_tape_training_samples(
         - Dictionary with statistics (reward, steps, success, no_errors)
     """
     discarded = []
-    compute_logprobs = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     match cfg.dataset_name:
@@ -155,49 +161,21 @@ def extract_tape_training_samples(
             llm_call = step.metadata.other["llm_call"]
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            hf_tokens = get_tokens_from_hf_tokenizer(agent.llm.tokenizer, llm_call.prompt, llm_call.output)
+            input_ids = [lp["token_id"] for lp in llm_call.logprobs]
+            labels = [lp["token_id"] for lp in llm_call.logprobs if lp["generated"]]
+            # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+            # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
-            logprobs = [c["logprob"] for c in llm_call.logprobs]
-            vllm_tokens = [c["token"] for c in llm_call.logprobs]
-
-            # Huggingface tokenizer for Gemma2B adds an extra newline at the end of the chat template.
-            # Try to detect this and fix.
-            if len(vllm_tokens) == len(hf_tokens) - 1 and vllm_tokens == hf_tokens[:-1] and hf_tokens[-1] == "\n":
-                # The last token is a newline, add it to the vLLM tokens
-                vllm_tokens.append("\n")
-                logprobs.append(-20.0)
-
-            # Note: tokens produced during generation are not always the same as the tokens produced on the full sequence
-            if vllm_tokens != hf_tokens:
-                # the online vLLM tokenizer does not agree with the HF tokenizer
-                try:
-                    new_logprobs_dict = agent.llm.get_logprobs(trace.prompt_text, trace.output_text)  # type: ignore
-                    new_logprobs = [c["logprob"] for c in new_logprobs_dict["content"]]
-                    new_vllm_tokens = [c["token"] for c in new_logprobs_dict["content"]]
-                    assert len(new_vllm_tokens) == len(hf_tokens), "Token mismatch"
-                    logprobs = new_logprobs
-                    compute_logprobs.append(1)
-                except Exception as e:
-                    logger.error(f"Failed to get logprobs: {e}")
-                    discarded.append(1)
-                    continue
-            else:
-                compute_logprobs.append(0)
+            trace.input_ids = input_ids
+            trace.labels = labels
 
             trace.reward = reward
-            trace.logprobs = logprobs
+            trace.logprobs = [lp["logprob"] for lp in llm_call.logprobs if lp["generated"]]
             trace.group_id = new_tape.metadata.parent_id
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
-            if (
-                len(trace.logprobs) == llm_call.output_length_tokens
-                and (llm_call.prompt_length_tokens + llm_call.output_length_tokens) < cfg.finetune.seq_length
-            ):
-                training_samples.append(trace)
-                discarded.append(0)
-            else:
-                logger.debug(f"Discarding trace: {trace.prompt_text} {trace.output_text}")
-                discarded.append(1)
+            training_samples.append(trace)
 
     tape_stats = {
         "reward": reward,
@@ -207,8 +185,6 @@ def extract_tape_training_samples(
         "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
-
-        "compute_logprobs": np.mean(compute_logprobs) if compute_logprobs else 0,
     }
     return new_tape, training_samples, tape_stats
 
@@ -246,7 +222,6 @@ def generate_training_data(
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
     discarded_stats = defaultdict(list)
-    compute_logprobs_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
     logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
@@ -282,7 +257,6 @@ def generate_training_data(
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_logprobs"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
 
@@ -303,7 +277,6 @@ def generate_training_data(
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
-            f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
             f"{split_name}_output_tokens": output_tokens,
         },
@@ -351,10 +324,6 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
-    remove_leading_white_space = True if "deepseek" in cfg.model_path else False
-    if remove_leading_white_space:
-        # vLLM sometimes generate a leading white space https://github.com/vllm-project/vllm/issues/3935
-        logger.info("Removing leading white space from the model. This is necessary for DeepSeek models")
 
     while state["iteration"] < cfg.max_iterations:
         logger.info(f"Starting iteration {state['iteration']}")
@@ -386,8 +355,7 @@ def main(cfg: DictConfig):
                     parameters=cfg.llm.parameters,
                     use_cache=False,
                     collect_logprobs=True,
-                    remove_leading_white_space=remove_leading_white_space,
-                    observe_llm_calls=False
+                    observe_llm_calls=False,
                 )
 
                 test_llm = TrainableLLM(
@@ -396,8 +364,7 @@ def main(cfg: DictConfig):
                     tokenizer_name=str(assistant_model_path),
                     parameters=cfg.test_llm.parameters,
                     use_cache=False,
-                    remove_leading_white_space=remove_leading_white_space,
-                    observe_llm_calls=False
+                    observe_llm_calls=False,
                 )
 
                 train_agent = CoTMathAgent.create(llm=llm)
@@ -416,9 +383,10 @@ def main(cfg: DictConfig):
                     llm_stats = agent.llm.get_stats()
                     make_data_took = stats[f"execution_time/{split_name}_make_data"]
                     more_llm_stats = {
-                        "make_data_output_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
-                        "make_data_prompt_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
-                        "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / make_data_took,
+                        "make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
+                        "make_data_prompt_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
+                        "make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"])
+                        / make_data_took,
                     }
                     for k, v in llm_stats.items():
                         if "/s" in k:
@@ -530,10 +498,10 @@ def main(cfg: DictConfig):
 
         start_finetune = time.time()
         launch_training(
-            str(conf_dir), 
-            str(state["iteration"]), 
+            str(conf_dir),
+            str(state["iteration"]),
             cfg.accelerate_cfg_path,
-            use_deepspeed=cfg.use_deepspeed  # defaults to False
+            use_deepspeed=cfg.use_deepspeed,  # defaults to False
         )
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
