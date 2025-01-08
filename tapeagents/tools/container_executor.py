@@ -426,7 +426,7 @@ def silence_pip(code: str, lang: str) -> str:
     return "\n".join(lines)
 
 
-def maybe_get_code_sandbox(exp_path: str):
+def maybe_get_code_sandbox(exp_path: str) -> ContainerExecutor | None:
     code_path = os.path.join(exp_path, "code")
     os.makedirs(code_path, exist_ok=True)
     try:
