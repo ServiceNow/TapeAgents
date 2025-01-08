@@ -16,7 +16,9 @@
             "pin_memory": true,
             "fast_init": true,
             "ratio": 0.45,
-            "buffer_count": 4
+            "buffer_count": 8,
+            "pipeline_read": true,
+            "pipeline_write": true
         },
         "offload_param": {
             "device": "none",
@@ -40,6 +42,12 @@
         "profile": false
     },
     "communication_data_type": "bf16",
+    "communication_data_parallel": {
+        "nccl_start_collective_timeout": 3600,
+        "nccl_timeout": 3600,
+        "hierarchical_allreduce": true,
+        "allreduce_always_fp32": true
+    },
     "wall_clock_breakdown": true,
     "monitor_config": {
         "enabled": true,
@@ -63,5 +71,15 @@
     },
     "wandb": {
         "enabled": false
+    },
+    "elastic_training": {
+        "enabled": true,
+        "max_out_of_sync_steps": 200,
+        "sync_timeout": 3600,
+        "num_retries": 3
+    },
+    "distributed": {
+        "timeout": 3600,
+        "initialization_timeout": 3600
     }
 }
