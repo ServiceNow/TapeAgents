@@ -132,7 +132,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
             raise ValueError(f"Unknown algorithm {config.algo}")
     if not torch.isfinite(loss).all():
         logger.warning("Loss is not finite and will be discarded")
-        loss = torch.tensor(0.0, device=loss.device, requires_grad=True)
+        loss = torch.nan_to_num(loss)
 
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
