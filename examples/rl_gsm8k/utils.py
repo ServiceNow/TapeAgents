@@ -15,11 +15,10 @@ import torch
 import yaml
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from tenacity import retry, stop_after_attempt, wait_exponential
-from examples.rl_gsm8k.run_finetune import run_finetuning_loop
 from transformers import PreTrainedTokenizer
 
 from tapeagents.llms import LLMOutput, Prompt
-
+from .dist_utils import DistributedManager
 logger = logging.getLogger(__name__)
 
 def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[str]:
@@ -73,6 +72,8 @@ class VLLMServiceManager:
         self.node_rank = int(os.environ.get("RANK", 0))
         self.port_offset = self.node_rank * 1000  # Ensure different port ranges for each node
         self.port = port + self.port_offset
+
+        self.dist_manager = DistributedManager()
 
     def get_base_urls(self) -> list[str]:
         return [
@@ -210,6 +211,7 @@ class VLLMServiceManager:
             if process and process.pid:
                 logger.info(f"Terminating process with command {process.args}")
                 self._terminate_with_children(process.pid)
+                self.dist_manager.cleanup_gpu_resources()
                 process.wait()
 
         if self.stdout_file:
@@ -280,12 +282,18 @@ def load_state(state_path):
         return {"iteration": 0}
 
 
-def save_state(state, state_path):
+def save_state(state, state_path, dist_manager: DistributedManager):
+    if not dist_manager.is_main_process():
+        return
+
     with open(state_path, "w") as f:
         json.dump(state, f)
 
 
-def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
+def clean_up(target_path: Path, state: Dict, state_path: str | Path, dist_manager: DistributedManager) -> None:
+    if not dist_manager.is_main_process():
+        return
+
     os.makedirs(target_path, exist_ok=True)
 
     def remove_dir(directory: Path):
@@ -294,7 +302,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
 
     # Reset the state iteration steps
     state["iteration"] = 0
-    save_state(state, state_path)
+    save_state(state, state_path, dist_manager)
 
     logger.info("Cleaning up checkpoints and training state")
     # list of files to remove
@@ -361,19 +369,25 @@ def launch_training(
         ValueError: If no GPUs are available
         RuntimeError: If training process fails
     """
-    # environment variables
-    GLOBAL_RANK = int(os.environ.get("RANK", 0))
-    MASTER_PORT = int(os.environ.get("MASTER_PORT"))
-    MASTER_ADDRESS = os.environ.get("MASTER_ADDR")
-    # this is same as number_of_replicas
-    WORLD_SIZE = int(os.environ.get("WORLD_SIZE", 2))
+    # Debug information
+    logger.info("Process Information:")
+    logger.info(f"Process ID: {os.getpid()}")
+    logger.info(f"Parent Process ID: {os.getppid()}")
+    logger.info(f"Process Working Directory: {os.getcwd()}")
 
-    # Check GPU availability
-    num_gpus = torch.cuda.device_count() * int(os.environ.get("WORLD_SIZE", 1))
-    print('###############################')
-    print(f"Number of GPUs: {num_gpus}")
-    print('###############################')
-    is_multinode = num_gpus > 8
+    clean_env = os.environ.copy()
+
+    GLOBAL_RANK = int(clean_env.get("RANK", 0))
+    MASTER_PORT = clean_env.get("MASTER_PORT")
+    MASTER_ADDRESS = clean_env.get("MASTER_ADDR")
+    WORLD_SIZE = int(clean_env.get("WORLD_SIZE", 1))
+    
+    logger.info("Environment Variables:")
+    for key in ["RANK", "LOCAL_RANK", "WORLD_SIZE", "MASTER_ADDR", "MASTER_PORT"]:
+        logger.info(f"{key}: {clean_env.get(key)}")
+    
+    num_gpus = torch.cuda.device_count() * WORLD_SIZE
+    is_multinode = WORLD_SIZE > 1
     if num_gpus == 0:
         raise ValueError("No GPUs available for finetuning")
 
@@ -399,7 +413,7 @@ def launch_training(
                     "--main_process_ip",
                     MASTER_ADDRESS,
                     "--main_process_port",
-                    str(MASTER_PORT),
+                    MASTER_PORT,
                 ])
             base_cmd.extend([
                 "--use_deepspeed",
@@ -428,22 +442,20 @@ def launch_training(
     ])
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
-    # try:
-    #     os.execvp(base_cmd[0], base_cmd)
-    # except Exception as e:
-    #     raise RuntimeError(f"Failed to launch training: {str(e)}")
+
     try:
         subprocess.run(
             base_cmd,
-            env=os.environ.copy(),  # Ensure subprocess inherits environment variables
+            env=os.environ,
             shell=False,
-            check=True,   # Raises CalledProcessError if return code != 0
+            check=True,
         )
 
     except subprocess.CalledProcessError as e:
-        # Capture both stdout and stderr for debugging
         error_msg = (
-            f"Training process failed with exit code {e.returncode}\n" f"stdout: {e.stdout}\n" f"stderr: {e.stderr}"
+            f"Training process failed with exit code {e.returncode}\n"
+            f"stdout: {e.stdout}\n"
+            f"stderr: {e.stderr}"
         )
         raise RuntimeError(error_msg) from e
     except Exception as e:
