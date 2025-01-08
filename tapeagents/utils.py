@@ -5,7 +5,6 @@ Various utility functions.
 import base64
 import difflib
 import json
-import logging
 import os
 from contextlib import contextmanager
 from typing import Any
@@ -13,8 +12,6 @@ from typing import Any
 import jsonref
 from pydantic import TypeAdapter
 from termcolor import colored
-
-logger = logging.getLogger(__name__)
 
 
 # Custom exception for fatal errors
