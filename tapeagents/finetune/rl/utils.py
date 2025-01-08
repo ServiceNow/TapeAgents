@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -6,6 +7,8 @@ import torch
 from datasets import Dataset
 
 from tapeagents.finetune.logging_ import flatten_dict_config
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -34,7 +37,10 @@ def get_avg_rl_stats(rl_stats):
 
 def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
     """Compute sum of tensor with a masked values."""
-    values = torch.nan_to_num(values, nan=0.0)
+    if not torch.isfinite(values).all():
+        logger.warning("masked_sum: values contain non-finite values")
+        # set the value to 0 if it is not finite
+        values = torch.nan_to_num(values, nan=0.0)
     if axis is not None:
         return (values * mask).sum(axis=axis)  # type: ignore
     else:
@@ -43,8 +49,10 @@ def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = 
 
 def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
     """Compute mean of tensor with a masked values."""
-    # set the value to 0 if it is not finite
-    values = torch.nan_to_num(values, nan=0.0)
+    if not torch.isfinite(values).all():
+        logger.warning("masked_mean: values contain non-finite values")
+        # set the value to 0 if it is not finite
+        values = torch.nan_to_num(values, nan=0.0)
     if axis is not None:
         return (values * mask).sum(axis=axis) / mask.sum(axis=axis)  # type: ignore
     else:
