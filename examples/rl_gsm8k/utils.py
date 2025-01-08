@@ -19,6 +19,7 @@ from transformers import PreTrainedTokenizer
 
 from tapeagents.llms import LLMOutput, Prompt
 from .dist_utils import DistributedManager
+
 logger = logging.getLogger(__name__)
 
 def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[str]:
@@ -354,7 +355,8 @@ def launch_training(
     config_dir: str, 
     config_name: str, 
     accelerate_cfg_path: str,
-    use_deepspeed: bool = False
+    use_deepspeed: bool = False,
+    dist_manager: DistributedManager = None,
 ) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
@@ -375,16 +377,14 @@ def launch_training(
     logger.info(f"Parent Process ID: {os.getppid()}")
     logger.info(f"Process Working Directory: {os.getcwd()}")
 
-    clean_env = os.environ.copy()
-
-    GLOBAL_RANK = int(clean_env.get("RANK", 0))
-    MASTER_PORT = clean_env.get("MASTER_PORT")
-    MASTER_ADDRESS = clean_env.get("MASTER_ADDR")
-    WORLD_SIZE = int(clean_env.get("WORLD_SIZE", 1))
+    GLOBAL_RANK = dist_manager.get_rank()
+    MASTER_PORT = dist_manager.get_master_port()
+    MASTER_ADDRESS = dist_manager.get_master_address()
+    WORLD_SIZE = dist_manager.get_world_size()
     
     logger.info("Environment Variables:")
     for key in ["RANK", "LOCAL_RANK", "WORLD_SIZE", "MASTER_ADDR", "MASTER_PORT"]:
-        logger.info(f"{key}: {clean_env.get(key)}")
+        logger.info(f"{key}: {os.environ.get(key)}")
     
     num_gpus = torch.cuda.device_count() * WORLD_SIZE
     is_multinode = WORLD_SIZE > 1
