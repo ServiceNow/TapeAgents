@@ -337,15 +337,31 @@ def save_model_only(
 
         # Only convert to HF format if requested (e.g. for inference checkpoints)
         if convert_to_hf and accelerator.is_main_process:
-            from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
+            from deepspeed.utils.zero_to_fp32 import get_fp32_state_dict_from_zero_checkpoint
             logger.info("Converting DeepSpeed checkpoint to HF format")
 
-            convert_zero_checkpoint_to_fp32_state_dict(
+            torch.cuda.empty_cache()
+            state_dict = get_fp32_state_dict_from_zero_checkpoint(
                 checkpoint_dir=output_dir,
-                output_dir=output_dir,
                 tag=None,  # will use 'global_step{step}' from DeepSpeed
-                safe_serialization=safe_serialization
+                lazy_mode=True  # More memory efficient
             )
+            batch_size = 10
+            keys = list(state_dict.keys())
+
+            for i in range(0, len(keys), batch_size):
+                batch_keys = keys[i:i + batch_size]
+                for k in batch_keys:
+                    state_dict[k] = state_dict[k].contiguous()
+                    torch.cuda.empty_cache()
+
+            accelerator.unwrap_model(model).save_pretrained(
+                output_dir,
+                state_dict=state_dict,
+                safe_serialization=safe_serialization,
+                max_shard_size="10GB"
+            )
+
 
             # save model config
             logger.info("Save model config (config.json)")
