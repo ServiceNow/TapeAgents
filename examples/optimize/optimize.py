@@ -26,10 +26,10 @@ from tapeagents.dialog_tape import (
     UserStep,
 )
 from tapeagents.environment import ToolEnvironment
-from tapeagents.io import stream_yaml_tapes
+from tapeagents.io import save_agent, stream_yaml_tapes
 from tapeagents.llm_function import LLMFunctionNode, by_node, by_step
 from tapeagents.llms import LiteLLM, LLMStream
-from tapeagents.optimize import optimize_demos
+from tapeagents.optimize import OptimizationResult, optimize_demos
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.renderers.pretty import PrettyRenderer
@@ -148,24 +148,31 @@ def optimize_agent(agent: Agent, cfg: DictConfig) -> Agent:
             saver.save(tape)
     # Step 3: Optimize agent from the good tapes
     run_agent_with_val_dataset = partial(run_agent, dataset=dataset.dev, cfg=cfg)
-    better_agent = optimize_demos(
-        agent,
-        good_tapes,
-        cfg.optimize.max_n_demos,
-        cfg.optimize.max_optimize_tries,
-        cfg.seed,
-        compute_weighted_accuracy,
-        run_agent_with_val_dataset,
+    best_optimization = optimize_demos(
+        agent=agent,
+        good_tapes=good_tapes,
+        n_demos=cfg.optimize.max_n_demos,
+        n_iterations=cfg.optimize.max_optimize_tries,
+        seed=cfg.seed,
+        metric_fn=compute_weighted_accuracy,
+        run_agent_fn=run_agent_with_val_dataset,
+        post_run_agent_fn=save_optimization_result,
     )
-    return better_agent
+    save_optimization_result(result=best_optimization, run_name="best")
+    return best_optimization.agent
+
+
+def save_optimization_result(result: OptimizationResult, run_name: str = "optimization") -> None:
+    filename = f"agent_{f'{run_name}_' if run_name else ''}{result.id}.yaml"
+    save_agent(agent=result.agent, filename=filename)
 
 
 def compute_weighted_accuracy(
-    dataset: list, tapes: list[Tape], run_name: str = "", w_retrieval: float = 0.5, w_answer: float = 0.5
+    tapes: list[Tape], run_name: str = "", w_retrieval: float = 0.5, w_answer: float = 0.5
 ) -> float:
     """Compute the weighted average of the retrival and answer accuracy"""
-    retrieval_accuracy = compute_retrieval_accuracy(dataset, tapes)
-    answer_accuracy = compute_answer_exact_match(dataset, tapes)
+    retrieval_accuracy = compute_retrieval_accuracy(tapes)
+    answer_accuracy = compute_answer_exact_match(tapes)
     mean_accuracy = retrieval_accuracy * w_retrieval + answer_accuracy * w_answer
     metrics = {
         "mean_accuracy": mean_accuracy,
@@ -324,7 +331,7 @@ def evaluate(cfg: DictConfig):
     dataset = get_dataset(cfg)
     tapes_save_path = f"test_tapes_{cfg.dataset.test_size}.yaml"
     final_tapes = batch_run_and_save(agent, env, dataset.test, tapes_save_path)
-    compute_weighted_accuracy(dataset.test, final_tapes, run_name="test")
+    compute_weighted_accuracy(final_tapes, run_name="test")
 
 
 def browse():
