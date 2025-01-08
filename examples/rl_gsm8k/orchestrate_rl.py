@@ -287,25 +287,20 @@ def main(cfg: DictConfig):
 
     match cfg.dataset_name:
         case "math":
-            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            dataset_long_name = "hendrycks/competition_math"
             process_fn = process_math_test
         case "gsm8k":
-            train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
+            dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
         case "numina":
-            train_dataset_long_name = "AI-MO/NuminaMath-CoT"
-            #TODO: think of a good test set
-            test_dataset_long_name = "hendrycks/competition_math"
+            dataset_long_name = "alexpiche/processed_numina"
             process_fn = process_math_test
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    if cfg.dataset_name == "numina":
-        train_dataset = load_dataset(train_dataset_long_name, split="train", trust_remote_code=True)
-    else:
-        train_dataset = load_dataset(train_dataset_long_name, "main", split="train", trust_remote_code=True)
+    train_dataset = load_dataset(dataset_long_name, split="train", trust_remote_code=True)
+    test_dataset = load_dataset(dataset_long_name, split="test", trust_remote_code=True)
     train_samples = [process_fn(s) for s in train_dataset]
-    test_dataset = load_dataset(test_dataset_long_name, "main", split="test", trust_remote_code=True)
     test_samples = [process_fn(s) for s in test_dataset]
     logger.info(f"Loaded {len(train_samples)} training samples")
     logger.info(f"Loaded {len(test_samples)} test samples")
