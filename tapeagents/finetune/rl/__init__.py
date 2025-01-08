@@ -130,7 +130,9 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
             loss = -masked_mean(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
-    assert torch.isfinite(loss).all(), "loss contains NaN or inf"
+    if not torch.isfinite(loss).all():
+        logger.warning("Loss is not finite and will be discarded")
+        loss = torch.tensor(0.0, device=loss.device, requires_grad=True)
 
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
