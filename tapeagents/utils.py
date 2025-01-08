@@ -118,30 +118,6 @@ def encode_image(image_path):
         return base64.b64encode(image_file.read()).decode("utf-8")
 
 
-def get_relative_path_to_root(path, root_path):
-    """
-    Example:
-    path=/a/b/c/d/file.txt
-    root_path=b/c/
-    returns d/file.txt
-    """
-    # Normalize the paths
-    path = os.path.normpath(path)
-    root_path = os.path.normpath(root_path)
-
-    # Find the index of root_path in path
-    index = path.find(root_path)
-
-    if index == -1:
-        logger.warning("root_path not found in path")
-        return os.path.basename(path)
-
-    # Extract the relative path
-    relative_path = path[index + len(root_path) :]
-
-    return relative_path.lstrip(os.sep)
-
-
 @contextmanager
 def acquire_timeout(lock, timeout):
     result = lock.acquire(timeout=timeout)

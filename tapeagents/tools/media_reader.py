@@ -4,6 +4,7 @@ import os
 import re
 import threading
 import time
+from pathlib import Path
 from typing import Optional
 
 import ffmpeg
@@ -39,11 +40,11 @@ def get_video_observation(
         logger.error(f"Error while watching video: {e}")
         raise e
     video_observation = VideoObservation(
-        local_dir=output_dir,
-        video_path=video_path_trimmed,
-        video_contact_sheet_paths=video_contact_sheet_paths,
-        thumbnail_path=thumbnail_path,
-        subtitle_path=subtitle_path,
+        attachment_dir=output_dir,
+        video_path=Path(video_path_trimmed).relative_to(output_dir).as_posix(),
+        video_contact_sheet_paths=[Path(path).relative_to(output_dir).as_posix() for path in video_contact_sheet_paths],
+        thumbnail_path=Path(thumbnail_path).relative_to(output_dir).as_posix(),
+        subtitle_path=Path(subtitle_path).relative_to(output_dir).as_posix(),
         subtitle_text=subtitle_text,
         error=error,
     )

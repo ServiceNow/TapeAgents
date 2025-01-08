@@ -18,6 +18,8 @@ from tapeagents.steps import ImageObservation, UnknownStep
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_ATTACHMENT_DIR = "attachments"
+
 
 class TapeSaver:
     """A class for saving Tape objects using YAML format.
@@ -177,6 +179,11 @@ def load_tapes(tape_class: Type[TapeType], path: Path | str, file_extension: str
     data = load_tape_dicts(path, file_extension)
     for tape_dict in data:
         tape = tape_class.model_validate(tape_dict)
+        # Update attachment_dir for steps that needs it
+        attachment_dir = Path(path).parent / DEFAULT_ATTACHMENT_DIR
+        for step in tape:
+            if hasattr(step, "attachment_dir"):
+                step.attachment_dir = attachment_dir
         tapes.append(tape)
     return tapes
 
