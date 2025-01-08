@@ -355,7 +355,6 @@ LLMOutput: TypeAlias = litellm.utils.Message
 
 class TokenLogprob(BaseModel):
     logprob: float
-    token: str
     token_id: int
     generated: int
 

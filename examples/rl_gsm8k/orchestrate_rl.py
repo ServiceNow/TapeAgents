@@ -1,5 +1,4 @@
 import copy
-from itertools import chain
 import json
 import logging
 import multiprocessing
@@ -8,7 +7,7 @@ import random
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from functools import partial
+from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -21,8 +20,10 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
-
 from tapeagents.agent import Agent
+from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.llms import TrainableLLM
 
 from .cot_math_agent import (
     CoTMathAgent,
@@ -36,18 +37,11 @@ from .utils import (
     VLLMServiceManager,
     calculate_stats,
     clean_up,
-    get_tokens_from_hf_tokenizer,
     launch_training,
     load_state,
     save_state,
     setup_logging,
 )
-from tapeagents.batch import batch_main_loop
-from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
-from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.llms import TrainableLLM
-from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_calls
-from tapeagents.orchestrator import main_loop
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +225,7 @@ def generate_training_data(
 
     start_making_tapes = time.time()
     with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
-        replica_tapes = [tapes[i::len(agent_replicas)] for i in range(len(agent_replicas))]
+        replica_tapes = [tapes[i :: len(agent_replicas)] for i in range(len(agent_replicas))]
         results = list(executor.map(batch_run_agent_replica, agent_replicas, replica_tapes))
         final_tapes = list(chain(*[r[1] for r in results]))
         agent_replicas = [r[0] for r in results]
@@ -347,7 +341,7 @@ def main(cfg: DictConfig):
 
                 test_llms = [
                     TrainableLLM(
-                        base_url=vllm_service_manager.get_base_urls(),
+                        base_url=base_url,
                         model_name=str(assistant_model_path),
                         tokenizer_name=str(assistant_model_path),
                         parameters=cfg.test_llm.parameters,
@@ -376,7 +370,10 @@ def main(cfg: DictConfig):
                     throughput_stats = {
                         "prompt_tokens_per_sec": stats[f"{split_name}_prompt_tokens"] / make_data_took,
                         "output_tokens_per_sec": stats[f"{split_name}_output_tokens"] / make_data_took,
-                        "total_tokens_per_sec": (stats[f"{split_name}_prompt_tokens"] + stats[f"{split_name}_output_tokens"]) / make_data_took,
+                        "total_tokens_per_sec": (
+                            stats[f"{split_name}_prompt_tokens"] + stats[f"{split_name}_output_tokens"]
+                        )
+                        / make_data_took,
                     }
                     stats.update(llm_stats)
                     stats.update(throughput_stats)
@@ -418,7 +415,7 @@ def main(cfg: DictConfig):
                 verbose=True,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.ref_vllm_kwargs))
+                **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.ref_vllm_kwargs)),
             ) as vllm_service_manager:
                 ref_llms = [
                     TrainableLLM(

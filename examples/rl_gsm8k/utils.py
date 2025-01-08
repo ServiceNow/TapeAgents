@@ -155,6 +155,7 @@ class VLLMServiceManager:
             f"--model {self.model_name_or_path} "
             f"--tensor-parallel-size {tensor_parallel_size} "
             f"--port {port} "
+            f"--seed {cuda_device} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
             f"{kwargs_str}"
