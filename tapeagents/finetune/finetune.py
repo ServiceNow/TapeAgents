@@ -334,12 +334,15 @@ def run_finetuning_loop(
     dt = log_time(dt, "finetune/final_eval")
 
     logger.info("Final model saving")
+    if args.cuda_empty_cache:
+        torch.cuda.empty_cache()
     save_model_and_tokenizer(
         current_dir,
         model,
         tokenizer,
         args.lora.enabled,
         safe_serialization=args.use_safetensors,
+        convert_to_hf=True,
     )
     dt = log_time(dt, "finetune/final_save")
     if args.save_final_training_state:
