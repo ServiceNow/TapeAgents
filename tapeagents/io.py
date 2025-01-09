@@ -13,12 +13,11 @@ from typing import Generator, Type
 import yaml
 from pydantic import TypeAdapter
 
+from tapeagents.config import ATTACHMENT_DEFAULT_DIR
 from tapeagents.core import Tape, TapeType
 from tapeagents.steps import ImageObservation, UnknownStep
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_ATTACHMENT_DIR = "attachments"
 
 
 class TapeSaver:
@@ -150,7 +149,12 @@ def load_tape_dicts(path: Path | str, file_extension: str = ".yaml") -> list[dic
     return tapes
 
 
-def load_tapes(tape_class: Type[TapeType], path: Path | str, file_extension: str = ".yaml") -> list[TapeType]:
+def load_tapes(
+    tape_class: Type[TapeType],
+    path: Path | str,
+    file_extension: str = ".yaml",
+    attachment_dir: str = None,
+) -> list[TapeType]:
     """Load tapes from dir with YAML or JSON files.
 
     This function loads tapes from a file or directory and converts them into tape objects
@@ -161,6 +165,7 @@ def load_tapes(tape_class: Type[TapeType], path: Path | str, file_extension: str
         path (Union[Path, str]): Path to a file or directory containing tape configurations.
         file_extension (str, optional): File extension to filter by when loading from directory.
             Must be either '.yaml' or '.json'. Defaults to '.yaml'.
+        attachment_dir (str, optional): The directory to use for attachments. If None, a default directory will be used.
 
     Returns:
         list[TapeType]: A list of validated tape objects.
@@ -177,13 +182,14 @@ def load_tapes(tape_class: Type[TapeType], path: Path | str, file_extension: str
     """
     tapes = []
     data = load_tape_dicts(path, file_extension)
+    attachment_dir_resolved = get_attachment_dir(path, attachment_dir)
     for tape_dict in data:
         tape = tape_class.model_validate(tape_dict)
-        # Update attachment_dir for steps that needs it
-        attachment_dir = Path(path).parent / DEFAULT_ATTACHMENT_DIR
-        for step in tape:
-            if hasattr(step, "attachment_dir"):
-                step.attachment_dir = attachment_dir
+        if attachment_dir_resolved:
+            # Update attachment_dir for steps that needs it
+            for step in tape:
+                if hasattr(step, "attachment_dir"):
+                    step.attachment_dir = attachment_dir_resolved
         tapes.append(tape)
     return tapes
 
@@ -209,3 +215,43 @@ def load_legacy_tapes(tape_class: Type[TapeType], path: Path | str, step_class: 
             tape.steps = steps
         tapes.append(tape)
     return tapes
+
+
+def get_attachment_dir(tape_path: Path | str, attachment_dir: Path | str) -> str | None:
+    """
+    Determines the directory to use for tape attachments.
+
+    Args:
+        tape_path (Path | str]): Path to a file or directory containing tape configurations.
+        attachment_dir (Path | str): The directory to use for attachments. If None, a default directory will be used.
+
+    Returns:
+        str | None: The path to the attachment directory if it exists, otherwise None.
+
+    Raises:
+        FileNotFoundError: If the provided attachment_dir does not exist.
+
+    Examples:
+        >>> get_attachment_dir("data/tapes.yaml", "data/images")
+        'data/images'
+
+        >>> get_attachment_dir("data/tapes.yaml", None)
+        'data/attachments'
+
+        >>> get_attachment_dir("data/tapes/", None)
+        'data/attachments'
+    """
+    if attachment_dir:
+        # Use attachment_dir if provided and exists
+        if not Path(attachment_dir).is_dir():
+            raise FileNotFoundError(f"Tape attachment directory not found: {attachment_dir}")
+        return str(attachment_dir)
+    else:
+        # Use ATTACHMENT_DEFAULT_DIR if exists
+        path_obj = Path(tape_path)
+        default_path = path_obj.parent.parent if path_obj.is_file() else path_obj.parent
+        default_path /= ATTACHMENT_DEFAULT_DIR
+        if Path(default_path).is_dir():
+            logger.info(f"Use tape attachment director: {default_path}")
+            return str(default_path)
+    return None

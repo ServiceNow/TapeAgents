@@ -42,7 +42,7 @@ from examples.optimize.optimize import make_agentic_rag_agent, make_env
 from examples.tape_improver import tape_improver
 from examples.workarena.agent import WorkArenaAgent
 from examples.workarena.steps import WorkArenaTape
-from tapeagents.config import DB_DEFAULT_FILENAME
+from tapeagents.config import ATTACHMENT_DEFAULT_DIR, DB_DEFAULT_FILENAME
 from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
@@ -161,10 +161,15 @@ def test_gaia_agent():
             shutil.copyfileobj(f_in, f_out)
     try:
         llm = mock_llm(run_dir)
-        env = GaiaEnvironment(only_cached_webpages=True, attachment_dir=f"{run_dir}/attachments")
+        env = GaiaEnvironment(only_cached_webpages=True, attachment_dir=f"{run_dir}/{ATTACHMENT_DEFAULT_DIR}")
         env.browser.set_web_cache(f"{run_dir}/web_cache.jsonl")
         agent = GaiaAgent.create(llm)
-        tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
+        tapes = load_tapes(
+            GaiaTape,
+            os.path.join(run_dir, "tapes"),
+            file_extension=".json",
+            attachment_dir=os.path.join(run_dir, ATTACHMENT_DEFAULT_DIR),
+        )
         logger.info(f"Validate {len(tapes)} tapes")
         fails = replay_tapes(agent, tapes, env, reuse_observations=True)
         assert fails == 0, f"{fails} failed tapes"
