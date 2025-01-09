@@ -1,6 +1,6 @@
 data_parts_train:
-  - path: tests/res/finetune/data/train
+  - path: tests/finetune/res/finetune/data/train
     weight: 1
 data_parts_valid:
-  - path: tests/res/finetune/data/dev
+  - path: tests/finetune/res/finetune/data/dev
     weight: 1
