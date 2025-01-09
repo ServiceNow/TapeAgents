@@ -131,6 +131,15 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
     
+    if not torch.isfinite(loss).all():
+        print("approx_kl", approx_kl)
+        print("log_ratio_ref_new", log_ratio_ref_new)
+        print("log_ratio_new_old", log_ratio_new_old)
+        print("ratio_new_old", ratio_new_old)
+        print("log_p_weights", log_p_weights)
+        print("surr1", surr1)
+        print("surr2", surr2)
+        print("loss", loss)
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
     if loss > 10 or loss < -10:
         loss *= 0
