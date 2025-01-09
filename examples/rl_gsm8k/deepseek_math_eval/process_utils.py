@@ -21,8 +21,8 @@ def process_math_test(item):
         return
     sample = {
         "dataset": "math-cot",
-        #"level": item["level"],
-        #"type": item["type"],
+        "level": item["level"],
+        "type": item["type"],
         "task": question,
         "answer": answer
     }
