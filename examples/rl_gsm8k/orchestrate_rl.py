@@ -113,9 +113,6 @@ def extract_tape_training_samples(
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     match cfg.dataset_name:
-        case "numina":
-            eval_fn = eval_math
-            extract_fn = extract_math_answer
         case "math":
             eval_fn = eval_math
             extract_fn = extract_math_answer
@@ -292,9 +289,6 @@ def main(cfg: DictConfig):
         case "gsm8k":
             dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
-        case "numina":
-            dataset_long_name = "alexpiche/processed_numina"
-            process_fn = process_math_test
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
