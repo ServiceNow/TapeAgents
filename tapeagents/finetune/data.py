@@ -1,6 +1,7 @@
+import json
 import time
 from functools import partial
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Iterator, Sequence
 
 import datasets
 import torch
@@ -174,80 +175,8 @@ def collate(
     return BatchEncoding(result, tensor_type="pt")
 
 
-def create_dataloader(
-    data_parts: list[DataPartArgs] | list[TrainingText],
-    tokenizer: transformers.PreTrainedTokenizerBase,
-    batch_size: int,
-    seq_length: int,
-    is_rl: bool = False,
-    rng: torch.Generator | None = None,
-    shuffle: bool = False,
-    rl_data_callback: Callable | None = None,
-    n_examples: int | None = None,
-) -> DataLoader:
-    preprocess = partial(preprocess_fn, seq_length=seq_length, tokenizer=tokenizer, is_rl=is_rl)
-    columns = ["input_ids", "labels", "attention_mask"]
-    if is_rl:
-        columns += RL_DATA_COLUMNS
 
-    logger.info(f"Instantiated preprocess function hash {Hasher.hash(preprocess)}")
-    collate_fn = partial(
-        collate,
-        tokenizer=tokenizer,
-    )
-    logger.info(f"Instantiated collate_fn hash {Hasher.hash(collate_fn)}")
 
-    datasets = []
-    weights = []
-    stop = False
-    for part in data_parts:
-        if isinstance(part, TrainingText):
-            dataset_part = Dataset.from_list([s.model_dump() for s in data_parts])
-            weights.append(1.0)
-            stop = True
-        else:
-            # The path must point to the directory containing the data files
-            # for one split of interest. `load_dataset` will automatically call
-            # this split "train".
-            dataset_part = load_dataset(part.path, split="train", data_files=part.files)
-            assert isinstance(dataset_part, Dataset)
-            weights.append(part.weight)
-
-        logger.info(f"Raw data part size: {dataset_part.num_rows}")
-        logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
-        dataset_part = dataset_part.map(preprocess, keep_in_memory=True, load_from_cache_file=False)
-        dataset_part = dataset_part.with_format(columns=columns)
-        logger.info(f"Preprocessed data part fingerprint: {dataset_part._fingerprint}")
-        datasets.append(dataset_part)
-        if stop:
-            break
-    total_weight = sum(weights)
-    probs = [w / total_weight for w in weights]
-    data = interleave_datasets(
-        datasets,
-        probabilities=probs,
-        stopping_strategy="all_exhausted",
-        seed=rng.initial_seed() if rng is not None else None,
-    )
-    logger.info(f"Merged data size: {data.num_rows}")
-    logger.info(f"Merged data fingerprint: {data._fingerprint}")
-
-    if rl_data_callback is not None:
-        accelerator.wait_for_everyone()
-        dt = time.perf_counter()
-        data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
-        dt = log_time(dt, "finetune/rl_data_callback")
-
-    if n_examples:
-        data = data.select(range(n_examples))
-
-    return DataLoader(
-        data,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        collate_fn=collate_fn,
-        generator=rng,
-    )
 
 
 def prepare_dataloaders(
@@ -296,3 +225,40 @@ def prepare_dataloaders(
     )
 
     return train_dataloader, eval_dataloader, dev_dataloader
+
+
+def read_jsonl_stream(filepath: str, retry_delay: float = 0.1) -> Iterator[Any]:
+    """
+    Read JSON lines file incrementally, handling incomplete lines.
+    
+    Args:
+        filepath: Path to the JSONL file
+        retry_incomplete: Whether to retry reading incomplete last line
+        retry_delay: Delay in seconds between retries
+        
+    Yields:
+        Parsed JSON objects from each line
+
+    Warning: This code is AI-generated.
+    
+    """
+    with open(filepath, 'r') as f:
+        incomplete_line = ''
+        
+        while True:
+            line = f.readline()
+                       
+            # Handle line ending
+            if line.endswith('\n'):
+                full_line = incomplete_line + line
+                incomplete_line = ''
+            else:
+                incomplete_line += line
+                time.sleep(retry_delay)
+                continue
+                
+            try:
+                yield json.loads(full_line)
+            except json.JSONDecodeError:
+                # Skip invalid JSON lines
+                continue

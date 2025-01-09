@@ -37,7 +37,10 @@ def init_wandb(
 
     if cfg.finetune.wandb_resume == "always":
         resume = True
+    elif cfg.finetune.wandb_resume == "never":
+        resume = False
     elif cfg.finetune.wandb_resume == "if_not_interactive":
+        # TODO: we don't really check if the job is interactive here, oops
         resume = not cfg.finetune.force_restart
     else:
         raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
@@ -116,9 +119,9 @@ def log_metrics(logger: logging.Logger, completed_steps: int, metrics: dict[str,
         logger.error(f"Failed to log metrics to wandb with error: {e}")
 
 
-# TODO: remove all the calls of this function after the RLHF pipeline is stabilized
-def log_time(start_time, msg):
+def log_time(start_time: str, stats_dict: dict, msg: str):
     t = time.perf_counter()
+    stats_dict[msg] = t - start_time
     return t
 
 

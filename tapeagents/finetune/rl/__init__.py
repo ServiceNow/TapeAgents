@@ -207,12 +207,7 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
     return dataset
 
 
-def populate_rl_data(
-    dataset: Dataset,
-    columns: list[str],
-    collate_fn: Callable,
-    config: RLConfig,
-) -> Dataset:
+def populate_rl_data(dataset: Dataset, config: RLConfig) -> Dataset:
     """
     Populates a dataset with reinforcement learning specific data columns.
 
@@ -226,11 +221,11 @@ def populate_rl_data(
         Dataset: The dataset populated with RL-specific columns including rewards and advantages
     """
 
-    logger.info("Populate RL Data")
+    logger.debug("Populate RL Data")
 
     dataset = update_rewards_and_advantages(dataset, config)
 
-    logger.info("Finish Populate RL Data")
+    logger.debug("Finish Populate RL Data")
     return dataset
 
 
