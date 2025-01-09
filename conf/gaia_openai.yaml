@@ -2,14 +2,21 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_val_gym1
+exp_name: gpt4o_mini_val_joblib1
 
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-batch: 32
+batch: 8
 
-level: 1
-task: 0
+only_tasks: # list of (level, task_num)
+- [2, 0]
+- [2, 1]
+- [2, 2]
+- [2, 3]
+- [2, 4]
+- [2, 5]
+- [2, 6]
+- [2, 7] 
 
 agent:
   plain_code: false
