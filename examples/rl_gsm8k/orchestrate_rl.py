@@ -292,8 +292,8 @@ def main(cfg: DictConfig):
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    train_dataset = load_dataset(dataset_long_name, split="train", trust_remote_code=True)
-    test_dataset = load_dataset(dataset_long_name, split="test", trust_remote_code=True)
+    train_dataset = load_dataset(dataset_long_name, "main", split="train", trust_remote_code=True)
+    test_dataset = load_dataset(dataset_long_name, "main", split="test", trust_remote_code=True)
     train_samples = [process_fn(s) for s in train_dataset]
     test_samples = [process_fn(s) for s in test_dataset]
     logger.info(f"Loaded {len(train_samples)} training samples")
