@@ -4,7 +4,7 @@ from pathlib import Path
 from tapeagents.batch import generate_tapes
 from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
 from tapeagents.environment import EmptyEnvironment
-from tapeagents.llms import TrainableLLM, LLM
+from tapeagents.llms import LLM, TrainableLLM
 
 from .llama_agent import LLAMAChatBot
 from .llama_user import LLAMAUserModel

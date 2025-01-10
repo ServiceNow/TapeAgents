@@ -160,9 +160,13 @@ class MonoNode(Node):
                        Messages from tape are added with roles based on step type.
                        If guidance exists, it's added as the final user message.
         """
-        messages: list[dict] = [
-            {"role": "system", "content": self.system_prompt},
-        ] if self.system_prompt else []
+        messages: list[dict] = (
+            [
+                {"role": "system", "content": self.system_prompt},
+            ]
+            if self.system_prompt
+            else []
+        )
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
         for step in tape:

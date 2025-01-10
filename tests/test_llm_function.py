@@ -3,12 +3,11 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
-from examples.optimize.load_demos import load_agentic_rag_demos, load_rag_demos
 from examples.optimize.func_templates import make_answer_template, make_query_template
+from examples.optimize.load_demos import load_agentic_rag_demos, load_rag_demos
 from tapeagents.dialog_tape import ToolResult, UserStep
-from tapeagents.llm_function import Input, LLMFunctionTemplate, AssistantOutput, RationaleOutput
+from tapeagents.llm_function import AssistantOutput, Input, LLMFunctionTemplate, RationaleOutput
 from tapeagents.utils import diff_strings
-
 
 TEST_INPUT_STEP1 = UserStep(
     content="What is the nationality of the chef and restaurateur featured in Restaurant: Impossible?"

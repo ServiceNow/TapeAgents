@@ -1,5 +1,5 @@
 from tapeagents.dialog_tape import ToolResult
-from tapeagents.llm_function import Input, LLMFunctionTemplate, AssistantOutput, RationaleOutput, ToolCallOutput
+from tapeagents.llm_function import AssistantOutput, Input, LLMFunctionTemplate, RationaleOutput, ToolCallOutput
 
 
 def render_contexts(contexts: list[str]) -> str:

@@ -14,40 +14,25 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
+import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
-import wandb
+from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.finetune.data import MASKED_TOKEN_ID
+from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.llms import TrainableLLM
+from tapeagents.orchestrator import main_loop
 
-wandb.require("core")
-from .cot_math_agent import (
-    CoTMathAgent,
-    MathEnvironment,
-    RLMathTape,
-    Task,
-)
+from .cot_math_agent import CoTMathAgent, MathEnvironment, RLMathTape, Task
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
 from .deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
-from .utils import (
-    VLLMServiceManager,
-    calculate_stats,
-    clean_up,
-    get_tokens_from_hf_tokenizer,
-    launch_training,
-    load_state,
-    save_state,
-    setup_logging,
-)
-from tapeagents.batch import batch_main_loop
-from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
-from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.finetune.data import MASKED_TOKEN_ID
-from tapeagents.llms import TrainableLLM
-from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_calls
-from tapeagents.orchestrator import main_loop
+from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
+
+wandb.require("core")
 
 logger = logging.getLogger(__name__)
 
@@ -469,7 +454,7 @@ def main(cfg: DictConfig):
             "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
             "execution_time/starting_refmodel_vllm": refmodel_starting_time,
         }
-        logger.info(f"Logprob population stats:")
+        logger.info("Logprob population stats:")
         for stat_name, stat_value in logprob_stats.items():
             logger.info(f"{stat_name}: {stat_value}")
         wandb.log(logprob_stats, step=state["iteration"])

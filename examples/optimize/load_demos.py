@@ -11,7 +11,6 @@ from tapeagents.dialog_tape import (
     UserStep,
 )
 
-
 res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
 
 

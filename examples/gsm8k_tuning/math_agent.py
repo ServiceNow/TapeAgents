@@ -7,8 +7,8 @@ from pydantic import Field
 from tapeagents.agent import Agent
 from tapeagents.core import (
     Action,
-    LLMOutputParsingFailureAction,
     FinalStep,
+    LLMOutputParsingFailureAction,
     Observation,
     SetNextNode,
     Tape,
