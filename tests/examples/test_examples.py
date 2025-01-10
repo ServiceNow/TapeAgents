@@ -11,7 +11,15 @@ from pathlib import Path
 import yaml
 from omegaconf import DictConfig
 
+from tapeagents.config import ATTACHMENT_DEFAULT_DIR, DB_DEFAULT_FILENAME
+from tapeagents.core import AgentStep, TrainingText
+from tapeagents.dialog_tape import DialogTape
+from tapeagents.environment import EmptyEnvironment
 from tapeagents.io import load_tapes
+from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
+from tapeagents.observe import init_sqlite_if_not_exists, retrieve_tape_llm_calls
+from tapeagents.orchestrator import replay_tape, replay_tapes
+from tapeagents.team import TeamTape
 from tests.make_test_data import run_test_in_tmp_dir
 
 sys.path.append(str(Path(__file__).parent.parent.parent.resolve()))  # allow to import from examples
@@ -42,14 +50,6 @@ from examples.optimize.optimize import make_agentic_rag_agent, make_env
 from examples.tape_improver import tape_improver
 from examples.workarena.agent import WorkArenaAgent
 from examples.workarena.steps import WorkArenaTape
-from tapeagents.config import ATTACHMENT_DEFAULT_DIR, DB_DEFAULT_FILENAME
-from tapeagents.core import AgentStep, TrainingText
-from tapeagents.dialog_tape import DialogTape
-from tapeagents.environment import EmptyEnvironment
-from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
-from tapeagents.observe import init_sqlite_if_not_exists, retrieve_tape_llm_calls
-from tapeagents.orchestrator import replay_tape, replay_tapes
-from tapeagents.team import TeamTape
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
