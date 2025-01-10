@@ -32,7 +32,7 @@ from .cot_math_agent import (
 )
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-from .deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
+from .deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test, process_eurus_test
 from .utils import (
     VLLMServiceManager,
     calculate_stats,
@@ -119,6 +119,9 @@ def extract_tape_training_samples(
         case "gsm8k":
             eval_fn = eval_last_single_answer
             extract_fn = extract_last_single_answer
+        case "eurus":
+            eval_fn = eval_math
+            extract_fn = extract_math_answer
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
@@ -139,6 +142,7 @@ def extract_tape_training_samples(
             reward, success = 1, 1
         else:
             # Incorrect answer or no answer
+            print(f"Prediction: {prediction}, answer: {answer}")
             reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
@@ -289,13 +293,17 @@ def main(cfg: DictConfig):
         case "gsm8k":
             dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
+        case "eurus":
+            dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
+            test_dataset_long_name = "qq8933/MATH500"
+            process_fn = process_eurus_test 
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    train_dataset = load_dataset(dataset_long_name, "main", split="train", trust_remote_code=True)
-    test_dataset = load_dataset(dataset_long_name, "main", split="test", trust_remote_code=True)
-    train_samples = [process_fn(s) for s in train_dataset]
-    test_samples = [process_fn(s) for s in test_dataset]
+    train_dataset = load_dataset(dataset_long_name, split="train", trust_remote_code=True)
+    test_dataset = load_dataset(test_dataset_long_name, split="test", trust_remote_code=True)
+    train_samples = [process_fn(s) for s in train_dataset if process_fn(s) is not None]
+    test_samples = [process_fn(s) for s in test_dataset if process_fn(s) is not None]
     logger.info(f"Loaded {len(train_samples)} training samples")
     logger.info(f"Loaded {len(test_samples)} test samples")
 

@@ -5,6 +5,7 @@ import time
 from collections import defaultdict
 from dataclasses import asdict
 from pathlib import Path
+
 import numpy as np
 import torch
 from hydra import compose, initialize
@@ -30,7 +31,7 @@ from .data import create_dataloader, prepare_dataloaders
 from .eval import evaluate_and_get_metrics
 from .logging_ import log_metrics, log_time, setup_logging
 from .optim import get_optimizer
-from .rl import RLConfig, rl_step, make_rl_data_callback
+from .rl import RLConfig, make_rl_data_callback, rl_step
 from .rl.utils import get_avg_rl_stats
 from .types import DataArgs, DataPartArgs, ModelClass, TrainingMetrics
 
