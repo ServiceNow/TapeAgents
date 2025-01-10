@@ -107,9 +107,8 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     ratio_new_old = torch.exp(log_ratio_new_old)
     log_p_weights = advantages if config.use_advantages else rewards
     log_p_weights = torch.clamp(log_p_weights, min=0) if config.relu_log_p_weights else log_p_weights
-    # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
-    # log (p/(q+1e-8)) = log p - log q - log(1e-8)
-    log_ratio_ref_new = ref_logprobs - new_log_probs - torch.ones_like(new_log_probs) * np.log(1e-5)
+    # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 
+    log_ratio_ref_new = torch.clamp(ref_logprobs - new_log_probs, min=-10, max=10)
     approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
     match config.algo:
         case "grpo":
