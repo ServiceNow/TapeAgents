@@ -15,7 +15,7 @@ from pydantic import TypeAdapter
 
 from tapeagents.config import ATTACHMENT_DEFAULT_DIR
 from tapeagents.core import Tape, TapeType
-from tapeagents.steps import ImageObservation, UnknownStep
+from tapeagents.steps import ImageObservation, UnknownStep, VideoObservation
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +188,7 @@ def load_tapes(
         if attachment_dir_resolved:
             # Update attachment_dir for steps that needs it
             for step in tape:
-                if hasattr(step, "attachment_dir"):
+                if isinstance(step, (VideoObservation)):
                     step.attachment_dir = attachment_dir_resolved
         tapes.append(tape)
     return tapes
