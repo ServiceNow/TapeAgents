@@ -20,8 +20,6 @@ from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
 from examples.delegate_stack import (
     ExampleTape as ExampleTapeStack,
-)
-from examples.delegate_stack import (
     Linguist,
     make_analyze_text_chain,
 )

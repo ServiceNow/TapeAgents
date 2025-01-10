@@ -45,6 +45,9 @@ extend-select = [
   "I",  # isort
 ]
 
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
 [tool.pytest.ini_options]
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
