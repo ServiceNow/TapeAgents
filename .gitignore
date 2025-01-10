@@ -78,6 +78,10 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
+# ruff linter and formatter
+.ruff_cache/
+
+
 # Cython debug symbols
 cython_debug/
 
@@ -85,10 +89,10 @@ cython_debug/
 .DS_Store
 
 # IDE
-.idea/
-.vscode/launch.json
-.vscode/settings.json
-.vscode/tasks.json
+/.idea/
+/.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
 *.code-workspace
 
 # data
