@@ -21,6 +21,7 @@ install:
 
 lint:
 	@$(CONDA) run --no-capture-output --name ${ENV_NAME} ruff format .
+	@$(CONDA) run --no-capture-output --name ${ENV_NAME} ruff check . --fix
 
 test:
 	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest -s --color=yes -m "not slow" tests/
