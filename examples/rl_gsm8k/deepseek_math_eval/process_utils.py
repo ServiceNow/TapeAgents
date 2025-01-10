@@ -13,12 +13,6 @@ def process_eurus_test(item):
         # Eurus will produce \\ as \\\\
         solution = solution.replace("\\ ", "\\\\ ")
         answer = extract_math_answer(item["problem"] , solution, task="cot")
-        if answer[0] == "0":
-            print(f"Answer is 0: {item['problem']}")
-        if answer[0] != item["answer"]:
-            print(f"Answer mismatch: {answer[0]} != {item['answer']}")
-        if not isinstance(answer, list):
-            answer = [answer]
         return {
             "dataset": "math500",
             "task": item["problem"] + "\n\nPresent the answer in LaTex format: \\boxed{Your answer}",

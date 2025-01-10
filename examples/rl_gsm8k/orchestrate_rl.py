@@ -142,7 +142,6 @@ def extract_tape_training_samples(
             reward, success = 1, 1
         else:
             # Incorrect answer or no answer
-            print(f"Prediction: {prediction}, answer: {answer}")
             reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
