@@ -8,4 +8,4 @@ output_dir: outputs/rl_eurus
 llm:
   parameters:
     # CoT are much longer
-    max_tokens: 2048
+    max_tokens: 4096

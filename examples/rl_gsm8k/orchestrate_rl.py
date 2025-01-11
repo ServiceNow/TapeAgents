@@ -367,7 +367,7 @@ def main(cfg: DictConfig):
                     splits.append(("test", test_agent_replicas, test_tapes))
                 for split_name, agent_replicas, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
-                    agent_replicas_with_stats, new_tapes, training_samples, stats = generate_training_data(
+                    agent_replicas_with_stats, new_tapes, split_training_samples, stats = generate_training_data(
                         agent_replicas, tapes, cfg, tapes_dir, split_name
                     )
 
@@ -387,7 +387,7 @@ def main(cfg: DictConfig):
 
                     all_results[split_name] = {
                         "new_tapes": new_tapes,
-                        "training_samples": training_samples,
+                        "training_samples": split_training_samples,
                         "stats": stats,
                     }
 
@@ -401,6 +401,7 @@ def main(cfg: DictConfig):
             logger.error(colored(f"Failed to solve task: {e}", "red"))
             raise e
 
+        training_samples = all_results["train"]["training_samples"]
         logger.info(f"Collected {len(training_samples)} training samples")
         stats = all_results["train"]["stats"]
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
@@ -434,7 +435,6 @@ def main(cfg: DictConfig):
                 ]
 
                 start_basemodel_logprobs = time.time()
-                training_samples = all_results["train"]["training_samples"]
                 with ThreadPoolExecutor(
                     max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
                 ) as executor:
@@ -463,7 +463,7 @@ def main(cfg: DictConfig):
             "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
             "execution_time/starting_refmodel_vllm": refmodel_starting_time,
         }
-        logger.info(f"Logprob population stats:")
+        logger.info("Logprob population stats:")
         for stat_name, stat_value in logprob_stats.items():
             logger.info(f"{stat_name}: {stat_value}")
         wandb.log(logprob_stats, step=state["iteration"])

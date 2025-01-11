@@ -222,6 +222,7 @@ class VLLMServiceManager:
 
     def __enter__(self) -> "VLLMServiceManager":
         if is_debug_mode():
+            logger.info("Running in debug mode, skipping service start")
             self.ports = [8080]
             return self
         self._start_service()
@@ -229,6 +230,7 @@ class VLLMServiceManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         if is_debug_mode():
+            logger.info("Running in debug mode, skipping service cleanup")
             return None
         self._cleanup()
 
