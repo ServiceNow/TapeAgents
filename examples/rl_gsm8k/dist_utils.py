@@ -100,28 +100,6 @@ class DistributedManager:
             return False
 
     @classmethod
-    def all_gather_object(cls, obj):
-        """Gather objects from all processes and return them in a list.
-        
-        Args:
-            obj: Any picklable Python object
-        Returns:
-            list: List of objects gathered from all processes
-        """
-        if not torch.distributed.is_initialized():
-            return [obj]
-            
-        try:
-            gathered_objects = [None] * cls.get_world_size()
-            torch.distributed.all_gather_object(gathered_objects, obj)
-            return gathered_objects
-            
-        except Exception as e:
-            logger.error(f"[Rank {cls.get_rank()}] Failed to gather objects: {e}")
-            # Return list with just this process's object on failure
-            return [obj]
-
-    @classmethod
     def broadcast_object(cls, obj, src=0):
         """Broadcast an object from the source rank to all other processes."""
         if not torch.distributed.is_initialized():
@@ -173,3 +151,30 @@ class DistributedManager:
         except Exception as e:
             logger.error(f"[Rank {cls.get_rank()}] Failed to broadcast object: {e}")
             raise RuntimeError(f"Broadcast failed on rank {cls.get_rank()}: {e}")
+
+    @classmethod
+    def gather_object(cls, obj):
+        """Gather objects from all processes to rank 0.
+
+        Args:
+            obj: Any picklable Python object
+        Returns:
+            list: On rank 0, list of objects gathered from all processes.
+                  On other ranks, None.
+        """
+        if not torch.distributed.is_initialized():
+            return [obj]
+
+        try:
+            if cls.get_rank() == '0':
+                gathered_objects = [None] * cls.get_world_size()
+            else:
+                gathered_objects = None
+
+            torch.distributed.gather_object(obj, gathered_objects, dst=0)
+            return gathered_objects
+
+        except Exception as e:
+            logger.error(f"[Rank {cls.get_rank()}] Failed to gather objects: {e}")
+            # Return list with just this process's object on rank 0
+            return [obj] if cls.get_rank() == '0' else None

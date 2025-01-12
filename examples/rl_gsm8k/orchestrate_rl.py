@@ -321,18 +321,6 @@ def generate_training_data(
         - List of training samples with rewards and logprobs
         - Dictionary of combined performance statistics and execution times
     """
-    # Distribute tapes across nodes
-    world_size = dist_manager.get_world_size()
-    rank = dist_manager.get_rank()
-
-    # Split tapes among nodes
-    tapes_per_node = len(tapes) // world_size
-    start_idx = rank * tapes_per_node
-    end_idx = start_idx + tapes_per_node if rank < world_size - 1 else len(tapes)
-    node_tapes = tapes[start_idx:end_idx]
-
-    logger.info(f"Node {rank}/{world_size} processing {len(node_tapes)} tapes")
-
     start_make_data = time.time()
     os.makedirs(tapes_dir, exist_ok=True)
     reward_stats = defaultdict(list)
@@ -353,7 +341,6 @@ def generate_training_data(
         assert new_tape.steps[1].reasoning == new_tape.steps[1].metadata.other["llm_call"].output.content
         return extract_tape_training_samples(new_tape, agent, split_name, cfg)
 
-    # Each node processes its portion of tapes
     with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
         generate_and_extract_tape_training_samples_partial = partial(
             generate_and_extract_tape_training_samples,
@@ -362,9 +349,9 @@ def generate_training_data(
             split_name=split_name,
             cfg=cfg,
         )
-        futures = [executor.submit(generate_and_extract_tape_training_samples_partial, tape) for tape in node_tapes]
+        futures = [executor.submit(generate_and_extract_tape_training_samples_partial, tape) for tape in tapes]
         new_tapes = []
-        for future in tqdm(as_completed(futures), total=len(futures), desc=f"Node {rank}: Generating tapes", unit="tape"):
+        for future in tqdm(as_completed(futures), total=len(futures), desc=f"Node {dist_manager.get_rank()}: Generating tapes", unit="tape"):
             new_tape, tape_training_samples, tape_stats = future.result()
             new_tapes.append(new_tape)
             training_samples.extend(tape_training_samples)
@@ -377,15 +364,8 @@ def generate_training_data(
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
 
-    # Save local results to node-specific files
-    if len(new_tapes) > 0:
-        node_tapes_file = tapes_dir / f"tapes_node_{rank}.json"
-        with open(node_tapes_file, "w") as f:
-            json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
-
     end_make_data = time.time()
 
-    # Calculate local stats
     local_stats = {
         **{f"{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
         **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
@@ -401,13 +381,13 @@ def generate_training_data(
         },
     }
 
-    # Gather results from all nodes
-    all_new_tapes = dist_manager.all_gather_object(new_tapes)
-    all_training_samples = dist_manager.all_gather_object(training_samples)
-    all_stats = dist_manager.all_gather_object(local_stats)
-    
-    # Combine results on main process
+    # Gather results to main process only
     if dist_manager.is_main_process():
+        # Gather results only on main process
+        all_new_tapes = dist_manager.gather_object(new_tapes)
+        all_training_samples = dist_manager.gather_object(training_samples)
+        all_stats = dist_manager.gather_object(local_stats)
+        
         # Flatten gathered lists
         combined_tapes = [tape for node_tapes in all_new_tapes for tape in node_tapes]
         combined_samples = [sample for node_samples in all_training_samples for sample in node_samples]
@@ -429,8 +409,12 @@ def generate_training_data(
             json.dump([tape.model_dump() for tape in combined_tapes], f, indent=4)
             
         return combined_tapes, combined_samples, combined_stats
-    
-    return [], [], {}
+    else:
+        # Non-main processes just send their data
+        dist_manager.gather_object(new_tapes)
+        dist_manager.gather_object(training_samples)
+        dist_manager.gather_object(local_stats)
+        return [], [], {}
 
 
 def split_data_for_nodes(data, world_size, rank):
