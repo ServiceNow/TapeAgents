@@ -233,6 +233,11 @@ def generate_training_data(
         final_tapes = list(chain(*[r[1] for r in results]))
         agent_replicas = [r[0] for r in results]
     logger.info(f"Making tapes took {time.time() - start_making_tapes}")
+
+    # TODO: rm debug code
+    with open("/home/toolkit/TapeAgents/.local/debug/data/tapes.json", "w") as f:
+        json.dump([tape.model_dump() for tape in final_tapes], f, indent=4) 
+
     for new_tape in tqdm(final_tapes, total=len(final_tapes), desc="Extracting training data from tapes", unit="tape"):
         tape_training_samples, tape_stats = extract_tape_training_samples(new_tape, agent_replicas[0], split_name, cfg)
         training_samples.extend(tape_training_samples)
