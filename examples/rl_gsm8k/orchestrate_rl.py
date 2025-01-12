@@ -460,9 +460,6 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     finetune_path = exp_path / "finetune"
 
-    if not dist_manager.sync_nodes("after initial setup", timeout_mins=45):
-        raise RuntimeError("Failed initial node sync")
-
     try:
         run = init_wandb(cfg, exp_path, flatten_dict_config(cfg), dist_manager)
     except Exception as e:
@@ -565,10 +562,6 @@ def main(cfg: DictConfig):
     logger.info(f"Rank {rank}/{world_size} loaded {len(train_samples)} training samples "
                f"and {len(test_samples)} test samples")
 
-    # Sync before rollout generation
-    if not dist_manager.sync_nodes("before rollout generation", timeout_mins=10):
-        raise RuntimeError("Failed sync before rollout generation")
-
     # Create environment on all nodes
     env = MathEnvironment()
     os.makedirs(conf_dir, exist_ok=True)
@@ -581,9 +574,6 @@ def main(cfg: DictConfig):
         start_iteration = time.time()
 
         dist_manager.cleanup_gpu_resources()
-
-        if not dist_manager.sync_nodes(f"starting iteration {state['iteration']}", timeout_mins=45):
-            raise RuntimeError(f"Failed sync at iteration start {state['iteration']}")
 
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
@@ -799,10 +789,6 @@ def main(cfg: DictConfig):
         )
         state["iteration"] += 1
         save_state(state, state_path, dist_manager)
-
-        # Final sync before next iteration
-        if not dist_manager.sync_nodes("end of iteration cleanup", timeout_mins=45):
-            raise RuntimeError("Failed end of iteration sync")
 
         dist_manager.cleanup_gpu_resources()
         time.sleep(5)
