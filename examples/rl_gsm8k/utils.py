@@ -391,6 +391,9 @@ def launch_training(
     if num_gpus == 0:
         raise ValueError("No GPUs available for finetuning")
 
+    if is_multinode and not use_deepspeed:
+        raise ValueError("Multi-node training is only supported with DeepSpeed. Please set use_deepspeed=True")
+
     base_cmd = [
         "accelerate",
         "launch",
