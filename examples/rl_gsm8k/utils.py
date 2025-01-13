@@ -356,7 +356,7 @@ def launch_training(
     config_name: str, 
     accelerate_cfg_path: str,
     use_deepspeed: bool = False,
-    dist_manager: DistributedManager = None,
+    dist_manager: Optional[DistributedManager] = None,
 ) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
@@ -366,10 +366,7 @@ def launch_training(
         config_name (str): Name of the config file
         accelerate_cfg_path (str): Path to accelerate config
         use_deepspeed (bool, optional): Whether to use DeepSpeed. Defaults to False.
-
-    Raises:
-        ValueError: If no GPUs are available
-        RuntimeError: If training process fails
+        dist_manager (Optional[DistributedManager], optional): Distributed manager instance. Defaults to None.
     """
     # Debug information
     logger.info("Process Information:")
@@ -392,7 +389,7 @@ def launch_training(
         raise ValueError("No GPUs available for finetuning")
 
     if is_multinode and not use_deepspeed:
-        raise ValueError("Multi-node training is only supported with DeepSpeed. Please set use_deepspeed=True")
+        raise ValueError("Multi-node training is only supported with DeepSpeed.")
 
     base_cmd = [
         "accelerate",
