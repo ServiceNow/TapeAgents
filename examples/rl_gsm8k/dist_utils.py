@@ -47,7 +47,7 @@ class DistributedManager:
 
     @classmethod
     def robust_barrier(cls, message: str = "", timeout_mins: int = 30, max_retries: int = 3) -> bool:
-        """More robust barrier implementation with retries and cleanup"""
+        """More robust barrier implementation with retries"""
         if not torch.distributed.is_initialized():
             return True
 
@@ -55,9 +55,6 @@ class DistributedManager:
         for attempt in range(max_retries):
             try:
                 logger.info(f"[Rank {cls.get_rank()}] Barrier attempt {attempt + 1}/{max_retries}: {message}")
-
-                # Clear GPU memory before barrier
-                cls.cleanup_gpu_resources()
 
                 # Attempt barrier with timeout
                 torch.distributed.barrier(timeout=datetime.timedelta(minutes=timeout_mins))
@@ -70,12 +67,6 @@ class DistributedManager:
                 if attempt < max_retries - 1:
                     logger.info(f"Waiting {retry_delay}s before retry...")
                     time.sleep(retry_delay)
-
-                    # Attempt to reinit process group
-                    if cls.reinit_process_group(timeout_mins=timeout_mins):
-                        logger.info("Successfully reinitialized process group")
-                    else:
-                        logger.warning("Failed to reinitialize process group")
 
         logger.error(f"[Rank {cls.get_rank()}] Failed all barrier attempts: {message}")
         return False
@@ -178,3 +169,27 @@ class DistributedManager:
             logger.error(f"[Rank {cls.get_rank()}] Failed to gather objects: {e}")
             # Return list with just this process's object on rank 0
             return [obj] if cls.get_rank() == '0' else None
+
+    @classmethod
+    def check_memory_status(cls):
+        """Check GPU memory status for debugging purposes."""
+        try:
+            if torch.cuda.is_available():
+                device = torch.cuda.current_device()
+                memory_allocated = torch.cuda.memory_allocated(device) / (1024 ** 3)  # Convert to GB
+                memory_reserved = torch.cuda.memory_reserved(device) / (1024 ** 3)    # Convert to GB
+                max_memory = torch.cuda.get_device_properties(device).total_memory / (1024 ** 3)
+                
+                logger.info(f"[Rank {cls.get_rank()}] GPU Memory Status:")
+                logger.info(f"  - Allocated: {memory_allocated:.2f} GB")
+                logger.info(f"  - Reserved:  {memory_reserved:.2f} GB")
+                logger.info(f"  - Total:     {max_memory:.2f} GB")
+                
+                return {
+                    "allocated": memory_allocated,
+                    "reserved": memory_reserved,
+                    "total": max_memory
+                }
+        except Exception as e:
+            logger.error(f"[Rank {cls.get_rank()}] Failed to check memory status: {e}")
+            return None
