@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 import wandb
 from tapeagents.agent import Agent
-from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText, LLMCall
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 
@@ -154,6 +154,10 @@ def extract_tape_training_samples(
             if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
                 continue
             llm_call = step.metadata.other["llm_call"]
+            if isinstance(llm_call, dict):
+                llm_call = LLMCall(**llm_call)
+            else:
+                print("WHAT?")
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]

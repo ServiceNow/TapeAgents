@@ -26,8 +26,8 @@ class Task(Observation):
 
     def llm_view(self, indent: int | None = 2) -> str:
         # Same prompt as https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/run_subset_parallel.py#L26
-        return f"{self.task}\nPlease reason step by step, and put your final answer within " + "\\boxed{}."
-        #return self.task
+        #return f"{self.task}\nPlease reason step by step, and put your final answer within " + "\\boxed{}."
+        return self.task
 
 
 class ReasoningThought(Thought):
@@ -77,7 +77,7 @@ class CoTMathAgent(Agent):
                 ReasoningNode(
                     name="cot",
                     agent_step_cls=MathAgentStep,
-                    #system_prompt=EURUS_SYSTEM_PROMPT,
+                    system_prompt=EURUS_SYSTEM_PROMPT,
                 ),
             ],
             max_iterations=1,
