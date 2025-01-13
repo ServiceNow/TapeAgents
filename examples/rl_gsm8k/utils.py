@@ -50,7 +50,6 @@ class VLLMServiceManager:
         service_name: str,
         model_name_or_path: Union[str, Path],
         port: int = 8080,
-        gpus_per_model_instance: int = 1,
         verbose: bool = True,
         cuda_device: str = "0",
         host: str = "localhost",
@@ -63,7 +62,10 @@ class VLLMServiceManager:
         self.port = port
         self.ports = []
         self.processes = []
-        self.gpus_per_model_instance = gpus_per_model_instance
+        pipeline_parallel_size = kwargs.get("--pipeline-parallel-size", 1)
+        tensor_parallel_size = kwargs.get("--tensor-parallel-size", 1)
+        self.gpus_per_model_instance = (pipeline_parallel_size) * (tensor_parallel_size)
+        logger.info(f"Using {self.gpus_per_model_instance} GPUs per model instance")
         self.verbose = verbose
         self.cuda_device = cuda_device
         self.host = host
@@ -147,7 +149,6 @@ class VLLMServiceManager:
 
     @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
     def _start_llm(self, cuda_device, port):
-        tensor_parallel_size = cuda_device.count(",") + 1
         kwargs_str = " ".join([f"{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
 
         cmd = (
@@ -155,15 +156,14 @@ class VLLMServiceManager:
             f"CUDA_VISIBLE_DEVICES={cuda_device} "
             f"python -m vllm.entrypoints.openai.api_server "
             f"--model {self.model_name_or_path} "
-            f"--tensor-parallel-size {tensor_parallel_size} "
             f"--port {port} "
-            f"--seed {cuda_device} "
+            f"--seed {cuda_device[0]} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
             f"{kwargs_str}"
         )
 
-        if tensor_parallel_size > 1:
+        if self.gpus_per_model_instance > 1:
             cmd = "VLLM_WORKER_MULTIPROC_METHOD=spawn " + cmd
 
         if self.verbose:
@@ -307,14 +307,10 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
     save_state(state, state_path)
 
     logger.info("Cleaning up checkpoints and training state")
-    # list of files to remove
-    files = [
-        target_path / "debug.log",
-        target_path / "error.log",
-        target_path / "info.log",
-    ]
+    # list of log files to erase 
+    log_files = list(target_path.glob("*.log"))
 
-    for file in files:
+    for file in log_files:
         if file.exists():
             # erase the content but not the file
             with open(file, "w"):

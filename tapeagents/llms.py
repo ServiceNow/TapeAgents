@@ -527,7 +527,7 @@ class TrainableLLM(CachedLLM):
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
 
-    base_url: str | list[str]
+    base_url: str
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
 
@@ -585,11 +585,10 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        logger.debug(f"POST request to {base_url}/v1/chat/completions")
+        logger.debug(f"POST request to {self.base_url}/v1/chat/completions")
         start_send_request = time.time()
         r = requests.post(
-            url=f"{base_url}/v1/chat/completions",
+            url=f"{self.base_url}/v1/chat/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,

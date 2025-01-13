@@ -5,7 +5,6 @@ defaults:
 dataset_name: gsm8k
 n_workers_per_gpu: 32
 get_logprobs_workers_per_gpu: 4
-gpus_per_model_instance: 1
 max_loops: 1
 test_every_n_iterations: 5
 model_path: /mnt/llmd/base_models/deepseek-math-7b-instruct
@@ -44,6 +43,8 @@ vllm_config:
     --max-num-seqs: 1024 
     --enforce-eager: ""
     --return-tokens-as-token-ids: ""
+    --pipeline-parallel-size: 1
+    --tensor-parallel-size: 1
   actor_vllm_kwargs:
     --num-scheduler-steps: 16
   ref_vllm_kwargs:
