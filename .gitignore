@@ -157,6 +157,7 @@ cython_debug/
 .DS_Store
 .idea/
 .local/
+.vscode/
 .vscode/launch.json
 .vscode/settings.json
 .vscode/tasks.json
