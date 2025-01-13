@@ -17,6 +17,7 @@ from collections import defaultdict
 from itertools import zip_longest
 from statistics import mean
 from typing import Any, Callable, Generator
+import numpy as np
 
 import litellm
 import openai
