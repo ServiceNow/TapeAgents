@@ -557,8 +557,6 @@ def main(cfg: DictConfig):
     while state["iteration"] < cfg.max_iterations:
         start_iteration = time.time()
 
-        dist_manager.cleanup_gpu_resources()
-
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
         else:
@@ -744,13 +742,16 @@ def main(cfg: DictConfig):
         if not dist_manager.sync_nodes("before training", timeout_mins=10):
             raise RuntimeError("Failed sync after config save")
 
+        dist_manager.cleanup_gpu_resources()
+
         # Now all nodes have the same config
         start_finetune = time.time()
         launch_training(
             str(conf_dir), 
             str(state["iteration"]),
             cfg.accelerate_cfg_path,
-            use_deepspeed=cfg.use_deepspeed
+            use_deepspeed=cfg.use_deepspeed,
+            dist_manager=dist_manager
         )
         
         # Sync after training completion
