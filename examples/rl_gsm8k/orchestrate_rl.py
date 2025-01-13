@@ -45,6 +45,7 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
+
 def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
     prompt_token_ids = []
     completion_token_ids = []
@@ -156,8 +157,6 @@ def extract_tape_training_samples(
             llm_call = step.metadata.other["llm_call"]
             if isinstance(llm_call, dict):
                 llm_call = LLMCall(**llm_call)
-            else:
-                print("WHAT?")
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]
@@ -238,10 +237,6 @@ def generate_training_data(
         agent_replicas = [r[0] for r in results]
     logger.info(f"Making tapes took {time.time() - start_making_tapes}")
 
-    # TODO: rm debug code
-    with open("/home/toolkit/TapeAgents/.local/debug/data/tapes.json", "w") as f:
-        json.dump([tape.model_dump() for tape in final_tapes], f, indent=4) 
-
     for new_tape in tqdm(final_tapes, total=len(final_tapes), desc="Extracting training data from tapes", unit="tape"):
         tape_training_samples, tape_stats = extract_tape_training_samples(new_tape, agent_replicas[0], split_name, cfg)
         training_samples.extend(tape_training_samples)
@@ -304,7 +299,7 @@ def main(cfg: DictConfig):
         case "eurus":
             dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
             test_dataset_long_name = "qq8933/MATH500"
-            process_fn = process_eurus_test 
+            process_fn = process_eurus_test
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
@@ -436,11 +431,12 @@ def main(cfg: DictConfig):
             ) as vllm_service_manager:
                 ref_llms = [
                     TrainableLLM(
-                        base_url=url, 
+                        base_url=url,
                         model_name=cfg.model_path,
                         tokenizer_name=cfg.model_path,
                         parameters=dict(temperature=0.7),
-                    ) for url in vllm_service_manager.get_base_urls()
+                    )
+                    for url in vllm_service_manager.get_base_urls()
                 ]
 
                 start_basemodel_logprobs = time.time()
@@ -451,10 +447,8 @@ def main(cfg: DictConfig):
                     futures = []
                     for chunk_id, chunk_offset in enumerate(range(0, len(training_samples), chunk_size)):
                         ref_llm = ref_llms[chunk_id % len(ref_llms)]
-                        chunk = training_samples[chunk_offset: chunk_offset + chunk_size]
-                        futures.append(
-                            executor.submit(batch_annotate_traces_with_ref_logprobs, ref_llm, chunk)
-                        )                    
+                        chunk = training_samples[chunk_offset : chunk_offset + chunk_size]
+                        futures.append(executor.submit(batch_annotate_traces_with_ref_logprobs, ref_llm, chunk))
                     # Reference logprobs are added in-place
                     futures = tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
                     _ = [future.result() for future in futures]
