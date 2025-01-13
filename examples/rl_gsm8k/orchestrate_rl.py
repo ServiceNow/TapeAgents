@@ -55,30 +55,19 @@ def init_wandb(
     run_dir: Path,
     config_for_wandb: DictConfig | dict,
     dist_manager: DistributedManager,
-) -> Optional[Any]:
+) -> wandb.sdk.wandb_run.Run:
     """Initialize W&B on the main process only."""
-    # Get distributed training info
-    rank = dist_manager.get_rank()
-    world_size = dist_manager.get_world_size()
-    local_rank = dist_manager.get_rank()
-
-    logger.info(f"W&B init attempt - Rank: {rank}, World Size: {world_size}, Local Rank: {local_rank}")
-
-    # Only initialize on global rank 0
-    if rank != '0':
-        logger.info(f"Skipping W&B init on rank {rank}")
-        return None
+    if not dist_manager.is_main_process():
+        logger.info(f"Skipping W&B init on non-main process")
+        os.environ["WANDB_MODE"] = "offline"
+        return
 
     try:
         import wandb
         from wandb.sdk import wandb_run
 
         # Set the port explicitly to avoid conflicts
-        os.environ["WANDB_PORT"] = str(8080 + int(local_rank))
-
-        # Disable sync for non-main processes
-        if rank != '0':
-            os.environ["WANDB_MODE"] = "offline"
+        os.environ["WANDB_PORT"] = str(8080 + int(dist_manager.get_rank()))
 
         wandb.require("core")
 
@@ -113,13 +102,12 @@ def init_wandb(
         logger.info("W&B initialization successful")
 
         if not isinstance(run, wandb_run.Run):
-            raise ValueError("W&B init failed - returned object is not a Run")
+            raise RuntimeError("W&B init failed - returned object is not a Run")
 
         return run
 
     except Exception as e:
-        logger.error(f"W&B initialization failed with error: {e}")
-        return None
+        raise RuntimeError(f"W&B initialization failed. Cannot continue without experiment tracking: {e}")
 
 def flatten_dict_config(d: DictConfig | dict, separator=".") -> dict:
     result = {}
@@ -429,6 +417,14 @@ def split_data_for_nodes(data, world_size, rank):
     return data[start_idx:end_idx]
 
 
+def safe_wandb_log(metrics, step, dist_manager: DistributedManager):
+    if dist_manager.is_main_process():
+        try:
+            wandb.log(metrics, step=step)
+        except Exception as e:
+            logger.warning(f"Failed to log to wandb: {e}")
+
+
 @hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
 def main(cfg: DictConfig):
     dist_manager = DistributedManager()
@@ -444,18 +440,7 @@ def main(cfg: DictConfig):
     conf_dir = exp_path / "conf"
     finetune_path = exp_path / "finetune"
 
-    try:
-        run = init_wandb(cfg, exp_path, flatten_dict_config(cfg), dist_manager)
-    except Exception as e:
-        logger.warning(f"We should be getting this if we are not in the main process: {e}.")
-        run = None
-
-    def safe_wandb_log(metrics, step):
-        if run is not None:
-            try:
-                wandb.log(metrics, step=step)
-            except Exception as e:
-                logger.warning(f"Failed to log to wandb: {e}")
+    run = init_wandb(cfg, exp_path, flatten_dict_config(cfg), dist_manager)
 
     state_path = exp_path / "rl_state.json"
     state = load_state(state_path)
@@ -663,6 +648,7 @@ def main(cfg: DictConfig):
         safe_wandb_log(
             stats,
             step=state["iteration"],
+            dist_manager=dist_manager
         )
 
         try:
@@ -714,7 +700,7 @@ def main(cfg: DictConfig):
         logger.info(f"Logprob population stats:")
         for stat_name, stat_value in logprob_stats.items():
             logger.info(f"{stat_name}: {stat_value}")
-        safe_wandb_log(logprob_stats, step=state["iteration"])
+        safe_wandb_log(logprob_stats, step=state["iteration"], dist_manager=dist_manager)
         rollout_dir = exp_path / "rollouts" / str(state["iteration"])
         os.makedirs(rollout_dir, exist_ok=True)
         with open(rollout_dir / "data.jsonl", "w") as f:
@@ -771,6 +757,7 @@ def main(cfg: DictConfig):
                 - stats["execution_time/train_make_data"],
             },
             step=state["iteration"],
+            dist_manager=dist_manager
         )
         state["iteration"] += 1
         save_state(state, state_path, dist_manager)
