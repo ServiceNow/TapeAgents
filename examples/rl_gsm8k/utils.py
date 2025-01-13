@@ -155,6 +155,7 @@ class VLLMServiceManager:
             f"--model {self.model_name_or_path} "
             f"--tensor-parallel-size {tensor_parallel_size} "
             f"--port {port} "
+            f"--seed {cuda_device} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
             f"{kwargs_str}"
@@ -204,12 +205,15 @@ class VLLMServiceManager:
 
     def _cleanup(self) -> None:
         logger.info(f"Killing {len(self.processes)} vLLM processes")
+        threads = []
         for process in self.processes:
-            if process and process.pid:
-                logger.info(f"Terminating process with command {process.args}")
-                self._terminate_with_children(process.pid)
-                process.wait()
-
+            logger.info(f"Terminating process with command {process.args}")
+            thread = threading.Thread(target=self._terminate_with_children, args=(process.pid,))
+            threads.append(thread)
+            thread.start()
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
         
         for f in self.open_files:
             f.close()

@@ -4,7 +4,7 @@ defaults:
 
 dataset_name: gsm8k
 n_workers_per_gpu: 32
-get_logprobs_workers_per_gpu: 1
+get_logprobs_workers_per_gpu: 4
 gpus_per_model_instance: 1
 max_loops: 1
 test_every_n_iterations: 5
@@ -43,6 +43,7 @@ vllm_config:
     --disable-log-requests: ""
     --max-num-seqs: 1024 
     --enforce-eager: ""
+    --return-tokens-as-token-ids: ""
   actor_vllm_kwargs:
     --num-scheduler-steps: 16
   ref_vllm_kwargs:
@@ -60,7 +61,7 @@ hydra:
     dir: ${output_dir}
   job_logging:
     root:
-      level: DEBUG
+      level: INFO
     handlers:
       node_errors:
         class: logging.FileHandler

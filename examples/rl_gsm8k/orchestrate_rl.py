@@ -1,5 +1,4 @@
 import copy
-from itertools import chain
 import json
 import logging
 import multiprocessing
@@ -8,7 +7,7 @@ import random
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from functools import partial
+from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -21,8 +20,11 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
-
 from tapeagents.agent import Agent
+from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.finetune.data import MASKED_TOKEN_ID
+from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.llms import TrainableLLM
 
 from .cot_math_agent import (
     CoTMathAgent,
@@ -36,37 +38,28 @@ from .utils import (
     VLLMServiceManager,
     calculate_stats,
     clean_up,
-    get_tokens_from_hf_tokenizer,
     launch_training,
     load_state,
     save_state,
     setup_logging,
 )
-from tapeagents.batch import batch_main_loop
-from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
-from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.llms import TrainableLLM
-from tapeagents.observe import LLMCall, SQLiteWriterThread, retrieve_all_llm_calls
-from tapeagents.orchestrator import main_loop
 
 logger = logging.getLogger(__name__)
 
-
-def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
+def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
+    prompt_token_ids = []
+    completion_token_ids = []
+    for trace in traces:
+        prompt_token_ids.append(trace.input_ids[: -len(trace.logprobs)])
+        completion_token_ids.append(trace.input_ids[-len(trace.logprobs) :])
     try:
-        prompt_token_ids, completion_token_ids = (
-            trace.input_ids[: -len(trace.logprobs)],
-            trace.input_ids[-len(trace.logprobs) :],
-        )
-        ref_logprobs = agent.llm.get_logprobs(prompt_token_ids, completion_token_ids)  # type: ignore
-        trace.ref_logprobs = [c['logprob'] for c in ref_logprobs["content"]]
-        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
-        return trace
+        all_ref_logprobs = llm.get_batch_logprobs_token_ids(prompt_token_ids, completion_token_ids)
     except Exception as e:
         logger.error(f"Failed to get ref logprobs: {e}")
-        if strict:
-            raise e
-        return None
+        return
+    for trace, ref_logprobs in zip(traces, all_ref_logprobs):
+        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
+        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logpros)} != {len(trace.logprobs)}"
 
 
 def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTape]:
@@ -163,7 +156,9 @@ def extract_tape_training_samples(
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]
             labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
-            labels = [-100] * (len(input_ids) - len(labels)) + labels
+            # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+            # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+            labels = [-MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
             trace.input_ids = input_ids
             trace.labels = labels
@@ -233,7 +228,7 @@ def generate_training_data(
 
     start_making_tapes = time.time()
     with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
-        replica_tapes = [tapes[i::len(agent_replicas)] for i in range(len(agent_replicas))]
+        replica_tapes = [tapes[i :: len(agent_replicas)] for i in range(len(agent_replicas))]
         results = list(executor.map(batch_run_agent_replica, agent_replicas, replica_tapes))
         final_tapes = list(chain(*[r[1] for r in results]))
         agent_replicas = [r[0] for r in results]
@@ -301,8 +296,8 @@ def main(cfg: DictConfig):
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
     train_dataset = load_dataset(dataset_long_name, "main", split="train", trust_remote_code=True)
-    train_samples = [process_fn(s) for s in train_dataset]
     test_dataset = load_dataset(dataset_long_name, "main", split="test", trust_remote_code=True)
+    train_samples = [process_fn(s) for s in train_dataset]
     test_samples = [process_fn(s) for s in test_dataset]
     logger.info(f"Loaded {len(train_samples)} training samples")
     logger.info(f"Loaded {len(test_samples)} test samples")
@@ -349,7 +344,7 @@ def main(cfg: DictConfig):
 
                 test_llms = [
                     TrainableLLM(
-                        base_url=vllm_service_manager.get_base_urls(),
+                        base_url=base_url,
                         model_name=str(assistant_model_path),
                         tokenizer_name=str(assistant_model_path),
                         parameters=cfg.test_llm.parameters,
@@ -378,7 +373,10 @@ def main(cfg: DictConfig):
                     throughput_stats = {
                         "prompt_tokens_per_sec": stats[f"{split_name}_prompt_tokens"] / make_data_took,
                         "output_tokens_per_sec": stats[f"{split_name}_output_tokens"] / make_data_took,
-                        "total_tokens_per_sec": (stats[f"{split_name}_prompt_tokens"] + stats[f"{split_name}_output_tokens"]) / make_data_took,
+                        "total_tokens_per_sec": (
+                            stats[f"{split_name}_prompt_tokens"] + stats[f"{split_name}_output_tokens"]
+                        )
+                        / make_data_took,
                     }
                     stats.update(llm_stats)
                     stats.update(throughput_stats)
@@ -420,30 +418,34 @@ def main(cfg: DictConfig):
                 verbose=True,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.ref_vllm_kwargs))
+                **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.ref_vllm_kwargs)),
             ) as vllm_service_manager:
-                basemodel_llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=cfg.model_path,
-                    tokenizer_name=cfg.model_path,
-                    parameters=dict(temperature=0.7),
-                )
-
-                basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
+                ref_llms = [
+                    TrainableLLM(
+                        base_url=url, 
+                        model_name=cfg.model_path,
+                        tokenizer_name=cfg.model_path,
+                        parameters=dict(temperature=0.7),
+                    ) for url in vllm_service_manager.get_base_urls()
+                ]
 
                 start_basemodel_logprobs = time.time()
+                training_samples = all_results["train"]["training_samples"]
                 with ThreadPoolExecutor(
                     max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
                 ) as executor:
-                    futures = [
-                        executor.submit(annotate_traces_with_ref_logprobs, basemodel_agent, trace, strict=False)
-                        for trace in all_results["train"]["training_samples"]
-                    ]
-                    training_samples: List[TrainingText] = [  # type: ignore
-                        future.result()
-                        for future in tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
-                        if future.result() is not None
-                    ]
+                    chunk_size = 64
+                    futures = []
+                    for chunk_id, chunk_offset in enumerate(range(0, len(training_samples), chunk_size)):
+                        ref_llm = ref_llms[chunk_id % len(ref_llms)]
+                        chunk = training_samples[chunk_offset: chunk_offset + chunk_size]
+                        futures.append(
+                            executor.submit(batch_annotate_traces_with_ref_logprobs, ref_llm, chunk)
+                        )                    
+                    # Reference logprobs are added in-place
+                    futures = tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
+                    _ = [future.result() for future in futures]
+
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
                 time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
@@ -473,7 +475,7 @@ def main(cfg: DictConfig):
         finetune_cfg = cfg.copy()
 
         checkpoint_steps = finetune_cfg.finetune.save_checkpoint_steps
-        interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps - 1)
+        interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps)
 
         finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
         finetune_cfg.output_dir = str(finetune_path)

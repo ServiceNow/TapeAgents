@@ -15,10 +15,11 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import zip_longest
+from statistics import mean
 from typing import Any, Callable, Generator
+import numpy as np
 
 import litellm
-import numpy as np
 import openai
 import requests
 from Levenshtein import ratio
@@ -111,12 +112,12 @@ class LLMStream:
         if not o.role == "assistant" or o.content is None:
             raise ValueError("LLM did not produce an assistant message")
         return o.content
-    
+
     def get_llm_call(self) -> LLMCall:
         """Returns the LLMCall object"""
         for event in self:
             if event.llm_call:
-                break 
+                break
         return self.llm_call
 
 
@@ -253,14 +254,15 @@ class LLM(BaseModel, ABC):
 
     def get_stats(self) -> dict:
         return {
-            "time_send_request": np.mean(self._stats["time_send_request"]) if self._stats["time_send_request"] else 0,
-            "time_log_output": np.mean(self._stats["time_log_output"]) if self._stats["time_log_output"] else 0,
-            "total_prompt_tokens": np.sum(self._stats["prompt_length_tokens"])
+            "time_send_request": mean(self._stats["time_send_request"]) if self._stats["time_send_request"] else 0,
+            "time_log_output": mean(self._stats["time_log_output"]) if self._stats["time_log_output"] else 0,
+            "total_prompt_tokens": sum(self._stats["prompt_length_tokens"])
             if self._stats["prompt_length_tokens"]
             else 0,
-            "total_output_tokens": np.sum(self._stats["output_length_tokens"])
+            "total_output_tokens": sum(self._stats["output_length_tokens"])
             if self._stats["output_length_tokens"]
             else 0,
+            "time_postprocess_llm_response": np.mean(self._stats["time_postprocess_llm_response"]) if self._stats["time_postprocess_llm_response"] else 0,
         }
 
 
@@ -534,30 +536,36 @@ class TrainableLLM(CachedLLM):
         super().model_post_init(__context)
         self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
 
-    def make_llm_call_logprobs(self, prompt_token_ids: list[int], completion_logprobs: list[dict]) -> list[TokenLogprob]:
-        """Construct homogenous list of TokenLogprob's for prompt and completion tokens"""
+    def get_base_url(self) -> str:
+        """
+        Returns the base URL for the API endpoint.
+        """
+        return (self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)).rstrip("/")
+
+    def make_llm_call_logprobs(
+        self, prompt_token_ids: list[int], completion_logprobs: list[dict]
+    ) -> list[TokenLogprob]:
         logprobs = []
         for id in prompt_token_ids:
-            logprobs.append(TokenLogprob(
-                token_id=id,
-                token=self.tokenizer.decode([id]),
-                logprob=0.,
-                generated=0,
-            ))
+            logprobs.append(
+                TokenLogprob(
+                    token_id=id,
+                    logprob=0.0,
+                    generated=0,
+                )
+            )
         for logprob in completion_logprobs:
             if logprob:
                 try:
-                    token_id = self.tokenizer.encode(logprob["token"], add_special_tokens=False)
-                    if not len(token_id):
-                        # TODO: how should we handle empty tokens?
-                        logger.debug(f"Empty token: {logprob}")
-                        continue
-                    logprobs.append(TokenLogprob(
-                        token_id=token_id[0],
-                        token=logprob["token"],
-                        logprob=logprob["logprob"],
-                        generated=1,
-                    ))
+                    # We assume that the server was launched with --return-tokens-as-token-ids
+                    # and that the tokens are provided as: ['token_id:1271', 'token_id:1505', '
+                    logprobs.append(
+                        TokenLogprob(
+                            token_id=int(logprob["token"].split(":")[-1]),
+                            logprob=logprob["logprob"],
+                            generated=1,
+                        )
+                    )
                 except Exception as e:
                     logger.error(f"Failed to process logprobs: {logprob}")
                     logger.error(e)
@@ -566,6 +574,7 @@ class TrainableLLM(CachedLLM):
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
+        self.load_tokenizer()
         headers = {"Content-Type": "application/json"}
         if self.api_token:
             headers |= {"Authorization": f"Bearer {self.api_token}"}
@@ -582,7 +591,7 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        base_url = self.get_base_url()
         logger.debug(f"POST request to {base_url}/v1/chat/completions")
         start_send_request = time.time()
         r = requests.post(
@@ -653,7 +662,7 @@ class TrainableLLM(CachedLLM):
             headers |= {"Authorization": f"Bearer {self.api_token}"}
 
         prompt_token_ids = [
-            self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True) 
+            self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
             for p in prompts
         ]
         data = {
@@ -679,13 +688,13 @@ class TrainableLLM(CachedLLM):
             stream=self.stream,
             verify=False,
         )
-        time_send_request = time.time() - start_send_request
-        self._stats["time_send_request"].append(time_send_request)
+        self._stats["time_send_request"].append(time.time() - start_send_request)
         if not r.ok:
             logger.error(f"Failed to get completion: {r.text}")
             r.raise_for_status()
         data = r.json()
-        result = [] 
+        result = []
+        start_postprocess_time = time.time()
         for i in range(len(prompts)):
             try:
                 content = data["choices"][i]["text"]
@@ -696,14 +705,12 @@ class TrainableLLM(CachedLLM):
                 if self.collect_logprobs:
                     completion_logprobs = data["choices"][i]["logprobs"]
                     # /v1/completions returns logprobs in a format different to /v1/chat/completions
-                    # Before calling self.process_logprobs, we need to convert the logprobs to a 
+                    # Before calling self.process_logprobs, we need to convert the logprobs to a
                     # list of dicts format similar to /v1/chat/completions
+                    
                     chat_completion_logprobs = [
-                        {
-                            "token": completion_logprobs["tokens"][i], 
-                            "logprob": completion_logprobs["token_logprobs"][i]
-                        }
-                        for i in range(len(completion_logprobs["tokens"]))
+                        {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
+                        for j in range(len(completion_logprobs["tokens"]))
                     ]
                     logprobs = self.make_llm_call_logprobs(prompt_token_ids[i], chat_completion_logprobs)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
@@ -719,6 +726,7 @@ class TrainableLLM(CachedLLM):
             llm_call = self.log_output(prompts[i], output)
             llm_call.logprobs = logprobs
             result.append(llm_call)
+        self._stats["time_postprocess_llm_response"].append(time.time() - start_postprocess_time)
         return result
 
     def load_tokenizer(self):
@@ -784,8 +792,6 @@ class TrainableLLM(CachedLLM):
         r.raise_for_status()  # raise exception if status code is not in the 200s
         try:
             response = r.json()
-            tokens = response["choices"][0]["logprobs"]["tokens"]
-            logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
         except Exception as e:
             raise RuntimeError(f"Generation API wrong response: {r.text}", e)
         logprobs = []
@@ -796,6 +802,49 @@ class TrainableLLM(CachedLLM):
                     v.update({"generated": 0, "token_id": k})
                     logprobs.append(v)
         return {"content": logprobs}
+    
+    def get_batch_logprobs_token_ids(self, prompt_token_ids: list[list[int]], completion_token_ids: list[list[int]]) -> list[dict[str, Any]]: 
+        if not self.tokenizer:
+            self.load_tokenizer()
+        batch_size = len(prompt_token_ids)
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+
+        generation_args = {
+            "model": self.model_name,
+            "prompt": [pids + cids for pids, cids in zip(prompt_token_ids, completion_token_ids)],
+            "temperature": 0.0,
+            "max_tokens": 0,
+            "logprobs": 0,
+            "echo": True,
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output, 
+            "skip_special_tokens": False,
+            "n": 1,  # number of completions to generate
+            "stream": False,  # return a single completion and not a stream of lines
+        }
+        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        url = f"{base_url}/v1/completions"
+        logger.debug(f"POST request to {url}")
+        r = requests.post(url, json=generation_args, headers=headers, verify=False)
+        r.raise_for_status()
+
+        try:
+            response = r.json()
+        except Exception as e:
+            raise RuntimeError(f"Generation API wrong response: {r.text}", e)
+
+        all_logprobs = []
+        for i in range(batch_size):
+            logprobs = []
+            for lp in response["choices"][i]["prompt_logprobs"][-len(completion_token_ids[i]):]:
+                if lp:
+                    for k, v in lp.items():
+                        v.update({"generated": 0, "token_id": k})
+                        logprobs.append(v)
+            all_logprobs.append({"content": logprobs})
+        return all_logprobs
 
     def get_logprobs_complete(self, prompt: str, output: str) -> dict[str, Any]:
         """
@@ -839,7 +888,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        base_url = self.get_base_url()
         url = f"{base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
@@ -914,7 +963,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        base_url = self.get_base_url()
         r = requests.post(
             url=f"{base_url}/v1/chat/completions",
             json=generation_args,
