@@ -68,11 +68,7 @@ class VLLMServiceManager:
         self.stdout_file: Optional[TextIO] = None
         self.stderr_file: Optional[TextIO] = None
         self.stats = {}
-
-        # Add node rank awareness
-        self.node_rank = int(os.environ.get("RANK", 0))
-        self.port_offset = self.node_rank * 1000  # Ensure different port ranges for each node
-        self.port = port + self.port_offset
+        self.port = port
 
         self.dist_manager = DistributedManager()
 
