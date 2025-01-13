@@ -267,6 +267,10 @@ def generate_training_data(
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
             f"{split_name}_output_tokens": output_tokens,
+            f"{split_name}_average_output_tokens": output_tokens / len(final_tapes),
+            f"{split_name}_average_prompt_tokens": prompt_tokens / len(final_tapes),
+            f"{split_name}_total_tokens": prompt_tokens + output_tokens,
+            f"{split_name}_average_total_tokens": (prompt_tokens + output_tokens) / len(final_tapes),
         },
     }
     return agent_replicas, final_tapes, training_samples, stats
@@ -291,19 +295,19 @@ def main(cfg: DictConfig):
 
     match cfg.dataset_name:
         case "math":
-            dataset_long_name = "hendrycks/competition_math"
+            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
             process_fn = process_math_test
         case "gsm8k":
-            dataset_long_name = "openai/gsm8k"
+            train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
         case "eurus":
-            dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
+            train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
             test_dataset_long_name = "qq8933/MATH500"
             process_fn = process_eurus_test
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    train_dataset = load_dataset(dataset_long_name, split="train", trust_remote_code=True)
+    train_dataset = load_dataset(train_dataset_long_name, split="train", trust_remote_code=True)
     test_dataset = load_dataset(test_dataset_long_name, split="test", trust_remote_code=True)
     train_samples = [process_fn(s) for s in train_dataset if process_fn(s) is not None]
     test_samples = [process_fn(s) for s in test_dataset if process_fn(s) is not None]
@@ -329,7 +333,6 @@ def main(cfg: DictConfig):
                 service_name="actor",
                 model_name_or_path=assistant_model_path,
                 port=8080,
-                gpus_per_model_instance=cfg.gpus_per_model_instance,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.actor_vllm_kwargs)),
@@ -379,9 +382,9 @@ def main(cfg: DictConfig):
                     make_data_took = stats[f"execution_time/{split_name}_make_data"]
                     llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
                     throughput_stats = {
-                        "prompt_tokens_per_sec": stats[f"{split_name}_prompt_tokens"] / make_data_took,
-                        "output_tokens_per_sec": stats[f"{split_name}_output_tokens"] / make_data_took,
-                        "total_tokens_per_sec": (
+                        f"{split_name}_prompt_tokens_per_sec": stats[f"{split_name}_prompt_tokens"] / make_data_took,
+                        f"{split_name}_output_tokens_per_sec": stats[f"{split_name}_output_tokens"] / make_data_took,
+                        f"{split_name}_total_tokens_per_sec": (
                             stats[f"{split_name}_prompt_tokens"] + stats[f"{split_name}_output_tokens"]
                         )
                         / make_data_took,
@@ -425,7 +428,6 @@ def main(cfg: DictConfig):
                 model_name_or_path=cfg.model_path,
                 port=8180,
                 verbose=True,
-                gpus_per_model_instance=cfg.gpus_per_model_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.ref_vllm_kwargs)),
             ) as vllm_service_manager:
