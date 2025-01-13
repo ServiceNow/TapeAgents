@@ -22,6 +22,7 @@ from tqdm import tqdm
 import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 
