@@ -155,7 +155,9 @@ def extract_tape_training_samples(
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]
             labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
-            labels = [-100] * (len(input_ids) - len(labels)) + labels
+            # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+            # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+            labels = [-MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
             trace.input_ids = input_ids
             trace.labels = labels
