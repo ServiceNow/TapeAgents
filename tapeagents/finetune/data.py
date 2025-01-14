@@ -216,8 +216,20 @@ def create_dataloader(
 
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
+        
+        # Shard the dataset across processes
+        dataset_part = dataset_part.shard(
+            num_shards=accelerator.num_processes,
+            index=accelerator.process_index,
+        )
+        
+        # Each process preprocesses its shard
         dataset_part = dataset_part.map(preprocess, keep_in_memory=True, load_from_cache_file=False)
         dataset_part = dataset_part.with_format(columns=columns)
+        
+        # Wait for all processes to finish preprocessing
+        accelerator.wait_for_everyone()
+        
         logger.info(f"Preprocessed data part fingerprint: {dataset_part._fingerprint}")
         datasets.append(dataset_part)
         if stop:
