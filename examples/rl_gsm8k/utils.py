@@ -387,6 +387,15 @@ def launch_training(
     if is_multinode and not use_deepspeed:
         raise ValueError("Multi-node training is only supported with DeepSpeed.")
 
+    # Only set NCCL environment variables for multi-node training
+    if is_multinode:
+        os.environ["NCCL_CUMEM_ENABLE"] = "0"  # Disable NCCL's CUDA memory pool
+        os.environ["NCCL_TIMEOUT"] = "7200"
+        
+        logger.info("Multi-node NCCL Environment Variables:")
+        for key in ["NCCL_CUMEM_ENABLE", "NCCL_TIMEOUT"]:
+            logger.info(f"{key}: {os.environ.get(key)}")
+
     base_cmd = [
         "accelerate",
         "launch",
