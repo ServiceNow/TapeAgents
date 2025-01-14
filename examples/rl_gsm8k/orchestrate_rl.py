@@ -10,6 +10,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
+import traceback
 from typing import Any, Dict, List, Optional, Tuple
 
 import hydra
@@ -42,82 +43,12 @@ from .utils import (
     setup_logging,
 )
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
-# from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 from tapeagents.orchestrator import main_loop
-from .dist_utils import DistributedManager
+from .dist_utils import DistributedManager, init_wandb, flatten_dict_config
 
 logger = logging.getLogger(__name__)
 
-# TODO: fix this (moved here to fix race condition)
-def init_wandb(
-    cfg: DictConfig,
-    run_dir: Path,
-    config_for_wandb: DictConfig | dict,
-    dist_manager: DistributedManager,
-) -> wandb.sdk.wandb_run.Run:
-    """Initialize W&B on the main process only."""
-    if not dist_manager.is_main_process():
-        logger.info(f"Skipping W&B init on non-main process")
-        os.environ["WANDB_MODE"] = "offline"
-        return
-
-    try:
-        import wandb
-        from wandb.sdk import wandb_run
-
-        # Set the port explicitly to avoid conflicts
-        os.environ["WANDB_PORT"] = str(8080 + int(dist_manager.get_rank()))
-
-        wandb.require("core")
-
-        if config_for_wandb is None:
-            config_for_wandb = cfg.dict()
-
-        wandb_id = cfg.finetune.wandb_id
-
-        if cfg.finetune.wandb_resume == "always":
-            resume = True
-        elif cfg.finetune.wandb_resume == "if_not_interactive":
-            resume = not cfg.finetune.force_restart
-        else:
-            raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
-
-        wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
-        if len(wandb_name) > 128:
-            logger.warning(f"wandb_name: {wandb_name} is longer than 128 characters. Truncating.")
-
-        logger.info(f"Starting W&B init with name: {wandb_name[:128]}, resume: {resume}")
-
-        run = wandb.init(
-            name=wandb_name[:128],
-            entity=cfg.finetune.wandb_entity_name,
-            project=cfg.finetune.wandb_project_name,
-            config=config_for_wandb,
-            resume=resume,
-            id=wandb_id,
-            tags=cfg.finetune.tags,
-        )
-
-        logger.info("W&B initialization successful")
-
-        if not isinstance(run, wandb_run.Run):
-            raise RuntimeError("W&B init failed - returned object is not a Run")
-
-        return run
-
-    except Exception as e:
-        raise RuntimeError(f"W&B initialization failed. Cannot continue without experiment tracking: {e}")
-
-def flatten_dict_config(d: DictConfig | dict, separator=".") -> dict:
-    result = {}
-    for k, v in d.items():
-        if isinstance(v, DictConfig) or isinstance(v, dict):
-            for sub_k, sub_v in flatten_dict_config(v).items():
-                result[str(k) + separator + str(sub_k)] = sub_v
-        else:
-            result[k] = v
-    return result
 
 def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
     try:
@@ -289,11 +220,9 @@ def generate_training_data(
     env: MathEnvironment,
     tapes_dir: Path,
     split_name: str,
-    dist_manager: DistributedManager,
 ) -> Tuple[List[RLMathTape], List[TrainingText], Dict[str, float]]:
     """
     Generate complete tapes and training samples from a list of initialized tapes.
-    Now distributed across multiple nodes.
 
     Args:
         agent: Agent that interacts with the math environment
@@ -302,13 +231,14 @@ def generate_training_data(
         env: Environment with tools
         tapes_dir: Directory to save processed episodes
         split_name: Name of split ('train' or other)
-        dist_manager: object to handle distributed training
+
     Returns:
         Tuple containing:
         - List of completed RLMathTapes
         - List of training samples with rewards and logprobs
-        - Dictionary of combined performance statistics and execution times
+        - Dictionary of performance statistics and execution times
     """
+
     start_make_data = time.time()
     os.makedirs(tapes_dir, exist_ok=True)
     reward_stats = defaultdict(list)
@@ -316,9 +246,11 @@ def generate_training_data(
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
     discarded_stats = defaultdict(list)
-    compute_logprobs_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
+    logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
+
+    logger.info("Starting data creation")
     prompt_tokens = 0
     output_tokens = 0
 
@@ -338,8 +270,9 @@ def generate_training_data(
             cfg=cfg,
         )
         futures = [executor.submit(generate_and_extract_tape_training_samples_partial, tape) for tape in tapes]
+        # Wrap futures with tqdm for progress tracking
         new_tapes = []
-        for future in tqdm(as_completed(futures), total=len(futures), desc=f"Node {dist_manager.get_rank()}: Generating tapes", unit="tape"):
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Generating tapes", unit="tape"):
             new_tape, tape_training_samples, tape_stats = future.result()
             new_tapes.append(new_tape)
             training_samples.extend(tape_training_samples)
@@ -348,61 +281,32 @@ def generate_training_data(
             success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
             no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
             discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-            compute_logprobs_stats[new_tape.metadata.parent_id].append(tape_stats["compute_logprobs"])
             prompt_tokens += tape_stats["prompt_tokens"]
             output_tokens += tape_stats["output_tokens"]
 
+    start_dump = time.time()
+    with open(tapes_dir / "tapes.json", "w") as f:
+        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
+    end_dump = time.time()
+
     end_make_data = time.time()
 
-    local_stats = {
+    stats = {
         **{f"{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
         **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{
-            f"execution_time/{split_name}_make_data": time.time() - start_make_data,
+            f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
+            f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
             f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
-            f"{split_name}_compute_logprobs": np.mean([np.mean(v) for v in compute_logprobs_stats.values()]),
             f"{split_name}_prompt_tokens": prompt_tokens,
             f"{split_name}_output_tokens": output_tokens,
         },
     }
-
-    # Gather results to main process only
-    if dist_manager.is_main_process():
-        # Gather results only on main process
-        all_new_tapes = dist_manager.gather_object(new_tapes)
-        all_training_samples = dist_manager.gather_object(training_samples)
-        all_stats = dist_manager.gather_object(local_stats)
-        
-        # Flatten gathered lists
-        combined_tapes = [tape for node_tapes in all_new_tapes for tape in node_tapes]
-        combined_samples = [sample for node_samples in all_training_samples for sample in node_samples]
-        
-        # Combine stats
-        combined_stats = {}
-        for node_stats in all_stats:
-            for k, v in node_stats.items():
-                if k not in combined_stats:
-                    combined_stats[k] = v
-                else:
-                    if "execution_time" in k or "_tokens" in k:
-                        combined_stats[k] += v
-                    else:
-                        combined_stats[k] = (combined_stats[k] + v) / 2
-
-        # Save combined results
-        with open(tapes_dir / "tapes.json", "w") as f:
-            json.dump([tape.model_dump() for tape in combined_tapes], f, indent=4)
-            
-        return combined_tapes, combined_samples, combined_stats
-    else:
-        # Non-main processes just send their data
-        dist_manager.gather_object(new_tapes)
-        dist_manager.gather_object(training_samples)
-        dist_manager.gather_object(local_stats)
-        return [], [], {}
+    # All nodes return their local results
+    return new_tapes, training_samples, stats
 
 
 def split_data_for_nodes(data, world_size, rank):
@@ -489,9 +393,9 @@ def main(cfg: DictConfig):
     rank = dist_manager.get_rank()
 
     if cfg.force_restart:
-        # Wait for files to be available (in case of filesystem latency)
-        max_retries = 5
-        retry_delay = 2  # seconds
+        # Wait for files to be available; important for distributed training
+        max_retries = 10
+        retry_delay = 5  # seconds
         
         for retry in range(max_retries):
             try:
@@ -548,6 +452,14 @@ def main(cfg: DictConfig):
             assistant_model_path = cfg.model_path
 
         try:
+            # Set NCCL settings for vLLM weight loading
+            if dist_manager.get_world_size() > 1:
+                os.environ["NCCL_CUMEM_ENABLE"] = "0"
+                os.environ["NCCL_TIMEOUT"] = "7200"
+                logger.info("Multi-node NCCL Environment Variables for vLLM:")
+                for key in ["NCCL_CUMEM_ENABLE", "NCCL_TIMEOUT"]:
+                    logger.info(f"{key}: {os.environ.get(key)}")
+
             with VLLMServiceManager(
                 model_name_or_path=assistant_model_path,
                 stdout_file_path=exp_path / f"assistant_vllm_stdout_rank{dist_manager.get_rank()}.log",
@@ -597,7 +509,7 @@ def main(cfg: DictConfig):
                     start_make_data = time.time()
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
                     new_tapes, training_samples, stats = generate_training_data(
-                        agent, tapes, cfg, env, tapes_dir, split_name, dist_manager
+                        agent, tapes, cfg, env, tapes_dir, split_name
                     )
                     make_data_took = time.time() - start_make_data
 
@@ -637,7 +549,7 @@ def main(cfg: DictConfig):
         if not dist_manager.sync_nodes("after processing splits"):
             raise RuntimeError("Failed sync after processing splits")
 
-        logger.info(f"Rank {dist_manager.get_rank()} collected {len(training_samples)} training samples")
+        logger.info(f"Rank {rank} collected {len(training_samples)} training samples")
 
         stats = all_results["train"]["stats"]
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
@@ -672,24 +584,108 @@ def main(cfg: DictConfig):
                 basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
 
                 start_basemodel_logprobs = time.time()
+                
+                # Split samples across nodes
+                all_samples = all_results["train"]["training_samples"]
+                logger.info(f"Rank {dist_manager.get_rank()}: Total samples before split: {len(all_samples)}")
+                
+                node_samples = split_data_for_nodes(
+                    all_samples, 
+                    dist_manager.get_world_size(), 
+                    dist_manager.get_rank()
+                )
+                logger.info(f"Rank {dist_manager.get_rank()}: Assigned {len(node_samples)} samples to process")
+                
+                # Each node processes its portion
                 with ThreadPoolExecutor(
                     max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
                 ) as executor:
                     futures = [
                         executor.submit(annotate_traces_with_ref_logprobs, basemodel_agent, trace, strict=False)
-                        for trace in all_results["train"]["training_samples"]
+                        for trace in node_samples
                     ]
-                    training_samples: List[TrainingText] = [  # type: ignore
-                        future.result()
-                        for future in tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
-                        if future.result() is not None
+                    
+                    failed_samples = 0
+                    local_training_samples = []
+                    for future in tqdm(
+                        as_completed(futures), 
+                        total=len(futures), 
+                        desc=f"Node {dist_manager.get_rank()}: Adding logprobs"
+                    ):
+                        result = future.result()
+                        if result is not None:
+                            local_training_samples.append(result)
+                        else:
+                            failed_samples += 1
+
+                    logger.info(
+                        f"Rank {dist_manager.get_rank()}: Processed {len(local_training_samples)} samples successfully, "
+                        f"failed {failed_samples} samples"
+                    )
+
+                # Gather annotated samples to main node
+                logger.info(f"Rank {dist_manager.get_rank()}: Starting gather with {len(local_training_samples)} samples")
+
+                # All processes must participate in gather
+                all_annotated_samples = dist_manager.gather_object(local_training_samples)
+
+                if dist_manager.is_main_process():
+                    # Main process processes the gathered samples
+                    logger.info("Main process: Processing gathered samples")
+                    
+                    # Log details about gathered samples
+                    for rank, node_samples in enumerate(all_annotated_samples):
+                        logger.info(f"Main process: Received {len(node_samples)} samples from rank {rank}")
+                    
+                    # Flatten gathered lists
+                    training_samples = [
+                        sample 
+                        for node_samples in all_annotated_samples 
+                        for sample in node_samples
                     ]
+                    logger.info(f"Main process: Total samples after gathering: {len(training_samples)}")
+                    
+                    # Write to disk
+                    rollout_dir = exp_path / "rollouts" / str(state["iteration"])
+                    os.makedirs(rollout_dir, exist_ok=True)
+                    
+                    samples_written = 0
+                    samples_rejected = 0
+                    with open(rollout_dir / "data.jsonl", "w") as f:
+                        for trace in training_samples:
+                            if cfg.use_rejection_sampling and trace.reward <= 0:
+                                samples_rejected += 1
+                                continue
+                            f.write(trace.model_dump_json() + "\n")
+                            f.flush()
+                            samples_written += 1
+                    
+                    logger.info(
+                        f"Main process: Wrote {samples_written} samples to disk, "
+                        f"rejected {samples_rejected} samples due to negative reward"
+                    )
+                else:
+                    # Non-main processes participate in gather but don't need the result
+                    logger.info(f"Rank {dist_manager.get_rank()}: Completed gather operation")
+                    training_samples = []
+
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
                 time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
+                
+                logger.info(
+                    f"Rank {dist_manager.get_rank()}: Completed logprob annotation in "
+                    f"{time_populating_ref_logprobs:.2f} seconds"
+                )
 
         except Exception as e:
-            logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
+            logger.error(
+                colored(
+                    f"Rank {dist_manager.get_rank()}: Failed to get ref log probs with error: {str(e)}\n"
+                    f"Traceback: {traceback.format_exc()}", 
+                    "red"
+                )
+            )
             raise e
 
         logprob_stats = {
@@ -701,14 +697,6 @@ def main(cfg: DictConfig):
         for stat_name, stat_value in logprob_stats.items():
             logger.info(f"{stat_name}: {stat_value}")
         safe_wandb_log(logprob_stats, step=state["iteration"], dist_manager=dist_manager)
-        rollout_dir = exp_path / "rollouts" / str(state["iteration"])
-        os.makedirs(rollout_dir, exist_ok=True)
-        with open(rollout_dir / "data.jsonl", "w") as f:
-            for trace in training_samples:
-                if cfg.use_rejection_sampling and trace.reward <= 0:
-                    continue
-                f.write(trace.model_dump_json() + "\n")
-                f.flush()
 
         # Generate config only on main process
         if dist_manager.is_main_process():
