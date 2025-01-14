@@ -331,101 +331,13 @@ def save_model_only(
 
     logger.info(f"Save model to {output_dir}")
 
-    if is_deepspeed_model(model):
-        logger.info(f"Saving through deepspeed engine path {output_dir}")
-        # saving using DeepSpeed's checkpoint mechanism
-        model.save_checkpoint(save_dir=output_dir)
-
-        # Only convert to HF format if requested (e.g. for inference checkpoints)
-        if convert_to_hf and accelerator.is_main_process:
-            # Set environment variables consistently
-            os.environ["NCCL_CUMEM_ENABLE"] = "0"
-            os.environ["NCCL_TIMEOUT"] = "7200"
-
-            logger.info("NCCL settings for conversion:")
-            logger.info(f"NCCL_CUMEM_ENABLE: {os.environ.get('NCCL_CUMEM_ENABLE')}")
-            logger.info(f"NCCL_TIMEOUT: {os.environ.get('NCCL_TIMEOUT')}")
-
-            from deepspeed.utils.zero_to_fp32 import get_fp32_state_dict_from_zero_checkpoint
-            logger.info("Converting DeepSpeed checkpoint to HF format")
-
-            try:
-                conversion_start = time.time()
-                torch.cuda.empty_cache()
-                
-                logger.info("Starting state dict conversion...")
-                state_dict_start = time.time()
-                state_dict = get_fp32_state_dict_from_zero_checkpoint(
-                    checkpoint_dir=output_dir,
-                    tag=None,  # will use 'global_step{step}' from DeepSpeed
-                    lazy_mode=True  # More memory efficient
-                )
-                state_dict_time = time.time() - state_dict_start
-                logger.info(f"State dict conversion completed in {state_dict_time:.2f} seconds")
-
-                # Process state dict in smaller batches with explicit memory management
-                batch_size = 5  # Reduced batch size
-                keys = list(state_dict.keys())
-                processing_start = time.time()
-
-                for i in range(0, len(keys), batch_size):
-                    batch_start = time.time()
-                    batch_keys = keys[i:i + batch_size]
-                    logger.info(f"Processing batch {i//batch_size + 1}/{len(keys)//batch_size + 1}")
-                    
-                    for k in batch_keys:
-                        state_dict[k] = state_dict[k].contiguous()
-                        torch.cuda.empty_cache()
-                        
-                    batch_time = time.time() - batch_start
-                    logger.info(f"Batch processed in {batch_time:.2f} seconds")
-                    time.sleep(0.1)
-
-                processing_time = time.time() - processing_start
-                logger.info(f"State dict processing completed in {processing_time:.2f} seconds")
-
-                logger.info("Saving converted model to HF format...")
-                save_start = time.time()
-                accelerator.unwrap_model(model).save_pretrained(
-                    output_dir,
-                    state_dict=state_dict,
-                    safe_serialization=safe_serialization,
-                    max_shard_size="5GB"  # Reduced shard size
-                )
-                save_time = time.time() - save_start
-                logger.info(f"Model saving completed in {save_time:.2f} seconds")
-
-                # save model config
-                logger.info("Saving model config (config.json)")
-                unwrapped_model = model.module
-                config = unwrapped_model.config
-                config.save_pretrained(output_dir)
-
-                total_time = time.time() - conversion_start
-                logger.info(f"Total conversion process completed in {total_time:.2f} seconds")
-                logger.info(f"Breakdown:")
-                logger.info(f"  - State dict conversion: {state_dict_time:.2f}s")
-                logger.info(f"  - State dict processing: {processing_time:.2f}s")
-                logger.info(f"  - Model saving: {save_time:.2f}s")
-                
-            except Exception as e:
-                logger.error(f"Error during DeepSpeed to HF conversion: {str(e)}")
-                logger.warning("Falling back to DeepSpeed checkpoint format only")
-                
-            finally:
-                # Cleanup
-                torch.cuda.empty_cache()
-                if 'state_dict' in locals():
-                    del state_dict
-        return
-
     unwrapped_model = accelerator.unwrap_model(model) if unwrap else model
     if lora:
         lora_save(output_dir, unwrapped_model)
         return
 
-    # for non-deepspeed models
     elif isinstance(unwrapped_model, transformers.PreTrainedModel):
+        logger.info("Saving model using transformers save_pretrained")
         unwrapped_model.save_pretrained(  # type: ignore
             output_dir,
             is_main_process=accelerator.is_main_process,
@@ -436,6 +348,10 @@ def save_model_only(
         logger.info(f"Saved model to {output_dir}")
     else:
         raise ValueError(f"model is neither a deepspeed model nor a transformers.PreTrainedModel: {type(model)}")
+
+    if os.path.exists(output_dir / "model.safetensors") and os.path.exists(output_dir / "model.safetensors.index.json"):
+        logger.info("Hide model.safetensors because it utterly confuses the HF model loading code")
+        os.rename(output_dir / "model.safetensors", output_dir / "model.safetensors.bak")
 
 
 def save_tokenizer_only(
