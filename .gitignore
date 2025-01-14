@@ -1,3 +1,6 @@
+# Local files
+.local/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -86,8 +89,6 @@ cython_debug/
 
 # IDE
 .idea/
-.local/
-.vscode/
 .vscode/launch.json
 .vscode/settings.json
 .vscode/tasks.json
