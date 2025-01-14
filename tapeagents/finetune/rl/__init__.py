@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import pandas as pd

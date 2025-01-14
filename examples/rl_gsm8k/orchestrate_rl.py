@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 import wandb
 from tapeagents.agent import Agent
-from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText, LLMCall
+from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
@@ -33,7 +33,7 @@ from .cot_math_agent import (
 )
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-from .deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test, process_eurus_test
+from .deepseek_math_eval.process_utils import process_eurus_test, process_gsm8k_test, process_math_test
 from .utils import (
     VLLMServiceManager,
     calculate_stats,
@@ -147,17 +147,22 @@ def extract_tape_training_samples(
             reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
-    if split_name == "train":
-        # For each LLM interaction in the tape:
-        # - Create a training sample from the prompt and output
-        # - Get log probabilities of the output tokens
-        # - Set group ID for tracking
-        for step in new_tape.steps:
-            if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
-                continue
-            llm_call = step.metadata.other["llm_call"]
-            if isinstance(llm_call, dict):
-                llm_call = LLMCall(**llm_call)
+    # For each LLM interaction in the tape:
+    # - Create a training sample from the prompt and output
+    # - Get log probabilities of the output tokens
+    # - Set group ID for tracking
+    for step in new_tape.steps:
+        if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
+            continue
+        llm_call = step.metadata.other["llm_call"]
+
+        if isinstance(llm_call, dict):
+            llm_call = LLMCall(**llm_call)
+
+        tape_prompt_tokens += llm_call.prompt_length_tokens
+        tape_output_tokens += llm_call.output_length_tokens
+
+        if split_name == "train":
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]
@@ -172,8 +177,6 @@ def extract_tape_training_samples(
             trace.reward = reward
             trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
             trace.group_id = new_tape.metadata.parent_id
-            tape_prompt_tokens += llm_call.prompt_length_tokens
-            tape_output_tokens += llm_call.output_length_tokens
             training_samples.append(trace)
 
     tape_stats = {
