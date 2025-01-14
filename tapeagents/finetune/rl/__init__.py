@@ -240,11 +240,7 @@ def populate_rl_data(
         Dataset: The dataset populated with RL-specific columns including rewards and advantages
     """
 
-    logger.info("Populate RL Data")
-
     dataset = update_rewards_and_advantages(dataset, config)
-
-    logger.info("Finish Populate RL Data")
     return dataset
 
 

@@ -1,3 +1,4 @@
+import os
 import time
 from functools import partial
 from typing import Any, Callable, Iterable, Sequence
@@ -216,21 +217,22 @@ def create_dataloader(
 
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
-        
-        #dataset_part = dataset_part.shard(
+
+        # dataset_part = dataset_part.shard(
         #    num_shards=accelerator.num_processes,
         #    index=accelerator.process_index,
-        #)
-        
+        # )
+
         # Each process preprocesses its shard
-        import os
-        num_cpu = os.cpu_count()
-        dataset_part = dataset_part.map(preprocess, keep_in_memory=True, load_from_cache_file=False, num_proc=num_cpu)
-        dataset_part = dataset_part.with_format(columns=columns)
-        
+        if accelerator.is_main_process:
+            dataset_part = dataset_part.map(
+                preprocess, keep_in_memory=True, load_from_cache_file=False, num_proc=os.cpu_count()
+            )
+            dataset_part = dataset_part.with_format(columns=columns)
+
         # Wait for all processes to finish preprocessing
-        #accelerator.wait_for_everyone()
-        
+        # accelerator.wait_for_everyone()
+
         logger.info(f"Preprocessed data part fingerprint: {dataset_part._fingerprint}")
         datasets.append(dataset_part)
         if stop:
@@ -248,9 +250,37 @@ def create_dataloader(
 
     if rl_data_callback is not None:
         accelerator.wait_for_everyone()
-        dt = time.perf_counter()
-        data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
-        dt = log_time(dt, "finetune/rl_data_callback")
+        if accelerator.is_main_process:
+            num_cpus = os.cpu_count() or 1
+            logger.info(f"Populate RL Data with {num_cpus} workers")
+            # Group data by group_id to keep related samples together
+            group_ids = data["group_id"]
+            unique_groups = list(set(group_ids))
+            
+            # Assign groups to CPU processes
+            process_assignments = {}
+            for group in unique_groups:
+                # Use consistent hash to ensure same group always goes to same process
+                process_id = hash(str(group)) % num_cpus
+                process_assignments[group] = process_id
+            
+            # Split data into shards by process assignment
+            shards = [[] for _ in range(num_cpus)]
+            for i, group in enumerate(group_ids):
+                process_id = process_assignments[group]
+                shards[process_id].append(i)
+                
+            # Convert index lists to datasets
+            shard_datasets = [data.select(indices) for indices in shards if indices]
+            from concurrent import futures
+            rl_data_callback = partial(rl_data_callback, columns=columns, collate_fn=collate_fn)
+            with futures.ProcessPoolExecutor(max_workers=num_cpus) as executor:
+                shard_datasets = list(executor.map(rl_data_callback, shard_datasets))
+            # merge the data back together
+            data = datasets.concatenate_datasets(shard_datasets)
+            logger.info("Finish Populate RL Data")
+
+            #data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
 
     if n_examples:
         data = data.select(range(n_examples))
