@@ -59,7 +59,7 @@ def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[Trai
         return
     for trace, ref_logprobs in zip(traces, all_ref_logprobs):
         trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
-        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logpros)} != {len(trace.logprobs)}"
+        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
 
 
 def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTape]:
@@ -158,7 +158,7 @@ def extract_tape_training_samples(
             labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
             # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
             # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-            labels = [-MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
+            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
             trace.input_ids = input_ids
             trace.labels = labels
