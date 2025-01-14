@@ -268,7 +268,6 @@ def run_finetuning_loop(
                     tokenizer,
                     args.lora.enabled,
                     safe_serialization=args.use_safetensors,
-                    convert_to_hf=True,
                 )
                 # Save training state to training_state.pt (for resuming)
                 save_training_state(
@@ -302,7 +301,6 @@ def run_finetuning_loop(
                         tokenizer,
                         args.lora.enabled,
                         safe_serialization=args.use_safetensors,
-                        convert_to_hf=False,
                     )
                     dt = log_time(dt, "finetune/interim_save")
                     try:
@@ -342,7 +340,6 @@ def run_finetuning_loop(
         tokenizer,
         args.lora.enabled,
         safe_serialization=args.use_safetensors,
-        convert_to_hf=True,
     )
     dt = log_time(dt, "finetune/final_save")
     if args.save_final_training_state:

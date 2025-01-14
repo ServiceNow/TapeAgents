@@ -286,7 +286,6 @@ def save_model_and_tokenizer(
     tokenizer: transformers.PreTrainedTokenizer | transformers.PreTrainedTokenizerFast,
     lora: bool = False,
     safe_serialization: bool = False,
-    convert_to_hf: bool = False,
 ):
     logger.info("Saving model and tokenizer")
     with get_temporary_folder_and_move(output_dir) as temp_dir:
@@ -296,7 +295,6 @@ def save_model_and_tokenizer(
             unwrap=True,
             lora=lora,
             safe_serialization=safe_serialization,
-            convert_to_hf=convert_to_hf,
         )
         save_tokenizer_only(temp_dir, tokenizer)
 
@@ -323,25 +321,35 @@ def save_model_only(
 
     The accelerate version must be called on *all* accelerate processes because all of them must save their shards.
     """
+    start_time = time.time()
+    
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
     accelerator.wait_for_everyone()
+    sync_time = time.time()
 
     logger.info(f"Save model to {output_dir}")
 
     unwrapped_model = accelerator.unwrap_model(model) if unwrap else model
+    unwrap_time = time.time()
+    
     if lora:
+        lora_start = time.time()
         lora_save(output_dir, unwrapped_model)
+        logger.info(f"LoRA save took {time.time() - lora_start:.2f}s")
         return
 
     elif isinstance(unwrapped_model, transformers.PreTrainedModel):
         logger.info("Saving model using transformers save_pretrained")
-        unwrapped_model.save_pretrained(  # type: ignore
+        save_start = time.time()
+        unwrapped_model.save_pretrained(
             output_dir,
             is_main_process=accelerator.is_main_process,
             save_function=accelerator.save,
             state_dict=accelerator.get_state_dict(model),
             safe_serialization=safe_serialization,
         )
+        save_time = time.time()
+        logger.info(f"Model save_pretrained took {save_time - save_start:.2f}s")
         logger.info(f"Saved model to {output_dir}")
     else:
         raise ValueError(f"model is neither a deepspeed model nor a transformers.PreTrainedModel: {type(model)}")
@@ -349,6 +357,13 @@ def save_model_only(
     if os.path.exists(output_dir / "model.safetensors") and os.path.exists(output_dir / "model.safetensors.index.json"):
         logger.info("Hide model.safetensors because it utterly confuses the HF model loading code")
         os.rename(output_dir / "model.safetensors", output_dir / "model.safetensors.bak")
+
+    end_time = time.time()
+    logger.info(f"Total save time: {end_time - start_time:.2f}s")
+    logger.info(f"  - Sync time: {sync_time - start_time:.2f}s")
+    logger.info(f"  - Unwrap time: {unwrap_time - sync_time:.2f}s")
+    if not lora:
+        logger.info(f"  - Save time: {save_time - save_start:.2f}s")
 
 
 def save_tokenizer_only(
