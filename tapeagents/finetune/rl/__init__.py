@@ -57,6 +57,11 @@ class RLConfig(StepConfig):
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
+    clamp_log_ratio_ref_new_value: float = field(
+        default=10,
+        metadata={"help": "Clamp the log ratio ref new value"},
+    )
+
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
     if rl_config:
@@ -108,8 +113,14 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     log_p_weights = advantages if config.use_advantages else rewards
     log_p_weights = torch.clamp(log_p_weights, min=0) if config.relu_log_p_weights else log_p_weights
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
-    log_ratio_ref_new = torch.clamp(ref_logprobs - new_log_probs, min=-10, max=10)
-    approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
+    log_ratio_ref_new = ref_logprobs - new_log_probs
+    clamp_log_ratio_ref_new_indicators = torch.abs(log_ratio_ref_new) > config.clamp_log_ratio_ref_new_value
+    log_ratio_ref_new_clamp = torch.clamp(
+        ref_logprobs - new_log_probs,
+        min=-config.clamp_log_ratio_ref_new_value,
+        max=config.clamp_log_ratio_ref_new_value,
+    )
+    approx_kl = torch.exp(log_ratio_ref_new_clamp) - log_ratio_ref_new_clamp - 1  # Schulman KL approx
     match config.algo:
         case "grpo":
             # GRPO is based on https://arxiv.org/pdf/2402.03300
@@ -130,7 +141,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
             loss = -masked_mean(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
-    
+
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
@@ -165,6 +176,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "ratio_new_old": masked_mean(ratio_new_old, masks_).item(),
         "ratio_ref_new": masked_mean(torch.exp(log_ratio_ref_new), masks_).item(),
         "ratio_ref_old": masked_mean(torch.exp(ref_logprobs - old_logprobs), masks_).item(),
+        "clamp_log_ratio_ref_new_indicators": masked_mean(clamp_log_ratio_ref_new_indicators, masks_).item(),
     }
     return loss, stats
 
