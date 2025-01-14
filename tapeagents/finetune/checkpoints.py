@@ -307,7 +307,6 @@ def save_model_only(
     unwrap: bool = True,
     lora: bool = False,
     safe_serialization: bool = False,
-    convert_to_hf: bool = False,
 ):
     """
     Save model weights and config.
@@ -323,8 +322,6 @@ def save_model_only(
     Use only for inference or later JGA evaluation, not for resuming training
 
     The accelerate version must be called on *all* accelerate processes because all of them must save their shards.
-    The DeepSpeed version is only called on the main process because the checkpointing and conversion mechanism will gather the shards from all processes.
-    The DeepSpeed conversion is only done for the `current` weights
     """
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
     accelerator.wait_for_everyone()
