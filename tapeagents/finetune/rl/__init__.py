@@ -16,6 +16,7 @@ from .utils import (
     calculate_advantage,
     calculate_rewards_with_implicit_kl,
     masked_mean,
+    masked_sum,
     replace_dataset_column,
 )
 
@@ -134,11 +135,11 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
 
             assert approx_kl.shape == masks_.shape
             assert approx_kl.shape == surrogate_loss.shape
-            loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
+            loss = -masked_sum(surrogate_loss - config.kl_coef * approx_kl, masks_)
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = -masked_mean(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
+            loss = -masked_sum(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
 
