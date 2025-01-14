@@ -217,32 +217,19 @@ def create_dataloader(
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
         
-        # Shard the dataset across processes
-                # If group_id exists, shard based on it
-        if "group_id" in dataset_part.features:
-            # Get unique group_ids and assign them to processes
-            group_ids = sorted(set(dataset_part["group_id"]))
-            num_groups = len(group_ids)
-            groups_per_process = (num_groups + accelerator.num_processes - 1) // accelerator.num_processes
-            process_groups = group_ids[
-                accelerator.process_index * groups_per_process:
-                (accelerator.process_index + 1) * groups_per_process
-            ]
-            
-            # Filter dataset to only include assigned groups
-            dataset_part = dataset_part.filter(lambda x: x["group_id"] in process_groups)
-        else:
-            dataset_part = dataset_part.shard(
-                num_shards=accelerator.num_processes,
-                index=accelerator.process_index,
-            )
+        #dataset_part = dataset_part.shard(
+        #    num_shards=accelerator.num_processes,
+        #    index=accelerator.process_index,
+        #)
         
         # Each process preprocesses its shard
-        dataset_part = dataset_part.map(preprocess, keep_in_memory=True, load_from_cache_file=False)
+        import os
+        num_cpu = os.cpu_count()
+        dataset_part = dataset_part.map(preprocess, keep_in_memory=True, load_from_cache_file=False, num_proc=num_cpu)
         dataset_part = dataset_part.with_format(columns=columns)
         
         # Wait for all processes to finish preprocessing
-        accelerator.wait_for_everyone()
+        #accelerator.wait_for_everyone()
         
         logger.info(f"Preprocessed data part fingerprint: {dataset_part._fingerprint}")
         datasets.append(dataset_part)
