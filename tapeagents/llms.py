@@ -9,16 +9,16 @@ import hashlib
 import json
 import logging
 import os
-import random
 import threading
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import zip_longest
+from statistics import mean
 from typing import Any, Callable, Generator
+import numpy as np
 
 import litellm
-import numpy as np
 import openai
 import requests
 from Levenshtein import ratio
@@ -253,12 +253,12 @@ class LLM(BaseModel, ABC):
 
     def get_stats(self) -> dict:
         return {
-            "time_send_request": np.mean(self._stats["time_send_request"]) if self._stats["time_send_request"] else 0,
-            "time_log_output": np.mean(self._stats["time_log_output"]) if self._stats["time_log_output"] else 0,
-            "total_prompt_tokens": np.sum(self._stats["prompt_length_tokens"])
+            "time_send_request": mean(self._stats["time_send_request"]) if self._stats["time_send_request"] else 0,
+            "time_log_output": mean(self._stats["time_log_output"]) if self._stats["time_log_output"] else 0,
+            "total_prompt_tokens": sum(self._stats["prompt_length_tokens"])
             if self._stats["prompt_length_tokens"]
             else 0,
-            "total_output_tokens": np.sum(self._stats["output_length_tokens"])
+            "total_output_tokens": sum(self._stats["output_length_tokens"])
             if self._stats["output_length_tokens"]
             else 0,
             "time_postprocess_llm_response": np.mean(self._stats["time_postprocess_llm_response"]) if self._stats["time_postprocess_llm_response"] else 0,
@@ -535,10 +535,15 @@ class TrainableLLM(CachedLLM):
         super().model_post_init(__context)
         self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
 
+    def get_base_url(self) -> str:
+        """
+        Returns the base URL for the API endpoint.
+        """
+        return self.base_url.rstrip("/")
+
     def make_llm_call_logprobs(
         self, prompt_token_ids: list[int], completion_logprobs: list[dict]
     ) -> list[TokenLogprob]:
-        """Construct homogenous list of TokenLogprob's for prompt and completion tokens"""
         logprobs = []
         for id in prompt_token_ids:
             logprobs.append(
@@ -671,11 +676,10 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        logger.debug(f"POST request to {base_url}/v1/completions")
+        logger.debug(f"POST request to {self.base_url}/v1/completions")
         start_send_request = time.time()
         r = requests.post(
-            url=f"{base_url}/v1/completions",
+            url=f"{self.base_url}/v1/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,
@@ -778,8 +782,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        url = f"{base_url}/v1/completions"
+        url = f"{self.base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
         r.raise_for_status()  # raise exception if status code is not in the 200s
@@ -817,8 +820,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        url = f"{base_url}/v1/completions"
+        url = f"{self.base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
         r.raise_for_status()
@@ -881,7 +883,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        base_url = self.get_base_url()
         url = f"{base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
@@ -956,7 +958,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
+        base_url = self.get_base_url()
         r = requests.post(
             url=f"{base_url}/v1/chat/completions",
             json=generation_args,

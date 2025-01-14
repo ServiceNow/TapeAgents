@@ -132,7 +132,6 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
             raise ValueError(f"Unknown algorithm {config.algo}")
     
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
-    clamp_loss = False if torch.abs(loss) < 10 else True
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),
@@ -166,16 +165,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "ratio_new_old": masked_mean(ratio_new_old, masks_).item(),
         "ratio_ref_new": masked_mean(torch.exp(log_ratio_ref_new), masks_).item(),
         "ratio_ref_old": masked_mean(torch.exp(ref_logprobs - old_logprobs), masks_).item(),
-        "clamped_loss": clamp_loss,
     }
-    if clamp_loss:
-        logger.warning(f"Loss is too high: {loss}. It will be clamped.")
-        loss = torch.clamp(loss, -10, 10)
-        # print stats with warning
-        for k, v in stats.items():
-            logger.warning(f"{k}: {v}")
-    
-
     return loss, stats
 
 
