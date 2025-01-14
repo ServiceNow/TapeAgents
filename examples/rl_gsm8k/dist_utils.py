@@ -3,6 +3,9 @@ import logging
 import datetime
 import torch
 import os
+import wandb
+from pathlib import Path
+from omegaconf import DictConfig
 
 logger = logging.getLogger(__name__)
 
@@ -193,3 +196,73 @@ class DistributedManager:
         except Exception as e:
             logger.error(f"[Rank {cls.get_rank()}] Failed to check memory status: {e}")
             return None
+
+
+def init_wandb(
+    cfg: DictConfig,
+    run_dir: Path,
+    config_for_wandb: DictConfig | dict,
+    dist_manager: DistributedManager,
+) -> wandb.sdk.wandb_run.Run:
+    """Initialize W&B on the main process only."""
+    if not dist_manager.is_main_process():
+        logger.info(f"Skipping W&B init on non-main process")
+        os.environ["WANDB_MODE"] = "offline"
+        return
+
+    try:
+        from wandb.sdk import wandb_run
+
+        # Set the port explicitly to avoid conflicts
+        os.environ["WANDB_PORT"] = str(8080 + int(dist_manager.get_rank()))
+
+        wandb.require("core")
+
+        if config_for_wandb is None:
+            config_for_wandb = cfg.dict()
+
+        wandb_id = cfg.finetune.wandb_id
+
+        if cfg.finetune.wandb_resume == "always":
+            resume = True
+        elif cfg.finetune.wandb_resume == "if_not_interactive":
+            resume = not cfg.finetune.force_restart
+        else:
+            raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
+
+        wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
+        if len(wandb_name) > 128:
+            logger.warning(f"wandb_name: {wandb_name} is longer than 128 characters. Truncating.")
+
+        logger.info(f"Starting W&B init with name: {wandb_name[:128]}, resume: {resume}")
+
+        run = wandb.init(
+            name=wandb_name[:128],
+            entity=cfg.finetune.wandb_entity_name,
+            project=cfg.finetune.wandb_project_name,
+            config=config_for_wandb,
+            resume=resume,
+            id=wandb_id,
+            tags=cfg.finetune.tags,
+        )
+
+        logger.info("W&B initialization successful")
+
+        if not isinstance(run, wandb_run.Run):
+            raise RuntimeError("W&B init failed - returned object is not a Run")
+
+        return run
+
+    except Exception as e:
+        raise RuntimeError(f"W&B initialization failed. Cannot continue without experiment tracking: {e}")
+
+
+def flatten_dict_config(d: DictConfig | dict, separator=".") -> dict:
+    result = {}
+    for k, v in d.items():
+        if isinstance(v, DictConfig) or isinstance(v, dict):
+            for sub_k, sub_v in flatten_dict_config(v).items():
+                result[str(k) + separator + str(sub_k)] = sub_v
+        else:
+            result[k] = v
+    return result
