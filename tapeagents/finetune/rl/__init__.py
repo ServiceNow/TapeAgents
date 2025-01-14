@@ -36,24 +36,24 @@ RL_DATA_COLUMNS = [
 
 @dataclass
 class RLConfig(StepConfig):
-    algo: Optional[str] = field(
+    algo: str = field(
         default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]}
     )
-    use_advantages: Optional[bool] = field(
+    use_advantages: bool = field(
         default=True,
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
     )
-    epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
-    reward_minus_kl_coef: Optional[float] = field(
+    epsilon: float = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
+    reward_minus_kl_coef: float = field(
         default=0.0,
         # https://arxiv.org/abs/2402.14740
         metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
     )
-    kl_coef: Optional[float] = field(
+    kl_coef: float = field(
         default=0.1,
         metadata={"help": "KL penalty coefficient with reference policy"},
     )
-    relu_log_p_weights: Optional[bool] = field(
+    relu_log_p_weights: bool = field(
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
