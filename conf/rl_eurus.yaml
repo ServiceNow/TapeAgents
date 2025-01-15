@@ -6,8 +6,8 @@ dataset_name: eurus
 output_dir: outputs/rl_eurus
 llm:
   parameters:
-    # CoT are much longer
-    max_tokens: 2048
+    # CoT are much longer, but the model only has 4096 tokens context
+    max_tokens: 3600
 
 test_every_n_iterations: 1
 vllm_config:

@@ -337,8 +337,10 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
 
 def calculate_stats(stats):
     return {
-        "max": np.mean([max(stats) for stats in stats.values() if stats]),
-        "min": np.mean([min(stats) for stats in stats.values() if stats]),
+        "max": max([max(stats) for stats in stats.values() if stats]),
+        "min": min([min(stats) for stats in stats.values() if stats]),
+        "mean_max": np.mean([max(stats) for stats in stats.values() if stats]),
+        "mean_min": np.mean([min(stats) for stats in stats.values() if stats]),
         "var": np.mean([np.var(stats) for stats in stats.values() if stats]),
         "mean": np.mean([np.mean(stats) for stats in stats.values() if stats]),
     }

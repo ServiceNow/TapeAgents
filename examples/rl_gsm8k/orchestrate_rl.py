@@ -229,8 +229,8 @@ def generate_training_data(
     step_stats = defaultdict(list)
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
-    prompt_tokens = defaultdict(list)
-    output_tokens = defaultdict(list)
+    prompt_tokens_stats = defaultdict(list)
+    output_tokens_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
     logger.info(f"Run the agent on {cfg.dataset_name} {split_name}")
@@ -250,8 +250,8 @@ def generate_training_data(
         step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
         success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
         no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
-        prompt_tokens[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
-        output_tokens[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
+        prompt_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
+        output_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
 
     start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
@@ -271,10 +271,10 @@ def generate_training_data(
             f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
-            f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens.values()]),
-            f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens.values()]),
+            f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
+            f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
             f"{split_name}_output_tokens_overflow": sum(
-                [(ot >= cfg.llm.parameters.max_tokens) for ot_list in output_tokens.values() for ot in ot_list]
+                [(ot >= cfg.llm.parameters.max_tokens) for ot_list in output_tokens_stats.values() for ot in ot_list]
             )
             / len(final_tapes),
         },
