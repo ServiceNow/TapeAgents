@@ -36,12 +36,11 @@ def init_wandb(
     wandb_id = cfg.finetune.wandb_id
 
     if cfg.finetune.wandb_resume == "always":
-        resume = True
+        resume = "allow"
     elif cfg.finetune.wandb_resume == "never":
-        resume = False
+        resume = "never"
     elif cfg.finetune.wandb_resume == "if_not_interactive":
-        # TODO: we don't really check if the job is interactive here, oops
-        resume = not cfg.finetune.force_restart
+        raise NotImplementedError()
     else:
         raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
     wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
@@ -49,7 +48,7 @@ def init_wandb(
     if len(wandb_name) > 128:
         logger.warning(f"wandb_name: {wandb_name} is longer than 128 characters. Truncating to 128 characters.")
 
-    logging.info(f"Initializing W&B with name: {wandb_name[:128]}, resume: {resume}")
+    logging.info(f"Initializing W&B with\nname: {wandb_name[:128]}\nid: {wandb_id}\nresume: {resume}")
     run = wandb.init(
         name=wandb_name[:128],  # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
@@ -70,7 +69,7 @@ def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None =
     debug_handler = logging.FileHandler(log_dir / f"info_{accelerator.process_index}.log")
     debug_handler.setLevel(logging.INFO)
     logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        format="%(asctime)s.%(msecs)03d - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
         handlers=[debug_handler, logging.StreamHandler()],
