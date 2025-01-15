@@ -252,35 +252,56 @@ def create_dataloader(
 
     if accelerator.is_main_process:
         accelerator.wait_for_everyone()
-        if rl_data_callback is not None:
-            num_cpus = os.cpu_count() or 1
-            logger.info(f"Populate RL Data with {num_cpus} workers")
+
+    if rl_data_callback is not None:
+        if accelerator.is_main_process:
+            # Calculate total number of processes across all accelerators
+            total_processes = accelerator.num_processes
+            logger.info(f"Populate RL Data with {total_processes} processes")
+            
             # Group data by group_id to keep related samples together
             group_ids = data["group_id"]
             unique_groups = list(set(group_ids))
-
-            # Assign groups to CPU processes
+            
+            # Assign groups to accelerator processes
             process_assignments = {}
             for group in unique_groups:
                 # Use consistent hash to ensure same group always goes to same process
-                process_id = hash(str(group)) % num_cpus
+                process_id = hash(str(group)) % total_processes
                 process_assignments[group] = process_id
-
+            
             # Split data into shards by process assignment
-            shards = [[] for _ in range(num_cpus)]
+            shards = [[] for _ in range(total_processes)]
             for i, group in enumerate(group_ids):
                 process_id = process_assignments[group]
                 shards[process_id].append(i)
-
+            
             # Convert index lists to datasets
             shard_datasets = [data.select(indices) for indices in shards if indices]
-            rl_data_callback = partial(rl_data_callback, columns=columns, collate_fn=collate_fn)
-            with futures.ProcessPoolExecutor(max_workers=num_cpus) as executor:
-                shard_datasets = list(executor.map(rl_data_callback, shard_datasets))
-            # merge the data back together
-            # data = Dataset.from_list(shard_datasets)
-            data = datasets.concatenate_datasets(shard_datasets)
+        
+        # Broadcast shard assignments to all processes
+        shard_datasets = accelerator.broadcast(shard_datasets)
+        
+        # Each process handles its own shard
+        process_id = accelerator.process_index
+        if process_id < len(shard_datasets):
+            local_data = shard_datasets[process_id]
+            local_data = rl_data_callback(local_data, columns=columns, collate_fn=collate_fn)
+        else:
+            local_data = None
+        
+        # Gather results from all processes
+        all_data = accelerator.gather(local_data)
+        
+        if accelerator.is_main_process:
+            # Filter out None values and merge datasets
+            all_data = [d for d in all_data if d is not None]
+            data = datasets.concatenate_datasets(all_data)
             logger.info("Finish Populate RL Data")
+        
+        # Sync all processes
+        accelerator.wait_for_everyone()
+        logger.info("Finish Populate RL Data")
 
             # data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
 
