@@ -43,7 +43,7 @@ vllm_config:
     --enable-chunked-prefill: ""
     --max-num-batched-tokens: 256
 
-output_dir: outputs/rl_gsm8k_deepspeed_llama31_70b_new_save_rl_no_kl_lr1e-6_1node
+output_dir: outputs/rl_gsm8k_deepspeed_llama31_70b_rl_no_kl_lr1e-6_2nodes_no_gather_file_sync
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 use_deepspeed: false
 
