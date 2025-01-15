@@ -3,7 +3,7 @@ import time
 from functools import partial
 from typing import Any, Callable, Iterable, Sequence
 
-import datasets
+import datasets as datasets_
 import torch
 import transformers
 from datasets.arrow_dataset import Dataset
@@ -277,7 +277,8 @@ def create_dataloader(
             with futures.ProcessPoolExecutor(max_workers=num_cpus) as executor:
                 shard_datasets = list(executor.map(rl_data_callback, shard_datasets))
             # merge the data back together
-            data = Dataset.from_list(shard_datasets)
+            #data = Dataset.from_list(shard_datasets)
+            data = datasets_.concatenate_datasets(shard_datasets)
             logger.info("Finish Populate RL Data")
 
             #data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
