@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 from typing import Any, Counter, Generator
 
 import yaml
@@ -100,13 +101,8 @@ def load_dataset(split: str):
 
 
 def solve_task(
-    task: dict,
-    agent: GaiaAgent,
-    env: ToolCollectionEnvironment,
-    level: int,
-    retries: int = 3,
-    max_loops: int = 50,
-) -> Generator[GaiaTape, None, None]:
+    task: dict, agent: GaiaAgent, env: ToolCollectionEnvironment, level: int, retries: int = 3, max_loops: int = 50
+) -> GaiaTape:
     """Solve GAIA task.
 
     This function is a generator that yields intermediate tapes during the solving process.
@@ -116,16 +112,13 @@ def solve_task(
     start_steps = task_to_observations(task)
     solved = None
     result = None
+    t = time.perf_counter()
     while not solved and retries:
         tape = GaiaTape(steps=start_steps)
         try:
             for event in main_loop(agent, tape, env, max_loops=max_loops):
                 if partial_tape := (event.agent_tape or event.env_tape):
                     tape = partial_tape
-                    tape.metadata = GaiaMetadata.model_validate(
-                        tape.metadata.model_dump() | {"task": task, "level": level}
-                    )
-                    yield tape
                 if n_search_repetitions(tape) >= 3:
                     break
         except Exception as e:
@@ -140,7 +133,8 @@ def solve_task(
     tape.metadata = GaiaMetadata.model_validate(
         tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
     )
-    yield tape
+    tape.metadata.other["timers"] = {"solve_task": time.perf_counter() - t}
+    return tape
 
 
 def n_search_repetitions(tape: GaiaTape) -> int:

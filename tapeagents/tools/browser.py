@@ -175,6 +175,7 @@ class Browser(Multitool):
     exp_path: str | None = None
     page_load_time_sec: int = 5
     gym_kwargs: dict = {}
+    gym_task: str = "browsergym/openended"
 
     _env: BrowserEnv = None  # type: ignore
     _current_page: str = ""
@@ -214,11 +215,11 @@ class Browser(Multitool):
             os.makedirs(self._screenshots_dir, exist_ok=True)
 
         self._env = gym.make(
-            "browsergym/openended",
+            self.gym_task,
             headless=self.headless,
             record_video_dir=self._record_video_dir,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
-            timeout=60000,
+            timeout=5000,
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore
@@ -258,7 +259,7 @@ class Browser(Multitool):
     def close(self):
         assert self._traces_dir is not None
         self._env.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
-        self._env.close()
+        # self._env.close()
 
     def _screenshot_to_img_file(self, image) -> str:
         if self._screenshots_dir is None:

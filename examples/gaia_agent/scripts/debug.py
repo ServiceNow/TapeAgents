@@ -31,9 +31,10 @@ def main(cfg: DictConfig) -> None:
     tapes_dir = f"{cfg.exp_path}/tapes"
     os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
-    tape_name = f"debug_{cfg.level}_{cfg.task}"
-    tasks = dset[cfg.level]
-    task = tasks[cfg.task]
+    level, task = cfg.only_tasks[0]
+    tape_name = f"debug_{level}_{task}"
+    tasks = dset[level]
+    task = tasks[task]
     llm: TrainableLLM = instantiate(cfg.llm)
     try:
         code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
@@ -43,7 +44,7 @@ def main(cfg: DictConfig) -> None:
     env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
     agent = GaiaAgent.create(llm, **cfg.agent)
     tape = GaiaTape(steps=task_to_observations(task))
-    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": cfg.level})
+    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
     step_count = 0
     for event in main_loop(agent, tape, env, max_loops=50):
         if event.agent_event and event.agent_event.step:
