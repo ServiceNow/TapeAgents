@@ -218,17 +218,16 @@ def create_dataloader(
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
 
-        # dataset_part = dataset_part.shard(
-        #    num_shards=accelerator.num_processes,
-        #    index=accelerator.process_index,
-        # )
+        dataset_part = dataset_part.shard(
+           num_shards=accelerator.num_processes,
+           index=accelerator.process_index,
+        )
 
-        # Each process preprocesses its shard
-        if accelerator.is_main_process:
-            dataset_part = dataset_part.map(
-                preprocess, keep_in_memory=True, load_from_cache_file=False, num_proc=os.cpu_count()
-            )
-            dataset_part = dataset_part.with_format(columns=columns)
+        
+        dataset_part = dataset_part.map(
+            preprocess, keep_in_memory=True, load_from_cache_file=False, num_proc=os.cpu_count() // accelerator.num_processes
+        )
+        dataset_part = dataset_part.with_format(columns=columns)
 
         # Wait for all processes to finish preprocessing
         # accelerator.wait_for_everyone()
@@ -251,7 +250,7 @@ def create_dataloader(
     if rl_data_callback is not None:
         accelerator.wait_for_everyone()
         if accelerator.is_main_process:
-            num_cpus = os.cpu_count() or 1
+            num_cpus = 1 #os.cpu_count() or 1
             logger.info(f"Populate RL Data with {num_cpus} workers")
             # Group data by group_id to keep related samples together
             group_ids = data["group_id"]
