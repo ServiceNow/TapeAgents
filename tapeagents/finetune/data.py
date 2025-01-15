@@ -218,30 +218,13 @@ def create_dataloader(
 
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
-        if "group_id" in dataset_part.features:
-            # Get unique group_ids and assign them to processes
-            group_ids = sorted(set(dataset_part["group_id"]))
-            num_groups = len(group_ids)
-            groups_per_process = (num_groups + accelerator.num_processes - 1) // accelerator.num_processes
-            process_groups = group_ids[
-                accelerator.process_index * groups_per_process:
-                (accelerator.process_index + 1) * groups_per_process
-            ]
-            
-            # Filter dataset to only include assigned groups
-            dataset_part = dataset_part.filter(lambda x: x["group_id"] in process_groups)
-        else:
-            # Fall back to regular sharding if no group_id exists
-            dataset_part = dataset_part.shard(
-                num_shards=accelerator.num_processes,
-                index=accelerator.process_index,
-            )
 
+        num_proc = (os.cpu_count() // accelerator.num_processes) or 1
         dataset_part = dataset_part.map(
             preprocess,
             keep_in_memory=True,
             load_from_cache_file=False,
-            num_proc=1,
+            num_proc=num_proc,
         )
         dataset_part = dataset_part.with_format(columns=columns)
 
@@ -257,14 +240,7 @@ def create_dataloader(
         stopping_strategy="all_exhausted",
         seed=rng.initial_seed() if rng is not None else None,
     )
-    local_size = data.num_rows
-    total_size = local_size
-    if accelerator.num_processes > 1:
-        # Move tensor to correct device before gathering
-        local_tensor = torch.tensor([local_size], device=accelerator.device)
-        total_size = sum(accelerator.gather(local_tensor).tolist())
-
-    logger.info(f"Merged data size (local/total): {local_size}/{total_size}")
+    logger.info(f"Merged data size: {data.num_rows}")
     logger.info(f"Merged data fingerprint: {data._fingerprint}")
 
     if rl_data_callback is not None:
