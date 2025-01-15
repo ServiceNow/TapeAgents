@@ -93,7 +93,8 @@ class DistributedManager:
 
         # Create our ready file with retry logic
         ready_file = sync_dir / f"rank_{rank}_ready_{message.replace(' ', '_')}.json"
-        max_retries = 3
+        max_retries = 10
+        retry_delay = 1
         for attempt in range(max_retries):
             try:
                 with open(ready_file, 'w') as f:
@@ -109,7 +110,7 @@ class DistributedManager:
                     logger.error(f"[Rank {rank}] Failed to create ready file after {max_retries} attempts: {e}")
                     return False
                 logger.warning(f"[Rank {rank}] Attempt {attempt + 1} to create ready file failed: {e}")
-                time.sleep(1)
+                time.sleep(retry_delay)
         
         logger.info(f"[Rank {rank}] Signaled ready for: {message}")
         
@@ -120,16 +121,22 @@ class DistributedManager:
         
         while time.time() < timeout:
             try:
-                ready_files = list(sync_dir.glob(f"rank_*_ready_{message.replace(' ', '_')}.json"))
+                # Only look for files matching our specific message
+                message_pattern = f"rank_*_ready_{message.replace(' ', '_')}.json"
+                ready_files = list(sync_dir.glob(message_pattern))
                 
-                # Verify file integrity
+                # Verify file integrity and message match
                 valid_files = []
                 for f in ready_files:
                     try:
                         with open(f, 'r') as file:
                             data = json.load(file)
                             if all(k in data for k in ["rank", "timestamp", "message"]):
-                                valid_files.append(f)
+                                # Verify the message matches exactly
+                                if data["message"] == message:
+                                    valid_files.append(f)
+                                else:
+                                    logger.debug(f"[Rank {rank}] Found file with different message: {data['message']} != {message}")
                             else:
                                 logger.warning(f"[Rank {rank}] Found malformed sync file: {f}")
                     except Exception as e:
@@ -138,16 +145,24 @@ class DistributedManager:
                 
                 if len(valid_files) == world_size:
                     consecutive_complete_counts += 1
+                    logger.debug(f"[Rank {rank}] Found {len(valid_files)}/{world_size} valid files for '{message}' "
+                               f"(consecutive count: {consecutive_complete_counts}/{required_consecutive_counts})")
+                    
                     if consecutive_complete_counts >= required_consecutive_counts:
                         logger.info(f"[Rank {rank}] All ranks ready for: {message} (verified {required_consecutive_counts} times)")
                         
+                        # All ranks wait before cleanup
+                        time.sleep(2)
+                        
                         # Only rank 0 performs cleanup
-                        if cls.is_main_process():
+                        if rank == 0:
                             cleanup_success = False
                             for cleanup_attempt in range(max_retries):
                                 try:
+                                    # Only remove files matching our specific message
                                     for f in valid_files:
-                                        f.unlink()
+                                        if f.exists():  # Check if file still exists
+                                            f.unlink()
                                     cleanup_success = True
                                     logger.info(f"[Rank {rank}] Cleaned up sync files for: {message}")
                                     break
@@ -158,10 +173,12 @@ class DistributedManager:
                             if not cleanup_success:
                                 logger.error(f"[Rank {rank}] Failed to clean up sync files after {max_retries} attempts")
                         
-                        # Add a small delay to ensure rank 0 has time to clean up
+                        # All ranks wait after cleanup
                         time.sleep(2)
                         return True
                 else:
+                    if consecutive_complete_counts > 0:
+                        logger.debug(f"[Rank {rank}] Reset consecutive count. Found {len(valid_files)}/{world_size} valid files")
                     consecutive_complete_counts = 0
                     
                 time.sleep(1)
