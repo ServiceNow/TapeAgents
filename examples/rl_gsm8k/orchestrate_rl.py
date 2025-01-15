@@ -111,7 +111,6 @@ def extract_tape_training_samples(
         - List of training samples with rewards and logprobs
         - Dictionary with statistics (reward, steps, success, no_errors)
     """
-    discarded = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     match cfg.dataset_name:
@@ -163,6 +162,10 @@ def extract_tape_training_samples(
         tape_output_tokens += llm_call.output_length_tokens
 
         if split_name == "train":
+            if llm_call.output_length_tokens >= cfg.llm.parameters.max_tokens:
+                # Output is too long, ignore this sample
+                # this will be recorded in output_tokens_overflow
+                continue
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]
@@ -184,7 +187,6 @@ def extract_tape_training_samples(
         "steps": len(new_tape.steps),
         "success": success,
         "no_error": no_error,
-        "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
     }
@@ -227,13 +229,11 @@ def generate_training_data(
     step_stats = defaultdict(list)
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
-    discarded_stats = defaultdict(list)
+    prompt_tokens = defaultdict(list)
+    output_tokens = defaultdict(list)
     training_samples: List[TrainingText] = []
 
     logger.info(f"Run the agent on {cfg.dataset_name} {split_name}")
-
-    prompt_tokens = 0
-    output_tokens = 0
 
     start_making_tapes = time.time()
     with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
@@ -250,9 +250,8 @@ def generate_training_data(
         step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
         success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
         no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
-        discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-        prompt_tokens += tape_stats["prompt_tokens"]
-        output_tokens += tape_stats["output_tokens"]
+        prompt_tokens[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
+        output_tokens[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
 
     start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
@@ -266,17 +265,18 @@ def generate_training_data(
         **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+        **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens).items()},
+        **{f"{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens).items()},
         **{
             f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
-            f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
-            f"{split_name}_prompt_tokens": prompt_tokens,
-            f"{split_name}_output_tokens": output_tokens,
-            f"{split_name}_average_output_tokens": output_tokens / len(final_tapes),
-            f"{split_name}_average_prompt_tokens": prompt_tokens / len(final_tapes),
-            f"{split_name}_total_tokens": prompt_tokens + output_tokens,
-            f"{split_name}_average_total_tokens": (prompt_tokens + output_tokens) / len(final_tapes),
+            f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens.values()]),
+            f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens.values()]),
+            f"{split_name}_output_tokens_overflow": sum(
+                [(ot >= cfg.llm.parameters.max_tokens) for ot_list in output_tokens.values() for ot in ot_list]
+            )
+            / len(final_tapes),
         },
     }
     return agent_replicas, final_tapes, training_samples, stats

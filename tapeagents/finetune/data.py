@@ -257,7 +257,14 @@ def create_dataloader(
         stopping_strategy="all_exhausted",
         seed=rng.initial_seed() if rng is not None else None,
     )
-    logger.info(f"Merged data size: {data.num_rows}")
+    local_size = data.num_rows
+    total_size = local_size
+    if accelerator.num_processes > 1:
+        # Move tensor to correct device before gathering
+        local_tensor = torch.tensor([local_size], device=accelerator.device)
+        total_size = sum(accelerator.gather(local_tensor).tolist())
+
+    logger.info(f"Merged data size (local/total): {local_size}/{total_size}")
     logger.info(f"Merged data fingerprint: {data._fingerprint}")
 
     if rl_data_callback is not None:
