@@ -4,6 +4,7 @@ Base classes for environments that execute actions and produce observations
 
 import json
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Callable, Generic, Literal
 
@@ -157,11 +158,14 @@ class ToolCollectionEnvironment(Environment):
         for action in self.last_actions(tape):
             if isinstance(action, LLMOutputParsingFailureAction):
                 continue
+            t = time.perf_counter()
             action_type = type(action)
             if action_type not in self.action_map:
                 raise Exception(f"Unknown action: {action_type}")
             tool = self.action_map[action_type]
             observation = tool.run(action)
+            observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+            observation.metadata.other["action_kind"] = action.kind
             tape = tape.append(observation)
         return tape
 
