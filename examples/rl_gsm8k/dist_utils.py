@@ -6,6 +6,9 @@ import os
 import wandb
 from pathlib import Path
 from omegaconf import DictConfig
+import json
+from typing import Optional
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +53,8 @@ class DistributedManager:
 
     @classmethod
     def robust_barrier(cls, message: str = "", timeout_mins: int = 30, max_retries: int = 3) -> bool:
-        """More robust barrier implementation with retries"""
-        if not torch.distributed.is_initialized():
-            return True
+        """Barrier implementation with retries"""
+        logger.info(f"Activating barrier on rank {cls.get_rank()}")
 
         retry_delay = 5
         for attempt in range(max_retries):
@@ -75,103 +77,119 @@ class DistributedManager:
         return False
 
     @classmethod
-    def sync_nodes(cls, message: str = "", timeout_mins: int = 30) -> bool:
-        """High-level sync function with additional safeguards"""
-        if not torch.distributed.is_initialized():
-            return True
-            
+    def sync_nodes_file_based(cls, message: str, base_path: Path, timeout_mins: int = 30) -> bool:
+        """File-based synchronization for non-distributed phases"""
+        rank = cls.get_rank()
+        world_size = cls.get_world_size()
+        sync_dir = base_path / "sync"
+        
+        # Ensure sync directory exists and is clean
         try:
-            # Ensure GPU operations are finished
-            cls.cleanup_gpu_resources()
-            
-            # Additional small wait to ensure all processes are ready
-            time.sleep(cls.get_rank() * 0.1)  # Stagger by rank
-            
-            return cls.robust_barrier(message, timeout_mins)
-            
+            sync_dir.mkdir(exist_ok=True)
+            # Clean any stale files from previous failed syncs for this message
+            stale_files = list(sync_dir.glob(f"rank_*_ready_{message.replace(' ', '_')}.json"))
+            for f in stale_files:
+                try:
+                    f.unlink()
+                    logger.info(f"[Rank {rank}] Cleaned stale sync file: {f}")
+                except Exception as e:
+                    logger.warning(f"[Rank {rank}] Failed to clean stale file {f}: {e}")
         except Exception as e:
-            logger.error(f"[Rank {cls.get_rank()}] Failed to sync nodes: {e}")
+            logger.error(f"[Rank {rank}] Failed to setup sync directory: {e}")
             return False
+        
+        # Create our ready file with retry logic
+        ready_file = sync_dir / f"rank_{rank}_ready_{message.replace(' ', '_')}.json"
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with open(ready_file, 'w') as f:
+                    json.dump({
+                        "rank": rank,
+                        "timestamp": time.time(),
+                        "message": message,
+                        "attempt": attempt + 1
+                    }, f)
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"[Rank {rank}] Failed to create ready file after {max_retries} attempts: {e}")
+                    return False
+                logger.warning(f"[Rank {rank}] Attempt {attempt + 1} to create ready file failed: {e}")
+                time.sleep(1)
+        
+        logger.info(f"[Rank {rank}] Signaled ready for: {message}")
+        
+        # Wait for all ranks with verification
+        timeout = time.time() + (timeout_mins * 60)
+        consecutive_complete_counts = 0
+        required_consecutive_counts = 3  # Require multiple successful checks
+        
+        while time.time() < timeout:
+            try:
+                ready_files = list(sync_dir.glob(f"rank_*_ready_{message.replace(' ', '_')}.json"))
+                
+                # Verify file integrity
+                valid_files = []
+                for f in ready_files:
+                    try:
+                        with open(f, 'r') as file:
+                            data = json.load(file)
+                            if all(k in data for k in ["rank", "timestamp", "message"]):
+                                valid_files.append(f)
+                            else:
+                                logger.warning(f"[Rank {rank}] Found malformed sync file: {f}")
+                    except Exception as e:
+                        logger.warning(f"[Rank {rank}] Failed to read sync file {f}: {e}")
+                        continue
+                
+                if len(valid_files) == world_size:
+                    consecutive_complete_counts += 1
+                    if consecutive_complete_counts >= required_consecutive_counts:
+                        logger.info(f"[Rank {rank}] All ranks ready for: {message} (verified {required_consecutive_counts} times)")
+                        
+                        # Clean up sync files with retry
+                        cleanup_success = False
+                        for cleanup_attempt in range(max_retries):
+                            try:
+                                for f in valid_files:
+                                    f.unlink()
+                                cleanup_success = True
+                                logger.info(f"[Rank {rank}] Cleaned up sync files for: {message}")
+                                break
+                            except Exception as e:
+                                logger.warning(f"[Rank {rank}] Cleanup attempt {cleanup_attempt + 1} failed: {e}")
+                                time.sleep(1)
+                        
+                        if not cleanup_success:
+                            logger.error(f"[Rank {rank}] Failed to clean up sync files after {max_retries} attempts")
+                        
+                        return True
+                else:
+                    consecutive_complete_counts = 0
+                    
+                time.sleep(1)
+                
+            except Exception as e:
+                logger.error(f"[Rank {rank}] Error during sync check: {e}")
+                consecutive_complete_counts = 0
+                time.sleep(1)
+        
+        logger.error(f"[Rank {rank}] Timeout waiting for all ranks to be ready for: {message}")
+        return False
 
     @classmethod
-    def broadcast_object(cls, obj, src=0):
-        """Broadcast an object from the source rank to all other processes."""
-        if not torch.distributed.is_initialized():
-            return obj
-            
-        try:
-            # Debug logging before broadcast
-            logger.info(f"[Rank {cls.get_rank()}] Starting broadcast operation")
-            
-            # Ensure all processes are ready for broadcast
-            if not cls.sync_nodes("before broadcast"):
-                raise RuntimeError(f"Failed sync before broadcast on rank {cls.get_rank()}")
-            
-            # Create object list with None for non-source ranks
-            object_list = [obj if cls.get_rank() == src else None]
-            
-            # Log object details before broadcast
-            logger.info(f"[Rank {cls.get_rank()}] Before broadcast: "
-                       f"object_list[0] type: {type(object_list[0])}, "
-                       f"length: {len(object_list[0]) if object_list[0] and hasattr(object_list[0], '__len__') else 'N/A'}")
-            
-            # Perform broadcast with explicit timeout
-            torch.distributed.broadcast_object_list(
-                object_list,
-                src=src,
-                timeout=datetime.timedelta(minutes=10)
-            )
-            
-            # Get result and verify
-            result = object_list[0]
-            
-            # Log result details
-            logger.info(f"[Rank {cls.get_rank()}] After broadcast: "
-                       f"result type: {type(result)}, "
-                       f"length: {len(result) if result and hasattr(result, '__len__') else 'N/A'}")
-            
-            # Verify broadcast result
-            if result is None:
-                raise RuntimeError(f"Broadcast resulted in None on rank {cls.get_rank()}")
-            
-            # Ensure all processes received the data
-            if not cls.sync_nodes("after broadcast"):
-                raise RuntimeError(f"Failed sync after broadcast on rank {cls.get_rank()}")
-            
-            logger.info(f"[Rank {cls.get_rank()}] Broadcast operation completed successfully")
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"[Rank {cls.get_rank()}] Failed to broadcast object: {e}")
-            raise RuntimeError(f"Broadcast failed on rank {cls.get_rank()}: {e}")
-
-    @classmethod
-    def gather_object(cls, obj):
-        """Gather objects from all processes to rank 0.
-
-        Args:
-            obj: Any picklable Python object
-        Returns:
-            list: On rank 0, list of objects gathered from all processes.
-                  On other ranks, None.
-        """
-        if not torch.distributed.is_initialized():
-            return [obj]
-
-        try:
-            if cls.get_rank() == '0':
-                gathered_objects = [None] * cls.get_world_size()
-            else:
-                gathered_objects = None
-
-            torch.distributed.gather_object(obj, gathered_objects, dst=0)
-            return gathered_objects
-
-        except Exception as e:
-            logger.error(f"[Rank {cls.get_rank()}] Failed to gather objects: {e}")
-            # Return list with just this process's object on rank 0
-            return [obj] if cls.get_rank() == '0' else None
+    def sync_nodes(cls, message: str = "", timeout_mins: int = 30, base_path: Optional[Path] = None) -> bool:
+        """High-level sync function that chooses appropriate sync method"""
+        if torch.distributed.is_initialized():
+            logger.warning(f"Distributed is initialized on rank {cls.get_rank()}")
+            return cls.robust_barrier(message, timeout_mins)
+        elif base_path is not None:
+            logger.warning(f"Distributed is not initialized on rank {cls.get_rank()}, using file-based sync")
+            return cls.sync_nodes_file_based(message, base_path, timeout_mins)
+        else:
+            logger.warning(f"No synchronization method available for message: {message}")
+            return True
 
     @classmethod
     def check_memory_status(cls):
