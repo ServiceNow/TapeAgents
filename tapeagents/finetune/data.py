@@ -218,6 +218,7 @@ def create_dataloader(
 
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
+        num_processes = max(os.cpu_count(), 8)
 
         dataset_part = dataset_part.shard(
             num_shards=accelerator.num_processes,
@@ -228,7 +229,7 @@ def create_dataloader(
             preprocess,
             keep_in_memory=True,
             load_from_cache_file=False,
-            num_proc=os.cpu_count() // accelerator.num_processes,
+            num_proc=num_processes // accelerator.num_processes,
         )
         dataset_part = dataset_part.with_format(columns=columns)
 
