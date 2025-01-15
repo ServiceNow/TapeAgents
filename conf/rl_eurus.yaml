@@ -7,7 +7,7 @@ output_dir: outputs/rl_eurus
 llm:
   parameters:
     # CoT are much longer, but the model only has 4096 tokens context
-    max_tokens: 3600
+    max_tokens: 3400
 
 test_every_n_iterations: 1
 vllm_config:
