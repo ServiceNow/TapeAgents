@@ -327,6 +327,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path, dist_manage
         target_path / "rollouts",
         target_path / "tapes",
         target_path / "conf",
+        target_path / "sync",
         target_path / "finetune" / "current",
         target_path / "finetune" / "logs",
         target_path / "finetune" / "intermediate",

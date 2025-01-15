@@ -61,7 +61,6 @@ class DistributedManager:
             try:
                 logger.info(f"[Rank {cls.get_rank()}] Barrier attempt {attempt + 1}/{max_retries}: {message}")
 
-                # Attempt barrier with timeout
                 torch.distributed.barrier(timeout=datetime.timedelta(minutes=timeout_mins))
 
                 logger.info(f"[Rank {cls.get_rank()}] Barrier successful: {message}")
@@ -77,27 +76,21 @@ class DistributedManager:
         return False
 
     @classmethod
-    def sync_nodes_file_based(cls, message: str, base_path: Path, timeout_mins: int = 30) -> bool:
+    def sync_nodes_file_based(cls, message: str, sync_dir: Path, timeout_mins: int = 30, rank: int = None, world_size: int = None) -> bool:
         """File-based synchronization for non-distributed phases"""
-        rank = cls.get_rank()
-        world_size = cls.get_world_size()
-        sync_dir = base_path / "sync"
-        
-        # Ensure sync directory exists and is clean
-        try:
-            sync_dir.mkdir(exist_ok=True)
-            # Clean any stale files from previous failed syncs for this message
-            stale_files = list(sync_dir.glob(f"rank_*_ready_{message.replace(' ', '_')}.json"))
-            for f in stale_files:
-                try:
-                    f.unlink()
-                    logger.info(f"[Rank {rank}] Cleaned stale sync file: {f}")
-                except Exception as e:
-                    logger.warning(f"[Rank {rank}] Failed to clean stale file {f}: {e}")
-        except Exception as e:
-            logger.error(f"[Rank {rank}] Failed to setup sync directory: {e}")
-            return False
-        
+        # Ensure sync directory exists with retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                os.makedirs(sync_dir, exist_ok=True)
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"[Rank {rank}] Failed to create sync directory after {max_retries} attempts: {e}")
+                    return False
+                logger.warning(f"[Rank {rank}] Attempt {attempt + 1} to create sync directory failed: {e}")
+                time.sleep(1)
+
         # Create our ready file with retry logic
         ready_file = sync_dir / f"rank_{rank}_ready_{message.replace(' ', '_')}.json"
         max_retries = 3
@@ -148,22 +141,25 @@ class DistributedManager:
                     if consecutive_complete_counts >= required_consecutive_counts:
                         logger.info(f"[Rank {rank}] All ranks ready for: {message} (verified {required_consecutive_counts} times)")
                         
-                        # Clean up sync files with retry
-                        cleanup_success = False
-                        for cleanup_attempt in range(max_retries):
-                            try:
-                                for f in valid_files:
-                                    f.unlink()
-                                cleanup_success = True
-                                logger.info(f"[Rank {rank}] Cleaned up sync files for: {message}")
-                                break
-                            except Exception as e:
-                                logger.warning(f"[Rank {rank}] Cleanup attempt {cleanup_attempt + 1} failed: {e}")
-                                time.sleep(1)
+                        # Only rank 0 performs cleanup
+                        if cls.is_main_process():
+                            cleanup_success = False
+                            for cleanup_attempt in range(max_retries):
+                                try:
+                                    for f in valid_files:
+                                        f.unlink()
+                                    cleanup_success = True
+                                    logger.info(f"[Rank {rank}] Cleaned up sync files for: {message}")
+                                    break
+                                except Exception as e:
+                                    logger.warning(f"[Rank {rank}] Cleanup attempt {cleanup_attempt + 1} failed: {e}")
+                                    time.sleep(1)
+                            
+                            if not cleanup_success:
+                                logger.error(f"[Rank {rank}] Failed to clean up sync files after {max_retries} attempts")
                         
-                        if not cleanup_success:
-                            logger.error(f"[Rank {rank}] Failed to clean up sync files after {max_retries} attempts")
-                        
+                        # Add a small delay to ensure rank 0 has time to clean up
+                        time.sleep(2)
                         return True
                 else:
                     consecutive_complete_counts = 0
@@ -179,17 +175,26 @@ class DistributedManager:
         return False
 
     @classmethod
-    def sync_nodes(cls, message: str = "", timeout_mins: int = 30, base_path: Optional[Path] = None) -> bool:
+    def sync_nodes(cls, message: str = "", timeout_mins: int = 30, sync_dir: Optional[Path] = None, rank: int = None, world_size: int = None) -> bool:
         """High-level sync function that chooses appropriate sync method"""
         if torch.distributed.is_initialized():
-            logger.warning(f"Distributed is initialized on rank {cls.get_rank()}")
+            logger.info(f"[Rank {rank}] Using distributed barrier for sync: {message}")
             return cls.robust_barrier(message, timeout_mins)
-        elif base_path is not None:
-            logger.warning(f"Distributed is not initialized on rank {cls.get_rank()}, using file-based sync")
-            return cls.sync_nodes_file_based(message, base_path, timeout_mins)
+        elif sync_dir is not None:
+            try:
+                logger.info(f"[Rank {rank}] Using file-based sync with base path: {sync_dir}")
+                return cls.sync_nodes_file_based(message, sync_dir, timeout_mins, rank, world_size)
+                
+            except Exception as e:
+                logger.error(f"[Rank {rank}] Failed to setup file-based sync: {e}")
+                raise RuntimeError(f"Sync failed on rank {rank}: {e}")
         else:
-            logger.warning(f"No synchronization method available for message: {message}")
-            return True
+            error_msg = (
+                f"[Rank {rank}] No synchronization method available! "
+                "Either torch.distributed must be initialized or sync_dir must be provided"
+            )
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
     @classmethod
     def check_memory_status(cls):
