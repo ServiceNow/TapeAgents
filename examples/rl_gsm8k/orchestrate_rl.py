@@ -62,7 +62,7 @@ def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, 
         return None
 
 
-def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTape]:
+def convert_problems_to_tapes(problems: list, cfg: DictConfig, split_name: str) -> list[RLMathTape]:
     """
     Creates RLMathTape objects from a list of math problem dictionaries.
 
@@ -76,7 +76,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
             stored in metadata.
     """
     tapes: list[RLMathTape] = []
-    for problem in tqdm(problems, desc="Converting problems to unique tapes", unit="problem"):
+    for problem in tqdm(problems, desc=f"Converting {split_name} problems to unique tapes", unit="problem"):
         start_step = Task(
             task=problem["task"],
             metadata=StepMetadata(
@@ -401,7 +401,7 @@ def main(cfg: DictConfig):
             try:
                 if not (data_path / "train_samples.json").exists() or not (data_path / "test_samples.json").exists():
                     if retry < max_retries - 1:
-                        logger.warning(f"Rank {rank}: Data files not found, retrying in {retry_delay} seconds (attempt {retry + 1}/{max_retries})")
+                        logger.warning(f"Rank {rank + 1}/{world_size}: Data files not found, retrying in {retry_delay} seconds (attempt {retry + 1}/{max_retries})")
                         time.sleep(retry_delay)
                         continue
                     else:
@@ -414,7 +414,7 @@ def main(cfg: DictConfig):
                 break
             except Exception as e:
                 if retry < max_retries - 1:
-                    logger.warning(f"Rank {rank}: Failed to load data files: {e}, retrying in {retry_delay} seconds")
+                    logger.warning(f"Rank {rank + 1}/{world_size}: Failed to load data files: {e}, retrying in {retry_delay} seconds")
                     time.sleep(retry_delay)
                 else:
                     raise e
@@ -429,10 +429,12 @@ def main(cfg: DictConfig):
             raise e
 
     # Split data for current node
+    logger.info(f"Rank {rank + 1}/{world_size}: Total train samples before split: {len(full_train_samples)}")
+    logger.info(f"Rank {rank + 1}/{world_size}: Total test samples before split: {len(full_test_samples)}")
     train_samples = split_data_for_nodes(full_train_samples, world_size, rank)
     test_samples = split_data_for_nodes(full_test_samples, world_size, rank)
 
-    logger.info(f"Rank {rank}/{world_size} loaded {len(train_samples)} training samples "
+    logger.info(f"Rank {rank + 1}/{world_size} loaded {len(train_samples)} training samples "
                f"and {len(test_samples)} test samples")
 
     # Create environment on all nodes
@@ -462,9 +464,9 @@ def main(cfg: DictConfig):
 
             with VLLMServiceManager(
                 model_name_or_path=assistant_model_path,
-                stdout_file_path=exp_path / f"assistant_vllm_stdout_rank{dist_manager.get_rank()}.log",
-                stderr_file_path=exp_path / f"assistant_vllm_stderr_rank{dist_manager.get_rank()}.log",
-                port=8080 + dist_manager.get_rank(),  # Each node gets its own port
+                stdout_file_path=exp_path / f"assistant_vllm_stdout_rank{rank}.log",
+                stderr_file_path=exp_path / f"assistant_vllm_stderr_rank{rank}.log",
+                port=8080,
                 gpus_per_model_instance=cfg.gpus_per_model_instance,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
@@ -472,7 +474,7 @@ def main(cfg: DictConfig):
             ) as vllm_service_manager:
                 # Each node already has its portion of samples from split_data_for_nodes
                 sub_samples = random.sample(train_samples, cfg.max_agent_forks // (cfg.attempts * world_size))
-                train_tapes = convert_problems_to_tapes(sub_samples, cfg)
+                train_tapes = convert_problems_to_tapes(sub_samples, cfg, split_name="train")
                 train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
 
                 llm = TrainableLLM(
@@ -499,7 +501,7 @@ def main(cfg: DictConfig):
 
                 splits = [("train", train_agent, train_tapes)]
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                    test_tapes = convert_problems_to_tapes(test_samples, cfg)
+                    test_tapes = convert_problems_to_tapes(test_samples, cfg, split_name="test")
                     test_agent = CoTMathAgent.create(llm=test_llm)
                     splits.append(("test", test_agent, test_tapes))
 
@@ -535,21 +537,21 @@ def main(cfg: DictConfig):
                     }
 
                     # Log results for current node
-                    logger.info(f"Rank {dist_manager.get_rank()} {split_name} stats:")
+                    logger.info(f"Rank {rank + 1}/{world_size} {split_name} stats:")
                     for stat_name, stat_value in stats.items():
                         logger.info(f"{stat_name}: {stat_value}")
 
                 assistant_vllm_stats = vllm_service_manager.get_stats()
 
         except Exception as e:
-            logger.error(colored(f"Failed on rank {dist_manager.get_rank()}: {e}", "red"))
+            logger.error(colored(f"Failed on rank {rank + 1}/{world_size}: {e}", "red"))
             raise e
 
         # Ensure all nodes have completed their processing
         if not dist_manager.sync_nodes("after processing splits"):
             raise RuntimeError("Failed sync after processing splits")
 
-        logger.info(f"Rank {rank} collected {len(training_samples)} training samples")
+        logger.info(f"Rank {rank + 1}/{world_size} collected {len(training_samples)} training samples")
 
         stats = all_results["train"]["stats"]
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
@@ -557,6 +559,7 @@ def main(cfg: DictConfig):
             time_evaluation = stats["execution_time/test_make_data"]
         else:
             time_evaluation = 0
+
         safe_wandb_log(
             stats,
             step=state["iteration"],
@@ -585,18 +588,9 @@ def main(cfg: DictConfig):
 
                 start_basemodel_logprobs = time.time()
                 
-                # Split samples across nodes
-                all_samples = all_results["train"]["training_samples"]
-                logger.info(f"Rank {dist_manager.get_rank()}: Total samples before split: {len(all_samples)}")
+                node_samples = all_results["train"]["training_samples"]
+                logger.info(f"Rank {rank + 1}/{world_size}: Assigned {len(node_samples)} samples to process")
                 
-                node_samples = split_data_for_nodes(
-                    all_samples, 
-                    dist_manager.get_world_size(), 
-                    dist_manager.get_rank()
-                )
-                logger.info(f"Rank {dist_manager.get_rank()}: Assigned {len(node_samples)} samples to process")
-                
-                # Each node processes its portion
                 with ThreadPoolExecutor(
                     max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
                 ) as executor:
@@ -610,7 +604,7 @@ def main(cfg: DictConfig):
                     for future in tqdm(
                         as_completed(futures), 
                         total=len(futures), 
-                        desc=f"Node {dist_manager.get_rank()}: Adding logprobs"
+                        desc=f"Node {rank + 1}/{world_size}: Adding logprobs"
                     ):
                         result = future.result()
                         if result is not None:
@@ -619,40 +613,53 @@ def main(cfg: DictConfig):
                             failed_samples += 1
 
                     logger.info(
-                        f"Rank {dist_manager.get_rank()}: Processed {len(local_training_samples)} samples successfully, "
+                        f"Rank {rank + 1}/{world_size}: Processed {len(local_training_samples)} samples successfully, "
                         f"failed {failed_samples} samples"
                     )
 
-                # Gather annotated samples to main node
-                logger.info(f"Rank {dist_manager.get_rank()}: Starting gather with {len(local_training_samples)} samples")
+                # Save local results to temporary files
+                tmp_dir = exp_path / "tmp" / str(state["iteration"])
+                os.makedirs(tmp_dir, exist_ok=True)
 
-                # All processes must participate in gather
-                all_annotated_samples = dist_manager.gather_object(local_training_samples)
+                logger.info(f"Rank {rank + 1}/{world_size}: Saving {len(local_training_samples)} samples to temporary file")
+                tmp_path = tmp_dir / f"rank_{rank}_samples.pkl"
+                with open(tmp_path, 'wb') as f:
+                    torch.save(local_training_samples, f)
+
+                # Ensure all ranks have saved their data
+                if not dist_manager.sync_nodes("after saving local samples"):
+                    raise RuntimeError("Failed sync after saving local samples")
 
                 if dist_manager.is_main_process():
-                    # Main process processes the gathered samples
-                    logger.info("Main process: Processing gathered samples")
+                    logger.info("Main process: Gathering samples from all ranks")
+                    all_samples = []
+                    total_samples = 0
                     
-                    # Log details about gathered samples
-                    for rank, node_samples in enumerate(all_annotated_samples):
-                        logger.info(f"Main process: Received {len(node_samples)} samples from rank {rank}")
-                    
-                    # Flatten gathered lists
-                    training_samples = [
-                        sample 
-                        for node_samples in all_annotated_samples 
-                        for sample in node_samples
-                    ]
-                    logger.info(f"Main process: Total samples after gathering: {len(training_samples)}")
-                    
-                    # Write to disk
+                    # Gather from all ranks
+                    for r in range(world_size):
+                        rank_path = tmp_dir / f"rank_{r}_samples.pkl"
+                        try:
+                            with open(rank_path, 'rb') as f:
+                                rank_samples = torch.load(f)
+                            samples_from_rank = len(rank_samples)
+                            total_samples += samples_from_rank
+                            all_samples.extend(rank_samples)
+                            logger.info(f"Main process: Loaded {samples_from_rank} samples from rank {r}/{world_size-1}")
+                        except Exception as e:
+                            logger.error(f"Failed to load samples from rank {r}: {e}")
+                            raise
+
+                    logger.info(f"Main process: Successfully gathered {len(all_samples)} total samples "
+                               f"(sum across {world_size} ranks: {total_samples})")
+
+                    # Write gathered samples to disk
                     rollout_dir = exp_path / "rollouts" / str(state["iteration"])
                     os.makedirs(rollout_dir, exist_ok=True)
                     
                     samples_written = 0
                     samples_rejected = 0
                     with open(rollout_dir / "data.jsonl", "w") as f:
-                        for trace in training_samples:
+                        for trace in all_samples:
                             if cfg.use_rejection_sampling and trace.reward <= 0:
                                 samples_rejected += 1
                                 continue
@@ -660,28 +667,38 @@ def main(cfg: DictConfig):
                             f.flush()
                             samples_written += 1
                     
-                    logger.info(
-                        f"Main process: Wrote {samples_written} samples to disk, "
-                        f"rejected {samples_rejected} samples due to negative reward"
-                    )
+                    logger.info(f"Main process: Wrote {samples_written} samples to disk, "
+                                f"rejected {samples_rejected} samples due to negative reward")
+
+                    # Clean up temporary files
+                    try:
+                        import shutil
+                        shutil.rmtree(tmp_dir)
+                        logger.info(f"Main process: Cleaned up temporary directory {tmp_dir}")
+                    except Exception as e:
+                        logger.warning(f"Failed to clean up temporary directory: {e}")
+
                 else:
-                    # Non-main processes participate in gather but don't need the result
-                    logger.info(f"Rank {dist_manager.get_rank()}: Completed gather operation")
-                    training_samples = []
+                    # Non-main processes just wait for completion
+                    logger.info(f"Rank {rank + 1}/{world_size}: Completed data saving")
+
+                # Ensure main process has finished processing before continuing
+                if not dist_manager.sync_nodes("after gathering samples"):
+                    raise RuntimeError("Failed sync after gathering samples")
 
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
                 time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
                 
                 logger.info(
-                    f"Rank {dist_manager.get_rank()}: Completed logprob annotation in "
+                    f"Rank {rank + 1}/{world_size}: Completed logprob annotation in "
                     f"{time_populating_ref_logprobs:.2f} seconds"
                 )
 
         except Exception as e:
             logger.error(
                 colored(
-                    f"Rank {dist_manager.get_rank()}: Failed to get ref log probs with error: {str(e)}\n"
+                    f"Rank {rank + 1}/{world_size}: Failed to get ref log probs with error: {str(e)}\n"
                     f"Traceback: {traceback.format_exc()}", 
                     "red"
                 )
@@ -715,8 +732,6 @@ def main(cfg: DictConfig):
         # Ensure config file is written before training
         if not dist_manager.sync_nodes("before training", timeout_mins=10):
             raise RuntimeError("Failed sync after config save")
-
-        dist_manager.cleanup_gpu_resources()
 
         # Now all nodes have the same config
         start_finetune = time.time()
