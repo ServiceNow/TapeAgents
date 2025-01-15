@@ -3,7 +3,7 @@ import time
 from functools import partial
 from typing import Any, Callable, Iterable, Sequence
 
-import datasets as datasets_
+import datasets
 import torch
 import transformers
 from datasets.arrow_dataset import Dataset
@@ -199,7 +199,7 @@ def create_dataloader(
     )
     logger.info(f"Instantiated collate_fn hash {Hasher.hash(collate_fn)}")
 
-    datasets = []
+    datasets_list= []
     weights = []
     stop = False
     for part in data_parts:
@@ -234,13 +234,13 @@ def create_dataloader(
         # accelerator.wait_for_everyone()
 
         logger.info(f"Preprocessed data part fingerprint: {dataset_part._fingerprint}")
-        datasets.append(dataset_part)
+        datasets_list.append(dataset_part)
         if stop:
             break
     total_weight = sum(weights)
     probs = [w / total_weight for w in weights]
     data = interleave_datasets(
-        datasets,
+        datasets_list,
         probabilities=probs,
         stopping_strategy="all_exhausted",
         seed=rng.initial_seed() if rng is not None else None,
@@ -278,7 +278,7 @@ def create_dataloader(
                 shard_datasets = list(executor.map(rl_data_callback, shard_datasets))
             # merge the data back together
             #data = Dataset.from_list(shard_datasets)
-            data = datasets_.concatenate_datasets(shard_datasets)
+            data = datasets.concatenate_datasets(shard_datasets)
             logger.info("Finish Populate RL Data")
 
             #data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
