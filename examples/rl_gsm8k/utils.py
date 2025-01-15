@@ -364,6 +364,7 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
         raise ValueError("No GPUs available for finetuning")
 
     base_cmd = [
+        "TORCH_NCCL_ENABLE_MONITORING=0",
         "accelerate",
         "launch",
         "--mixed_precision=bf16",

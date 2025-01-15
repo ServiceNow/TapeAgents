@@ -218,8 +218,6 @@ def create_dataloader(
 
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
-        num_processes = (os.cpu_count() // accelerator.num_processes) or 1
-        num_processes = min(num_processes, 8)
         if "group_id" in dataset_part.features:
             # Get unique group_ids and assign them to processes
             group_ids = sorted(set(dataset_part["group_id"]))
@@ -243,7 +241,7 @@ def create_dataloader(
             preprocess,
             keep_in_memory=True,
             load_from_cache_file=False,
-            num_proc=8,
+            num_proc=1,
         )
         dataset_part = dataset_part.with_format(columns=columns)
 
@@ -268,7 +266,6 @@ def create_dataloader(
     if n_examples:
         data = data.select(range(n_examples))
 
-    accelerator.wait_for_everyone()
     return DataLoader(
         data,
         batch_size=batch_size,
