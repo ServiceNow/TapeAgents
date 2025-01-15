@@ -12,7 +12,6 @@ from pathlib import Path
 import traceback
 from typing import Dict, List, Tuple
 
-from TapeAgents.tapeagents.finetune.data import MASKED_TOKEN_ID
 import hydra
 import numpy as np
 import torch
@@ -42,6 +41,7 @@ from .utils import (
     save_state,
     setup_logging,
 )
+from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.llms import TrainableLLM
 from tapeagents.orchestrator import main_loop
