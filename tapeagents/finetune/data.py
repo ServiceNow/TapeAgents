@@ -218,23 +218,34 @@ def create_dataloader(
 
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
-        num_processes = min(os.cpu_count(), 8)
-
-        dataset_part = dataset_part.shard(
-            num_shards=accelerator.num_processes,
-            index=accelerator.process_index,
-        )
+        num_processes = (os.cpu_count() // accelerator.num_processes) or 1
+        num_processes = min(num_processes, 8)
+        if "group_id" in dataset_part.features:
+            # Get unique group_ids and assign them to processes
+            group_ids = sorted(set(dataset_part["group_id"]))
+            num_groups = len(group_ids)
+            groups_per_process = (num_groups + accelerator.num_processes - 1) // accelerator.num_processes
+            process_groups = group_ids[
+                accelerator.process_index * groups_per_process:
+                (accelerator.process_index + 1) * groups_per_process
+            ]
+            
+            # Filter dataset to only include assigned groups
+            dataset_part = dataset_part.filter(lambda x: x["group_id"] in process_groups)
+        else:
+            # Fall back to regular sharding if no group_id exists
+            dataset_part = dataset_part.shard(
+                num_shards=accelerator.num_processes,
+                index=accelerator.process_index,
+            )
 
         dataset_part = dataset_part.map(
             preprocess,
             keep_in_memory=True,
             load_from_cache_file=False,
-            num_proc=num_processes // accelerator.num_processes,
+            num_proc=8,
         )
         dataset_part = dataset_part.with_format(columns=columns)
-
-        # Wait for all processes to finish preprocessing
-        # accelerator.wait_for_everyone()
 
         logger.info(f"Preprocessed data part fingerprint: {dataset_part._fingerprint}")
         datasets_list.append(dataset_part)
@@ -251,47 +262,13 @@ def create_dataloader(
     logger.info(f"Merged data size: {data.num_rows}")
     logger.info(f"Merged data fingerprint: {data._fingerprint}")
 
-    if accelerator.is_main_process:
-        accelerator.wait_for_everyone()
-
     if rl_data_callback is not None:
-        if accelerator.is_main_process:
-            num_cpus = os.cpu_count() or 1
-            num_cpus = min(8, num_cpus)
-            logger.info(f"Populate RL Data with {num_cpus} workers")
-            # Group data by group_id to keep related samples together
-            group_ids = data["group_id"]
-            unique_groups = list(set(group_ids))
-
-            # Assign groups to CPU processes
-            process_assignments = {}
-            for group in unique_groups:
-                # Use consistent hash to ensure same group always goes to same process
-                process_id = hash(str(group)) % num_cpus
-                process_assignments[group] = process_id
-
-            # Split data into shards by process assignment
-            shards = [[] for _ in range(num_cpus)]
-            for i, group in enumerate(group_ids):
-                process_id = process_assignments[group]
-                shards[process_id].append(i)
-
-            # Convert index lists to datasets
-            shard_datasets = [data.select(indices) for indices in shards if indices]
-            from concurrent import futures
-            rl_data_callback = partial(rl_data_callback, columns=columns, collate_fn=collate_fn)
-            with futures.ProcessPoolExecutor(max_workers=num_cpus) as executor:
-                shard_datasets = list(executor.map(rl_data_callback, shard_datasets))
-            data = datasets.concatenate_datasets(shard_datasets)
-            logger.info("Finish Populate RL Data")
-        
-        accelerator.wait_for_everyone()
-
-            # data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
+        data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
 
     if n_examples:
         data = data.select(range(n_examples))
 
+    accelerator.wait_for_everyone()
     return DataLoader(
         data,
         batch_size=batch_size,
