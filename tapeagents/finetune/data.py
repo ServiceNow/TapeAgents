@@ -277,7 +277,7 @@ def create_dataloader(
             with futures.ProcessPoolExecutor(max_workers=num_cpus) as executor:
                 shard_datasets = list(executor.map(rl_data_callback, shard_datasets))
             # merge the data back together
-            data = datasets.concatenate_datasets(shard_datasets)
+            data = Dataset.from_list(shard_datasets)
             logger.info("Finish Populate RL Data")
 
             #data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
