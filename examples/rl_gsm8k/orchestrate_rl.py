@@ -1,4 +1,3 @@
-import datetime
 import logging
 import copy
 import json
@@ -11,8 +10,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
 import traceback
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
+from TapeAgents.tapeagents.finetune.data import MASKED_TOKEN_ID
 import hydra
 import numpy as np
 import torch
@@ -37,7 +37,6 @@ from .utils import (
     calculate_stats,
     clean_up,
     VLLMServiceManager,
-    get_tokens_from_hf_tokenizer,
     launch_training,
     load_state,
     save_state,
