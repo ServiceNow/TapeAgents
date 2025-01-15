@@ -265,8 +265,8 @@ def generate_training_data(
         **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
-        **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens).items()},
-        **{f"{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens).items()},
+        **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens_stats).items()},
+        **{f"{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens_stats).items()},
         **{
             f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
