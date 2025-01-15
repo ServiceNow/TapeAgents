@@ -78,7 +78,7 @@ class DistributedManager:
     @classmethod
     def sync_nodes_file_based(cls, message: str, sync_dir: Path, timeout_mins: int = 30, rank: int = None, world_size: int = None) -> bool:
         """File-based synchronization for non-distributed phases"""
-        # Ensure sync directory exists with retry logic
+        # Ensure sync directory exists
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -91,7 +91,7 @@ class DistributedManager:
                 logger.warning(f"[Rank {rank}] Attempt {attempt + 1} to create sync directory failed: {e}")
                 time.sleep(1)
 
-        # Create our ready file with retry logic
+        # Create our ready file based on stage message
         ready_file = sync_dir / f"rank_{rank}_ready_{message.replace(' ', '_')}.json"
         max_retries = 10
         retry_delay = 1
@@ -117,7 +117,7 @@ class DistributedManager:
         # Wait for all ranks with verification
         timeout = time.time() + (timeout_mins * 60)
         consecutive_complete_counts = 0
-        required_consecutive_counts = 3  # Require multiple successful checks
+        required_consecutive_counts = 3  # verify
         
         while time.time() < timeout:
             try:
@@ -150,12 +150,10 @@ class DistributedManager:
                     
                     if consecutive_complete_counts >= required_consecutive_counts:
                         logger.info(f"[Rank {rank}] All ranks ready for: {message} (verified {required_consecutive_counts} times)")
-                        
-                        # All ranks wait before cleanup
                         time.sleep(2)
                         
-                        # Only rank 0 performs cleanup
-                        if rank == 0:
+                        # Only main process performs cleanup
+                        if cls.is_main_process():
                             cleanup_success = False
                             for cleanup_attempt in range(max_retries):
                                 try:
