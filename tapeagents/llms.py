@@ -8,7 +8,6 @@ import datetime
 import hashlib
 import json
 import logging
-import multiprocessing
 import os
 import random
 import time
@@ -35,7 +34,6 @@ logger = logging.getLogger(__name__)
 
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
 
-cache_write_lock = multiprocessing.Lock()
 transformers = None
 
 
@@ -275,17 +273,18 @@ class CachedLLM(LLM):
         logger.info("Use LLM Cache")
         param_hash = self._key(json.dumps({k: v for k, v in self.parameters.items() if k != "token"}))
         name = self.model_name.replace("/", "__")
-        self._cache_file = f"llm_cache_{name}_{param_hash}.jsonl"
-        if os.path.exists(self._cache_file):
-            with open(self._cache_file) as f:
+        prefix = f"llm_cache_{name}_{param_hash}."
+        self._cache_file = f"{prefix}{os.getpid()}.jsonl"
+        for fname in os.listdir(os.getenv("_CACHE_DIR", ".")):
+            if not fname.startswith(prefix):
+                continue
+            with open(fname) as f:
                 for line in f:
                     key, event_dict = json.loads(line)
                     if key not in self._cache:
                         self._cache[key] = []
                     self._cache[key].append(event_dict)
-            logger.info(f"Loaded cache with {len(self._cache)} keys")
-        else:
-            logger.info("Cache file not found")
+        logger.info(f"Loaded {len(self._cache)} llm calls from cache")
 
     def reindex_log(self):
         """
@@ -312,9 +311,8 @@ class CachedLLM(LLM):
         if key not in self._cache:
             self._cache[key] = []
         self._cache[key].append(event_dict)
-        with cache_write_lock:
-            with open(self._cache_file, "a") as f:
-                f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
+        with open(self._cache_file, "a") as f:
+            f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 
     def get_prompt_key(self, prompt: Prompt) -> str:
         prompt_text = json.dumps(prompt.model_dump(exclude={"id"}), ensure_ascii=False, sort_keys=True)
