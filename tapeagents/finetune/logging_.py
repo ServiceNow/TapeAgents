@@ -1,3 +1,4 @@
+from importlib.metadata import distributions
 import json
 import logging
 import os
@@ -28,6 +29,11 @@ def init_wandb(
     """
     if config_for_wandb is None:
         config_for_wandb = cfg.dict()
+
+    python_env = {}
+    for dist in distributions():
+        python_env[dist.metadata['Name']] = dist.version
+    config_for_wandb["python_env"] = python_env
 
     wandb_id = cfg.finetune.wandb_id
 
