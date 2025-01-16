@@ -4,7 +4,7 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Any, Counter, Generator
+from typing import Any, Counter
 
 import yaml
 from huggingface_hub import snapshot_download
@@ -247,11 +247,14 @@ def task_to_observations(task: dict, max_doc_length: int = 8000) -> list[GaiaQue
                 for i, img_path in enumerate(images):
                     steps.append(ImageObservation(image_path=img_path, image_caption=f"PDF page {i+1}"))
             if attach_doc_text:
-                content = browser.get_whole_document(filename)
-                document_text = f"\n\n{ext.upper()} document content:\n{content}\n"
-                if len(document_text) > max_doc_length:
-                    document_text = ""
-                document_text += f"\nPath to the mentioned document: {filename}"
+                try:
+                    content = browser.get_whole_document(filename)
+                except Exception as e:
+                    logger.exception(f"Failed to read document: {e}")
+                    content = ""
+                document_text = f"\n\nAttached {ext.upper()} file content:\n{content}\n"
+                if not len(content) or len(document_text) > max_doc_length:
+                    document_text = f"\nPath to the mentioned document: {filename}"
             else:
                 document_text = "\nDocument pages attached as images below"
         steps[0].content += document_text  # type: ignore

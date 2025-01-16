@@ -14,11 +14,8 @@ from whisper.utils import get_writer
 from tapeagents.core import Action, Observation
 from tapeagents.steps import VideoObservation, WatchVideoAction
 from tapeagents.tools.base import Tool
-from tapeagents.utils import Lock
 
 logger = logging.getLogger(__name__)
-
-video_lock = Lock("media_reader")
 
 
 def get_video_observation(
@@ -28,15 +25,14 @@ def get_video_observation(
     end_time: str = "",
 ) -> VideoObservation:
     try:
-        with video_lock:
-            video_path, thumbnail_path = download_video(url, output_dir)
-            video_path_trimmed = trim_video(video_path, start_time, end_time)
-            video_contact_sheet_paths = generate_contact_sheets_from_video(
-                video_path, video_path_trimmed=video_path_trimmed, start_time=start_time, end_time=end_time
-            )
-            subtitle_path = transcribe_audio(video_path, video_path_trimmed, start_time=start_time, end_time=end_time)
-            subtitle_text = extract_text_from_vtt(subtitle_path, start_time, end_time)
-            error = None
+        video_path, thumbnail_path = download_video(url, output_dir)
+        video_path_trimmed = trim_video(video_path, start_time, end_time)
+        video_contact_sheet_paths = generate_contact_sheets_from_video(
+            video_path, video_path_trimmed=video_path_trimmed, start_time=start_time, end_time=end_time
+        )
+        subtitle_path = transcribe_audio(video_path, video_path_trimmed, start_time=start_time, end_time=end_time)
+        subtitle_text = extract_text_from_vtt(subtitle_path, start_time, end_time)
+        error = None
     except Exception as e:
         logger.error(f"Error while watching video: {e}")
         raise e

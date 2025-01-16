@@ -69,7 +69,7 @@ def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
 
 
 def task_worker(cfg: DictConfig, level: int, task_num: int):
-    log_file = os.path.join(cfg.exp_path, "evaluate.log")
+    log_file = os.path.join(cfg.exp_path, f"evaluate.{os.getpid()}.log")
     log_handler = logging.FileHandler(log_file)
     log_handler.setLevel(logging.INFO)
     logging.basicConfig(
