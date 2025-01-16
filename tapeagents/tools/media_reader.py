@@ -30,8 +30,16 @@ def get_video_observation(
         video_contact_sheet_paths = generate_contact_sheets_from_video(
             video_path, video_path_trimmed=video_path_trimmed, start_time=start_time, end_time=end_time
         )
-        subtitle_path = transcribe_audio(video_path, video_path_trimmed, start_time=start_time, end_time=end_time)
-        subtitle_text = extract_text_from_vtt(subtitle_path, start_time, end_time)
+        try:
+            subtitle_path = transcribe_audio(video_path, video_path_trimmed, start_time=start_time, end_time=end_time)
+        except Exception as e:
+            logger.exception(f"Error while transcribing audio: {e}")
+            subtitle_path = None
+        try:
+            subtitle_text = extract_text_from_vtt(subtitle_path, start_time, end_time)
+        except Exception as e:
+            logger.exception(f"Error while extracting text from VTT: {e}")
+            subtitle_text = None
         error = None
     except Exception as e:
         logger.error(f"Error while watching video: {e}")
