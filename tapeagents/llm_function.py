@@ -160,25 +160,36 @@ class LLMFunctionTemplate(BaseModel):
                 raise NotImplementedError(f"Output type {output} not implemented")
             # Find the variable output.name in the llm output
             values = re.split(f"{output.name}:", output_text, flags=re.IGNORECASE)
-            if len(values) == 1:
+            if len(values) == 2:
+                # Variable output.name found in llm output
+                value = values[1].split("\n")[0].strip()  # heuristic for the end of the argument
+                if isinstance(output, ReasoningOutput):
+                    # if present, remove the prefix from the reasoning output
+                    values = re.split(output.prefix, output_text, flags=re.IGNORECASE)
+                    if len(values) == 2:
+                        value = values[1].split("\n")[0].strip()  # heuristic for the end of the argument
+                    else:
+                        logger.debug(f"No prefix to remove from reasoning output key {output.name}")
+            elif len(values) == 1:
                 # Variable output.name not found in llm output
                 # Set value to empty string to keep positional order
                 value = ""
                 if i == 0:
-                    # llm output might not repeat prefix for the first output
-                    # make sure llm output doesn't start with another variable output
+                    # For the first output, llm output might not repeat prefix
                     values = re.split(r"^[A-z]+:", output_text, flags=re.IGNORECASE)
                     if len(values) == 1:
-                        # llm output did not repeat prefix for the first output
+                        # llm output doesn't start with another variable output
+                        # we assume the first section of the llm output is the value
                         value = output_text.split("\n")[0].strip()  # heuristic for the end of the output
+                        logger.debug(f"Assuming value for the output key '{output.name}' is the first llm output section: '{value}'")
+                    else:
+                        # llm output started with another variable output
+                        # Not throwing an error here because the first (reasoning) output might not be present be the second (query/answer) output is
+                        logger.error(f"Could not assume value for the output key '{output.name}' from the first llm output section: '{values[0]}'")
+                else:
+                    raise ValueError(f"Could not find output key '{output.name}' in output_text: '{output_text}'")
             else:
-                # Variable output.name found in llm output
-                value = values[1].split("\n")[0].strip()  # heuristic for the end of the argument
-                if isinstance(output, ReasoningOutput):
-                    # remove the prefix from the reasoning output
-                    values = re.split(output.prefix, output_text, flags=re.IGNORECASE)
-                    if len(values) >= 2:
-                        value = values[1].split("\n")[0].strip()  # heuristic for the end of the argument
+                raise ValueError(f"Found multiple instances of output key `{output.name}` in output_text: {output_text}")
             output_values.append(value)
 
         if len(output_values) != len(self.outputs):
