@@ -4,7 +4,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Tool
-from tapeagents.tools.converters import FileConverter
+from tapeagents.tools.converters import FileConversionException, FileConverter
 
 
 class DocumentObservation(Observation):
@@ -37,6 +37,8 @@ class DocumentReader(Tool):
         try:
             res = self._mdconvert.convert_local(action.path, **self.kwargs)
             text = res.text_content
+        except FileConversionException as e:
+            text = f"Failed to read document {action.path}: {e}"
         except Exception as e:
             text = f"Failed to read document {action.path}: {e}"
         return DocumentObservation(text=text)
