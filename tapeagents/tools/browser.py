@@ -220,7 +220,7 @@ class Browser(Multitool):
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
-            timeout=10000,
+            timeout=20000,
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore
@@ -240,7 +240,7 @@ class Browser(Multitool):
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
-            timeout=10000,
+            timeout=20000,
             **kwargs,
         )  # type: ignore
         start_obs, info = self._env.reset(seed=seed)
@@ -275,7 +275,6 @@ class Browser(Multitool):
         return os.path.relpath(img_path, self._screenshots_dir)
 
     def perform_action(self, action_text: str) -> PageObservation:
-        self._env.page.set_default_timeout(60000)
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
         error = self.format_error(obs_dict["last_action_error"])
         if self.axtree:

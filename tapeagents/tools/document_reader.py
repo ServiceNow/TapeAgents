@@ -1,9 +1,10 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Tool
+from tapeagents.tools.converters import FileConverter
 
 
 class DocumentObservation(Observation):
@@ -28,6 +29,9 @@ class DocumentReader(Tool):
     action: type[Action] = ReadLocalDocumentAction
     observation: type[Observation] = DocumentObservation
     kwargs: dict = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        self._mdconvert = FileConverter()
 
     def execute_action(self, action: ReadLocalDocumentAction) -> DocumentObservation:
         res = self._mdconvert.convert_local(action.path, **self.kwargs)
