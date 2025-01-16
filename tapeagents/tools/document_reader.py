@@ -34,5 +34,9 @@ class DocumentReader(Tool):
         self._mdconvert = FileConverter()
 
     def execute_action(self, action: ReadLocalDocumentAction) -> DocumentObservation:
-        res = self._mdconvert.convert_local(action.path, **self.kwargs)
-        return DocumentObservation(text=res.text_content)
+        try:
+            res = self._mdconvert.convert_local(action.path, **self.kwargs)
+            text = res.text_content
+        except Exception as e:
+            text = f"Failed to read document {action.path}: {e}"
+        return DocumentObservation(text=text)
