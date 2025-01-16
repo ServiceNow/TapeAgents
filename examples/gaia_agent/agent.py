@@ -6,7 +6,7 @@ from tapeagents.steps import ActionExecutionFailure, VideoObservation
 from tapeagents.tools.simple_browser import PageObservation
 
 from .prompts import PromptRegistry
-from .steps import AGENT_STEPS, STEPS_WITHOUT_CODE, THOUGHTS, FactsSurvey, Plan
+from .steps import THOUGHTS, FactsSurvey, Plan
 from .tape import GaiaTape
 
 

@@ -11,7 +11,6 @@ from omegaconf import DictConfig
 from tapeagents.config import is_debug_mode
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
-from tapeagents.tools.container_executor import maybe_get_code_sandbox
 
 from ..agent import GaiaAgent
 from ..environment import get_env
