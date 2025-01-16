@@ -102,7 +102,10 @@ class GaiaTapeBrowser(TapeBrowser):
                 elif step.kind == "llm_output_parsing_failure_action":
                     errors["parsing"] += 1
                 elif step.kind == "action_execution_failure":
-                    errors[f"{last_action.kind}"] += 1
+                    if last_action:
+                        errors[f"{last_action.kind}"] += 1
+                    else:
+                        errors["unknown_action_execution_failure"] += 1
         html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
         html += (
             f"Prompts tokens: {prompt_tokens_num}<br>Output tokens: {output_tokens_num}<br>Cost: {total_cost:.2f} USD"
