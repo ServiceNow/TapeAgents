@@ -1,6 +1,7 @@
 import os
 
 DB_DEFAULT_FILENAME = "tapedata.sqlite"
+ATTACHMENT_DEFAULT_DIR = "attachments"
 
 
 def is_debug_mode():

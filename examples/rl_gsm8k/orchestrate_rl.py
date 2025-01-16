@@ -291,7 +291,7 @@ def main(cfg: DictConfig):
     exp_path = Path(cfg.output_dir)
     setup_logging(exp_path)
     logger.info(f"Current dir: {os.getcwd()}, output dir: {cfg.output_dir}")
-    cfg.finetune.wandb_id = exp_path.name
+    cfg.finetune.wandb_id = str(exp_path).replace("/", "_")
     run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
     if run is None:
         raise ValueError("Failed to initialize wandb run")
