@@ -8,7 +8,6 @@ from hydra.utils import instantiate
 from joblib import Parallel, delayed
 from omegaconf import DictConfig
 
-from tapeagents.config import is_debug_mode
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
 from tapeagents.tools.container_executor import maybe_get_code_sandbox
@@ -70,9 +69,16 @@ def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
 
 
 def task_worker(cfg: DictConfig, level: int, task_num: int):
-    if is_debug_mode():
-        logging.basicConfig(level=logging.DEBUG)
-        logger.setLevel(logging.DEBUG)
+    log_file = os.path.join(cfg.exp_path, "evaluate.log")
+    log_handler = logging.FileHandler(log_file)
+    log_handler.setLevel(logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s - PID%(process)d - TID%(threadName)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO,
+        handlers=[log_handler, logging.StreamHandler()],
+        force=True,  # forget previous handlers
+    )
     timers = {}
 
     t = time.perf_counter()
