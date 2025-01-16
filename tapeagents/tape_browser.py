@@ -128,7 +128,7 @@ class TapeBrowser:
             label += f'<h3>Metadata</h3><div style="white-space: pre-wrap;">{yaml.dump(m, allow_unicode=True)}</div>'
         return label
 
-    def get_file_label(self, filename: str, tapes: list[Tape]) -> str:
+    def get_exp_label(self, filename: str, tapes: list[Tape]) -> str:
         tapelengths = [len(tape) for tape in tapes]
         tapelen = sum(tapelengths) / len(tapelengths)
         return f"<h3>{len(self.tape_index)} indexed tapes in {len(self.files)} files<br>{len(tapes)} tapes in the current file<br>Avg. tape length: {tapelen:.1f} steps</h3>"
@@ -140,7 +140,7 @@ class TapeBrowser:
         logger.info(f"Loading tapes from {selected_file}")
         self.tapes = self.load_tapes(selected_file)
         self.load_llm_calls()
-        file_label = self.get_file_label(selected_file, self.tapes)
+        file_label = self.get_exp_label(selected_file, self.tapes)
         tape_names = [(self.get_tape_name(i, tape), i) for i, tape in enumerate(self.tapes)]
         logger.info(f"Selected file: {selected_file}, selected tape: {self.selected_tape}")
         files = gr.Dropdown(self.files, label="File", value=selected_file)  # type: ignore

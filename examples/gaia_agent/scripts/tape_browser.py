@@ -69,7 +69,7 @@ class GaiaTapeBrowser(TapeBrowser):
         html = f"{self.renderer.style}<style>.thought {{ background-color: #ffffba !important; }};</style>{self.renderer.render_tape(tape, self.llm_calls)}"
         return html, label
 
-    def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
+    def get_exp_label(self, filename: str, tapes: list[GaiaTape]) -> str:
         acc, n_solved = calculate_accuracy(tapes)
         errors = defaultdict(int)
         prompt_tokens_num = 0
@@ -106,6 +106,7 @@ class GaiaTapeBrowser(TapeBrowser):
                         errors[f"{last_action.kind}"] += 1
                     else:
                         errors["unknown_action_execution_failure"] += 1
+        timers, timer_counts = self.aggregate_timer_times(tapes)
         html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
         html += (
             f"Prompts tokens: {prompt_tokens_num}<br>Output tokens: {output_tokens_num}<br>Cost: {total_cost:.2f} USD"
@@ -116,7 +117,13 @@ class GaiaTapeBrowser(TapeBrowser):
             html += f"<h2>Errors</h2>{errors_str}"
         if actions:
             actions_str = "<br>".join(f"{k}: {v}" for k, v in actions.items())
-            html += f"<h2>Actions usage:</h2>{actions_str}"
+            html += f"<h2>Actions:</h2>{actions_str}"
+        if timers:
+            timers_str = "<br>".join(
+                f"{'execute ' if k.endswith('action') else ''}{k}: {v:.1f} sec, avg. {v/timer_counts[k]:.1f} sec"
+                for k, v in timers.items()
+            )
+            html += f"<h2>Timings</h2>{timers_str}"
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
@@ -201,6 +208,22 @@ class GaiaTapeBrowser(TapeBrowser):
                     set_name = ""
                 exps.append(f"{set_name}/{r}/{postfix}")
         return sorted(exps)
+
+    def aggregate_timer_times(self, tapes: list[GaiaTape]):
+        timer_sums = defaultdict(float)
+        timer_counts = defaultdict(int)
+        for tape in tapes:
+            timers = tape.metadata.other.get("timers", {})
+            for timer_name, exec_time in timers.items():
+                timer_sums[timer_name] += exec_time
+                timer_counts[timer_name] += 1
+            for step in tape.steps:
+                action_kind = step.metadata.other.get("action_kind")
+                action_execution_time = step.metadata.other.get("action_execution_time")
+                if action_kind and action_execution_time:
+                    timer_sums[action_kind] += action_execution_time
+                    timer_counts[action_kind] += 1
+        return dict(timer_sums), dict(timer_counts)
 
 
 def main(dirname: str):
