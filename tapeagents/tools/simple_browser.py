@@ -17,10 +17,10 @@
 import json
 import logging
 import mimetypes
-import multiprocessing
 import os
 import pathlib
 import re
+import threading
 import time
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
@@ -44,9 +44,6 @@ from .document_converters import (
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-flush_lock = multiprocessing.Lock()
 
 
 _FORCE_CACHE_PATH = None  # For testing purposes only
@@ -95,6 +92,9 @@ class SimpleTextBrowser:
         self._log = []
         self._cache_buffer = []
         self.cache_path = cache_path
+        self.load_cache(cache_path)
+
+    def load_cache(self, cache_path):
         if _FORCE_CACHE_PATH:
             self.cache_path = _FORCE_CACHE_PATH
             logger.warning(f"Using forced cache file {self.cache_path}")
@@ -105,7 +105,16 @@ class SimpleTextBrowser:
                 for line in f:
                     data = json.loads(line)
                     self._cache[data["k"]] = data["v"]
-            logger.info(f"Loaded {len(self._cache)} web results from cache")
+        else:
+            for fname in os.listdir(os.getenv("_CACHE_DIR", ".")):
+                if not fname.startswith(cache_path):
+                    continue
+                logger.info(f"Loading cache from {fname}")
+                with open(fname) as f:
+                    for line in f:
+                        data = json.loads(line)
+                        self._cache[data["k"]] = data["v"]
+        logger.info(f"Loaded {len(self._cache)} web results from cache")
 
     @property
     def address(self) -> str:
@@ -369,18 +378,18 @@ class SimpleTextBrowser:
         self.flush_cache()
 
     def flush_cache(self):
-        with open(self.cache_path, "a") as f:
+        fname = f"{self.cache_path}.{os.getpid()}.{threading.get_native_id()}"
+        with open(fname, "a") as f:
             for item in self._cache_buffer:
                 f.write(json.dumps(item) + "\n")
         self._cache_buffer = []
 
     def flush_log(self, exp_dir: str):
-        browser_log_path = os.path.join(exp_dir, "browser_log.jsonl")
+        browser_log_path = os.path.join(exp_dir, f"browser_log.jsonl.{os.getpid()}.{threading.get_native_id()}")
         if len(self._log):
-            with flush_lock:
-                with open(browser_log_path, "a") as wf:
-                    for line in self._log:
-                        wf.write(json.dumps(line) + "\n")
+            with open(browser_log_path, "a") as wf:
+                for line in self._log:
+                    wf.write(json.dumps(line) + "\n")
             self._log = []
 
     def get_page(self, url: str) -> tuple[str, int, int]:

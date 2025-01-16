@@ -1,19 +1,17 @@
 import json
 import logging
-import multiprocessing
 import os
+import threading
 from typing import Any, Callable
 
 from termcolor import colored
 
-_CACHE_PATH = "tool_cache.jsonl"
+_CACHE_NAME = "tool_cache.jsonl"
 _FORCE_CACHE = False
 _cache = {}
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-lock = multiprocessing.Lock()
 
 
 def cached_tool(tool_fn) -> Callable:
@@ -31,16 +29,22 @@ def cached_tool(tool_fn) -> Callable:
 
 
 def get_from_cache(fn_name: str, args: tuple, kwargs: dict) -> Any:
+    cache_dir = os.getenv("_CACHE_DIR", ".")
     if _FORCE_CACHE:
-        assert os.path.exists(_CACHE_PATH), f"Cache file {_CACHE_PATH} does not exist"
-    if not _cache and os.path.exists(_CACHE_PATH):
-        with open(_CACHE_PATH, "r") as f:
-            for line in f:
-                data = json.loads(line)
-                tool_cache = _cache.get(data["fn_name"], {})
-                key = json.dumps((data["args"], data["kwargs"]), sort_keys=True)
-                tool_cache[key] = data["result"]
-                _cache[data["fn_name"]] = tool_cache
+        cache_file = os.path.join(os.getenv(cache_dir, _CACHE_NAME))
+        assert os.path.exists(cache_file), f"Cache {cache_file} does not exist"
+    if not _cache and os.path.exists(cache_dir):
+        for fname in os.listdir(cache_dir):
+            if not fname.startswith(_CACHE_NAME):
+                continue
+            cache_file = os.path.join(os.getenv(cache_dir, fname))
+            with open(cache_file) as f:
+                for line in f:
+                    data = json.loads(line)
+                    tool_cache = _cache.get(data["fn_name"], {})
+                    key = json.dumps((data["args"], data["kwargs"]), sort_keys=True)
+                    tool_cache[key] = data["result"]
+                    _cache[data["fn_name"]] = tool_cache
     key = json.dumps((args, kwargs), sort_keys=True)
     result = _cache.get(fn_name, {}).get(key)
     if result is not None:
@@ -56,6 +60,6 @@ def add_to_cache(fn_name: str, args: tuple, kwargs: dict, result: Any):
     key = json.dumps((args, kwargs), sort_keys=True)
     tool_cache[key] = result
     _cache[fn_name] = tool_cache
-    with lock:
-        with open(_CACHE_PATH, "a") as f:
-            f.write(json.dumps({"fn_name": fn_name, "args": args, "kwargs": kwargs, "result": result}) + "\n")
+    fname = os.path.join(os.getenv("_CACHE_DIR", "."), f"{_CACHE_NAME}.{os.getpid()}.{threading.get_native_id()}")
+    with open(fname, "a") as f:
+        f.write(json.dumps({"fn_name": fn_name, "args": args, "kwargs": kwargs, "result": result}) + "\n")
