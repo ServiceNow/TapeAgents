@@ -8,9 +8,9 @@ import datetime
 import hashlib
 import json
 import logging
+import multiprocessing
 import os
 import random
-import threading
 import time
 from abc import ABC, abstractmethod
 from itertools import zip_longest
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
 
-cache_write_lock = threading.Lock()
+cache_write_lock = multiprocessing.Lock()
 transformers = None
 
 

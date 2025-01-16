@@ -1,7 +1,7 @@
 import json
 import logging
+import multiprocessing
 import os
-import threading
 from typing import Any, Callable
 
 from termcolor import colored
@@ -13,7 +13,7 @@ _cache = {}
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-lock = threading.Lock()
+lock = multiprocessing.Lock()
 
 
 def cached_tool(tool_fn) -> Callable:

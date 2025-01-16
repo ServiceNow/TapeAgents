@@ -1,11 +1,16 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import ConfigDict, Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.environment import CodeExecutionResult
 from tapeagents.tools.base import Tool
-from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
+from tapeagents.tools.container_executor import (
+    CodeBlock,
+    CommandLineCodeResult,
+    ContainerExecutor,
+    maybe_get_code_sandbox,
+)
 from tapeagents.tools.python_interpreter import logger, run_python_code
 
 
@@ -30,7 +35,11 @@ class CodeExecutor(Tool):
     action: type[Action] = PythonCodeAction
     observation: type[Observation] = CodeExecutionResult
     cached: bool = True
+    exp_path: str = ""
     sandbox: ContainerExecutor | None = Field(exclude=True, default=None)
+
+    def model_post_init(self, __context: Any) -> None:
+        self.sandbox = maybe_get_code_sandbox(self.exp_path)
 
     def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
         code = self._add_print_to_last_line(action.code)

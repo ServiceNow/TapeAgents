@@ -1,8 +1,8 @@
 import logging
 import math
+import multiprocessing
 import os
 import re
-import threading
 import time
 from typing import Optional
 
@@ -19,7 +19,7 @@ from tapeagents.utils import acquire_timeout
 
 logger = logging.getLogger(__name__)
 
-video_lock = threading.Lock()
+video_lock = multiprocessing.Lock()
 
 
 def get_video_observation(

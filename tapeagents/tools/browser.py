@@ -259,7 +259,7 @@ class Browser(Multitool):
     def close(self):
         assert self._traces_dir is not None
         self._env.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
-        # self._env.close()
+        self._env.close()
 
     def _screenshot_to_img_file(self, image) -> str:
         if self._screenshots_dir is None:

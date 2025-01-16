@@ -127,30 +127,31 @@ class ContainerExecutor:
             client.images.pull(image)
 
         if container_name is None:
-            container_name = f"autogen-code-exec-{uuid.uuid4()}"
+            container_name = "tapeagents-code-exec"
 
         # Start a container from the image, read to exec commands later
-        host_path = str(bind_dir.resolve())
-        mounts = [
-            {
-                "type": "bind",
-                "source": host_path,
-                "target": "/workspace",
-            }
-        ]
-        self._container = client.containers.create(
-            image,
-            name=container_name,
-            # Note this change: was needed for Podman
-            # entrypoint="/bin/sh",
-            entrypoint=["/bin/sh"],
-            tty=True,
-            auto_remove=auto_remove,
-            # volumes={str(bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
-            mounts=mounts,
-            working_dir="/workspace",
-        )
-        self._container.start()
+        try:
+            self._container = client.containers.get(container_name)
+        except docker.errors.NotFound:
+            self._container = client.containers.create(
+                image,
+                name=container_name,
+                # Note this change: was needed for Podman
+                # entrypoint="/bin/sh",
+                entrypoint=["/bin/sh"],
+                tty=True,
+                auto_remove=auto_remove,
+                # volumes={str(bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
+                mounts=[
+                    {
+                        "type": "bind",
+                        "source": str(bind_dir.resolve()),
+                        "target": "/workspace",
+                    }
+                ],
+                working_dir="/workspace",
+            )
+            self._container.start()
 
         _wait_for_ready(self._container)
 
@@ -432,6 +433,6 @@ def maybe_get_code_sandbox(exp_path: str) -> ContainerExecutor | None:
     try:
         code_sandbox = ContainerExecutor(work_dir=code_path)
     except Exception as e:
-        logger.error(f"Failed to create code sandbox: {e}")
+        logger.exception(f"Failed to create code sandbox: {e}")
         code_sandbox = None
     return code_sandbox

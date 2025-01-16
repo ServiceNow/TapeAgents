@@ -17,10 +17,10 @@
 import json
 import logging
 import mimetypes
+import multiprocessing
 import os
 import pathlib
 import re
-import threading
 import time
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-flush_lock = threading.Lock()
+flush_lock = multiprocessing.Lock()
 
 
 _FORCE_CACHE_PATH = None  # For testing purposes only
