@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import Field
 
@@ -7,14 +7,29 @@ from tapeagents.tools.base import Tool
 from tapeagents.tools.converters import FileConversionException, FileConverter, UnsupportedFormatException
 
 
+def read_document(path: str) -> tuple[str, str | None]:
+    try:
+        text = ""
+        error = None
+        text = FileConverter().convert(path).text_content
+    except UnsupportedFormatException as e:
+        error = f"Failed to read document {path}: {e}"
+    except FileConversionException as e:
+        error = f"Failed to read document {path}: {e}"
+    except Exception as e:
+        error = f"Failed to read document {path}: {e}"
+    return text, error
+
+
 class DocumentObservation(Observation):
     kind: Literal["document_observation"] = "document_observation"
     text: str
+    error: str | None = None
 
 
 class ReadLocalDocumentAction(Action):
     """
-    Action that loads the document, file or image and converts it to Markdown.
+    Action that loads the document, file or image and converts it to Markdown. Also can read pdf files from the web by url.
     """
 
     kind: Literal["read_local_document_action"] = "read_local_document_action"
@@ -28,19 +43,7 @@ class DocumentReader(Tool):
 
     action: type[Action] = ReadLocalDocumentAction
     observation: type[Observation] = DocumentObservation
-    kwargs: dict = Field(default_factory=dict)
-
-    def model_post_init(self, __context: Any) -> None:
-        self._mdconvert = FileConverter()
 
     def execute_action(self, action: ReadLocalDocumentAction) -> DocumentObservation:
-        try:
-            res = self._mdconvert.convert_local(action.path, **self.kwargs)
-            text = res.text_content
-        except UnsupportedFormatException as e:
-            text = f"Failed to read document {action.path}: {e}"
-        except FileConversionException as e:
-            text = f"Failed to read document {action.path}: {e}"
-        except Exception as e:
-            text = f"Failed to read document {action.path}: {e}"
-        return DocumentObservation(text=text)
+        text, error = read_document(action.path)
+        return DocumentObservation(text=text, error=error)

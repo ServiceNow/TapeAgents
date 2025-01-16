@@ -41,7 +41,7 @@ NODES_WITH_BID = [
 
 class GotoPageAction(Action):
     """
-    Action that opens the page with the provided URL and returns the first page of its content.
+    Action that opens the page with the provided URL and returns the first page of its content. Cannot open PDF or CSV files.
     To read the following pages use scroll_action.
     """
 
