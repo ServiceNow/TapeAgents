@@ -36,7 +36,7 @@ from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Multitool
 from tapeagents.utils import FatalError, diff_strings
 
-from .document_converters import (
+from .converters import (
     FileConversionException,
     FileConverter,
     UnsupportedFormatException,
