@@ -41,7 +41,6 @@ from .utils import (
     save_state,
     setup_logging,
 )
-from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.llms import TrainableLLM
 from tapeagents.orchestrator import main_loop
@@ -163,7 +162,7 @@ def extract_tape_training_samples(
             labels = [lp["token_id"] for lp in llm_call.logprobs if lp["generated"]]
             # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
             # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
+            labels = [-100] * (len(input_ids) - len(labels)) + labels
 
             trace.input_ids = input_ids
             trace.labels = labels
@@ -366,7 +365,7 @@ def main(cfg: DictConfig):
     os.makedirs(sync_dir, exist_ok=True)
 
     # Ensure data is written before other nodes try to read
-    if not dist_manager.sync_nodes(message="after data save", sync_dir=sync_dir, rank=rank, world_size=world_size):
+    if not dist_manager.sync_nodes(message="after data save", sync_dir=sync_dir, rank=rank, world_size=world_size, timeout_mins=10):
         raise RuntimeError("Failed sync after data save")
 
     if cfg.force_restart:
@@ -581,7 +580,7 @@ def main(cfg: DictConfig):
                     for future in tqdm(
                         as_completed(futures), 
                         total=len(futures), 
-                        desc=f"Node {rank + 1}/{world_size}: Adding logprobs"
+                        desc=f"Rank {rank + 1}/{world_size}: Adding logprobs"
                     ):
                         result = future.result()
                         if result is not None:
