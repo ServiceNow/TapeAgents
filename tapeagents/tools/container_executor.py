@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import atexit
 import logging
-import multiprocessing
 import os
 import re
 from hashlib import md5
@@ -30,7 +29,6 @@ from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
-lock = multiprocessing.Lock()
 
 
 def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
@@ -131,29 +129,28 @@ class ContainerExecutor:
             container_name = "tapeagents-code-exec"
 
         # Start a container from the image, read to exec commands later
-        with lock:
-            try:
-                self._container = client.containers.get(container_name)
-            except docker.errors.NotFound:
-                self._container = client.containers.create(
-                    image,
-                    name=container_name,
-                    # Note this change: was needed for Podman
-                    # entrypoint="/bin/sh",
-                    entrypoint=["/bin/sh"],
-                    tty=True,
-                    auto_remove=auto_remove,
-                    # volumes={str(bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
-                    mounts=[
-                        {
-                            "type": "bind",
-                            "source": str(bind_dir.resolve()),
-                            "target": "/workspace",
-                        }
-                    ],
-                    working_dir="/workspace",
-                )
-                self._container.start()
+        try:
+            self._container = client.containers.get(container_name)
+        except docker.errors.NotFound:
+            self._container = client.containers.create(
+                image,
+                name=container_name,
+                # Note this change: was needed for Podman
+                # entrypoint="/bin/sh",
+                entrypoint=["/bin/sh"],
+                tty=True,
+                auto_remove=auto_remove,
+                # volumes={str(bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
+                mounts=[
+                    {
+                        "type": "bind",
+                        "source": str(bind_dir.resolve()),
+                        "target": "/workspace",
+                    }
+                ],
+                working_dir="/workspace",
+            )
+            self._container.start()
 
         _wait_for_ready(self._container)
 
