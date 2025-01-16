@@ -4,10 +4,13 @@ defaults:
 model_path: /mnt/llmd/base_models/Eurus-2-7B-SFT
 dataset_name: eurus
 output_dir: outputs/rl_eurus
+finetune:
+  max_seq_len: 4096
+
 llm:
   parameters:
     # CoT are much longer, but the model only has 4096 tokens context
-    max_tokens: 2600
+    max_tokens: 3072
 
 test_every_n_iterations: 1
 vllm_config:
