@@ -26,7 +26,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
-from typing import Any, List, Optional, Union
+from typing import Any, List, Literal, Optional, Union
 from urllib.parse import parse_qs, urlparse
 
 import markdownify
@@ -37,7 +37,12 @@ import puremagic
 import requests
 import whisper
 from bs4 import BeautifulSoup
+from pydantic import Field
 from readability import Document
+
+from tapeagents.core import Action, Observation
+from tapeagents.tools.base import Tool
+from tapeagents.tools.simple_browser import ReadDocumentAction
 
 # Optional PDF support
 IS_PDF_CAPABLE = False
@@ -781,3 +786,31 @@ class FileConverter:
     def register_page_converter(self, converter: DocumentConverter) -> None:
         """Register a page text converter."""
         self._page_converters.insert(0, converter)
+
+
+class ReadLocalDocumentAction(Action):
+    """
+    Action that loads the document, file or image and converts it to Markdown.
+    """
+
+    kind: Literal["read_local_document_action"] = "read_local_document_action"
+    path: str = Field(description="path of the document")
+
+
+class DocumentObservation(Observation):
+    kind: Literal["document_observation"] = "document_observation"
+    text: str
+
+
+class DocumentReader(Tool):
+    """
+    Tool to read a document and convert it to Markdown.
+    """
+
+    action: type[Action] = ReadDocumentAction
+    observation: type[Observation] = DocumentObservation
+    kwargs: dict = Field(default_factory=dict)
+
+    def execute_action(self, action: ReadLocalDocumentAction) -> DocumentObservation:
+        res = self._mdconvert.convert_local(action.path, **self.kwargs)
+        return DocumentObservation(text=res.text_content)
