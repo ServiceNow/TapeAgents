@@ -154,6 +154,9 @@ class ToolCollectionEnvironment(Environment):
         for multitool in multitools:
             self.action_map |= {action: multitool for action in multitool.actions}
 
+    def actions(self) -> tuple[type[Action], ...]:
+        return tuple(self.action_map.keys())
+
     def react(self, tape: Tape) -> Tape:
         for action in self.last_actions(tape):
             if isinstance(action, LLMOutputParsingFailureAction):

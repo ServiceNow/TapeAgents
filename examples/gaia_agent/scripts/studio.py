@@ -34,7 +34,7 @@ def main(cfg: DictConfig) -> None:
     llm = instantiate(cfg.llm)
     code_sandbox = maybe_get_code_sandbox(cfg.exp_path)
     env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
-    agent = GaiaAgent.create(llm, **cfg.agent)
+    agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
     content = "How many calories in 2 teaspoons of hummus"
     if cfg.studio.tape:
         tape = load_tapes(GaiaTape, cfg.studio.tape, ".json")[0]

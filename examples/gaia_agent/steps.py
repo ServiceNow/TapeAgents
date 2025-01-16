@@ -107,17 +107,20 @@ class GaiaAnswer(StopStep):
     answer: Any = Field(description="short final answer")
 
 
-SIMPLE_BROWSER_ACTIONS = (ReadDocumentAction, NextPageAction)
-BROWSER_ACTIONS = (GotoPageAction, ScrollAction, ClickAction)
-STEPS_WITHOUT_CODE = (
+THOUGHTS = (ReadingResultThought, ReasoningThought, GaiaAnswer)
+GaiaStep: TypeAlias = Union[
+    ClickAction,
+    GotoPageAction,
+    ScrollAction,
+    SearchAction,
+    NextPageAction,
+    ReadDocumentAction,
+    PythonCodeAction,
     ReadingResultThought,
     ReasoningThought,
     SearchAction,
     WatchVideoAction,
     GaiaAnswer,
-) + BROWSER_ACTIONS
-AGENT_STEPS = STEPS_WITHOUT_CODE + (PythonCodeAction,)
-OBSERVATIONS = (
     GaiaQuestion,
     SearchResultsObservation,
     PageObservation,
@@ -126,6 +129,9 @@ OBSERVATIONS = (
     CalculationResultObservation,
     CodeExecutionResult,
     ActionExecutionFailure,
-)
-OTHER_STEPS = (Plan, FactsSurvey, ExecuteCode, LLMOutputParsingFailureAction, SetNextNode)
-GaiaStep: TypeAlias = Union[AGENT_STEPS + OBSERVATIONS + OTHER_STEPS]  # type: ignore
+    Plan,
+    FactsSurvey,
+    ExecuteCode,
+    LLMOutputParsingFailureAction,
+    SetNextNode,
+]

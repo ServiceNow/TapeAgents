@@ -11,15 +11,13 @@ from omegaconf import DictConfig
 from tapeagents.config import is_debug_mode
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
-from tapeagents.tools.container_executor import ContainerExecutor, maybe_get_code_sandbox
+from tapeagents.tools.container_executor import maybe_get_code_sandbox
 
 from ..agent import GaiaAgent
 from ..environment import get_env
 from ..eval import get_exp_config_dict, load_dataset, solve_task
 
 logger = logging.getLogger(__name__)
-
-code_sandbox: ContainerExecutor | None = None
 
 
 @hydra.main(
@@ -28,16 +26,11 @@ code_sandbox: ContainerExecutor | None = None
     config_name="gaia_openai",
 )
 def main(cfg: DictConfig) -> None:
-    """
-    Solve Gaia tasks from the each level of the dataset, save the results to
-    the separate files per level. If needed continue solving the unsolved tasks in the
-    next run.
-    """
     tasks = load_dataset(cfg.split)
     dt = time.perf_counter()
     n_workers = cfg.batch or 1
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
-    if cfg.only_tasks:
+    if len(cfg.only_tasks):
         tasks = cfg.only_tasks
     else:
         tasks = [
@@ -46,7 +39,7 @@ def main(cfg: DictConfig) -> None:
             for task_num, _ in enumerate(level_tasks)
             if not task_already_solved(task_num, level, tapes_dir)
         ]
-    logger.info(f"Evaluate {len(tasks)} unsolved tasks using {n_workers} workers")
+    logger.info(f"Solve {len(tasks)} tasks using {n_workers} workers")
     Parallel(n_jobs=n_workers, prefer="processes")(
         [delayed(task_worker)(cfg, level, task_num) for level, task_num in tasks]
     )
@@ -80,39 +73,39 @@ def task_worker(cfg: DictConfig, level: int, task_num: int):
         logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)
     timers = {}
+
     t = time.perf_counter()
     tasks = load_dataset(cfg.split)
     task = tasks[level][task_num]
     timers["load_task"] = time.perf_counter() - t
+
     t = time.perf_counter()
     llm: TrainableLLM = instantiate(cfg.llm)
     timers["instantiate_llm"] = time.perf_counter() - t
-    t = time.perf_counter()
-    agent = GaiaAgent.create(llm, **cfg.agent)
-    timers["create_agent"] = time.perf_counter() - t
+
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     validate_config(cfg, llm, tapes_dir)
     images_dir = os.path.join(cfg.exp_path, "images")
     os.makedirs(images_dir, exist_ok=True)
-
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     images_dir = os.path.join(cfg.exp_path, "images")
     task_name = f"l{level}_task{task_num:03d}"
+
     t = time.perf_counter()
-    global code_sandbox
-    if code_sandbox is None:
-        logger.info("Creating code sandbox")
-        code_sandbox = maybe_get_code_sandbox(cfg.exp_path)
-    timers["create_code_sandbox"] = time.perf_counter() - t
-    t = time.perf_counter()
-    env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
+    env = get_env(cfg.exp_path, **cfg.env)
     timers["create_env"] = time.perf_counter() - t
 
+    t = time.perf_counter()
+    agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
+    timers["create_agent"] = time.perf_counter() - t
+
     tape = solve_task(task, agent, env, level)
+
     t = time.perf_counter()
     env.close()
     timers["close_env"] = time.perf_counter() - t
+
     tape.metadata.other["timers"] |= timers
     save_json_tape(tape, tapes_dir, task_name)
     save_tape_images(tape, images_dir)

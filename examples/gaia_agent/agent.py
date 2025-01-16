@@ -1,11 +1,12 @@
 from tapeagents.agent import Agent
+from tapeagents.core import Step
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
 from tapeagents.steps import ActionExecutionFailure, VideoObservation
 from tapeagents.tools.simple_browser import PageObservation
 
 from .prompts import PromptRegistry
-from .steps import AGENT_STEPS, STEPS_WITHOUT_CODE, FactsSurvey, Plan
+from .steps import AGENT_STEPS, STEPS_WITHOUT_CODE, THOUGHTS, FactsSurvey, Plan
 from .tape import GaiaTape
 
 
@@ -37,9 +38,9 @@ class GaiaAgent(Agent):
     name: str = "gaia_agent_v3"
 
     @classmethod
-    def create(cls, llm: LLM, plain_code: bool = False, **kwargs):
+    def create(cls, llm: LLM, actions: tuple[Step, ...], plain_code: bool = False, **kwargs):
         steps_prompt = PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps
-        steps = STEPS_WITHOUT_CODE if plain_code else AGENT_STEPS
+        steps = actions + THOUGHTS
         nodes = [
             GaiaNode(name="plan", guidance=PromptRegistry.plan, agent_steps=Plan),
             GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, agent_steps=FactsSurvey),

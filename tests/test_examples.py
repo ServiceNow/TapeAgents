@@ -163,7 +163,7 @@ def test_gaia_agent():
     try:
         llm = mock_llm(run_dir)
         env = get_env(run_dir, code_sandbox=None, only_cached_webpages=True, cache_path=f"{run_dir}/web_cache.jsonl")
-        agent = GaiaAgent.create(llm)
+        agent = GaiaAgent.create(llm, actions=env.actions())
         tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
         logger.info(f"Validate {len(tapes)} tapes")
         fails = replay_tapes(agent, tapes, env, reuse_observations=True, stop_on_error=True)
