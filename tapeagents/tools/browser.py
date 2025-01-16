@@ -171,6 +171,7 @@ class Browser(Multitool):
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
     axtree: bool = False
     viewport_size: int = 64000
+    timeout_ms: int = 30000
     headless: bool = True
     save_video: bool = False
     exp_path: str | None = None
@@ -220,7 +221,7 @@ class Browser(Multitool):
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
-            timeout=20000,
+            timeout=self.timeout_ms,
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore
@@ -240,7 +241,7 @@ class Browser(Multitool):
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
-            timeout=20000,
+            timeout=self.timeout_ms,
             **kwargs,
         )  # type: ignore
         start_obs, info = self._env.reset(seed=seed)
