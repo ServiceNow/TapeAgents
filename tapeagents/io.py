@@ -13,6 +13,7 @@ from typing import Generator, Type
 import yaml
 from pydantic import TypeAdapter
 
+from tapeagents.agent import Agent
 from tapeagents.config import ATTACHMENT_DEFAULT_DIR
 from tapeagents.core import Tape, TapeType
 from tapeagents.steps import ImageObservation, UnknownStep, VideoObservation
@@ -215,6 +216,12 @@ def load_legacy_tapes(tape_class: Type[TapeType], path: Path | str, step_class: 
             tape.steps = steps
         tapes.append(tape)
     return tapes
+
+
+def save_agent(agent: Agent, filename: str) -> str:
+    with open(filename, "w") as f:
+        yaml.dump(agent.model_dump(), f)
+    return filename
 
 
 def get_attachment_dir(tape_path: Path | str, attachment_dir: Path | str) -> str | None:

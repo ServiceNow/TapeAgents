@@ -19,7 +19,6 @@ from statistics import mean
 from typing import Any, Callable, Generator
 
 import litellm
-import openai
 import requests
 from Levenshtein import ratio
 from pydantic import BaseModel, Field
@@ -300,11 +299,11 @@ class CachedLLM(LLM):
             return
         elif not self.use_cache:
             return
-        logger.info("Use LLM Cache")
         param_hash = self._key(json.dumps({k: v for k, v in self.parameters.items() if k != "token"}))
         name = self.model_name.replace("/", "__")
         self._cache_file = f"llm_cache_{name}_{param_hash}.jsonl"
         if os.path.exists(self._cache_file):
+            logger.info(f"Use LLM Cache: {self._cache_file}")
             with open(self._cache_file) as f:
                 for line in f:
                     key, event_dict = json.loads(line)
@@ -313,7 +312,7 @@ class CachedLLM(LLM):
                     self._cache[key].append(event_dict)
             logger.info(f"Loaded cache with {len(self._cache)} keys")
         else:
-            logger.info("Cache file not found")
+            logger.info(f"LLM cache file '{self._cache_file}' not found")
 
     def reindex_log(self):
         """
@@ -380,7 +379,7 @@ class CachedLLM(LLM):
         def _implementation():
             key = self.get_prompt_key(prompt)
             if self.use_cache and key in self._cache:
-                logger.debug(colored(f"llm cache hit, {len(self._cache[key])} events", "green"))
+                logger.debug(colored(f"LLM cache hit, {len(self._cache[key])} events", "green"))
                 for event_dict in self._cache[key]:
                     event = LLMEvent.model_validate(event_dict)
                     if event.output is not None:
@@ -390,9 +389,9 @@ class CachedLLM(LLM):
                 if _REPLAY_SQLITE:
                     closest, score = closest_prompt(key, list(self._cache.keys()))
                     logger.error(
-                        f"llm cache miss, closest in cache has score {score:.3f}\nDIFF:\n{diff_strings(key, closest)}"
+                        f"LLM cache miss, closest in cache has score {score:.3f}\nDIFF:\n{diff_strings(key, closest)}"
                     )
-                    raise ValueError(f"llm cache miss not allowed, prompt: {key}")
+                    raise ValueError(f"LLM cache miss not allowed. Prompt key: {key}")
                 toks = self.count_tokens(prompt.messages)
                 self.token_count += toks
                 logger.debug(f"{toks} prompt tokens, total: {self.token_count}")
@@ -457,9 +456,12 @@ class LiteLLM(CachedLLM):
                     **self.parameters,
                 )
                 break
-            except openai.APITimeoutError:
+            except litellm.Timeout:
                 logger.error("API Timeout, retrying in 1 sec")
                 time.sleep(1.0)
+            except tuple(litellm.LITELLM_EXCEPTION_TYPES) as e:
+                logger.error(e)
+                raise e
         if self.stream:
             buffer = []
             for part in response:
