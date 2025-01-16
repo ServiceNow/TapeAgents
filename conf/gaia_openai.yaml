@@ -2,26 +2,27 @@ defaults:
   - llm: gpt4o_mini
   - _self_
   
-exp_name: gpt4o_mini_val_joblib1
+exp_name: gpt4o_mini_val_multiprocess_old_browser1
 
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-batch: 8
+batch: 32
 
-only_tasks: # list of (level, task_num)
-- [2, 0]
-- [2, 1]
-- [2, 2]
-- [2, 3]
-- [2, 4]
-- [2, 5]
-- [2, 6]
-- [2, 7] 
+only_tasks: [] # list of (level, task_num)
+# - [1, 0]
+# - [1, 1]
+# - [1, 2]
+# - [1, 3]
+# - [1, 4]
+# - [1, 5]
+# - [1, 6]
+# - [1, 7] 
 
 agent:
   plain_code: false
 
 env:
+  simple_browser: true
   use_web_cache: true
 
 studio:
@@ -31,3 +32,6 @@ studio:
 hydra:
   run:
     dir: ${exp_path}
+  job_logging:
+    root:
+      level: DEBUG
