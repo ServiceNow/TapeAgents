@@ -173,7 +173,7 @@ class Browser(Multitool):
     viewport_size: int = 64000
     headless: bool = True
     exp_path: str | None = None
-    page_load_time_sec: int = 5
+    page_load_time_sec: int = 1
     gym_kwargs: dict = {}
     gym_task: str = "browsergym/openended"
 
@@ -219,7 +219,6 @@ class Browser(Multitool):
             headless=self.headless,
             record_video_dir=self._record_video_dir,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
-            timeout=5000,
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore

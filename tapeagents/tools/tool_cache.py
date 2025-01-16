@@ -34,6 +34,7 @@ def get_from_cache(fn_name: str, args: tuple, kwargs: dict) -> Any:
         cache_file = os.path.join(os.getenv(cache_dir, _CACHE_NAME))
         assert os.path.exists(cache_file), f"Cache {cache_file} does not exist"
     if not _cache and os.path.exists(cache_dir):
+        cnt = 0
         for fname in os.listdir(cache_dir):
             if not fname.startswith(_CACHE_NAME):
                 continue
@@ -44,7 +45,9 @@ def get_from_cache(fn_name: str, args: tuple, kwargs: dict) -> Any:
                     tool_cache = _cache.get(data["fn_name"], {})
                     key = json.dumps((data["args"], data["kwargs"]), sort_keys=True)
                     tool_cache[key] = data["result"]
+                    cnt += 1
                     _cache[data["fn_name"]] = tool_cache
+        logger.info(f"Loaded {cnt} tool cache entries from {cache_dir}")
     key = json.dumps((args, kwargs), sort_keys=True)
     result = _cache.get(fn_name, {}).get(key)
     if result is not None:

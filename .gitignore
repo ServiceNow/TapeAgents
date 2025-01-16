@@ -164,8 +164,10 @@ cython_debug/
 *cache*.json
 !/tests/res/*/*.json
 *.jsonl
+*.jsonl.*
 !tests/res/*/*.jsonl
 *.log
+*.log.*
 *.pyc
 *.sqlite
 !tests/res/*/*.sqlite

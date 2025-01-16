@@ -73,7 +73,7 @@ def task_worker(cfg: DictConfig, level: int, task_num: int):
     log_handler = logging.FileHandler(log_file)
     log_handler.setLevel(logging.INFO)
     logging.basicConfig(
-        format="%(asctime)s - PID%(process)d - TID%(threadName)s - %(levelname)s - %(name)s - %(message)s",
+        format="%(asctime)s - PID_%(process)d - Thread_%(threadName)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
         handlers=[log_handler, logging.StreamHandler()],
