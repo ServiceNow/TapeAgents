@@ -172,6 +172,7 @@ class Browser(Multitool):
     axtree: bool = False
     viewport_size: int = 64000
     headless: bool = True
+    save_video: bool = False
     exp_path: str | None = None
     page_load_time_sec: int = 1
     gym_kwargs: dict = {}
@@ -217,8 +218,9 @@ class Browser(Multitool):
         self._env = gym.make(
             self.gym_task,
             headless=self.headless,
-            record_video_dir=self._record_video_dir,
+            record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
+            timeout=10000,
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore
@@ -236,9 +238,9 @@ class Browser(Multitool):
         self._env = gym.make(
             task_id,
             headless=self.headless,
-            record_video_dir=self._record_video_dir,
+            record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
-            timeout=60000,
+            timeout=10000,
             **kwargs,
         )  # type: ignore
         start_obs, info = self._env.reset(seed=seed)
