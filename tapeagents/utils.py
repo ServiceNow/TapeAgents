@@ -4,6 +4,7 @@ Various utility functions.
 
 import base64
 import difflib
+import fcntl
 import json
 import os
 from contextlib import contextmanager
@@ -123,3 +124,17 @@ def acquire_timeout(lock, timeout):
     finally:
         if result:
             lock.release()
+
+
+class Lock:
+    def __init__(self, name: str):
+        self.name = name
+
+    def __enter__(self):
+        fname = f"./{self.name}.lock"
+        self.fp = open(fname)
+        fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX)
+
+    def __exit__(self, _type, value, tb):
+        fcntl.flock(self.fp.fileno(), fcntl.LOCK_UN)
+        self.fp.close()
