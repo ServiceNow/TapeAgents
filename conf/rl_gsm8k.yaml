@@ -14,10 +14,12 @@ force_restart: false
 max_iterations: 1000
 use_rejection_sampling: false
 llm:
+  max_prompt_length: 1024
   parameters:
-    max_tokens: 1024 
+    max_tokens: 3072 
     temperature: 0.7
 test_llm:
+  max_prompt_length: ${..llm.max_prompt_length}
   parameters: 
     max_tokens: ${...llm.parameters.max_tokens}
     temperature: 0.
@@ -32,7 +34,7 @@ finetune:
   # One step is one weight update. See the finetuning configuration
   # for the info in how many sequences are used for each weight update.
   save_checkpoint_steps: 10
-  seq_length: ${..llm.parameters.max_tokens}
+  seq_length: ${..llm.parameters.max_tokens} + ${..llm.max_prompt_length}
 
 vllm_config:
   vllm_kwargs:

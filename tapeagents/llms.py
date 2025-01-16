@@ -530,6 +530,7 @@ class TrainableLLM(CachedLLM):
     base_url: str
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
+    max_prompt_length: int = -1
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -663,6 +664,8 @@ class TrainableLLM(CachedLLM):
             self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
             for p in prompts
         ]
+        if self.max_prompt_length > 0:
+            prompt_token_ids = [p[-self.max_prompt_length:] for p in prompt_token_ids]
         data = {
             "model": self.model_name,
             "prompt": prompt_token_ids,

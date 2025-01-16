@@ -355,6 +355,7 @@ def main(cfg: DictConfig):
                         use_cache=False,
                         collect_logprobs=True,
                         observe_llm_calls=False,
+                        max_prompt_length=cfg.llm.max_prompt_length,
                     )
                     for base_url in vllm_service_manager.get_base_urls()
                 ]
@@ -367,6 +368,7 @@ def main(cfg: DictConfig):
                         parameters=cfg.test_llm.parameters,
                         use_cache=False,
                         observe_llm_calls=False,
+                        max_prompt_length=cfg.test_llm.max_prompt_length,
                     )
                     for base_url in vllm_service_manager.get_base_urls()
                 ]
