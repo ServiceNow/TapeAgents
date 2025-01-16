@@ -12,6 +12,7 @@ from typing import Generator, Type
 
 import yaml
 from pydantic import TypeAdapter
+
 from tapeagents.agent import Agent
 from tapeagents.config import ATTACHMENT_DEFAULT_DIR
 from tapeagents.core import Tape, TapeType
