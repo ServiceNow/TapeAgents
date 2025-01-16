@@ -11,7 +11,7 @@ from tapeagents.dialog_tape import (
     UserStep,
 )
 
-res_dir = pathlib.Path(__file__).parent.parent.resolve() / "res"
+res_dir = pathlib.Path(__file__).parent.resolve() / "res"
 
 
 def load_rag_demos() -> tuple[list, list]:
@@ -24,7 +24,7 @@ def load_rag_demos() -> tuple[list, list]:
             demo = {
                 "question": UserStep(content=demo["question"]),
                 "context": ToolResult(content=demo["context"], tool_call_id=""),
-                "rationale": AssistantThought(content=demo["rationale"]),
+                "reasoning": AssistantThought(content=demo["reasoning"]),
                 "answer": AssistantStep(content=demo["answer"]),
             }
             demos.append(demo)
@@ -51,7 +51,7 @@ def load_agentic_rag_demos() -> dict[str, tuple[list, list]]:
                 demo = {
                     "question": UserStep(content=demo["question"]),
                     "context": ToolResult(content=demo["context"]),
-                    "rationale": AssistantThought(content=demo["rationale"]),
+                    "reasoning": AssistantThought(content=demo["reasoning"]),
                     "query": ToolCalls(tool_calls=[tc]),
                 }
                 demos.append(demo)
@@ -61,7 +61,7 @@ def load_agentic_rag_demos() -> dict[str, tuple[list, list]]:
                 demo = {
                     "question": UserStep(content=demo["question"]),
                     "context": ToolResult(content=demo["context"], tool_call_id=""),
-                    "rationale": AssistantThought(content=demo["rationale"]),
+                    "reasoning": AssistantThought(content=demo["reasoning"]),
                     "answer": AssistantStep(content=demo["answer"]),
                 }
                 demos.append(demo)

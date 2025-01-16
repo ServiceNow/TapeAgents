@@ -4,14 +4,14 @@
       "augmented": true,
       "context": [],
       "question": "Which of these publications was most recently published, Who Put the Bomp or Self?",
-      "rationale": "produce the query. We know that publication dates are typically included in metadata for articles or books. By searching for the publication date of each article, we can determine which one was most recently published.",
+      "reasoning": "produce the query. We know that publication dates are typically included in metadata for articles or books. By searching for the publication date of each article, we can determine which one was most recently published.",
       "query": "\"publication date of Who Put the Bomp\" OR \"publication date of Self\""
     },
     {
       "augmented": true,
       "context": [],
       "question": "Who is older, Aleksandr Danilovich Aleksandrov or Anatoly Fomenko?",
-      "rationale": "determine the age difference between Aleksandr Danilovich Aleksandrov and Anatoly Fomenko. We can search for their birthdates and compare them to see who is older.",
+      "reasoning": "determine the age difference between Aleksandr Danilovich Aleksandrov and Anatoly Fomenko. We can search for their birthdates and compare them to see who is older.",
       "query": "\"Aleksandr Danilovich Aleksandrov birthdate\" AND \"Anatoly Fomenko birthdate\""
     },
     {
@@ -79,7 +79,7 @@
         "Monthly Magazine | The Monthly Magazine (1796\u20131843) of London began publication in February 1796. Richard Phillips was the publisher and a contributor on political issues. The editor for the first ten years was the literary jack-of-all-trades, Dr John Aikin. Other contributors included William Blake, Samuel Taylor Coleridge, George Dyer, Henry Neele and Charles Lamb. The magazine also published the earliest fiction of Charles Dickens, the first of what would become \"Sketches by Boz\"."
       ],
       "question": "Which of these publications was most recently published, Who Put the Bomp or Self?",
-      "rationale": "produce the query. We know that \"Who Put the Bomp\" was published from 1970 to 1979, so we need to find out when \"Self\" was last published in order to determine which publication is more recent.",
+      "reasoning": "produce the query. We know that \"Who Put the Bomp\" was published from 1970 to 1979, so we need to find out when \"Self\" was last published in order to determine which publication is more recent.",
       "query": "Last publication date of \"Self\" magazine"
     },
     {
@@ -89,7 +89,7 @@
         "Aleksandr Pavlovich Aleksandrov | Aleksandr Pavlovich Aleksandrov (Russian: \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440 \u041f\u0430\u0432\u043b\u043e\u0432\u0438\u0447 \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440\u043e\u0432 ; born February 20, 1943) is a former Soviet cosmonaut and twice Hero of the Soviet Union (November 23, 1983 and December 29, 1987)."
       ],
       "question": "Who is older, Aleksandr Danilovich Aleksandrov or Anatoly Fomenko?",
-      "rationale": "produce the query. We know the birthdate of Aleksandr Danilovich Aleksandrov is August 4, 1912, and the birthdate of Aleksandr Pavlovich Aleksandrov is February 20, 1943. Now we need to find the birthdate of Anatoly Fomenko to compare.",
+      "reasoning": "produce the query. We know the birthdate of Aleksandr Danilovich Aleksandrov is August 4, 1912, and the birthdate of Aleksandr Pavlovich Aleksandrov is February 20, 1943. Now we need to find the birthdate of Anatoly Fomenko to compare.",
       "query": "Birthdate of Anatoly Fomenko"
     },
     {
@@ -159,7 +159,7 @@
         "Self-Publishing Review | Self-Publishing Review (or \"SPR\") is an online book review magazine for indie authors founded in 2008 by American author Henry Baum."
       ],
       "question": "Which of these publications was most recently published, Who Put the Bomp or Self?",
-      "rationale": "produce the answer. We know that \"Self\" magazine became an online publication in February 2017, while \"Who Put the Bomp\" was a fanzine published from 1970 to 1979.",
+      "reasoning": "produce the answer. We know that \"Self\" magazine became an online publication in February 2017, while \"Who Put the Bomp\" was a fanzine published from 1970 to 1979.",
       "answer": "Self"
     },
     {
@@ -171,7 +171,7 @@
         "New Chronology (Fomenko) | The New Chronology is a pseudohistorical theory which argues that the conventional chronology of Middle Eastern and European history is fundamentally flawed, and that events attributed to the civilizations of the Roman Empire, Ancient Greece and Ancient Egypt actually occurred during the Middle Ages, more than a thousand years later. The central concepts of the New Chronology are derived from the ideas of Russian scholar Nikolai Morozov (1854\u20131946), although work by French scholar Jean Hardouin (1646\u20131729) can be viewed as an earlier predecessor. However, the New Chronology is most commonly associated with Russian mathematician Anatoly Fomenko (born 1945), although published works on the subject are actually a collaboration between Fomenko and several other mathematicians. The concept is most fully explained in \"History: Fiction or Science?\" , originally published in Russian."
       ],
       "question": "Who is older, Aleksandr Danilovich Aleksandrov or Anatoly Fomenko?",
-      "rationale": "produce the answer. We know that Aleksandr Danilovich Aleksandrov was born on August 4, 1912, and Anatoly Fomenko was born on March 13, 1945.",
+      "reasoning": "produce the answer. We know that Aleksandr Danilovich Aleksandrov was born on August 4, 1912, and Anatoly Fomenko was born on March 13, 1945.",
       "answer": "Aleksandr Danilovich Aleksandrov"
     },
     {

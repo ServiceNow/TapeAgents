@@ -7,7 +7,7 @@
       "Candace Brown | Candace June Brown (born June 15, 1980) is an American actress and comedian best known for her work on shows such as \"Grey's Anatomy\", \"Desperate Housewives\", \"Head Case\", The \"Wizards Of Waverly Place\". In 2011, she joined the guest cast for \"Torchwood\"' s fourth series' \"\", airing on BBC One in the United Kingdom and premium television network Starz."
     ],
     "question": "which American actor was Candace Kita guest starred with",
-    "rationale": "produce the answer. We know that Candace Kita guest starred with various actors in different TV shows and movies.",
+    "reasoning": "produce the answer. We know that Candace Kita guest starred with various actors in different TV shows and movies.",
     "answer": "Bill Murray"
   },
   {
@@ -18,7 +18,7 @@
       "Hee Il Cho | Cho Hee Il (born October 13, 1940) is a prominent Korean-American master of taekwondo, holding the rank of 9th \"dan\" in the martial art. He has written 11 martial art books, produced 70 martial art training videos, and has appeared on more than 70 martial arts magazine covers. Cho won several national and international competitions as a taekwondo competitor, and has appeared in several films, including \"Fight to Win\", \"Best of the Best\", \"Bloodsport II\", and \"Bloodsport III\". He founded the Action International Martial Arts Association (AIMAA) in 1980, and is its President. Cho is a member of both \"Black Belt\" magazine's Hall of Fame and \"Tae Kwon Do Times\" magazine's Hall of Fame."
     ],
     "question": "Which magazine has published articles by Scott Shaw, Tae Kwon Do Times or Southwest Art?",
-    "rationale": "produce the answer. We know that \"Tae Kwon Do Times\" has published articles by Scott Shaw, as mentioned in the context.",
+    "reasoning": "produce the answer. We know that \"Tae Kwon Do Times\" has published articles by Scott Shaw, as mentioned in the context.",
     "answer": "Tae Kwon Do Times"
   },
   {
@@ -29,7 +29,7 @@
       "Gabriela (2001 film) | Gabriela is a 2001 American romance film, starring Seidy Lopez in the title role alongside Jaime Gomez as her admirer Mike. The film has been cited as an inspiration behind the Premiere Weekend Club, which supports Latino film-making."
     ],
     "question": "Which American actress who made their film debut in the 1995 teen drama \"Kids\" was the co-founder of Voto Latino?",
-    "rationale": "produce the answer. We know that the actress who made her film debut in \"Kids\" is Rosario Dawson, and she is also known for her political activism, including co-founding Voto Latino.",
+    "reasoning": "produce the answer. We know that the actress who made her film debut in \"Kids\" is Rosario Dawson, and she is also known for her political activism, including co-founding Voto Latino.",
     "answer": "Rosario Dawson"
   },
   {
@@ -40,7 +40,7 @@
       "Kholm Pocket | The Kholm Pocket (German: \"Kessel von Cholm\" ; Russian: \u0425\u043e\u043b\u043c\u0441\u043a\u0438\u0439 \u043a\u043e\u0442\u0451\u043b ) was the name given for the encirclement of German troops by the Red Army around Kholm south of Leningrad, during World War II on the Eastern Front, from 23 January 1942 until 5 May 1942. A much larger pocket was simultaneously surrounded in Demyansk, about 100 km to the northeast. These were the results of German retreat following their defeat during the Battle of Moscow."
     ],
     "question": "What is the code name for the German offensive that started this Second World War engagement on the Eastern Front (a few hundred kilometers from Moscow) between Soviet and German forces, which included 102nd Infantry Division?",
-    "rationale": "produce the answer. We know that the German offensive that started the Battle of Kursk was called Operation Citadel.",
+    "reasoning": "produce the answer. We know that the German offensive that started the Battle of Kursk was called Operation Citadel.",
     "answer": "Operation Citadel"
   },
   {
