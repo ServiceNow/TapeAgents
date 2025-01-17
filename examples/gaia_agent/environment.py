@@ -20,7 +20,6 @@ def get_env(
         logger.info("Using simple browser")
     return ToolCollectionEnvironment(
         tools=[
-            DocumentReader(),
             Search(),
             CodeExecutor(exp_path=exp_path),
             VideoReader(exp_path=exp_path),

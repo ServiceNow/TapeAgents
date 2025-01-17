@@ -42,7 +42,7 @@ def get_video_observation(
             subtitle_text = None
         error = None
     except Exception as e:
-        logger.error(f"Error while watching video: {e}")
+        logger.exception(f"Error while watching video: {e}")
         raise e
     video_observation = VideoObservation(
         local_dir=output_dir,
@@ -100,8 +100,8 @@ def trim_video(video_path: str, start_time: str, end_time: str) -> str:
 
 def download_video_youtube(url: str, output_dir: str) -> str:
     ydl_opts = {
-        "format": "best",  # Select the best quality format that contains both video and audio
-        "formatsort": "res:480",  # Video available with the largest resolution but no better than 480p
+        "format": "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",  # Download best mp4 format available or any other best if no mp4 available
+        "formatsort": "res:360",  # Video available with the largest resolution but no better than 360p
         "writethumbnail": True,
         "writesubtitles": True,  # Official docs mention write-subs
         "writeautomaticsub": True,  # Official docs mention write-auto-subs

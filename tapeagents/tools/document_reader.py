@@ -29,7 +29,7 @@ class DocumentObservation(Observation):
 
 class ReadLocalDocumentAction(Action):
     """
-    Action that loads the document, file or image and converts it to Markdown. Also can read pdf files from the web by url.
+    Action that loads the document, file or image and converts it to Markdown.
     """
 
     kind: Literal["read_local_document_action"] = "read_local_document_action"

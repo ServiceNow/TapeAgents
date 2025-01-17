@@ -101,14 +101,13 @@ def load_dataset(split: str):
 
 
 def solve_task(
-    task: dict, agent: GaiaAgent, env: ToolCollectionEnvironment, level: int, retries: int = 3, max_loops: int = 50
+    task: dict,
+    agent: GaiaAgent,
+    env: ToolCollectionEnvironment,
+    level: int,
+    retries: int = 1,
+    max_loops: int = 50,
 ) -> GaiaTape:
-    """Solve GAIA task.
-
-    This function is a generator that yields intermediate tapes during the solving process.
-    The last tape will contain the agent's response.
-
-    """
     start_steps = task_to_observations(task)
     solved = None
     result = None

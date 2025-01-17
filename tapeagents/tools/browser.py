@@ -7,6 +7,7 @@ from uuid import uuid4
 import gymnasium as gym
 import markdownify
 import numpy as np
+import requests
 from browsergym.core.action.highlevel import HighLevelActionSet
 from browsergym.core.env import BrowserEnv
 from browsergym.utils.obs import (
@@ -21,6 +22,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation, StepMetadata
 from tapeagents.tools.base import Multitool
+from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.simple_browser import PageObservation
 
 NODES_WITH_BID = [
@@ -41,7 +43,7 @@ NODES_WITH_BID = [
 
 class GotoPageAction(Action):
     """
-    Action that opens the page with the provided URL and returns the first page of its content. Cannot open PDF or CSV files.
+    Action that opens the page with the provided URL and returns the first page of its content.
     To read the following pages use scroll_action.
     """
 
@@ -210,8 +212,8 @@ class Browser(Multitool):
         if self.exp_path:
             assert os.path.isdir(self.exp_path)
             self._traces_dir = os.path.join(self.exp_path, "playwright_traces")
-            self._record_video_dir = os.path.join(self.exp_path, "videos")
-            self._screenshots_dir = os.path.join(self.exp_path, "screenshots")
+            self._record_video_dir = os.path.join(self.exp_path, "attachments/browser/videos")
+            self._screenshots_dir = os.path.join(self.exp_path, "attachments/browser/screenshots")
             os.makedirs(self._traces_dir, exist_ok=True)
             os.makedirs(self._record_video_dir, exist_ok=True)
             os.makedirs(self._screenshots_dir, exist_ok=True)
@@ -275,7 +277,7 @@ class Browser(Multitool):
         image.save(img_path)
         return os.path.relpath(img_path, self._screenshots_dir)
 
-    def perform_action(self, action_text: str) -> PageObservation:
+    def run_browser_action(self, action_text: str) -> PageObservation:
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
         error = self.format_error(obs_dict["last_action_error"])
         if self.axtree:
@@ -324,40 +326,59 @@ class Browser(Multitool):
         return PageObservation(text=page, current_page=self._current_viewport, total_pages=self._n_viewports)
 
     def goto_page(self, action: GotoPageAction) -> PageObservation:
-        return self.perform_action(f"goto('{action.url}')")
+        # if the URL is a local file or a PDF, playwright cannot open it directly, so we read the content
+        if action.url.startswith("file://") or action.url.startswith("/"):
+            text, error = read_document(action.url)
+            return PageObservation(
+                text=self.get_viewport(text),
+                current_page=self._current_viewport,
+                total_pages=self._n_viewports,
+                error=error,
+            )
+        try:
+            obs = self.run_browser_action(f"goto('{action.url}')")
+        except Exception:
+            text, error = download_file(action.url)
+            obs = PageObservation(
+                text=self.get_viewport(text),
+                current_page=self._current_viewport,
+                total_pages=self._n_viewports,
+                error=error,
+            )
+        return obs
 
     def click(self, action: ClickAction) -> PageObservation:
-        self.perform_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
+        self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
-        return self.perform_action("noop()")
+        return self.run_browser_action("noop()")
 
     def select_option(self, action: SelectOptionAction) -> PageObservation:
-        return self.perform_action(f"select_option('{action.bid}', '{action.option}')")
+        return self.run_browser_action(f"select_option('{action.bid}', '{action.option}')")
 
     def hover(self, action: HoverAction) -> PageObservation:
-        return self.perform_action(f"hover('{action.bid}')")
+        return self.run_browser_action(f"hover('{action.bid}')")
 
     def input_text(self, action: InputTextAction) -> PageObservation:
         text = action.text.replace("'", "\\'")
-        return self.perform_action(f"fill('{action.bid}', '{text}')")
+        return self.run_browser_action(f"fill('{action.bid}', '{text}')")
 
     def press(self, action: PressAction) -> PageObservation:
-        return self.perform_action(f"press('{action.bid}', '{action.key_comb}')")
+        return self.run_browser_action(f"press('{action.bid}', '{action.key_comb}')")
 
     def tab_focus(self, action: TabFocusAction) -> PageObservation:
-        return self.perform_action(f"tab_focus({action.index})")
+        return self.run_browser_action(f"tab_focus({action.index})")
 
     def new_tab(self, action: NewTabAction) -> PageObservation:
-        return self.perform_action("new_tab()")
+        return self.run_browser_action("new_tab()")
 
     def close_tab(self, action: CloseTabAction) -> PageObservation:
-        return self.perform_action("tab_close()")
+        return self.run_browser_action("tab_close()")
 
     def go_back(self, action: GoBackAction) -> PageObservation:
-        return self.perform_action("go_back()")
+        return self.run_browser_action("go_back()")
 
     def go_forward(self, action: GoForwardAction) -> PageObservation:
-        return self.perform_action("go_forward()")
+        return self.run_browser_action("go_forward()")
 
     def next_page(self) -> PageObservation:
         return self.scroll("down")
@@ -505,3 +526,10 @@ def flatten_axtree(
         return tree_str
 
     return dfs(0, 0, False)
+
+
+def download_file(url: str):
+    user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    response = requests.get(url, headers={"User-Agent": user_agent})
+    response.raise_for_status()
+    return read_document(response)

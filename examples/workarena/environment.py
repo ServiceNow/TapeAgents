@@ -35,7 +35,7 @@ class WorkArenaEnvironment(Environment):
     ) -> tuple[WorkArenaTape, dict[str, Any]]:
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
-        obs = self.browser.perform_action("noop()")
+        obs = self.browser.run_browser_action("noop()")
         tape = WorkArenaTape(steps=[obs, WorkArenaTask(task=info["goal"])])
         return tape, info
 
