@@ -325,45 +325,39 @@ def save_model_only(
     
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
     accelerator.wait_for_everyone()
-    sync_time = time.time()
 
     logger.info(f"Save model to {output_dir}")
 
     unwrapped_model = accelerator.unwrap_model(model) if unwrap else model
-    unwrap_time = time.time()
     
     if lora:
-        lora_start = time.time()
         lora_save(output_dir, unwrapped_model)
-        logger.info(f"LoRA save took {time.time() - lora_start:.2f}s")
         return
 
     elif isinstance(unwrapped_model, transformers.PreTrainedModel):
+        state_dict = accelerator.get_state_dict(model)
         logger.info("Saving model using transformers save_pretrained")
         save_start = time.time()
         unwrapped_model.save_pretrained(
             output_dir,
             is_main_process=accelerator.is_main_process,
-            save_function=accelerator.save,
-            state_dict=accelerator.get_state_dict(model),
+            state_dict=state_dict,
             safe_serialization=safe_serialization,
         )
         save_time = time.time()
         logger.info(f"Model save_pretrained took {save_time - save_start:.2f}s")
         logger.info(f"Saved model to {output_dir}")
+
     else:
         raise ValueError(f"model is neither a deepspeed model nor a transformers.PreTrainedModel: {type(model)}")
 
+    # safetensors issue: https://github.com/huggingface/accelerate/issues/2698
     if os.path.exists(output_dir / "model.safetensors") and os.path.exists(output_dir / "model.safetensors.index.json"):
         logger.info("Hide model.safetensors because it utterly confuses the HF model loading code")
         os.rename(output_dir / "model.safetensors", output_dir / "model.safetensors.bak")
 
     end_time = time.time()
     logger.info(f"Total save time: {end_time - start_time:.2f}s")
-    logger.info(f"  - Sync time: {sync_time - start_time:.2f}s")
-    logger.info(f"  - Unwrap time: {unwrap_time - sync_time:.2f}s")
-    if not lora:
-        logger.info(f"  - Save time: {save_time - save_start:.2f}s")
 
 
 def save_tokenizer_only(
