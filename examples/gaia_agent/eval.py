@@ -217,7 +217,8 @@ def task_to_observations(task: dict, max_doc_length: int = 8000) -> list[GaiaQue
     logger.info(f"Question: {task['Question']}")
     browser = SimpleTextBrowser()
     steps: list[GaiaQuestion | ImageObservation] = [GaiaQuestion.from_task(task)]
-    filename: str | None = steps[0].filename  # type: ignore
+    filename: str | None = steps[0].filename
+    steps[0].filename = None
     if filename:
         name, ext = filename.rsplit(".", maxsplit=1)
         ext = ext.lower()
@@ -253,9 +254,9 @@ def task_to_observations(task: dict, max_doc_length: int = 8000) -> list[GaiaQue
                     content = ""
                 document_text = f"\n\nAttached {ext.upper()} file content:\n{content}\n"
                 if not len(content) or len(document_text) > max_doc_length:
-                    document_text = f"\nPath to the mentioned document: {filename}"
+                    document_text = ""
             else:
                 document_text = "\nDocument pages attached as images below"
+            steps[0].filename = filename
         steps[0].content += document_text  # type: ignore
-    steps[0].filename = None  # type: ignore
     return steps
