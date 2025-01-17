@@ -171,7 +171,7 @@ class Browser(Multitool):
     )
     observations: tuple[type[Observation], ...] = (PageObservation,)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
-    axtree: bool = False
+    axtree: bool = True
     viewport_size: int = 64000
     timeout_ms: int = 30000
     headless: bool = True
