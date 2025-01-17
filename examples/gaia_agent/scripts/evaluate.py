@@ -61,10 +61,18 @@ def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
     tape_name = f"l{level}_task{i:03d}"
     tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
     result = None
+    solved = False
     if os.path.exists(tape_path):
         with open(tape_path) as f:
             tape_dict = json.load(f)
         result = tape_dict["metadata"]["result"]
+        solved = result not in ["", None, "None", "none", "null"]
+        if not solved:
+            old_file_idx = 0
+            while os.path.exists(f"{tape_path}.{old_file_idx}"):
+                old_file_idx += 1
+            os.rename(tape_path, f"{tape_path}.{old_file_idx}")
+
     return os.path.exists(tape_path) and result not in ["", None, "None"]
 
 
