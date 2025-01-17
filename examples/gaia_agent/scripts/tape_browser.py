@@ -104,6 +104,8 @@ class GaiaTapeBrowser(TapeBrowser):
                         errors[f"{last_action.kind}"] += 1
                     else:
                         errors["unknown_action_execution_failure"] += 1
+                elif step.kind == "code_execution_result" and step.result.exit_code:
+                    errors["code_execution"] += 1
         timers, timer_counts = self.aggregate_timer_times(tapes)
         html = f"<h2>Solved {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
         html += (
@@ -140,6 +142,8 @@ class GaiaTapeBrowser(TapeBrowser):
                 error += "pa"
             elif step.kind == "action_execution_failure" and last_action:
                 error += last_action.kind[:2]
+            elif step.kind == "code_execution_result" and step.result.exit_code:
+                error += "ce"
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
         if tape.metadata.task.get("file_name"):
             mark += "📁"
