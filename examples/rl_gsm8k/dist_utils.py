@@ -61,7 +61,10 @@ class DistributedManager:
             try:
                 logger.info(f"[Rank {cls.get_rank()}] Barrier attempt {attempt + 1}/{max_retries}: {message}")
 
-                torch.distributed.barrier(timeout=datetime.timedelta(minutes=timeout_mins))
+                if cls.is_main_process():
+                    torch.distributed.monitored_barrier(timeout=datetime.timedelta(minutes=timeout_mins), wait_all_ranks=True)
+                else:
+                    torch.distributed.monitored_barrier(timeout=datetime.timedelta(minutes=timeout_mins))
 
                 logger.info(f"[Rank {cls.get_rank()}] Barrier successful: {message}")
                 return True
