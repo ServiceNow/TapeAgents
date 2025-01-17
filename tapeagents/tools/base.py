@@ -32,7 +32,10 @@ class Tool(BaseModel):
         if self.cached:
             obs_dict = get_from_cache(tool_name, args=(), kwargs=action.llm_dict())
             if obs_dict is not None:
-                return self.observation.model_validate(obs_dict)
+                try:
+                    return self.observation.model_validate(obs_dict)
+                except Exception as e:
+                    logger.error(f"Cache validation error: {e}, rerun tool")
         try:
             observation = self.execute_action(action)
             if self.cached:

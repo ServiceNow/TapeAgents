@@ -337,9 +337,8 @@ class Browser(Multitool):
                 total_pages=self._n_viewports,
                 error=error,
             )
-        try:
-            obs = self.run_browser_action(f"goto('{action.url}')")
-        except Exception:
+        obs = self.run_browser_action(f"goto('{action.url}')")
+        if obs.error:
             text, error = download_file(action.url)
             obs = PageObservation(
                 text=self.get_viewport(text),
