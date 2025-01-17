@@ -280,7 +280,9 @@ class Browser(Multitool):
     def run_browser_action(self, action_text: str) -> PageObservation:
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
         error = self.format_error(obs_dict["last_action_error"])
-        if self.axtree:
+        if error:
+            content = ""
+        elif self.axtree:
             content = flatten_axtree(obs_dict["axtree_object"])
         else:
             html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
