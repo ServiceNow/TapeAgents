@@ -206,7 +206,6 @@ def run_finetuning_loop(
             with torch.autocast("cuda"):
                 with toggle_sync(do_optimizer_step):
                     loss, this_step_rl_metrics = forward(model, batch)
-                    loss = loss / args.train_batch_size  # scale loss to make it independent of the batch size
                     for k, v in this_step_rl_metrics.items():
                         rl_metrics[k].append(v)
                     training_metrics.train_loss = loss.item()

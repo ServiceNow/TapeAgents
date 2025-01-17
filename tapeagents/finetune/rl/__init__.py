@@ -144,6 +144,8 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
             raise ValueError(f"Unknown algorithm {config.algo}")
 
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
+    # normalize the loss by the micro batch size
+    loss = loss / masks.shape[0]
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),
