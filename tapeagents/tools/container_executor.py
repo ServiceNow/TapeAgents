@@ -64,7 +64,7 @@ class ContainerExecutor:
 
     def __init__(
         self,
-        image: str = "python:3-slim",
+        image: str = "jupyter/scipy-notebook",
         container_name: Optional[str] = None,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
