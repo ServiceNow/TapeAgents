@@ -2,11 +2,12 @@ defaults:
   - llm: gpt4o_mini
   - _self_
 
-exp_name: gpt4o_mini_val_multiprocess_browsergym_lockless5
+exp_name: gpt4o_mini_val_old_browser2
 
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
 batch: 16
+retry_unsolved: true
 
 only_tasks: [] # list of (level, task_num)
 # - [1, 0]
@@ -22,7 +23,7 @@ agent:
   plain_code: false
 
 env:
-  simple_browser: false
+  simple_browser: true
   use_web_cache: true
 
 studio:

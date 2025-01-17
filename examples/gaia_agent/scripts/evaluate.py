@@ -37,7 +37,7 @@ def main(cfg: DictConfig) -> None:
             (level, task_num)
             for level, level_tasks in tasks.items()
             for task_num, _ in enumerate(level_tasks)
-            if not task_already_solved(task_num, level, tapes_dir)
+            if not task_already_solved(task_num, level, tapes_dir, cfg.retry_unsolved)
         ]
     logger.info(f"Solve {len(tasks)} tasks using {n_workers} workers")
     Parallel(n_jobs=n_workers, prefer="processes")(
@@ -57,12 +57,13 @@ def validate_config(cfg, llm, tapes_dir):
     os.makedirs(tapes_dir, exist_ok=True)
 
 
-def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
+def task_already_solved(i: int, level: int, tapes_dir: str, retry_unsolved: bool) -> bool:
     tape_name = f"l{level}_task{i:03d}"
     tape_path = os.path.join(tapes_dir, f"{tape_name}.json")
     result = None
-    solved = False
-    if os.path.exists(tape_path):
+    tape_exists = os.path.exists(tape_path)
+    solved = tape_exists
+    if retry_unsolved and tape_exists:
         with open(tape_path) as f:
             tape_dict = json.load(f)
         result = tape_dict["metadata"]["result"]
@@ -73,7 +74,7 @@ def task_already_solved(i: int, level: int, tapes_dir: str) -> bool:
                 old_file_idx += 1
             os.rename(tape_path, f"{tape_path}.{old_file_idx}")
 
-    return os.path.exists(tape_path) and result not in ["", None, "None"]
+    return solved
 
 
 def task_worker(cfg: DictConfig, level: int, task_num: int):
