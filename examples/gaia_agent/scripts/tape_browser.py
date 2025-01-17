@@ -105,7 +105,7 @@ class GaiaTapeBrowser(TapeBrowser):
                     else:
                         errors["unknown_action_execution_failure"] += 1
         timers, timer_counts = self.aggregate_timer_times(tapes)
-        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
+        html = f"<h2>Solved {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
         html += (
             f"Prompts tokens: {prompt_tokens_num}<br>Output tokens: {output_tokens_num}<br>Cost: {total_cost:.2f} USD"
         )
