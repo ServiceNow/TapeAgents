@@ -77,6 +77,10 @@ class GaiaTapeBrowser(TapeBrowser):
         total_cost = 0.0
         no_result = 0
         actions = defaultdict(int)
+        for llm_call in self.llm_calls.values():
+            prompt_tokens_num += llm_call.prompt_length_tokens
+            output_tokens_num += llm_call.output_length_tokens
+            total_cost += llm_call.cost
         for tape in tapes:
             if tape.metadata.result in ["", None, "None"]:
                 no_result += 1
@@ -91,12 +95,6 @@ class GaiaTapeBrowser(TapeBrowser):
                     last_action = step
                 if step.kind == "search_results_observation" and not step.serp:
                     errors["search_empty"] += 1
-                prompt_id = step.metadata.prompt_id
-                if prompt_id and prompt_id in self.llm_calls:
-                    llm_call = self.llm_calls[prompt_id]
-                    prompt_tokens_num += llm_call.prompt_length_tokens
-                    output_tokens_num += llm_call.output_length_tokens
-                    total_cost += llm_call.cost
                 if step.kind == "page_observation" and step.error:
                     errors["browser"] += 1
                 elif step.kind == "llm_output_parsing_failure_action":
@@ -114,10 +112,10 @@ class GaiaTapeBrowser(TapeBrowser):
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
             html += f"<h2>No result: {no_result}</h2>"
-            html += f"<h2>Errors</h2>{errors_str}"
+            html += f"<h2>Errors: {sum(errors.values())}</h2>{errors_str}"
         if actions:
             actions_str = "<br>".join(f"{k}: {v}" for k, v in actions.items())
-            html += f"<h2>Actions:</h2>{actions_str}"
+            html += f"<h2>Actions: {sum(actions.values())}</h2>{actions_str}"
         if timers:
             timers_str = "<br>".join(
                 f"{'execute ' if k.endswith('action') else ''}{k}: {v:.1f} sec, avg. {v/timer_counts[k]:.1f} sec"
@@ -169,17 +167,22 @@ class GaiaTapeBrowser(TapeBrowser):
         failure_count = len(
             [step for step in tape if "failure" in step.kind or (step.kind == "page_observation" and step.error)]
         )
-        label = f"""<h2>Tape Result</h2>
-            <div class="result-label expected">Golden Answer: <b>{tape.metadata.task.get('Final answer', '')}</b></div>
-            <div class="result-label">Agent Answer: <b>{tape.metadata.result}</b></div>
-            <div class="result-label">Steps: {len(tape)}</div>
-            <div class="result-label">Failures: {failure_count}</div>"""
         success = tape[-1].success if hasattr(tape[-1], "success") else ""  # type: ignore
         overview = tape[-1].overview if hasattr(tape[-1], "overview") else ""  # type: ignore
-        label += f"""
+        label = f"""<h2>Result</h2>
+            <div class="result-label expected">Golden Answer: <b>{tape.metadata.task.get('Final answer', '')}</b></div>
+            <div class="result-label">Agent Answer: <b>{tape.metadata.result}</b></div>
             <div class="result-success">Finished successfully: {success}</div>
-            <div>LLM Calls: {llm_calls_num}, input_tokens: {input_tokens_num}, output_tokens {output_tokens_num}, cost {cost:.2f}</div>
-            <div class="result-overview">Overview:<br>{overview}</div>"""
+            <h2>Summary</h2>
+            <div class="result-overview">{overview}</div>
+            <h2>Stats</h2>
+            <div class="result-label">Steps: {len(tape)}</div>
+            <div class="result-label">Failures: {failure_count}</div>
+            <div>LLM Calls: {llm_calls_num}</div>
+            <div>Input tokens: {input_tokens_num}</div>
+            <div>Output tokens: {output_tokens_num}</div>
+            <div>Cost: {cost:.2f} USD</div>
+        """
         if tape.metadata.error:
             label += f"<div class='result-error'><b>Error</b>: {tape.metadata.error}</div>"
         return label
