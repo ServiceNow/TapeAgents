@@ -1,6 +1,7 @@
 import ast
 import json
 import os
+import re
 
 import yaml
 
@@ -28,6 +29,8 @@ PURPLE = "#E6E6FA"
 RED = "#ff7b65"
 GREEN = "#6edb8f"
 BLUE = "#bae1ff"
+
+ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 class CameraReadyRenderer(BasicRenderer):
@@ -151,14 +154,12 @@ class CameraReadyRenderer(BasicRenderer):
             code_blocks = "\n".join([format_code_block(block) for block in step.code])
             text = pretty_yaml(dump) + "\n" + maybe_fold(code_blocks)
         elif isinstance(step, CodeExecutionResult):
-            del dump["result"]["output"]
-            text = maybe_fold(pretty_yaml(dump["result"]))
-            if step.result.exit_code == 0:
-                if step.result.output_files:
-                    for file in step.result.output_files:
-                        text += render_image(file)
-                elif step.result.output:
-                    text += f"\n {maybe_fold(step.result.output)}"
+            text = f"exit_code:{step.result.exit_code}\n" if step.result.exit_code else ""
+            text += f"{maybe_fold(step.result.output, 1000)}"
+            text = ansi_escape.sub("", text)
+            if step.result.exit_code == 0 and step.result.output_files:
+                for file in step.result.output_files:
+                    text += render_image(file)
         else:
             foldable_keys = ["content", "text"]
             content = ""

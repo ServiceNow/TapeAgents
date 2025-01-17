@@ -30,6 +30,8 @@ from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 
+ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
 
 def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
     elapsed_time = 0.0
@@ -247,6 +249,8 @@ class ContainerExecutor:
             logger.info(f"Command: {command}, Exit code: {exit_code}\n Output: {output}")
             assert isinstance(output, bytes)
             output = output.decode("utf-8")
+            output = ansi_escape.sub("", output)
+            output = output.replace(filename, f"code.{code_block.language.lower()}")
             if exit_code == 124:
                 output += "\n" + "Timeout"
             outputs.append(output)
