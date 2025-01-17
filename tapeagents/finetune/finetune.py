@@ -206,13 +206,14 @@ def run_finetuning_loop(
             with torch.autocast("cuda"):
                 with toggle_sync(do_optimizer_step):
                     loss, this_step_rl_metrics = forward(model, batch)
+                    loss = loss / args.gradient_accumulation_passes
                     for k, v in this_step_rl_metrics.items():
                         rl_metrics[k].append(v)
                     training_metrics.train_loss = loss.item()
                     training_metrics.lr = optimizer.param_groups[0]["lr"]
                     training_metrics.max_batch_len = max(batch["input_ids"].shape[1], training_metrics.max_batch_len)
                     training_metrics.min_batch_len = min(batch["input_ids"].shape[1], training_metrics.min_batch_len)
-                    accelerator.backward(loss / args.gradient_accumulation_passes)
+                    accelerator.backward(loss)
 
             if not do_optimizer_step:
                 continue
