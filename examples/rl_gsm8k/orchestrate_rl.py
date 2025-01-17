@@ -365,7 +365,7 @@ def main(cfg: DictConfig):
     os.makedirs(sync_dir, exist_ok=True)
 
     # Ensure data is written before other nodes try to read
-    if not dist_manager.sync_nodes(message="after data save", sync_dir=sync_dir, rank=rank, world_size=world_size, timeout_mins=10):
+    if not dist_manager.sync_nodes(message="after data save", sync_dir=sync_dir, rank=rank, world_size=world_size, timeout_mins=30):
         raise RuntimeError("Failed sync after data save")
 
     if cfg.force_restart:
