@@ -13,7 +13,17 @@ from tapeagents.steps import (
     VideoObservation,
     WatchVideoAction,
 )
-from tapeagents.tools.browser import ClickAction, GotoPageAction, ScrollAction
+from tapeagents.tools.browser import (
+    ClickAction,
+    GoBackAction,
+    GoForwardAction,
+    GotoPageAction,
+    HoverAction,
+    InputTextAction,
+    PressAction,
+    ScrollAction,
+    SelectOptionAction,
+)
 from tapeagents.tools.calculator import CalculationResultObservation
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.search import SearchAction, SearchResultsObservation
@@ -111,7 +121,13 @@ THOUGHTS = (ReadingResultThought, ReasoningThought, GaiaAnswer)
 GaiaStep: TypeAlias = Union[
     ClickAction,
     GotoPageAction,
+    GoBackAction,
+    GoForwardAction,
+    HoverAction,
+    InputTextAction,
+    PressAction,
     ScrollAction,
+    SelectOptionAction,
     SearchAction,
     NextPageAction,
     ReadDocumentAction,

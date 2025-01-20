@@ -25,9 +25,12 @@ class GaiaTapeBrowser(TapeBrowser):
         super().__init__(tape_cls=GaiaTape, tapes_folder=tapes_folder, renderer=renderer, file_extension=".json")
 
     def load_tapes(self, name: str) -> list:
-        _, fname, postfix = name.split("/", maxsplit=2)
-        tapes_path = os.path.join(self.tapes_folder, fname, "tapes")
-        image_dir = os.path.join(self.tapes_folder, fname, "images")
+        _, exp_dir, postfix = name.split("/", maxsplit=2)
+        tapes_path = os.path.join(self.tapes_folder, exp_dir, "tapes")
+        image_dir = os.path.join(self.tapes_folder, exp_dir, "attachments", "images")
+        if not os.path.exists(image_dir):
+            image_dir = os.path.join(self.tapes_folder, exp_dir, "images")
+
         try:
             all_tapes: list[GaiaTape] = load_legacy_tapes(GaiaTape, tapes_path, step_class=TypeAdapter(GaiaStep))  # type: ignore
         except Exception as e:
@@ -38,16 +41,20 @@ class GaiaTapeBrowser(TapeBrowser):
             if postfix == "all" or str(tape.metadata.level) == postfix:
                 tapes.append(tape)
             for i in range(len(tape.steps)):
+                if tape.steps[i].kind != "image":
+                    continue
                 image_path = os.path.join(image_dir, f"{tape.steps[i].metadata.id}.png")
                 if os.path.exists(image_path):
                     tape.steps[i].metadata.other["image_path"] = os.path.join(
-                        fname, "images", f"{tape.steps[i].metadata.id}.png"
+                        exp_dir, "images", f"{tape.steps[i].metadata.id}.png"
                     )
+                else:
+                    logger.warning(f"Image not found: {image_path}")
 
         self.llm_calls = {}
-        sqlite_fpath = os.path.join(self.tapes_folder, fname, "tapedata.sqlite")
+        sqlite_fpath = os.path.join(self.tapes_folder, exp_dir, "tapedata.sqlite")
         if not os.path.exists(sqlite_fpath):
-            sqlite_fpath = os.path.join(self.tapes_folder, fname, "llm_calls.sqlite")
+            sqlite_fpath = os.path.join(self.tapes_folder, exp_dir, "llm_calls.sqlite")
         try:
             llm_calls = retrieve_all_llm_calls(sqlite_fpath)
             self.llm_calls = {llm_call.prompt.id: llm_call for llm_call in llm_calls}

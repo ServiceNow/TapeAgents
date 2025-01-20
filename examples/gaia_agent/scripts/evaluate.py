@@ -103,7 +103,7 @@ def task_worker(cfg: DictConfig, level: int, task_num: int):
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     validate_config(cfg, llm, tapes_dir)
-    images_dir = os.path.join(cfg.exp_path, "images")
+    images_dir = os.path.join(cfg.exp_path, "attachments", "images")
     os.makedirs(images_dir, exist_ok=True)
 
     t = time.perf_counter()
