@@ -8,6 +8,7 @@ import fcntl
 import json
 import os
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 
 import jsonref
@@ -128,11 +129,11 @@ def acquire_timeout(lock, timeout):
 
 class Lock:
     def __init__(self, name: str):
-        self.name = name
+        self.name = f"./.{name}.lock"
+        Path(self.name).touch()
 
     def __enter__(self):
-        fname = f"./{self.name}.lock"
-        self.fp = open(fname)
+        self.fp = open(self.name)
         fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX)
 
     def __exit__(self, _type, value, tb):

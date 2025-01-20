@@ -182,3 +182,4 @@ outputs/
 data/
 package-lock.json
 package.json
+*.lock
