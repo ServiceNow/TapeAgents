@@ -22,7 +22,6 @@ test-all:
 clean:
 	@uv cache clean
 	@rm -rf .venv/
-	@rm -rf .tox/
 
 update-intro:
 	@cp examples/intro_clean.ipynb intro.ipynb
