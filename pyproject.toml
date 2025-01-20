@@ -104,6 +104,9 @@ build-backend = "hatchling.build"
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+exclude = [
+  "examples/rl_gsm8k/deepseek_math_eval"
+]
 
 [tool.ruff.lint]
 extend-select = [

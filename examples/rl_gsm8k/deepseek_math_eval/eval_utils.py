@@ -119,14 +119,14 @@ def parse_digits(num):
     num = regex.sub(",", "", str(num))
     try:
         return float(num)
-    except Exception:
+    except:
         if num.endswith("%"):
             num = num[:-1]
             if num.endswith("\\"):
                 num = num[:-1]
             try:
                 return float(num) / 100
-            except Exception:
+            except:
                 pass
     return None
 
@@ -141,14 +141,14 @@ def normalize_prediction(prediction):
         if is_digit(prediction):
             prediction = np.round(float(str(prediction).replace(",", "")), 6)
         return str(prediction)
-    except Exception:
+    except:
         pass
 
     # 2. symbolic equal
     prediction = str(prediction).strip()
 
     ## deal with [], (), {}
-    brackets = []
+    bracket = []
     while (
         prediction.startswith("[")
         and prediction.endswith("]")
@@ -172,7 +172,7 @@ def normalize_prediction(prediction):
         for f in [parse_latex, parse_expr]:
             try:
                 return f(s)
-            except Exception:
+            except:
                 pass
         return s
 
@@ -219,7 +219,7 @@ def math_equal(
                 except Exception:
                     continue
             return False
-    except Exception:
+    except:
         pass
 
     if not prediction and prediction not in [0, False]:
@@ -314,7 +314,7 @@ def symbolic_equal(a, b):
         for f in [parse_latex, parse_expr]:
             try:
                 return f(s)
-            except Exception:
+            except:
                 pass
         return s
 
@@ -324,13 +324,13 @@ def symbolic_equal(a, b):
     try:
         if simplify(a - b) == 0:
             return True
-    except Exception:
+    except:
         pass
 
     try:
         if isclose(N(a), N(b), abs_tol=1e-3):
             return True
-    except Exception:
+    except:
         pass
     return False
 

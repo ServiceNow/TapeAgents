@@ -59,13 +59,13 @@ def normalize_numeric(s):
     s = s.strip("$")
     try:
         return float(eval(s))
-    except Exception:
+    except:
         try:
             expr = parse_latex(s)
             if expr.is_number:
                 return float(expr)
             return INVALID_ANSWER
-        except Exception:
+        except:
             return INVALID_ANSWER
 
 
@@ -97,7 +97,7 @@ def normalize_symbolic_equation(s):
             return INVALID_ANSWER
         else:
             return maybe_expression
-    except Exception:
+    except:
         return INVALID_ANSWER
 
 
