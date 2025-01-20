@@ -38,10 +38,21 @@ We highly recommend starting with the [introductory Jupyter notebook](https://gi
 Install the latest release:
 
 ```zsh
-pip install TapeAgents
+pip install tapeagents
 ```
 
-If you want to install the version from the sources:
+You can also install converters and finetune optional dependencies
+
+```zsh
+pip install 'tapeagents[converters]'
+pip install 'tapeagents[finetune]'
+```
+
+# Building from source
+
+0. Install uv:
+
+Official documentation [here](https://docs.astral.sh/uv/getting-started/installation/)
 
 1. Clone the repository:
 
@@ -50,7 +61,7 @@ git clone https://github.com/ServiceNow/TapeAgents.git
 cd TapeAgents
 ```
 
-2. Create conda environment `tapeagents` and install the package in editable mode inside the environment:
+2. Create `.venv` environment and install the package in editable mode inside the environment:
 
 ```zsh
 make setup
