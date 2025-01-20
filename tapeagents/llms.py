@@ -708,7 +708,7 @@ class TrainableLLM(CachedLLM):
         r.raise_for_status()  # raise exception if status code is not in the 200s
         try:
             response = r.json()
-            tokens = response["choices"][0]["logprobs"]["tokens"]
+            # tokens = response["choices"][0]["logprobs"]["tokens"]
             logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
         except Exception as e:
             raise RuntimeError(f"Generation API wrong response: {r.text}", e)
@@ -850,10 +850,10 @@ class TrainableLLM(CachedLLM):
         try:
             response = r.json()
             log_probs = [list(log_prob.values())[0] for log_prob in response["prompt_logprobs"] if log_prob]
-            decoded_prompt_completion_tokens = [log_prob["decoded_token"] for log_prob in log_probs][
-                : len(prompt_completion_encoded)
-            ]
-            reconstructed_prompt_completion = "".join(decoded_prompt_completion_tokens)
+            # decoded_prompt_completion_tokens = [log_prob["decoded_token"] for log_prob in log_probs][
+            #     : len(prompt_completion_encoded)
+            # ]
+            # reconstructed_prompt_completion = "".join(decoded_prompt_completion_tokens)
             completion_log_probs = log_probs[len(prompt_encoded) : len(prompt_completion_encoded)]
             decoded_completion_tokens = [log_prob["decoded_token"] for log_prob in completion_log_probs]
             reconstructed_completion = "".join(decoded_completion_tokens)

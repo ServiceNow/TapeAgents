@@ -42,7 +42,7 @@ def is_correct(item, pred_key="prediction", prec=1e-3):
             label = False
             try:
                 label = abs(float(regex.sub(r",", "", str(pred))) - float(regex.sub(r",", "", str(ans)))) < prec
-            except:
+            except Exception:
                 pass
             label = label or (ans and pred == ans) or math_equal(pred, ans)
             return label
@@ -154,16 +154,19 @@ def eval_ocwcourses(item, pred_key="prediction", prec=1e-3):
         float(ans)
         normalize_fn = normalize_numeric
         is_equiv = numeric_equality
-        answer_type = "numeric"
+        # answer_type = "numerifc"
     except ValueError:
         if "=" in ans:
             normalize_fn = normalize_symbolic_equation
-            is_equiv = lambda x, y: x == y
-            answer_type = "equation"
+
+            def is_equiv(x, y):
+                return x == y
+
+            # answer_type = "equation"
         else:
             normalize_fn = SymbolicMathMixin().normalize_tex
             is_equiv = SymbolicMathMixin().is_tex_equiv
-            answer_type = "expression"
+            # answer_type = "expression"
 
     correct_answer = normalize_fn(ans)
 
