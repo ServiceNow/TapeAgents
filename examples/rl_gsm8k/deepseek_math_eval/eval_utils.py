@@ -148,13 +148,13 @@ def normalize_prediction(prediction):
     prediction = str(prediction).strip()
 
     ## deal with [], (), {}
-    bracket = []
+    brackets = []
     while (
         prediction.startswith("[")
         and prediction.endswith("]")
         or (prediction.startswith("(") and prediction.endswith(")"))
     ):
-        brackets = prediction[0]
+        bracket = prediction[0]
         prediction = prediction[1:-1]
     if brackets and "," in prediction:
         pred_parts = [normalize_prediction(part) for part in prediction.split(",")]

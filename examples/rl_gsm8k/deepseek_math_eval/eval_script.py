@@ -154,14 +154,11 @@ def eval_ocwcourses(item, pred_key="prediction", prec=1e-3):
         float(ans)
         normalize_fn = normalize_numeric
         is_equiv = numeric_equality
-        answer_type = "numerifc"
+        answer_type = "numeric"
     except ValueError:
         if "=" in ans:
             normalize_fn = normalize_symbolic_equation
-
-            def is_equiv(x, y):
-                return x == y
-
+            is_equiv = lambda x, y: x == y
             answer_type = "equation"
         else:
             normalize_fn = SymbolicMathMixin().normalize_tex
