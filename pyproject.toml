@@ -83,7 +83,7 @@ converters = [
   "webvtt-py~=0.5",
   "xlrd~=2.0",
   "youtube-transcript-api~=0.6",
-  "yt-dlp>=2024.11.4",
+  "yt-dlp>=2024.12.13",
 ]
 finetune = [
     "accelerate~=1.0",
