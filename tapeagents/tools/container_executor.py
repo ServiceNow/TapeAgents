@@ -194,7 +194,7 @@ class ContainerExecutor:
             self.execution_policies.update(execution_policies)
 
     def install_deps(self):
-        for package in ["numpy", "scipy", "pandas[excel]", "sympy", "bio", "matplotlib", "seaborn"]:
+        for package in ["numpy", "scipy", "pandas[excel]", "sympy", "bio", "matplotlib", "seaborn", "geopy"]:
             self._container.exec_run(["pip", "install", package], tty=True)
             logger.info(f"Installed {package}")
 
