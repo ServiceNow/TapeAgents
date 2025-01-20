@@ -25,6 +25,9 @@ jobs:
           enable-cache: true
           # invalidate cache when the lockfile changes
           cache-dependency-glob: "uv.lock"
+      - name: Install dependencies and package 
+        # stop the build if there are Python syntax errors or undefined names
+        run: make
       - name: Linter check
         # stop the build if there are Python syntax errors or undefined names
         run: make lint-check 
