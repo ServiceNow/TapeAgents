@@ -24,10 +24,7 @@ jobs:
           version: "0.5.21"
           enable-cache: true
           # invalidate cache when the lockfile changes
-          cache-dependency-glob: "uv.lock" 
-      - name: Set up Python
-        # uses .python-version file
-        run: uv python install 
+          cache-dependency-glob: "uv.lock"
       - name: Linter check
         # stop the build if there are Python syntax errors or undefined names
         run: make lint-check 
