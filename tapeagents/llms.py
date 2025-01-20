@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import random
+import threading
 import time
 from abc import ABC, abstractmethod
 from itertools import zip_longest
@@ -33,7 +34,8 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
-
+cache_dir = os.getenv("_CACHE_DIR", ".cache")
+assert os.path.exists(cache_dir), f"Cache directory {cache_dir} does not exist"
 transformers = None
 
 
@@ -274,11 +276,11 @@ class CachedLLM(LLM):
         param_hash = self._key(json.dumps({k: v for k, v in self.parameters.items() if k != "token"}))
         name = self.model_name.replace("/", "__")
         prefix = f"llm_cache_{name}_{param_hash}."
-        self._cache_file = f"{prefix}{os.getpid()}.jsonl"
-        for fname in os.listdir(os.getenv("_CACHE_DIR", ".")):
+        self._cache_file = os.path.join(cache_dir, f"{prefix}{os.getpid()}.{threading.get_native_id()}.jsonl")
+        for fname in os.listdir(cache_dir):
             if not fname.startswith(prefix):
                 continue
-            with open(fname) as f:
+            with open(os.path.join(cache_dir, fname)) as f:
                 for line in f:
                     key, event_dict = json.loads(line)
                     if key not in self._cache:

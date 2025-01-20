@@ -24,12 +24,12 @@ def test_intro_notebook():
                 from tapeagents.tools import simple_browser
                 simple_browser._FORCE_CACHE_PATH = "{res_dir}/intro_notebook/web_cache.jsonl"
                 from tapeagents.tools import tool_cache
-                tool_cache._CACHE_PATH = "{res_dir}/intro_notebook/tool_cache.jsonl"
-                tool_cache._FORCE_CACHE = True
+                tool_cache._FORCE_CACHE_PATH = "{res_dir}/intro_notebook/tool_cache.jsonl"
                 """,
                 before=0,
             )
             tb.execute()
+
 
 if __name__ == "__main__":
     test_intro_notebook()

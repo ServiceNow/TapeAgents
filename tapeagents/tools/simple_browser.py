@@ -47,6 +47,7 @@ logger.setLevel(logging.INFO)
 
 
 _FORCE_CACHE_PATH = None  # For testing purposes only
+cache_dir = os.getenv("_CACHE_DIR", ".cache")
 
 
 class SimpleTextBrowser:
@@ -61,7 +62,6 @@ class SimpleTextBrowser:
         downloads_folder: str = "/tmp/agent_browser_downloads",
         use_web_cache: bool = True,
         only_cached_webpages: bool = False,
-        cache_path: str = "web_cache.jsonl",
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
         converter_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -91,26 +91,19 @@ class SimpleTextBrowser:
         self._cache = {}
         self._log = []
         self._cache_buffer = []
-        self.cache_path = cache_path
-        self.load_cache(cache_path)
+        self.load_cache()
 
-    def load_cache(self, cache_path):
+    def load_cache(self):
+        prefix = "web_cache.jsonl"
         if _FORCE_CACHE_PATH:
-            self.cache_path = _FORCE_CACHE_PATH
-            logger.warning(f"Using forced cache file {self.cache_path}")
+            logger.warning(f"Using forced cache file {_FORCE_CACHE_PATH}")
             self.only_cached_webpages = True
-            assert os.path.exists(self.cache_path), "Forced cache file not found"
-        if os.path.exists(self.cache_path):
-            with open(self.cache_path) as f:
-                for line in f:
-                    data = json.loads(line)
-                    self._cache[data["k"]] = data["v"]
+            assert os.path.exists(_FORCE_CACHE_PATH), "Forced cache file not found"
         else:
-            for fname in os.listdir(os.getenv("_CACHE_DIR", ".")):
-                if not fname.startswith(cache_path):
+            for fname in os.listdir(cache_dir):
+                if not fname.startswith(prefix):
                     continue
-                logger.info(f"Loading cache from {fname}")
-                with open(fname) as f:
+                with open(os.path.join(cache_dir, fname)) as f:
                     for line in f:
                         data = json.loads(line)
                         self._cache[data["k"]] = data["v"]
@@ -378,14 +371,17 @@ class SimpleTextBrowser:
         self.flush_cache()
 
     def flush_cache(self):
-        fname = f"{self.cache_path}.{os.getpid()}.{threading.get_native_id()}"
+        prefix = "web_cache"
+        cache_path = os.getenv("_CACHE_DIR", ".cache")
+        fname = os.path.join(cache_path, f"{prefix}.{os.getpid()}.{threading.get_native_id()}.jsonl")
         with open(fname, "a") as f:
             for item in self._cache_buffer:
                 f.write(json.dumps(item) + "\n")
         self._cache_buffer = []
 
     def flush_log(self, exp_dir: str):
-        browser_log_path = os.path.join(exp_dir, f"browser_log.jsonl.{os.getpid()}.{threading.get_native_id()}")
+        os.makedirs(os.path.join(exp_dir, "browser_log"), exist_ok=True)
+        browser_log_path = os.path.join(exp_dir, f"browser_log/{os.getpid()}.{threading.get_native_id()}.jsonl")
         if len(self._log):
             with open(browser_log_path, "a") as wf:
                 for line in self._log:
