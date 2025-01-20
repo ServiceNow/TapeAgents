@@ -1,4 +1,5 @@
-from typing import Any, Literal
+import os
+from typing import Literal
 
 from pydantic import ConfigDict, Field
 
@@ -8,10 +9,9 @@ from tapeagents.tools.base import Tool
 from tapeagents.tools.container_executor import (
     CodeBlock,
     CommandLineCodeResult,
-    ContainerExecutor,
-    maybe_get_code_sandbox,
+    execute_code_in_container,
 )
-from tapeagents.tools.python_interpreter import logger, run_python_code
+from tapeagents.tools.python_interpreter import run_python_code
 
 
 class PythonCodeAction(Action):
@@ -20,9 +20,11 @@ class PythonCodeAction(Action):
     """
 
     kind: Literal["python_code_action"] = "python_code_action"  # type: ignore
+    name: str = Field(description="name of the program, lowercase, no spaces, ends with .py")
     code: str = Field(
         description="snippet of python code with escaped newlines and quotes to fit json format. Last line should print the result"
     )
+    input_files: list[str] = Field(description="list of input file paths to be mounted in the container")
 
 
 class CodeExecutor(Tool):
@@ -36,34 +38,34 @@ class CodeExecutor(Tool):
     observation: type[Observation] = CodeExecutionResult
     cached: bool = True
     exp_path: str = ""
-    sandbox: ContainerExecutor | None = Field(exclude=True, default=None)
-
-    def model_post_init(self, __context: Any) -> None:
-        self.sandbox = maybe_get_code_sandbox(self.exp_path)
+    max_output_length: int = 3000
 
     def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
-        code = self._add_print_to_last_line(action.code)
-        if self.sandbox is None:
-            logger.warning(f"Code sandbox is not provided, running code locally!\n{code}")
-            obs = self._run_restricted_python(code)
-        else:
-            result = self.sandbox.execute_code_blocks([CodeBlock(code=code, language="python")])
-            result.output = result.output[:1000].strip()
-            obs = CodeExecutionResult(result=result)
+        code = self.prepare_code_block(action)
+        code_dir = os.path.join(self.exp_path, "code")
+        result = execute_code_in_container([CodeBlock(code=code, language="python")], code_dir, action.input_files)
+        result.output = result.output[: self.max_output_length].strip()
+        obs = CodeExecutionResult(result=result)
         return obs
 
     def _run_restricted_python(self, code: str) -> CodeExecutionResult:
         result, stdout, stderr = run_python_code(code, {})
-        output = f"{result[:1000].strip()}\n\nstdout:\n{stdout}\n\nstderr:\n{stderr}"
+        output = f"{result[:self.max_output_length].strip()}\n\nstdout:\n{stdout}\n\nstderr:\n{stderr}"
         return CodeExecutionResult(result=CommandLineCodeResult(output=output, exit_code=0 if not stderr else 1))
 
-    def _add_print_to_last_line(self, python_code: str) -> str:
-        lines = python_code.splitlines()
-        if "print(" in lines[-1]:
-            return python_code
-        if " = " in lines[-1]:
-            name = lines[-1].split("=")[0].strip()
-            lines.append(f"print({name})")
-        else:
-            lines[-1] = f"print({lines[-1]})"
+    def prepare_code_block(self, action: PythonCodeAction) -> str:
+        lines = action.code.splitlines()
+        lines = [f"# {action.name}"] + lines
+        if "print(" not in lines[-1]:
+            if " = " in lines[-1]:
+                name = lines[-1].split("=")[0].strip()
+                lines.append(f"print({name})")
+            else:
+                lines[-1] = f"print({lines[-1]})"
         return "\n".join(lines)
+
+    def trim_output(self, output: str) -> str:
+        if len(output) > self.max_output_length:
+            half = self.max_output_length // 2
+            output = f"{output[:half]} ... {output[-half:]}"
+        return output

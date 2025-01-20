@@ -19,6 +19,7 @@ import atexit
 import logging
 import os
 import re
+import shutil
 from hashlib import md5
 from pathlib import Path
 from time import sleep
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
-lock = Lock("container_executor")
+DEFAULT_CONTAINER = "tapeagents-code-exec"
 
 
 def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
@@ -49,22 +50,25 @@ def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -
 
 
 __all__ = ("ContainerExecutor",)
+lock = Lock("container_executor")
+DEFAULT_EXECUTION_POLICY = {
+    "bash": True,
+    "shell": True,
+    "sh": True,
+    "p-sh": True,
+    "powershell": True,
+    "ps1": True,
+    "python": True,
+    "javascript": False,
+    "html": False,
+    "css": False,
+}
+LANGUAGE_ALIASES = {"py": "python", "js": "javascript"}
 
 
 class ContainerExecutor:
-    DEFAULT_EXECUTION_POLICY: ClassVar[Dict[str, bool]] = {
-        "bash": True,
-        "shell": True,
-        "sh": True,
-        "p-sh": True,
-        "powershell": True,
-        "ps1": True,
-        "python": True,
-        "javascript": False,
-        "html": False,
-        "css": False,
-    }
-    LANGUAGE_ALIASES: ClassVar[Dict[str, str]] = {"py": "python", "js": "javascript"}
+    DEFAULT_EXECUTION_POLICY: ClassVar[Dict[str, bool]] = DEFAULT_EXECUTION_POLICY
+    LANGUAGE_ALIASES: ClassVar[Dict[str, str]] = LANGUAGE_ALIASES
 
     def __init__(
         self,
@@ -132,13 +136,12 @@ class ContainerExecutor:
             client.images.pull(image)
 
         if container_name is None:
-            container_name = "tapeagents-code-exec"
+            container_name = DEFAULT_CONTAINER
 
         # Start a container from the image, read to exec commands later
         try:
-            with lock:
-                self._container = client.containers.get(container_name)
-                logger.info(f"Container {container_name} already exists, reuse")
+            self._container = client.containers.get(container_name)
+            logger.info(f"Container {container_name} already exists, reuse")
         except docker.errors.NotFound:
             logger.info(f"Creating container {container_name} from image {image}")
             self._container = client.containers.create(
@@ -191,7 +194,7 @@ class ContainerExecutor:
             self.execution_policies.update(execution_policies)
 
     def install_deps(self):
-        for package in ["numpy", "scipy", "pandas", "sympy", "matplotlib", "seaborn", "bio"]:
+        for package in ["numpy", "scipy", "pandas", "sympy", "bio", "matplotlib", "seaborn", "openpyxl"]:
             self._container.exec_run(["pip", "install", package], tty=True)
             logger.info(f"Installed {package}")
 
@@ -218,71 +221,11 @@ class ContainerExecutor:
 
         Returns:
             CommandlineCodeResult: The result of the code execution."""
-
-        if len(code_blocks) == 0:
-            raise ValueError("No code blocks to execute.")
-
-        outputs = []
-        output_files = []
-        files: list[Path] = []
-        last_exit_code = 0
-        for code_block in code_blocks:
-            lang = self.LANGUAGE_ALIASES.get(code_block.language.lower(), code_block.language.lower())
-            if lang not in self.DEFAULT_EXECUTION_POLICY:
-                outputs.append(f"Unsupported language {lang}\n")
-                last_exit_code = 1
-                break
-
-            execute_code = self.execution_policies.get(lang, False)
-            code = silence_pip(code_block.code, lang)
-
-            # Check if there is a filename comment
-            try:
-                filename = _get_file_name_from_content(code, self._work_dir)
-            except ValueError:
-                outputs.append("Filename is not in the workspace")
-                last_exit_code = 1
-                break
-
-            if not filename:
-                filename = f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
-
-            code_path = self._work_dir / filename
-            with code_path.open("w", encoding="utf-8") as fout:
-                fout.write(code)
-            files.append(code_path)
-
-            if not execute_code:
-                outputs.append(f"Code saved to {str(code_path)}\n")
-                continue
-            import podman as docker
-
-            command = ["timeout", str(self._timeout), _cmd(lang), filename]
-            try:
-                with lock:
-                    exit_code, output = self._container.exec_run(command, tty=True)
-                    logger.info(f"Command: {command}, Exit code: {exit_code}\n Output: {output}")
-            except docker.errors.APIError as e:
-                logger.exception(f"Failed to execute code: {e}")
-            assert isinstance(output, bytes)
-            output = output.decode("utf-8")
-            output = ansi_escape.sub("", output)
-            output = output.replace(filename, f"code.{code_block.language.lower()}")
-            if exit_code == 124:
-                output += "\n" + "Timeout"
-            outputs.append(output)
-            if file_output := _get_file_name_from_output(output, self._work_dir):
-                output_files.extend(file_output)
-
-            last_exit_code = exit_code
-            if exit_code != 0:
-                break
-
-        return CommandLineCodeResult(
-            exit_code=last_exit_code,
-            output="".join(outputs),
-            output_files=output_files,
-            code_files=[str(file) for file in files],
+        return execute_code_in_container(
+            code_blocks,
+            str(self._work_dir),
+            container_name=self._container.name,
+            timeout=self._timeout,
         )
 
     def restart(self) -> None:
@@ -302,6 +245,105 @@ class ContainerExecutor:
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
+
+
+def execute_code_in_container(
+    code_blocks: List[CodeBlock],
+    work_dir: str,
+    input_files: list[str] | None = None,
+    container_name: str = DEFAULT_CONTAINER,
+    timeout: int = 60,
+) -> CommandLineCodeResult:
+    """Execute the code blocks and return the result. Suitable to run in child processes.
+
+    Args:
+        code_blocks (List[CodeBlock]): The code blocks to execute.
+
+    Returns:
+        CommandlineCodeResult: The result of the code execution."""
+
+    if len(code_blocks) == 0:
+        raise ValueError("No code blocks to execute.")
+    import podman as docker
+
+    client = docker.from_env()
+    if container_name is None:
+        container_name = DEFAULT_CONTAINER
+    container = client.containers.get(container_name)
+    _wait_for_ready(container)
+
+    work_dir = Path(work_dir)
+    os.makedirs(work_dir, exist_ok=True)
+    outputs = []
+    output_files = []
+    files: list[Path] = []
+    last_exit_code = 0
+    for code_block in code_blocks:
+        lang = LANGUAGE_ALIASES.get(code_block.language.lower(), code_block.language.lower())
+        if lang not in DEFAULT_EXECUTION_POLICY:
+            outputs.append(f"Unsupported language {lang}\n")
+            last_exit_code = 1
+            break
+
+        execute_code = DEFAULT_EXECUTION_POLICY.get(lang, False)
+        code = silence_pip(code_block.code, lang)
+
+        # Check if there is a filename comment
+        try:
+            filename = _get_file_name_from_content(code, work_dir)
+        except ValueError:
+            outputs.append("Filename is not in the workspace")
+            last_exit_code = 1
+            break
+
+        if not filename:
+            filename = f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
+
+        if input_files is not None:
+            for input_file_path_str in input_files:
+                input_file_path = Path(input_file_path_str)
+                copy_file_path = work_dir / input_file_path.name
+                container_file_path = os.path.join("/workspace", input_file_path.name)
+                shutil.copy(input_file_path, copy_file_path)
+                logger.info(f"Replace `{input_file_path}` with `{container_file_path}`")
+                code = code.replace(input_file_path_str, container_file_path)
+        code_path = work_dir / filename
+        with code_path.open("w", encoding="utf-8") as fout:
+            fout.write(code)
+        files.append(code_path)
+
+        if not execute_code:
+            outputs.append(f"Code saved to {str(code_path)}\n")
+            continue
+        import podman as docker
+
+        command = ["timeout", str(timeout), _cmd(lang), filename]
+        try:
+            exit_code, output = container.exec_run(command, tty=True)
+            logger.info(f"Executed: {command}, Exit code: {exit_code}\n Output: {output}")
+        except docker.errors.APIError as e:
+            logger.exception(f"Failed to execute code: {e}")
+            raise e
+        assert isinstance(output, bytes)
+        output = output.decode("utf-8")
+        output = ansi_escape.sub("", output)
+        output = output.replace(filename, f"code.{code_block.language.lower()}")
+        if exit_code == 124:
+            output += "\n" + "Timeout"
+        outputs.append(output)
+        if file_output := _get_file_name_from_output(output, work_dir):
+            output_files.extend(file_output)
+
+        last_exit_code = exit_code
+        if exit_code != 0:
+            break
+
+    return CommandLineCodeResult(
+        exit_code=last_exit_code,
+        output="".join(outputs),
+        output_files=output_files,
+        code_files=[str(file) for file in files],
+    )
 
 
 # utils:
@@ -457,3 +499,9 @@ def maybe_get_code_sandbox(exp_path: str) -> ContainerExecutor | None:
         logger.exception(f"Failed to create code sandbox: {e}")
         code_sandbox = None
     return code_sandbox
+
+
+def init_code_sandbox(exp_path: str):
+    code_path = os.path.join(exp_path, "code")
+    os.makedirs(code_path, exist_ok=True)
+    ContainerExecutor(work_dir=code_path)
