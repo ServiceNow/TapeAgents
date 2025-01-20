@@ -21,8 +21,6 @@ jobs:
           version: "0.5.21"
           enable-cache: true
           cache-dependency-glob: "uv.lock" # invalidate cache when the lockfile changes
-      - name: Set up Python
-        run: uv python install # uses .python-version file
       - name: Build a binary wheel and a source tarball
         run: make build
           
