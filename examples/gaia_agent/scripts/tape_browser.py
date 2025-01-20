@@ -82,6 +82,9 @@ class GaiaTapeBrowser(TapeBrowser):
         prompt_tokens_num = 0
         output_tokens_num = 0
         total_cost = 0.0
+        visible_prompt_tokens_num = 0
+        visible_output_tokens_num = 0
+        visible_cost = 0.0
         no_result = 0
         actions = defaultdict(int)
         for llm_call in self.llm_calls.values():
@@ -97,6 +100,10 @@ class GaiaTapeBrowser(TapeBrowser):
                 errors["terminated"] += 1
             last_action = None
             for step in tape:
+                llm_call = self.llm_calls.get(step.metadata.prompt_id)
+                visible_prompt_tokens_num += llm_call.prompt_length_tokens if llm_call else 0
+                visible_output_tokens_num += llm_call.output_length_tokens if llm_call else 0
+                visible_cost += llm_call.cost if llm_call else 0
                 if isinstance(step, Action):
                     actions[step.kind] += 1
                     last_action = step
@@ -115,9 +122,9 @@ class GaiaTapeBrowser(TapeBrowser):
                     errors["code_execution"] += 1
         timers, timer_counts = self.aggregate_timer_times(tapes)
         html = f"<h2>Solved {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
-        html += (
-            f"Prompts tokens: {prompt_tokens_num}<br>Output tokens: {output_tokens_num}<br>Cost: {total_cost:.2f} USD"
-        )
+        if "all" in filename:
+            html += f"Prompt tokens: {prompt_tokens_num}<br>Output tokens: {output_tokens_num}<br>Cost: {total_cost:.2f} USD<h3>Visible</h3>"
+        html += f"Prompt tokens: {visible_prompt_tokens_num}<br>Output tokens: {visible_output_tokens_num}<br>Cost: {visible_cost:.2f} USD"
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
             html += f"<h2>No result: {no_result}</h2>"
