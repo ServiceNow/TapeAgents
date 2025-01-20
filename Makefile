@@ -11,13 +11,13 @@ lint-check:
 	@uv run ruff check . --output-format github
 
 test:
-	@uv run pytest -s --color=yes -m "not slow" tests/
+	@uv run --all-extras pytest -s --color=yes -m "not slow" tests/
 
 test-slow:
-	@uv run pytest -m "slow" tests/
+	@uv run --all-extras pytest -m "slow" tests/
 
 test-all:
-	@uv run pytest tests/
+	@uv run --all-extras pytest tests/
 
 clean:
 	@uv cache clean
