@@ -690,11 +690,13 @@ class Agent(BaseModel, Generic[TapeType]):
                     else:
                         raise ValueError("Agent can only generate steps or partial steps")
                 n_iterations += 1
-            updated_metadata = original_metadata.model_validate(dict(
-                parent_id=input_tape_id,
-                author=self.name,
-                n_added_steps=len(tape) - input_tape_length,
-            ))
+            updated_metadata = original_metadata.model_validate(
+                dict(
+                    parent_id=input_tape_id,
+                    author=self.name,
+                    n_added_steps=len(tape) - input_tape_length,
+                )
+            )
             final_tape = tape.model_copy(update=dict(metadata=updated_metadata))
             yield AgentEvent(final_tape=final_tape)
 

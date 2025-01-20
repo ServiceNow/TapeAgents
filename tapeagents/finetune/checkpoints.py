@@ -334,13 +334,14 @@ def save_model_only(
         # convert to HF format on main process
         if accelerator.is_main_process:
             from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
+
             logger.info("Converting DeepSpeed checkpoint to HF format")
 
             convert_zero_checkpoint_to_fp32_state_dict(
                 checkpoint_dir=output_dir,
                 output_dir=output_dir,
                 tag=None,  # will use 'global_step{step}' from DeepSpeed
-                safe_serialization=safe_serialization
+                safe_serialization=safe_serialization,
             )
 
             # save model config

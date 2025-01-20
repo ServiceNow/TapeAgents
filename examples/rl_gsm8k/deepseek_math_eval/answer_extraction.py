@@ -1,5 +1,7 @@
 import re
+
 import regex
+
 
 def _fix_fracs(string):
     substrs = string.split("\\frac")
@@ -129,7 +131,7 @@ def strip_string(string):
         string = string.replace("inf", "\\infty")
     string = string.replace("+\\inity", "\\infty")
 
-    # and 
+    # and
     # string = string.replace("and", "")
     string = string.replace("\\mathbf", "")
     string = string.replace("\\mathrm", "")
@@ -139,8 +141,8 @@ def strip_string(string):
 
     # quote
     string.replace("'", "")
-    string.replace("\"", "")
-    
+    string.replace('"', "")
+
     # i, j
     if "j" in string and "i" not in string:
         string = string.replace("j", "i")
@@ -174,22 +176,24 @@ def strip_string(string):
 
     return string
 
+
 def extract_boxed_answers(text):
     answers = []
-    for piece in text.split('boxed{')[1:]:
+    for piece in text.split("boxed{")[1:]:
         n = 0
         for i in range(len(piece)):
-            if piece[i] == '{':
+            if piece[i] == "{":
                 n += 1
-            elif piece[i] == '}':
+            elif piece[i] == "}":
                 n -= 1
                 if n < 0:
-                    if i + 1 < len(piece) and piece[i + 1] == '%':
+                    if i + 1 < len(piece) and piece[i + 1] == "%":
                         answers.append(piece[: i + 1])
                     else:
                         answers.append(piece[:i])
                     break
     return answers
+
 
 def extract_program_output(pred_str):
     """
@@ -197,34 +201,35 @@ def extract_program_output(pred_str):
     """
     if "```output" not in pred_str:
         return ""
-    if '```output' in pred_str:
-        pred_str = pred_str.split('```output')[-1]
-    if '```' in pred_str:
-        pred_str = pred_str.split('```')[0]
+    if "```output" in pred_str:
+        pred_str = pred_str.split("```output")[-1]
+    if "```" in pred_str:
+        pred_str = pred_str.split("```")[0]
     output = pred_str.strip()
     return output
 
+
 def extract_answer(pred_str, exhaust=False):
     pred = []
-    if 'final answer is $' in pred_str and '$. I hope' in pred_str:
-        tmp = pred_str.split('final answer is $', 1)[1]
-        pred = [tmp.split('$. I hope', 1)[0].strip()]
-    elif 'boxed' in pred_str:
+    if "final answer is $" in pred_str and "$. I hope" in pred_str:
+        tmp = pred_str.split("final answer is $", 1)[1]
+        pred = [tmp.split("$. I hope", 1)[0].strip()]
+    elif "boxed" in pred_str:
         pred = extract_boxed_answers(pred_str)
-    elif ('he answer is' in pred_str):
-        pred = [pred_str.split('he answer is')[-1].strip()]
+    elif "he answer is" in pred_str:
+        pred = [pred_str.split("he answer is")[-1].strip()]
     else:
         program_output = extract_program_output(pred_str)
         if program_output != "":
             # fall back to program
             pred.append(program_output)
-        else: # use the last number
-            pattern = '-?\d*\.?\d+'
+        else:  # use the last number
+            pattern = "-?\d*\.?\d+"
             ans = re.findall(pattern, pred_str.replace(",", ""))
-            if(len(ans) >= 1):
+            if len(ans) >= 1:
                 ans = ans[-1]
             else:
-                ans = ''
+                ans = ""
             if ans:
                 pred.append(ans)
 
@@ -242,10 +247,11 @@ def extract_answer(pred_str, exhaust=False):
     else:
         return _pred[-1] if _pred else ""
 
+
 def extract_math_answer(question, reasoning, task):
     answer = []
     for ans in extract_answer(reasoning, exhaust=True):
-        if 'separated by commas' in question and all(ch not in ans for ch in '()[]'):
+        if "separated by commas" in question and all(ch not in ans for ch in "()[]"):
             answer.extend([a.strip() for a in ans.split(",")])
         elif regex.search(r"\\text\{\s*and\s*\}", ans):
             answer.extend([a.strip() for a in regex.sub(r"\\text\{\s*and\s*\}", "[SEP]", ans).split("[SEP]")])
@@ -253,83 +259,93 @@ def extract_math_answer(question, reasoning, task):
             answer.append(ans.strip())
     return answer
 
+
 def extract_math_few_shot_cot_answer(question, reasoning, task):
-    if 'Problem:' in reasoning:
+    if "Problem:" in reasoning:
         reasoning = reasoning.split("Problem:", 1)[0]
     return extract_math_answer(question, reasoning, task)
+
 
 def extract_last_single_answer(question, reasoning, task):
     return extract_answer(reasoning, exhaust=False)
 
+
 def extract_gsm_few_shot_cot_answer(question, reasoning, task):
-    if 'Q: ' in reasoning:
+    if "Q: " in reasoning:
         reasoning = reasoning.split("Q: ", 1)[0]
-    pred = [s for s in regex.findall(r'-?\d+\.?\d*', reasoning)]
+    pred = [s for s in regex.findall(r"-?\d+\.?\d*", reasoning)]
     if pred:
         return pred[-1]
     else:
         return "[invalid]"
 
+
 def extract_agieval_gaokao_mathcloze_few_shot_cot_test(question, reasoning, task):
-    if '问题 ' in reasoning:
+    if "问题 " in reasoning:
         reasoning = reasoning.split("问题 ", 1)[0]
-    if '答案是' in reasoning:
-        ans = reasoning.split('答案是', 1)[1].strip()
+    if "答案是" in reasoning:
+        ans = reasoning.split("答案是", 1)[1].strip()
         ans = ans.split("\n")[0].strip()
         ans = [ans.strip("$")]
     else:
-        ans = ['placeholder']
+        ans = ["placeholder"]
     return ans
+
 
 def extract_agieval_gaokao_mathqa_few_shot_cot_test(question, reasoning, task):
-    if '问题 ' in reasoning:
+    if "问题 " in reasoning:
         reasoning = reasoning.split("问题 ", 1)[0]
-    if '答案是' in reasoning:
-        ans = reasoning.split('答案是', 1)[1].strip()
+    if "答案是" in reasoning:
+        ans = reasoning.split("答案是", 1)[1].strip()
         ans = ans.split("\n")[0].strip()
     else:
-        ans = 'placeholder'
+        ans = "placeholder"
     return ans
 
+
 def extract_sat_few_shot_answer(question, reasoning, task):
-    if 'Problem:' in reasoning:
+    if "Problem:" in reasoning:
         reasoning = reasoning.split("Problem:", 1)[0]
     patt = regex.search(r"the final answer is \(?(?P<ans>[abcd])\)?", reasoning.lower())
     if patt is not None:
-        return patt.group('ans').upper()
-    return 'placeholder'
+        return patt.group("ans").upper()
+    return "placeholder"
+
 
 def extract_ocwcourses_few_shot_answer(question, reasoning, task):
-    if 'Problem:' in reasoning:
+    if "Problem:" in reasoning:
         reasoning = reasoning.split("Problem:", 1)[0]
     patt = regex.search(r"final answer is (?P<ans>.*)\. I hope it is correct.", reasoning)
     if patt is None:
         pred = "[invalid]"
         print(f"DEBUG >>>\n{reasoning}", flush=True)
     else:
-        pred = patt.group('ans')
+        pred = patt.group("ans")
     return pred
 
+
 def extract_mmlu_stem(question, reasoning, task):
-    if 'Problem:' in reasoning:
+    if "Problem:" in reasoning:
         reasoning = reasoning.split("Problem:", 1)[0]
     return extract_sat_few_shot_answer(question, reasoning, task)
 
+
 def extract_minif2f_isabelle(question, reasoning, task):
-    if 'Informal:' in reasoning:
+    if "Informal:" in reasoning:
         reasoning = reasoning.split("Informal:", 1)[0]
     return reasoning.strip()
 
+
 def extract_cmath_few_shot_test(question, reasoning, task):
-    if '问题：' in reasoning:
+    if "问题：" in reasoning:
         reasoning = reasoning.split("问题：", 1)[0]
-    if '答案是' in reasoning:
-        ans = reasoning.split('答案是', 1)[1].strip()
+    if "答案是" in reasoning:
+        ans = reasoning.split("答案是", 1)[1].strip()
         ans = ans.split("\n")[0]
         ans = ans.strip("：")
         ans = ans.strip("。")
         try:
-            ans = [s for s in regex.findall(r'-?\d+\.?\d*', ans)][-1]
+            ans = [s for s in regex.findall(r"-?\d+\.?\d*", ans)][-1]
         except:
             print(f"DEBUG CMATH: {reasoning}", flush=True)
             ans = "[invalid]"

@@ -4,7 +4,7 @@ from typing import Literal
 
 from tapeagents.agent import Agent, AgentEvent
 from tapeagents.core import Action, Prompt, Tape, Thought
-from tapeagents.llms import TrainableLLM, LLM, LLMStream
+from tapeagents.llms import LLM, LLMStream, TrainableLLM
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
