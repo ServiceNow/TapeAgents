@@ -15,6 +15,7 @@ from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import step_view
+from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.search import SearchAction
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 
@@ -105,29 +106,23 @@ def solve_task(
     agent: GaiaAgent,
     env: ToolCollectionEnvironment,
     level: int,
-    retries: int = 1,
     max_loops: int = 50,
+    max_action_repetitions: int = 3,
 ) -> GaiaTape:
     start_steps = task_to_observations(task)
-    solved = None
-    result = None
     t = time.perf_counter()
-    while not solved and retries:
-        tape = GaiaTape(steps=start_steps)
-        try:
-            for event in main_loop(agent, tape, env, max_loops=max_loops):
-                if partial_tape := (event.agent_tape or event.env_tape):
-                    tape = partial_tape
-                if n_search_repetitions(tape) >= 3:
-                    break
-        except Exception as e:
-            tape.metadata.error = str(e)
-            logger.exception(f"Failed to solve task: {e}")
-            break
-        result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None  # type: ignore
-        result = str(result) if result is not None else ""
-        solved = result != ""
-        retries -= 1
+    tape = GaiaTape(steps=start_steps)
+    try:
+        for event in main_loop(agent, tape, env, max_loops=max_loops):
+            if partial_tape := (event.agent_tape or event.env_tape):
+                tape = partial_tape
+            if action_repetitions(tape) >= max_action_repetitions:
+                break
+    except Exception as e:
+        tape.metadata.error = str(e)
+        logger.exception(f"Failed to solve task: {e}")
+    result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None  # type: ignore
+    result = str(result) if result is not None else ""
     logger.info(f"Expected: {task['Final answer']}, Agent produced: {result}")
     tape.metadata = GaiaMetadata.model_validate(
         tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
@@ -136,12 +131,13 @@ def solve_task(
     return tape
 
 
-def n_search_repetitions(tape: GaiaTape) -> int:
-    steps_by_query = {}
+def action_repetitions(tape: GaiaTape) -> int:
+    unique_actions = {}
     for step in tape:
-        if isinstance(step, SearchAction):
-            steps_by_query[step.query] = steps_by_query.get(step.query, 0) + 1
-    return max(steps_by_query.values(), default=0)
+        if isinstance(step, (SearchAction, PythonCodeAction)):
+            key = step.llm_view()
+            unique_actions[key] = unique_actions.get(key, 0) + 1
+    return max(unique_actions.values(), default=0)
 
 
 def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> list[GaiaTape]:

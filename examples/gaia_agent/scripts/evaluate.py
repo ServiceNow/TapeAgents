@@ -78,7 +78,8 @@ def task_already_solved(i: int, level: int, tapes_dir: str, retry_unsolved: bool
 
 
 def task_worker(cfg: DictConfig, level: int, task_num: int):
-    log_file = os.path.join(cfg.exp_path, f"evaluate.{os.getpid()}.log")
+    os.makedirs(os.path.join(cfg.exp_path, "logs"), exist_ok=True)
+    log_file = os.path.join(cfg.exp_path, "logs", f"evaluate.{os.getpid()}.log")
     log_handler = logging.FileHandler(log_file)
     log_handler.setLevel(logging.INFO)
     logging.basicConfig(
@@ -104,9 +105,6 @@ def task_worker(cfg: DictConfig, level: int, task_num: int):
     validate_config(cfg, llm, tapes_dir)
     images_dir = os.path.join(cfg.exp_path, "images")
     os.makedirs(images_dir, exist_ok=True)
-    tapes_dir = os.path.join(cfg.exp_path, "tapes")
-    images_dir = os.path.join(cfg.exp_path, "images")
-    task_name = f"l{level}_task{task_num:03d}"
 
     t = time.perf_counter()
     env = get_env(cfg.exp_path, **cfg.env)
@@ -123,9 +121,9 @@ def task_worker(cfg: DictConfig, level: int, task_num: int):
     timers["close_env"] = time.perf_counter() - t
 
     tape.metadata.other["timers"] |= timers
-    save_json_tape(tape, tapes_dir, task_name)
+    save_json_tape(tape, tapes_dir, f"l{level}_task{task_num:03d}")
     save_tape_images(tape, images_dir)
-    logger.info(f"Task {task_name} solved, saved to {tapes_dir}")
+    logger.info(f"Saved to {tapes_dir}")
 
 
 if __name__ == "__main__":
