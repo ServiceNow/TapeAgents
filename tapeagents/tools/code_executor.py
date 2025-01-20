@@ -20,7 +20,7 @@ class PythonCodeAction(Action):
     """
 
     kind: Literal["python_code_action"] = "python_code_action"  # type: ignore
-    name: str = Field(description="name of the program, lowercase, no spaces, ends with .py")
+    name: str = Field(description="name of the program, lowercase, no spaces, unique, ends with .py")
     code: str = Field(
         description="snippet of python code with escaped newlines and quotes to fit json format. Last line should print the result"
     )
