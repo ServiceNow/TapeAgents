@@ -156,13 +156,13 @@ class CameraReadyRenderer(BasicRenderer):
             text = pretty_yaml(dump) + "\n" + maybe_fold(code_blocks)
         elif isinstance(step, CodeExecutionResult):
             text = f"exit_code:{step.result.exit_code}\n" if step.result.exit_code else ""
-            text += f"{maybe_fold(step.result.output, 1000)}"
+            text += f"{maybe_fold(step.result.output, 2000)}"
             text = ansi_escape.sub("", text)
             if step.result.exit_code == 0 and step.result.output_files:
                 for file in step.result.output_files:
                     text += render_image(file)
         elif isinstance(step, PythonCodeAction):
-            text = maybe_fold(step.code, 1000)
+            text = f"# {step.name}\n{maybe_fold(step.code, 2000)}"
         else:
             foldable_keys = ["content", "text"]
             content = ""
