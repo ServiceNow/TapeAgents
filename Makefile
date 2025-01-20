@@ -7,6 +7,9 @@ lint:
 	@uv run ruff format .
 	@uv run ruff check . --fix
 
+lint-check:
+	@uv run ruff check . --output-format github
+
 test:
 	@uv run pytest -s --color=yes -m "not slow" tests/
 
