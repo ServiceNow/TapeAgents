@@ -11,19 +11,18 @@ permissions:
 
 jobs:
   build-python:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.10"
-          cache: "pip"
-      - name: Install pypa/build
-        run: python3 -m pip install build --user
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.dev.txt -r requirements.txt -r requirements.finetune.txt
+          # Install a specific version of uv.
+          version: "0.5.21"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock" # invalidate cache when the lockfile changes
+      - name: Set up Python
+        run: uv python install # uses .python-version file
       - name: Build a binary wheel and a source tarball
-        run: python3 -m build --outdir dist/
+        run: make build
+          
