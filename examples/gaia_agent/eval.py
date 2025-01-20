@@ -103,11 +103,11 @@ def solve_task(
     retries: int = 3,
     max_loops: int = 50,
 ) -> Generator[GaiaTape, None, None]:
-    """Solve GAIA task. 
-    
+    """Solve GAIA task.
+
     This function is a generator that yields intermediate tapes during the solving process.
     The last tape will contain the agent's response.
-    
+
     """
     start_steps = env.task_to_observations(task)
     solved = None
@@ -119,8 +119,8 @@ def solve_task(
                 if partial_tape := (event.agent_tape or event.env_tape):
                     tape = partial_tape
                     tape.metadata = GaiaMetadata.model_validate(
-                            tape.metadata.model_dump() | {"task": task, "level": level}
-                        )                    
+                        tape.metadata.model_dump() | {"task": task, "level": level}
+                    )
                     yield tape
                 if n_search_repetitions(tape) >= 3:
                     break

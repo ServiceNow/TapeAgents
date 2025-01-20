@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+title: >-
+  TapeAgents: a Holistic Framework for Agent Development and
+  Optimization
+message: 'If you want to refer to our paper or code, please cite it as below.'
+type: software
+authors:
+  - family-names: Bahdanau
+    given-names: Dzmitry
+  - family-names: Gontier
+    given-names: Nicolas
+  - family-names: Huang
+    given-names: Gabriel
+  - family-names: Kamalloo
+    given-names: Ehsan
+  - family-names: Pardinas
+    given-names: Rafael
+  - family-names: Piché
+    given-names: Alex
+  - family-names: Scholak
+    given-names: Torsten
+  - family-names: Shliazhko
+    given-names: Oleh
+  - family-names: Jordan Prince
+    given-names: Tremblay
+  - family-names: Ghanem
+    given-names: Karam
+  - family-names: Parikh
+    given-names: Soham
+  - family-names: Tiwari
+    given-names: Mitul
+  - family-names: Vohra
+    given-names: Quaizar
+identifiers:
+  - type: url
+    value: 'https://arxiv.org/abs/2412.08445'
+repository-code: 'https://github.com/ServiceNow/TapeAgents'
+abstract: >-
+  TapeAgents is a framework that facilitates all stages of
+  the LLM Agent development lifecycle.
+license: Apache-2.0
+date-released: '2024-10-16'
