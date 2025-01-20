@@ -28,9 +28,13 @@ from typing import Any, ClassVar, Dict, List, Optional, Type, Union
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
+from tapeagents.utils import Lock
+
 logger = logging.getLogger(__name__)
 
 ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+lock = Lock("container_executor")
 
 
 def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
@@ -64,7 +68,7 @@ class ContainerExecutor:
 
     def __init__(
         self,
-        image: str = "jupyter/scipy-notebook",
+        image: str = "python:3-slim",
         container_name: Optional[str] = None,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
@@ -123,7 +127,7 @@ class ContainerExecutor:
         try:
             client.images.get(image)
         except docker.errors.ImageNotFound:
-            logging.info(f"Pulling image {image}...")
+            logger.info(f"Pulling image {image}...")
             # Let the docker exception escape if this fails.
             client.images.pull(image)
 
@@ -132,8 +136,11 @@ class ContainerExecutor:
 
         # Start a container from the image, read to exec commands later
         try:
-            self._container = client.containers.get(container_name)
+            with lock:
+                self._container = client.containers.get(container_name)
+                logger.info(f"Container {container_name} already exists, reuse")
         except docker.errors.NotFound:
+            logger.info(f"Creating container {container_name} from image {image}")
             self._container = client.containers.create(
                 image,
                 name=container_name,
@@ -153,6 +160,9 @@ class ContainerExecutor:
                 working_dir="/workspace",
             )
             self._container.start()
+            _wait_for_ready(self._container)
+            logger.info(f"Started container {container_name} from image {image}")
+            self.install_deps()
 
         _wait_for_ready(self._container)
 
@@ -179,6 +189,11 @@ class ContainerExecutor:
         self.execution_policies = self.DEFAULT_EXECUTION_POLICY.copy()
         if execution_policies is not None:
             self.execution_policies.update(execution_policies)
+
+    def install_deps(self):
+        for package in ["numpy", "scipy", "pandas", "sympy", "matplotlib", "seaborn", "bio"]:
+            self._container.exec_run(["pip", "install", package], tty=True)
+            logger.info(f"Installed {package}")
 
     @property
     def timeout(self) -> int:
@@ -240,13 +255,15 @@ class ContainerExecutor:
             if not execute_code:
                 outputs.append(f"Code saved to {str(code_path)}\n")
                 continue
+            import podman as docker
 
             command = ["timeout", str(self._timeout), _cmd(lang), filename]
-            # result = self._container.exec_run(command)
-            # exit_code = result.exit_code
-            # output = result.output.decode("utf-8")
-            exit_code, output = self._container.exec_run(command, tty=True)
-            logger.info(f"Command: {command}, Exit code: {exit_code}\n Output: {output}")
+            try:
+                with lock:
+                    exit_code, output = self._container.exec_run(command, tty=True)
+                    logger.info(f"Command: {command}, Exit code: {exit_code}\n Output: {output}")
+            except docker.errors.APIError as e:
+                logger.exception(f"Failed to execute code: {e}")
             assert isinstance(output, bytes)
             output = output.decode("utf-8")
             output = ansi_escape.sub("", output)
@@ -376,6 +393,7 @@ FILENAME_PATTERNS = [
     re.compile(r"^// (filename:)?(.+?)$", re.DOTALL),
     re.compile(r"^# (filename:)?(.+?)$", re.DOTALL),
 ]
+# //
 
 
 def _get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str]:
