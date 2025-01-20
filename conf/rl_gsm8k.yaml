@@ -61,7 +61,7 @@ hydra:
     dir: ${output_dir}
   job_logging:
     root:
-      level: DEBUG
+      level: INFO
     handlers:
       node_errors:
         class: logging.FileHandler
