@@ -4,8 +4,6 @@ defaults:
 model_path: /mnt/llmd/base_models/Eurus-2-7B-SFT
 dataset_name: eurus
 output_dir: outputs/rl_eurus
-finetune:
-  seq_length: 4096
 attempts: 1
 llm:
   parameters:
