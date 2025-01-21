@@ -82,7 +82,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
             stored in metadata.
     """
     tapes: list[RLMathTape] = []
-    for problem in tqdm(problems, desc="Converting problems to unique tapes", unit="problem"):
+    for problem in problems:
         start_step = Task(
             task=problem["task"],
             metadata=StepMetadata(
@@ -97,26 +97,8 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig
+    new_tape: RLMathTape, agent: CoTMathAgent, cfg: DictConfig
 ) -> Tuple[List[TrainingText], Dict[str, int]]:
-    """
-    Process a single tape to extract training samples and statistics.
-
-    Args:
-        new_tape: The tape to process containing math problem steps
-        agent: CoTMathAgent
-        split_name: Name of split ('train' or 'test')
-        tapes_dir: Directory to save processed tapes
-        cfg: Configuration
-        llm_calls: List of LLM calls
-        strict: check that every token matches between the vLLM and the HF tokenizer otherwise just compare their lengths
-
-    Returns:
-        Tuple containing:
-        - List of training samples with rewards and logprobs
-        - Dictionary with statistics (reward, steps, success, no_errors)
-    """
-    discarded = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     match cfg.dataset_name:
@@ -149,39 +131,37 @@ def extract_tape_training_samples(
             reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
-    if split_name == "train":
-        # For each LLM interaction in the tape:
-        # - Create a training sample from the prompt and output
-        # - Get log probabilities of the output tokens
-        # - Set group ID for tracking
-        for step in new_tape.steps:
-            if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
-                continue
-            llm_call = step.metadata.other["llm_call"]
-            trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
+    # For each LLM call in the tape:
+    # - Create a training sample from the prompt and output
+    # - Get log probabilities of the output tokens
+    # - Set group ID for tracking
+    for step in new_tape.steps:
+        if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
+            continue
+        llm_call = step.metadata.other["llm_call"]
+        trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            input_ids = [lp.token_id for lp in llm_call.logprobs]
-            labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
-            # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
-            # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
+        input_ids = [lp.token_id for lp in llm_call.logprobs]
+        labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
+        # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+        # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+        labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
-            trace.input_ids = input_ids
-            trace.labels = labels
+        trace.input_ids = input_ids
+        trace.labels = labels
 
-            trace.reward = reward
-            trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
-            trace.group_id = new_tape.metadata.parent_id
-            tape_prompt_tokens += llm_call.prompt_length_tokens
-            tape_output_tokens += llm_call.output_length_tokens
-            training_samples.append(trace)
+        trace.reward = reward
+        trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
+        trace.group_id = new_tape.metadata.parent_id
+        tape_prompt_tokens += llm_call.prompt_length_tokens
+        tape_output_tokens += llm_call.output_length_tokens
+        training_samples.append(trace)
 
     tape_stats = {
         "reward": reward,
         "steps": len(new_tape.steps),
         "success": success,
         "no_error": no_error,
-        "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
     }
