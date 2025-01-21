@@ -2,7 +2,7 @@ defaults:
   - llm: gpt4o_mini
   - _self_
 
-exp_name: gpt4o_mini_val_old_browser2
+exp_name: gpt4o_mini_val_axtree2
 
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
@@ -23,7 +23,7 @@ agent:
   plain_code: false
 
 env:
-  simple_browser: true
+  simple_browser: false
   use_web_cache: true
 
 studio:
