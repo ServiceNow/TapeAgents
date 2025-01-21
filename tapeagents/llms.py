@@ -9,7 +9,6 @@ import hashlib
 import json
 import logging
 import os
-import random
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -530,9 +529,10 @@ class TrainableLLM(CachedLLM):
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
 
-    base_url: str | list[str]
+    base_url: str
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
+    max_prompt_length: int = -1
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -542,7 +542,7 @@ class TrainableLLM(CachedLLM):
         """
         Returns the base URL for the API endpoint.
         """
-        return (self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)).rstrip("/")
+        return self.base_url.rstrip("/")
 
     def make_llm_call_logprobs(
         self, prompt_token_ids: list[int], completion_logprobs: list[dict]
@@ -593,11 +593,10 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.get_base_url()
-        logger.debug(f"POST request to {base_url}/v1/chat/completions")
+        logger.debug(f"POST request to {self.base_url}/v1/chat/completions")
         start_send_request = time.time()
         r = requests.post(
-            url=f"{base_url}/v1/chat/completions",
+            url=f"{self.base_url}/v1/chat/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,
@@ -667,6 +666,8 @@ class TrainableLLM(CachedLLM):
             self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
             for p in prompts
         ]
+        if self.max_prompt_length > 0:
+            prompt_token_ids = [p[-self.max_prompt_length:] for p in prompt_token_ids]
         data = {
             "model": self.model_name,
             "prompt": prompt_token_ids,
@@ -680,11 +681,10 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        logger.debug(f"POST request to {base_url}/v1/completions")
+        logger.debug(f"POST request to {self.base_url}/v1/completions")
         start_send_request = time.time()
         r = requests.post(
-            url=f"{base_url}/v1/completions",
+            url=f"{self.base_url}/v1/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,
@@ -787,8 +787,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        url = f"{base_url}/v1/completions"
+        url = f"{self.base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
         r.raise_for_status()  # raise exception if status code is not in the 200s
@@ -826,8 +825,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        url = f"{base_url}/v1/completions"
+        url = f"{self.base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
         r.raise_for_status()

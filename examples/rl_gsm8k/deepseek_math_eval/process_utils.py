@@ -5,6 +5,41 @@ from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_math_
 from examples.rl_gsm8k.deepseek_math_eval.eval_utils import parse_ground_truth
 
 
+def process_eurus_test(item):
+    if "ability" not in item:
+        # math 500 test set
+        answer = [item["expected_answer"]]
+        solution = item["solution"]
+        # Eurus will produce \\ as \\\\
+        solution = solution.replace("\\ ", "\\\\ ")
+        answer2 = extract_math_answer(item["problem"] , solution, task="cot")
+        if answer2 != answer:
+            print("Answer mismatch")
+            print("Old answer:", answer2)
+            print("New answer:", answer)
+        return {
+            "dataset": "math500",
+            # Same prompt as https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/README.md?plain=1#L93
+            "task": item["problem"] + "\n\nPresent the answer in LaTex format: \\boxed{Your answer}",
+            "answer": answer
+        }
+    else:
+        # Eurus train set
+        if item["ability"] != "math":
+            return None
+        answer = item["reward_model"]["ground_truth"]
+        # format matrices
+        # remove new lines
+        answer = answer.replace("\n", "")
+        answer = "\\boxed{" + answer + "}"
+        answer = extract_math_answer(item["prompt"][1]["content"], answer, task="cot")
+        return {
+            "dataset": item["data_source"],
+            "task": item["prompt"][1]["content"],
+            "answer": answer
+        }
+    
+
 def process_gsm8k_test(item):
     _, answer = parse_ground_truth(item, "gsm8k")
     sample = {"dataset": "gsm8k-cot", "task": item["question"], "answer": answer}
