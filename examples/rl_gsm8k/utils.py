@@ -393,15 +393,11 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
     try:
-        # set env variable TORCH_NCCL_ENABLE_MONITORING=0
-        env = os.environ.copy()
-        env["TORCH_NCCL_ENABLE_MONITORING"] = "0"
         subprocess.run(
             base_cmd,
             check=True,  # Raises CalledProcessError if return code != 0
             text=True,
             capture_output=False,
-            env=env
         )
 
     except subprocess.CalledProcessError as e:

@@ -244,6 +244,7 @@ def create_dataloader(
     logger.info(f"Merged data fingerprint: {data._fingerprint}")
 
     if rl_data_callback is not None:
+        accelerator.wait_for_everyone()
         data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
 
     if n_examples:
