@@ -4,6 +4,7 @@ import sys
 
 _llm_calls = "LLMCalls"
 
+
 def add_columns_to_db(db_path):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
@@ -16,6 +17,7 @@ def add_columns_to_db(db_path):
     conn.commit()
     conn.close()
 
+
 def main():
     dirname = sys.argv[1]
     for root, dirs, files in os.walk(dirname):
@@ -24,6 +26,7 @@ def main():
                 db_path = os.path.join(root, file)
                 print(db_path)
                 add_columns_to_db(db_path)
+
 
 if __name__ == "__main__":
     assert len(sys.argv) == 2, "Usage: python -m tests.add_sqlite_columns <dirname>"

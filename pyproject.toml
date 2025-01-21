@@ -36,19 +36,17 @@ optional-dependencies.finetune = { file = ["requirements.finetune.txt"] }
 [tool.setuptools.packages.find]
 include = ["tapeagents*"]
 
-[tool.black]
-line-length = 120
-target-version = ['py310']
-
 [tool.ruff]
 line-length = 120
 target-version = "py310"
-indent-width = 4
 
-[tool.isort]
-profile = "black"
-src_paths = ["src", "tests"]
-combine_as_imports = true
+[tool.ruff.lint]
+extend-select = [
+  "I",  # isort rules
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
 
 [tool.pytest.ini_options]
 markers = [
