@@ -8,13 +8,18 @@ from examples.rl_gsm8k.deepseek_math_eval.eval_utils import parse_ground_truth
 def process_eurus_test(item):
     if "ability" not in item:
         # math 500 test set
-        #answer = item["answer"]
+        answer = [item["expected_answer"]]
         solution = item["solution"]
         # Eurus will produce \\ as \\\\
         solution = solution.replace("\\ ", "\\\\ ")
-        answer = extract_math_answer(item["problem"] , solution, task="cot")
+        answer2 = extract_math_answer(item["problem"] , solution, task="cot")
+        if answer2 != answer:
+            print("Answer mismatch")
+            print("Old answer:", answer2)
+            print("New answer:", answer)
         return {
             "dataset": "math500",
+            # Same prompt as https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/README.md?plain=1#L93
             "task": item["problem"] + "\n\nPresent the answer in LaTex format: \\boxed{Your answer}",
             "answer": answer
         }

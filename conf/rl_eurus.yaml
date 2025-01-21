@@ -6,7 +6,7 @@ dataset_name: eurus
 output_dir: outputs/rl_eurus
 finetune:
   max_seq_len: 4096
-
+attempts: 1
 llm:
   parameters:
     # CoT are much longer, but the model only has 4096 tokens context

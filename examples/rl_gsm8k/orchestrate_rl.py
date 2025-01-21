@@ -308,15 +308,15 @@ def main(cfg: DictConfig):
             process_fn = process_gsm8k_test
         case "eurus":
             train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
-            test_dataset_long_name = "qq8933/MATH500"
+            test_dataset_long_name = "alexpiche/math_test_cleaned"
             process_fn = process_eurus_test
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
     train_dataset = load_dataset(train_dataset_long_name, split="train", trust_remote_code=True)
     test_dataset = load_dataset(test_dataset_long_name, split="test", trust_remote_code=True)
-    train_samples = [process_fn(s) for s in train_dataset if process_fn(s) is not None]
-    test_samples = [process_fn(s) for s in test_dataset if process_fn(s) is not None]
+    test_samples = [process_fn(s) for s in tqdm(test_dataset, desc="Processing test samples") if process_fn(s) is not None]
+    train_samples = [process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None]
     logger.info(f"Loaded {len(train_samples)} training samples")
     logger.info(f"Loaded {len(test_samples)} test samples")
 
