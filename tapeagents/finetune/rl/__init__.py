@@ -58,6 +58,7 @@ class RLConfig(StepConfig):
         metadata={"help": "ReLU the weights before updating the model"},
     )
 
+
 def make_rl_data_callback(args, current_dir, rl_config, model):
     if rl_config:
         populate_rl_data_ = partial(

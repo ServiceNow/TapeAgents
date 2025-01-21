@@ -20,8 +20,7 @@ from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.team import Chain, TeamTape
 from tapeagents.view import Call, Respond
 
-from ..data_science.data_science import make_renderers
-from ..data_science.data_science import make_world as data_science_make_world
+from ..data_science.data_science import make_renderers, make_world as data_science_make_world
 
 ### Prompts ###
 

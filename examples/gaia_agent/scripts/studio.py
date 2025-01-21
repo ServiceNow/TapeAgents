@@ -5,6 +5,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
+from tapeagents.config import ATTACHMENT_DEFAULT_DIR
 from tapeagents.io import load_tapes
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.studio import Studio
@@ -43,7 +44,8 @@ def main(cfg: DictConfig) -> None:
         # content = "In the video https://www.youtube.com/watch?v=L1vXCYZAYYM, what is the highest number of bird species to be on camera simultaneously?"
         tape = GaiaTape(steps=[GaiaQuestion(content=content)])
     Studio(agent, tape, CameraReadyRenderer(), env).launch(
-        server_name="0.0.0.0", static_dir=f"{cfg.exp_path}/attachments"
+        server_name="0.0.0.0",
+        static_dir=f"{cfg.exp_path}/{ATTACHMENT_DEFAULT_DIR}",
     )
 
 

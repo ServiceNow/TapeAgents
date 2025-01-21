@@ -3,6 +3,7 @@
 import logging
 import random
 import traceback
+from functools import partial
 from pathlib import Path
 from typing import Generator, Generic, Sequence
 
@@ -33,7 +34,9 @@ def batch_main_loop(
     if not isinstance(environments, list):
         environments = [environments] * len(tapes)
 
-    def worker_func(input: tuple[TapeType, Environment]) -> TapeType | Exception:
+    def worker_func(
+        input: tuple[TapeType, Environment], agent: Agent, max_loops: int, strict: bool
+    ) -> TapeType | Exception:
         start_tape, env = input
         try:
             result = main_loop(agent, start_tape, env, max_loops=max_loops).get_final_tape()
@@ -47,7 +50,8 @@ def batch_main_loop(
         return result
 
     processor = choose_processor(n_workers=n_workers)
-    for smth in processor(zip(tapes, environments), worker_func):
+    worker_func_partial = partial(worker_func, agent=agent, max_loops=max_loops, strict=strict)
+    for smth in processor(zip(tapes, environments), worker_func_partial):
         if isinstance(smth, Tape):
             yield smth
         else:

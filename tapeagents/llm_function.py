@@ -4,14 +4,24 @@ Optimizable llm functions.
 
 from __future__ import annotations
 
-from typing import Any, Type
+import logging
+import re
+from typing import Any, Generator, Type
 
 from pydantic import BaseModel
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import Prompt, Step, Tape
-from tapeagents.dialog_tape import AssistantStep, AssistantThought, FunctionCall, ToolCall, ToolCalls
+from tapeagents.dialog_tape import (
+    AssistantStep,
+    AssistantThought,
+    FunctionCall,
+    ToolCall,
+    ToolCalls,
+)
 from tapeagents.llms import LLMStream
+
+logger = logging.getLogger(__name__)
 
 LLM_FUNCTION_TEMPLATE = """{function_desc}
 {partial_demos}
@@ -81,11 +91,11 @@ class ToolCallOutput(Output):
         return value.tool_calls[0].function.arguments[self.arg_name]
 
 
-class RationaleOutput(ThoughtOutput):
+class ReasoningOutput(ThoughtOutput):
     @classmethod
     def for_output(cls, output_name: str):
         return cls(
-            name="rationale",
+            name="reasoning",
             prefix="Reasoning: Let's think step by step in order to",
             desc=f"""${{produce the {output_name}}}. We ...""",
         )
@@ -141,14 +151,50 @@ class LLMFunctionTemplate(BaseModel):
         )
         return Prompt.from_user_message(text)
 
-    def generate_steps(self, agent, tape: Tape, llm_stream: LLMStream):
+    def generate_steps(self, agent: Agent, tape: Tape, llm_stream: LLMStream) -> Generator[Step]:
         # TODO: streaming
-        # TODO: more robust parsing that doesn't rely on ':' and '\n'
+        output_values = []
         output_text = llm_stream.get_text()
-        prompt_text = llm_stream.prompt.messages[0]["content"]
-        text = prompt_text + "\n" + output_text
-        output_lines = text.split("\n")[-len(self.outputs) :]
-        output_values = [output_lines[0]] + [line.split(":")[1].strip() for line in output_lines[1:]]
+        for i, output in enumerate(self.outputs):
+            if not isinstance(output, (ThoughtOutput, ToolCallOutput, AssistantOutput)):
+                raise NotImplementedError(f"Output type {output} not implemented")
+            # Find the variable output.name in the llm output
+            values = re.split(f"{output.name}:", output_text, flags=re.IGNORECASE)
+            if len(values) == 2:
+                # Variable output.name found in llm output
+                value = values[1].split("\n")[0].strip()  # heuristic for the end of the argument
+                if isinstance(output, ReasoningOutput):
+                    # if present, remove the prefix from the reasoning output
+                    values = re.split(output.prefix, output_text, flags=re.IGNORECASE)
+                    if len(values) == 2:
+                        value = values[1].split("\n")[0].strip()  # heuristic for the end of the argument
+                    else:
+                        logger.debug(f"No prefix to remove from reasoning output key {output.name}")
+            elif len(values) == 1:
+                # Variable output.name not found in llm output
+                # Set value to empty string to keep positional order
+                value = ""
+                if i == 0:
+                    # For the first output, llm output might not repeat prefix
+                    values = re.split(r"^[A-z]+:", output_text, flags=re.IGNORECASE)
+                    if len(values) == 1:
+                        # llm output doesn't start with another variable output
+                        # we assume the first section of the llm output is the value
+                        value = output_text.split("\n")[0].strip()  # heuristic for the end of the output
+                        logger.debug(f"Assuming value for the output key '{output.name}' is the first llm output section: '{value}'")
+                    else:
+                        # llm output started with another variable output
+                        # Not throwing an error here because the first (reasoning) output might not be present be the second (query/answer) output is
+                        logger.error(f"Could not assume value for the output key '{output.name}' from the first llm output section: '{values[0]}'")
+                else:
+                    raise ValueError(f"Could not find output key '{output.name}' in output_text: '{output_text}'")
+            else:
+                raise ValueError(f"Found multiple instances of output key `{output.name}` in output_text: {output_text}")
+            output_values.append(value)
+
+        if len(output_values) != len(self.outputs):
+            logger.warning(f"Could not find all outputs in output_text: {output_text}\nOutput found: {output_values}")
+
         for output, value in zip(self.outputs, output_values):
             yield output.parse(value)
 

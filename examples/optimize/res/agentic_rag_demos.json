@@ -1,0 +1,234 @@
+{
+  "generate_query[0]": [
+    {
+      "augmented": true,
+      "context": [],
+      "question": "Which of these publications was most recently published, Who Put the Bomp or Self?",
+      "reasoning": "produce the query. We know that publication dates are typically included in metadata for articles or books. By searching for the publication date of each article, we can determine which one was most recently published.",
+      "query": "\"publication date of Who Put the Bomp\" OR \"publication date of Self\""
+    },
+    {
+      "augmented": true,
+      "context": [],
+      "question": "Who is older, Aleksandr Danilovich Aleksandrov or Anatoly Fomenko?",
+      "reasoning": "determine the age difference between Aleksandr Danilovich Aleksandrov and Anatoly Fomenko. We can search for their birthdates and compare them to see who is older.",
+      "query": "\"Aleksandr Danilovich Aleksandrov birthdate\" AND \"Anatoly Fomenko birthdate\""
+    },
+    {
+      "question": "Tombstone stared an actor born May 17, 1955 known as who?",
+      "answer": "Bill Paxton"
+    },
+    {
+      "question": "What is the code name for the German offensive that started this Second World War engagement on the Eastern Front (a few hundred kilometers from Moscow) between Soviet and German forces, which included 102nd Infantry Division?",
+      "answer": "Operation Citadel"
+    },
+    {
+      "question": "Who acted in the shot film The Shore and is also the youngest actress ever to play Ophelia in a Royal Shakespeare Company production of \"Hamlet.\" ?",
+      "answer": "Kerry Condon"
+    },
+    {
+      "question": "The Victorians - Their Story In Pictures is a documentary series written by an author born in what year?",
+      "answer": "1950"
+    },
+    {
+      "question": "Which is taller, the Empire State Building or the Bank of America Tower?",
+      "answer": "The Empire State Building"
+    },
+    {
+      "question": "Which magazine has published articles by Scott Shaw, Tae Kwon Do Times or Southwest Art?",
+      "answer": "Tae Kwon Do Times"
+    },
+    {
+      "question": "Which company distributed this 1977 American animated film produced by Walt Disney Productions for which Sherman Brothers wrote songs?",
+      "answer": "Buena Vista Distribution"
+    },
+    {
+      "question": "In what year was the club founded that played Manchester City in the 1972 FA Charity Shield",
+      "answer": "1874"
+    },
+    {
+      "question": "Having the combination of excellent foot speed and bat speed helped Eric Davis, create what kind of outfield for the Los Angeles Dodgers? ",
+      "answer": "\"Outfield of Dreams\""
+    },
+    {
+      "question": "\"Everything Has Changed\" is a song from an album released under which record label ?",
+      "answer": "Big Machine Records"
+    },
+    {
+      "question": "On the coast of what ocean is the birthplace of Diogal Sakho?",
+      "answer": "Atlantic"
+    },
+    {
+      "question": "The Organisation that allows a community to influence their operation or use and to enjoy the benefits arisingwas founded in what year?",
+      "answer": "2010"
+    },
+    {
+      "question": "which  American actor was Candace Kita  guest starred with ",
+      "answer": "Bill Murray"
+    },
+    {
+      "question": "At My Window was released by which American singer-songwriter?",
+      "answer": "John Townes Van Zandt"
+    }
+  ],
+  "generate_query[1]": [
+    {
+      "augmented": true,
+      "context": [
+        "Who Put the Bomp | Who Put The Bomp was a rock music fanzine edited and published by Greg Shaw from 1970 to 1979. Its name came from the hit 1961 doo-wop song by Barry Mann, \"Who Put the Bomp\". Later, the name was shortened to \"Bomp!\"",
+        "Monthly Magazine | The Monthly Magazine (1796\u20131843) of London began publication in February 1796. Richard Phillips was the publisher and a contributor on political issues. The editor for the first ten years was the literary jack-of-all-trades, Dr John Aikin. Other contributors included William Blake, Samuel Taylor Coleridge, George Dyer, Henry Neele and Charles Lamb. The magazine also published the earliest fiction of Charles Dickens, the first of what would become \"Sketches by Boz\"."
+      ],
+      "question": "Which of these publications was most recently published, Who Put the Bomp or Self?",
+      "reasoning": "produce the query. We know that \"Who Put the Bomp\" was published from 1970 to 1979, so we need to find out when \"Self\" was last published in order to determine which publication is more recent.",
+      "query": "Last publication date of \"Self\" magazine"
+    },
+    {
+      "augmented": true,
+      "context": [
+        "Aleksandr Danilovich Aleksandrov | Aleksandr Danilovich Aleksandrov (Russian: \u0410\u043b\u0435\u043a\u0441\u0430\u0301\u043d\u0434\u0440 \u0414\u0430\u043d\u0438\u0301\u043b\u043e\u0432\u0438\u0447 \u0410\u043b\u0435\u043a\u0441\u0430\u0301\u043d\u0434\u0440\u043e\u0432 , alternative transliterations: \"Alexandr\" or \"Alexander\" (first name), and \"Alexandrov\" (last name)) (August 4, 1912 \u2013 July 27, 1999), was a Soviet/Russian mathematician, physicist, philosopher and mountaineer.",
+        "Aleksandr Pavlovich Aleksandrov | Aleksandr Pavlovich Aleksandrov (Russian: \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440 \u041f\u0430\u0432\u043b\u043e\u0432\u0438\u0447 \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440\u043e\u0432 ; born February 20, 1943) is a former Soviet cosmonaut and twice Hero of the Soviet Union (November 23, 1983 and December 29, 1987)."
+      ],
+      "question": "Who is older, Aleksandr Danilovich Aleksandrov or Anatoly Fomenko?",
+      "reasoning": "produce the query. We know the birthdate of Aleksandr Danilovich Aleksandrov is August 4, 1912, and the birthdate of Aleksandr Pavlovich Aleksandrov is February 20, 1943. Now we need to find the birthdate of Anatoly Fomenko to compare.",
+      "query": "Birthdate of Anatoly Fomenko"
+    },
+    {
+      "question": "Who acted in the shot film The Shore and is also the youngest actress ever to play Ophelia in a Royal Shakespeare Company production of \"Hamlet.\" ?",
+      "answer": "Kerry Condon"
+    },
+    {
+      "question": "which  American actor was Candace Kita  guest starred with ",
+      "answer": "Bill Murray"
+    },
+    {
+      "question": "What is the code name for the German offensive that started this Second World War engagement on the Eastern Front (a few hundred kilometers from Moscow) between Soviet and German forces, which included 102nd Infantry Division?",
+      "answer": "Operation Citadel"
+    },
+    {
+      "question": "\"Everything Has Changed\" is a song from an album released under which record label ?",
+      "answer": "Big Machine Records"
+    },
+    {
+      "question": "Which is taller, the Empire State Building or the Bank of America Tower?",
+      "answer": "The Empire State Building"
+    },
+    {
+      "question": "Having the combination of excellent foot speed and bat speed helped Eric Davis, create what kind of outfield for the Los Angeles Dodgers? ",
+      "answer": "\"Outfield of Dreams\""
+    },
+    {
+      "question": "At My Window was released by which American singer-songwriter?",
+      "answer": "John Townes Van Zandt"
+    },
+    {
+      "question": "In what year was the club founded that played Manchester City in the 1972 FA Charity Shield",
+      "answer": "1874"
+    },
+    {
+      "question": "Tombstone stared an actor born May 17, 1955 known as who?",
+      "answer": "Bill Paxton"
+    },
+    {
+      "question": "Which magazine has published articles by Scott Shaw, Tae Kwon Do Times or Southwest Art?",
+      "answer": "Tae Kwon Do Times"
+    },
+    {
+      "question": "Which company distributed this 1977 American animated film produced by Walt Disney Productions for which Sherman Brothers wrote songs?",
+      "answer": "Buena Vista Distribution"
+    },
+    {
+      "question": "The Organisation that allows a community to influence their operation or use and to enjoy the benefits arisingwas founded in what year?",
+      "answer": "2010"
+    },
+    {
+      "question": "On the coast of what ocean is the birthplace of Diogal Sakho?",
+      "answer": "Atlantic"
+    },
+    {
+      "question": "The Victorians - Their Story In Pictures is a documentary series written by an author born in what year?",
+      "answer": "1950"
+    }
+  ],
+  "generate_answer": [
+    {
+      "augmented": true,
+      "context": [
+        "Who Put the Bomp | Who Put The Bomp was a rock music fanzine edited and published by Greg Shaw from 1970 to 1979. Its name came from the hit 1961 doo-wop song by Barry Mann, \"Who Put the Bomp\". Later, the name was shortened to \"Bomp!\"",
+        "Monthly Magazine | The Monthly Magazine (1796\u20131843) of London began publication in February 1796. Richard Phillips was the publisher and a contributor on political issues. The editor for the first ten years was the literary jack-of-all-trades, Dr John Aikin. Other contributors included William Blake, Samuel Taylor Coleridge, George Dyer, Henry Neele and Charles Lamb. The magazine also published the earliest fiction of Charles Dickens, the first of what would become \"Sketches by Boz\".",
+        "Self (magazine) | Self is an American magazine for women that specializes in health, wellness, beauty, and style. Part of Cond\u00e9 Nast, Self had a circulation of 1,515,880 and a total audience of 5,282,000 readers, according to its corporate media kit n 2013. The editor-in-chief is Carolyn Kylstra. \"Self\" is based in the Cond\u00e9 Nast U.S. headquarters at 1 World Trade Center in New York, NY. In February 2017 the magazine became an online publication.",
+        "Self-Publishing Review | Self-Publishing Review (or \"SPR\") is an online book review magazine for indie authors founded in 2008 by American author Henry Baum."
+      ],
+      "question": "Which of these publications was most recently published, Who Put the Bomp or Self?",
+      "reasoning": "produce the answer. We know that \"Self\" magazine became an online publication in February 2017, while \"Who Put the Bomp\" was a fanzine published from 1970 to 1979.",
+      "answer": "Self"
+    },
+    {
+      "augmented": true,
+      "context": [
+        "Aleksandr Danilovich Aleksandrov | Aleksandr Danilovich Aleksandrov (Russian: \u0410\u043b\u0435\u043a\u0441\u0430\u0301\u043d\u0434\u0440 \u0414\u0430\u043d\u0438\u0301\u043b\u043e\u0432\u0438\u0447 \u0410\u043b\u0435\u043a\u0441\u0430\u0301\u043d\u0434\u0440\u043e\u0432 , alternative transliterations: \"Alexandr\" or \"Alexander\" (first name), and \"Alexandrov\" (last name)) (August 4, 1912 \u2013 July 27, 1999), was a Soviet/Russian mathematician, physicist, philosopher and mountaineer.",
+        "Aleksandr Pavlovich Aleksandrov | Aleksandr Pavlovich Aleksandrov (Russian: \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440 \u041f\u0430\u0432\u043b\u043e\u0432\u0438\u0447 \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440\u043e\u0432 ; born February 20, 1943) is a former Soviet cosmonaut and twice Hero of the Soviet Union (November 23, 1983 and December 29, 1987).",
+        "Anatoly Fomenko | Anatoly Timofeevich Fomenko (Russian: \u0410\u043d\u0430\u0442\u043e\u0301\u043b\u0438\u0439 \u0422\u0438\u043c\u043e\u0444\u0435\u0301\u0435\u0432\u0438\u0447 \u0424\u043e\u043c\u0435\u0301\u043d\u043a\u043e ) (born 13 March 1945 in Stalino, USSR) is a Soviet and Russian mathematician, professor at Moscow State University, well known as a topologist, and a member of the Russian Academy of Sciences. He is author of a pseudoscientific theory known as New Chronology. He is also a member of the Russian Academy of Natural Sciences (1991).",
+        "New Chronology (Fomenko) | The New Chronology is a pseudohistorical theory which argues that the conventional chronology of Middle Eastern and European history is fundamentally flawed, and that events attributed to the civilizations of the Roman Empire, Ancient Greece and Ancient Egypt actually occurred during the Middle Ages, more than a thousand years later. The central concepts of the New Chronology are derived from the ideas of Russian scholar Nikolai Morozov (1854\u20131946), although work by French scholar Jean Hardouin (1646\u20131729) can be viewed as an earlier predecessor. However, the New Chronology is most commonly associated with Russian mathematician Anatoly Fomenko (born 1945), although published works on the subject are actually a collaboration between Fomenko and several other mathematicians. The concept is most fully explained in \"History: Fiction or Science?\" , originally published in Russian."
+      ],
+      "question": "Who is older, Aleksandr Danilovich Aleksandrov or Anatoly Fomenko?",
+      "reasoning": "produce the answer. We know that Aleksandr Danilovich Aleksandrov was born on August 4, 1912, and Anatoly Fomenko was born on March 13, 1945.",
+      "answer": "Aleksandr Danilovich Aleksandrov"
+    },
+    {
+      "question": "At My Window was released by which American singer-songwriter?",
+      "answer": "John Townes Van Zandt"
+    },
+    {
+      "question": "Having the combination of excellent foot speed and bat speed helped Eric Davis, create what kind of outfield for the Los Angeles Dodgers? ",
+      "answer": "\"Outfield of Dreams\""
+    },
+    {
+      "question": "Which magazine has published articles by Scott Shaw, Tae Kwon Do Times or Southwest Art?",
+      "answer": "Tae Kwon Do Times"
+    },
+    {
+      "question": "Which company distributed this 1977 American animated film produced by Walt Disney Productions for which Sherman Brothers wrote songs?",
+      "answer": "Buena Vista Distribution"
+    },
+    {
+      "question": "\"Everything Has Changed\" is a song from an album released under which record label ?",
+      "answer": "Big Machine Records"
+    },
+    {
+      "question": "Tombstone stared an actor born May 17, 1955 known as who?",
+      "answer": "Bill Paxton"
+    },
+    {
+      "question": "In what year was the club founded that played Manchester City in the 1972 FA Charity Shield",
+      "answer": "1874"
+    },
+    {
+      "question": "The Organisation that allows a community to influence their operation or use and to enjoy the benefits arisingwas founded in what year?",
+      "answer": "2010"
+    },
+    {
+      "question": "Which is taller, the Empire State Building or the Bank of America Tower?",
+      "answer": "The Empire State Building"
+    },
+    {
+      "question": "What is the code name for the German offensive that started this Second World War engagement on the Eastern Front (a few hundred kilometers from Moscow) between Soviet and German forces, which included 102nd Infantry Division?",
+      "answer": "Operation Citadel"
+    },
+    {
+      "question": "Who acted in the shot film The Shore and is also the youngest actress ever to play Ophelia in a Royal Shakespeare Company production of \"Hamlet.\" ?",
+      "answer": "Kerry Condon"
+    },
+    {
+      "question": "On the coast of what ocean is the birthplace of Diogal Sakho?",
+      "answer": "Atlantic"
+    },
+    {
+      "question": "The Victorians - Their Story In Pictures is a documentary series written by an author born in what year?",
+      "answer": "1950"
+    },
+    {
+      "question": "which  American actor was Candace Kita  guest starred with ",
+      "answer": "Bill Murray"
+    }
+  ]
+}

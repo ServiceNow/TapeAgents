@@ -204,6 +204,7 @@ class Agent(BaseModel, Generic[TapeType]):
         description="List of nodes in the agent, order of the list used to determine the priority during activation. Nodes must have unique names.",
     )
     max_iterations: int = 100
+    store_llm_calls: bool = False
 
     _manager: Any | None = None
 
@@ -632,6 +633,8 @@ class Agent(BaseModel, Generic[TapeType]):
             if isinstance(step, AgentStep):
                 step.metadata.prompt_id = llm_stream.prompt.id
             yield step
+        if self.store_llm_calls and (llm_call := getattr(llm_stream, "llm_call", None)):
+            step.metadata.other["llm_call"] = llm_call
 
     def run(self, tape: TapeType, max_iterations: int | None = None) -> AgentStream[TapeType]:
         """
@@ -687,11 +690,13 @@ class Agent(BaseModel, Generic[TapeType]):
                     else:
                         raise ValueError("Agent can only generate steps or partial steps")
                 n_iterations += 1
-            updated_metadata = original_metadata.model_validate(dict(
-                parent_id=input_tape_id,
-                author=self.name,
-                n_added_steps=len(tape) - input_tape_length,
-            ))
+            updated_metadata = original_metadata.model_validate(
+                dict(
+                    parent_id=input_tape_id,
+                    author=self.name,
+                    n_added_steps=len(tape) - input_tape_length,
+                )
+            )
             final_tape = tape.model_copy(update=dict(metadata=updated_metadata))
             yield AgentEvent(final_tape=final_tape)
 

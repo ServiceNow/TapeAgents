@@ -3,6 +3,7 @@ import math
 import os
 import re
 import time
+from pathlib import Path
 from typing import Optional
 
 import ffmpeg
@@ -45,11 +46,11 @@ def get_video_observation(
         logger.exception(f"Error while watching video: {e}")
         raise e
     video_observation = VideoObservation(
-        local_dir=output_dir,
-        video_path=video_path_trimmed,
-        video_contact_sheet_paths=video_contact_sheet_paths,
-        thumbnail_path=thumbnail_path,
-        subtitle_path=subtitle_path,
+        attachment_dir=output_dir,
+        video_path=Path(video_path_trimmed).relative_to(output_dir).as_posix(),
+        video_contact_sheet_paths=[Path(path).relative_to(output_dir).as_posix() for path in video_contact_sheet_paths],
+        thumbnail_path=Path(thumbnail_path).relative_to(output_dir).as_posix(),
+        subtitle_path=Path(subtitle_path).relative_to(output_dir).as_posix(),
         subtitle_text=subtitle_text,
         error=error,
     )
@@ -114,9 +115,16 @@ def download_video_youtube(url: str, output_dir: str) -> str:
     video_id = get_video_id(url)
     video_path = find_file(output_dir, video_id, (".mp4", ".webm"))
     thumbnail_path = find_file(output_dir, video_id, (".webp", ".jpg", ".jpeg", ".png"), strict=True)
-    if not video_path:
+    if not video_path:  # video not in cache
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download(url)
+            try:
+                ydl.download(url)
+            except yt_dlp.utils.YoutubeDLError as e:
+                # Output list format for debug
+                ydl_opts["listformats"] = True
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download(url)
+                raise e
         video_path = find_file(output_dir, video_id, (".mp4", ".webm"))
         thumbnail_path = find_file(output_dir, video_id, (".webp", ".jpg", ".jpeg", ".png"), strict=True)
     return video_path, thumbnail_path
@@ -353,15 +361,24 @@ def ensure_vtt_format(vtt_path: str) -> None:
 
 def ensure_milliseconds(time: str) -> None:
     """Ensure that the time string has milliseconds HH:MM:SS.mmm"""
+    if not time:
+        return time
+    # validate time format
+    if not re.match(r"^\d{2}:\d{2}:\d{2}(\.\d{3})?$", time):
+        raise ValueError("Invalid time format:", time)
     # add .mmm if not included
-    if time and time[-4] != ".":
+    if time[-4] != ".":
         time += ".000"
-    else:
-        time = None
+    return time
 
 
 def seconds_to_time(seconds: float) -> str:
-    """Convert seconds SS to time string HH.MM.SS.mmm"""
+    """Convert seconds SS to time string HH:MM:SS.mmm"""
+    if type(seconds) is not float:
+        try:
+            seconds = float(seconds)
+        except ValueError:
+            raise ValueError("Invalid seconds format")
     hours = int(seconds // 3600)
     seconds %= 3600
     minutes = int(seconds // 60)
@@ -371,7 +388,7 @@ def seconds_to_time(seconds: float) -> str:
 
 
 def time_to_seconds(time_str: str) -> float:
-    """Convert a time string HH.MM.SS.mmm to seconds SS"""
+    """Convert a time string HH:MM:SS(.mmm) and MM:SS().mmm) to seconds SS"""
     parts = list(map(float, re.split("[:.]", time_str)))
     if len(parts) == 1:
         return parts[0]

@@ -1,5 +1,5 @@
 import logging
-import os
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import Field
@@ -8,8 +8,6 @@ from tapeagents.core import Action, Error, Observation, Step, Thought
 from tapeagents.utils import image_base64_message
 
 logger = logging.getLogger(__name__)
-
-################# Actions #################
 
 
 class WatchVideoAction(Action):
@@ -27,9 +25,6 @@ class WatchVideoAction(Action):
         description="time of the video to stop watching at, if applicable, otherwise empty str. Format is 'HH:MM:SS.mmm'",
         default="",
     )
-
-
-################### Observations ###################
 
 
 class ImageObservation(Observation):
@@ -54,7 +49,7 @@ class VideoObservation(Observation):
     """
 
     kind: Literal["video_observation"] = "video_observation"
-    local_dir: str
+    attachment_dir: str
     video_path: str
     video_contact_sheet_paths: list[str]
     thumbnail_path: str | None = None
@@ -63,8 +58,8 @@ class VideoObservation(Observation):
     error: int | None = None
 
     def llm_dict(self) -> dict[str, Any]:
-        normalized_observation = normalize_step_paths(self.model_copy(), self.local_dir)
-        return normalized_observation.model_dump(exclude_none=True, exclude={"metadata", "local_dir"})
+        # exclude attachment_dir as we don't want to send sensitive information to LLM
+        return self.model_dump(exclude_none=True, exclude={"metadata", "attachment_dir"})
 
     def llm_view(self) -> list[dict]:
         llm_view = []
@@ -72,50 +67,8 @@ class VideoObservation(Observation):
             llm_view.append({"type": "text", "text": self.subtitle_text})
         if self.video_contact_sheet_paths:
             for path in self.video_contact_sheet_paths:
-                llm_view.append(image_base64_message(path))
+                llm_view.append(image_base64_message(Path(self.attachment_dir) / path))
         return llm_view
-
-
-def normalize_step_paths(model: Step, root_path: str) -> Step:
-    """
-    Normalizes the paths in the step to be relative to the root_path folder.
-    This is needed for tape replay from different environment paths.
-    This also prevents prompts to contain full paths, which can be sensitive.
-    """
-
-    def get_relative_path_to_root(path, root_path):
-        """
-        Example:
-        path=/a/b/c/d/file.txt
-        root_path=b/c/
-        returns d/file.txt
-        """
-        # Normalize the paths
-        path = os.path.normpath(path)
-        root_path = os.path.normpath(root_path)
-
-        # Find the index of root_path in path
-        index = path.find(root_path)
-
-        if index == -1:
-            logger.warning("root_path not found in path")
-            return os.path.basename(path)
-
-        # Extract the relative path
-        relative_path = path[index + len(root_path) :]
-
-        return relative_path.lstrip(os.sep)
-
-    for key, _ in model.model_fields.items():
-        if key.endswith(("_path", "_paths")):
-            value = getattr(model, key)
-            if isinstance(value, list):
-                setattr(model, key, [get_relative_path_to_root(path, root_path) for path in value])
-            elif isinstance(value, str):
-                setattr(model, key, get_relative_path_to_root(value, root_path))
-            else:
-                raise ValueError(f"Expected a list or string, got {type(value)}")
-    return model
 
 
 class UnknownStep(Step):

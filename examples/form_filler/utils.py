@@ -1,15 +1,15 @@
-
 from typing import Any, Type
+
 from . import steps
 
 
 def render_chat_template(messages: list[dict[str, Any]], context: dict[str, Any]) -> list[dict[str, Any]]:
     formatted_chat = []
     for message in messages:
-        formatted_content = message['content'].format(**context)
+        formatted_content = message["content"].format(**context)
         formatted_chat.append(
             dict(
-                role=message['role'],
+                role=message["role"],
                 content=formatted_content,
             )
         )
@@ -31,7 +31,7 @@ def sanitize_json_completion(completion: str) -> str:
     clean_lines = []
     for line in lines:
         line = line.replace("\\", "")  # remove all backslashes
-        line = ' '.join(line.split())  # remove all extra spaces
+        line = " ".join(line.split())  # remove all extra spaces
         if line.startswith("```"):
             tiks_counter += 1
             if tiks_counter == 1:
@@ -39,7 +39,7 @@ def sanitize_json_completion(completion: str) -> str:
             elif tiks_counter == 2:
                 break
             continue
-        elif line.startswith("[") or line.startswith("{"): # detected start of the json section
+        elif line.startswith("[") or line.startswith("{"):  # detected start of the json section
             if not opened:
                 opened = True
                 clean_lines = []

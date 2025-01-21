@@ -1,8 +1,8 @@
 # read json files from a folder, create new json with the same name that contains all the content
 
-import sys
 import json
 import os
+import sys
 
 
 def gather_jsons(folder: str):

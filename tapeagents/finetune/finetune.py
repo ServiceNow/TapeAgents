@@ -5,6 +5,7 @@ import time
 from collections import defaultdict
 from dataclasses import asdict
 from pathlib import Path
+
 import numpy as np
 import torch
 from hydra import compose, initialize
@@ -30,7 +31,7 @@ from .data import create_dataloader, prepare_dataloaders
 from .eval import evaluate_and_get_metrics
 from .logging_ import log_metrics, log_time, setup_logging
 from .optim import get_optimizer
-from .rl import RLConfig, rl_step, make_rl_data_callback
+from .rl import RLConfig, make_rl_data_callback, rl_step
 from .rl.utils import get_avg_rl_stats
 from .types import DataArgs, DataPartArgs, ModelClass, TrainingMetrics
 
@@ -71,13 +72,19 @@ def run_finetuning_loop(
         raise ValueError(f"Unknown training objective {objective}")
 
     with open_dict(args):
-        # very useful for comparing runs; note that gradient accumulation will later be divided by num_processes
+        # gradient accumulation steps must be divisible by num_processes
+        original_accum_passes = args.gradient_accumulation_passes
+        if original_accum_passes % num_processes != 0:
+            # round up to the next multiple of num_processes
+            new_accum_passes = ((original_accum_passes + num_processes - 1) // num_processes) * num_processes
+            logger.warning(
+                f"Adjusting gradient_accumulation_passes from {original_accum_passes} to {new_accum_passes} "
+                f"to make it divisible by {num_processes} processes"
+            )
+            args.gradient_accumulation_passes = new_accum_passes
+
         args.effective_batch_size = int(args.train_batch_size) * int(args.gradient_accumulation_passes)
 
-    if args.gradient_accumulation_passes % num_processes != 0:
-        raise ValueError(
-            f"Cannot {num_processes}-way parallelize the config with {args.gradient_accumulation_passes} accum passes"
-        )
     args.gradient_accumulation_passes //= num_processes
     samples_per_pass = num_processes * args.train_batch_size
     set_seed(args.seed)
@@ -223,10 +230,12 @@ def run_finetuning_loop(
             step_took = time.time() - time_before
 
             metrics_dict = {}
+            time_to_stop = training_metrics.completed_steps >= final_train_steps
             time_to_log = training_metrics.completed_steps % args.log_each_n_steps == 0
             time_to_save = (training_metrics.completed_steps % args.save_checkpoint_steps == 0) or (
                 len(args.also_save_steps) and training_metrics.completed_steps in args.also_save_steps
             )
+            time_to_save = time_to_save and not time_to_stop
             if time_to_log or time_to_save:
                 dt = log_time(dt, "finetune/interim_eval")
                 metrics_dict.update(

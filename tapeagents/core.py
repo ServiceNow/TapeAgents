@@ -34,6 +34,8 @@ class TrainingText(BaseModel):
     reward: float = 0.0
     logprobs: List[float] = Field(default_factory=list)
     ref_logprobs: List[float] = Field(default_factory=list)
+    input_ids: List[int] = Field(default_factory=list)
+    labels: List[int] = Field(default_factory=list)
     group_id: str | None = None
 
     @property
@@ -372,6 +374,7 @@ class LLMCall(BaseModel):
     cached: bool
     llm_info: dict = {}
     cost: float = 0
+    logprobs: list = Field(default_factory=list, exclude=True)
 
 
 AnnotatorTape = Tape[TapeType, StepType]
@@ -435,5 +438,5 @@ class MakeObservation(Action, Generic[StepType]):
     def llm_dict(self) -> dict[str, Any]:
         """Dumps the step data as dictionary, excluding the metadata of the step itself and the metadata of the wrapped step"""
         obj = self.model_dump(exclude_none=True, exclude={"metadata"})
-        del obj['new_observation']['metadata']
+        del obj["new_observation"]["metadata"]
         return obj
