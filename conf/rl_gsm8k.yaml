@@ -36,6 +36,11 @@ finetune:
   save_checkpoint_steps: 10
   seq_length: ${..llm.parameters.max_tokens} + ${..llm.max_prompt_length}
 
+system_prompt: ""
+# Same prompt as https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/run_subset_parallel.py#L26
+task_template: |-
+  "{task}\nPlease reason step by step, and put your final answer within \\boxed{{}}."
+
 vllm_config:
   vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 

@@ -26,11 +26,13 @@ EURUS_SYSTEM_PROMPT = """\nWhen tackling complex reasoning tasks, you have acces
 class Task(Observation):
     kind: Literal["task"] = "task"
     task: str
+    template: str = Field(
+        description="Template for the task. Should contain a {task} placeholder for the task text.",
+        default="{task}"
+    )
 
     def llm_view(self, indent: int | None = 2) -> str:
-        # Same prompt as https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/run_subset_parallel.py#L26
-        #return f"{self.task}\nPlease reason step by step, and put your final answer within " + "\\boxed{}."
-        return self.task
+        return self.template.format(task=self.task)
 
 
 class ReasoningThought(Thought):
@@ -73,14 +75,14 @@ class ReasoningNode(MonoNode):
 #### Agent and Environment ####
 class CoTMathAgent(Agent):
     @classmethod
-    def create(cls, llm: LLM):
+    def create(cls, system_prompt: str, llm: LLM):
         agent = super().create(
             llm,
             nodes=[
                 ReasoningNode(
                     name="cot",
                     agent_step_cls=MathAgentStep,
-                    system_prompt=EURUS_SYSTEM_PROMPT,
+                    system_prompt=system_prompt,
                 ),
             ],
             max_iterations=1,

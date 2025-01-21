@@ -80,6 +80,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
     for problem in tqdm(problems, desc="Converting problems to unique tapes", unit="problem"):
         start_step = Task(
             task=problem["task"],
+            template=cfg.task_template,
             metadata=StepMetadata(
                 other={
                     "value": problem["answer"],
@@ -373,12 +374,12 @@ def main(cfg: DictConfig):
                     for base_url in vllm_service_manager.get_base_urls()
                 ]
 
-                train_agent_replicas = [CoTMathAgent.create(llm=llm) for llm in train_llms]
+                train_agent_replicas = [CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm) for llm in train_llms]
 
                 splits = [("train", train_agent_replicas, train_tapes)]
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                     test_tapes = convert_problems_to_tapes(test_samples, cfg)
-                    test_agent_replicas = [CoTMathAgent.create(llm=llm) for llm in test_llms]
+                    test_agent_replicas = [CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm) for llm in test_llms]
                     splits.append(("test", test_agent_replicas, test_tapes))
                 for split_name, agent_replicas, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
