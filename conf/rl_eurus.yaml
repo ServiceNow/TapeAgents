@@ -25,6 +25,6 @@ test_every_n_iterations: 1
 vllm_config:
   vllm_kwargs:
     --gpu-memory-utilization: 0.99
-    --max-num-seqs: 1024
+    --max-num-seqs: 512
     --pipeline-parallel-size: 1
     --tensor-parallel-size: 1
