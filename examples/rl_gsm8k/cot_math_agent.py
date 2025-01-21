@@ -5,14 +5,12 @@ from pydantic import Field
 
 from tapeagents.agent import Agent
 from tapeagents.core import (
-    Action,
     LLMOutputParsingFailureAction,
     Observation,
     Step,
     Tape,
     Thought,
 )
-from tapeagents.environment import Environment
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
 

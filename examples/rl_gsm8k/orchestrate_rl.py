@@ -20,7 +20,6 @@ from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
-import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
@@ -44,13 +43,9 @@ from .utils import (
     save_state,
     setup_logging,
 )
-from tapeagents.orchestrator import main_loop
-
-from .cot_math_agent import CoTMathAgent, RLMathTape, Task
-from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
-
 
 logger = logging.getLogger(__name__)
+
 
 def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
     prompt_token_ids = []
@@ -428,11 +423,12 @@ def main(cfg: DictConfig):
             ) as vllm_service_manager:
                 ref_llms = [
                     TrainableLLM(
-                        base_url=url, 
+                        base_url=url,
                         model_name=cfg.model_path,
                         tokenizer_name=cfg.model_path,
                         parameters=dict(temperature=0.7),
-                    ) for url in vllm_service_manager.get_base_urls()
+                    )
+                    for url in vllm_service_manager.get_base_urls()
                 ]
 
                 start_basemodel_logprobs = time.time()
@@ -444,10 +440,8 @@ def main(cfg: DictConfig):
                     futures = []
                     for chunk_id, chunk_offset in enumerate(range(0, len(training_samples), chunk_size)):
                         ref_llm = ref_llms[chunk_id % len(ref_llms)]
-                        chunk = training_samples[chunk_offset: chunk_offset + chunk_size]
-                        futures.append(
-                            executor.submit(batch_annotate_traces_with_ref_logprobs, ref_llm, chunk)
-                        )                    
+                        chunk = training_samples[chunk_offset : chunk_offset + chunk_size]
+                        futures.append(executor.submit(batch_annotate_traces_with_ref_logprobs, ref_llm, chunk))
                     # Reference logprobs are added in-place
                     futures = tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
                     _ = [future.result() for future in futures]

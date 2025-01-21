@@ -181,15 +181,21 @@ class LLMFunctionTemplate(BaseModel):
                         # llm output doesn't start with another variable output
                         # we assume the first section of the llm output is the value
                         value = output_text.split("\n")[0].strip()  # heuristic for the end of the output
-                        logger.debug(f"Assuming value for the output key '{output.name}' is the first llm output section: '{value}'")
+                        logger.debug(
+                            f"Assuming value for the output key '{output.name}' is the first llm output section: '{value}'"
+                        )
                     else:
                         # llm output started with another variable output
                         # Not throwing an error here because the first (reasoning) output might not be present be the second (query/answer) output is
-                        logger.error(f"Could not assume value for the output key '{output.name}' from the first llm output section: '{values[0]}'")
+                        logger.error(
+                            f"Could not assume value for the output key '{output.name}' from the first llm output section: '{values[0]}'"
+                        )
                 else:
                     raise ValueError(f"Could not find output key '{output.name}' in output_text: '{output_text}'")
             else:
-                raise ValueError(f"Found multiple instances of output key `{output.name}` in output_text: {output_text}")
+                raise ValueError(
+                    f"Found multiple instances of output key `{output.name}` in output_text: {output_text}"
+                )
             output_values.append(value)
 
         if len(output_values) != len(self.outputs):
