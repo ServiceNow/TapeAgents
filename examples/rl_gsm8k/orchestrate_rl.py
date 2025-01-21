@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import hydra
-import numpy as np
 import torch
 import wandb
 from datasets import load_dataset

@@ -1,6 +1,4 @@
 import os
-import time
-from concurrent import futures
 from functools import partial
 from typing import Any, Callable, Iterable, Sequence
 
@@ -18,7 +16,6 @@ from transformers import BatchEncoding
 from tapeagents.core import TrainingText
 
 from .context import accelerator, logger
-from .logging_ import log_time
 from .rl import RL_DATA_COLUMNS, prepare_rl_fields
 from .types import DataArgs, DataPartArgs
 

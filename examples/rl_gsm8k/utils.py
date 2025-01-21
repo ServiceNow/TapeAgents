@@ -15,8 +15,8 @@ import torch
 from tenacity import retry, stop_after_attempt, wait_exponential
 from transformers import PreTrainedTokenizer
 
-from tapeagents.llms import LLMOutput, Prompt
 from tapeagents.config import is_debug_mode
+from tapeagents.llms import LLMOutput, Prompt
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +304,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
     save_state(state, state_path)
 
     logger.info("Cleaning up checkpoints and training state")
-    # list of log files to erase 
+    # list of log files to erase
     log_files = list(target_path.glob("*.log"))
 
     for file in log_files:
