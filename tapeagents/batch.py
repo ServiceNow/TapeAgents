@@ -9,13 +9,13 @@ from typing import Generator, Generic, Sequence
 
 from pydantic import BaseModel
 
-from .agent import Agent, Annotator, ObservationMaker
-from .config import is_debug_mode
-from .core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadata, TapeType
-from .environment import Environment
-from .io import stream_yaml_tapes
-from .orchestrator import main_loop
-from .parallel_processing import choose_processor
+from tapeagents.agent import Agent, Annotator, ObservationMaker
+from tapeagents.config import is_debug_mode
+from tapeagents.core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadata, TapeType
+from tapeagents.environment import Environment
+from tapeagents.io import stream_yaml_tapes
+from tapeagents.orchestrator import main_loop
+from tapeagents.parallel_processing import choose_processor
 
 logger = logging.getLogger(__name__)
 
