@@ -14,8 +14,6 @@ from wandb.sdk import wandb_run
 
 from .context import accelerator, logger
 
-wandb.require("core")
-
 
 def init_wandb(
     cfg: DictConfig,
