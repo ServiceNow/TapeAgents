@@ -155,7 +155,6 @@ def extract_tape_training_samples(
             # Output is too long, ignore this sample
             # this will be recorded in output_tokens_overflow
             continue
-        trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
         input_ids = [lp.token_id for lp in llm_call.logprobs]
         labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
