@@ -190,18 +190,19 @@ def lazy_thread_pool_processor(
                 if producer_thread.is_alive():
                     raise RuntimeError("Producer thread is still alive after timeout")
 
+
 def eager_thread_pool_processor(
     stream: Iterable[InputType],
     worker_func: Callable[[InputType], OutputType],
     n_workers: int,
     initializer: None | Callable[..., None] = None,
     initargs: tuple[Any, ...] = (),
-    ordered: bool = False
+    ordered: bool = False,
 ) -> Generator[OutputType | Exception, None, None]:
     """
     Processes a stream of items in a thread pool with eager processing.
 
-    Unlike lazy processing, this processor submits all tasks to the thread pool 
+    Unlike lazy processing, this processor submits all tasks to the thread pool
     upfront and returns results as they complete.
 
     Args:
@@ -220,18 +221,14 @@ def eager_thread_pool_processor(
         yield from (worker_func(item) for item in stream)
         return
 
-    with ThreadPoolExecutor(
-        max_workers=n_workers,
-        initializer=initializer,
-        initargs=initargs
-    ) as executor:
+    with ThreadPoolExecutor(max_workers=n_workers, initializer=initializer, initargs=initargs) as executor:
         # Submit all tasks upfront
         if ordered:
             # Preserve order of inputs
             futures = []
             for item in stream:
                 futures.append(executor.submit(worker_func, item))
-            
+
             # Yield results in original order
             for future in futures:
                 try:
@@ -241,12 +238,13 @@ def eager_thread_pool_processor(
         else:
             # Yield results as they complete (out of order)
             futures = [executor.submit(worker_func, item) for item in stream]
-            
+
             for future in as_completed(futures):
                 try:
                     yield future.result()
                 except Exception as e:
                     yield e
+
 
 def choose_processor(n_workers: int):
     return (

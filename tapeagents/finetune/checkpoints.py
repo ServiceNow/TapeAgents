@@ -300,7 +300,7 @@ def save_model_and_tokenizer(
 
 def save_model_only(
     output_dir: Path,
-    model: transformers.PreTrainedModel,
+    model,
     unwrap: bool = True,
     lora: bool = False,
     safe_serialization: bool = False,

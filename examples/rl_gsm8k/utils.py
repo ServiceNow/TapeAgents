@@ -1,26 +1,24 @@
 import json
 import logging
-import multiprocessing
 import os
 import shutil
 import subprocess
+import threading
 import time
 from pathlib import Path
-from typing import Dict, Optional, TextIO, Union, List
-import threading
+from typing import Dict, List, Optional, TextIO, Union
+
 import numpy as np
 import psutil
 import requests
 import torch
-import yaml
-from omegaconf import DictConfig, ListConfig, OmegaConf
 from tenacity import retry, stop_after_attempt, wait_exponential
-from examples.rl_gsm8k.run_finetune import run_finetuning_loop
 from transformers import PreTrainedTokenizer
 
 from tapeagents.llms import LLMOutput, Prompt
 
 logger = logging.getLogger(__name__)
+
 
 def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[str]:
     """
@@ -39,6 +37,7 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
         cuda_devices = ",".join(str(i) for i in range(start_gpu, end_gpu))
         cuda_device_strings.append(cuda_devices)
     return cuda_device_strings
+
 
 class VLLMServiceManager:
     def __init__(
@@ -70,9 +69,7 @@ class VLLMServiceManager:
         self.stats = {}
 
     def get_base_urls(self) -> list[str]:
-        return [
-            f"http://127.0.0.1:{port}" for port in self.ports
-        ]
+        return [f"http://127.0.0.1:{port}" for port in self.ports]
 
     def _terminate_with_children(self, process_id: int) -> None:
         try:
@@ -132,7 +129,9 @@ class VLLMServiceManager:
 
         threads = []
 
-        for i, device_number in enumerate(generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance )):
+        for i, device_number in enumerate(
+            generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance)
+        ):
             port = self.port + i
             # start_llm(device_number, port, assistant_procs, ports)
             thread = threading.Thread(target=self._start_llm, args=(device_number, port))
@@ -141,7 +140,6 @@ class VLLMServiceManager:
 
         for thread in threads:
             thread.join()
-
 
     @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
     def _start_llm(self, cuda_device, port):
@@ -339,12 +337,7 @@ def calculate_stats(stats):
     }
 
 
-def launch_training(
-    config_dir: str, 
-    config_name: str, 
-    accelerate_cfg_path: str,
-    use_deepspeed: bool = False
-) -> None:
+def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str, use_deepspeed: bool = False) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
 

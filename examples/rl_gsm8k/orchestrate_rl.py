@@ -14,6 +14,7 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
+import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
@@ -43,6 +44,11 @@ from .utils import (
     save_state,
     setup_logging,
 )
+from tapeagents.orchestrator import main_loop
+
+from .cot_math_agent import CoTMathAgent, RLMathTape, Task
+from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -459,7 +465,7 @@ def main(cfg: DictConfig):
             "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
             "execution_time/starting_refmodel_vllm": refmodel_starting_time,
         }
-        logger.info(f"Logprob population stats:")
+        logger.info("Logprob population stats:")
         for stat_name, stat_value in logprob_stats.items():
             logger.info(f"{stat_name}: {stat_value}")
         wandb.log(logprob_stats, step=state["iteration"])
