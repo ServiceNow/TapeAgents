@@ -80,117 +80,87 @@ class DistributedManager:
 
     @classmethod
     def sync_nodes_file_based(cls, message: str, sync_dir: Path, timeout_mins: int = 30, rank: int = None, world_size: int = None) -> bool:
-        """File-based synchronization for non-distributed phases"""
-        # Ensure sync directory exists
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                os.makedirs(sync_dir, exist_ok=True)
-                break
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    logger.error(f"[Rank {rank}] Failed to create sync directory after {max_retries} attempts: {e}")
-                    return False
-                logger.warning(f"[Rank {rank}] Attempt {attempt + 1} to create sync directory failed: {e}")
-                time.sleep(1)
+        """
+        File-based sync for non-distributed phases.
+        The aim is to maintain consistency between data generation and training phases.
+        Raises RuntimeError if sync fails.
+        """
+        def retry_operation(operation, max_attempts=3, delay=1):
+            for attempt in range(max_attempts):
+                try:
+                    return operation()
+                except Exception as e:
+                    if attempt == max_attempts - 1:
+                        raise e
+                    logger.warning(f"[Rank {rank}] Attempt {attempt + 1} failed: {e}")
+                    time.sleep(delay)
+            return False
 
-        # Create our ready file based on stage message
-        ready_file = sync_dir / f"rank_{rank}_ready_{message.replace(' ', '_')}.json"
-        max_retries = 10
-        retry_delay = 1
-        for attempt in range(max_retries):
-            try:
-                with open(ready_file, 'w') as f:
-                    json.dump({
-                        "rank": rank,
-                        "timestamp": time.time(),
-                        "message": message,
-                        "attempt": attempt + 1
-                    }, f)
-                break
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    logger.error(f"[Rank {rank}] Failed to create ready file after {max_retries} attempts: {e}")
-                    return False
-                logger.warning(f"[Rank {rank}] Attempt {attempt + 1} to create ready file failed: {e}")
-                time.sleep(retry_delay)
+        safe_message = message.replace(' ', '_')
+        ready_file = sync_dir / f"rank_{rank}_ready_{safe_message}.json"
+        
+        try:
+            retry_operation(lambda: os.makedirs(sync_dir, exist_ok=True))
+            retry_operation(
+                lambda: ready_file.touch(),
+                max_attempts=10
+            )
+        except Exception as e:
+            error_msg = f"[Rank {rank}] Failed to create sync file for {message}: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
         
         logger.info(f"[Rank {rank}] Signaled ready for: {message}")
         
-        # Wait for all ranks with verification
+        # Wait for all ranks
         timeout = time.time() + (timeout_mins * 60)
-        consecutive_complete_counts = 0
-        required_consecutive_counts = 3  # verify
         
         while time.time() < timeout:
             try:
-                # Only look for files matching our specific message
-                message_pattern = f"rank_*_ready_{message.replace(' ', '_')}.json"
-                ready_files = list(sync_dir.glob(message_pattern))
-                
-                # Verify file integrity and message match
-                valid_files = []
-                for f in ready_files:
-                    try:
-                        with open(f, 'r') as file:
-                            data = json.load(file)
-                            if all(k in data for k in ["rank", "timestamp", "message"]):
-                                # Verify the message matches exactly
-                                if data["message"] == message:
-                                    valid_files.append(f)
-                                else:
-                                    logger.debug(f"[Rank {rank}] Found file with different message: {data['message']} != {message}")
-                            else:
-                                logger.warning(f"[Rank {rank}] Found malformed sync file: {f}")
-                    except Exception as e:
-                        logger.warning(f"[Rank {rank}] Failed to read sync file {f}: {e}")
-                        continue
+                message_pattern = f"rank_*_ready_{safe_message}.json"
+                valid_files = list(sync_dir.glob(message_pattern))
                 
                 if len(valid_files) == world_size:
-                    consecutive_complete_counts += 1
-                    logger.debug(f"[Rank {rank}] Found {len(valid_files)}/{world_size} valid files for '{message}' "
-                               f"(consecutive count: {consecutive_complete_counts}/{required_consecutive_counts})")
+                    logger.info(f"[Rank {rank}] All ranks ready for: {message}")
                     
-                    if consecutive_complete_counts >= required_consecutive_counts:
-                        logger.info(f"[Rank {rank}] All ranks ready for: {message} (verified {required_consecutive_counts} times)")
-                        time.sleep(2)
-                        
-                        # Only main process performs cleanup
-                        if cls.is_main_process():
-                            cleanup_success = False
-                            for cleanup_attempt in range(max_retries):
-                                try:
-                                    # Only remove files matching our specific message
-                                    for f in valid_files:
-                                        if f.exists():  # Check if file still exists
-                                            f.unlink()
-                                    cleanup_success = True
-                                    logger.info(f"[Rank {rank}] Cleaned up sync files for: {message}")
-                                    break
-                                except Exception as e:
-                                    logger.warning(f"[Rank {rank}] Cleanup attempt {cleanup_attempt + 1} failed: {e}")
-                                    time.sleep(1)
-                            
-                            if not cleanup_success:
-                                logger.error(f"[Rank {rank}] Failed to clean up sync files after {max_retries} attempts")
-                        
-                        # All ranks wait after cleanup
-                        time.sleep(2)
-                        return True
-                else:
-                    if consecutive_complete_counts > 0:
-                        logger.debug(f"[Rank {rank}] Reset consecutive count. Found {len(valid_files)}/{world_size} valid files")
-                    consecutive_complete_counts = 0
+                    # Only main process handles cleanup
+                    if cls.is_main_process():
+                        cleanup_success = retry_operation(
+                            lambda: all(not f.exists() for f in [f.unlink() or f for f in valid_files]),
+                            max_attempts=3
+                        )
+                        if not cleanup_success:
+                            error_msg = f"[Rank {rank}] Failed to cleanup sync files for {message}"
+                            logger.error(error_msg)
+                            raise RuntimeError(error_msg)
                     
+                    # All nodes wait a moment for cleanup to complete
+                    time.sleep(2)
+                    return True
+                
                 time.sleep(1)
                 
             except Exception as e:
-                logger.error(f"[Rank {rank}] Error during sync check: {e}")
-                consecutive_complete_counts = 0
-                time.sleep(1)
+                error_msg = f"[Rank {rank}] Error during sync for {message}: {e}"
+                logger.error(error_msg)
+                # Attempt to cleanup own file before raising
+                try:
+                    if ready_file.exists():
+                        ready_file.unlink()
+                except Exception as cleanup_e:
+                    logger.error(f"[Rank {rank}] Additionally failed to cleanup own sync file: {cleanup_e}")
+                raise RuntimeError(error_msg)
         
-        logger.error(f"[Rank {rank}] Timeout waiting for all ranks to be ready for: {message}")
-        return False
+        # Timeout is a fatal error
+        try:
+            if ready_file.exists():
+                ready_file.unlink()
+        except Exception as e:
+            logger.error(f"[Rank {rank}] Failed to cleanup own sync file: {e}")
+        
+        error_msg = f"[Rank {rank}] Timeout waiting for all ranks after {timeout_mins} minutes during {message}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
 
     @classmethod
     def sync_nodes(cls, message: str = "", timeout_mins: int = 30, sync_dir: Optional[Path] = None, rank: int = None, world_size: int = None) -> bool:
