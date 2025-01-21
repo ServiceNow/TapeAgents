@@ -42,9 +42,9 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
 class VLLMServiceManager:
     def __init__(
         self,
+        exp_path: Path, 
+        service_name: str,
         model_name_or_path: Union[str, Path],
-        stdout_file_path: Union[str, Path],
-        stderr_file_path: Union[str, Path],
         port: int = 8080,
         gpus_per_model_instance: int = 1,
         verbose: bool = True,
@@ -53,8 +53,9 @@ class VLLMServiceManager:
         **kwargs,
     ):
         self.model_name_or_path = model_name_or_path
-        self.stdout_file_path = stdout_file_path
-        self.stderr_file_path = stderr_file_path
+        self.service_name = service_name
+        self.stdout_file_prefix = str(exp_path / f"{service_name}_stdout")
+        self.stderr_file_prefix = str(exp_path / f"{service_name}_stderr")
         self.port = port
         self.ports = []
         self.processes = []
@@ -64,8 +65,7 @@ class VLLMServiceManager:
         self.host = host
         self.kwargs = kwargs
         self.process: Optional[subprocess.Popen] = None
-        self.stdout_file: Optional[TextIO] = None
-        self.stderr_file: Optional[TextIO] = None
+        self.open_files: list[TextIO] = []
         self.stats = {}
 
     def get_base_urls(self) -> list[str]:
@@ -94,6 +94,7 @@ class VLLMServiceManager:
 
     def _wait_for_service(self, process: subprocess.Popen, url, headers=None, timeout=120) -> bool:
         start_time = time.time()
+        logger.info(f"-> Waiting for service at {url}")
         while True:
             try:
                 response = requests.get(url, headers=headers, timeout=1)
@@ -110,9 +111,7 @@ class VLLMServiceManager:
             if process.poll() is not None:
                 logger.error("-> Service process has terminated")
                 return False
-
-            logger.info(f"-> Waiting for service at {url}")
-            time.sleep(5)
+            time.sleep(1.)
 
     def _start_service(self) -> None:
         """
@@ -154,6 +153,7 @@ class VLLMServiceManager:
             f"--model {self.model_name_or_path} "
             f"--tensor-parallel-size {tensor_parallel_size} "
             f"--port {port} "
+            f"--seed {cuda_device} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
             f"{kwargs_str}"
@@ -172,10 +172,14 @@ class VLLMServiceManager:
         }
 
         if self.verbose:
-            self.stdout_file = open(self.stdout_file_path, "w")
-            self.stderr_file = open(self.stderr_file_path, "w")
-            process_args["stdout"] = self.stdout_file
-            process_args["stderr"] = self.stderr_file
+            stdout_path = self.stdout_file_prefix + f"_{cuda_device}.log"
+            stderr_path = self.stderr_file_prefix + f"_{cuda_device}.log"
+            logger.info(f"See vLLM outputs in {stdout_path} and {stderr_path}")
+            stdout_file = open(stdout_path, "w")
+            stderr_file = open(stderr_path, "w")
+            process_args["stdout"] = stdout_file
+            process_args["stderr"] = stderr_file
+            self.open_files.extend([stdout_file, stderr_file])
 
         try:
             process = subprocess.Popen(cmd, **process_args)
@@ -188,7 +192,7 @@ class VLLMServiceManager:
 
         start_waiting = time.time()
         if self._wait_for_service(process, vllm_url, headers=headers, timeout=8000):
-            logger.info(f"Student {self.model_name_or_path} model loaded on port {port}")
+            logger.info(f"{self.service_name} {self.model_name_or_path} model loaded on port {port}")
         else:
             self._cleanup()
             raise Exception("Failed to start the service")
@@ -199,16 +203,18 @@ class VLLMServiceManager:
 
     def _cleanup(self) -> None:
         logger.info(f"Killing {len(self.processes)} vLLM processes")
+        threads = []
         for process in self.processes:
-            if process and process.pid:
-                logger.info(f"Terminating process with command {process.args}")
-                self._terminate_with_children(process.pid)
-                process.wait()
-
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
+            logger.info(f"Terminating process with command {process.args}")
+            thread = threading.Thread(target=self._terminate_with_children, args=(process.pid,))
+            threads.append(thread)
+            thread.start()
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
+        
+        for f in self.open_files:
+            f.close()
 
     def __enter__(self) -> "VLLMServiceManager":
         self._start_service()
@@ -292,10 +298,6 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
     logger.info("Cleaning up checkpoints and training state")
     # list of files to remove
     files = [
-        target_path / "assistant_vllm_stdout.log",
-        target_path / "assistant_vllm_stderr.log",
-        target_path / "basemodel_vllm_stdout.log",
-        target_path / "basemodel_vllm_stderr.log",
         target_path / "debug.log",
         target_path / "error.log",
         target_path / "info.log",
