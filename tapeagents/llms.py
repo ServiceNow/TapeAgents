@@ -981,10 +981,6 @@ class TrainableLLM(CachedLLM):
         try:
             response = r.json()
             log_probs = [list(log_prob.values())[0] for log_prob in response["prompt_logprobs"] if log_prob]
-            # decoded_prompt_completion_tokens = [log_prob["decoded_token"] for log_prob in log_probs][
-            #     : len(prompt_completion_encoded)
-            # ]
-            # reconstructed_prompt_completion = "".join(decoded_prompt_completion_tokens)
             completion_log_probs = log_probs[len(prompt_encoded) : len(prompt_completion_encoded)]
             decoded_completion_tokens = [log_prob["decoded_token"] for log_prob in completion_log_probs]
             reconstructed_completion = "".join(decoded_completion_tokens)
