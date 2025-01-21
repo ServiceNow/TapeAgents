@@ -81,6 +81,10 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
+# ruff linter and formatter
+.ruff_cache/
+
+
 # Cython debug symbols
 cython_debug/
 
@@ -88,10 +92,10 @@ cython_debug/
 .DS_Store
 
 # IDE
-.idea/
-.vscode/launch.json
-.vscode/settings.json
-.vscode/tasks.json
+/.idea/
+/.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
 *.code-workspace
 
 # data
@@ -100,17 +104,18 @@ cython_debug/
 /data/
 
 *cache*.json
-!/tests/**.json
+!/tests/**/*cache*.json
 
 *.jsonl
-!tests/**.jsonl
+!/tests/**/*.jsonl
+
+*.sqlite
+!tests/**/**.sqlite
 
 *.zip
 
 *.log
 
-*.sqlite
-!tests/**.sqlite
-
 # Weights & Biases
 /wandb/
+/temp/

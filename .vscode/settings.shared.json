@@ -1,0 +1,24 @@
+{
+    //// Linter & formatter
+    // Ruff: https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff
+    // Python code
+    "[python]": {
+        "diffEditor.ignoreTrimWhitespace": false,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit",
+        },
+        "editor.defaultFormatter": "charliermarsh.ruff",
+    },
+    // Python Notebook
+    "notebook.formatOnSave.enabled": true,
+    "notebook.codeActionsOnSave": {
+        "notebook.source.fixAll": "explicit",
+        "notebook.source.organizeImports": "explicit"
+    },
+    //// Tests
+    // Pytest: https://code.visualstudio.com/docs/python/testing
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+}

@@ -14,6 +14,7 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
+import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
@@ -43,6 +44,11 @@ from .utils import (
     save_state,
     setup_logging,
 )
+from tapeagents.orchestrator import main_loop
+
+from .cot_math_agent import CoTMathAgent, RLMathTape, Task
+from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
+
 
 logger = logging.getLogger(__name__)
 
