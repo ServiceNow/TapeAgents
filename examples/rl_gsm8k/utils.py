@@ -42,7 +42,7 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
 class VLLMServiceManager:
     def __init__(
         self,
-        exp_path: Path, 
+        exp_path: Path,
         service_name: str,
         model_name_or_path: Union[str, Path],
         port: int = 8080,
@@ -111,7 +111,7 @@ class VLLMServiceManager:
             if process.poll() is not None:
                 logger.error("-> Service process has terminated")
                 return False
-            time.sleep(1.)
+            time.sleep(1.0)
 
     def _start_service(self) -> None:
         """
@@ -212,7 +212,7 @@ class VLLMServiceManager:
         # Wait for all threads to finish
         for thread in threads:
             thread.join()
-        
+
         for f in self.open_files:
             f.close()
 

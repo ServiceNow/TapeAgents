@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -36,9 +36,7 @@ RL_DATA_COLUMNS = [
 
 @dataclass
 class RLConfig(StepConfig):
-    algo: str = field(
-        default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]}
-    )
+    algo: str = field(default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]})
     use_advantages: bool = field(
         default=True,
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
@@ -61,7 +59,6 @@ class RLConfig(StepConfig):
         default=10,
         metadata={"help": "Clamp the log ratio of reference and new log probs"},
     )
-
 
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
