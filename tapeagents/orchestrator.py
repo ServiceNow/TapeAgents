@@ -268,7 +268,13 @@ def replay_tapes(
     for i, tape in enumerate(tapes):
         logger.debug(f"Tape {i}")
         try:
-            matched = replay_tape(agent, tape, env, start_tape=start_tapes[i] if start_tapes else None, reuse_observations=reuse_observations)
+            matched = replay_tape(
+                agent,
+                tape,
+                env,
+                start_tape=start_tapes[i] if start_tapes else None,
+                reuse_observations=reuse_observations,
+            )
             if not matched:
                 raise FatalError("Tape mismatch")
             ok += 1

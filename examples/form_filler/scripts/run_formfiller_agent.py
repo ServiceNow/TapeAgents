@@ -19,7 +19,12 @@ from tapeagents.parallel_processing import lazy_thread_pool_processor
 from ..environment import FormFillerEnvironment
 from ..error import UnknownError
 from ..student import StudentAgent
-from ..tape import FormFillerAgentMetadata, FormFillerContext, FormFillerTape, FormFillerUserMetadata
+from ..tape import (
+    FormFillerAgentMetadata,
+    FormFillerContext,
+    FormFillerTape,
+    FormFillerUserMetadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +62,7 @@ def run_formfiller_agent(
         return tape, e
 
 
-@hydra.main(config_path="../conf", config_name="run_formfiller_agent")
+@hydra.main(version_base=None, config_path="../conf", config_name="run_formfiller_agent")
 def main(cfg: DictConfig):
     agent = instantiate(cfg.agent)
 

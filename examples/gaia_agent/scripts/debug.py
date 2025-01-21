@@ -43,9 +43,7 @@ def main(cfg: DictConfig) -> None:
     env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox)
     agent = GaiaAgent.create(llm, **cfg.agent)
     tape = GaiaTape(steps=env.task_to_observations(task))
-    tape.metadata = GaiaMetadata.model_validate(
-        tape.metadata.model_dump() | {"task": task, "level": cfg.level}
-    )
+    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": cfg.level})
     step_count = 0
     for event in main_loop(agent, tape, env, max_loops=50):
         if event.agent_event and event.agent_event.step:

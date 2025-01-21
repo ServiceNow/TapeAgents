@@ -36,12 +36,12 @@ def main(cfg: DictConfig) -> None:
     env = GaiaEnvironment(vision_lm=llm, attachment_dir=attachment_dir)
     agent = GaiaAgent.create(llm, **cfg.agent)
     content = "How many calories in 2 teaspoons of hummus"
-    if cfg.studio.tape:        
+    if cfg.studio.tape:
         tape = load_tapes(GaiaTape, cfg.studio.tape, ".json")[0]
     else:
         # Uncomment the following line to test video question
         # content = "In the video https://www.youtube.com/watch?v=L1vXCYZAYYM, what is the highest number of bird species to be on camera simultaneously?"
-        tape = GaiaTape(steps=[GaiaQuestion(content=content)])  
+        tape = GaiaTape(steps=[GaiaQuestion(content=content)])
     Studio(agent, tape, CameraReadyRenderer(), env).launch(server_name="0.0.0.0", static_dir=attachment_dir)
 
 
