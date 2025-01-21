@@ -95,18 +95,23 @@ class SimpleTextBrowser:
 
     def load_cache(self):
         prefix = "web_cache.jsonl"
+        cache_files = []
         if _FORCE_CACHE_PATH:
             logger.warning(f"Using forced cache file {_FORCE_CACHE_PATH}")
             self.only_cached_webpages = True
             assert os.path.exists(_FORCE_CACHE_PATH), "Forced cache file not found"
-        else:
+            cache_files = [_FORCE_CACHE_PATH]
+        elif os.path.exists(cache_dir):
             for fname in os.listdir(cache_dir):
                 if not fname.startswith(prefix):
                     continue
-                with open(os.path.join(cache_dir, fname)) as f:
-                    for line in f:
-                        data = json.loads(line)
-                        self._cache[data["k"]] = data["v"]
+                cache_file = os.path.join(cache_dir, fname)
+                cache_files.append(cache_file)
+        for fname in cache_files:
+            with open(os.path.join(cache_dir, fname)) as f:
+                for line in f:
+                    data = json.loads(line)
+                    self._cache[data["k"]] = data["v"]
         logger.info(f"Loaded {len(self._cache)} web results from cache")
 
     @property

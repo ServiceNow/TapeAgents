@@ -303,16 +303,17 @@ class CachedLLM(LLM):
         name = self.model_name.replace("/", "__")
         prefix = f"llm_cache_{name}_{param_hash}."
         self._cache_file = os.path.join(cache_dir, f"{prefix}{os.getpid()}.{threading.get_native_id()}.jsonl")
-        for fname in os.listdir(cache_dir):
-            if not fname.startswith(prefix):
-                continue
-            with open(os.path.join(cache_dir, fname)) as f:
-                for line in f:
-                    key, event_dict = json.loads(line)
-                    if key not in self._cache:
-                        self._cache[key] = []
-                    self._cache[key].append(event_dict)
-        logger.info(f"Loaded {len(self._cache)} llm calls from cache")
+        if os.path.exists(cache_dir):
+            for fname in os.listdir(cache_dir):
+                if not fname.startswith(prefix):
+                    continue
+                with open(os.path.join(cache_dir, fname)) as f:
+                    for line in f:
+                        key, event_dict = json.loads(line)
+                        if key not in self._cache:
+                            self._cache[key] = []
+                        self._cache[key].append(event_dict)
+            logger.info(f"Loaded {len(self._cache)} llm calls from cache")
 
     def reindex_log(self):
         """
