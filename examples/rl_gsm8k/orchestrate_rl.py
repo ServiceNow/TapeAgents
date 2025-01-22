@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import hydra
+import numpy as np
 import torch
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
@@ -191,11 +192,8 @@ def extract_tape_training_samples(
         tape_prompt_tokens += llm_call.prompt_length_tokens
         tape_output_tokens += llm_call.output_length_tokens
 
+        overflows = []
         if split_name == "train":
-            if llm_call.output_length_tokens >= cfg.llm.parameters.max_tokens:
-                # ignore this sample
-                # this will be recorded in output_tokens_overflow
-                continue
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]
@@ -207,7 +205,15 @@ def extract_tape_training_samples(
             trace.input_ids = input_ids
             trace.labels = labels
 
-            trace.reward = reward
+            # check if the last produced token is the end of sequence token
+            if input_ids[-1] != agent.llm.tokenizer.eos_token_id:
+                # if not, the output is truncated
+                overflow = True
+                trace.reward = cfg.overflow_reward
+            else:
+                overflow = False
+                trace.reward = reward
+            overflows.append(overflow)
             trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
             trace.group_id = new_tape.metadata.parent_id
             training_samples.append(trace)
@@ -219,6 +225,7 @@ def extract_tape_training_samples(
         "no_error": no_error,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
+        "overflows": sum(overflows),
     }
     return training_samples, tape_stats
 
@@ -261,6 +268,7 @@ def generate_training_data(
     success_stats = defaultdict(list)
     prompt_tokens_stats = defaultdict(list)
     output_tokens_stats = defaultdict(list)
+    overflow_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
     logger.info(f"Run the agent on {cfg.dataset_name} {split_name}")
@@ -282,6 +290,7 @@ def generate_training_data(
         no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
         prompt_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
         output_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
+        overflow_stats[new_tape.metadata.parent_id].append(tape_stats["overflows"])
 
     start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
@@ -303,10 +312,7 @@ def generate_training_data(
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
             f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
             f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
-            f"{split_name}_output_tokens_overflow": sum(
-                [(ot >= cfg.llm.parameters.max_tokens) for ot_list in output_tokens_stats.values() for ot in ot_list]
-            )
-            / len(final_tapes),
+            f"{split_name}_overflows": np.mean([np.mean(ov) for ov in overflow_stats.values()]),
         },
     }
     return agent_replicas, final_tapes, training_samples, stats
