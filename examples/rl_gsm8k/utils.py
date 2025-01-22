@@ -6,17 +6,22 @@ import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, TextIO, Union
+from typing import Dict, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
 import psutil
 import requests
 import torch
+from datasets import load_dataset
+from omegaconf import DictConfig
 from tenacity import retry, stop_after_attempt, wait_exponential
+from tqdm import tqdm
 from transformers import PreTrainedTokenizer
 
-from tapeagents.llms import LLMOutput, Prompt
 from tapeagents.config import is_debug_mode
+from tapeagents.llms import LLMOutput, Prompt
+
+from .deepseek_math_eval.process_utils import process_eurus_test, process_gsm8k_test, process_math_test
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +309,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
     save_state(state, state_path)
 
     logger.info("Cleaning up checkpoints and training state")
-    # list of log files to erase 
+    # list of log files to erase
     log_files = list(target_path.glob("*.log"))
 
     for file in log_files:
@@ -393,15 +398,11 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
     try:
-        # set env variable TORCH_NCCL_ENABLE_MONITORING=0
-        env = os.environ.copy()
-        env["TORCH_NCCL_ENABLE_MONITORING"] = "0"
         subprocess.run(
             base_cmd,
             check=True,  # Raises CalledProcessError if return code != 0
             text=True,
             capture_output=False,
-            env=env
         )
 
     except subprocess.CalledProcessError as e:
@@ -426,3 +427,34 @@ def get_tokens_from_hf_tokenizer(tokenizer: PreTrainedTokenizer | None, prompt: 
     output_token_ids = text_token_ids[len(prompt_token_ids) :]
     output_tokens = [tokenizer.decode(output_token_id) for output_token_id in output_token_ids]
     return output_tokens
+
+
+def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
+    match cfg.dataset_name:
+        case "math":
+            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            process_fn = process_math_test
+            builder_config = "main"
+        case "gsm8k":
+            train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
+            process_fn = process_gsm8k_test
+            builder_config = "main"
+        case "eurus":
+            train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
+            test_dataset_long_name = "alexpiche/math_test_cleaned"
+            process_fn = process_eurus_test
+            builder_config = "default"
+        case _:
+            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+
+    train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
+    test_dataset = load_dataset(test_dataset_long_name, builder_config, split="test", trust_remote_code=True)
+    train_samples = [
+        process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
+    ]
+    test_samples = [
+        process_fn(s) for s in tqdm(test_dataset, desc="Processing test samples") if process_fn(s) is not None
+    ]
+    logger.info(f"Loaded {len(train_samples)} training samples")
+    logger.info(f"Loaded {len(test_samples)} test samples")
+    return train_samples, test_samples
