@@ -19,11 +19,10 @@ from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
-import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
-from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb, wandb
 from tapeagents.llms import TrainableLLM
 
 from .cot_math_agent import CoTMathAgent, RLMathTape, Task
