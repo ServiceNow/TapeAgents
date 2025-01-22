@@ -37,9 +37,7 @@ RL_DATA_COLUMNS = [
 
 @dataclass
 class RLConfig(StepConfig):
-    algo: str = field(
-        default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]}
-    )
+    algo: str = field(default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]})
     use_advantages: bool = field(
         default=True,
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
@@ -62,7 +60,6 @@ class RLConfig(StepConfig):
         default=10,
         metadata={"help": "Clamp the log ratio ref new value"},
     )
-
 
 
 def make_rl_data_callback(args, current_dir, rl_config, model):

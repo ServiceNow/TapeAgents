@@ -16,9 +16,9 @@ from collections import defaultdict
 from itertools import zip_longest
 from statistics import mean
 from typing import Any, Callable, Generator
-import numpy as np
 
 import litellm
+import numpy as np
 import requests
 from Levenshtein import ratio
 from pydantic import BaseModel, Field
@@ -265,7 +265,9 @@ class LLM(BaseModel, ABC):
             "total_output_tokens": sum(self._stats["output_length_tokens"])
             if self._stats["output_length_tokens"]
             else 0,
-            "time_postprocess_llm_response": np.mean(self._stats["time_postprocess_llm_response"]) if self._stats["time_postprocess_llm_response"] else 0,
+            "time_postprocess_llm_response": np.mean(self._stats["time_postprocess_llm_response"])
+            if self._stats["time_postprocess_llm_response"]
+            else 0,
         }
 
 
@@ -711,7 +713,7 @@ class TrainableLLM(CachedLLM):
                     # /v1/completions returns logprobs in a format different to /v1/chat/completions
                     # Before calling self.process_logprobs, we need to convert the logprobs to a
                     # list of dicts format similar to /v1/chat/completions
-                    
+
                     chat_completion_logprobs = [
                         {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
                         for j in range(len(completion_logprobs["tokens"]))
@@ -813,8 +815,10 @@ class TrainableLLM(CachedLLM):
                     v.update({"generated": 0, "token_id": k})
                     logprobs.append(v)
         return {"content": logprobs}
-    
-    def get_batch_logprobs_token_ids(self, prompt_token_ids: list[list[int]], completion_token_ids: list[list[int]]) -> list[dict[str, Any]]: 
+
+    def get_batch_logprobs_token_ids(
+        self, prompt_token_ids: list[list[int]], completion_token_ids: list[list[int]]
+    ) -> list[dict[str, Any]]:
         if not self.tokenizer:
             self.load_tokenizer()
         batch_size = len(prompt_token_ids)
@@ -830,7 +834,7 @@ class TrainableLLM(CachedLLM):
             "max_tokens": 0,
             "logprobs": 0,
             "echo": True,
-            "include_stop_str_in_output": True,  # self.include_stop_str_in_output, 
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output,
             "skip_special_tokens": False,
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
@@ -848,7 +852,7 @@ class TrainableLLM(CachedLLM):
         all_logprobs = []
         for i in range(batch_size):
             logprobs = []
-            for lp in response["choices"][i]["prompt_logprobs"][-len(completion_token_ids[i]):]:
+            for lp in response["choices"][i]["prompt_logprobs"][-len(completion_token_ids[i]) :]:
                 if lp:
                     for k, v in lp.items():
                         v.update({"generated": 0, "token_id": k})
@@ -985,10 +989,6 @@ class TrainableLLM(CachedLLM):
         try:
             response = r.json()
             log_probs = [list(log_prob.values())[0] for log_prob in response["prompt_logprobs"] if log_prob]
-            decoded_prompt_completion_tokens = [log_prob["decoded_token"] for log_prob in log_probs][
-                : len(prompt_completion_encoded)
-            ]
-            reconstructed_prompt_completion = "".join(decoded_prompt_completion_tokens)
             completion_log_probs = log_probs[len(prompt_encoded) : len(prompt_completion_encoded)]
             decoded_completion_tokens = [log_prob["decoded_token"] for log_prob in completion_log_probs]
             reconstructed_completion = "".join(decoded_completion_tokens)

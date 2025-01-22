@@ -17,7 +17,7 @@ echo "Output directory: ${OUTPUT_DIR}"
 JOB_NAME=$(echo "tapetree_${DOMAIN}_${SIZE}" | tr '[:upper:]' '[:lower:]' | sed 's/\///g' | tr '-' '_' | tr -d '.')
 
 
-python -m examples.form_filler.scripts.make_tape_tree \
+uv run -m examples.form_filler.scripts.make_tape_tree \
     make_tape_tree.force_restart_idx=0 \
     make_tape_tree.output_path=${OUTPUT_DIR} \
     make_tape_tree.preambles_path=examples/form_filler/assets/forms/${DOMAIN} \
