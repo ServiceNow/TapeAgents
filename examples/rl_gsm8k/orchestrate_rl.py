@@ -144,6 +144,7 @@ def extract_tape_training_samples(
         tape_prompt_tokens += llm_call.prompt_length_tokens
         tape_output_tokens += llm_call.output_length_tokens
 
+        # print(llm_call.output_length_tokens, cfg.llm.parameters.max_tokens)
         if llm_call.output_length_tokens >= cfg.llm.parameters.max_tokens:
             # ignore this sample
             # this will be recorded in output_tokens_overflow
@@ -161,8 +162,7 @@ def extract_tape_training_samples(
         trace.reward = reward
         trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
         trace.group_id = new_tape.metadata.parent_id
-        tape_prompt_tokens += llm_call.prompt_length_tokens
-        tape_output_tokens += llm_call.output_length_tokens
+        # print(new_tape.metadata.id, tape_prompt_tokens, tape_output_tokens, len(input_ids))
         training_samples.append(trace)
 
     tape_stats = {
