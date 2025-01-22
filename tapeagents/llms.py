@@ -733,6 +733,7 @@ class TrainableLLM(CachedLLM):
                 llm_call.output_length_tokens = len(chat_completion_logprobs)
                 self._stats["prompt_length_tokens"].append(llm_call.prompt_length_tokens)
                 self._stats["output_length_tokens"].append(llm_call.output_length_tokens)
+                assert llm_call.output_length_tokens <= self.parameters["max_tokens"], f"output_length_tokens: {llm_call.output_length_tokens}, max_tokens: {self.parameters['max_tokens']}"
             else:
                 llm_call = self.log_output(prompts[i], output, count_tokens=True)
             llm_call.logprobs = logprobs
