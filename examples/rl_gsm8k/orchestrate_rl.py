@@ -299,7 +299,7 @@ def main(cfg: DictConfig):
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
 
-    training_samples, test_samples = load_datasets(cfg)
+    train_samples, test_samples = load_datasets(cfg)
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
