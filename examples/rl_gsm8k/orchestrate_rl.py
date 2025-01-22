@@ -13,8 +13,6 @@ from typing import Dict, List, Tuple
 
 import hydra
 import torch
-import wandb
-from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
@@ -25,6 +23,7 @@ from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
+from tapeagents.orchestrator import main_loop
 
 from .cot_math_agent import (
     CoTMathAgent,
@@ -33,21 +32,16 @@ from .cot_math_agent import (
 )
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-from .deepseek_math_eval.process_utils import process_eurus_test, process_gsm8k_test, process_math_test
 from .utils import (
     VLLMServiceManager,
     calculate_stats,
     clean_up,
     launch_training,
+    load_datasets,
     load_state,
     save_state,
     setup_logging,
 )
-from tapeagents.orchestrator import main_loop
-
-from .cot_math_agent import CoTMathAgent, RLMathTape, Task
-from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
-
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +177,6 @@ def extract_tape_training_samples(
             trace.input_ids = input_ids
             trace.labels = labels
 
-
             trace.reward = reward
             trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
             trace.group_id = new_tape.metadata.parent_id
@@ -306,30 +299,7 @@ def main(cfg: DictConfig):
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
 
-    match cfg.dataset_name:
-        case "math":
-            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
-            process_fn = process_math_test
-            builder_config = "main"
-        case "gsm8k":
-            train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
-            process_fn = process_gsm8k_test
-            builder_config = "main"
-        case "eurus":
-            train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
-            test_dataset_long_name = "alexpiche/math_test_cleaned"
-            process_fn = process_eurus_test
-            builder_config = "default"
-        case _:
-            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
-
-    train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
-    test_dataset = load_dataset(test_dataset_long_name, builder_config, split="test", trust_remote_code=True)
-    test_samples = [process_fn(s) for s in tqdm(test_dataset, desc="Processing test samples") if process_fn(s) is not None]
-    train_samples = [process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None]
-    logger.info(f"Loaded {len(train_samples)} training samples")
-    logger.info(f"Loaded {len(test_samples)} test samples")
-
+    training_samples, test_samples = load_datasets(cfg)
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
@@ -381,12 +351,16 @@ def main(cfg: DictConfig):
                     for base_url in vllm_service_manager.get_base_urls()
                 ]
 
-                train_agent_replicas = [CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm) for llm in train_llms]
+                train_agent_replicas = [
+                    CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm) for llm in train_llms
+                ]
 
                 splits = [("train", train_agent_replicas, train_tapes)]
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                     test_tapes = convert_problems_to_tapes(test_samples, cfg)
-                    test_agent_replicas = [CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm) for llm in test_llms]
+                    test_agent_replicas = [
+                        CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm) for llm in test_llms
+                    ]
                     splits.append(("test", test_agent_replicas, test_tapes))
                 for split_name, agent_replicas, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
