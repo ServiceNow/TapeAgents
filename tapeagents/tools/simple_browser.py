@@ -366,7 +366,7 @@ class SimpleTextBrowser:
         self.flush_cache()
 
     def flush_cache(self):
-        fname = os.path.join(CACHE_DIR, f"{_CACHE_PREFIX}.{os.getpid()}.{threading.get_native_id()}.jsonl")
+        fname = os.path.join(common_cache_dir(), f"{_CACHE_PREFIX}.{os.getpid()}.{threading.get_native_id()}.jsonl")
         with open(fname, "a") as f:
             for item in self._cache_buffer:
                 f.write(json.dumps(item) + "\n")

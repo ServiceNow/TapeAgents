@@ -14,6 +14,7 @@ from pyparsing import (
     Combine,
     Forward,
     Group,
+    Literal as ParsingLiteral,
     Optional,
     Word,
     ZeroOrMore,
@@ -21,7 +22,6 @@ from pyparsing import (
     nums,
     oneOf,
 )
-from pyparsing import Literal as ParsingLiteral
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Tool

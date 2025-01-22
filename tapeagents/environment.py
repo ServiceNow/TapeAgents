@@ -8,7 +8,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Callable, Generic, Literal
 
-from langchain_core.tools import BaseTool, tool
+from langchain_core.tools import BaseTool, tool as tool_wrapper
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
@@ -69,7 +69,7 @@ class EmptyEnvironment(Environment):
 
 class ToolEnvironment(Environment):
     def __init__(self, tools: list[BaseTool | Callable]):
-        self.tools: list[BaseTool] = [t if isinstance(t, BaseTool) else tool(t) for t in tools]  # type: ignore
+        self.tools: list[BaseTool] = [t if isinstance(t, BaseTool) else tool_wrapper(t) for t in tools]  # type: ignore
         self._name2tool = {t.name: t for t in self.tools}
 
     def get_tool_schemas(self) -> list[ToolSpec]:
