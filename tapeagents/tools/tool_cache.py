@@ -48,8 +48,8 @@ def load_cache():
     cache_files = []
     if _FORCE_CACHE_PATH is not None:
         assert os.path.exists(_FORCE_CACHE_PATH), f"Cache {_FORCE_CACHE_PATH} does not exist"
-        cache_files = [_FORCE_CACHE_PATH]
-    elif os.path.exists(cache_dir):
+        cache_dir = _FORCE_CACHE_PATH
+    if os.path.exists(cache_dir):
         for fname in os.listdir(cache_dir):
             if not fname.startswith(prefix):
                 continue
