@@ -53,7 +53,7 @@ class TapeBrowser:
         try:
             tapes = load_tapes(self.tape_cls, fpath)
             logger.info(f"{len(tapes)} tapes loaded from {fname}")
-        except:
+        except Exception:
             logger.error(f"Could not load tapes from {fpath}")
             raise
         return tapes

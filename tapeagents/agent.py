@@ -34,7 +34,7 @@ from .core import (
     Thought,
     TrainingText,
 )
-from .llms import LLM, LLMEvent, LLMStream
+from .llms import LLM, LLMEvent, LLMStream, TrainableLLM
 
 DEFAULT = "default"
 
@@ -701,6 +701,50 @@ class Agent(BaseModel, Generic[TapeType]):
             yield AgentEvent(final_tape=final_tape)
 
         return AgentStream(_run_implementation())
+
+    def run_batch(self: Agent[TapeType], tapes: list[TapeType]) -> list[Tape]:
+        """Run agent in parallel on tapes using batched LLM calls.
+
+        This is faster than running agents in thread and having the LLM server batch the calls.
+
+        """
+        if len(self.llms) > 1:
+            raise NotImplementedError("For run_agent_batch the agent must have only one LLM for now")
+        if not isinstance(self.llm, TrainableLLM):
+            raise NotImplementedError("For run_agent_batch the LLM must be TrainableLLM")
+        original_tapes = list(tapes)
+        n_iterations = 0
+        active_indices = set(range(len(tapes)))
+        while n_iterations < self.max_iterations:
+            prompts = []
+            current_subagents = [self.delegate(tapes[i]) for i in active_indices]
+            prompts = [subagent.make_prompt(tape) for subagent, tape in zip(current_subagents, tapes)]
+            llm_calls = self.llm.batch_generate(prompts)
+            for i in active_indices:
+                # Run the equivalent of agent.run_iteration
+                llm_stream = LLMStream(
+                    (LLMEvent(output=output) for output in (llm_calls[i].output,)), llm_calls[i].prompt
+                )
+                for step in self.generate_steps(tapes[i], llm_stream):
+                    step.metadata.agent = current_subagents[i].full_name
+                    if isinstance(step, AgentStep):
+                        step.metadata.prompt_id = llm_calls[i].prompt.id
+                    tapes[i] = tapes[i].append(step)
+                    if self.should_stop(tapes[i]):
+                        active_indices.remove(i)
+                if self.store_llm_calls:
+                    step.metadata.other["llm_call"] = llm_calls[i]
+            n_iterations += 1
+        for i in range(len(tapes)):
+            updated_metadata = original_tapes[i].metadata.model_validate(
+                dict(
+                    parent_id=original_tapes[i].metadata.id,
+                    author=self.name,
+                    n_added_steps=len(tapes[i]) - len(original_tapes[i]),
+                )
+            )
+            tapes[i] = tapes[i].model_copy(update=dict(metadata=updated_metadata))
+        return tapes
 
     def reuse(self, tape: TapeType) -> tuple[TapeType, list[LLMCall]]:
         """

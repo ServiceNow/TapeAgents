@@ -15,12 +15,6 @@ In our [agent optimization](../../examples/optimize) example we show how one can
 
 ## Setup
 
-First, install extra depedencies:
-
-```bash
-pip install -r examples/optimize/requirements.txt
-```
-
 Make sure you have set your environment variable `OPENAI_API_KEY`
 
 ## Explore the setting
@@ -28,7 +22,7 @@ Make sure you have set your environment variable `OPENAI_API_KEY`
 To better understand the setup, you can launch a pre-optimized agent in TapeAgents Studio and run it by pressing `Run Loop` button.
 
 ```bash
-python -m examples.optimize.optimize agent=agentic_rag target=studio load_demos=true
+uv run -m examples.optimize.optimize agent=agentic_rag target=studio load_demos=true
 ```
 
 Check out the [prompts](res/agentic_rag_demos.json): they contain support demonstrations of how to use the search engine for complex queries, like this one:
@@ -48,7 +42,7 @@ That is what we will be learning below.
 Let's benchmark a basic RAG agent. In the basic RAG the user's question is used as the query.
 
 ```bash
-$ python -m examples.optimize.optimize agent=rag target=evaluate llm_name=gpt-3.5-turbo
+$ uv run -m examples.optimize.optimize agent=rag target=evaluate llm_name=gpt-3.5-turbo
 Retrieval accuracy: 0.213
 Answer accuracy: 0.253
 ```
@@ -56,7 +50,7 @@ Answer accuracy: 0.253
 The retrieval accuracy is not that high. Let's try 2-hop Agentic RAG. In our Agentic RAG example the agent makes two retrieval queries, and the second query is based on the paragraphs that were trieved for the first one.
 
 ```bash
-$ python -m examples.optimize.optimize agent=agentic_rag target=evaluate llm_name=gpt-3.5-turbo
+$ uv run -m examples.optimize.optimize agent=agentic_rag target=evaluate llm_name=gpt-3.5-turbo
 Retrieval accuracy: 0.427
 Answer accuracy: 0.447
 ```
@@ -64,7 +58,7 @@ Answer accuracy: 0.447
 The retrieval accuracy is higher, but we can do better. Let's optimize the agent's prompts using weak supervision. Let's randomly search for the best optimized agent.
 
 ```bash
-$ python -m examples.optimize.optimize agent=agentic_rag target=evaluate llm_name=gpt-3.5-turbo optimize.do=true 
+$ uv run -m examples.optimize.optimize agent=agentic_rag target=evaluate llm_name=gpt-3.5-turbo optimize.do=true 
 Retrieval accuracy: 0.567
 Answer accuracy: 0.470
 ```
@@ -81,7 +75,7 @@ Note:
 Change `target` to `browse` to launch the TapeBrowser app.
 
 ```bash
-python -m examples.optimize.optimize agent=agentic_rag optimize.do=true target=browse
+uv run -m examples.optimize.optimize agent=agentic_rag optimize.do=true target=browse
 ```
 
 You can now explore the agent tapes on the dev set, as well as the "good" and the "bad" training tapes. The good tapes that are the ones we used to mine demonstrations for the function templates. The bad tapes are the ones that we filtered out by various criteria (see `result` field in metadata in the tape browser for the reason for filtering).
