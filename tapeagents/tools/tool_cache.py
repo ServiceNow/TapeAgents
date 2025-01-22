@@ -42,26 +42,18 @@ def get_from_cache(fn_name: str, args: tuple, kwargs: dict) -> Any:
 
 def load_cache():
     global _cache
-    cache_files = []
     cache_dir = common_cache_dir()
     if os.path.exists(cache_dir):
         for fname in os.listdir(cache_dir):
             if not fname.startswith(_CACHE_PREFIX):
                 continue
-            cache_file = os.path.join(cache_dir, fname)
-            cache_files.append(cache_file)
-        logger.info(f"Loading cache from {cache_dir}")
-    else:
-        logger.info(f"Cache dir {cache_dir} does not exist")
-
-    for cache_file in cache_files:
-        with open(cache_file) as f:
-            for line in f:
-                data = json.loads(line)
-                tool_cache = _cache.get(data["fn_name"], {})
-                key = json.dumps((data["args"], data["kwargs"]), sort_keys=True)
-                tool_cache[key] = data["result"]
-                _cache[data["fn_name"]] = tool_cache
+            with open(os.path.join(cache_dir, fname)) as f:
+                for line in f:
+                    data = json.loads(line)
+                    tool_cache = _cache.get(data["fn_name"], {})
+                    key = json.dumps((data["args"], data["kwargs"]), sort_keys=True)
+                    tool_cache[key] = data["result"]
+                    _cache[data["fn_name"]] = tool_cache
     for k, v in _cache.items():
         logger.info(f"Loaded {len(v)} cache entries for {k}")
 
