@@ -62,6 +62,7 @@ class MonoNode(Node):
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_step_cls: Any = Field(exclude=True)
     next_node: str = ""
+    trim_tape_when_too_long: bool = True
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -89,7 +90,8 @@ class MonoNode(Node):
         cleaned_tape = self.prepare_tape(tape)
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
-        if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
+        #TODO: benchmark counting the token for every single call
+        if self.trim_tape_when_too_long and agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
             cleaned_tape = self.trim_tape(cleaned_tape)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         return Prompt(messages=messages)

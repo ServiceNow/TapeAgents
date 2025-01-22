@@ -55,6 +55,8 @@ RLMathTape = Tape[
 
 
 class ReasoningNode(MonoNode):
+    trim_tape_when_too_long: bool = False
+
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
         try:
             step = ReasoningThought(reasoning=completion)
