@@ -30,13 +30,13 @@ clean:
 
 update-intro:
 	@cp examples/intro_clean.ipynb intro.ipynb
-	@uv run --all-extras jupyter execute --inplace intro.ipynb
+	@uv run jupyter execute --inplace intro.ipynb
 
 update-clean-intro:
-	@uv run --all-extras jupyter nbconvert intro.ipynb --output=examples/intro_clean.ipynb --to notebook --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
+	@uv run jupyter nbconvert intro.ipynb --output=examples/intro_clean.ipynb --to notebook --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
 
 clear-clean-intro:
-	@uv run --all-extras jupyter nbconvert --inplace examples/intro_clean.ipynb --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
+	@uv run jupyter nbconvert --inplace examples/intro_clean.ipynb --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
 
 build:
 	@rm -rf dist/
