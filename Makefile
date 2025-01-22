@@ -21,7 +21,7 @@ test-all:
 
 audit:
 	@uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
-	@uvx pip-audit -r requirements.txt --disable-pip; \
+	@uvx pip-audit -r requirements.txt --disable-pip --desc --aliases; \
 	rm requirements.txt
 
 clean:
