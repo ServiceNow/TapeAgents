@@ -18,17 +18,12 @@ from tapeagents.nodes import MonoNode
 
 logger = logging.getLogger(__name__)
 
-# https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/eval/system_prompt.md?plain=1
-# but note that sometimes they do not include the newline at the beginning
-# https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/data_preprocessing/sft_prompt.py#L1
-EURUS_SYSTEM_PROMPT = """\nWhen tackling complex reasoning tasks, you have access to the following actions. Use them as needed to progress through your thought process.\n\n[ASSESS]\n\n[ADVANCE]\n\n[VERIFY]\n\n[SIMPLIFY]\n\n[SYNTHESIZE]\n\n[PIVOT]\n\n[OUTPUT]\n\nYou should strictly follow the format below:\n\n[ACTION NAME]\n\n# Your action step 1\n\n# Your action step 2\n\n# Your action step 3\n\n...\n\nNext action: [NEXT ACTION NAME]\n\n"""
 
 class Task(Observation):
     kind: Literal["task"] = "task"
     task: str
     template: str = Field(
-        description="Template for the task. Should contain a {task} placeholder for the task text.",
-        default="{task}"
+        description="Template for the task. Should contain a {task} placeholder for the task text.", default="{task}"
     )
 
     def llm_view(self, indent: int | None = 2) -> str:
@@ -82,7 +77,7 @@ class CoTMathAgent(Agent):
                 ReasoningNode(
                     name="cot",
                     agent_step_cls=MathAgentStep,
-                    system_prompt=system_prompt,
+                    system_prompt=system_prompt if system_prompt else "",
                 ),
             ],
             max_iterations=1,
