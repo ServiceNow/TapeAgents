@@ -1,4 +1,4 @@
-.PHONY: setup env install lint test test-slow test-all clean update-intro update-clean-intro clear-clean-intro build
+.PHONY: setup lint lint-check test test-slow test-all audit clean update-intro update-clean-intro clear-clean-intro build
 
 setup:
 	@uv sync --all-extras
@@ -18,6 +18,11 @@ test-slow:
 
 test-all:
 	@uv run --all-extras pytest tests/
+
+audit:
+	@uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
+	@uv run pip-audit -r requirements.txt --disable-pip; \
+	rm requirements.txt
 
 clean:
 	@uv cache clean

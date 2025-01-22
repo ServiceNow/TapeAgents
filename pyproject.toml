@@ -45,7 +45,6 @@ dependencies = [
 [dependency-groups]
 dev = [
   "dspy-ai~=2.4",
-  "flake8~=6.0",
   "ipykernel~=6.29",
   "mkdocs~=1.6",
   "mkdocs-gen-files~=0.5",
@@ -56,6 +55,7 @@ dev = [
   "mkdocstrings~=0.27",
   "mkdocstrings-python~=1.12",
   "nbconvert~=7.16",
+  "pip-audit>=2.7.3",
   "pytest~=8.3",
   "ruff~=0.6",
   "testbook~=0.4",
