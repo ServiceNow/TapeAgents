@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
-from .config import DB_DEFAULT_FILENAME
+from .config import DB_DEFAULT_FILENAME, common_cache_dir
 from .core import LLMOutput, Prompt, TokenLogprob, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
@@ -36,8 +36,6 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
-cache_dir = os.getenv("_CACHE_DIR", ".cache")
-assert os.path.exists(cache_dir), f"Cache directory {cache_dir} does not exist"
 transformers = None
 
 
@@ -313,6 +311,7 @@ class CachedLLM(LLM):
         param_hash = self._key(json.dumps({k: v for k, v in self.parameters.items() if k != "token"}))
         name = self.model_name.replace("/", "__")
         prefix = f"llm_cache_{name}_{param_hash}."
+        cache_dir = common_cache_dir()
         self._cache_file = os.path.join(cache_dir, f"{prefix}{os.getpid()}.{threading.get_native_id()}.jsonl")
         if os.path.exists(cache_dir):
             for fname in os.listdir(cache_dir):
@@ -324,7 +323,9 @@ class CachedLLM(LLM):
                         if key not in self._cache:
                             self._cache[key] = []
                         self._cache[key].append(event_dict)
-            logger.info(f"Loaded {len(self._cache)} llm calls from cache")
+            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir}")
+        else:
+            logger.info(f"Cache dir {cache_dir} does not exist")
 
     def reindex_log(self):
         """
@@ -1149,7 +1150,7 @@ class ReplayLLM(LLM):
             if prompt_key in self.outputs:
                 logger.debug(colored("prompt cache hit", "green"))
                 output = self.outputs[prompt_key]
-            else:
+            elif len(prompt_key) < 10000:
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
                 )
@@ -1166,6 +1167,9 @@ class ReplayLLM(LLM):
                             logger.warning(f"STEP{i} A:\n{aa}\nSTEP{i} B:\n{bb}")
                         else:
                             logger.warning(f"STEP{i}: {diff_strings(aa, bb)}\n")
+                raise FatalError("prompt not found")
+            else:
+                logger.warning(f"prompt of size {len(prompt_key)} not found, skipping..")
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 

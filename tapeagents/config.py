@@ -4,6 +4,10 @@ DB_DEFAULT_FILENAME = "tapedata.sqlite"
 ATTACHMENT_DEFAULT_DIR = "attachments"
 
 
+def common_cache_dir():
+    return os.getenv("_CACHE_DIR", ".cache")
+
+
 def is_debug_mode():
     return os.environ.get("TAPEAGENTS_DEBUG", None) == "1"
 

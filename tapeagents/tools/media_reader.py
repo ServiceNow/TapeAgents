@@ -12,6 +12,7 @@ import whisper
 import yt_dlp
 from whisper.utils import get_writer
 
+from tapeagents.config import ATTACHMENT_DEFAULT_DIR
 from tapeagents.core import Action, Observation
 from tapeagents.steps import VideoObservation, WatchVideoAction
 from tapeagents.tools.base import Tool
@@ -435,6 +436,6 @@ class VideoReader(Tool):
     exp_path: str
 
     def execute_action(self, action: WatchVideoAction) -> VideoObservation:
-        attachment_dir = os.path.join(self.exp_path, "attachments")
+        attachment_dir = os.path.join(self.exp_path, ATTACHMENT_DEFAULT_DIR)
         os.makedirs(attachment_dir, exist_ok=True)
         return get_video_observation(action.video_url, attachment_dir, action.start_time, action.end_time)

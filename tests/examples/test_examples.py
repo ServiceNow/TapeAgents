@@ -158,14 +158,9 @@ def test_gaia_agent():
         with open(db_file, "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
     try:
+        os.environ["_CACHE_DIR"] = f"{run_dir}/cache"
         llm = mock_llm(run_dir)
-        env = get_env(
-            run_dir,
-            code_sandbox=None,
-            only_cached_webpages=True,
-            cache_path=f"{run_dir}/web_cache.jsonl",
-            attachment_dir=f"{run_dir}/{ATTACHMENT_DEFAULT_DIR}",
-        )
+        env = get_env(run_dir, simple_browser=True)
         agent = GaiaAgent.create(llm, actions=env.actions())
         tapes = load_tapes(
             GaiaTape,

@@ -32,6 +32,7 @@ from Levenshtein import ratio
 from pydantic import Field
 from termcolor import colored
 
+from tapeagents.config import common_cache_dir
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Multitool
 from tapeagents.utils import FatalError, diff_strings
@@ -46,8 +47,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-_FORCE_CACHE_PATH = None  # For testing purposes only
-cache_dir = os.getenv("_CACHE_DIR", ".cache")
+_FORCE_CACHE_DIR = None  # For testing purposes only
+_CACHE_PREFIX = "web_cache"
 
 
 class SimpleTextBrowser:
@@ -94,17 +95,16 @@ class SimpleTextBrowser:
         self.load_cache()
 
     def load_cache(self):
-        prefix = "web_cache"
         cache_files = []
-        if _FORCE_CACHE_PATH:
-            logger.warning(f"Using forced browser cache {_FORCE_CACHE_PATH}")
+        cache_dir = common_cache_dir()
+        if _FORCE_CACHE_DIR:
+            logger.warning(f"Using forced browser cache {_FORCE_CACHE_DIR}")
             self.only_cached_webpages = True
-            assert os.path.exists(_FORCE_CACHE_PATH), "Forced browser cache not found"
-            cache_dir = _FORCE_CACHE_PATH
+            assert os.path.exists(_FORCE_CACHE_DIR), "Forced browser cache not found"
+            cache_dir = _FORCE_CACHE_DIR
         if os.path.exists(cache_dir):
             for fname in os.listdir(cache_dir):
-                print(f"in cache dir: {fname}")
-                if not fname.startswith(prefix):
+                if not fname.startswith(_CACHE_PREFIX):
                     continue
                 cache_file = os.path.join(cache_dir, fname)
                 cache_files.append(cache_file)
@@ -113,7 +113,7 @@ class SimpleTextBrowser:
                 for line in f:
                     data = json.loads(line)
                     self._cache[data["k"]] = data["v"]
-        logger.info(f"Loaded {len(self._cache)} web results from cache")
+        logger.info(f"Loaded {len(self._cache)} web results from cache {cache_dir}")
 
     @property
     def address(self) -> str:
@@ -324,12 +324,12 @@ class SimpleTextBrowser:
                     self.set_address(local_uri)
 
         except UnsupportedFormatException as e:
-            print(colored(f"UnsupportedFormatException: {e}", "red"))
+            logger.error(colored(f"UnsupportedFormatException: {e}", "red"))
             self.page_title = "Unsupported Format"
             self._set_page_content(f"Unsupported Format File: {e}")
             self._page_error = 1
         except FileConversionException as e:
-            print(colored(f"FileConversionException: {e}", "red"))
+            logger.error(colored(f"FileConversionException: {e}", "red"))
             self.page_title = "Failed to read file"
             self._set_page_content(f"Error: {e}")
             self._page_error = 2
@@ -377,9 +377,7 @@ class SimpleTextBrowser:
         self.flush_cache()
 
     def flush_cache(self):
-        prefix = "web_cache"
-        cache_path = os.getenv("_CACHE_DIR", ".cache")
-        fname = os.path.join(cache_path, f"{prefix}.{os.getpid()}.{threading.get_native_id()}.jsonl")
+        fname = os.path.join(CACHE_DIR, f"{_CACHE_PREFIX}.{os.getpid()}.{threading.get_native_id()}.jsonl")
         with open(fname, "a") as f:
             for item in self._cache_buffer:
                 f.write(json.dumps(item) + "\n")
