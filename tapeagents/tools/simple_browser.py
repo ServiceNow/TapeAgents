@@ -46,8 +46,6 @@ from .converters import (
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
-_FORCE_CACHE_DIR = None  # For testing purposes only
 _CACHE_PREFIX = "web_cache"
 
 
@@ -95,24 +93,15 @@ class SimpleTextBrowser:
         self.load_cache()
 
     def load_cache(self):
-        cache_files = []
         cache_dir = common_cache_dir()
-        if _FORCE_CACHE_DIR:
-            logger.warning(f"Using forced browser cache {_FORCE_CACHE_DIR}")
-            self.only_cached_webpages = True
-            assert os.path.exists(_FORCE_CACHE_DIR), "Forced browser cache not found"
-            cache_dir = _FORCE_CACHE_DIR
         if os.path.exists(cache_dir):
             for fname in os.listdir(cache_dir):
                 if not fname.startswith(_CACHE_PREFIX):
                     continue
-                cache_file = os.path.join(cache_dir, fname)
-                cache_files.append(cache_file)
-        for fname in cache_files:
-            with open(os.path.join(cache_dir, fname)) as f:
-                for line in f:
-                    data = json.loads(line)
-                    self._cache[data["k"]] = data["v"]
+                with open(os.path.join(cache_dir, fname)) as f:
+                    for line in f:
+                        data = json.loads(line)
+                        self._cache[data["k"]] = data["v"]
         logger.info(f"Loaded {len(self._cache)} web results from cache {cache_dir}")
 
     @property

@@ -11,7 +11,6 @@ from tapeagents.config import common_cache_dir
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-_FORCE_CACHE_DIR = None  # For testing purposes only
 _CACHE_PREFIX = "tool_cache"
 _cache = {}
 
@@ -21,8 +20,6 @@ def cached_tool(tool_fn) -> Callable:
         fn_name = getattr(tool_fn, "__name__", repr(tool_fn))
         if result := get_from_cache(fn_name, args, kwargs):
             return result
-        if _FORCE_CACHE_DIR is not None:
-            raise ValueError(f"Tool {fn_name} forced cache miss. Tool cache size {len(_cache.get(fn_name, {}))}")
         result = tool_fn(*args, **kwargs)
         add_to_cache(fn_name, args, kwargs, result)
         return result
@@ -47,9 +44,6 @@ def load_cache():
     global _cache
     cache_files = []
     cache_dir = common_cache_dir()
-    if _FORCE_CACHE_DIR is not None:
-        assert os.path.exists(_FORCE_CACHE_DIR), f"Cache {_FORCE_CACHE_DIR} does not exist"
-        cache_dir = _FORCE_CACHE_DIR
     if os.path.exists(cache_dir):
         for fname in os.listdir(cache_dir):
             if not fname.startswith(_CACHE_PREFIX):

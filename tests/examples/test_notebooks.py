@@ -20,12 +20,9 @@ def test_intro_notebook():
                 f"""
                 import os
                 os.environ["TAPEAGENTS_SQLITE_DB"] = "{sqlite_path}"
+                os.environ["_CACHE_DIR"] = "{res_dir}/intro_notebook/cache/"
                 from tapeagents import llms
                 llms._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
-                from tapeagents.tools import simple_browser
-                simple_browser._FORCE_CACHE_PATH = "{res_dir}/intro_notebook/cache/"
-                from tapeagents.tools import tool_cache
-                tool_cache._FORCE_CACHE_PATH = "{res_dir}/intro_notebook/cache/"
                 """,
                 before=0,
             )
