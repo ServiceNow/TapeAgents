@@ -13,6 +13,7 @@ from typing import Dict, List, Tuple
 
 import hydra
 import torch
+from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
@@ -31,18 +32,49 @@ from .cot_math_agent import (
 )
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
+from .deepseek_math_eval.process_utils import process_eurus_test, process_gsm8k_test, process_math_test
 from .utils import (
     VLLMServiceManager,
     calculate_stats,
     clean_up,
     launch_training,
-    load_datasets,
     load_state,
     save_state,
     setup_logging,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
+    match cfg.dataset_name:
+        case "math":
+            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            process_fn = process_math_test
+            builder_config = "main"
+        case "gsm8k":
+            train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
+            process_fn = process_gsm8k_test
+            builder_config = "main"
+        case "eurus":
+            train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
+            test_dataset_long_name = "alexpiche/math_test_cleaned"
+            process_fn = process_eurus_test
+            builder_config = "default"
+        case _:
+            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+
+    train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
+    test_dataset = load_dataset(test_dataset_long_name, builder_config, split="test", trust_remote_code=True)
+    train_samples = [
+        process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
+    ]
+    test_samples = [
+        process_fn(s) for s in tqdm(test_dataset, desc="Processing test samples") if process_fn(s) is not None
+    ]
+    logger.info(f"Loaded {len(train_samples)} training samples")
+    logger.info(f"Loaded {len(test_samples)} test samples")
+    return train_samples, test_samples
 
 
 def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
