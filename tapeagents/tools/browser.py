@@ -227,6 +227,8 @@ class Browser(Multitool):
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore
+        while not isinstance(self._env, BrowserEnv):
+            self._env = self._env.env
         self._env.reset()
         self._env.context.tracing.start(screenshots=True, snapshots=True)
 
