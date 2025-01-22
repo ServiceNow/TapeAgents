@@ -6,7 +6,8 @@ from typing import Any, Callable
 
 from termcolor import colored
 
-from tapeagents.config import common_cache_dir
+from tapeagents.config import common_cache_dir, force_cache
+from tapeagents.utils import FatalError
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -20,6 +21,8 @@ def cached_tool(tool_fn) -> Callable:
         fn_name = getattr(tool_fn, "__name__", repr(tool_fn))
         if result := get_from_cache(fn_name, args, kwargs):
             return result
+        if force_cache():
+            raise FatalError(f"Cache is forced but no cache entry found for {fn_name}({args}, {kwargs})")
         result = tool_fn(*args, **kwargs)
         add_to_cache(fn_name, args, kwargs, result)
         return result

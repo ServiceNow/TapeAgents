@@ -32,7 +32,7 @@ from Levenshtein import ratio
 from pydantic import Field
 from termcolor import colored
 
-from tapeagents.config import common_cache_dir
+from tapeagents.config import common_cache_dir, force_cache
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Multitool
 from tapeagents.utils import FatalError, diff_strings
@@ -60,7 +60,6 @@ class SimpleTextBrowser:
         viewport_size: Optional[int] = 32000,
         downloads_folder: str = "/tmp/agent_browser_downloads",
         use_web_cache: bool = True,
-        only_cached_webpages: bool = False,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
         converter_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -86,7 +85,6 @@ class SimpleTextBrowser:
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
 
         self.use_web_cache = use_web_cache
-        self.only_cached_webpages = only_cached_webpages
         self._cache = {}
         self._log = []
         self._cache_buffer = []
@@ -397,7 +395,7 @@ class SimpleTextBrowser:
             self.page_title = title
             self._set_page_content(content)
             self.viewport_current_page = 0
-        elif self.only_cached_webpages:
+        elif force_cache():
             ratios = [(k, ratio(url, k, score_cutoff=0.7)) for k in self._cache.keys()]
             closest, score = sorted(ratios, key=lambda x: x[1], reverse=True)[0]
             if score >= 0.7:

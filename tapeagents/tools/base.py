@@ -2,6 +2,7 @@ import logging
 
 from pydantic import BaseModel
 
+from tapeagents.config import force_cache
 from tapeagents.core import Action, Observation
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.tool_cache import add_to_cache, get_from_cache
@@ -36,6 +37,8 @@ class Tool(BaseModel):
                     return self.observation.model_validate(obs_dict)
                 except Exception as e:
                     logger.error(f"Cache validation error: {e}, rerun tool")
+            elif force_cache():
+                raise FatalError(f"Cache is forced but no cache entry found for {tool_name}({action.llm_dict()})")
         try:
             observation = self.execute_action(action)
             if self.cached:
