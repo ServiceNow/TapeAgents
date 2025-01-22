@@ -163,7 +163,7 @@ def extract_tape_training_samples(
         no_error, reward, success = 0, -1, 0
     else:
         no_error = 1
-        prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")
+        prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")  # type: ignore
         answer = new_tape.steps[0].metadata.other["value"]
         if eval_fn(
             {
@@ -279,7 +279,7 @@ def generate_training_data(
         replica_tapes = [tapes[i :: len(agent_replicas)] for i in range(len(agent_replicas))]
         results = list(executor.map(batch_run_agent_replica, agent_replicas, replica_tapes))
         final_tapes = list(chain(*[r[1] for r in results]))
-        agent_replicas = [r[0] for r in results]
+        agent_replicas = [r[0] for r in results]  # type: ignore
     logger.info(f"Making tapes took {time.time() - start_making_tapes}")
 
     for new_tape in tqdm(final_tapes, total=len(final_tapes), desc="Extracting training data from tapes", unit="tape"):
