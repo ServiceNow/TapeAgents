@@ -9,10 +9,21 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Tool
+from tapeagents.tools.tool_cache import cached_tool
 from tapeagents.utils import FatalError
 
 logger = logging.getLogger(__name__)
 
+
+def web_search_tool(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
+    """
+    Search the web for a given query, return a list of search result dictionaries.
+    """
+    return _web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
+
+@cached_tool
+def _web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
+    return web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
 
 def web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
     results = []
