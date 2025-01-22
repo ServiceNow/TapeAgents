@@ -730,7 +730,7 @@ class TrainableLLM(CachedLLM):
             if logprobs:
                 llm_call = self.log_output(prompts[i], output, count_tokens=False)
                 llm_call.prompt_length_tokens = len(prompt_token_ids[i])
-                llm_call.output_length_tokens = len(logprobs)
+                llm_call.output_length_tokens = len(chat_completion_logprobs)
                 self._stats["prompt_length_tokens"].append(llm_call.prompt_length_tokens)
                 self._stats["output_length_tokens"].append(llm_call.output_length_tokens)
             else:
