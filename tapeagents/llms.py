@@ -1158,7 +1158,14 @@ class ReplayLLM(LLM):
                 if score >= 0.7:
                     logger.warning(f"Closest prompt score {score:.3f}")
                     for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
-                        logger.warning(f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n")
+                        aa = a.get("content", str(a))
+                        bb = b.get("content", str(b))
+                        if aa == bb:
+                            continue
+                        if len(aa) < 300 and len(bb) < 300:
+                            logger.warning(f"STEP{i} A:\n{aa}\nSTEP{i} B:\n{bb}")
+                        else:
+                            logger.warning(f"STEP{i}: {diff_strings(aa, bb)}\n")
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 
