@@ -26,23 +26,11 @@ from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 
-from .cot_math_agent import (
-    CoTMathAgent,
-    RLMathTape,
-    Task,
-)
+from .cot_math_agent import CoTMathAgent, RLMathTape, Task
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
 from .deepseek_math_eval.process_utils import process_eurus_test, process_gsm8k_test, process_math_test
-from .utils import (
-    VLLMServiceManager,
-    calculate_stats,
-    clean_up,
-    launch_training,
-    load_state,
-    save_state,
-    setup_logging,
-)
+from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
 
 logger = logging.getLogger(__name__)
 
