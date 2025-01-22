@@ -208,7 +208,9 @@ class LLM(BaseModel, ABC):
         """
         return {"input": 0, "output": 0}
 
-    def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False, count_tokens: bool = True) -> None | LLMCall:
+    def log_output(
+        self, prompt: Prompt, message: LLMOutput, cached: bool = False, count_tokens: bool = True
+    ) -> None | LLMCall:
         """
         Logs the output of an LLM (Language Model) call along with its metadata.
 
@@ -233,7 +235,7 @@ class LLM(BaseModel, ABC):
         else:
             # -1 is the default value of prompt and output length tokens when token counting is disabled
             prompt_length_tokens = -1
-            output_length_tokens = -1 
+            output_length_tokens = -1
 
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
@@ -735,7 +737,9 @@ class TrainableLLM(CachedLLM):
                 llm_call.output_length_tokens = len(chat_completion_logprobs)
                 self._stats["prompt_length_tokens"].append(llm_call.prompt_length_tokens)
                 self._stats["output_length_tokens"].append(llm_call.output_length_tokens)
-                assert llm_call.output_length_tokens <= self.parameters["max_tokens"], f"output_length_tokens: {llm_call.output_length_tokens}, max_tokens: {self.parameters['max_tokens']}"
+                assert (
+                    llm_call.output_length_tokens <= self.parameters["max_tokens"]
+                ), f"output_length_tokens: {llm_call.output_length_tokens}, max_tokens: {self.parameters['max_tokens']}"
             else:
                 llm_call = self.log_output(prompts[i], output, count_tokens=True)
             llm_call.logprobs = logprobs
