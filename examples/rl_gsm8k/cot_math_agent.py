@@ -76,7 +76,6 @@ class ReasoningNode(MonoNode):
         task = tape.steps[0]
         assert isinstance(task, Task), f"Expected a Task, got {task.__class__.__name__}"
         messages.append({"role": "user", "content": task.llm_view()})
-        #messages = self.tape_to_messages(cleaned_tape, steps_description)
         prompt_token_ids = agent.llm.tokenizer.apply_chat_template(
             messages, add_special_tokens=True, add_generation_prompt=True
         )
@@ -94,7 +93,7 @@ class CoTMathAgent(Agent):
                 ReasoningNode(
                     name="cot",
                     agent_step_cls=MathAgentStep,
-                    system_prompt=system_prompt if system_prompt else "",
+                    system_prompt=system_prompt, # if system_prompt else "",
                     max_prompt_length=max_prompt_length,
                 ),
             ],

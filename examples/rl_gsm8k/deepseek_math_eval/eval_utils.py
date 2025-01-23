@@ -300,9 +300,10 @@ def math_equal(
         if call_with_timeout(symbolic_equal_process, prediction, reference):
             return True
     else:
-        pass
+        # symbolic equal hangs
         #if symbolic_equal(prediction, reference):
         #    return True
+        pass
 
     return False
 
