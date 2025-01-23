@@ -71,7 +71,7 @@ class ReasoningNode(MonoNode):
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
-        
+
         # the tape is only step long and it is the task
         task = tape.steps[0]
         assert isinstance(task, Task), f"Expected a Task, got {task.__class__.__name__}"
@@ -93,7 +93,7 @@ class CoTMathAgent(Agent):
                 ReasoningNode(
                     name="cot",
                     agent_step_cls=MathAgentStep,
-                    system_prompt=system_prompt, # if system_prompt else "",
+                    system_prompt=system_prompt,  # if system_prompt else "",
                     max_prompt_length=max_prompt_length,
                 ),
             ],
