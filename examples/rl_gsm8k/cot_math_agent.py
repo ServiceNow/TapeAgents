@@ -95,8 +95,10 @@ class ReasoningNode(MonoNode):
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         agent.llm.load_tokenizer()
-        prompt_token_ids = agent.llm.tokenizer.apply_chat_template(messages, add_special_tokens=True, add_generation_prompt=True)
-        prompt_token_ids = prompt_token_ids[-self.max_prompt_length:]
+        prompt_token_ids = agent.llm.tokenizer.apply_chat_template(
+            messages, add_special_tokens=True, add_generation_prompt=True
+        )
+        prompt_token_ids = prompt_token_ids[-self.max_prompt_length :]
         return Prompt(messages=messages, token_ids=prompt_token_ids)
 
 

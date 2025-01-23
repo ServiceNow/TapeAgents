@@ -671,7 +671,9 @@ class TrainableLLM(CachedLLM):
             headers |= {"Authorization": f"Bearer {self.api_token}"}
 
         prompt_token_ids = [
-            p.token_ids if p.token_ids else self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
+            p.token_ids
+            if p.token_ids
+            else self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
             for p in prompts
         ]
         data = {

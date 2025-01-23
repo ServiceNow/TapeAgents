@@ -372,14 +372,20 @@ def main(cfg: DictConfig):
                 ]
 
                 train_agent_replicas = [
-                    CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length) for llm in train_llms
+                    CoTMathAgent.create(
+                        system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length
+                    )
+                    for llm in train_llms
                 ]
 
                 splits = [("train", train_agent_replicas, train_tapes)]
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                     test_tapes = convert_problems_to_tapes(test_samples, cfg)
                     test_agent_replicas = [
-                        CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length) for llm in test_llms
+                        CoTMathAgent.create(
+                            system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length
+                        )
+                        for llm in test_llms
                     ]
                     splits.append(("test", test_agent_replicas, test_tapes))
                 for split_name, agent_replicas, tapes in splits:
