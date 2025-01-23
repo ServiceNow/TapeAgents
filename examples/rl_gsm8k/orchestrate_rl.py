@@ -195,13 +195,8 @@ def extract_tape_training_samples(
             trace.labels = labels
 
             # check if the last produced token is the end of sequence token
-            if input_ids[-1] != agent.llm.tokenizer.eos_token_id:
-                # if not, the output is truncated
-                overflow = True
-                trace.reward = cfg.overflow_reward
-            else:
-                overflow = False
-                trace.reward = reward
+            overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
+            trace.reward = cfg.overflow_reward if overflow else reward
             overflows.append(overflow)
             trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
             trace.group_id = new_tape.metadata.parent_id
