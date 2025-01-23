@@ -15,11 +15,15 @@ from tapeagents.utils import FatalError
 logger = logging.getLogger(__name__)
 
 
-@cached_tool
 def web_search_tool(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
     """
     Search the web for a given query, return a list of search result dictionaries.
     """
+    return _web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
+
+
+@cached_tool
+def _web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
     try:
         results = web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
     except Exception as e:

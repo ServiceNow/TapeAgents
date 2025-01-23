@@ -27,8 +27,6 @@ def cached_tool(tool_fn) -> Callable:
         add_to_cache(fn_name, args, kwargs, result)
         return result
 
-    wrapper.__name__ = tool_fn.__name__
-    wrapper.__doc__ = tool_fn.__doc__
     return wrapper
 
 

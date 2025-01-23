@@ -1,7 +1,6 @@
 import ast
 import json
 import os
-import re
 
 import yaml
 
@@ -19,7 +18,7 @@ from tapeagents.io import UnknownStep
 from tapeagents.observe import LLMCall
 from tapeagents.renderers.basic import BasicRenderer
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.container_executor import CodeBlock
+from tapeagents.tools.container_executor import ANSI_ESCAPE_REGEX, CodeBlock
 from tapeagents.view import Broadcast, Call, Respond
 
 YELLOW = "#ffffba"
@@ -30,8 +29,6 @@ PURPLE = "#E6E6FA"
 RED = "#ff7b65"
 GREEN = "#6edb8f"
 BLUE = "#bae1ff"
-
-ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 class CameraReadyRenderer(BasicRenderer):
@@ -157,7 +154,7 @@ class CameraReadyRenderer(BasicRenderer):
         elif isinstance(step, CodeExecutionResult):
             text = f"exit_code:{step.result.exit_code}\n" if step.result.exit_code else ""
             text += f"{maybe_fold(step.result.output, 2000)}"
-            text = ansi_escape.sub("", text)
+            text = ANSI_ESCAPE_REGEX.sub("", text)
             if step.result.exit_code == 0 and step.result.output_files:
                 for file in step.result.output_files:
                     text += render_image(file)

@@ -29,12 +29,9 @@ from typing import Any, ClassVar, Dict, List, Optional, Type, Union
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from tapeagents.utils import Lock
-
 logger = logging.getLogger(__name__)
 
-ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-
+ANSI_ESCAPE_REGEX = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 DEFAULT_CONTAINER = "tapeagents-code-exec"
 
 
@@ -50,7 +47,7 @@ def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -
 
 
 __all__ = ("ContainerExecutor",)
-lock = Lock("container_executor")
+
 DEFAULT_EXECUTION_POLICY = {
     "bash": True,
     "shell": True,
@@ -326,7 +323,7 @@ def execute_code_in_container(
             raise e
         assert isinstance(output, bytes)
         output = output.decode("utf-8")
-        output = ansi_escape.sub("", output)
+        output = ANSI_ESCAPE_REGEX.sub("", output)
         output = output.replace(filename, f"code.{code_block.language.lower()}")
         if exit_code == 124:
             output += "\n" + "Timeout"

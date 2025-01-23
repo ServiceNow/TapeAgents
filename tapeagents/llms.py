@@ -401,7 +401,7 @@ class CachedLLM(LLM):
                 if _REPLAY_SQLITE:
                     closest, score = closest_prompt(key, list(self._cache.keys()))
                     logger.error(
-                        f"LLM cache miss, closest in cache has score {score:.3f}\nDIFF:\n{diff_strings(key, closest)}"
+                        f"LLM cache miss, closest in cache has score {score:.3f}\nNEW:\n{key}\nCLOSEST OLD:\n{closest}\nDIFF:\n{diff_strings(key, closest)}"
                     )
                     raise ValueError(f"LLM cache miss not allowed. Prompt key: {key}")
                 toks = self.count_tokens(prompt.messages)
