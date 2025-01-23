@@ -9,7 +9,6 @@ import hashlib
 import json
 import logging
 import os
-import random
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -17,9 +16,9 @@ from collections import defaultdict
 from itertools import zip_longest
 from statistics import mean
 from typing import Any, Callable, Generator
-import numpy as np
 
 import litellm
+import numpy as np
 import requests
 from Levenshtein import ratio
 from pydantic import BaseModel, Field
@@ -209,7 +208,9 @@ class LLM(BaseModel, ABC):
         """
         return {"input": 0, "output": 0}
 
-    def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False) -> None | LLMCall:
+    def log_output(
+        self, prompt: Prompt, message: LLMOutput, cached: bool = False, count_tokens: bool = True
+    ) -> None | LLMCall:
         """
         Logs the output of an LLM (Language Model) call along with its metadata.
 
@@ -220,14 +221,21 @@ class LLM(BaseModel, ABC):
         """
 
         start_log_output = time.time()
-        prompt_length_tokens = self.count_tokens(prompt.messages)
-        if message.content:
-            output_length_tokens = (
-                self.count_tokens(prompt.messages + [{"role": "assistant", "content": message.content}])
-                - prompt_length_tokens
-            )
+        if count_tokens:
+            prompt_length_tokens = self.count_tokens(prompt.messages)
+            if message.content:
+                output_length_tokens = (
+                    self.count_tokens(prompt.messages + [{"role": "assistant", "content": message.content}])
+                    - prompt_length_tokens
+                )
+            else:
+                output_length_tokens = 0
+            self._stats["prompt_length_tokens"].append(prompt_length_tokens)
+            self._stats["output_length_tokens"].append(output_length_tokens)
         else:
-            output_length_tokens = 0
+            # -1 is the default value of prompt and output length tokens when token counting is disabled
+            prompt_length_tokens = -1
+            output_length_tokens = -1
 
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
@@ -238,8 +246,6 @@ class LLM(BaseModel, ABC):
             cached=cached,
             llm_info=self.get_info(),
         )
-        self._stats["prompt_length_tokens"].append(prompt_length_tokens)
-        self._stats["output_length_tokens"].append(output_length_tokens)
         token_costs = self.get_token_costs()
         llm_call.cost = (
             token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens
@@ -261,7 +267,9 @@ class LLM(BaseModel, ABC):
             "total_output_tokens": sum(self._stats["output_length_tokens"])
             if self._stats["output_length_tokens"]
             else 0,
-            "time_postprocess_llm_response": np.mean(self._stats["time_postprocess_llm_response"]) if self._stats["time_postprocess_llm_response"] else 0,
+            "time_postprocess_llm_response": np.mean(self._stats["time_postprocess_llm_response"])
+            if self._stats["time_postprocess_llm_response"]
+            else 0,
         }
 
 
@@ -530,7 +538,7 @@ class TrainableLLM(CachedLLM):
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
 
-    base_url: str | list[str]
+    base_url: str
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
 
@@ -542,7 +550,7 @@ class TrainableLLM(CachedLLM):
         """
         Returns the base URL for the API endpoint.
         """
-        return (self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)).rstrip("/")
+        return self.base_url.rstrip("/")
 
     def make_llm_call_logprobs(
         self, prompt_token_ids: list[int], completion_logprobs: list[dict]
@@ -593,11 +601,10 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.get_base_url()
-        logger.debug(f"POST request to {base_url}/v1/chat/completions")
+        logger.debug(f"POST request to {self.base_url}/v1/chat/completions")
         start_send_request = time.time()
         r = requests.post(
-            url=f"{base_url}/v1/chat/completions",
+            url=f"{self.base_url}/v1/chat/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,
@@ -664,7 +671,9 @@ class TrainableLLM(CachedLLM):
             headers |= {"Authorization": f"Bearer {self.api_token}"}
 
         prompt_token_ids = [
-            self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
+            p.token_ids
+            if p.token_ids
+            else self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
             for p in prompts
         ]
         data = {
@@ -680,11 +689,10 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        logger.debug(f"POST request to {base_url}/v1/completions")
+        logger.debug(f"POST request to {self.base_url}/v1/completions")
         start_send_request = time.time()
         r = requests.post(
-            url=f"{base_url}/v1/completions",
+            url=f"{self.base_url}/v1/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,
@@ -709,7 +717,7 @@ class TrainableLLM(CachedLLM):
                     # /v1/completions returns logprobs in a format different to /v1/chat/completions
                     # Before calling self.process_logprobs, we need to convert the logprobs to a
                     # list of dicts format similar to /v1/chat/completions
-                    
+
                     chat_completion_logprobs = [
                         {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
                         for j in range(len(completion_logprobs["tokens"]))
@@ -725,7 +733,20 @@ class TrainableLLM(CachedLLM):
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
             output = LLMOutput(content=content)
-            llm_call = self.log_output(prompts[i], output)
+            # if logprobs is not None, we will directly take the token counts from vLLM
+            # otherwise, we will count the tokens in the output using the tokenizer (which is sometimes inaccurate)
+            if logprobs:
+                llm_call = self.log_output(prompts[i], output, count_tokens=False)
+                llm_call.prompt_length_tokens = len(prompt_token_ids[i])
+                llm_call.output_length_tokens = len(chat_completion_logprobs)
+                self._stats["prompt_length_tokens"].append(llm_call.prompt_length_tokens)
+                self._stats["output_length_tokens"].append(llm_call.output_length_tokens)
+                assert (
+                    llm_call.output_length_tokens <= self.parameters["max_tokens"]
+                ), f"output_length_tokens: {llm_call.output_length_tokens}, max_tokens: {self.parameters['max_tokens']}"
+            else:
+                llm_call = self.log_output(prompts[i], output, count_tokens=True)
+                # do not assert token count since the tokenizer may not be accurate
             llm_call.logprobs = logprobs
             result.append(llm_call)
         self._stats["time_postprocess_llm_response"].append(time.time() - start_postprocess_time)
@@ -787,8 +808,7 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        url = f"{base_url}/v1/completions"
+        url = f"{self.base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
         r.raise_for_status()  # raise exception if status code is not in the 200s
@@ -804,8 +824,10 @@ class TrainableLLM(CachedLLM):
                     v.update({"generated": 0, "token_id": k})
                     logprobs.append(v)
         return {"content": logprobs}
-    
-    def get_batch_logprobs_token_ids(self, prompt_token_ids: list[list[int]], completion_token_ids: list[list[int]]) -> list[dict[str, Any]]: 
+
+    def get_batch_logprobs_token_ids(
+        self, prompt_token_ids: list[list[int]], completion_token_ids: list[list[int]]
+    ) -> list[dict[str, Any]]:
         if not self.tokenizer:
             self.load_tokenizer()
         batch_size = len(prompt_token_ids)
@@ -821,13 +843,12 @@ class TrainableLLM(CachedLLM):
             "max_tokens": 0,
             "logprobs": 0,
             "echo": True,
-            "include_stop_str_in_output": True,  # self.include_stop_str_in_output, 
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output,
             "skip_special_tokens": False,
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        url = f"{base_url}/v1/completions"
+        url = f"{self.base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
         r.raise_for_status()
@@ -840,7 +861,7 @@ class TrainableLLM(CachedLLM):
         all_logprobs = []
         for i in range(batch_size):
             logprobs = []
-            for lp in response["choices"][i]["prompt_logprobs"][-len(completion_token_ids[i]):]:
+            for lp in response["choices"][i]["prompt_logprobs"][-len(completion_token_ids[i]) :]:
                 if lp:
                     for k, v in lp.items():
                         v.update({"generated": 0, "token_id": k})
@@ -977,10 +998,6 @@ class TrainableLLM(CachedLLM):
         try:
             response = r.json()
             log_probs = [list(log_prob.values())[0] for log_prob in response["prompt_logprobs"] if log_prob]
-            decoded_prompt_completion_tokens = [log_prob["decoded_token"] for log_prob in log_probs][
-                : len(prompt_completion_encoded)
-            ]
-            reconstructed_prompt_completion = "".join(decoded_prompt_completion_tokens)
             completion_log_probs = log_probs[len(prompt_encoded) : len(prompt_completion_encoded)]
             decoded_completion_tokens = [log_prob["decoded_token"] for log_prob in completion_log_probs]
             reconstructed_completion = "".join(decoded_completion_tokens)

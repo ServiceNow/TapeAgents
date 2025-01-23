@@ -332,6 +332,7 @@ class Prompt(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     tools: list[dict] | None = None
     messages: list[dict] = Field(default_factory=list)
+    token_ids: list[int] = Field(default_factory=list)
 
     @staticmethod
     def from_user_message(content: str) -> Prompt:

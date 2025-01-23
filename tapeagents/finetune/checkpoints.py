@@ -344,7 +344,7 @@ def save_model_only(
         logger.info(f"Saved model to {output_dir}")
     else:
         raise ValueError(f"model is neither a deepspeed model nor a transformers.PreTrainedModel: {type(model)}")
-    
+
     if os.path.exists(output_dir / "model.safetensors") and os.path.exists(output_dir / "model.safetensors.index.json"):
         logger.info("Hide model.safetensors because it utterly confuses the HF model loading code")
         os.rename(output_dir / "model.safetensors", output_dir / "model.safetensors.bak")

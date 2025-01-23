@@ -1,20 +1,19 @@
-from importlib.metadata import distributions
 import json
 import logging
 import os
 import time
+from importlib.metadata import distributions
 from pathlib import Path
 from typing import Any
 
 import datasets
 import transformers
-import wandb
 from omegaconf import DictConfig
+
+import wandb
 from wandb.sdk import wandb_run
 
 from .context import accelerator, logger
-
-wandb.require("core")
 
 
 def init_wandb(
@@ -32,7 +31,7 @@ def init_wandb(
 
     python_env = {}
     for dist in distributions():
-        python_env[dist.metadata['Name']] = dist.version
+        python_env[dist.metadata["Name"]] = dist.version
     config_for_wandb["python_env"] = python_env
 
     wandb_id = cfg.finetune.wandb_id

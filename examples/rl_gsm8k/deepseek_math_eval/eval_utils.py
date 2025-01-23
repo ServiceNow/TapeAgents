@@ -216,7 +216,8 @@ def math_equal(
                     else:
                         if item == prediction:
                             return True
-                except Exception:
+                except Exception as e:
+                    raise e
                     continue
             return False
     except:
@@ -299,8 +300,9 @@ def math_equal(
         if call_with_timeout(symbolic_equal_process, prediction, reference):
             return True
     else:
-        if symbolic_equal(prediction, reference):
-            return True
+        pass
+        #if symbolic_equal(prediction, reference):
+        #    return True
 
     return False
 
