@@ -71,7 +71,11 @@ class ReasoningNode(MonoNode):
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
-        messages.append({"role": "user", "content": tape.steps[0].llm_view()})
+        
+        # the tape is only step long and it is the task
+        task = tape.steps[0]
+        assert isinstance(task, Task), f"Expected a Task, got {task.__class__.__name__}"
+        messages.append({"role": "user", "content": task.llm_view()})
         #messages = self.tape_to_messages(cleaned_tape, steps_description)
         prompt_token_ids = agent.llm.tokenizer.apply_chat_template(
             messages, add_special_tokens=True, add_generation_prompt=True
