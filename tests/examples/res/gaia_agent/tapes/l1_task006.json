@@ -1,7 +1,7 @@
 {
     "metadata": {
-        "id": "521429c0-2cde-4004-823f-4f06d91cb327",
-        "parent_id": "6aa80e8f-98b5-4e12-bccd-0eb7a20d0c47",
+        "id": "1482f8cc-2507-42fd-b746-7af683629183",
+        "parent_id": "38a70208-2418-47a6-bfd5-4f0ab36832f9",
         "author": "gaia_agent_v3",
         "author_tape_id": null,
         "n_added_steps": 3,
@@ -26,12 +26,12 @@
         "level": 1,
         "other": {
             "timers": {
-                "solve_task": 12.451780082999903,
-                "load_task": 0.0009649170024204068,
-                "instantiate_llm": 0.0012782499979948625,
-                "create_env": 0.0004959169964422472,
-                "create_agent": 0.00024045800091698766,
-                "close_env": 0.0007571659953100607
+                "solve_task": 10.936014125007205,
+                "load_task": 0.0012357079976936802,
+                "instantiate_llm": 0.0009048329957295209,
+                "create_env": 0.0005518340039998293,
+                "create_agent": 0.00025362501037307084,
+                "close_env": 0.0006938750011613593
             }
         }
     },
@@ -41,7 +41,7 @@
     "steps": [
         {
             "metadata": {
-                "id": "edfb0114-5203-4707-a720-40c54e683128",
+                "id": "0f2bc286-6b62-47a2-b01b-55e7cb2fb97c",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -53,8 +53,8 @@
         },
         {
             "metadata": {
-                "id": "7aa2a191-69b2-4746-9885-87248f6f84a6",
-                "prompt_id": "7cfd9b61-7a80-425d-8f70-25f52c9866d4",
+                "id": "5ddfb1f0-88cc-4cf9-ab1f-b9902fc206b4",
+                "prompt_id": "3ffaec26-11b6-4556-8ec1-94136db1f465",
                 "node": "plan",
                 "agent": "gaia_agent_v3",
                 "other": {}
@@ -68,8 +68,8 @@
         },
         {
             "metadata": {
-                "id": "54132f89-0e41-447d-b602-c371eb530997",
-                "prompt_id": "9ab789bb-fe10-4a15-8d6b-13def95a7a98",
+                "id": "a5f87ab9-cab1-4bb4-8fa3-b7880acb61cf",
+                "prompt_id": "cdfdd533-c18c-4881-895a-828613f00136",
                 "node": "facts_survey",
                 "agent": "gaia_agent_v3",
                 "other": {}
@@ -86,8 +86,8 @@
         },
         {
             "metadata": {
-                "id": "dde9d44f-a4dc-44cf-b331-0f6e28a64853",
-                "prompt_id": "8e3a27d2-c955-4e08-b1fa-e8756427147a",
+                "id": "9d222679-1d2b-41fc-bfdb-f58ace11575f",
+                "prompt_id": "61c2340c-8ed8-435a-afd2-4576f49514f5",
                 "node": "start",
                 "agent": "gaia_agent_v3",
                 "other": {}
@@ -98,12 +98,12 @@
         },
         {
             "metadata": {
-                "id": "1f8bc0a9-4d9e-4b0a-adac-79fbe326acbb",
+                "id": "76f93b15-7bea-45be-8610-73b7c62b8efd",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "other": {
-                    "action_execution_time": 0.8463718330021948,
+                    "action_execution_time": 0.7964986250008224,
                     "action_kind": "search_action"
                 }
             },
@@ -131,29 +131,30 @@
                     "content": "The Doctor Who Transcripts - 9th Doctor Episode Listings ; Rose, 1.1, 26 Mar, 2005 ; The End of the World, 1.2, 2 Apr, 2005 ; The Unquiet Dead, 1.3, 9 Apr. 2005."
                 },
                 {
-                    "title": "Doctor Who Series 9 (2015) - BBC",
-                    "url": "https://www.bbc.co.uk/writers/scripts/whoniverse/doctor-who/series-9-2015",
-                    "content": "Episode 10 - Face The Raven (Shooting Script) by Sarah Dollard. Episode 10 - Face The Raven by Sarah Dollard. Episode 11 - Heaven Sent by Steven Moffat."
+                    "title": "Script Library - Doctor Who (2005-2022) - BBC",
+                    "url": "https://www.bbc.co.uk/writers/scripts/whoniverse/doctor-who-2005-2022",
+                    "content": "Here you will find TV scripts for Doctor Who - including episodes from Eccleston, Tennant, Smith, Capaldi, and Whittaker's tenures in the iconic role."
                 }
-            ]
+            ],
+            "error": null
         },
         {
             "metadata": {
-                "id": "f252fa0c-8831-4f08-b62e-6397fee83ffd",
-                "prompt_id": "452ce564-486e-4254-b716-a2afc4a53432",
+                "id": "960fc85b-c268-4a83-8c2b-7935c4d575c3",
+                "prompt_id": "468e7baf-1c9c-4df1-8574-783aa3eb7075",
                 "node": "act",
                 "agent": "gaia_agent_v3",
                 "other": {}
             },
             "kind": "read_document_action",
             "url": "https://www.bbc.co.uk/writers/documents/doctor-who-s9-ep11-heaven-sent-steven-moffat.pdf",
-            "fact_description": "first scene heading location name",
+            "fact_description": "first scene heading location",
             "fact_name": "location name"
         },
         {
             "metadata": {
-                "id": "ce8d7d61-03e9-4d48-bdfd-d86adbd7d7c6",
-                "prompt_id": "452ce564-486e-4254-b716-a2afc4a53432",
+                "id": "8eeae0ce-ec41-40a9-aed9-95723a5aee18",
+                "prompt_id": "468e7baf-1c9c-4df1-8574-783aa3eb7075",
                 "node": "act",
                 "agent": "gaia_agent_v3",
                 "other": {}
@@ -163,12 +164,12 @@
         },
         {
             "metadata": {
-                "id": "858ecaab-87cf-4ce9-9af5-d9e6257e1009",
+                "id": "65aed1da-642d-4245-ba72-c23c5e2a5caf",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "other": {
-                    "action_execution_time": 1.8041851250018226,
+                    "action_execution_time": 1.171240209005191,
                     "action_kind": "read_document_action"
                 }
             },
@@ -180,22 +181,22 @@
         },
         {
             "metadata": {
-                "id": "0d6b6e74-9530-4919-a1b6-56a963a7721d",
-                "prompt_id": "7e4816ea-f424-43e8-8c96-ea8e8317660b",
+                "id": "c9fa77ab-6312-4d08-89de-24d3dc4d014f",
+                "prompt_id": "cec6d94b-48c1-4c03-8675-3641dc6647ce",
                 "node": "act",
                 "agent": "gaia_agent_v3",
                 "other": {}
             },
             "kind": "reading_result_thought",
-            "fact_description": "first scene heading location name",
+            "fact_description": "first scene heading location",
             "fact_found": true,
             "quote_with_fact": "INT. THE CASTLE - DAY",
             "where_to_look_next": ""
         },
         {
             "metadata": {
-                "id": "0f03318d-da60-4079-ba20-f6e3a5b6b06a",
-                "prompt_id": "7e4816ea-f424-43e8-8c96-ea8e8317660b",
+                "id": "7c736672-25bb-405a-8ea5-a46f2bde6449",
+                "prompt_id": "cec6d94b-48c1-4c03-8675-3641dc6647ce",
                 "node": "act",
                 "agent": "gaia_agent_v3",
                 "other": {}
@@ -205,15 +206,15 @@
         },
         {
             "metadata": {
-                "id": "cf9df920-0cdb-42a1-83a9-0d12077f3fe8",
-                "prompt_id": "0543faf3-0ea8-4ec3-99eb-b1695b6751b1",
+                "id": "62227d4f-53be-444d-9ced-e044fb5f8ad3",
+                "prompt_id": "e338da51-fad6-49bd-bb8c-24719b7acac2",
                 "node": "act",
                 "agent": "gaia_agent_v3",
                 "other": {}
             },
             "kind": "gaia_answer_action",
             "success": true,
-            "overview": "Extracted the first scene heading from the script.",
+            "overview": "Extracted the location from the script.",
             "answer_unit": "",
             "answer": "THE CASTLE"
         }
