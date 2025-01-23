@@ -115,6 +115,4 @@ cython_debug/
 *.lock
 
 /wandb/
-outputs/
-data/
 /temp/

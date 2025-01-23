@@ -26,8 +26,8 @@ from tapeagents.tools.browser import (
 )
 from tapeagents.tools.calculator import CalculationResultObservation
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.search import SearchAction, SearchResultsObservation
 from tapeagents.tools.simple_browser import NextPageAction, PageObservation, ReadDocumentAction
+from tapeagents.tools.web_search import SearchAction, SearchResultsObservation
 
 
 class Plan(Thought):

@@ -15,26 +15,23 @@ from tapeagents.utils import FatalError
 logger = logging.getLogger(__name__)
 
 
+@cached_tool
 def web_search_tool(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
     """
     Search the web for a given query, return a list of search result dictionaries.
     """
-    return _web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
+    try:
+        results = web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
+    except Exception as e:
+        logger.warning(f"Failed to fetch search results: {e}")
+    return results
 
 
-@cached_tool
-def _web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
-    return web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
-
-
-def web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
+def web_search(query: str, max_results: int = 5, retry_pause: int = 2, attempts: int = 3) -> list[dict]:
     results = []
     while not results and attempts > 0:
         attempts -= 1
-        try:
-            results = serper_search(query, max_results=max_results)
-        except Exception as e:
-            logger.warning(f"Failed to fetch search results: {e}")
+        results = serper_search(query, max_results=max_results)
         if not results:
             logger.warning(f"Empty search results, retrying in {retry_pause} seconds")
             time.sleep(retry_pause)
@@ -76,9 +73,10 @@ class SearchResultsObservation(Observation):
     kind: Literal["search_results_observation"] = "search_results_observation"
     query: str
     serp: list[dict[str, str]]
+    error: str | None = None
 
 
-class Search(Tool):
+class WebSearch(Tool):
     """
     Tool that performs a search in the web, wikipedia or youtube
     """
@@ -94,4 +92,9 @@ class Search(Tool):
             query = f"site:youtube.com {action.query}"
         else:
             query = action.query
-        return SearchResultsObservation(query=action.query, serp=web_search(query))
+        error = None
+        try:
+            results = web_search(query)
+        except Exception as e:
+            error = str(e)
+        return SearchResultsObservation(query=action.query, serp=results, error=error)

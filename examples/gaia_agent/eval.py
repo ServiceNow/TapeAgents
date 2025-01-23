@@ -16,8 +16,8 @@ from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import step_view
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.search import SearchAction
 from tapeagents.tools.simple_browser import SimpleTextBrowser
+from tapeagents.tools.web_search import SearchAction
 
 from .agent import GaiaAgent
 from .scorer import question_scorer
