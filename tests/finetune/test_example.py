@@ -60,7 +60,7 @@ def test_rl_gsm8k_data():
     tapes = load_tapes(RLMathTape, run_dir, file_extension=".json")
     llm = mock_llm(run_dir)
     llm.tokenizer = transformers.AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct")
-    agent = CoTMathAgent.create(system_prompt="", llm=llm)
+    agent = CoTMathAgent.create(system_prompt="", llm=llm, max_prompt_length=1024)
     cfg = DictConfig(
         {"dataset_name": "math", "llm": {"parameters": {"max_tokens": 2048}}, "finetune": {"seq_length": 2048}}
     )
