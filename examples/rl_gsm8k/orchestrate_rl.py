@@ -19,10 +19,11 @@ from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
+import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
-from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb, wandb
+from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 
 from .cot_math_agent import CoTMathAgent, RLMathTape, Task
@@ -376,14 +377,14 @@ def main(cfg: DictConfig):
                 ]
 
                 train_agent_replicas = [
-                    CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm) for llm in train_llms
+                    CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length) for llm in train_llms
                 ]
 
                 splits = [("train", train_agent_replicas, train_tapes)]
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                     test_tapes = convert_problems_to_tapes(test_samples, cfg)
                     test_agent_replicas = [
-                        CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm) for llm in test_llms
+                        CoTMathAgent.create(system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length) for llm in test_llms
                     ]
                     splits.append(("test", test_agent_replicas, test_tapes))
                 for split_name, agent_replicas, tapes in splits:

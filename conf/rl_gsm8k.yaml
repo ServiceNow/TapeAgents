@@ -39,6 +39,7 @@ system_prompt: null
 task_template: |-
   {task}\nPlease reason step by step, and put your final answer within \boxed{{}}.
 overflow_reward: 0
+max_prompt_length: 1024
 
 vllm_config:
   vllm_kwargs:

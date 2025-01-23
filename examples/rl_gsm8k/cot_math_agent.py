@@ -1,5 +1,5 @@
 import logging
-from typing import Annotated, Generator, Literal, TypeAlias, Union
+from typing import Annotated, Any, Generator, Literal, TypeAlias, Union
 
 from pydantic import Field
 
@@ -7,6 +7,7 @@ from tapeagents.agent import Agent
 from tapeagents.core import (
     LLMOutputParsingFailureAction,
     Observation,
+    Prompt,
     Step,
     Tape,
     Thought,
@@ -53,7 +54,7 @@ RLMathTape = Tape[
 
 
 class ReasoningNode(MonoNode):
-    trim_tape_when_too_long: bool = False
+    max_prompt_length: int = 1024
 
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
         try:
@@ -66,11 +67,43 @@ class ReasoningNode(MonoNode):
             return
         yield step
 
+    def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
+        """Create a prompt from tape interactions.
+
+        This method constructs a prompt by processing the tape content and agent steps description
+        into a format suitable for LLM consumption. It includes token count checks and tape trimming
+        if needed to fit within context size limits.
+
+        Args:
+            agent (Any): The agent object containing LLM configuration.
+            tape (Tape): The tape object containing interaction history.
+
+        Returns:
+            Prompt: A Prompt object containing formatted messages for LLM consumption.
+
+        Note:
+            The method performs the following steps:
+
+            1. Cleans the tape content
+            2. Gets steps description
+            3. Converts tape to messages
+            4. Checks token count and trims if needed
+            5. Reconstructs messages if trimming occurred
+        """
+        cleaned_tape = self.prepare_tape(tape)
+        steps_description = self.get_steps_description(tape, agent)
+        messages = self.tape_to_messages(cleaned_tape, steps_description)
+        messages = self.tape_to_messages(cleaned_tape, steps_description)
+        agent.llm.load_tokenizer()
+        prompt_token_ids = agent.llm.tokenizer.apply_chat_template(messages, add_special_tokens=True, add_generation_prompt=True)
+        prompt_token_ids = prompt_token_ids[-self.max_prompt_length:]
+        return Prompt(messages=messages, token_ids=prompt_token_ids)
+
 
 #### Agent and Environment ####
 class CoTMathAgent(Agent):
     @classmethod
-    def create(cls, system_prompt: str, llm: LLM):
+    def create(cls, system_prompt: str, llm: LLM, max_prompt_length: int):
         agent = super().create(
             llm,
             nodes=[
@@ -78,6 +111,7 @@ class CoTMathAgent(Agent):
                     name="cot",
                     agent_step_cls=MathAgentStep,
                     system_prompt=system_prompt if system_prompt else "",
+                    max_prompt_length=max_prompt_length,
                 ),
             ],
             max_iterations=1,
