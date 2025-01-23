@@ -744,6 +744,7 @@ class TrainableLLM(CachedLLM):
                 ), f"output_length_tokens: {llm_call.output_length_tokens}, max_tokens: {self.parameters['max_tokens']}"
             else:
                 llm_call = self.log_output(prompts[i], output, count_tokens=True)
+                # do not assert token count since the tokenizer may not be accurate
             llm_call.logprobs = logprobs
             result.append(llm_call)
         self._stats["time_postprocess_llm_response"].append(time.time() - start_postprocess_time)
