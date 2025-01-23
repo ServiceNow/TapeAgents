@@ -731,6 +731,8 @@ class TrainableLLM(CachedLLM):
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
             output = LLMOutput(content=content)
+            # if logprobs is not None, we will directly take the token counts from vLLM
+            # otherwise, we will count the tokens in the output using the tokenizer (which is sometimes inaccurate)
             if logprobs:
                 llm_call = self.log_output(prompts[i], output, count_tokens=False)
                 llm_call.prompt_length_tokens = len(prompt_token_ids[i])
