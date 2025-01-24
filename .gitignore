@@ -107,12 +107,11 @@ cython_debug/
 !/tests/**/*cache*.json
 
 *.jsonl
-!tests/res/*/*.jsonl
+!/tests/**/*.jsonl
 !tests/**/**.sqlite
 *.log
 *.sqlite
 *.zip
-*.lock
 
 /wandb/
 /temp/
