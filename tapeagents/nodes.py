@@ -274,6 +274,8 @@ class MonoNode(Node):
         """
         if llm_output.strip().startswith("```"):  # handle special case of code blocks
             for code_block in extract_code_blocks(llm_output):
+                if code_block.language and code_block.language != "python":
+                    raise LLMOutputParsingFailureAction(f"Unsupported code block language: {code_block.language}")
                 yield PythonCodeAction(code=code_block.code)
             return
 
