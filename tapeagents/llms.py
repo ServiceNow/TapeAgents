@@ -21,6 +21,7 @@ import litellm
 import numpy as np
 import requests
 from Levenshtein import ratio
+from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
@@ -465,13 +466,20 @@ class LiteLLM(CachedLLM):
 
     def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
         while True:
+            kwargs = {}
+            for k, v in self.parameters.items():
+                print(f"{k}: {type(v)}")
+                if isinstance(v, DictConfig):
+                    kwargs[k] = OmegaConf.to_container(v)
+                else:
+                    kwargs[k] = v
             try:
                 response = litellm.completion(
                     model=self.model_name,
                     messages=prompt.messages,
                     tools=prompt.tools,
                     stream=self.stream,
-                    **self.parameters,
+                    **kwargs,
                 )
                 break
             except litellm.Timeout:
