@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 import wandb
 from wandb.sdk import wandb_run
 
-from .context import accelerator, logger
+from .context import get_accelerator, logger
 
 
 def init_wandb(
@@ -67,7 +67,7 @@ def init_wandb(
 def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None = None):
     log_dir = output_dir / "log/"
     log_dir.mkdir(parents=True, exist_ok=True)
-    debug_handler = logging.FileHandler(log_dir / f"info_{accelerator.process_index}.log")
+    debug_handler = logging.FileHandler(log_dir / f"info_{get_accelerator().process_index}.log")
     debug_handler.setLevel(logging.INFO)
     logging.basicConfig(
         format="%(asctime)s.%(msecs)03d - %(levelname)s - %(name)s - %(message)s",
@@ -76,8 +76,8 @@ def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None =
         handlers=[debug_handler, logging.StreamHandler()],
         force=True,  # forget previous handlers
     )
-    if accelerator.is_main_process:  # we only want to setup logging once
-        config_for_wandb = {str(k): str(v) for k, v in accelerator.state.__dict__.items()}
+    if get_accelerator().is_main_process:  # we only want to setup logging once
+        config_for_wandb = {str(k): str(v) for k, v in get_accelerator().state.__dict__.items()}
         config_for_wandb.update(flatten_dict_config(cfg.finetune))
 
         logger.setLevel(logging.INFO)
@@ -106,7 +106,7 @@ def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None =
 
 
 def log_metrics(logger: logging.Logger, completed_steps: int, metrics: dict[str, Any]):
-    if not accelerator.is_main_process:
+    if not get_accelerator().is_main_process:
         return
 
     # Print metrics with 3 decimals
@@ -119,7 +119,7 @@ def log_metrics(logger: logging.Logger, completed_steps: int, metrics: dict[str,
         logger.error(f"Failed to log metrics to wandb with error: {e}")
 
 
-def log_time(start_time: str, stats_dict: dict, msg: str):
+def log_time(start_time: float, stats_dict: dict, msg: str):
     t = time.perf_counter()
     stats_dict[msg] = t - start_time
     return t
