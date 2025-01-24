@@ -331,6 +331,7 @@ class Prompt(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     tools: list[dict] | None = None
     messages: list[dict] = Field(default_factory=list)
+    token_ids: list[int] = Field(default_factory=list)
 
     @staticmethod
     def from_user_message(content: str) -> Prompt:
@@ -380,7 +381,7 @@ class LLMCall(BaseModel):
     cached: bool
     llm_info: dict = {}
     cost: float = 0
-    logprobs: list = Field(default_factory=list, exclude=True)
+    logprobs: list[TokenLogprob] = Field(default_factory=list, exclude=True)
 
 
 AnnotatorTape = Tape[TapeType, StepType]

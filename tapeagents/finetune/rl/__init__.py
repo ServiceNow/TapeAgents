@@ -16,6 +16,7 @@ from .utils import (
     calculate_advantage,
     calculate_rewards_with_implicit_kl,
     masked_mean,
+    masked_sum,
     replace_dataset_column,
 )
 
@@ -55,9 +56,9 @@ class RLConfig(StepConfig):
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
-    log_ratio_ref_new_clamp_val: float = field(
+    clamp_log_ratio_ref_new_value: float = field(
         default=10,
-        metadata={"help": "Clamp the log ratio of reference and new log probs"},
+        metadata={"help": "Clamp the log ratio ref new value"},
     )
 
 
@@ -110,11 +111,13 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     ratio_new_old = torch.exp(log_ratio_new_old)
     log_p_weights = advantages if config.use_advantages else rewards
     log_p_weights = torch.clamp(log_p_weights, min=0) if config.relu_log_p_weights else log_p_weights
-    # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq
+    # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
-    log_ratio_ref_new_clamp_ind = torch.abs(log_ratio_ref_new) > config.log_ratio_ref_new_clamp_val
+    clamp_log_ratio_ref_new_indicators = torch.abs(log_ratio_ref_new) > config.clamp_log_ratio_ref_new_value
     log_ratio_ref_new_clamp = torch.clamp(
-        log_ratio_ref_new, min=-config.log_ratio_ref_new_clamp_val, max=config.log_ratio_ref_new_clamp_val
+        ref_logprobs - new_log_probs,
+        min=-config.clamp_log_ratio_ref_new_value,
+        max=config.clamp_log_ratio_ref_new_value,
     )
     approx_kl = torch.exp(log_ratio_ref_new_clamp) - log_ratio_ref_new_clamp - 1  # Schulman KL approx
     match config.algo:
@@ -130,15 +133,17 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
 
             assert approx_kl.shape == masks_.shape
             assert approx_kl.shape == surrogate_loss.shape
-            loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
+            loss = -masked_sum(surrogate_loss - config.kl_coef * approx_kl, masks_)
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = -masked_mean(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
+            loss = -masked_sum(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
 
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
+    # normalize the loss by the micro batch size
+    loss = loss / masks.shape[0]
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),
@@ -172,7 +177,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "ratio_new_old": masked_mean(ratio_new_old, masks_).item(),
         "ratio_ref_new": masked_mean(torch.exp(log_ratio_ref_new), masks_).item(),
         "ratio_ref_old": masked_mean(torch.exp(ref_logprobs - old_logprobs), masks_).item(),
-        "log_ratio_ref_new_clamp_ind": masked_mean(log_ratio_ref_new_clamp_ind, masks_).item(),
+        "clamp_log_ratio_ref_new_indicators": masked_mean(clamp_log_ratio_ref_new_indicators, masks_).item(),
     }
     return loss, stats
 
@@ -235,11 +240,7 @@ def populate_rl_data(
         Dataset: The dataset populated with RL-specific columns including rewards and advantages
     """
 
-    logger.info("Populate RL Data")
-
     dataset = update_rewards_and_advantages(dataset, config)
-
-    logger.info("Finish Populate RL Data")
     return dataset
 
 
