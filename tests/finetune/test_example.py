@@ -71,6 +71,11 @@ def test_rl_gsm8k_data():
                 step.metadata.other["llm_call"] = LLMCall(**llm_call_data)
         training_sample, _ = extract_tape_training_samples(tape, agent, "train", cfg)
         training_samples.append(training_sample[0])
+    # Save training samples to jsonl file
+    import json
+    with open(f"{run_dir}/training_samples.jsonl", "w") as f:
+        for sample in training_samples:
+            f.write(json.dumps(sample.model_dump()) + "\n")
     new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
     assert training_samples == new_training_samples
 
