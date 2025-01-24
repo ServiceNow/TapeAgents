@@ -100,5 +100,6 @@ class CoTMathAgent(Agent):
             max_iterations=1,
         )
         agent.store_llm_calls = True
-        agent.llm.load_tokenizer()
+        if agent.llm.tokenizer is None:
+            agent.llm.load_tokenizer()
         return agent
