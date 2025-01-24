@@ -87,7 +87,7 @@ class CoTMathAgent(Agent):
             nodes=[
                 ReasoningNode(
                     name="cot",
-                    agent_step_cls=ReasoningThought,
+                    agent_steps=ReasoningThought,
                     system_prompt=system_prompt,  # if system_prompt else "",
                     max_prompt_length=max_prompt_length,
                 ),
