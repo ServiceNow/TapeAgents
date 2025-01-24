@@ -73,6 +73,7 @@ def test_rl_gsm8k_data():
         training_samples.append(training_sample[0])
     # Save training samples to jsonl file
     import json
+
     with open(f"{run_dir}/training_samples.jsonl", "w") as f:
         for sample in training_samples:
             f.write(json.dumps(sample.model_dump()) + "\n")
