@@ -13,6 +13,9 @@ lint-check:
 test:
 	@uv run --all-extras pytest -s --color=yes -m "not slow" tests/
 
+test-core:
+	@uv run pytest -s --color=yes tests/ --ignore-glob="tests/*/*"
+
 test-slow:
 	@uv run --all-extras pytest -m "slow" tests/
 
