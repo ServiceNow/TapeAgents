@@ -40,7 +40,7 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
         case "math":
             train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
             process_fn = process_math_test
-            builder_config = "default"
+            builder_config = "main"
         case "gsm8k":
             train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
