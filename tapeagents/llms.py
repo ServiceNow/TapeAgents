@@ -468,7 +468,6 @@ class LiteLLM(CachedLLM):
         while True:
             kwargs = {}
             for k, v in self.parameters.items():
-                print(f"{k}: {type(v)}")
                 if isinstance(v, DictConfig):
                     kwargs[k] = OmegaConf.to_container(v)
                 else:
