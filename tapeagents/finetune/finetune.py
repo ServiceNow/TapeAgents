@@ -264,12 +264,11 @@ def run_finetuning_loop(
             # calculate per-step throughput and update moving average
             step_throughput = global_tokens / step_total_time if step_total_time > 0 else 0
             
-            # attempt to stbilize metrics by tracking throughput after warmup
+            # stabilize metrics by tracking throughput after warmup
             recent_throughputs.append(step_throughput)
             if training_metrics.completed_steps >= args.num_warmup_steps:
                 current_throughput = sum(recent_throughputs) / len(recent_throughputs)
             else:
-                # During warmup, use instantaneous throughput
                 current_throughput = step_throughput
 
             metrics_dict = {}
