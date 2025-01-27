@@ -163,7 +163,7 @@ def extract_tape_training_samples(
             reward, success = 1, 1
         else:
             # Incorrect answer or no answer
-            reward, success = getattr(cfg, "failure_reward", 0), 0
+            reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
     # For each LLM interaction in the tape:
