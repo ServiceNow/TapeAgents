@@ -38,9 +38,10 @@ logger = logging.getLogger(__name__)
 def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
     match cfg.dataset_name:
         case "math":
-            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            # train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            train_dataset_long_name = test_dataset_long_name = "/mnt/llmd/data/hendrycks___competition_math"
             process_fn = process_math_test
-            builder_config = "main"
+            builder_config = "default"
         case "gsm8k":
             train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
