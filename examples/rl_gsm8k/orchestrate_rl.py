@@ -160,7 +160,6 @@ def extract_tape_training_samples(
             }
         ):
             # Correct answer
-            reward, success = cfg.rewards.right_answer, 1
             reward, success = cfg.rewards.correct_answer, 1
         else:
             # Incorrect answer or no answer
