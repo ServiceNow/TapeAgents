@@ -60,14 +60,14 @@ class StandardNode(Node):
 
     guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
-    steps_prompt: str = ""  # prompt that describes the steps that the agent can take
-    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
+    steps_prompt: str = "{allowed_steps}"  # prompt that describes the steps that the agent can take
+    steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
     next_node: str = ""
-    trim_steps_except_last_n: int = 3
+    trim_obs_except_last_n: int = 3
     _steps_type: Any = None
 
     def model_post_init(self, __context: Any) -> None:
-        self._steps_type = Annotated[Union[self.agent_steps], Field(discriminator="kind")]
+        self._steps_type = Annotated[Union[self.steps], Field(discriminator="kind")]
         super().model_post_init(__context)
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
@@ -175,7 +175,7 @@ class StandardNode(Node):
         for i, step in enumerate(tape):
             steps_after_current = len(tape) - i - 1
             role = "assistant" if isinstance(step, AgentStep) else "user"
-            if isinstance(step, Observation) and steps_after_current >= self.trim_steps_except_last_n:
+            if isinstance(step, Observation) and steps_after_current >= self.trim_obs_except_last_n:
                 view = step.short_view()
             else:
                 view = step.llm_view()
