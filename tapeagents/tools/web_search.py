@@ -97,6 +97,7 @@ class WebSearch(Tool):
         else:
             query = action.query
         error = None
+        results = []
         try:
             results = web_search(query)
         except Exception as e:
