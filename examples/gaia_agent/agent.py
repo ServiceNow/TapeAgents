@@ -1,37 +1,18 @@
 from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
-from tapeagents.nodes import MonoNode
-from tapeagents.steps import ActionExecutionFailure, VideoObservation
-from tapeagents.tools.simple_browser import PageObservation
+from tapeagents.nodes import StandardNode
 
-from .prompts import PromptRegistry
+from .prompts import (
+    ALLOWED_STEPS,
+    ALLOWED_STEPS_CODE,
+    FACTS_SURVEY,
+    FORMAT,
+    PLAN,
+    START,
+    SYSTEM_PROMPT,
+)
 from .steps import THOUGHTS, FactsSurvey, Plan
-from .tape import GaiaTape
-
-
-class GaiaNode(MonoNode):
-    system_prompt: str = PromptRegistry.system_prompt
-    steps_prompt: str = PromptRegistry.allowed_steps
-
-    def prepare_tape(self, tape: GaiaTape, max_chars: int = 200) -> GaiaTape:
-        """
-        Trim long observations except for the last 3 steps
-        """
-        tape = super().prepare_tape(tape)  # type: ignore
-        steps = []
-        steps_border = -3
-        for step in tape.steps[:steps_border]:
-            if isinstance(step, PageObservation) and len(step.text) > max_chars:
-                trimmed_step = step.model_copy(update=dict(text=f"{step.text[:max_chars]}\n..."))
-            elif isinstance(step, ActionExecutionFailure) and len(step.error) > max_chars:
-                trimmed_step = step.model_copy(update=dict(error=f"{step.error[:max_chars]}\n..."))
-            elif isinstance(step, VideoObservation):
-                trimmed_step = step.model_copy(update=dict(video_contact_sheet_paths=None, subtitle_text=None))
-            else:
-                trimmed_step = step
-            steps.append(trimmed_step)
-        return tape.model_copy(update=dict(steps=steps + tape.steps[steps_border:]))
 
 
 class GaiaAgent(Agent):
@@ -39,12 +20,20 @@ class GaiaAgent(Agent):
 
     @classmethod
     def create(cls, llm: LLM, actions: tuple[Step, ...], plain_code: bool = False, **kwargs):
-        steps_prompt = PromptRegistry.allowed_steps_code if plain_code else PromptRegistry.allowed_steps
+        steps_prompt = ALLOWED_STEPS_CODE if plain_code else ALLOWED_STEPS
         steps = actions + THOUGHTS
+        sp = SYSTEM_PROMPT
         nodes = [
-            GaiaNode(name="plan", guidance=PromptRegistry.plan, agent_steps=Plan),
-            GaiaNode(name="facts_survey", guidance=PromptRegistry.facts_survey, agent_steps=FactsSurvey),
-            GaiaNode(name="start", guidance=PromptRegistry.start, steps_prompt=steps_prompt, agent_steps=steps),
-            GaiaNode(name="act", steps_prompt=steps_prompt, agent_steps=steps, next_node="act"),
+            StandardNode(name="plan", system_prompt=sp, guidance=PLAN, agent_steps=Plan),
+            StandardNode(name="facts_survey", system_prompt=sp, guidance=FACTS_SURVEY, agent_steps=FactsSurvey),
+            StandardNode(name="start", system_prompt=sp, guidance=START, steps_prompt=steps_prompt, agent_steps=steps),
+            StandardNode(
+                name="act",
+                system_prompt=sp,
+                guidance=FORMAT,
+                steps_prompt=steps_prompt,
+                agent_steps=steps,
+                next_node="act",
+            ),
         ]
         return super().create(llm, nodes=nodes, max_iterations=2, **kwargs)

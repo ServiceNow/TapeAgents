@@ -3,13 +3,11 @@ Your role is to understand user queries and respond in a helpful and accurate ma
 Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
 Do not express your emotions or opinions about the user question."""
 
-short_format_instruction = (
-    "DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output."
-)
+FORMAT = "Output only a single step. DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output."
 
-PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {short_format_instruction}'
-START = f"""Let's start executing the plan step by step, using allowed steps described earlier. {short_format_instruction}"""
-THINK_AFTER_OBSERVATION = f""""Lets think step by step about the observation, how it affects the plan and what should be done next. {short_format_instruction}"""
+PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {FORMAT}'
+START = f"""Let's start executing the plan step by step, using allowed steps described earlier. {FORMAT}"""
+REFLECT_OBSERVATION = f""""Lets think step by step about the observation, how it affects the plan and what should be done next. {FORMAT}"""
 
 ALLOWED_STEPS = """
 You can use the following tools: search the web, read web page or document, python code for computations and modeling, and reasoning.
@@ -48,15 +46,5 @@ When answering this survey, keep in mind that "facts" will typically be specific
     4. Educated guesses
 
 Respond with facts_survey_thought.
-{short_format_instruction}
+{FORMAT}
 """
-
-
-class PromptRegistry:
-    system_prompt = SYSTEM_PROMPT
-    plan = PLAN
-    start = START
-    facts_survey = FACTS_SURVEY
-    allowed_steps = ALLOWED_STEPS
-    allowed_steps_code = ALLOWED_STEPS_CODE
-    think_after_observation = THINK_AFTER_OBSERVATION
