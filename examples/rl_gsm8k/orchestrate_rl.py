@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 import wandb
 from tapeagents.agent import Agent
-from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.core import LLMCall, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
@@ -145,10 +145,11 @@ def extract_tape_training_samples(
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
-        # LLM produced a step that was unparsable. Negative reward.
-        no_error, reward, success = 0, -1, 0
+    if "\\boxed" not in new_tape.steps[-1].reasoning:
+        # LLM did not respect the formatting
+        no_error, success, reward = 0, 0, cfg.rewards.unparsable
     else:
+        # LLM did respect the formatting
         no_error = 1
         prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")  # type: ignore
         answer = new_tape.steps[0].metadata.other["value"]
@@ -159,10 +160,11 @@ def extract_tape_training_samples(
             }
         ):
             # Correct answer
-            reward, success = 1, 1
+            reward, success = cfg.rewards.right_answer, 1
+            reward, success = cfg.rewards.correct_answer, 1
         else:
             # Incorrect answer or no answer
-            reward, success = 0, 0
+            reward, success = cfg.rewards.wrong_answer, 0
 
     training_samples: list[TrainingText] = []
     # For each LLM interaction in the tape:
