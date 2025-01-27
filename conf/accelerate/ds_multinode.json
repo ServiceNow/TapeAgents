@@ -15,7 +15,6 @@
             "device": "cpu",
             "pin_memory": true,
             "fast_init": true,
-            "ratio": 0.45,
             "buffer_count": 8,
             "pipeline_read": true,
             "pipeline_write": true
@@ -28,7 +27,8 @@
         "round_robin_gradients": true
     },
     "bf16": {
-        "enabled": "auto"
+        "enabled": "auto",
+        "loss_scale": 0
     },
     "gradient_clipping": "auto",
     "train_micro_batch_size_per_gpu": "auto",
@@ -46,7 +46,7 @@
         "nccl_start_collective_timeout": 3600,
         "nccl_timeout": 3600,
         "hierarchical_allreduce": true,
-        "allreduce_always_fp32": true
+        "allreduce_always_fp32": false
     },
     "wall_clock_breakdown": true,
     "monitor_config": {

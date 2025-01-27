@@ -2,7 +2,7 @@ import contextlib
 import json
 import os
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from dataclasses import asdict
 from pathlib import Path
 import numpy as np
@@ -14,6 +14,7 @@ from transformers import (
     get_scheduler,
     set_seed,
 )
+from accelerate.utils import gather_object
 
 from tapeagents.core import TrainingText
 
@@ -39,6 +40,13 @@ def load_config(config_name: str, config_dir: str = "../../conf/finetune", outpu
     with initialize(version_base=None, config_path=config_dir, job_name=config_name):
         config = DictConfig(dict(finetune=compose(config_name=config_name), output_dir=output_dir))
     return config
+
+
+def get_batch_token_count(batch):
+    """Count actual tokens in batch (excluding padding)"""
+    attention_mask = batch.get('attention_mask')
+    assert attention_mask is not None, "We need attention_mask for accurate token counting"
+    return attention_mask.sum().item()
 
 
 def run_finetuning_loop(
@@ -180,6 +188,15 @@ def run_finetuning_loop(
     model.train()
     dt = log_time(dt, "finetune/prepare_training")
     last_dataloader_position = training_metrics.passes % len(train_dataloader)
+
+    # Add throughput tracking variables
+    training_start_time = None
+    total_tokens = 0
+    # TODO: Add the vars below to the config
+    recent_throughputs = deque(maxlen=100)  # Store last 100 steps
+    num_nodes = getattr(args, "num_nodes", 2)  # Default to 2 if not specified
+    gpus_per_node = getattr(args, "gpus_per_node", 8)  # Default to 8 if not specified
+
     while training_metrics.completed_steps < final_train_steps:
         training_metrics.epoch = training_metrics.passes // len(train_dataloader)
 
@@ -187,14 +204,18 @@ def run_finetuning_loop(
         dataloader_rng.manual_seed(training_metrics.epoch)
 
         for i, batch in enumerate(train_dataloader):
-            num_tokens = batch["input_ids"].numel()
+            if training_start_time is None:
+                training_start_time = time.time()
+
+            total_possible_tokens = batch['input_ids'].numel()
+            num_tokens = get_batch_token_count(batch)
             if args.resume_dataloader and last_dataloader_position != 0:
                 if i < last_dataloader_position:  # rewind train dataloader to the last used position
                     continue
                 last_dataloader_position = 0  # the following dataloader loop should start from 0 after rewinding
                 logger.info(f"Resumed dataloader from epoch {training_metrics.epoch}, position {i}")
 
-            time_before = time.time()
+            step_start_time = time.time()
             training_metrics.passes += 1
             training_metrics.samples = training_metrics.passes * samples_per_pass
 
@@ -226,7 +247,29 @@ def run_finetuning_loop(
             lr_scheduler.step()
             optimizer.zero_grad()
 
-            step_took = time.time() - time_before
+            step_training_time = time.time() - step_start_time
+            step_total_time = time.time() - step_start_time
+
+            # Gather tokens from all workers
+            num_tokens_tensor = torch.tensor([num_tokens], device=accelerator.device)
+            torch.distributed.all_reduce(num_tokens_tensor, op=torch.distributed.ReduceOp.SUM)
+
+            global_tokens = num_tokens_tensor.item()
+                
+            # Update total tokens only on main process
+            if accelerator.is_main_process:
+                total_tokens += global_tokens
+
+            padding_efficiency = num_tokens / total_possible_tokens
+            # calculate per-step throughput and update moving average
+            step_throughput = global_tokens / step_total_time if step_total_time > 0 else 0
+            
+            # attempt to stbilize metrics by tracking throughput after warmup
+            if training_metrics.completed_steps >= args.num_warmup_steps:
+                recent_throughputs.append(step_throughput)
+                current_throughput = sum(recent_throughputs) / len(recent_throughputs)
+            else:
+                current_throughput = step_throughput  # during warmup, just use the current step's throughput
 
             metrics_dict = {}
             time_to_stop = training_metrics.completed_steps >= final_train_steps
@@ -235,29 +278,59 @@ def run_finetuning_loop(
                 len(args.also_save_steps) and training_metrics.completed_steps in args.also_save_steps
             )
             time_to_save = time_to_save and not time_to_stop
+            
             if time_to_log or time_to_save:
-                dt = log_time(dt, "finetune/interim_eval")
-                metrics_dict.update(
-                    {
-                        "stats/lr": training_metrics.lr,
-                        "stats/grad_norm": training_metrics.grad_norm,
-                        "stats/samples": training_metrics.passes * samples_per_pass,
-                        "stats/passes": training_metrics.passes,
-                        "stats/completed_steps": training_metrics.completed_steps,
-                        "stats/epoch": training_metrics.epoch,
-                        "throughput/tokens_perGPU_per_sec": num_tokens / step_took,
-                        "throughput/tokens_per_sec": num_tokens * num_processes / step_took,
-                        "throughput/passes_per_sec": 1 / step_took,
-                        "throughput/steps_per_sec": 1 / args.gradient_accumulation_passes / step_took,
-                        "throughput/sec_per_step": step_took / args.gradient_accumulation_passes,
-                        "loss/train": training_metrics.train_loss,
-                        "dataset_stats/max_batch_len": training_metrics.max_batch_len,
-                        "dataset_stats/min_batch_len": training_metrics.min_batch_len,
-                    }
-                )
+                elapsed_time = time.time() - training_start_time
+                elapsed_hours = elapsed_time / 3600
+                elapsed_days = elapsed_time / (24 * 3600)
+                node_days = elapsed_days * num_nodes
 
-                metrics_dict.update(get_avg_rl_stats(rl_metrics))
-                rl_metrics = defaultdict(list)
+                # calculate throughput metrics using total_tokens
+                tokens_per_second = total_tokens / elapsed_time
+                tokens_per_gpu_second = tokens_per_second / (num_nodes * gpus_per_node)
+                tokens_per_node_second = tokens_per_second / num_nodes
+                tokens_per_hour = tokens_per_second * 3600
+                tokens_per_day = tokens_per_second * 24 * 3600
+                tokens_per_day_per_node = tokens_per_day / num_nodes
+                tokens_per_day_per_gpu = tokens_per_day / (num_nodes * gpus_per_node)
+
+                optimizer_step_throughput = tokens_per_second * args.gradient_accumulation_passes
+
+                metrics_dict.update({
+                    # Average throughput metrics
+                    "throughput/tokens_per_second": tokens_per_second,
+                    "throughput/tokens_per_hour_M": tokens_per_hour / 1e6,
+                    "throughput/tokens_per_day_B": tokens_per_day / 1e9,
+                    "throughput/tokens_per_day_per_node_M": tokens_per_day_per_node / 1e6,
+                    "throughput/tokens_per_day_per_gpu_M": tokens_per_day_per_gpu / 1e6,
+                    "throughput/tokens_per_gpu_second": tokens_per_gpu_second,
+                    "throughput/tokens_per_node_second": tokens_per_node_second,
+                    "throughput/total_tokens_B": total_tokens / 1e9,
+                    "throughput/optimizer_step_throughput": optimizer_step_throughput,
+                    "throughput/padding_efficiency": padding_efficiency,
+                    
+                    # Current step metrics
+                    "throughput/current_tokens_per_second": current_throughput,
+                    "throughput/raw_step_tokens_per_second": step_throughput,
+                    
+                    # Time metrics
+                    "time/total_hours": elapsed_hours,
+                    "time/total_nodedays": node_days,
+                    "time/elapsed_days": elapsed_days,
+                    "time/step_total_seconds": step_total_time,
+                    "time/step_training_seconds": step_training_time,
+                    "time/tokens_per_step": global_tokens,
+                    "time/tokens_per_second_this_step": global_tokens / step_total_time if step_total_time > 0 else 0,
+                })
+
+            # Add memory metrics if using GPU
+            if torch.cuda.is_available():
+                metrics_dict.update({
+                    "memory/gpu_allocated_gb": torch.cuda.memory_allocated() / 1e9,
+                    "memory/gpu_reserved_gb": torch.cuda.memory_reserved() / 1e9,
+                    "memory/gpu_max_allocated_gb": torch.cuda.max_memory_allocated() / 1e9,
+                    "memory/gpu_peak_reserved_gb": torch.cuda.max_memory_reserved() / 1e9
+                })
 
             if time_to_save:
                 # Overwrite latest model at pytorch_model.bin (for later JGA evaluation *and* for resuming training)
