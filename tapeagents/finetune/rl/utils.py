@@ -70,8 +70,10 @@ def calculate_rewards_with_implicit_kl(row, reward_minus_kl_coef):
     old_logprobs = row["old_logprobs"]
     ref_logprobs = row["ref_logprobs"]
     log_ratio_ref_old = ref_logprobs - old_logprobs
-    kl = (np.exp(log_ratio_ref_old) - log_ratio_ref_old - 1).sum()  # Schulman KL approx
-    return [reward - reward_minus_kl_coef * kl for reward in rewards]
+    # stepwise KL
+    kls = (np.exp(log_ratio_ref_old) - log_ratio_ref_old - 1)  # Schulman KL approx
+    # stepwise reward
+    return [reward - reward_minus_kl_coef * kl for reward, kl in zip(rewards, kls)]
 
 
 def calculate_advantage(row):
