@@ -30,7 +30,7 @@ from tapeagents.view import Call, Respond, TapeViewStack
 logger = logging.getLogger(__name__)
 
 
-class MonoNode(Node):
+class StandardNode(Node):
     """
     A node for simple monolithic agents that handles simple prompt generation, and universal LLM output parsing.
 
@@ -63,6 +63,7 @@ class MonoNode(Node):
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
     agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
     next_node: str = ""
+    trim_steps_except_last_n: int = 3
     _steps_type: Any = None
 
     def model_post_init(self, __context: Any) -> None:
@@ -171,9 +172,14 @@ class MonoNode(Node):
             messages.append({"role": "system", "content": self.system_prompt})
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
-        for step in tape:
+        for i, step in enumerate(tape):
+            steps_after_current = len(tape) - i - 1
             role = "assistant" if isinstance(step, AgentStep) else "user"
-            messages.append({"role": role, "content": step.llm_view()})
+            if isinstance(step, Observation) and steps_after_current >= self.trim_steps_except_last_n:
+                view = step.short_view()
+            else:
+                view = step.llm_view()
+            messages.append({"role": role, "content": view})
         if self.guidance:
             messages.append({"role": "user", "content": self.guidance})
         return messages

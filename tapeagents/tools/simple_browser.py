@@ -458,6 +458,11 @@ class PageObservation(Observation):
     total_pages: int
     error: int | str | None = None
 
+    def short_view(self):
+        view = self.llm_dict()
+        view["text"] = view["text"][:100] + "..."
+        return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)
+
 
 class SimpleBrowser(Multitool):
     actions: tuple[type[Action], ...] = (ReadDocumentAction, NextPageAction)

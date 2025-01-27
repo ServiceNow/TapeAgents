@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 from typing import Any, Literal
@@ -70,6 +71,12 @@ class VideoObservation(Observation):
                 llm_view.append(image_base64_message(Path(self.attachment_dir) / path))
         return llm_view
 
+    def short_view(self):
+        view = self.llm_dict()
+        view["subtitle_text"] = view["subtitle_text"][:100] + "..."
+        del view["video_contact_sheet_paths"]
+        return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)
+
 
 class UnknownStep(Step):
     content: str
@@ -94,3 +101,8 @@ class ReasoningThought(Thought):
 class ActionExecutionFailure(Observation, Error):
     kind: Literal["action_execution_failure"] = "action_execution_failure"
     error: str
+
+    def short_view(self):
+        view = self.llm_dict()
+        view["error"] = view["error"][:100] + "..."
+        return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)
