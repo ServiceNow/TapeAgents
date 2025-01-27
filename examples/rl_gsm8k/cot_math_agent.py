@@ -13,7 +13,7 @@ from tapeagents.core import (
     Thought,
 )
 from tapeagents.llms import LLM
-from tapeagents.nodes import MonoNode
+from tapeagents.nodes import StandardNode
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ RLMathTape = Tape[
 ]
 
 
-class ReasoningNode(MonoNode):
+class ReasoningNode(StandardNode):
     max_prompt_length: int = 1024
 
     def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
