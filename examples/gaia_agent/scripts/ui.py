@@ -45,6 +45,7 @@ def main(cfg: DictConfig) -> None:
     agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
     env.chat.wait_for_user_message()
     content = env.chat.messages[-1]["message"]
+    env.chat.add_message(role="assistant", msg="Thinking...")
     today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     tape = GaiaTape(steps=[GaiaQuestion(content=f"Today is {today_date_str}.\n{content}")])
     try:
@@ -84,6 +85,7 @@ def main(cfg: DictConfig) -> None:
     except Exception as e:
         tape.metadata.error = str(e)
         logger.exception(f"Failed to solve task: {e}")
+    env.chat.wait_for_user_message()
     env.close()
     save_json_tape(tape, tapes_dir, "demo1")
     save_tape_images(tape, images_dir)
