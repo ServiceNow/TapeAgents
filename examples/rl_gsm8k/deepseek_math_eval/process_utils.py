@@ -44,7 +44,7 @@ def process_math_test(item):
         answer = extract_math_answer(question, item["solution"], task="cot")
     except Exception:
         return
-    sample = {"dataset": "math-cot", "level": item["level"], "type": item["type"], "task": question, "answer": answer}
+    sample = {"dataset": "math-cot", "level": item["level"], "type": item.get("type", ""), "task": question, "answer": answer}
     return sample
 
 
