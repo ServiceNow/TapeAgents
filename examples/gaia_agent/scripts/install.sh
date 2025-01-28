@@ -1,10 +1,9 @@
 #!/bin/bash
-# Check if running on macOS
+
 if [[ "$(uname)" != "Darwin" ]]; then
     echo "Error: This script only works on macOS"
     exit 1
 fi
-# Check if Homebrew is installed
 if ! command -v brew &> /dev/null; then
     echo "Error: Homebrew is not installed. Please install it first."
     echo "Visit https://brew.sh for installation instructions."
@@ -50,7 +49,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-playwright install chromium
+uv run playwright install chromium
 if [ $? -ne 0 ]; then
     echo "Error: Failed to install Chromium. Please check the error messages above."
     exit 1
