@@ -43,8 +43,8 @@ def main(cfg: DictConfig) -> None:
     init_code_sandbox(cfg.exp_path)
     env = get_env(cfg.exp_path, **cfg.env)
     agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
-    content = "What was the reason, magnitude and the direction of the yesterday's Nvidia stock price change?"
-    env.chat.add_message(role="user", msg=content)
+    env.chat.wait_for_user_message()
+    content = env.chat.messages[-1]["message"]
     today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     tape = GaiaTape(steps=[GaiaQuestion(content=f"Today is {today_date_str}.\n{content}")])
     try:
