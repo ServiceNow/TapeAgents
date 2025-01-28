@@ -1,5 +1,5 @@
 import logging
-from typing import Annotated, Any, Generator, Literal, TypeAlias, Union
+from typing import Any, Generator, Literal, Union
 
 from pydantic import Field
 
@@ -37,11 +37,6 @@ class ReasoningThought(Thought):
     kind: Literal["reasoning_thought_with_value"] = "reasoning_thought_with_value"
     reasoning: str = Field(description="chain of thoughts")
 
-
-MathAgentStep: TypeAlias = Annotated[
-    ReasoningThought,
-    Field(discriminator="kind"),
-]
 
 RLMathTape = Tape[
     None,
@@ -92,7 +87,7 @@ class CoTMathAgent(Agent):
             nodes=[
                 ReasoningNode(
                     name="cot",
-                    agent_step_cls=MathAgentStep,
+                    agent_steps=ReasoningThought,
                     system_prompt=system_prompt,  # if system_prompt else "",
                     max_prompt_length=max_prompt_length,
                 ),

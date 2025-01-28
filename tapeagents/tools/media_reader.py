@@ -2,7 +2,6 @@ import logging
 import math
 import os
 import re
-import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -13,12 +12,12 @@ import whisper
 import yt_dlp
 from whisper.utils import get_writer
 
-from tapeagents.steps import VideoObservation
-from tapeagents.utils import acquire_timeout
+from tapeagents.config import ATTACHMENT_DEFAULT_DIR
+from tapeagents.core import Action, Observation
+from tapeagents.steps import VideoObservation, WatchVideoAction
+from tapeagents.tools.base import Tool
 
 logger = logging.getLogger(__name__)
-
-video_lock = threading.Lock()
 
 
 def get_video_observation(
@@ -33,11 +32,19 @@ def get_video_observation(
         video_contact_sheet_paths = generate_contact_sheets_from_video(
             video_path, video_path_trimmed=video_path_trimmed, start_time=start_time, end_time=end_time
         )
-        subtitle_path = transcribe_audio(video_path, video_path_trimmed, start_time=start_time, end_time=end_time)
-        subtitle_text = extract_text_from_vtt(subtitle_path, start_time, end_time)
+        try:
+            subtitle_path = transcribe_audio(video_path, video_path_trimmed, start_time=start_time, end_time=end_time)
+        except Exception as e:
+            logger.exception(f"Error while transcribing audio: {e}")
+            subtitle_path = None
+        try:
+            subtitle_text = extract_text_from_vtt(subtitle_path, start_time, end_time)
+        except Exception as e:
+            logger.exception(f"Error while extracting text from VTT: {e}")
+            subtitle_text = None
         error = None
     except Exception as e:
-        logger.error(f"Error while watching video: {e}")
+        logger.exception(f"Error while watching video: {e}")
         raise e
     video_observation = VideoObservation(
         attachment_dir=output_dir,
@@ -53,10 +60,9 @@ def get_video_observation(
 
 def download_video(url: str, output_dir: str) -> str:
     if "youtube" in url:
-        with acquire_timeout(video_lock, 5):
-            video = download_video_youtube(url, output_dir)
-            time.sleep(2)
-            return video
+        video = download_video_youtube(url, output_dir)
+        time.sleep(2)
+        return video
     else:
         raise NotImplementedError("Only youtube videos are supported at the moment")
 
@@ -421,3 +427,15 @@ class YTDLogger(object):
 def ytd_progress_hook(d: dict) -> None:
     if d["status"] == "finished":
         logger.info("Done downloading, now converting ...")
+
+
+class VideoReader(Tool):
+    action: type[Action] = WatchVideoAction
+    observation: type[Observation] = VideoObservation
+    cached: bool = True
+    exp_path: str
+
+    def execute_action(self, action: WatchVideoAction) -> VideoObservation:
+        attachment_dir = os.path.join(self.exp_path, ATTACHMENT_DEFAULT_DIR)
+        os.makedirs(attachment_dir, exist_ok=True)
+        return get_video_observation(action.video_url, attachment_dir, action.start_time, action.end_time)

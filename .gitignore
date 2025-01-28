@@ -108,14 +108,10 @@ cython_debug/
 
 *.jsonl
 !/tests/**/*.jsonl
-
-*.sqlite
 !tests/**/**.sqlite
-
+*.log
+*.sqlite
 *.zip
 
-*.log
-
-# Weights & Biases
 /wandb/
 /temp/

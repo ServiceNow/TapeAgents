@@ -41,7 +41,7 @@ from examples.form_filler.scripts.prepare_test_assets import (
     load_user_reference_tapes,
 )
 from examples.gaia_agent.agent import GaiaAgent
-from examples.gaia_agent.environment import GaiaEnvironment
+from examples.gaia_agent.environment import get_env
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
 from examples.optimize.optimize import make_agentic_rag_agent, make_env
@@ -158,10 +158,10 @@ def test_gaia_agent():
         with open(db_file, "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
     try:
+        os.environ["TAPEAGENTS_CACHE_DIR"] = f"{run_dir}/cache"
         llm = mock_llm(run_dir)
-        env = GaiaEnvironment(only_cached_webpages=True, attachment_dir=f"{run_dir}/{ATTACHMENT_DEFAULT_DIR}")
-        env.browser.set_web_cache(f"{run_dir}/web_cache.jsonl")
-        agent = GaiaAgent.create(llm)
+        env = get_env(run_dir, simple_browser=True)
+        agent = GaiaAgent.create(llm, actions=env.actions())
         tapes = load_tapes(
             GaiaTape,
             os.path.join(run_dir, "tapes"),
@@ -169,7 +169,7 @@ def test_gaia_agent():
             attachment_dir=os.path.join(run_dir, ATTACHMENT_DEFAULT_DIR),
         )
         logger.info(f"Validate {len(tapes)} tapes")
-        fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+        fails = replay_tapes(agent, tapes, env, reuse_observations=True, stop_on_error=True)
         assert fails == 0, f"{fails} failed tapes"
     finally:
         if os.path.exists(db_file):
@@ -182,7 +182,7 @@ def test_workarena_agent():
     agent = WorkArenaAgent.create(llm)
     tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, reuse_observations=True)
+    fails = replay_tapes(agent, tapes, reuse_observations=True, stop_on_error=True)
     assert fails == 0, f"{fails} failed tapes"
 
 

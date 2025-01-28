@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
-from .config import DB_DEFAULT_FILENAME
+from .config import DB_DEFAULT_FILENAME, common_cache_dir
 from .core import LLMOutput, Prompt, TokenLogprob, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
@@ -35,8 +35,6 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
-
-cache_write_lock = threading.Lock()
 transformers = None
 
 
@@ -318,18 +316,22 @@ class CachedLLM(LLM):
             return
         param_hash = self._key(json.dumps({k: v for k, v in self.parameters.items() if k != "token"}))
         name = self.model_name.replace("/", "__")
-        self._cache_file = f"llm_cache_{name}_{param_hash}.jsonl"
-        if os.path.exists(self._cache_file):
-            logger.info(f"Use LLM Cache: {self._cache_file}")
-            with open(self._cache_file) as f:
-                for line in f:
-                    key, event_dict = json.loads(line)
-                    if key not in self._cache:
-                        self._cache[key] = []
-                    self._cache[key].append(event_dict)
-            logger.info(f"Loaded cache with {len(self._cache)} keys")
+        prefix = f"llm_cache_{name}_{param_hash}."
+        cache_dir = common_cache_dir()
+        self._cache_file = os.path.join(cache_dir, f"{prefix}{os.getpid()}.{threading.get_native_id()}.jsonl")
+        if os.path.exists(cache_dir):
+            for fname in os.listdir(cache_dir):
+                if not fname.startswith(prefix):
+                    continue
+                with open(os.path.join(cache_dir, fname)) as f:
+                    for line in f:
+                        key, event_dict = json.loads(line)
+                        if key not in self._cache:
+                            self._cache[key] = []
+                        self._cache[key].append(event_dict)
+            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir}")
         else:
-            logger.info(f"LLM cache file '{self._cache_file}' not found")
+            logger.info(f"Cache dir {cache_dir} does not exist")
 
     def reindex_log(self):
         """
@@ -353,12 +355,11 @@ class CachedLLM(LLM):
     def _add_to_cache(self, key: str, event_dict: dict):
         if not self.use_cache:
             return
-        with cache_write_lock:
-            if key not in self._cache:
-                self._cache[key] = []
-            self._cache[key].append(event_dict)
-            with open(self._cache_file, "a") as f:
-                f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
+        if key not in self._cache:
+            self._cache[key] = []
+        self._cache[key].append(event_dict)
+        with open(self._cache_file, "a") as f:
+            f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 
     def get_prompt_key(self, prompt: Prompt) -> str:
         prompt_text = json.dumps(prompt.model_dump(exclude={"id"}), ensure_ascii=False, sort_keys=True)
@@ -406,7 +407,7 @@ class CachedLLM(LLM):
                 if _REPLAY_SQLITE:
                     closest, score = closest_prompt(key, list(self._cache.keys()))
                     logger.error(
-                        f"LLM cache miss, closest in cache has score {score:.3f}\nDIFF:\n{diff_strings(key, closest)}"
+                        f"LLM cache miss, closest in cache has score {score:.3f}\nNEW:\n{key}\nCLOSEST OLD:\n{closest}\nDIFF:\n{diff_strings(key, closest)}"
                     )
                     raise ValueError(f"LLM cache miss not allowed. Prompt key: {key}")
                 toks = self.count_tokens(prompt.messages)
@@ -1166,7 +1167,7 @@ class ReplayLLM(LLM):
             if prompt_key in self.outputs:
                 logger.debug(colored("prompt cache hit", "green"))
                 output = self.outputs[prompt_key]
-            else:
+            elif len(prompt_key) < 10000:
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
                 )
@@ -1175,7 +1176,17 @@ class ReplayLLM(LLM):
                 if score >= 0.7:
                     logger.warning(f"Closest prompt score {score:.3f}")
                     for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
-                        logger.warning(f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n")
+                        aa = a.get("content", str(a))
+                        bb = b.get("content", str(b))
+                        if aa == bb:
+                            continue
+                        if len(aa) < 300 and len(bb) < 300:
+                            logger.warning(f"STEP{i} A:\n{aa}\nSTEP{i} B:\n{bb}")
+                        else:
+                            logger.warning(f"STEP{i}: {diff_strings(aa, bb)}\n")
+                raise FatalError("prompt not found")
+            else:
+                logger.warning(f"prompt of size {len(prompt_key)} not found, skipping..")
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 

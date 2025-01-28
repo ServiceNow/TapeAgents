@@ -72,7 +72,7 @@ class WorkarenaTapeBrowser(TapeBrowser):
     def load_llm_calls(self):
         pass
 
-    def get_file_label(self, filename: str, tapes: list) -> str:
+    def get_exp_label(self, filename: str, tapes: list) -> str:
         acc = []
         tokens_num = 0
         failure_count = 0

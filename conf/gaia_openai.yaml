@@ -1,18 +1,29 @@
 defaults:
-  - llm: gpt4o
+  - llm: gpt4o_mini
   - _self_
-  
-exp_name: gpt4o_val_search1
+
+exp_name: gpt4o_mini_val_axtree2
+
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
-batch: 1
+batch: 16
+retry_unsolved: true
+
+only_tasks: [] # list of (level, task_num)
+# - [1, 0]
+# - [1, 1]
+# - [1, 2]
+# - [1, 3]
+# - [1, 4]
+# - [1, 5]
+# - [1, 6]
+# - [1, 7]
 
 agent:
   plain_code: false
 
 env:
-  attachment_dir: ${exp_path}/attachments/
-  image_observations: true
+  simple_browser: false
   use_web_cache: true
 
 studio:

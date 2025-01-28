@@ -1,11 +1,21 @@
-from typing import Annotated, Literal, TypeAlias, Union
+from typing import Literal, Union
 
 from pydantic import Field
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Tape, Thought
 from tapeagents.dialog_tape import DialogContext
-
-from ..gaia_agent.steps import ActionExecutionFailure
+from tapeagents.steps import ActionExecutionFailure
+from tapeagents.tools.browser import (
+    ClickAction,
+    GoBackAction,
+    GoForwardAction,
+    HoverAction,
+    InputTextAction,
+    PageObservation,
+    PressAction,
+    ScrollAction,
+    SelectOptionAction,
+)
 
 
 ################### Base Step Classes ###################
@@ -27,14 +37,6 @@ class WorkArenaObservation(Observation):
 class WorkArenaTask(WorkArenaObservation):
     kind: Literal["task"] = "task"
     task: str
-
-
-class PageObservation(WorkArenaObservation):
-    kind: Literal["page_observation"] = "page_observation"
-    text: str
-    current_page: int
-    total_pages: int
-    last_action_error: str = ""
 
 
 class ReasoningThought(WorkArenaThought):
@@ -84,121 +86,6 @@ class ReflectionThought(WorkArenaThought):
     )
 
 
-class ClickAction(WorkArenaAction):
-    """
-    Action that clicks the element on the page with the provided BID
-    """
-
-    kind: Literal["click_action"] = "click_action"
-    bid: str = Field(description="BID of the element to click")
-    button: Literal["left", "middle", "right"] = Field(description="button to click", default="left")
-    modifiers: list[Literal["Alt", "Control", "Meta", "Shift"]] = Field(
-        description="modifier keys to press", default_factory=list
-    )
-
-
-class SelectOptionAction(WorkArenaAction):
-    """
-    Action that selects option in the dropdown or combobox element with the provided BID.
-    ONLY applicable to dropdowns and comboboxes!
-    """
-
-    kind: Literal["select_option_action"] = "select_option_action"
-    bid: str = Field(description="BID of the dropdown or combobox to select from")
-    element_description: str = Field(description="brief description of the dropdown or combobox")
-    option: str = Field(description="option to select")
-
-
-class HoverAction(WorkArenaAction):
-    """
-    Action that hovers over the element on the page with the provided BID
-    """
-
-    kind: Literal["hover_action"] = "hover_action"
-    bid: str = Field(description="BID of the element to hover")
-
-
-class InputTextAction(WorkArenaAction):
-    """
-    Action that fills out the input element identified by BID with the provided text
-    """
-
-    kind: Literal["input_text_action"] = "input_text_action"
-    bid: str = Field(description="BID of the input element to fill")
-    text: str = Field(description="text to put into the element")
-
-
-class PressAction(WorkArenaAction):
-    """
-    Action that puts focus on the element with a given BID and presses a combination of keys.
-    Accepts the logical key names: Backquote, Minus, Equal, Backslash, Backspace, Tab, Delete, Escape, ArrowDown, End, Enter, Home, Insert, PageDown, PageUp, ArrowRight, ArrowUp, F1 - F12, Digit0 - Digit9, KeyA - KeyZ, etc.
-    Following modification, shortcuts are also supported: Shift, Control, Alt, Meta.
-    """
-
-    kind: Literal["press_action"] = "press_action"
-    bid: str = Field(description="BID of the input element to focus")
-    key_comb: str = Field(description="keys combination to press")
-
-
-class ScrollAction(WorkArenaAction):
-    """
-    Action that scrolls the page in the provided direction
-    """
-
-    kind: Literal["scroll_action"] = "scroll_action"
-    direction: str = Field(description="direction to scroll")
-
-
-class TabFocusAction(WorkArenaAction):
-    """
-    Action that focuses the tab with the provided index
-    """
-
-    kind: Literal["tab_focus_action"] = "tab_focus_action"
-    index: int = Field(description="index of the tab to focus")
-
-
-class NewTabAction(WorkArenaAction):
-    """
-    Action that opens a new browser tab
-    """
-
-    kind: Literal["new_tab_action"] = "new_tab_action"
-
-
-class CloseTabAction(WorkArenaAction):
-    """
-    Action that closes the browser tab
-    """
-
-    kind: Literal["close_tab_action"] = "close_tab_action"
-
-
-class GoBackAction(WorkArenaAction):
-    """
-    Action that goes back in the browser history
-    """
-
-    kind: Literal["go_back_action"] = "go_back_action"
-
-
-class GoForwardAction(WorkArenaAction):
-    """
-    Action that goes forward in the browser history
-    """
-
-    kind: Literal["go_forward_action"] = "go_forward_action"
-
-
-class GotoPageAction(WorkArenaAction):
-    """
-    Action that opens the page with the provided URL in the current tab
-    """
-
-    kind: Literal["goto_page_action"] = "goto_page_action"
-    url: str = Field(description="url to go to")
-
-
 class FinalAnswerAction(WorkArenaAction, StopStep):
     """
     Action that provides the final answer to the user after completing the task.
@@ -240,43 +127,37 @@ class WorkArenaTape(Tape[DialogContext, WorkArenaStep]):
     context: DialogContext = DialogContext(tools=[])
 
 
-WorkArenaBaselineStep: TypeAlias = Annotated[
-    Union[
-        # thoughts
-        ReasoningThought,
-        # browser actions
-        ClickAction,
-        SelectOptionAction,
-        HoverAction,
-        InputTextAction,
-        PressAction,
-        ScrollAction,
-        GoBackAction,
-        GoForwardAction,
-        FinalAnswerAction,
-    ],
-    Field(discriminator="kind"),
-]
+WorkArenaBaselineStep = (
+    # thoughts
+    ReasoningThought,
+    # browser actions
+    ClickAction,
+    SelectOptionAction,
+    HoverAction,
+    InputTextAction,
+    PressAction,
+    ScrollAction,
+    GoBackAction,
+    GoForwardAction,
+    FinalAnswerAction,
+)
 
-WorkArenaAgentStep: TypeAlias = Annotated[
-    Union[
-        # thoughts
-        ReasoningThought,
-        ReflectionThought,
-        # browser actions
-        ClickAction,
-        SelectOptionAction,
-        HoverAction,
-        InputTextAction,
-        PressAction,
-        ScrollAction,
-        # TabFocusAction,
-        # NewTabAction,
-        # CloseTabAction,
-        GoBackAction,
-        GoForwardAction,
-        # GotoPageAction,
-        FinalAnswerAction,
-    ],
-    Field(discriminator="kind"),
-]
+WorkArenaAgentStep = (
+    # thoughts
+    ReasoningThought,
+    ReflectionThought,
+    # browser actions
+    ClickAction,
+    SelectOptionAction,
+    HoverAction,
+    InputTextAction,
+    PressAction,
+    ScrollAction,
+    # TabFocusAction,
+    # NewTabAction,
+    # CloseTabAction,
+    GoBackAction,
+    GoForwardAction,
+    # GotoPageAction,
+    FinalAnswerAction,
+)
