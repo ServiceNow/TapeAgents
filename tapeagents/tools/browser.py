@@ -224,6 +224,7 @@ class Browser(Multitool):
             record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
             timeout=self.timeout_ms,
+            viewport={"width": 1024, "height": 768},
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore

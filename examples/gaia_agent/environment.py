@@ -22,6 +22,6 @@ def get_env(
             WebSearch(),
             CodeExecutor(exp_path=exp_path),
             VideoReader(exp_path=exp_path),
-            SimpleBrowser(exp_path=exp_path, kwargs=kwargs) if simple_browser else Browser(exp_path=exp_path),
+            SimpleBrowser(exp_path=exp_path, kwargs=kwargs) if simple_browser else Browser(exp_path=exp_path, **kwargs),
         ]
     )

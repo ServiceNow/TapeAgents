@@ -2,7 +2,7 @@ defaults:
   - llm: gpt4o_mini
   - _self_
 
-exp_name: gpt4o_mini_val_axtree2
+exp_name: gpt4o_mini_val_uniagent1
 
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation

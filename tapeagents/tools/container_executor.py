@@ -162,7 +162,7 @@ class ContainerExecutor:
             self._container.start()
             _wait_for_ready(self._container)
             logger.info(f"Started container {container_name} from image {image}")
-            self.install_deps()
+            # self.install_deps()
 
         _wait_for_ready(self._container)
 
@@ -324,7 +324,6 @@ def execute_code_in_container(
         assert isinstance(output, bytes)
         output = output.decode("utf-8")
         output = ANSI_ESCAPE_REGEX.sub("", output)
-        output = output.replace(filename, f"code.{code_block.language.lower()}")
         if exit_code == 124:
             output += "\n" + "Timeout"
         outputs.append(output)
