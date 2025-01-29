@@ -390,9 +390,6 @@ def launch_training(
 
     # Only set NCCL environment variables for multi-node training
     if is_multinode:
-        os.environ["NCCL_CUMEM_ENABLE"] = "0"  # Disable NCCL's CUDA memory pool
-        os.environ["NCCL_TIMEOUT"] = "7200"
-        
         logger.info("Multi-node NCCL Environment Variables:")
         for key in ["NCCL_CUMEM_ENABLE", "NCCL_TIMEOUT"]:
             logger.info(f"{key}: {os.environ.get(key)}")
@@ -424,7 +421,7 @@ def launch_training(
             base_cmd.extend([
                 "--use_deepspeed",
                 "--deepspeed_config_file",
-                "conf/accelerate/ds_multinode.json",
+                "conf/accelerate/ds_multinode_8b.json",
             ])
             if is_multinode:
                 base_cmd.extend([
