@@ -42,8 +42,8 @@ overflow_reward: 0
 max_prompt_length: 1024
 
 rewards:
-  unparsable: -1
-  wrong_answer: -0.5
+  unparsable: 0
+  wrong_answer: 0
   correct_answer: 1
 
 vllm_config:
