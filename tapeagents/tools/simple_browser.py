@@ -461,7 +461,7 @@ class PageObservation(Observation):
     def short_view(self):
         view = self.llm_dict()
         view["text"] = view["text"][:100] + "..."
-        return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)
+        return json.dumps(view, indent=2, ensure_ascii=False)
 
 
 class SimpleBrowser(Multitool):
