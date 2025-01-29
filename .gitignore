@@ -115,3 +115,4 @@ cython_debug/
 
 /wandb/
 /temp/
+.pw-browsers
