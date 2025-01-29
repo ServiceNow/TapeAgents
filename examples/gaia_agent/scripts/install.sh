@@ -49,7 +49,8 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-uv run playwright install chromium
+mkdir -p .pw-browsers
+PLAYWRIGHT_BROWSERS_PATH=.pw-browsers uv run playwright install --with-deps chromium
 if [ $? -ne 0 ]; then
     echo "Error: Failed to install Chromium. Please check the error messages above."
     exit 1
@@ -66,11 +67,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo "ffmpeg installed successfully."
-
-brew install poppler
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to install optional poppler PDF reader. Please check the error messages above."
-fi
 
 echo "All dependencies installed successfully."
 echo ""
