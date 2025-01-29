@@ -31,6 +31,7 @@ dependencies = [
   "litellm~=1.51",
   "openai~=1.55",
   "pathvalidate~=3.2",
+  "playwright~=1.42",
   "podman~=5.0",
   "pydantic~=2.9",
   "pyyaml~=6.0",
