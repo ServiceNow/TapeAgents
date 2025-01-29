@@ -7,7 +7,7 @@ FORMAT = "Output only a single step. DO NOT OUTPUT ANYTHING BESIDES THE JSON. It
 
 PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {FORMAT}'
 START = f"""Let's start executing the plan step by step, using allowed steps described earlier. {FORMAT}"""
-REFLECT_OBSERVATION = f""""Ignore cookie consent dialogs if any. Summarize the last observation, explain its effect on the task and the plan, propose the best next step to do. Quote the relevant part of the observation if possible. {FORMAT}"""
+REFLECT_OBSERVATION = f""""First, summarize the last observation. Then explain its effect on the task and the plan. After that propose the best next step to do. If there is a cookie dialog on the web page, accept it first. Quote the relevant part of the observation if possible. {FORMAT}"""
 
 ALLOWED_STEPS = """
 You can use the following tools: search the web, read web page or document, python code for computations and modeling, and reasoning.

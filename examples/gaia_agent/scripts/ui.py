@@ -6,7 +6,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from tapeagents.core import Action, Step
+from tapeagents.core import Action, Observation, Step
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import to_pretty_str
@@ -62,6 +62,7 @@ def main(cfg: DictConfig) -> None:
         except Exception as e:
             tape.metadata.error = str(e)
             logger.exception(f"Failed to solve task: {e}")
+            env.chat.add_message(role="assistant", msg=f"Failed to solve task: {e}")
         env.chat.wait_for_user_message()
         content = env.chat.messages[-1]["message"]
     env.close()
@@ -71,22 +72,23 @@ def main(cfg: DictConfig) -> None:
 
 
 def render_step(step: Step) -> str:
+    logger.info(step.short_view() if isinstance(step, Observation) else step.llm_view())
     msg = ""
     if step.kind == "llm_output_parsing_failure_action":
         msg = "LLM response error, retry"
     elif step.kind == "plan_thought":
         msg = f"Plan:\n{to_pretty_str(step.plan)}"
     elif step.kind == "facts_survey_thought":
-        msg = (
-            f"Given facts:\n{to_pretty_str(step.given_facts)}\nFacts to look up:\n{to_pretty_str(step.facts_to_lookup)}"
-        )
+        msg = f"Given facts:\n{to_pretty_str(step.given_facts)}"
+        if len(step.facts_to_lookup) > 0:
+            msg += f"\nFacts to look up:\n{to_pretty_str(step.facts_to_lookup)}"
     elif step.kind == "reasoning_thought":
         msg = step.reasoning
     elif step.kind == "reading_result_thought":
         msg = f'{step.fact_description}\nSupporting quote: "{step.quote_with_fact}"'
     elif step.kind == "gaia_answer_action":
         if step.success:
-            msg = f"Answer: {step.long_answer}\n\n{step.overview}"
+            msg = f"Answer: {step.long_answer}"
         else:
             msg = f"No answer found:\n{step.overview}"
     elif step.kind in ["python_code_action", "search_action", "watch_video_action"]:
@@ -94,7 +96,7 @@ def render_step(step: Step) -> str:
     elif isinstance(step, Action):
         msg = "Interacting with the browser..."
     elif step and step.kind == "search_results_observation":
-        msg = step.error or to_pretty_str(step.serp)
+        msg = step.error or to_pretty_str([f"[{r['url'][:30]}...]{r['title'][:60]}..." for r in step.serp])
     elif step and step.kind == "code_execution_result":
         msg = f"Code execution result: {step.result.output or ''}"
     return msg

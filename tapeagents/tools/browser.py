@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from time import sleep
@@ -39,6 +40,7 @@ NODES_WITH_BID = [
     "LabelText",
     "tab",
 ]
+logger = logging.getLogger(__name__)
 
 
 class GotoPageAction(Action):
@@ -352,7 +354,10 @@ class Browser(Multitool):
         return obs
 
     def click(self, action: ClickAction) -> PageObservation:
-        self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
+        try:
+            self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
+        except Exception as e:
+            logger.warning(f"Click failed: {e}")
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 

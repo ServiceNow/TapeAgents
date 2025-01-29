@@ -1,4 +1,6 @@
 import os
+import subprocess
+from pathlib import Path
 from typing import Literal
 
 from pydantic import ConfigDict, Field
@@ -9,6 +11,7 @@ from tapeagents.tools.base import Tool
 from tapeagents.tools.container_executor import (
     CodeBlock,
     CommandLineCodeResult,
+    _get_file_name_from_content,
     execute_code_in_container,
 )
 from tapeagents.tools.python_interpreter import run_python_code
@@ -41,7 +44,7 @@ class CodeExecutor(Tool):
     max_output_length: int = 3000
 
     def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
-        code = self.prepare_code_block(action)
+        code = self.prepare_code(action)
         code_dir = os.path.join(self.exp_path, "code")
         result = execute_code_in_container([CodeBlock(code=code, language="python")], code_dir, action.input_files)
         result.output = result.output[: self.max_output_length].strip()
@@ -53,7 +56,7 @@ class CodeExecutor(Tool):
         output = f"{result[:self.max_output_length].strip()}\n\nstdout:\n{stdout}\n\nstderr:\n{stderr}"
         return CodeExecutionResult(result=CommandLineCodeResult(output=output, exit_code=0 if not stderr else 1))
 
-    def prepare_code_block(self, action: PythonCodeAction) -> str:
+    def prepare_code(self, action: PythonCodeAction) -> str:
         lines = action.code.splitlines()
         lines = [f"# {action.name}"] + lines
         if "print(" not in lines[-1]:
@@ -69,3 +72,41 @@ class CodeExecutor(Tool):
             half = self.max_output_length // 2
             output = f"{output[:half]} ... {output[-half:]}"
         return output
+
+
+class CodeExecutorWithApproval(CodeExecutor):
+    """
+    Tool to execute the python code snippet.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    action: type[Action] = PythonCodeAction
+    observation: type[Observation] = CodeExecutionResult
+    cached: bool = True
+    exp_path: str = ""
+    max_output_length: int = 3000
+    _chat = None
+
+    def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
+        code = self.prepare_code(action)
+        code_dir = os.path.join(self.exp_path, "code")
+        fname = _get_file_name_from_content(code, Path(code_dir))
+        fpath = os.path.join(code_dir, fname)
+        self._chat.add_message(role="assistant", msg=f"Requesting permission to run the code(Y/n):\n\n{code}")
+        self._chat.wait_for_user_message()
+        user_response = self._chat.messages[-1]["message"]
+        if user_response.lower() != "y":
+            return CodeExecutionResult(result=CommandLineCodeResult(output="Code execution denied", exit_code=1))
+        else:
+            self._chat.add_message(role="assistant", msg="Running the code...")
+        with open(fpath, "w") as f:
+            f.write(code)
+        try:
+            process = subprocess.run(["python", fpath], capture_output=True, text=True)
+            result = CommandLineCodeResult(output=process.stdout + process.stderr, exit_code=process.returncode)
+        except Exception as e:
+            result = CommandLineCodeResult(output=str(e), exit_code=1)
+        result.output = result.output[: self.max_output_length].strip()
+        obs = CodeExecutionResult(result=result)
+        return obs

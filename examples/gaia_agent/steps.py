@@ -113,7 +113,7 @@ class GaiaAnswer(StopStep):
     kind: Literal["gaia_answer_action"] = "gaia_answer_action"
     success: bool = Field(description="True if the task was successful, False otherwise")
     overview: str = Field(
-        description="overview of the steps performed to answer the question. If the task was not successful, it should contain the reason for the failure"
+        description="list of the steps performed to answer the question. If the task was not successful, it should also contain the reason for the failure"
     )
     answer_unit: str = Field(description="unit of the answer, if applicable, otherwise empty string")
     answer: Any = Field(description="short final answer")

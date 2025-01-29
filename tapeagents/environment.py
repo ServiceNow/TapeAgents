@@ -16,7 +16,6 @@ from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
 from tapeagents.dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
 from tapeagents.tools.base import Multitool, Tool
-from tapeagents.tools.browser import Browser
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 
@@ -151,11 +150,8 @@ class ToolCollectionEnvironment(Environment):
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
-        self.chat = None
         multitools = [tool for tool in tools if isinstance(tool, Multitool)]
         for multitool in multitools:
-            if isinstance(multitool, Browser):
-                self.chat = multitool._env.chat
             self.action_map |= {action: multitool for action in multitool.actions}
 
     def actions(self) -> tuple[type[Action], ...]:

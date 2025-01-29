@@ -46,7 +46,7 @@ class Tool(BaseModel):
         except FatalError:
             raise
         except Exception as e:
-            logger.error(f"Action failure: {e}")
+            logger.exception(f"Action failure: {e}")
             short_error = str(e)[:1000]
             observation = ActionExecutionFailure(error=short_error)
         assert isinstance(observation, (self.observation, ActionExecutionFailure))
