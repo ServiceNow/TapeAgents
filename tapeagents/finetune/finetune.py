@@ -78,22 +78,7 @@ def run_finetuning_loop(
     else:
         raise ValueError(f"Unknown training objective {objective}")
 
-    # with open_dict(args):
-    #     # gradient accumulation steps must be divisible by num_processes
-    #     original_accum_passes = args.gradient_accumulation_passes
-    #     if original_accum_passes % num_processes != 0:
-    #         # round up to the next multiple of num_processes
-    #         new_accum_passes = ((original_accum_passes + num_processes - 1) // num_processes) * num_processes
-    #         logger.warning(
-    #             f"Adjusting gradient_accumulation_passes from {original_accum_passes} to {new_accum_passes} "
-    #             f"to make it divisible by {num_processes} processes"
-    #         )
-    #         args.gradient_accumulation_passes = new_accum_passes
-
-    #     args.effective_batch_size = int(args.train_batch_size) * int(args.gradient_accumulation_passes)
-
     with open_dict(args):
-        # very useful for comparing runs; note that gradient accumulation will later be divided by num_processes
         args.effective_batch_size = int(args.train_batch_size) * int(args.gradient_accumulation_passes)
         args.output_dir = str(output_dir)
 
