@@ -10,9 +10,8 @@ llm:
     # CoT are much longer, but the model only has 4096 tokens context
     max_tokens: 3072
 
-# EURUS already apply this template: {task}\n\nPresent the answer in LaTex format: \\boxed{Your answer}
 task_template: |-
-  {task}
+  {task}\n\nPresent the answer in LaTex format: \\boxed{{Your answer}}
 # https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/eval/system_prompt.md?plain=1
 # but note that sometimes they do not include the newline at the beginning
 # https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/data_preprocessing/sft_prompt.py#L1
