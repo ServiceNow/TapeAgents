@@ -174,7 +174,9 @@ class Browser(Multitool):
     observations: tuple[type[Observation], ...] = (PageObservation,)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
     axtree: bool = True
-    viewport_size: int = 64000
+    viewport_chars: int = 64000
+    vieport_height: int = 768
+    viewport_width: int = 1024
     timeout_ms: int = 30000
     headless: bool = True
     save_video: bool = False
@@ -226,7 +228,7 @@ class Browser(Multitool):
             record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
             timeout=self.timeout_ms,
-            viewport={"width": 1024, "height": 768},
+            viewport={"width": self.viewport_width, "height": self.vieport_height},
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore
@@ -325,10 +327,12 @@ class Browser(Multitool):
     def scroll(self, direction: str) -> PageObservation:
         if direction == "down" and self._current_viewport < self._n_viewports:
             self._current_viewport += 1
+            self.run_browser_action(f"scroll(0, {self.vieport_height})")
         elif direction == "up" and self._current_viewport > 1:
             self._current_viewport -= 1
+            self.run_browser_action(f"scroll(0, -{self.vieport_height})")
         page = self._current_page[
-            self.viewport_size * (self._current_viewport - 1) : self.viewport_size * self._current_viewport
+            self.viewport_chars * (self._current_viewport - 1) : self.viewport_chars * self._current_viewport
         ]
         return PageObservation(text=page, current_page=self._current_viewport, total_pages=self._n_viewports)
 
@@ -394,10 +398,10 @@ class Browser(Multitool):
 
     def get_viewport(self, content: str) -> str:
         self._current_page = content
-        self._n_viewports = len(self._current_page) // self.viewport_size + 1
+        self._n_viewports = len(self._current_page) // self.viewport_chars + 1
         self._current_viewport = 1
         return self._current_page[
-            self.viewport_size * (self._current_viewport - 1) : self.viewport_size * self._current_viewport
+            self.viewport_chars * (self._current_viewport - 1) : self.viewport_chars * self._current_viewport
         ]
 
 
@@ -415,7 +419,7 @@ def flatten_axtree(
     coord_decimals: int = 0,
     ignored_properties=IGNORED_AXTREE_PROPERTIES,
     ignore_navigation: bool = False,
-    hide_bid_if_invisible: bool = False,
+    hide_bid_if_invisible: bool = True,
     hide_all_children: bool = False,
     nodes_with_bid: list[str] = NODES_WITH_BID,
 ) -> str:

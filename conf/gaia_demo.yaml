@@ -2,7 +2,7 @@ defaults:
   - llm: gpt4o
   - _self_
 
-exp_name: gpt4o_demo2
+exp_name: gpt4o_demo_hotel2
 
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation

@@ -120,6 +120,8 @@ def render_step(step: Step) -> str:
             msg = f"No answer found:\n{step.overview}"
     elif step.kind in ["python_code_action", "search_action", "watch_video_action"]:
         msg = to_pretty_str(step.llm_dict())
+    elif step and step.kind == "scroll_action":
+        msg = "Scrolling..."
     elif isinstance(step, Action):
         msg = "Interacting with the browser..."
     elif step and step.kind == "search_results_observation":

@@ -14,7 +14,7 @@ If is the web page, explain how the last action before this observation affected
 Check if the action lead to desired outcome or not. Then explain its effect on the task and the plan.
 After that propose the best next step to do, according to the plan. Do not forget to mention the reasoning behind the next step.
 If you see the cookie consent form, accept it first.
-Quote the relevant part of the observation if possible.
+Quote the relevant part of the observation if the action depends on it, for example when interacting with the page.
 {FORMAT}"""
 
 VERIFY = f"""
