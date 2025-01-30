@@ -58,7 +58,7 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
     test_builder_config = test_builder_config or builder_config
-    train_dataset = load_dataset(train_dataset_long_name, builder_config, split="validation", trust_remote_code=True)
+    train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
     test_dataset = load_dataset(test_dataset_long_name, test_builder_config, split="test", trust_remote_code=True)
     train_samples = [
         process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
