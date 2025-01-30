@@ -5,6 +5,7 @@ from typing import Any, Literal, TypeAlias, Union
 from pydantic import Field
 
 from tapeagents.core import LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
+from tapeagents.dialog_tape import UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.steps import (
     ActionExecutionFailure,
@@ -153,4 +154,5 @@ GaiaStep: TypeAlias = Union[
     ExecuteCode,
     LLMOutputParsingFailureAction,
     SetNextNode,
+    UserStep,
 ]

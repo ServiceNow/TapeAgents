@@ -7,7 +7,22 @@ FORMAT = "Output only a single step. DO NOT OUTPUT ANYTHING BESIDES THE JSON. It
 
 PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {FORMAT}'
 START = f"""Let's start executing the plan step by step, using allowed steps described earlier. {FORMAT}"""
-REFLECT_OBSERVATION = f""""First, summarize the last observation. Then explain its effect on the task and the plan. After that propose the best next step to do. If there is a cookie dialog on the web page, accept it first. Quote the relevant part of the observation if possible. {FORMAT}"""
+
+REFLECT_OBSERVATION = f""""
+First, summarize the last observation.
+If is the web page, explain how the last action before this observation affected the page.
+Check if the action lead to desired outcome or not. Then explain its effect on the task and the plan.
+After that propose the best next step to do, according to the plan. Do not forget to mention the reasoning behind the next step.
+If you see the cookie consent form, accept it first.
+Quote the relevant part of the observation if possible.
+{FORMAT}"""
+
+VERIFY = f"""
+First state the answer that was found.
+Then observe and summarize as a list the whole history of interaction.
+Then think about how can you verify the answer.
+Finally, propose a list of steps to do verification.
+{FORMAT}"""
 
 ALLOWED_STEPS = """
 You can use the following tools: search the web, read web page or document, python code for computations and modeling, and reasoning.
@@ -30,7 +45,7 @@ Note that the last code line should print the result.
 Do not reproduce schema when producing the steps, use it as a reference.
 """
 
-FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability. 
+FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability.
 Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
 Here is the pre-survey:
 

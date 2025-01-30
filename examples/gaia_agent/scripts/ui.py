@@ -8,9 +8,11 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.core import Action, Observation, Step
+from tapeagents.dialog_tape import UserStep
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import to_pretty_str
+from tapeagents.steps import ReasoningThought
 from tapeagents.tools.container_executor import init_code_sandbox
 
 from ..agent import GaiaAgent
@@ -49,13 +51,23 @@ def main(cfg: DictConfig) -> None:
     init_code_sandbox(cfg.exp_path)
     env = get_env(cfg.exp_path, **cfg.env)
     agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
-    content = ""
+    today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    tape = None
+    env.chat.wait_for_user_message()
+    content = env.chat.messages[-1]["message"]
     while content.lower() != "stop":
-        env.chat.wait_for_user_message()
-        content = env.chat.messages[-1]["message"]
+        if content.lower() == "reset":
+            tape = None
+            env.chat.add_message(role="assistant", msg="Reset conversation, you can ask a new question now.")
+            env.chat.wait_for_user_message()
+            content = env.chat.messages[-1]["message"]
+        if tape is None:
+            tape = GaiaTape(steps=[GaiaQuestion(content=f"Today is {today_date_str}.\n{content}")])
+        else:
+            # continue the conversation, replace the last answer step with a reasoning step
+            tape.steps[-1] = ReasoningThought(reasoning=tape.steps[-1].long_answer)
+            tape = tape.append(UserStep(content=content))
         env.chat.add_message(role="assistant", msg="Thinking...")
-        today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        tape = GaiaTape(steps=[GaiaQuestion(content=f"Today is {today_date_str}.\n{content}")])
         try:
             for event in main_loop(agent, tape, env, max_loops=50):
                 if partial_tape := (event.agent_tape or event.env_tape):
@@ -65,11 +77,13 @@ def main(cfg: DictConfig) -> None:
                     if step.kind in ["set_next_node"]:
                         continue
                     msg = render_step(step)
-                    env.chat.add_message(role="assistant", msg=msg)
+                    if msg:
+                        env.chat.add_message(role="assistant", msg=msg)
                 elif event.observation:
                     step = event.observation
                     msg = render_step(step)
-                    env.chat.add_message(role="user", msg=msg)
+                    if msg:
+                        env.chat.add_message(role="assistant" if step.kind == "page_observation" else "user", msg=msg)
         except Exception as e:
             tape.metadata.error = str(e)
             logger.exception(f"Failed to solve task: {e}")
@@ -89,6 +103,8 @@ def render_step(step: Step) -> str:
         msg = "LLM response error, retry"
     elif step.kind == "plan_thought":
         msg = f"Plan:\n{to_pretty_str(step.plan)}"
+    elif step.kind == "page_observation":
+        msg = "Reading web page..."
     elif step.kind == "facts_survey_thought":
         msg = f"Given facts:\n{to_pretty_str(step.given_facts)}"
         if len(step.facts_to_lookup) > 0:
