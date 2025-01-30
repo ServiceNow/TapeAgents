@@ -419,7 +419,7 @@ def flatten_axtree(
     coord_decimals: int = 0,
     ignored_properties=IGNORED_AXTREE_PROPERTIES,
     ignore_navigation: bool = False,
-    hide_bid_if_invisible: bool = True,
+    hide_bid_if_invisible: bool = False,
     hide_all_children: bool = False,
     nodes_with_bid: list[str] = NODES_WITH_BID,
 ) -> str:
