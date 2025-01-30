@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from tapeagents.core import Action, Error, Observation, Step, Thought
+from tapeagents.core import Action, AgentStep, Error, Observation, Step, Thought
 from tapeagents.utils import image_base64_message
 
 logger = logging.getLogger(__name__)
@@ -96,6 +96,10 @@ class ReasoningThought(Thought):
 
     kind: Literal["reasoning_thought"] = "reasoning_thought"
     reasoning: str
+
+
+class BranchStep(AgentStep):
+    kind: Literal["branch"] = "branch"
 
 
 class ActionExecutionFailure(Observation, Error):

@@ -22,6 +22,7 @@ from tapeagents.core import (
     Tape,
 )
 from tapeagents.llms import LLMStream
+from tapeagents.steps import BranchStep
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import extract_code_blocks
 from tapeagents.utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
@@ -359,7 +360,11 @@ class ControlFlowNode(Node):
         Yields:
             step (SetNextNode): A step indicating which node should be executed next
         """
-        yield SetNextNode(next_node=self.select_node(tape))
+        next_node = self.select_node(tape)
+        if next_node is None:
+            yield BranchStep()
+        else:
+            yield SetNextNode(next_node=next_node)
 
     def select_node(self, tape: Tape) -> str:
         """
@@ -377,6 +382,14 @@ class ControlFlowNode(Node):
             NotImplementedError: If the method is not implemented in the subclass.
         """
         raise NotImplementedError("Implement this method in the subclass to set the next node according to your logic")
+
+
+class IfLastStep(ControlFlowNode):
+    next_node: str
+    step_class: type[Step]
+
+    def select_node(self, tape: Tape) -> str:
+        return self.next_node if isinstance(tape[-1], self.step_class) else None
 
 
 class ObservationControlNode(ControlFlowNode):
@@ -447,6 +460,15 @@ class FixedStepsNode(Node):
     ) -> Generator[Step | PartialStep, None, None]:
         for step in self.steps:
             yield step
+
+
+class GoTo(Node):
+    next_node: str
+
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        yield SetNextNode(next_node=self.next_node)
 
 
 class CallSubagent(Node):
