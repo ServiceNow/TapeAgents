@@ -25,9 +25,11 @@ def process_eurus_test(item):
         answer = answer.replace("\n", "")
         answer = "\\boxed{" + answer + "}"
         answer = extract_math_answer(item["prompt"][1]["content"], answer, task="cot")
+        task = item["prompt"][1]["content"]
+        task = task.replace("\n\nPresent the answer in LaTex format: \\boxed{Your answer}", "")
         return {
             "dataset": item["data_source"],
-            "task": item["prompt"][1]["content"],
+            "task": task,
             "answer": answer
         }
     
