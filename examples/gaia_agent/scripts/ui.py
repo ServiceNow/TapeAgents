@@ -1,4 +1,5 @@
 import datetime
+import getpass
 import logging
 import os
 
@@ -30,6 +31,16 @@ def main(cfg: DictConfig) -> None:
     assert os.path.exists(playwright_dir), f"playwright browsers directory not found: {playwright_dir}"
     os.environ["PLAYWRIGHT_BROWSERS_PATH"] = playwright_dir
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+    if not os.environ.get("OPENAI_API_KEY"):
+        oai_key = getpass.getpass(
+            "Please enter your OpenAI API key (you can get one on https://platform.openai.com/settings/organization/api-keys) and press Enter to continue: "
+        )
+        os.environ["OPENAI_API_KEY"] = oai_key
+    if not os.environ.get("SERPER_API_KEY"):
+        serper_key = getpass.getpass(
+            "Please enter your Serper API key (you can get one on https://serper.dev/api-key) and press Enter to continue: "
+        )
+        os.environ["SERPER_API_KEY"] = serper_key
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     os.makedirs(tapes_dir, exist_ok=True)
     images_dir = os.path.join(cfg.exp_path, "attachments", "images")
