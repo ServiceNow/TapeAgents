@@ -100,6 +100,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         dim=2,
         index=batch["input_ids"][:, 1:].unsqueeze(2),
     ).squeeze(2)
+    assert torch.isfinite(new_log_probs).all(), f"new_log_probs is not finite: {new_log_probs}"
 
     masks_ = masks[:, 1:]
     ref_logprobs = batch["ref_logprobs"][:, 1:]
@@ -113,6 +114,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     log_p_weights = torch.clamp(log_p_weights, min=0) if config.relu_log_p_weights else log_p_weights
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
+    assert torch.isfinite(log_ratio_ref_new).all(), f"log_ratio_ref_new is not finite: {log_ratio_ref_new}"
     clamp_log_ratio_ref_new_indicators = torch.abs(log_ratio_ref_new) > config.clamp_log_ratio_ref_new_value
     log_ratio_ref_new_clamp = torch.clamp(
         ref_logprobs - new_log_probs,
@@ -120,6 +122,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         max=config.clamp_log_ratio_ref_new_value,
     )
     approx_kl = torch.exp(log_ratio_ref_new_clamp) - log_ratio_ref_new_clamp - 1  # Schulman KL approx
+    assert torch.isfinite(approx_kl).all(), f"approx_kl is not finite: {approx_kl}"
     match config.algo:
         case "grpo":
             # GRPO is based on https://arxiv.org/pdf/2402.03300
