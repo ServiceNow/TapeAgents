@@ -1,14 +1,15 @@
 # https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/data_processing/process_utils.py
 import regex
 
-from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_math_answer, strip_string
+from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import (
+    extract_math_answer, strip_string)
 from examples.rl_gsm8k.deepseek_math_eval.eval_utils import parse_ground_truth
 
 
 def process_eurus_test(item):
     if "ability" not in item:
         # math 500 test set
-        answer = [item["expected_answer"]]
+        answer = [item["answer"]]
         return {
             "dataset": "math500",
             # Same prompt as https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/README.md?plain=1#L93
