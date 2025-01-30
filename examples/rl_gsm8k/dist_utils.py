@@ -6,7 +6,6 @@ import os
 import wandb
 from pathlib import Path
 from omegaconf import DictConfig
-import json
 from typing import Optional
 
 
@@ -217,7 +216,7 @@ def init_wandb(
 ) -> wandb.sdk.wandb_run.Run:
     """Initialize W&B on the main process only."""
     if not dist_manager.is_main_process():
-        logger.info(f"Skipping W&B init on non-main process")
+        logger.info("Skipping W&B init on non-main process")
         os.environ["WANDB_MODE"] = "offline"
         return
 
