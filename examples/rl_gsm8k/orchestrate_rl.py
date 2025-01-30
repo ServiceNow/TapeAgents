@@ -46,11 +46,13 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
         case "gsm8k":
             train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
+            test_builder_config = None
             builder_config = "main"
         case "eurus":
             train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
             test_dataset_long_name = "alexpiche/math_test_cleaned"
             process_fn = process_eurus_test
+            test_builder_config = None
             builder_config = "default"
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
