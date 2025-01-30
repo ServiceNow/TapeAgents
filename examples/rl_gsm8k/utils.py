@@ -1,26 +1,26 @@
 import json
 import logging
-import multiprocessing
 import os
 import shutil
 import subprocess
+import threading
 import time
 from pathlib import Path
-from typing import Dict, Optional, TextIO, Union, List
-import threading
+from typing import Dict, List, Optional, TextIO, Union
+
 import numpy as np
 import psutil
 import requests
 import torch
-import yaml
-from omegaconf import DictConfig, ListConfig, OmegaConf
 from tenacity import retry, stop_after_attempt, wait_exponential
 from transformers import PreTrainedTokenizer
 
+from tapeagents.config import is_debug_mode
 from tapeagents.llms import LLMOutput, Prompt
 from .dist_utils import DistributedManager
 
 logger = logging.getLogger(__name__)
+
 
 def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[str]:
     """
@@ -40,42 +40,43 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
         cuda_device_strings.append(cuda_devices)
     return cuda_device_strings
 
+
 class VLLMServiceManager:
     def __init__(
         self,
+        exp_path: Path,
+        service_name: str,
         model_name_or_path: Union[str, Path],
-        stdout_file_path: Union[str, Path],
-        stderr_file_path: Union[str, Path],
         port: int = 8080,
-        gpus_per_model_instance: int = 1,
         verbose: bool = True,
         cuda_device: str = "0",
         host: str = "localhost",
         **kwargs,
     ):
         self.model_name_or_path = model_name_or_path
-        self.stdout_file_path = stdout_file_path
-        self.stderr_file_path = stderr_file_path
+        self.service_name = service_name
+        self.stdout_file_prefix = str(exp_path / f"{service_name}_stdout")
+        self.stderr_file_prefix = str(exp_path / f"{service_name}_stderr")
         self.port = port
         self.ports = []
         self.processes = []
-        self.gpus_per_model_instance = gpus_per_model_instance
+        pipeline_parallel_size = kwargs.get("--pipeline-parallel-size", 1)
+        tensor_parallel_size = kwargs.get("--tensor-parallel-size", 1)
+        self.gpus_per_model_instance = (pipeline_parallel_size) * (tensor_parallel_size)
+        logger.info(f"Using {self.gpus_per_model_instance} GPUs per model instance")
         self.verbose = verbose
         self.cuda_device = cuda_device
         self.host = host
         self.kwargs = kwargs
         self.process: Optional[subprocess.Popen] = None
-        self.stdout_file: Optional[TextIO] = None
-        self.stderr_file: Optional[TextIO] = None
+        self.open_files: list[TextIO] = []
         self.stats = {}
         self.port = port
 
         self.dist_manager = DistributedManager()
 
     def get_base_urls(self) -> list[str]:
-        return [
-            f"http://127.0.0.1:{port}" for port in self.ports
-        ]
+        return [f"http://127.0.0.1:{port}" for port in self.ports]
 
     def _terminate_with_children(self, process_id: int) -> None:
         try:
@@ -100,6 +101,7 @@ class VLLMServiceManager:
 
     def _wait_for_service(self, process: subprocess.Popen, url, headers=None, timeout=120) -> bool:
         start_time = time.time()
+        logger.info(f"-> Waiting for service at {url}")
         while True:
             try:
                 response = requests.get(url, headers=headers, timeout=1)
@@ -116,9 +118,7 @@ class VLLMServiceManager:
             if process.poll() is not None:
                 logger.error("-> Service process has terminated")
                 return False
-
-            logger.info(f"-> Waiting for service at {url}")
-            time.sleep(5)
+            time.sleep(1.0)
 
     def _start_service(self) -> None:
         """
@@ -135,9 +135,9 @@ class VLLMServiceManager:
         """
 
         threads = []
-
-        for i, device_number in enumerate(generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance)):
-            # Adjust port based on both node rank and GPU index
+        for i, device_number in enumerate(
+            generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance)
+        ):
             port = self.port + i
             thread = threading.Thread(target=self._start_llm, args=(device_number, port))
             threads.append(thread)
@@ -146,10 +146,8 @@ class VLLMServiceManager:
         for thread in threads:
             thread.join()
 
-
     @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
     def _start_llm(self, cuda_device, port):
-        tensor_parallel_size = cuda_device.count(",") + 1
         kwargs_str = " ".join([f"{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
 
         cmd = (
@@ -157,14 +155,14 @@ class VLLMServiceManager:
             f"CUDA_VISIBLE_DEVICES={cuda_device} "
             f"python -m vllm.entrypoints.openai.api_server "
             f"--model {self.model_name_or_path} "
-            f"--tensor-parallel-size {tensor_parallel_size} "
             f"--port {port} "
+            f"--seed {cuda_device[0]} "
             "--disable-frontend-multiprocessing "
             "--dtype bfloat16 "
             f"{kwargs_str}"
         )
 
-        if tensor_parallel_size > 1:
+        if self.gpus_per_model_instance > 1:
             cmd = "VLLM_WORKER_MULTIPROC_METHOD=spawn " + cmd
 
         if self.verbose:
@@ -177,10 +175,14 @@ class VLLMServiceManager:
         }
 
         if self.verbose:
-            self.stdout_file = open(self.stdout_file_path, "w")
-            self.stderr_file = open(self.stderr_file_path, "w")
-            process_args["stdout"] = self.stdout_file
-            process_args["stderr"] = self.stderr_file
+            stdout_path = self.stdout_file_prefix + f"_{cuda_device}.log"
+            stderr_path = self.stderr_file_prefix + f"_{cuda_device}.log"
+            logger.info(f"See vLLM outputs in {stdout_path} and {stderr_path}")
+            stdout_file = open(stdout_path, "w")
+            stderr_file = open(stderr_path, "w")
+            process_args["stdout"] = stdout_file
+            process_args["stderr"] = stderr_file
+            self.open_files.extend([stdout_file, stderr_file])
 
         try:
             process = subprocess.Popen(cmd, **process_args)
@@ -193,7 +195,7 @@ class VLLMServiceManager:
 
         start_waiting = time.time()
         if self._wait_for_service(process, vllm_url, headers=headers, timeout=8000):
-            logger.info(f"Student {self.model_name_or_path} model loaded on port {port}")
+            logger.info(f"{self.service_name} {self.model_name_or_path} model loaded on port {port}")
         else:
             self._cleanup()
             raise Exception("Failed to start the service")
@@ -204,23 +206,31 @@ class VLLMServiceManager:
 
     def _cleanup(self) -> None:
         logger.info(f"Killing {len(self.processes)} vLLM processes")
+        threads = []
         for process in self.processes:
-            if process and process.pid:
-                logger.info(f"Terminating process with command {process.args}")
-                self._terminate_with_children(process.pid)
-                self.dist_manager.cleanup_gpu_resources()
-                process.wait()
+            logger.info(f"Terminating process with command {process.args}")
+            thread = threading.Thread(target=self._terminate_with_children, args=(process.pid,))
+            threads.append(thread)
+            thread.start()
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
 
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
+        for f in self.open_files:
+            f.close()
 
     def __enter__(self) -> "VLLMServiceManager":
+        if is_debug_mode():
+            logger.info("Running in debug mode, skipping service start")
+            self.ports = [8080]
+            return self
         self._start_service()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if is_debug_mode():
+            logger.info("Running in debug mode, skipping service cleanup")
+            return None
         self._cleanup()
 
     def get_stats(self):
@@ -302,18 +312,10 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path, dist_manage
     save_state(state, state_path, dist_manager)
 
     logger.info("Cleaning up checkpoints and training state")
-    # list of files to remove
-    files = [
-        target_path / "assistant_vllm_stdout.log",
-        target_path / "assistant_vllm_stderr.log",
-        target_path / "basemodel_vllm_stdout.log",
-        target_path / "basemodel_vllm_stderr.log",
-        target_path / "debug.log",
-        target_path / "error.log",
-        target_path / "info.log",
-    ]
+    # list of log files to erase
+    log_files = list(target_path.glob("*.log"))
 
-    for file in files:
+    for file in log_files:
         if file.exists():
             # erase the content but not the file
             with open(file, "w"):
@@ -341,8 +343,10 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path, dist_manage
 
 def calculate_stats(stats):
     return {
-        "max": np.mean([max(stats) for stats in stats.values() if stats]),
-        "min": np.mean([min(stats) for stats in stats.values() if stats]),
+        "max": max([max(stats) for stats in stats.values() if stats]),
+        "min": min([min(stats) for stats in stats.values() if stats]),
+        "mean_max": np.mean([max(stats) for stats in stats.values() if stats]),
+        "mean_min": np.mean([min(stats) for stats in stats.values() if stats]),
         "var": np.mean([np.var(stats) for stats in stats.values() if stats]),
         "mean": np.mean([np.mean(stats) for stats in stats.values() if stats]),
     }

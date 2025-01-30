@@ -9,7 +9,6 @@ import hashlib
 import json
 import logging
 import os
-import random
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -19,15 +18,15 @@ from statistics import mean
 from typing import Any, Callable, Generator
 
 import litellm
-import openai
+import numpy as np
 import requests
 from Levenshtein import ratio
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
-from .config import DB_DEFAULT_FILENAME
-from .core import LLMOutput, Prompt, TrainingText
+from .config import DB_DEFAULT_FILENAME, common_cache_dir
+from .core import LLMOutput, Prompt, TokenLogprob, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
 from .utils import FatalError, diff_strings
 
@@ -36,8 +35,6 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
-
-cache_write_lock = threading.Lock()
 transformers = None
 
 
@@ -111,6 +108,13 @@ class LLMStream:
         if not o.role == "assistant" or o.content is None:
             raise ValueError("LLM did not produce an assistant message")
         return o.content
+
+    def get_llm_call(self) -> LLMCall:
+        """Returns the LLMCall object"""
+        for event in self:
+            if event.llm_call:
+                break
+        return self.llm_call
 
 
 class LLM(BaseModel, ABC):
@@ -202,7 +206,9 @@ class LLM(BaseModel, ABC):
         """
         return {"input": 0, "output": 0}
 
-    def log_output(self, prompt: Prompt, message: LLMOutput, cached: bool = False) -> None | LLMCall:
+    def log_output(
+        self, prompt: Prompt, message: LLMOutput, cached: bool = False, count_tokens: bool = True
+    ) -> None | LLMCall:
         """
         Logs the output of an LLM (Language Model) call along with its metadata.
 
@@ -213,14 +219,21 @@ class LLM(BaseModel, ABC):
         """
 
         start_log_output = time.time()
-        prompt_length_tokens = self.count_tokens(prompt.messages)
-        if message.content:
-            output_length_tokens = (
-                self.count_tokens(prompt.messages + [{"role": "assistant", "content": message.content}])
-                - prompt_length_tokens
-            )
+        if count_tokens:
+            prompt_length_tokens = self.count_tokens(prompt.messages)
+            if message.content:
+                output_length_tokens = (
+                    self.count_tokens(prompt.messages + [{"role": "assistant", "content": message.content}])
+                    - prompt_length_tokens
+                )
+            else:
+                output_length_tokens = 0
+            self._stats["prompt_length_tokens"].append(prompt_length_tokens)
+            self._stats["output_length_tokens"].append(output_length_tokens)
         else:
-            output_length_tokens = 0
+            # -1 is the default value of prompt and output length tokens when token counting is disabled
+            prompt_length_tokens = -1
+            output_length_tokens = -1
 
         llm_call = LLMCall(
             timestamp=datetime.datetime.now().isoformat(),
@@ -231,8 +244,6 @@ class LLM(BaseModel, ABC):
             cached=cached,
             llm_info=self.get_info(),
         )
-        self._stats["prompt_length_tokens"].append(prompt_length_tokens)
-        self._stats["output_length_tokens"].append(output_length_tokens)
         token_costs = self.get_token_costs()
         llm_call.cost = (
             token_costs["input"] * llm_call.prompt_length_tokens + token_costs["output"] * llm_call.output_length_tokens
@@ -253,6 +264,9 @@ class LLM(BaseModel, ABC):
             else 0,
             "total_output_tokens": sum(self._stats["output_length_tokens"])
             if self._stats["output_length_tokens"]
+            else 0,
+            "time_postprocess_llm_response": np.mean(self._stats["time_postprocess_llm_response"])
+            if self._stats["time_postprocess_llm_response"]
             else 0,
         }
 
@@ -300,20 +314,24 @@ class CachedLLM(LLM):
             return
         elif not self.use_cache:
             return
-        logger.info("Use LLM Cache")
         param_hash = self._key(json.dumps({k: v for k, v in self.parameters.items() if k != "token"}))
         name = self.model_name.replace("/", "__")
-        self._cache_file = f"llm_cache_{name}_{param_hash}.jsonl"
-        if os.path.exists(self._cache_file):
-            with open(self._cache_file) as f:
-                for line in f:
-                    key, event_dict = json.loads(line)
-                    if key not in self._cache:
-                        self._cache[key] = []
-                    self._cache[key].append(event_dict)
-            logger.info(f"Loaded cache with {len(self._cache)} keys")
+        prefix = f"llm_cache_{name}_{param_hash}."
+        cache_dir = common_cache_dir()
+        self._cache_file = os.path.join(cache_dir, f"{prefix}{os.getpid()}.{threading.get_native_id()}.jsonl")
+        if os.path.exists(cache_dir):
+            for fname in os.listdir(cache_dir):
+                if not fname.startswith(prefix):
+                    continue
+                with open(os.path.join(cache_dir, fname)) as f:
+                    for line in f:
+                        key, event_dict = json.loads(line)
+                        if key not in self._cache:
+                            self._cache[key] = []
+                        self._cache[key].append(event_dict)
+            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir}")
         else:
-            logger.info("Cache file not found")
+            logger.info(f"Cache dir {cache_dir} does not exist")
 
     def reindex_log(self):
         """
@@ -337,12 +355,11 @@ class CachedLLM(LLM):
     def _add_to_cache(self, key: str, event_dict: dict):
         if not self.use_cache:
             return
-        with cache_write_lock:
-            if key not in self._cache:
-                self._cache[key] = []
-            self._cache[key].append(event_dict)
-            with open(self._cache_file, "a") as f:
-                f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
+        if key not in self._cache:
+            self._cache[key] = []
+        self._cache[key].append(event_dict)
+        with open(self._cache_file, "a") as f:
+            f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 
     def get_prompt_key(self, prompt: Prompt) -> str:
         prompt_text = json.dumps(prompt.model_dump(exclude={"id"}), ensure_ascii=False, sort_keys=True)
@@ -380,7 +397,7 @@ class CachedLLM(LLM):
         def _implementation():
             key = self.get_prompt_key(prompt)
             if self.use_cache and key in self._cache:
-                logger.debug(colored(f"llm cache hit, {len(self._cache[key])} events", "green"))
+                logger.debug(colored(f"LLM cache hit, {len(self._cache[key])} events", "green"))
                 for event_dict in self._cache[key]:
                     event = LLMEvent.model_validate(event_dict)
                     if event.output is not None:
@@ -390,9 +407,9 @@ class CachedLLM(LLM):
                 if _REPLAY_SQLITE:
                     closest, score = closest_prompt(key, list(self._cache.keys()))
                     logger.error(
-                        f"llm cache miss, closest in cache has score {score:.3f}\nDIFF:\n{diff_strings(key, closest)}"
+                        f"LLM cache miss, closest in cache has score {score:.3f}\nNEW:\n{key}\nCLOSEST OLD:\n{closest}\nDIFF:\n{diff_strings(key, closest)}"
                     )
-                    raise ValueError(f"llm cache miss not allowed, prompt: {key}")
+                    raise ValueError(f"LLM cache miss not allowed. Prompt key: {key}")
                 toks = self.count_tokens(prompt.messages)
                 self.token_count += toks
                 logger.debug(f"{toks} prompt tokens, total: {self.token_count}")
@@ -457,9 +474,12 @@ class LiteLLM(CachedLLM):
                     **self.parameters,
                 )
                 break
-            except openai.APITimeoutError:
+            except litellm.Timeout:
                 logger.error("API Timeout, retrying in 1 sec")
                 time.sleep(1.0)
+            except tuple(litellm.LITELLM_EXCEPTION_TYPES) as e:
+                logger.error(e)
+                raise e
         if self.stream:
             buffer = []
             for part in response:
@@ -519,7 +539,7 @@ class TrainableLLM(CachedLLM):
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
 
-    base_url: str | list[str]
+    base_url: str
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
 
@@ -531,34 +551,32 @@ class TrainableLLM(CachedLLM):
         """
         Returns the base URL for the API endpoint.
         """
-        return (self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)).rstrip("/")
+        return self.base_url.rstrip("/")
 
-    def process_logprobs(self, prompt_token_ids, completion_logprobs) -> list[dict[str, Any]]:
+    def make_llm_call_logprobs(
+        self, prompt_token_ids: list[int], completion_logprobs: list[dict]
+    ) -> list[TokenLogprob]:
         logprobs = []
         for id in prompt_token_ids:
             logprobs.append(
-                {
-                    "logprob": None,
-                    "top_logprobs": [],
-                    "token": self.tokenizer.decode([id]),
-                    "token_id": id,
-                    "generated": 0,
-                }
+                TokenLogprob(
+                    token_id=id,
+                    logprob=0.0,
+                    generated=0,
+                )
             )
         for logprob in completion_logprobs:
             if logprob:
                 try:
-                    token_id = self.tokenizer.encode(logprob["token"], add_special_tokens=False)
-                    if not len(token_id):
-                        # TODO: how should we handle empty tokens?
-                        continue
-                    logprob.update(
-                        {
-                            "generated": 1,
-                            "token_id": token_id[0],
-                        }
+                    # We assume that the server was launched with --return-tokens-as-token-ids
+                    # and that the tokens are provided as: ['token_id:1271', 'token_id:1505', '
+                    logprobs.append(
+                        TokenLogprob(
+                            token_id=int(logprob["token"].split(":")[-1]),
+                            logprob=logprob["logprob"],
+                            generated=1,
+                        )
                     )
-                    logprobs.append(logprob)
                 except Exception as e:
                     logger.error(f"Failed to process logprobs: {logprob}")
                     logger.error(e)
@@ -567,6 +585,7 @@ class TrainableLLM(CachedLLM):
 
     @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
     def _generate(self, prompt: Prompt) -> Generator[LLMEvent, None, None]:
+        self.load_tokenizer()
         headers = {"Content-Type": "application/json"}
         if self.api_token:
             headers |= {"Authorization": f"Bearer {self.api_token}"}
@@ -583,11 +602,10 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        base_url = self.get_base_url()
-        logger.debug(f"POST request to {base_url}/v1/chat/completions")
+        logger.debug(f"POST request to {self.base_url}/v1/chat/completions")
         start_send_request = time.time()
         r = requests.post(
-            url=f"{base_url}/v1/chat/completions",
+            url=f"{self.base_url}/v1/chat/completions",
             json=data | self.parameters,
             headers=headers,
             stream=self.stream,
@@ -628,7 +646,7 @@ class TrainableLLM(CachedLLM):
                     )
                     # prompt_decoded = self.tokenizer.decode(prompt_token_ids, skip_special_tokens=False)
                     completion_logprobs = data["choices"][0]["logprobs"]["content"]
-                    logprobs = self.process_logprobs(prompt_token_ids, completion_logprobs)
+                    logprobs = self.make_llm_call_logprobs(prompt_token_ids, completion_logprobs)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
                     for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
                         if content.endswith(eos_str):
@@ -642,6 +660,98 @@ class TrainableLLM(CachedLLM):
         llm_call = self.log_output(prompt, output)
         llm_call.logprobs = logprobs
         yield LLMEvent(output=output, llm_call=llm_call)
+
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
+    def batch_generate(self, prompts: list[Prompt]) -> list[LLMCall]:
+        self.load_tokenizer()
+        if self.stream:
+            raise NotImplementedError()
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+
+        prompt_token_ids = [
+            p.token_ids
+            if p.token_ids
+            else self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
+            for p in prompts
+        ]
+        data = {
+            "model": self.model_name,
+            "prompt": prompt_token_ids,
+            "stream": self.stream,
+        }
+        if self.collect_logprobs:
+            data.update(
+                {
+                    "logprobs": 1,
+                    "include_stop_str_in_output": True,
+                    "skip_special_tokens": False,
+                }
+            )
+        logger.debug(f"POST request to {self.base_url}/v1/completions")
+        start_send_request = time.time()
+        r = requests.post(
+            url=f"{self.base_url}/v1/completions",
+            json=data | self.parameters,
+            headers=headers,
+            stream=self.stream,
+            verify=False,
+        )
+        self._stats["time_send_request"].append(time.time() - start_send_request)
+        if not r.ok:
+            logger.error(f"Failed to get completion: {r.text}")
+            r.raise_for_status()
+        data = r.json()
+        result = []
+        start_postprocess_time = time.time()
+        for i in range(len(prompts)):
+            try:
+                content = data["choices"][i]["text"]
+                if not content:
+                    logger.warning(f"Empty completion {data}")
+
+                logprobs = None
+                if self.collect_logprobs:
+                    completion_logprobs = data["choices"][i]["logprobs"]
+                    # /v1/completions returns logprobs in a format different to /v1/chat/completions
+                    # Before calling self.process_logprobs, we need to convert the logprobs to a
+                    # list of dicts format similar to /v1/chat/completions
+
+                    chat_completion_logprobs = [
+                        {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
+                        for j in range(len(completion_logprobs["tokens"]))
+                    ]
+                    logprobs = self.make_llm_call_logprobs(prompt_token_ids[i], chat_completion_logprobs)
+                    # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
+                    for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
+                        if content.endswith(eos_str):
+                            # the eos was added in the case where self.collect_logprobs is True
+                            # TapeAgents is not expecting the eos token in the completion
+                            content = content[: -len(eos_str)]
+            except Exception as e:
+                logger.exception(f"Failed to parse llm response: {r}")
+                raise e
+            output = LLMOutput(content=content)
+            # if logprobs is not None, we will directly take the token counts from vLLM
+            # otherwise, we will count the tokens in the output using the tokenizer (which is sometimes inaccurate)
+            if logprobs:
+                llm_call = self.log_output(prompts[i], output, count_tokens=False)
+                llm_call.prompt_length_tokens = len(prompt_token_ids[i])
+                llm_call.output_length_tokens = len(chat_completion_logprobs)
+                self._stats["prompt_length_tokens"].append(llm_call.prompt_length_tokens)
+                self._stats["output_length_tokens"].append(llm_call.output_length_tokens)
+                assert (
+                    llm_call.output_length_tokens <= self.parameters["max_tokens"]
+                ), f"output_length_tokens: {llm_call.output_length_tokens}, max_tokens: {self.parameters['max_tokens']}"
+            else:
+                llm_call = self.log_output(prompts[i], output, count_tokens=True)
+                # do not assert token count since the tokenizer may not be accurate
+            llm_call.logprobs = logprobs
+            result.append(llm_call)
+        self._stats["time_postprocess_llm_response"].append(time.time() - start_postprocess_time)
+        return result
 
     def load_tokenizer(self):
         """
@@ -699,15 +809,12 @@ class TrainableLLM(CachedLLM):
             "n": 1,  # number of completions to generate
             "stream": False,  # return a single completion and not a stream of lines
         }
-        base_url = self.base_url if isinstance(self.base_url, str) else random.choice(self.base_url)
-        url = f"{base_url}/v1/completions"
+        url = f"{self.base_url}/v1/completions"
         logger.debug(f"POST request to {url}")
         r = requests.post(url, json=generation_args, headers=headers, verify=False)
         r.raise_for_status()  # raise exception if status code is not in the 200s
         try:
             response = r.json()
-            tokens = response["choices"][0]["logprobs"]["tokens"]
-            logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
         except Exception as e:
             raise RuntimeError(f"Generation API wrong response: {r.text}", e)
         logprobs = []
@@ -718,6 +825,50 @@ class TrainableLLM(CachedLLM):
                     v.update({"generated": 0, "token_id": k})
                     logprobs.append(v)
         return {"content": logprobs}
+
+    def get_batch_logprobs_token_ids(
+        self, prompt_token_ids: list[list[int]], completion_token_ids: list[list[int]]
+    ) -> list[dict[str, Any]]:
+        if not self.tokenizer:
+            self.load_tokenizer()
+        batch_size = len(prompt_token_ids)
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+
+        generation_args = {
+            "model": self.model_name,
+            "prompt": [pids + cids for pids, cids in zip(prompt_token_ids, completion_token_ids)],
+            "temperature": 0.0,
+            "max_tokens": 0,
+            "logprobs": 0,
+            "echo": True,
+            "include_stop_str_in_output": True,  # self.include_stop_str_in_output,
+            "skip_special_tokens": False,
+            "n": 1,  # number of completions to generate
+            "stream": False,  # return a single completion and not a stream of lines
+        }
+        url = f"{self.base_url}/v1/completions"
+        logger.debug(f"POST request to {url}")
+        r = requests.post(url, json=generation_args, headers=headers, verify=False)
+        r.raise_for_status()
+
+        try:
+            response = r.json()
+        except Exception as e:
+            raise RuntimeError(f"Generation API wrong response: {r.text}", e)
+
+        all_logprobs = []
+        for i in range(batch_size):
+            logprobs = []
+            for lp in response["choices"][i]["prompt_logprobs"][-len(completion_token_ids[i]) :]:
+                if lp:
+                    for k, v in lp.items():
+                        v.update({"generated": 0, "token_id": k})
+                        logprobs.append(v)
+            all_logprobs.append({"content": logprobs})
+        return all_logprobs
 
     def get_logprobs_complete(self, prompt: str, output: str) -> dict[str, Any]:
         """
@@ -848,10 +999,6 @@ class TrainableLLM(CachedLLM):
         try:
             response = r.json()
             log_probs = [list(log_prob.values())[0] for log_prob in response["prompt_logprobs"] if log_prob]
-            decoded_prompt_completion_tokens = [log_prob["decoded_token"] for log_prob in log_probs][
-                : len(prompt_completion_encoded)
-            ]
-            reconstructed_prompt_completion = "".join(decoded_prompt_completion_tokens)
             completion_log_probs = log_probs[len(prompt_encoded) : len(prompt_completion_encoded)]
             decoded_completion_tokens = [log_prob["decoded_token"] for log_prob in completion_log_probs]
             reconstructed_completion = "".join(decoded_completion_tokens)
@@ -1020,7 +1167,7 @@ class ReplayLLM(LLM):
             if prompt_key in self.outputs:
                 logger.debug(colored("prompt cache hit", "green"))
                 output = self.outputs[prompt_key]
-            else:
+            elif len(prompt_key) < 10000:
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
                 )
@@ -1029,7 +1176,17 @@ class ReplayLLM(LLM):
                 if score >= 0.7:
                     logger.warning(f"Closest prompt score {score:.3f}")
                     for i, (a, b) in enumerate(zip_longest(prompt.messages, json.loads(closest), fillvalue={})):
-                        logger.warning(f"STEP{i}: {diff_strings(a.get('content', str(a)), b.get('content', str(b)))}\n")
+                        aa = a.get("content", str(a))
+                        bb = b.get("content", str(b))
+                        if aa == bb:
+                            continue
+                        if len(aa) < 300 and len(bb) < 300:
+                            logger.warning(f"STEP{i} A:\n{aa}\nSTEP{i} B:\n{bb}")
+                        else:
+                            logger.warning(f"STEP{i}: {diff_strings(aa, bb)}\n")
+                raise FatalError("prompt not found")
+            else:
+                logger.warning(f"prompt of size {len(prompt_key)} not found, skipping..")
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 

@@ -17,7 +17,8 @@ from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.io import UnknownStep
 from tapeagents.observe import LLMCall
 from tapeagents.renderers.basic import BasicRenderer
-from tapeagents.tools.container_executor import CodeBlock
+from tapeagents.tools.code_executor import PythonCodeAction
+from tapeagents.tools.container_executor import ANSI_ESCAPE_REGEX, CodeBlock
 from tapeagents.view import Broadcast, Call, Respond
 
 YELLOW = "#ffffba"
@@ -151,14 +152,14 @@ class CameraReadyRenderer(BasicRenderer):
             code_blocks = "\n".join([format_code_block(block) for block in step.code])
             text = pretty_yaml(dump) + "\n" + maybe_fold(code_blocks)
         elif isinstance(step, CodeExecutionResult):
-            del dump["result"]["output"]
-            text = maybe_fold(pretty_yaml(dump["result"]))
-            if step.result.exit_code == 0:
-                if step.result.output_files:
-                    for file in step.result.output_files:
-                        text += render_image(file)
-                elif step.result.output:
-                    text += f"\n {maybe_fold(step.result.output)}"
+            text = f"exit_code:{step.result.exit_code}\n" if step.result.exit_code else ""
+            text += f"{maybe_fold(step.result.output, 2000)}"
+            text = ANSI_ESCAPE_REGEX.sub("", text)
+            if step.result.exit_code == 0 and step.result.output_files:
+                for file in step.result.output_files:
+                    text += render_image(file)
+        elif isinstance(step, PythonCodeAction):
+            text = f"# {step.name}\n{maybe_fold(step.code, 2000)}"
         else:
             foldable_keys = ["content", "text"]
             content = ""

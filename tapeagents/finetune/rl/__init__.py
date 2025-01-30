@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -16,6 +16,7 @@ from .utils import (
     calculate_advantage,
     calculate_rewards_with_implicit_kl,
     masked_mean,
+    masked_sum,
     replace_dataset_column,
 )
 
@@ -36,27 +37,30 @@ RL_DATA_COLUMNS = [
 
 @dataclass
 class RLConfig(StepConfig):
-    algo: Optional[str] = field(
-        default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]}
-    )
-    use_advantages: Optional[bool] = field(
+    algo: str = field(default="grpo", metadata={"help": "Algorithm to use for RL", "choices": ["grpo", "reinforce"]})
+    use_advantages: bool = field(
         default=True,
         metadata={"help": "Use advantages instead of rewards to compute the loss"},
     )
-    epsilon: Optional[float] = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
-    reward_minus_kl_coef: Optional[float] = field(
+    epsilon: float = field(default=0.2, metadata={"help": "Clip parameter for the ration of log probs"})
+    reward_minus_kl_coef: float = field(
         default=0.0,
         # https://arxiv.org/abs/2402.14740
         metadata={"help": "Implicit KL coefficient similar to the RLOO paper"},
     )
-    kl_coef: Optional[float] = field(
+    kl_coef: float = field(
         default=0.1,
         metadata={"help": "KL penalty coefficient with reference policy"},
     )
-    relu_log_p_weights: Optional[bool] = field(
+    relu_log_p_weights: bool = field(
         default=False,
         metadata={"help": "ReLU the weights before updating the model"},
     )
+    clamp_log_ratio_ref_new_value: float = field(
+        default=10,
+        metadata={"help": "Clamp the log ratio ref new value"},
+    )
+
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
     if rl_config:
@@ -109,7 +113,13 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     log_p_weights = torch.clamp(log_p_weights, min=0) if config.relu_log_p_weights else log_p_weights
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
-    approx_kl = torch.exp(log_ratio_ref_new) - log_ratio_ref_new - 1  # Schulman KL approx
+    clamp_log_ratio_ref_new_indicators = torch.abs(log_ratio_ref_new) > config.clamp_log_ratio_ref_new_value
+    log_ratio_ref_new_clamp = torch.clamp(
+        ref_logprobs - new_log_probs,
+        min=-config.clamp_log_ratio_ref_new_value,
+        max=config.clamp_log_ratio_ref_new_value,
+    )
+    approx_kl = torch.exp(log_ratio_ref_new_clamp) - log_ratio_ref_new_clamp - 1  # Schulman KL approx
     match config.algo:
         case "grpo":
             # GRPO is based on https://arxiv.org/pdf/2402.03300
@@ -123,19 +133,22 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
 
             assert approx_kl.shape == masks_.shape
             assert approx_kl.shape == surrogate_loss.shape
-            loss = -masked_mean(surrogate_loss - config.kl_coef * approx_kl, masks_)
+            loss = -masked_sum(surrogate_loss - config.kl_coef * approx_kl, masks_)
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = -masked_mean(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
+            loss = -masked_sum(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
-    assert torch.isfinite(loss).all(), "loss contains NaN or inf"
 
+    assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
+    # normalize the loss by the micro batch size
+    loss = loss / masks.shape[0]
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),
         "max_loss": loss.max().item(),
+        "min_loss": loss.min().item(),
         "reward": masked_mean(rewards, masks_).item(),
         "max_reward": rewards[masks_].max().item(),
         "min_reward": rewards[masks_].min().item(),
@@ -164,6 +177,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "ratio_new_old": masked_mean(ratio_new_old, masks_).item(),
         "ratio_ref_new": masked_mean(torch.exp(log_ratio_ref_new), masks_).item(),
         "ratio_ref_old": masked_mean(torch.exp(ref_logprobs - old_logprobs), masks_).item(),
+        "clamp_log_ratio_ref_new_indicators": masked_mean(clamp_log_ratio_ref_new_indicators, masks_).item(),
     }
     return loss, stats
 
@@ -226,11 +240,7 @@ def populate_rl_data(
         Dataset: The dataset populated with RL-specific columns including rewards and advantages
     """
 
-    logger.info("Populate RL Data")
-
     dataset = update_rewards_and_advantages(dataset, config)
-
-    logger.info("Finish Populate RL Data")
     return dataset
 
 

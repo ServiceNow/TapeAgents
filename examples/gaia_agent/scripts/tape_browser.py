@@ -25,9 +25,12 @@ class GaiaTapeBrowser(TapeBrowser):
         super().__init__(tape_cls=GaiaTape, tapes_folder=tapes_folder, renderer=renderer, file_extension=".json")
 
     def load_tapes(self, name: str) -> list:
-        _, fname, postfix = name.split("/", maxsplit=2)
-        tapes_path = os.path.join(self.tapes_folder, fname, "tapes")
-        image_dir = os.path.join(self.tapes_folder, fname, "images")
+        _, exp_dir, postfix = name.split("/", maxsplit=2)
+        tapes_path = os.path.join(self.tapes_folder, exp_dir, "tapes")
+        image_dir = os.path.join(self.tapes_folder, exp_dir, "attachments", "images")
+        if not os.path.exists(image_dir):
+            image_dir = os.path.join(self.tapes_folder, exp_dir, "images")
+
         try:
             all_tapes: list[GaiaTape] = load_legacy_tapes(GaiaTape, tapes_path, step_class=TypeAdapter(GaiaStep))  # type: ignore
         except Exception as e:
@@ -38,16 +41,20 @@ class GaiaTapeBrowser(TapeBrowser):
             if postfix == "all" or str(tape.metadata.level) == postfix:
                 tapes.append(tape)
             for i in range(len(tape.steps)):
+                if tape.steps[i].kind != "image":
+                    continue
                 image_path = os.path.join(image_dir, f"{tape.steps[i].metadata.id}.png")
                 if os.path.exists(image_path):
                     tape.steps[i].metadata.other["image_path"] = os.path.join(
-                        fname, "images", f"{tape.steps[i].metadata.id}.png"
+                        exp_dir, "images", f"{tape.steps[i].metadata.id}.png"
                     )
+                else:
+                    logger.warning(f"Image not found: {image_path}")
 
         self.llm_calls = {}
-        sqlite_fpath = os.path.join(self.tapes_folder, fname, "tapedata.sqlite")
+        sqlite_fpath = os.path.join(self.tapes_folder, exp_dir, "tapedata.sqlite")
         if not os.path.exists(sqlite_fpath):
-            sqlite_fpath = os.path.join(self.tapes_folder, fname, "llm_calls.sqlite")
+            sqlite_fpath = os.path.join(self.tapes_folder, exp_dir, "llm_calls.sqlite")
         try:
             llm_calls = retrieve_all_llm_calls(sqlite_fpath)
             self.llm_calls = {llm_call.prompt.id: llm_call for llm_call in llm_calls}
@@ -69,13 +76,21 @@ class GaiaTapeBrowser(TapeBrowser):
         html = f"{self.renderer.style}<style>.thought {{ background-color: #ffffba !important; }};</style>{self.renderer.render_tape(tape, self.llm_calls)}"
         return html, label
 
-    def get_file_label(self, filename: str, tapes: list[GaiaTape]) -> str:
+    def get_exp_label(self, filename: str, tapes: list[GaiaTape]) -> str:
         acc, n_solved = calculate_accuracy(tapes)
         errors = defaultdict(int)
         prompt_tokens_num = 0
         output_tokens_num = 0
         total_cost = 0.0
+        visible_prompt_tokens_num = 0
+        visible_output_tokens_num = 0
+        visible_cost = 0.0
         no_result = 0
+        actions = defaultdict(int)
+        for llm_call in self.llm_calls.values():
+            prompt_tokens_num += llm_call.prompt_length_tokens
+            output_tokens_num += llm_call.output_length_tokens
+            total_cost += llm_call.cost
         for tape in tapes:
             if tape.metadata.result in ["", None, "None"]:
                 no_result += 1
@@ -85,28 +100,44 @@ class GaiaTapeBrowser(TapeBrowser):
                 errors["terminated"] += 1
             last_action = None
             for step in tape:
+                llm_call = self.llm_calls.get(step.metadata.prompt_id)
+                visible_prompt_tokens_num += llm_call.prompt_length_tokens if llm_call else 0
+                visible_output_tokens_num += llm_call.output_length_tokens if llm_call else 0
+                visible_cost += llm_call.cost if llm_call else 0
                 if isinstance(step, Action):
+                    actions[step.kind] += 1
                     last_action = step
                 if step.kind == "search_results_observation" and not step.serp:
                     errors["search_empty"] += 1
-                prompt_id = step.metadata.prompt_id
-                if prompt_id and prompt_id in self.llm_calls:
-                    llm_call = self.llm_calls[prompt_id]
-                    prompt_tokens_num += llm_call.prompt_length_tokens
-                    output_tokens_num += llm_call.output_length_tokens
-                    total_cost += llm_call.cost
                 if step.kind == "page_observation" and step.error:
                     errors["browser"] += 1
                 elif step.kind == "llm_output_parsing_failure_action":
                     errors["parsing"] += 1
                 elif step.kind == "action_execution_failure":
-                    errors[f"{last_action.kind}"] += 1
-        html = f"<h2>Accuracy {acc:.2f}%, {n_solved} out of {len(tapes)}"
-        html += f"</h2>Prompts tokens total: {prompt_tokens_num}, output tokens total: {output_tokens_num}, cost total: {total_cost:.2f}"
+                    if last_action:
+                        errors[f"{last_action.kind}"] += 1
+                    else:
+                        errors["unknown_action_execution_failure"] += 1
+                elif step.kind == "code_execution_result" and step.result.exit_code:
+                    errors["code_execution"] += 1
+        timers, timer_counts = self.aggregate_timer_times(tapes)
+        html = f"<h2>Solved {acc:.2f}%, {n_solved} out of {len(tapes)}</h2>"
+        if "all" in filename:
+            html += f"Prompt tokens: {prompt_tokens_num}<br>Output tokens: {output_tokens_num}<br>Cost: {total_cost:.2f} USD<h3>Visible</h3>"
+        html += f"Prompt tokens: {visible_prompt_tokens_num}<br>Output tokens: {visible_output_tokens_num}<br>Cost: {visible_cost:.2f} USD"
         if errors:
             errors_str = "<br>".join(f"{k}: {v}" for k, v in errors.items())
             html += f"<h2>No result: {no_result}</h2>"
-            html += f"<h2>Errors</h2>{errors_str}"
+            html += f"<h2>Errors: {sum(errors.values())}</h2>{errors_str}"
+        if actions:
+            actions_str = "<br>".join(f"{k}: {v}" for k, v in actions.items())
+            html += f"<h2>Actions: {sum(actions.values())}</h2>{actions_str}"
+        if timers:
+            timers_str = "<br>".join(
+                f"{'execute ' if k.endswith('action') else ''}{k}: {v:.1f} sec, avg. {v/timer_counts[k]:.1f} sec"
+                for k, v in timers.items()
+            )
+            html += f"<h2>Timings</h2>{timers_str}"
         return html
 
     def get_tape_name(self, i: int, tape: GaiaTape) -> str:
@@ -125,6 +156,8 @@ class GaiaTapeBrowser(TapeBrowser):
                 error += "pa"
             elif step.kind == "action_execution_failure" and last_action:
                 error += last_action.kind[:2]
+            elif step.kind == "code_execution_result" and step.result.exit_code:
+                error += "ce"
         mark = "+" if tape_correct(tape) else ("" if tape.metadata.result else "∅")
         if tape.metadata.task.get("file_name"):
             mark += "📁"
@@ -152,17 +185,22 @@ class GaiaTapeBrowser(TapeBrowser):
         failure_count = len(
             [step for step in tape if "failure" in step.kind or (step.kind == "page_observation" and step.error)]
         )
-        label = f"""<h2>Tape Result</h2>
-            <div class="result-label expected">Golden Answer: <b>{tape.metadata.task.get('Final answer', '')}</b></div>
-            <div class="result-label">Agent Answer: <b>{tape.metadata.result}</b></div>
-            <div class="result-label">Steps: {len(tape)}</div>
-            <div class="result-label">Failures: {failure_count}</div>"""
         success = tape[-1].success if hasattr(tape[-1], "success") else ""  # type: ignore
         overview = tape[-1].overview if hasattr(tape[-1], "overview") else ""  # type: ignore
-        label += f"""
+        label = f"""<h2>Result</h2>
+            <div class="result-label expected">Golden Answer: <b>{tape.metadata.task.get('Final answer', '')}</b></div>
+            <div class="result-label">Agent Answer: <b>{tape.metadata.result}</b></div>
             <div class="result-success">Finished successfully: {success}</div>
-            <div>LLM Calls: {llm_calls_num}, input_tokens: {input_tokens_num}, output_tokens {output_tokens_num}, cost {cost:.2f}</div>
-            <div class="result-overview">Overview:<br>{overview}</div>"""
+            <h2>Summary</h2>
+            <div class="result-overview">{overview}</div>
+            <h2>Stats</h2>
+            <div class="result-label">Steps: {len(tape)}</div>
+            <div class="result-label">Failures: {failure_count}</div>
+            <div>LLM Calls: {llm_calls_num}</div>
+            <div>Input tokens: {input_tokens_num}</div>
+            <div>Output tokens: {output_tokens_num}</div>
+            <div>Cost: {cost:.2f} USD</div>
+        """
         if tape.metadata.error:
             label += f"<div class='result-error'><b>Error</b>: {tape.metadata.error}</div>"
         return label
@@ -191,6 +229,22 @@ class GaiaTapeBrowser(TapeBrowser):
                     set_name = ""
                 exps.append(f"{set_name}/{r}/{postfix}")
         return sorted(exps)
+
+    def aggregate_timer_times(self, tapes: list[GaiaTape]):
+        timer_sums = defaultdict(float)
+        timer_counts = defaultdict(int)
+        for tape in tapes:
+            timers = tape.metadata.other.get("timers", {})
+            for timer_name, exec_time in timers.items():
+                timer_sums[timer_name] += exec_time
+                timer_counts[timer_name] += 1
+            for step in tape.steps:
+                action_kind = step.metadata.other.get("action_kind")
+                action_execution_time = step.metadata.other.get("action_execution_time")
+                if action_kind and action_execution_time:
+                    timer_sums[action_kind] += action_execution_time
+                    timer_counts[action_kind] += 1
+        return dict(timer_sums), dict(timer_counts)
 
 
 def main(dirname: str):

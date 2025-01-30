@@ -1,12 +1,13 @@
 import re
+import signal
+
 import numpy as np
 import sympy
 from sympy.core.sympify import SympifyError
 from sympy.parsing.latex import parse_latex
 
-import signal
-
 INVALID_ANSWER = "[invalidanswer]"
+
 
 class timeout:
     def __init__(self, seconds=1, error_message="Timeout"):
@@ -22,6 +23,7 @@ class timeout:
 
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
+
 
 def normalize_numeric(s):
     if s is None:
@@ -66,6 +68,7 @@ def normalize_numeric(s):
         except:
             return INVALID_ANSWER
 
+
 def numeric_equality(n1, n2, threshold=0.01):
     if n1 is None or n2 is None:
         return False
@@ -73,6 +76,7 @@ def numeric_equality(n1, n2, threshold=0.01):
         return np.abs(n1 - n2) < threshold * (n1 + n2) / 2
     else:
         return np.isclose(n1, n2)
+
 
 def normalize_symbolic_equation(s):
     if not isinstance(s, str):
@@ -95,6 +99,7 @@ def normalize_symbolic_equation(s):
             return maybe_expression
     except:
         return INVALID_ANSWER
+
 
 class SymbolicMathMixin:
     """
@@ -205,7 +210,7 @@ class SymbolicMathMixin:
             with timeout(seconds=time_limit):
                 parsed = parse_latex(text)
         except (
-            # general error handling: there is a long tail of possible sympy/other 
+            # general error handling: there is a long tail of possible sympy/other
             # errors we would like to catch
             Exception
         ) as e:
@@ -223,9 +228,7 @@ class SymbolicMathMixin:
                 try:
                     diff = x1 - x2
                 except (SympifyError, ValueError, TypeError) as e:
-                    print(
-                        f"Couldn't subtract {x1} and {x2} with exception {e}"
-                    )
+                    print(f"Couldn't subtract {x1} and {x2} with exception {e}")
                     return False
 
                 try:
@@ -236,7 +239,7 @@ class SymbolicMathMixin:
                 except (SympifyError, ValueError, TypeError) as e:
                     print(f"Failed to simplify {x1}-{x2} with {e}")
                     return False
-        except TimeoutError as e:
+        except TimeoutError:
             print(f"Timed out comparing {x1} and {x2}")
             return False
         except Exception as e:
@@ -251,13 +254,13 @@ class SymbolicMathMixin:
         following the (Lewkowycz et al. 2022) methodology.
         """
         if x1 == x2:
-            # don't resort to sympy if we have full string match, post-normalization 
+            # don't resort to sympy if we have full string match, post-normalization
             return True
-        else: 
+        else:
             return False
         parsed_x2 = self.parse_tex(x2)
         if not parsed_x2:
-            # if our reference fails to parse into a Sympy object, 
+            # if our reference fails to parse into a Sympy object,
             # we forgo parsing + checking our generated answer.
             return False
         return self.is_exp_equiv(self.parse_tex(x1), parsed_x2, time_limit=time_limit)

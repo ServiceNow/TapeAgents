@@ -1,51 +1,47 @@
-.PHONY: setup env install lint test test-slow test-all clean update-intro update-clean-intro clear-clean-intro build
+.PHONY: setup lint lint-check test test-slow test-all audit clean update-intro update-clean-intro clear-clean-intro build
 
-ENV_NAME=tapeagents
-PYTHON_VERSION=3.10
-CONDA := $(shell which conda)
-ifeq ($(CONDA),)
-CONDA := $(CONDA_EXE)
-endif
-ifeq ($(CONDA),)
-$(error "Conda not found. Please install Conda and try again.")
-endif
-
-setup: env install
-
-env: 
-	@$(CONDA) create --name $(ENV_NAME) python=$(PYTHON_VERSION) --yes
-
-install:
-	@$(CONDA) run --no-capture-output --name $(ENV_NAME) pip install -r ./requirements.txt -r ./requirements.dev.txt -r ./requirements.finetune.txt -r ./requirements.converters.txt
-	@$(CONDA) run --no-capture-output --name $(ENV_NAME) pip install -e .
+setup:
+	@uv sync --all-extras
 
 lint:
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} ruff format .
+	@uv run ruff format .
+	@uv run ruff check . --fix
+
+lint-check:
+	@uv run ruff check . --output-format github
 
 test:
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest -s --color=yes -m "not slow" tests/
+	@uv run --all-extras pytest -s --color=yes -m "not slow" tests/
+
+test-core:
+	@uv run pytest -s --color=yes tests/ --ignore-glob="tests/*/*"
 
 test-slow:
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest -m "slow" tests/
+	@uv run --all-extras pytest -m "slow" tests/
 
 test-all:
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} pytest tests/
+	@uv run --all-extras pytest tests/
+
+audit:
+	@uv export --all-extras --format requirements-txt --no-emit-project > requirements.txt
+	@uv run pip-audit -r requirements.txt --disable-pip --desc --aliases; \
+	rm requirements.txt
 
 clean:
-	@$(CONDA) env remove --name $(ENV_NAME) --yes
-	@$(CONDA) clean --all --yes
+	@uv cache clean
+	@rm -rf .venv/
 
 update-intro:
 	@cp examples/intro_clean.ipynb intro.ipynb
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} jupyter execute --inplace intro.ipynb
+	@uv run jupyter execute --inplace intro.ipynb
 
 update-clean-intro:
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} jupyter nbconvert intro.ipynb --output=examples/intro_clean.ipynb --to notebook --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
+	@uv run jupyter nbconvert intro.ipynb --output=examples/intro_clean.ipynb --to notebook --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
 
 clear-clean-intro:
-	@$(CONDA) run --no-capture-output --name ${ENV_NAME} jupyter nbconvert --inplace examples/intro_clean.ipynb --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
+	@uv run jupyter nbconvert --inplace examples/intro_clean.ipynb --ClearOutputPreprocessor.enabled=True --ClearMetadataPreprocessor.enabled=True
 
 build:
-	@mkdir -p dist
-	@rm dist/*
-	@python3 -m build --outdir dist/
+	@rm -rf dist/
+	@mkdir dist
+	@uv build

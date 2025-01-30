@@ -4,14 +4,12 @@ Nodes are the building blocks of a TapeAgent, representing atomic units of the a
 
 import json
 import logging
-from typing import Any, Generator, Type
+from typing import Annotated, Any, Generator, Type, Union
 
 from pydantic import Field, TypeAdapter, ValidationError
 
-from tapeagents.view import Call, Respond, TapeViewStack
-
-from .agent import Agent, Node
-from .core import (
+from tapeagents.agent import Agent, Node
+from tapeagents.core import (
     AgentStep,
     LLMOutput,
     LLMOutputParsingFailureAction,
@@ -23,8 +21,11 @@ from .core import (
     StopStep,
     Tape,
 )
-from .llms import LLMStream
-from .utils import FatalError, sanitize_json_completion
+from tapeagents.llms import LLMStream
+from tapeagents.tools.code_executor import PythonCodeAction
+from tapeagents.tools.container_executor import extract_code_blocks
+from tapeagents.utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
+from tapeagents.view import Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class MonoNode(Node):
         guidance (str): Guidance text attached to the end of the prompt
         system_prompt (str): System prompt used in message construction
         steps_prompt (str): Prompt describing the steps the agent can take
-        agent_step_cls (Any): Class used for step validation, excluded from model
+        agent_steps (Any): Class used for step (or steps) validation, excluded from model
         next_node (str): Identifier for the next node in sequence
 
     Example:
@@ -52,7 +53,7 @@ class MonoNode(Node):
             guidance="Please respond with next action",
             system_prompt="You are a helpful assistant",
             steps_prompt="Available steps: think, act, finish",
-            agent_step_cls=AgentStep
+            agent_steps=AgentStep
         )
         ```
     """
@@ -60,8 +61,13 @@ class MonoNode(Node):
     guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
     steps_prompt: str = ""  # prompt that describes the steps that the agent can take
-    agent_step_cls: Any = Field(exclude=True)
+    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
     next_node: str = ""
+    _steps_type: Any = None
+
+    def model_post_init(self, __context: Any) -> None:
+        self._steps_type = Annotated[Union[self.agent_steps], Field(discriminator="kind")]
+        super().model_post_init(__context)
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -160,9 +166,9 @@ class MonoNode(Node):
                        Messages from tape are added with roles based on step type.
                        If guidance exists, it's added as the final user message.
         """
-        messages: list[dict] = [
-            {"role": "system", "content": self.system_prompt},
-        ] if self.system_prompt else []
+        messages: list[dict] = []
+        if self.system_prompt:
+            messages.append({"role": "system", "content": self.system_prompt})
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
         for step in tape:
@@ -186,7 +192,8 @@ class MonoNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        return self.steps_prompt
+        allowed_steps = get_step_schemas_from_union_type(self._steps_type)
+        return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
@@ -265,6 +272,13 @@ class MonoNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
+        if llm_output.strip().startswith("```"):  # handle special case of code blocks
+            for code_block in extract_code_blocks(llm_output):
+                if code_block.language and code_block.language != "python":
+                    raise LLMOutputParsingFailureAction(f"Unsupported code block language: {code_block.language}")
+                yield PythonCodeAction(code=code_block.code)
+            return
+
         try:
             step_dicts = json.loads(sanitize_json_completion(llm_output))
             if isinstance(step_dicts, dict):
@@ -273,8 +287,9 @@ class MonoNode(Node):
             logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
             yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
             return
+
         try:
-            steps = [TypeAdapter(self.agent_step_cls).validate_python(step_dict) for step_dict in step_dicts]
+            steps = [TypeAdapter(self._steps_type).validate_python(step_dict) for step_dict in step_dicts]
         except ValidationError as e:
             err_text = ""
             for err in e.errors():

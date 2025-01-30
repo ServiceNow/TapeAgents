@@ -6,8 +6,8 @@ import os
 import random
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from functools import partial
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from itertools import chain
 from pathlib import Path
 import traceback
 from typing import Dict, List, Tuple
@@ -15,23 +15,21 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
+import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
-import wandb
+from tapeagents.agent import Agent
+from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.finetune.data import MASKED_TOKEN_ID
+from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
+from tapeagents.llms import TrainableLLM
 
-wandb.require("core")
-from .cot_math_agent import (
-    CoTMathAgent,
-    MathEnvironment,
-    RLMathTape,
-    Task,
-)
+from .cot_math_agent import CoTMathAgent, RLMathTape, Task
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-from .deepseek_math_eval.process_utils import process_gsm8k_test, process_math_test
 from .utils import (
     calculate_stats,
     clean_up,
@@ -45,25 +43,56 @@ from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, Trainin
 from tapeagents.llms import TrainableLLM
 from tapeagents.orchestrator import main_loop
 from .dist_utils import DistributedManager, init_wandb, flatten_dict_config
+from .deepseek_math_eval.process_utils import process_eurus_test, process_gsm8k_test, process_math_test
 
 logger = logging.getLogger(__name__)
 
 
-def annotate_traces_with_ref_logprobs(agent: CoTMathAgent, trace: TrainingText, strict: bool) -> TrainingText | None:
+def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
+    match cfg.dataset_name:
+        case "math":
+            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            process_fn = process_math_test
+            builder_config = "main"
+        case "gsm8k":
+            train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
+            process_fn = process_gsm8k_test
+            builder_config = "main"
+        case "eurus":
+            train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
+            test_dataset_long_name = "alexpiche/math_test_cleaned"
+            process_fn = process_eurus_test
+            builder_config = "default"
+        case _:
+            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+
+    train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
+    test_dataset = load_dataset(test_dataset_long_name, builder_config, split="test", trust_remote_code=True)
+    train_samples = [
+        process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
+    ]
+    test_samples = [
+        process_fn(s) for s in tqdm(test_dataset, desc="Processing test samples") if process_fn(s) is not None
+    ]
+    logger.info(f"Loaded {len(train_samples)} training samples")
+    logger.info(f"Loaded {len(test_samples)} test samples")
+    return train_samples, test_samples
+
+
+def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
+    prompt_token_ids = []
+    completion_token_ids = []
+    for trace in traces:
+        prompt_token_ids.append(trace.input_ids[: -len(trace.logprobs)])
+        completion_token_ids.append(trace.input_ids[-len(trace.logprobs) :])
     try:
-        prompt_token_ids, completion_token_ids = (
-            trace.input_ids[: -len(trace.logprobs)],
-            trace.input_ids[-len(trace.logprobs) :],
-        )
-        ref_logprobs = agent.llm.get_logprobs(prompt_token_ids, completion_token_ids)  # type: ignore
-        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
-        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
-        return trace
+        all_ref_logprobs = llm.get_batch_logprobs_token_ids(prompt_token_ids, completion_token_ids)
     except Exception as e:
         logger.error(f"Failed to get ref logprobs: {e}")
-        if strict:
-            raise e
-        return None
+        return
+    for trace, ref_logprobs in zip(traces, all_ref_logprobs):
+        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
+        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
 
 
 def convert_problems_to_tapes(problems: list, cfg: DictConfig, split_name: str) -> list[RLMathTape]:
@@ -83,6 +112,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig, split_name: str) 
     for problem in tqdm(problems, desc=f"Converting {split_name} problems to unique tapes", unit="problem"):
         start_step = Task(
             task=problem["task"],
+            template=cfg.task_template,
             metadata=StepMetadata(
                 other={
                     "value": problem["answer"],
@@ -96,7 +126,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig, split_name: str) 
 
 def extract_tape_training_samples(
     new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig
-) -> Tuple[RLMathTape, List[TrainingText], Dict[str, int]]:
+) -> Tuple[List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
 
@@ -114,7 +144,6 @@ def extract_tape_training_samples(
         - List of training samples with rewards and logprobs
         - Dictionary with statistics (reward, steps, success, no_errors)
     """
-    discarded = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     match cfg.dataset_name:
@@ -124,6 +153,9 @@ def extract_tape_training_samples(
         case "gsm8k":
             eval_fn = eval_last_single_answer
             extract_fn = extract_last_single_answer
+        case "eurus":
+            eval_fn = eval_math
+            extract_fn = extract_math_answer
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
@@ -132,7 +164,7 @@ def extract_tape_training_samples(
         no_error, reward, success = 0, -1, 0
     else:
         no_error = 1
-        prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")
+        prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")  # type: ignore
         answer = new_tape.steps[0].metadata.other["value"]
         if eval_fn(
             {
@@ -147,19 +179,27 @@ def extract_tape_training_samples(
             reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
-    if split_name == "train":
-        # For each LLM interaction in the tape:
-        # - Create a training sample from the prompt and output
-        # - Get log probabilities of the output tokens
-        # - Set group ID for tracking
-        for step in new_tape.steps:
-            if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
-                continue
-            llm_call = step.metadata.other["llm_call"]
+    # For each LLM interaction in the tape:
+    # - Create a training sample from the prompt and output
+    # - Get log probabilities of the output tokens
+    # - Set group ID for tracking
+    for step in new_tape.steps:
+        if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
+            continue
+        llm_call = step.metadata.other["llm_call"]
+
+        if isinstance(llm_call, dict):
+            llm_call = LLMCall(**llm_call)
+
+        tape_prompt_tokens += llm_call.prompt_length_tokens
+        tape_output_tokens += llm_call.output_length_tokens
+
+        overflows = []
+        if split_name == "train":
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-            input_ids = [lp["token_id"] for lp in llm_call.logprobs]
-            labels = [lp["token_id"] for lp in llm_call.logprobs if lp["generated"]]
+            input_ids = [lp.token_id for lp in llm_call.logprobs]
+            labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
             # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
             # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
             labels = [-100] * (len(input_ids) - len(labels)) + labels
@@ -167,11 +207,12 @@ def extract_tape_training_samples(
             trace.input_ids = input_ids
             trace.labels = labels
 
-            trace.reward = reward
-            trace.logprobs = [lp["logprob"] for lp in llm_call.logprobs if lp["generated"]]
+            # check if the last produced token is the end of sequence token
+            overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
+            trace.reward = cfg.overflow_reward if overflow else reward
+            overflows.append(overflow)
+            trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
             trace.group_id = new_tape.metadata.parent_id
-            tape_prompt_tokens += llm_call.prompt_length_tokens
-            tape_output_tokens += llm_call.output_length_tokens
             training_samples.append(trace)
 
     tape_stats = {
@@ -179,21 +220,26 @@ def extract_tape_training_samples(
         "steps": len(new_tape.steps),
         "success": success,
         "no_error": no_error,
-        "discarded": np.mean(discarded) if discarded else 0,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
+        "overflows": sum(overflows),
     }
-    return new_tape, training_samples, tape_stats
+    return training_samples, tape_stats
+
+
+def batch_run_agent_replica(agent: CoTMathAgent, tapes: list[RLMathTape]) -> tuple[Agent, list[RLMathTape]]:
+    final_tapes = agent.run_batch(tapes)
+    # There is some statistics that we track in the agent in a mutable way
+    return agent, final_tapes
 
 
 def generate_training_data(
-    agent: CoTMathAgent,
+    agent_replicas: list[CoTMathAgent],
     tapes: list[RLMathTape],
     cfg: DictConfig,
-    env: MathEnvironment,
     tapes_dir: Path,
     split_name: str,
-) -> Tuple[List[RLMathTape], List[TrainingText], Dict[str, float]]:
+) -> Tuple[list[CoTMathAgent], List[RLMathTape], List[TrainingText], Dict[str, float]]:
     """
     Generate complete tapes and training samples from a list of initialized tapes.
 
@@ -201,7 +247,6 @@ def generate_training_data(
         agent: Agent that interacts with the math environment
         tapes: List of tapes initialized with math problems
         cfg: Configuration
-        env: Environment with tools
         tapes_dir: Directory to save processed episodes
         split_name: Name of split ('train' or other)
 
@@ -218,48 +263,35 @@ def generate_training_data(
     step_stats = defaultdict(list)
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
-    discarded_stats = defaultdict(list)
+    prompt_tokens_stats = defaultdict(list)
+    output_tokens_stats = defaultdict(list)
+    overflow_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
-    logger.info(f"Starting {cfg.dataset_name} {split_name} main loop")
+    logger.info(f"Run the agent on {cfg.dataset_name} {split_name}")
 
-    logger.info("Starting data creation")
-    prompt_tokens = 0
-    output_tokens = 0
+    start_making_tapes = time.time()
+    with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
+        replica_tapes = [tapes[i :: len(agent_replicas)] for i in range(len(agent_replicas))]
+        results = list(executor.map(batch_run_agent_replica, agent_replicas, replica_tapes))
+        final_tapes = list(chain(*[r[1] for r in results]))
+        agent_replicas = [r[0] for r in results]  # type: ignore
+    logger.info(f"Making tapes took {time.time() - start_making_tapes}")
 
-    def generate_and_extract_tape_training_samples(
-        tape: RLMathTape, agent: CoTMathAgent, env, split_name: str, cfg: DictConfig
-    ):
-        new_tape = main_loop(agent, tape, env, max_loops=cfg.max_loops).get_final_tape()
-        assert new_tape.steps[1].reasoning == new_tape.steps[1].metadata.other["llm_call"].output.content
-        return extract_tape_training_samples(new_tape, agent, split_name, cfg)
-
-    with ThreadPoolExecutor(max_workers=cfg.n_workers_per_gpu * torch.cuda.device_count()) as executor:
-        generate_and_extract_tape_training_samples_partial = partial(
-            generate_and_extract_tape_training_samples,
-            agent=agent,
-            env=env,
-            split_name=split_name,
-            cfg=cfg,
-        )
-        futures = [executor.submit(generate_and_extract_tape_training_samples_partial, tape) for tape in tapes]
-        # Wrap futures with tqdm for progress tracking
-        new_tapes = []
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Generating tapes", unit="tape"):
-            new_tape, tape_training_samples, tape_stats = future.result()
-            new_tapes.append(new_tape)
-            training_samples.extend(tape_training_samples)
-            reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
-            step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
-            success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
-            no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
-            discarded_stats[new_tape.metadata.parent_id].append(tape_stats["discarded"])
-            prompt_tokens += tape_stats["prompt_tokens"]
-            output_tokens += tape_stats["output_tokens"]
+    for new_tape in tqdm(final_tapes, total=len(final_tapes), desc="Extracting training data from tapes", unit="tape"):
+        tape_training_samples, tape_stats = extract_tape_training_samples(new_tape, agent_replicas[0], split_name, cfg)
+        training_samples.extend(tape_training_samples)
+        reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
+        step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
+        success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
+        no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
+        prompt_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
+        output_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
+        overflow_stats[new_tape.metadata.parent_id].append(tape_stats["overflows"])
 
     start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
-        json.dump([tape.model_dump() for tape in new_tapes], f, indent=4)
+        json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
     end_dump = time.time()
 
     end_make_data = time.time()
@@ -269,17 +301,19 @@ def generate_training_data(
         **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+        **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens_stats).items()},
+        **{f"{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens_stats).items()},
         **{
             f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
-            f"execution_time/{split_name}_tapes_made_per_second": len(new_tapes) / (end_make_data - start_make_data),
-            f"{split_name}_discarded": np.mean([np.mean(v) for v in discarded_stats.values()]),
-            f"{split_name}_prompt_tokens": prompt_tokens,
-            f"{split_name}_output_tokens": output_tokens,
+            f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
+            f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
+            f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
+            f"{split_name}_overflows": np.mean([np.mean(ov) for ov in overflow_stats.values()]),
         },
     }
-    # All nodes return their local results
-    return new_tapes, training_samples, stats
+
+    return agent_replicas, final_tapes, training_samples, stats
 
 
 def split_data_for_nodes(data, world_size, rank):
@@ -415,6 +449,7 @@ def main(cfg: DictConfig):
 
     # Create environment on all nodes
     env = MathEnvironment()
+
     os.makedirs(conf_dir, exist_ok=True)
 
     remove_leading_white_space = True if "deepseek" in cfg.model_path else False
@@ -440,14 +475,15 @@ def main(cfg: DictConfig):
                     logger.info(f"{key}: {os.environ.get(key)}")
 
             with VLLMServiceManager(
+                exp_path=exp_path,
+                service_name="actor",
                 model_name_or_path=assistant_model_path,
                 stdout_file_path=exp_path / f"assistant_vllm_stdout_rank{rank}.log",
                 stderr_file_path=exp_path / f"assistant_vllm_stderr_rank{rank}.log",
                 port=8080,
-                gpus_per_model_instance=cfg.gpus_per_model_instance,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **cfg.vllm_config.vllm_kwargs,
+                **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.actor_vllm_kwargs)),
             ) as vllm_service_manager:
                 # Each node already has its portion of samples from split_data_for_nodes
                 sub_samples = random.sample(train_samples, cfg.max_agent_forks // (cfg.attempts * world_size))
@@ -486,8 +522,8 @@ def main(cfg: DictConfig):
                 for split_name, agent, tapes in splits:
                     start_make_data = time.time()
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
-                    new_tapes, training_samples, stats = generate_training_data(
-                        agent, tapes, cfg, env, tapes_dir, split_name
+                    agent_replicas_with_stats, new_tapes, split_training_samples, stats = generate_training_data(
+                        agent_replicas, tapes, cfg, tapes_dir, split_name
                     )
                     make_data_took = time.time() - start_make_data
 
@@ -508,7 +544,7 @@ def main(cfg: DictConfig):
 
                     all_results[split_name] = {
                         "new_tapes": new_tapes,
-                        "training_samples": training_samples,
+                        "training_samples": split_training_samples,
                         "stats": stats,
                     }
 
@@ -544,23 +580,23 @@ def main(cfg: DictConfig):
 
         try:
             with VLLMServiceManager(
+                exp_path=exp_path,
+                service_name="reference",
                 model_name_or_path=cfg.model_path,
-                stdout_file_path=exp_path / "basemodel_vllm_stdout.log",
-                stderr_file_path=exp_path / "basemodel_vllm_stderr.log",
                 port=8180,
                 verbose=True,
-                gpus_per_model_instance=cfg.gpus_per_model_instance,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
-                **cfg.vllm_config.vllm_kwargs,
+                **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.ref_vllm_kwargs)),
             ) as vllm_service_manager:
-                basemodel_llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=cfg.model_path,
-                    tokenizer_name=cfg.model_path,
-                    parameters=dict(temperature=0.7),
-                )
-
-                basemodel_agent = CoTMathAgent.create(llm=basemodel_llm)
+                ref_llms = [
+                    TrainableLLM(
+                        base_url=url,
+                        model_name=cfg.model_path,
+                        tokenizer_name=cfg.model_path,
+                        parameters=dict(temperature=0.7),
+                    )
+                    for url in vllm_service_manager.get_base_urls()
+                ]
 
                 start_basemodel_logprobs = time.time()
                 
@@ -684,7 +720,7 @@ def main(cfg: DictConfig):
             "execution_time/starting_assistantmodel_vllm": assistant_vllm_stats["starting_time"],
             "execution_time/starting_refmodel_vllm": refmodel_starting_time,
         }
-        logger.info(f"Logprob population stats:")
+        logger.info("Logprob population stats:")
         for stat_name, stat_value in logprob_stats.items():
             logger.info(f"{stat_name}: {stat_value}")
         safe_wandb_log(logprob_stats, step=state["iteration"], dist_manager=dist_manager)

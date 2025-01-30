@@ -1,4 +1,4 @@
-import time
+import os
 from functools import partial
 from typing import Any, Callable, Iterable, Sequence
 
@@ -16,7 +16,6 @@ from transformers import BatchEncoding
 from tapeagents.core import TrainingText
 
 from .context import accelerator, logger
-from .logging_ import log_time
 from .rl import RL_DATA_COLUMNS, prepare_rl_fields
 from .types import DataArgs, DataPartArgs
 
@@ -198,7 +197,7 @@ def create_dataloader(
     )
     logger.info(f"Instantiated collate_fn hash {Hasher.hash(collate_fn)}")
 
-    datasets = []
+    datasets_list = []
     weights = []
     stop = False
     for part in data_parts:
@@ -216,16 +215,24 @@ def create_dataloader(
 
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
-        dataset_part = dataset_part.map(preprocess, keep_in_memory=True, load_from_cache_file=False)
+
+        num_proc = (os.cpu_count() // accelerator.num_processes) or 1
+        dataset_part = dataset_part.map(
+            preprocess,
+            keep_in_memory=True,
+            load_from_cache_file=False,
+            num_proc=num_proc,
+        )
         dataset_part = dataset_part.with_format(columns=columns)
+
         logger.info(f"Preprocessed data part fingerprint: {dataset_part._fingerprint}")
-        datasets.append(dataset_part)
+        datasets_list.append(dataset_part)
         if stop:
             break
     total_weight = sum(weights)
     probs = [w / total_weight for w in weights]
     data = interleave_datasets(
-        datasets,
+        datasets_list,
         probabilities=probs,
         stopping_strategy="all_exhausted",
         seed=rng.initial_seed() if rng is not None else None,
@@ -235,9 +242,7 @@ def create_dataloader(
 
     if rl_data_callback is not None:
         accelerator.wait_for_everyone()
-        dt = time.perf_counter()
         data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
-        dt = log_time(dt, "finetune/rl_data_callback")
 
     if n_examples:
         data = data.select(range(n_examples))

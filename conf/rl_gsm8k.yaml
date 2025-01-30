@@ -4,8 +4,7 @@ defaults:
 
 dataset_name: gsm8k
 n_workers_per_gpu: 32
-get_logprobs_workers_per_gpu: 1
-gpus_per_model_instance: 1
+get_logprobs_workers_per_gpu: 4
 max_loops: 1
 test_every_n_iterations: 5
 model_path: /mnt/llmd/base_models/deepseek-math-7b-instruct
@@ -16,7 +15,7 @@ max_iterations: 1000
 use_rejection_sampling: false
 llm:
   parameters:
-    max_tokens: 1024 
+    max_tokens: 3072
     temperature: 0.7
 test_llm:
   parameters: 
@@ -33,15 +32,33 @@ finetune:
   # One step is one weight update. See the finetuning configuration
   # for the info in how many sequences are used for each weight update.
   save_checkpoint_steps: 10
-  seq_length: ${..llm.parameters.max_tokens}
+  seq_length: 4096
+
+system_prompt: ""
+# Same prompt as https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/run_subset_parallel.py#L26
+task_template: |-
+  {task}\nPlease reason step by step, and put your final answer within \boxed{{}}.
+overflow_reward: 0
+max_prompt_length: 1024
 
 vllm_config:
   vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 
     --gpu-memory-utilization: 0.9
-    # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
+    --num-scheduler-steps: 16
+    --disable-log-requests: ""
+    --max-num-seqs: 1024 
+    --enforce-eager: ""
+    --return-tokens-as-token-ids: ""
+    --pipeline-parallel-size: 1
+    --tensor-parallel-size: 1
+  actor_vllm_kwargs:
+    --num-scheduler-steps: 16
+  ref_vllm_kwargs:
+    --num-scheduler-steps: 1
+     # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
     --enable-chunked-prefill: ""
-    --max-num-batched-tokens: 256
+    --max-num-batched-tokens: 1024
 
 output_dir: outputs/rl_gsm8k_deepspeed_llama31_70b_rl_no_kl_lr1e-6_2nodes_no_gather_file_sync
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
@@ -52,7 +69,7 @@ hydra:
     dir: ${output_dir}
   job_logging:
     root:
-      level: DEBUG
+      level: INFO
     handlers:
       node_errors:
         class: logging.FileHandler

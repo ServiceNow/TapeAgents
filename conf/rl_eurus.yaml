@@ -1,0 +1,29 @@
+defaults:
+  - rl_gsm8k
+  - _self_
+model_path: /mnt/llmd/base_models/Eurus-2-7B-SFT
+dataset_name: eurus
+output_dir: outputs/rl_eurus
+attempts: 1
+llm:
+  parameters:
+    # CoT are much longer, but the model only has 4096 tokens context
+    max_tokens: 3072
+
+# EURUS already formatted the dataset as {task}\n\nPresent the answer in LaTex format: \\boxed{Your answer}
+# thus we can simply use the identity task template
+task_template: |-
+  {task}
+# https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/eval/system_prompt.md?plain=1
+# but note that sometimes they do not include the newline at the beginning
+# https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/data_preprocessing/sft_prompt.py#L1
+system_prompt: |-
+ \nWhen tackling complex reasoning tasks, you have access to the following actions. Use them as needed to progress through your thought process.\n\n[ASSESS]\n\n[ADVANCE]\n\n[VERIFY]\n\n[SIMPLIFY]\n\n[SYNTHESIZE]\n\n[PIVOT]\n\n[OUTPUT]\n\nYou should strictly follow the format below:\n\n[ACTION NAME]\n\n# Your action step 1\n\n# Your action step 2\n\n# Your action step 3\n\n...\n\nNext action: [NEXT ACTION NAME]\n\n
+
+test_every_n_iterations: 1
+vllm_config:
+  vllm_kwargs:
+    --gpu-memory-utilization: 0.99
+    --max-num-seqs: 512
+    --pipeline-parallel-size: 1
+    --tensor-parallel-size: 1

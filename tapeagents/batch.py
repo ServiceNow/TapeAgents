@@ -9,13 +9,13 @@ from typing import Generator, Generic, Sequence
 
 from pydantic import BaseModel
 
-from .agent import Agent, Annotator, ObservationMaker
-from .config import is_debug_mode
-from .core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadata, TapeType
-from .environment import Environment
-from .io import stream_yaml_tapes
-from .orchestrator import main_loop
-from .parallel_processing import choose_processor
+from tapeagents.agent import Agent, Annotator, ObservationMaker
+from tapeagents.config import is_debug_mode
+from tapeagents.core import AnnotatorTapeType, ObservationMakerTapeType, Tape, TapeMetadata, TapeType
+from tapeagents.environment import Environment
+from tapeagents.io import stream_yaml_tapes
+from tapeagents.orchestrator import main_loop
+from tapeagents.parallel_processing import choose_processor
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,9 @@ def batch_main_loop(
     if not isinstance(environments, list):
         environments = [environments] * len(tapes)
 
-    def worker_func(input: tuple[TapeType, Environment], agent: Agent, max_loops: int, strict: bool) -> TapeType | Exception:
+    def worker_func(
+        input: tuple[TapeType, Environment], agent: Agent, max_loops: int, strict: bool
+    ) -> TapeType | Exception:
         start_tape, env = input
         try:
             result = main_loop(agent, start_tape, env, max_loops=max_loops).get_final_tape()

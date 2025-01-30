@@ -11,7 +11,15 @@ from pathlib import Path
 import yaml
 from omegaconf import DictConfig
 
+from tapeagents.config import ATTACHMENT_DEFAULT_DIR, DB_DEFAULT_FILENAME
+from tapeagents.core import AgentStep, TrainingText
+from tapeagents.dialog_tape import DialogTape
+from tapeagents.environment import EmptyEnvironment
 from tapeagents.io import load_tapes
+from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
+from tapeagents.observe import init_sqlite_if_not_exists, retrieve_tape_llm_calls
+from tapeagents.orchestrator import replay_tape, replay_tapes
+from tapeagents.team import TeamTape
 from tests.make_test_data import run_test_in_tmp_dir
 
 sys.path.append(str(Path(__file__).parent.parent.parent.resolve()))  # allow to import from examples
@@ -20,8 +28,6 @@ from examples.data_science import data_science
 from examples.delegate import ExampleTape, FindIrregularVerbs
 from examples.delegate_stack import (
     ExampleTape as ExampleTapeStack,
-)
-from examples.delegate_stack import (
     Linguist,
     make_analyze_text_chain,
 )
@@ -35,21 +41,13 @@ from examples.form_filler.scripts.prepare_test_assets import (
     load_user_reference_tapes,
 )
 from examples.gaia_agent.agent import GaiaAgent
-from examples.gaia_agent.environment import GaiaEnvironment
+from examples.gaia_agent.environment import get_env
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
 from examples.optimize.optimize import make_agentic_rag_agent, make_env
 from examples.tape_improver import tape_improver
 from examples.workarena.agent import WorkArenaAgent
 from examples.workarena.steps import WorkArenaTape
-from tapeagents.config import DB_DEFAULT_FILENAME
-from tapeagents.core import AgentStep, TrainingText
-from tapeagents.dialog_tape import DialogTape
-from tapeagents.environment import EmptyEnvironment
-from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
-from tapeagents.observe import init_sqlite_if_not_exists, retrieve_tape_llm_calls
-from tapeagents.orchestrator import replay_tape, replay_tapes
-from tapeagents.team import TeamTape
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -160,13 +158,18 @@ def test_gaia_agent():
         with open(db_file, "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
     try:
+        os.environ["TAPEAGENTS_CACHE_DIR"] = f"{run_dir}/cache"
         llm = mock_llm(run_dir)
-        env = GaiaEnvironment(only_cached_webpages=True, attachment_dir=f"{run_dir}/attachments")
-        env.browser.set_web_cache(f"{run_dir}/web_cache.jsonl")
-        agent = GaiaAgent.create(llm)
-        tapes = load_tapes(GaiaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
+        env = get_env(run_dir, simple_browser=True)
+        agent = GaiaAgent.create(llm, actions=env.actions())
+        tapes = load_tapes(
+            GaiaTape,
+            os.path.join(run_dir, "tapes"),
+            file_extension=".json",
+            attachment_dir=os.path.join(run_dir, ATTACHMENT_DEFAULT_DIR),
+        )
         logger.info(f"Validate {len(tapes)} tapes")
-        fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+        fails = replay_tapes(agent, tapes, env, reuse_observations=True, stop_on_error=True)
         assert fails == 0, f"{fails} failed tapes"
     finally:
         if os.path.exists(db_file):
@@ -179,7 +182,7 @@ def test_workarena_agent():
     agent = WorkArenaAgent.create(llm)
     tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, reuse_observations=True)
+    fails = replay_tapes(agent, tapes, reuse_observations=True, stop_on_error=True)
     assert fails == 0, f"{fails} failed tapes"
 
 
@@ -272,11 +275,42 @@ def test_tape_improver():
     assert replay_success, "Failed to replay tape"
 
 
-def test_optimize():
-    with run_test_in_tmp_dir("tests/examples/res/optimize"):
+def test_optimize_gpt35():
+    assets_dir = f"{res_path}/optimize/gpt-3.5-turbo"
+    with run_test_in_tmp_dir(assets_dir):
         with open("config.yaml") as f:
             cfg = DictConfig(yaml.safe_load(f))
         agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
+        env = make_env()
+        tape = DialogTape.model_validate(load_tape_dict(""))
+        replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
+        assert replay_success, "Failed to replay tape"
+
+
+def test_optimize_gpt4o_mini():
+    assets_dir = f"{res_path}/optimize/gpt-4o-mini"
+    with run_test_in_tmp_dir(assets_dir):
+        with open("config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
+        env = make_env()
+        tape = DialogTape.model_validate(load_tape_dict(""))
+        replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
+        assert replay_success, "Failed to replay tape"
+
+
+def test_optimize_llama33_70b():
+    assets_dir = f"{res_path}/optimize/llama-3.3-70b-instruct"
+    with run_test_in_tmp_dir(assets_dir):
+        with open("config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent = make_agentic_rag_agent(cfg)
+        mock_llm = ReplayLLM.from_llm(agent.llms["default"], assets_dir)
+        agent.llms = {"default": mock_llm}
         env = make_env()
         tape = DialogTape.model_validate(load_tape_dict(""))
         replay_success = replay_tape(agent, tape, env=env, reuse_observations=True)
@@ -294,3 +328,6 @@ if __name__ == "__main__":
     test_data_science()
     test_form_filler()
     test_tape_improver()
+    test_optimize_gpt35()
+    test_optimize_gpt4o_mini()
+    test_optimize_llama33_70b()
