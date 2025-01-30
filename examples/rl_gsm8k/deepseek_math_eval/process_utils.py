@@ -12,7 +12,7 @@ def process_eurus_test(item):
         return {
             "dataset": "math500",
             # Same prompt as https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/README.md?plain=1#L93
-            "task": item["problem"] + "\n\nPresent the answer in LaTex format: \\boxed{Your answer}",
+            "task": item["problem"],
             "answer": answer
         }
     else:
