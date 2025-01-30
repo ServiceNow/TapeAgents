@@ -1,6 +1,6 @@
-import logging
 import copy
 import json
+import logging
 import multiprocessing
 import os
 import random
@@ -9,7 +9,6 @@ from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from itertools import chain
 from pathlib import Path
-import traceback
 from typing import Dict, List, Tuple
 
 import hydra
@@ -30,20 +29,8 @@ from tapeagents.llms import TrainableLLM
 from .cot_math_agent import CoTMathAgent, RLMathTape, Task
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
 from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-from .utils import (
-    calculate_stats,
-    clean_up,
-    VLLMServiceManager,
-    launch_training,
-    load_state,
-    save_state,
-    setup_logging,
-)
-from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
-from tapeagents.llms import TrainableLLM
-from tapeagents.orchestrator import main_loop
-from .dist_utils import DistributedManager, init_wandb, flatten_dict_config
 from .deepseek_math_eval.process_utils import process_eurus_test, process_gsm8k_test, process_math_test
+from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +82,7 @@ def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[Trai
         assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
 
 
-def convert_problems_to_tapes(problems: list, cfg: DictConfig, split_name: str) -> list[RLMathTape]:
+def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTape]:
     """
     Creates RLMathTape objects from a list of math problem dictionaries.
 
@@ -109,7 +96,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig, split_name: str) 
             stored in metadata.
     """
     tapes: list[RLMathTape] = []
-    for problem in tqdm(problems, desc=f"Converting {split_name} problems to unique tapes", unit="problem"):
+    for problem in tqdm(problems, desc="Converting problems to unique tapes", unit="problem"):
         start_step = Task(
             task=problem["task"],
             template=cfg.task_template,
@@ -202,7 +189,7 @@ def extract_tape_training_samples(
             labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
             # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
             # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-            labels = [-100] * (len(input_ids) - len(labels)) + labels
+            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
             trace.input_ids = input_ids
             trace.labels = labels
@@ -312,235 +299,114 @@ def generate_training_data(
             f"{split_name}_overflows": np.mean([np.mean(ov) for ov in overflow_stats.values()]),
         },
     }
-
     return agent_replicas, final_tapes, training_samples, stats
-
-
-def split_data_for_nodes(data, world_size, rank):
-    """Split data into chunks for distributed processing."""
-    if data is None:
-        return None
-        
-    per_node = len(data) // world_size
-    start_idx = rank * per_node
-    # Last node gets any remaining samples
-    end_idx = start_idx + per_node if rank < world_size - 1 else len(data)
-    return data[start_idx:end_idx]
-
-
-def safe_wandb_log(metrics, step, dist_manager: DistributedManager):
-    if dist_manager.is_main_process():
-        try:
-            wandb.log(metrics, step=step)
-        except Exception as e:
-            logger.warning(f"Failed to log to wandb: {e}")
 
 
 @hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
 def main(cfg: DictConfig):
-    dist_manager = DistributedManager()
-    
     multiprocessing.set_start_method("spawn")  # necessary to use gpus in subprocesses
     random.seed(42)
     exp_path = Path(cfg.output_dir)
     setup_logging(exp_path)
     logger.info(f"Current dir: {os.getcwd()}, output dir: {cfg.output_dir}")
-    cfg.finetune.wandb_id = exp_path.name
-
-    # Define directories
-    conf_dir = exp_path / "conf"
-    finetune_path = exp_path / "finetune"
-    data_path = exp_path / "data"
-    sync_dir = exp_path / "sync"
-
-    run = init_wandb(cfg, exp_path, flatten_dict_config(cfg), dist_manager)
-
+    cfg.finetune.wandb_id = str(exp_path).replace("/", "_")
+    run = init_wandb(cfg, exp_path, flatten_dict_config(cfg))
+    if run is None:
+        raise ValueError("Failed to initialize wandb run")
     state_path = exp_path / "rl_state.json"
     state = load_state(state_path)
-    
-    # Initialize data containers
-    full_train_samples = None
-    full_test_samples = None
-
-    # distributed setup
-    world_size = dist_manager.get_world_size()
-    rank = dist_manager.get_rank()
-
-    # Get dataset only on main process
-    if dist_manager.is_main_process():
-        if cfg.force_restart:
-            clean_up(exp_path, state, state_path, dist_manager)
-
-            match cfg.dataset_name:
-                case "math":
-                    dataset_long_name = "hendrycks/competition_math"
-                    process_fn = process_math_test
-                case "gsm8k":
-                    dataset_long_name = "openai/gsm8k"
-                    process_fn = process_gsm8k_test
-                case _:
-                    raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
-
-            train_dataset = load_dataset(dataset_long_name, "main", split="train", trust_remote_code=True)
-            full_train_samples = [process_fn(s) for s in train_dataset]
-            test_dataset = load_dataset(dataset_long_name, "main", split="test", trust_remote_code=True)
-            full_test_samples = [process_fn(s) for s in test_dataset]
-            
-            # Save to shared storage
-            os.makedirs(data_path, exist_ok=True)
-            with open(data_path / "train_samples.json", "w") as f:
-                json.dump(full_train_samples, f)
-            with open(data_path / "test_samples.json", "w") as f:
-                json.dump(full_test_samples, f)
-            
-            logger.info(f"Main process saved {len(full_train_samples)} training samples and {len(full_test_samples)} test samples")
-
-    logger.info(f"Creating sync dir: {sync_dir}")
-    os.makedirs(sync_dir, exist_ok=True)
-
-    # Ensure data is written before other nodes try to read
-    if not dist_manager.sync_nodes(message="after data save", sync_dir=sync_dir, rank=rank, world_size=world_size, timeout_mins=30):
-        raise RuntimeError("Failed sync after data save")
-
+    # optionally clean all data at start time
     if cfg.force_restart:
-        # Wait for files to be available; important for distributed training
-        max_retries = 10
-        retry_delay = 5  # seconds
-        
-        for retry in range(max_retries):
-            try:
-                if not (data_path / "train_samples.json").exists() or not (data_path / "test_samples.json").exists():
-                    if retry < max_retries - 1:
-                        logger.warning(f"Rank {rank + 1}/{world_size}: Data files not found, retrying in {retry_delay} seconds (attempt {retry + 1}/{max_retries})")
-                        time.sleep(retry_delay)
-                        continue
-                    else:
-                        raise FileNotFoundError("Data files not found after maximum retries")
-                    
-                with open(data_path / "train_samples.json", "r") as f:
-                    full_train_samples = json.load(f)
-                with open(data_path / "test_samples.json", "r") as f:
-                    full_test_samples = json.load(f)
-                break
-            except Exception as e:
-                if retry < max_retries - 1:
-                    logger.warning(f"Rank {rank + 1}/{world_size}: Failed to load data files: {e}, retrying in {retry_delay} seconds")
-                    time.sleep(retry_delay)
-                else:
-                    raise e
-    else:
-        try:
-            rollout_dir = exp_path / "rollouts" / str(state["iteration"] - 1)
-            with open(rollout_dir / "data.jsonl", "r") as f:
-                full_train_samples = [json.loads(line) for line in f]
-            full_test_samples = []
-        except Exception as e:
-            logger.error(f"Failed to load existing data: {e}")
-            raise e
+        clean_up(exp_path, state, state_path)
 
-    # Split data for current node
-    logger.info(f"Rank {rank + 1}/{world_size}: Total train samples before split: {len(full_train_samples)}")
-    logger.info(f"Rank {rank + 1}/{world_size}: Total test samples before split: {len(full_test_samples)}")
-    train_samples = split_data_for_nodes(full_train_samples, world_size, rank)
-    test_samples = split_data_for_nodes(full_test_samples, world_size, rank)
-
-    logger.info(f"Rank {rank + 1}/{world_size} loaded {len(train_samples)} training samples "
-               f"and {len(test_samples)} test samples")
-
-    # Create environment on all nodes
-    env = MathEnvironment()
-
+    train_samples, test_samples = load_datasets(cfg)
+    conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
-
-    remove_leading_white_space = True if "deepseek" in cfg.model_path else False
-    if remove_leading_white_space:
-        logger.info("Removing leading white space from the model. This is necessary for DeepSeek models")
+    finetune_path = exp_path / "finetune"
 
     while state["iteration"] < cfg.max_iterations:
         logger.info(f"Starting iteration {state['iteration']}")
         start_iteration = time.time()
-
         if os.path.exists(finetune_path / "current"):
             assistant_model_path = str(finetune_path / "current")
         else:
             assistant_model_path = cfg.model_path
 
         try:
-            # Set NCCL settings for vLLM weight loading
-            if dist_manager.get_world_size() > 1:
-                os.environ["NCCL_CUMEM_ENABLE"] = "0"
-                os.environ["NCCL_TIMEOUT"] = "7200"
-                logger.info("Multi-node NCCL Environment Variables for vLLM:")
-                for key in ["NCCL_CUMEM_ENABLE", "NCCL_TIMEOUT"]:
-                    logger.info(f"{key}: {os.environ.get(key)}")
-
+            all_results = {}
             with VLLMServiceManager(
                 exp_path=exp_path,
                 service_name="actor",
                 model_name_or_path=assistant_model_path,
-                stdout_file_path=exp_path / f"assistant_vllm_stdout_rank{rank}.log",
-                stderr_file_path=exp_path / f"assistant_vllm_stderr_rank{rank}.log",
                 port=8080,
                 verbose=True,
                 cuda_device=",".join([str(i) for i in range(torch.cuda.device_count())]),
                 **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.actor_vllm_kwargs)),
             ) as vllm_service_manager:
-                # Each node already has its portion of samples from split_data_for_nodes
-                sub_samples = random.sample(train_samples, cfg.max_agent_forks // (cfg.attempts * world_size))
-                train_tapes = convert_problems_to_tapes(sub_samples, cfg, split_name="train")
+                sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
+                train_tapes = convert_problems_to_tapes(sub_samples, cfg)
                 train_tapes = [copy.deepcopy(tape) for tape in train_tapes for _ in range(cfg.attempts)]
+                train_llms = [
+                    TrainableLLM(
+                        base_url=base_url,
+                        model_name=str(assistant_model_path),
+                        tokenizer_name=str(assistant_model_path),
+                        parameters=cfg.llm.parameters,
+                        use_cache=False,
+                        collect_logprobs=True,
+                        observe_llm_calls=False,
+                    )
+                    for base_url in vllm_service_manager.get_base_urls()
+                ]
 
-                llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=str(assistant_model_path),
-                    tokenizer_name=str(assistant_model_path),
-                    parameters=cfg.llm.parameters,
-                    use_cache=False,
-                    collect_logprobs=True,
-                    observe_llm_calls=False,
-                )
+                test_llms = [
+                    TrainableLLM(
+                        base_url=base_url,
+                        model_name=str(assistant_model_path),
+                        tokenizer_name=str(assistant_model_path),
+                        parameters=cfg.test_llm.parameters,
+                        use_cache=False,
+                        observe_llm_calls=False,
+                    )
+                    for base_url in vllm_service_manager.get_base_urls()
+                ]
 
-                test_llm = TrainableLLM(
-                    base_url=vllm_service_manager.get_base_urls(),
-                    model_name=str(assistant_model_path),
-                    tokenizer_name=str(assistant_model_path),
-                    parameters=cfg.test_llm.parameters,
-                    use_cache=False,
-                    observe_llm_calls=False
-                )
+                train_agent_replicas = [
+                    CoTMathAgent.create(
+                        system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length
+                    )
+                    for llm in train_llms
+                ]
 
-                train_agent = CoTMathAgent.create(llm=llm)
-
-                splits = [("train", train_agent, train_tapes)]
+                splits = [("train", train_agent_replicas, train_tapes)]
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                    test_tapes = convert_problems_to_tapes(test_samples, cfg, split_name="test")
-                    test_agent = CoTMathAgent.create(llm=test_llm)
-                    splits.append(("test", test_agent, test_tapes))
-
-                # Process splits and gather results
-                all_results = {}
-                for split_name, agent, tapes in splits:
-                    start_make_data = time.time()
+                    test_tapes = convert_problems_to_tapes(test_samples, cfg)
+                    test_agent_replicas = [
+                        CoTMathAgent.create(
+                            system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length
+                        )
+                        for llm in test_llms
+                    ]
+                    splits.append(("test", test_agent_replicas, test_tapes))
+                for split_name, agent_replicas, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
                     agent_replicas_with_stats, new_tapes, split_training_samples, stats = generate_training_data(
                         agent_replicas, tapes, cfg, tapes_dir, split_name
                     )
-                    make_data_took = time.time() - start_make_data
 
-                    llm_stats = agent.llm.get_stats()
-
-                    stats.update({
-                        f"execution_time/{split_name}_make_data": make_data_took,
-                        f"llm/{split_name}_make_data_output_tokens/s": llm_stats["total_prompt_tokens"] / make_data_took,
-                        f"llm/{split_name}_make_data_prompt_tokens/s": llm_stats["total_output_tokens"] / make_data_took,
-                        f"llm/{split_name}_make_data_tokens/s": (llm_stats["total_output_tokens"] + llm_stats["total_prompt_tokens"]) / make_data_took,
-                    })
-
-                    for k, v in llm_stats.items():
-                        if "/s" in k:
-                            stats[f"llm/{split_name}_{k}_per_gpu"] = v / torch.cuda.device_count()
-                        else:
-                            stats[f"llm/{split_name}_{k}"] = v
+                    llm_stats = agent_replicas_with_stats[0].llm.get_stats()
+                    make_data_took = stats[f"execution_time/{split_name}_make_data"]
+                    llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
+                    throughput_stats = {
+                        f"{split_name}_prompt_tokens_per_sec": stats[f"{split_name}_prompt_tokens"] / make_data_took,
+                        f"{split_name}_output_tokens_per_sec": stats[f"{split_name}_output_tokens"] / make_data_took,
+                        f"{split_name}_total_tokens_per_sec": (
+                            stats[f"{split_name}_prompt_tokens"] + stats[f"{split_name}_output_tokens"]
+                        )
+                        / make_data_took,
+                    }
+                    stats.update(llm_stats)
+                    stats.update(throughput_stats)
 
                     all_results[split_name] = {
                         "new_tapes": new_tapes,
@@ -548,34 +414,27 @@ def main(cfg: DictConfig):
                         "stats": stats,
                     }
 
-                    # Log results for current node
-                    logger.info(f"Rank {rank + 1}/{world_size} {split_name} stats:")
+                    # Log results
+                    logger.info(f"{cfg.dataset_name} {split_name} stats:")
                     for stat_name, stat_value in stats.items():
                         logger.info(f"{stat_name}: {stat_value}")
-
                 assistant_vllm_stats = vllm_service_manager.get_stats()
 
         except Exception as e:
-            logger.error(colored(f"Failed on rank {rank + 1}/{world_size}: {e}", "red"))
+            logger.error(colored(f"Failed to solve task: {e}", "red"))
             raise e
 
-        # Ensure all nodes have completed their processing
-        if not dist_manager.sync_nodes(message="after processing splits", sync_dir=sync_dir, rank=rank, world_size=world_size):
-            raise RuntimeError("Failed sync after processing splits")
-
-        logger.info(f"Rank {rank + 1}/{world_size} collected {len(training_samples)} training samples")
-
+        training_samples = all_results["train"]["training_samples"]
+        logger.info(f"Collected {len(training_samples)} training samples")
         stats = all_results["train"]["stats"]
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
             stats.update(all_results["test"]["stats"])
             time_evaluation = stats["execution_time/test_make_data"]
         else:
             time_evaluation = 0
-
-        safe_wandb_log(
+        wandb.log(
             stats,
             step=state["iteration"],
-            dist_manager=dist_manager
         )
 
         try:
@@ -599,120 +458,25 @@ def main(cfg: DictConfig):
                 ]
 
                 start_basemodel_logprobs = time.time()
-                
-                node_samples = all_results["train"]["training_samples"]
-                logger.info(f"Rank {rank + 1}/{world_size}: Assigned {len(node_samples)} samples to process")
-                
                 with ThreadPoolExecutor(
                     max_workers=cfg.get_logprobs_workers_per_gpu * torch.cuda.device_count()
                 ) as executor:
-                    futures = [
-                        executor.submit(annotate_traces_with_ref_logprobs, basemodel_agent, trace, strict=False)
-                        for trace in node_samples
-                    ]
-                    
-                    failed_samples = 0
-                    local_training_samples = []
-                    for future in tqdm(
-                        as_completed(futures), 
-                        total=len(futures), 
-                        desc=f"Rank {rank + 1}/{world_size}: Adding logprobs"
-                    ):
-                        result = future.result()
-                        if result is not None:
-                            local_training_samples.append(result)
-                        else:
-                            failed_samples += 1
-
-                    logger.info(
-                        f"Rank {rank + 1}/{world_size}: Processed {len(local_training_samples)} samples successfully, "
-                        f"failed {failed_samples} samples"
-                    )
-
-                tmp_dir = exp_path / "tmp" / str(state["iteration"])
-                os.makedirs(tmp_dir, exist_ok=True)
-
-                logger.info(f"Rank {rank + 1}/{world_size}: Saving {len(local_training_samples)} samples to temporary file")
-                tmp_path = tmp_dir / f"rank_{rank}_samples.pkl"
-                with open(tmp_path, 'wb') as f:
-                    torch.save(local_training_samples, f)
-
-                # Ensure all ranks have saved their data
-                if not dist_manager.sync_nodes(message="after saving local samples", sync_dir=sync_dir, rank=rank, world_size=world_size):
-                    raise RuntimeError("Failed sync after saving local samples")
-
-                if dist_manager.is_main_process():
-                    logger.info("Main process: Gathering samples from all ranks")
-                    all_samples = []
-                    total_samples = 0
-                    
-                    # Gather data generated by each rank
-                    for r in range(world_size):
-                        rank_path = tmp_dir / f"rank_{r}_samples.pkl"
-                        try:
-                            with open(rank_path, 'rb') as f:
-                                rank_samples = torch.load(f)
-                            samples_from_rank = len(rank_samples)
-                            total_samples += samples_from_rank
-                            all_samples.extend(rank_samples)
-                            logger.info(f"Main process: Loaded {samples_from_rank} samples from rank {r}/{world_size-1}")
-                        except Exception as e:
-                            logger.error(f"Failed to load samples from rank {r}: {e}")
-                            raise
-
-                    logger.info(f"Main process: Successfully gathered {len(all_samples)} total samples "
-                               f"(sum across {world_size} ranks: {total_samples})")
-
-                    rollout_dir = exp_path / "rollouts" / str(state["iteration"])
-                    os.makedirs(rollout_dir, exist_ok=True)
-                    
-                    samples_written = 0
-                    samples_rejected = 0
-                    with open(rollout_dir / "data.jsonl", "w") as f:
-                        for trace in all_samples:
-                            if cfg.use_rejection_sampling and trace.reward <= 0:
-                                samples_rejected += 1
-                                continue
-                            f.write(trace.model_dump_json() + "\n")
-                            f.flush()
-                            samples_written += 1
-                    
-                    logger.info(f"Main process: Wrote {samples_written} samples to disk, "
-                                f"rejected {samples_rejected} samples due to negative reward")
-
-                    # clean up
-                    try:
-                        import shutil
-                        shutil.rmtree(tmp_dir)
-                        logger.info(f"Main process: Cleaned up temporary directory {tmp_dir}")
-                    except Exception as e:
-                        logger.warning(f"Failed to clean up temporary directory: {e}")
-
-                else:
-                    # Non-main processes just wait for completion
-                    logger.info(f"Rank {rank + 1}/{world_size}: Completed data saving")
-
-                # Ensure main process has finished processing before continuing
-                if not dist_manager.sync_nodes(message="after gathering samples", sync_dir=sync_dir, rank=rank, world_size=world_size):
-                    raise RuntimeError("Failed sync after gathering samples")
+                    chunk_size = 64
+                    futures = []
+                    for chunk_id, chunk_offset in enumerate(range(0, len(training_samples), chunk_size)):
+                        ref_llm = ref_llms[chunk_id % len(ref_llms)]
+                        chunk = training_samples[chunk_offset : chunk_offset + chunk_size]
+                        futures.append(executor.submit(batch_annotate_traces_with_ref_logprobs, ref_llm, chunk))
+                    # Reference logprobs are added in-place
+                    futures = tqdm(as_completed(futures), total=len(futures), desc="Adding logprobs")
+                    _ = [future.result() for future in futures]
 
                 refmodel_vllm_stats = vllm_service_manager.get_stats()
                 refmodel_starting_time = refmodel_vllm_stats["starting_time"]
                 time_populating_ref_logprobs = time.time() - start_basemodel_logprobs
-                
-                logger.info(
-                    f"Rank {rank + 1}/{world_size}: Completed logprob annotation in "
-                    f"{time_populating_ref_logprobs:.2f} seconds"
-                )
 
         except Exception as e:
-            logger.error(
-                colored(
-                    f"Rank {rank + 1}/{world_size}: Failed to get ref log probs with error: {str(e)}\n"
-                    f"Traceback: {traceback.format_exc()}", 
-                    "red"
-                )
-            )
+            logger.error(colored(f"Failed to get ref log probs: {e}", "red"))
             raise e
 
         logprob_stats = {
@@ -723,43 +487,40 @@ def main(cfg: DictConfig):
         logger.info("Logprob population stats:")
         for stat_name, stat_value in logprob_stats.items():
             logger.info(f"{stat_name}: {stat_value}")
-        safe_wandb_log(logprob_stats, step=state["iteration"], dist_manager=dist_manager)
+        wandb.log(logprob_stats, step=state["iteration"])
+        rollout_dir = exp_path / "rollouts" / str(state["iteration"])
+        os.makedirs(rollout_dir, exist_ok=True)
+        with open(rollout_dir / "data.jsonl", "w") as f:
+            for trace in training_samples:
+                if cfg.use_rejection_sampling and trace.reward <= 0:
+                    continue
+                f.write(trace.model_dump_json() + "\n")
+                f.flush()
 
-        # Generate config only on main process
-        if dist_manager.is_main_process():
-            finetune_cfg = cfg.copy()
-            checkpoint_steps = finetune_cfg.finetune.save_checkpoint_steps
-            interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps - 1)
-            finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
-            finetune_cfg.output_dir = str(finetune_path)
-            finetune_cfg.finetune.data = {"data_parts_train": [{"path": str(rollout_dir)}]}
-            finetune_cfg.finetune.wandb_id = run.id + "_finetune"
-            finetune_cfg.finetune.wandb_name = run.name + "_finetune"
-            finetune_cfg.finetune.wandb_resume = "always"
-            config_path = conf_dir / f"{state['iteration']}.yaml"
-            OmegaConf.save(finetune_cfg, config_path)
+        finetune_cfg = cfg.copy()
 
-        # Ensure config file is written before training
-        if not dist_manager.sync_nodes(message="before training", sync_dir=sync_dir, rank=rank, world_size=world_size, timeout_mins=10):
-            raise RuntimeError("Failed sync after config save")
+        checkpoint_steps = finetune_cfg.finetune.save_checkpoint_steps
+        interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps)
 
-        # Now all nodes have the same config
+        finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
+        finetune_cfg.output_dir = str(finetune_path)
+        finetune_cfg.finetune.data = {"data_parts_train": [{"path": str(rollout_dir)}]}
+        finetune_cfg.finetune.wandb_id = run.id + "_finetune"
+        finetune_cfg.finetune.wandb_name = run.name + "_finetune"
+        finetune_cfg.finetune.wandb_resume = "always"
+        config_path = conf_dir / f"{state['iteration']}.yaml"
+        OmegaConf.save(finetune_cfg, config_path)
+
         start_finetune = time.time()
         launch_training(
-            str(conf_dir), 
+            str(conf_dir),
             str(state["iteration"]),
             cfg.accelerate_cfg_path,
-            use_deepspeed=cfg.use_deepspeed,
-            dist_manager=dist_manager
+            use_deepspeed=cfg.use_deepspeed,  # defaults to False
         )
-        
-        # Sync after training completion
-        if not dist_manager.sync_nodes(message="after training completion", sync_dir=sync_dir, rank=rank, world_size=world_size, timeout_mins=60):
-            raise RuntimeError("Failed sync after training")
-
         time_finetune = time.time() - start_finetune
         time_iteration = time.time() - start_iteration
-        safe_wandb_log(
+        wandb.log(
             {
                 "execution_time/finetune": time_finetune,
                 "execution_time/iteration": time_iteration,
@@ -770,13 +531,9 @@ def main(cfg: DictConfig):
                 - stats["execution_time/train_make_data"],
             },
             step=state["iteration"],
-            dist_manager=dist_manager
         )
         state["iteration"] += 1
-        save_state(state, state_path, dist_manager)
-
-        dist_manager.cleanup_gpu_resources()
-        time.sleep(5)
+        save_state(state, state_path)
 
     logger.info(f'Finished training after {state["iteration"]} iterations')
 
