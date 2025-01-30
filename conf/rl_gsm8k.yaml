@@ -41,6 +41,11 @@ task_template: |-
 overflow_reward: 0
 max_prompt_length: 1024
 
+rewards:
+  unparsable: 0
+  wrong_answer: 0
+  correct_answer: 1
+
 vllm_config:
   vllm_kwargs:
     --download-dir: /mnt/llmd/base_models/ 

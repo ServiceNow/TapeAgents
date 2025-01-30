@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 import wandb
 from tapeagents.agent import Agent
-from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.core import LLMCall, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
@@ -38,8 +38,10 @@ logger = logging.getLogger(__name__)
 def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
     match cfg.dataset_name:
         case "math":
-            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            train_dataset_long_name = "hendrycks/competition_math"
+            test_dataset_long_name = "HuggingFaceH4/MATH-500"
             process_fn = process_math_test
+            test_builder_config = "default"
             builder_config = "main"
         case "gsm8k":
             train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
@@ -53,8 +55,9 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
+    test_builder_config = test_builder_config or builder_config
     train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
-    test_dataset = load_dataset(test_dataset_long_name, builder_config, split="test", trust_remote_code=True)
+    test_dataset = load_dataset(test_dataset_long_name, test_builder_config, split="test", trust_remote_code=True)
     train_samples = [
         process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
     ]
@@ -145,10 +148,11 @@ def extract_tape_training_samples(
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
-        # LLM produced a step that was unparsable. Negative reward.
-        no_error, reward, success = 0, -1, 0
+    if "\\boxed" not in new_tape.steps[-1].reasoning:
+        # LLM did not respect the formatting
+        no_error, success, reward = 0, 0, cfg.rewards.unparsable
     else:
+        # LLM did respect the formatting
         no_error = 1
         prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")  # type: ignore
         answer = new_tape.steps[0].metadata.other["value"]
@@ -159,10 +163,10 @@ def extract_tape_training_samples(
             }
         ):
             # Correct answer
-            reward, success = 1, 1
+            reward, success = cfg.rewards.correct_answer, 1
         else:
             # Incorrect answer or no answer
-            reward, success = 0, 0
+            reward, success = cfg.rewards.wrong_answer, 0
 
     training_samples: list[TrainingText] = []
     # For each LLM interaction in the tape:
@@ -194,7 +198,7 @@ def extract_tape_training_samples(
 
         # check if the last produced token is the end of sequence token
         overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
-        trace.reward = cfg.overflow_reward if overflow else reward
+        trace.reward = cfg.rewards.unparsable if overflow else reward
         overflows.append(overflow)
         trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
         trace.group_id = new_tape.metadata.parent_id
