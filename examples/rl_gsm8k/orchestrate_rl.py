@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 import wandb
 from tapeagents.agent import Agent
-from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.core import LLMCall, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
@@ -41,21 +41,25 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
             train_dataset_long_name = "hendrycks/competition_math"
             test_dataset_long_name = "HuggingFaceH4/MATH-500"
             process_fn = process_math_test
-            builder_config = ""
+            test_builder_config = "default"
+            builder_config = "main"
         case "gsm8k":
             train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
+            test_builder_config = None
             builder_config = "main"
         case "eurus":
             train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
             test_dataset_long_name = "alexpiche/math_test_cleaned"
             process_fn = process_eurus_test
+            test_builder_config = None
             builder_config = "default"
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
+    test_builder_config = test_builder_config or builder_config
     train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
-    test_dataset = load_dataset(test_dataset_long_name, builder_config, split="test", trust_remote_code=True)
+    test_dataset = load_dataset(test_dataset_long_name, test_builder_config, split="test", trust_remote_code=True)
     train_samples = [
         process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
     ]
