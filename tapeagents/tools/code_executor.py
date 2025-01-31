@@ -58,6 +58,8 @@ class CodeExecutor(Tool):
 
     def prepare_code(self, action: PythonCodeAction) -> str:
         lines = action.code.splitlines()
+        if len(lines) == 1 and "\\n" in lines[0]:
+            lines = lines[0].split("\\n")
         lines = [f"# {action.name}"] + lines
         if "print(" not in lines[-1]:
             if " = " in lines[-1]:
