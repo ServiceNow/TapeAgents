@@ -175,7 +175,7 @@ class Browser(Multitool):
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
     axtree: bool = True
     viewport_chars: int = 64000
-    vieport_height: int = 768
+    vieport_height: int = 720
     viewport_width: int = 1024
     timeout_ms: int = 30000
     headless: bool = True

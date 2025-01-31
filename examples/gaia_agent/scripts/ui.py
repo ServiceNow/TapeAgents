@@ -51,6 +51,7 @@ def main(cfg: DictConfig) -> None:
     init_code_sandbox(cfg.exp_path)
     env = get_env(cfg.exp_path, **cfg.env)
     agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
+    env.chat.add_message(role="assistant", msg="TapeAgent Ready")
     today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     tape = None
     env.chat.wait_for_user_message()

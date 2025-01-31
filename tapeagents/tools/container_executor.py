@@ -76,6 +76,7 @@ class ContainerExecutor:
         bind_dir: Optional[Union[Path, str]] = None,
         auto_remove: bool = True,
         stop_container: bool = True,
+        restart_if_exists: bool = False,
         execution_policies: Optional[Dict[str, bool]] = None,
     ):
         """(Experimental) A code executor class that executes code through
@@ -138,7 +139,12 @@ class ContainerExecutor:
         # Start a container from the image, read to exec commands later
         try:
             self._container = client.containers.get(container_name)
-            logger.info(f"Container {container_name} already exists, reuse")
+            if restart_if_exists:
+                logger.info(f"Restarting container {container_name}")
+                self._container.stop()
+                raise docker.errors.NotFound("Container not found")
+            else:
+                logger.info(f"Container {container_name} already exists, reuse")
         except docker.errors.NotFound:
             logger.info(f"Creating container {container_name} from image {image}")
             self._container = client.containers.create(
@@ -500,4 +506,4 @@ def maybe_get_code_sandbox(exp_path: str) -> ContainerExecutor | None:
 def init_code_sandbox(exp_path: str):
     code_path = os.path.join(exp_path, "code")
     os.makedirs(code_path, exist_ok=True)
-    ContainerExecutor(work_dir=code_path)
+    ContainerExecutor(work_dir=code_path, restart_if_exists=True)
