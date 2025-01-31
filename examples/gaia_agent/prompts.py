@@ -10,9 +10,10 @@ START = f"""Let's start executing the plan step by step, using allowed steps des
 
 REFLECT_OBSERVATION = f""""
 First, summarize the last observation.
-If is the web page, explain how the last action before this observation affected the page.
+If the last action interacted with the page, describe how the it affected its content.
 Check if the action lead to desired outcome or not. Then explain its effect on the task and the plan.
-After that propose the best next step to do, according to the plan. Do not forget to mention the reasoning behind the next step.
+After that propose the next step to do, according to the plan.
+If the intended element is not visible on a page, try scroll the page.
 If you see the cookie consent form, accept it first.
 Quote the relevant part of the observation if the action depends on it, for example when interacting with the page.
 {FORMAT}"""
