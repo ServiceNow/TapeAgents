@@ -97,7 +97,7 @@ class StandardNode(Node):
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
-            messages = self.tape_to_messages(cleaned_tape, steps_description, trim_obs_except_last_n=2)
+            messages = self.tape_to_messages(cleaned_tape, steps_description, trim_obs_except_last_n=1)
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
@@ -149,7 +149,7 @@ class StandardNode(Node):
         content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
         return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 
-    def tape_to_messages(self, tape: Tape, steps_description: str, trim_obs_except_last_n: int = 3) -> list[dict]:
+    def tape_to_messages(self, tape: Tape, steps_description: str, trim_obs_except_last_n: int = 2) -> list[dict]:
         """
         Converts a Tape object and steps description into a list of messages for LLM conversation.
 

@@ -43,6 +43,10 @@ class ImageObservation(Observation):
             content.append(image_base64_message(self.image_path))
         return content
 
+    def short_view(self):
+        view = self.llm_dict()
+        return json.dumps(view, indent=2, ensure_ascii=False)
+
 
 class VideoObservation(Observation):
     """
@@ -75,7 +79,7 @@ class VideoObservation(Observation):
         view = self.llm_dict()
         view["subtitle_text"] = view["subtitle_text"][:100] + "..."
         del view["video_contact_sheet_paths"]
-        return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)
+        return json.dumps(view, indent=2, ensure_ascii=False)
 
 
 class UnknownStep(Step):
