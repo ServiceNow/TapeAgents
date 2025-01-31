@@ -1,0 +1,61 @@
+import base64
+import os
+from io import BytesIO
+
+from openai import OpenAI
+
+
+class Locator:
+    def __init__(self):
+        try:
+            api_key = os.popen("eai login token").read().strip()
+            if not api_key:
+                raise ValueError("Failed to get API key from 'eai login token'")
+        except Exception as e:
+            raise RuntimeError("Failed to obtain API key") from e
+        self.vl_client = OpenAI(
+            base_url="https://b1f33040-640a-4259-a51d-a11650b9458f-8000.job.console.elementai.com/v1",
+            api_key=api_key,
+        )
+        self.model = "osunlp/UGround-V1-7B"
+
+    def get_coords(self, image, command):
+        img_width, img_height = image.size
+        buffered = BytesIO()
+        image.save(buffered, format="PNG")
+        base64_image = base64.b64encode(buffered.getvalue()).decode()
+        messages = self.format_openai_template(command, base64_image)
+        completion = self.vl_client.chat.completions.create(model=self.model, messages=messages, temperature=0.0)
+        out_text = completion.choices[0].message.content
+        str_x, str_y = out_text.strip("()").split(",")
+        x = int(str_x.strip())
+        y = int(str_y.strip())
+        real_x = x / 1000 * img_width
+        real_y = y / 1000 * img_height
+        return real_x, real_y
+
+    def format_openai_template(self, description: str, base64_image):
+        return [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                    },
+                    {
+                        "type": "text",
+                        "text": f"""
+    Your task is to help the user identify the precise coordinates (x, y) of a specific area/element/object on the screen based on a description.
+
+    - Your response should aim to point to the center or a representative point within the described area/element/object as accurately as possible.
+    - If the description is unclear or ambiguous, infer the most relevant area or element based on its likely context or purpose.
+    - Your answer should be a single string (x, y) corresponding to the point of the interest.
+
+    Description: {description}
+
+    Answer:""",
+                    },
+                ],
+            },
+        ]

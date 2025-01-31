@@ -56,7 +56,7 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
         raise FatalError(f"Failed to get search results: {e}")
     results = response_dict.get("organic", []) + response_dict.get("videos", []) + response_dict.get("news", [])
     for item in response_dict.get("knowledgeGraph", []):
-        results.append({"title": item["title"], "linqk": item.get("website", ""), "snippet": item["description"]})
+        results.append({"title": item["title"], "link": item.get("website", ""), "snippet": item["description"]})
     logger.info(f"Search response for query '{query}': code {response.status_code}, {len(results)} results")
     return [{"title": r["title"], "url": r["link"], "content": r.get("snippet", "")} for r in results[:max_results]]
 

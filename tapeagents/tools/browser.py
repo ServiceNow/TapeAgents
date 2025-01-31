@@ -22,8 +22,10 @@ from PIL import Image
 from pydantic import Field
 
 from tapeagents.core import Action, Observation, StepMetadata
+from tapeagents.steps import ImageObservation
 from tapeagents.tools.base import Multitool
 from tapeagents.tools.document_reader import read_document
+from tapeagents.tools.locator import Locator
 from tapeagents.tools.simple_browser import PageObservation
 
 NODES_WITH_BID = [
@@ -125,6 +127,16 @@ class InputTextAction(Action):
     text: str = Field(description="text to put into the element")
 
 
+class TypeTextAction(Action):
+    """
+    Action that fills out current selected input element.
+    Only use it after clicking on the input element.
+    """
+
+    kind: Literal["type_text_action"] = "type_text_action"
+    text: str = Field(description="text to put into the element")
+
+
 class HoverAction(Action):
     """
     Action that hovers over the element on the page with the provided BID
@@ -132,6 +144,15 @@ class HoverAction(Action):
 
     kind: Literal["hover_action"] = "hover_action"
     bid: str = Field(description="BID of the element to hover")
+
+
+class MouseHoverAction(Action):
+    """
+    Action that hovers over the element on the page with the provided BID
+    """
+
+    kind: Literal["mouse_hover_action"] = "mouse_hover_action"
+    element_description: str = Field(description="brief description of the element to hover")
 
 
 class SelectOptionAction(Action):
@@ -159,6 +180,20 @@ class ClickAction(Action):
     )
 
 
+class MouseClickAction(Action):
+    """
+    Action that clicks the element on the page.
+    When mentioning a date in the element description, use the format that is commonly spoken or written by humans, such as "2 February 2025," rather than the machine-readable formats. Make sure the day comes before the month, and the full year is written out (e.g., "3 November 2023" instead of "2023-11-03").
+    """
+
+    kind: Literal["mouse_click_action"] = "mouse_click_action"
+    element_description: str = Field(description="brief description of the element to click")
+
+
+class PageScreenshotObservation(ImageObservation):
+    kind: Literal["page_screenshot_observation"] = "page_screenshot_observation"
+
+
 class Browser(Multitool):
     actions: tuple[type[Action], ...] = (
         ClickAction,
@@ -171,11 +206,12 @@ class Browser(Multitool):
         ScrollAction,
         SelectOptionAction,
     )
-    observations: tuple[type[Observation], ...] = (PageObservation,)
+    observations: tuple[type[Observation], ...] = (PageObservation, PageScreenshotObservation)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
     axtree: bool = True
+    use_locator: bool = False
     viewport_chars: int = 64000
-    vieport_height: int = 720
+    viewport_height: int = 720
     viewport_width: int = 1024
     timeout_ms: int = 30000
     headless: bool = True
@@ -194,25 +230,45 @@ class Browser(Multitool):
     _record_video_dir: str | None = None
     _screenshots_dir: str | None = None
     _task_id: str = ""
+    _locator: Locator | None = None
+    _last_image: Image.Image | None = None
 
     def model_post_init(self, __context: Any):
         self._current_page = ""
         self._current_viewport = 1
         self._n_viewports = 1
-        self._action_map = {
-            ClickAction: self.click,
-            SelectOptionAction: self.select_option,
-            CloseTabAction: self.close_tab,
-            InputTextAction: self.input_text,
-            GoBackAction: self.go_back,
-            GoForwardAction: self.go_forward,
-            GotoPageAction: self.goto_page,
-            HoverAction: self.hover,
-            NewTabAction: self.new_tab,
-            PressAction: self.press,
-            ScrollAction: self.scroll,
-            TabFocusAction: self.tab_focus,
-        }
+        if self.use_locator:
+            self._locator = Locator()
+            logger.info("Using locator")
+            self._action_map = {
+                MouseClickAction: self.click_locator,
+                CloseTabAction: self.close_tab,
+                TypeTextAction: self.input_text_locator,
+                GoBackAction: self.go_back,
+                GoForwardAction: self.go_forward,
+                GotoPageAction: self.goto_page,
+                MouseHoverAction: self.hover_locator,
+                NewTabAction: self.new_tab,
+                ScrollAction: self.scroll,
+                TabFocusAction: self.tab_focus,
+            }
+            self.actions = tuple(self._action_map.keys())
+        else:
+            self._action_map = {
+                ClickAction: self.click,
+                SelectOptionAction: self.select_option,
+                CloseTabAction: self.close_tab,
+                InputTextAction: self.input_text,
+                GoBackAction: self.go_back,
+                GoForwardAction: self.go_forward,
+                GotoPageAction: self.goto_page,
+                HoverAction: self.hover,
+                NewTabAction: self.new_tab,
+                PressAction: self.press,
+                ScrollAction: self.scroll,
+                TabFocusAction: self.tab_focus,
+            }
+            self.actions = tuple(self._action_map.keys())
         if self.exp_path:
             assert os.path.isdir(self.exp_path)
             self._traces_dir = os.path.join(self.exp_path, "playwright_traces")
@@ -226,9 +282,9 @@ class Browser(Multitool):
             self.gym_task,
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
-            action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
+            action_mapping=HighLevelActionSet(demo_mode="default", subsets=["coord", "workarena++"]).to_python_code,
             timeout=self.timeout_ms,
-            viewport={"width": self.viewport_width, "height": self.vieport_height},
+            viewport={"width": self.viewport_width, "height": self.viewport_height},
             task_kwargs={"start_url": "about:blank"},
             **self.gym_kwargs,
         )  # type: ignore
@@ -236,8 +292,11 @@ class Browser(Multitool):
             self._env = self._env.env
         self._env.reset()
         self._env.context.tracing.start(screenshots=True, snapshots=True)
+        screenshot = self._env.step("noop()")[0]["screenshot"]
+        self._save_last_screenshot(screenshot)
+        logger.info("Browser initialized")
 
-    def execute_action(self, action: Action) -> PageObservation:
+    def execute_action(self, action: Action) -> PageObservation | PageScreenshotObservation:
         action_type = type(action)
         if action_type in self._action_map:
             return self._action_map[action_type](action)
@@ -272,38 +331,44 @@ class Browser(Multitool):
         self._env.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
         self._env.close()
 
-    def _screenshot_to_img_file(self, image) -> str:
+    def _save_last_screenshot(self, image) -> str:
         if self._screenshots_dir is None:
             return ""
         if isinstance(image, np.ndarray):
             image = Image.fromarray(image)
         if image.mode in ("RGBA", "LA"):
             image = image.convert("RGB")
+        if image.size[0] != self.viewport_width or image.size[1] != self.viewport_height:
+            image = image.resize((self.viewport_width, self.viewport_height))
+        self._last_image = image
         pic_uid = uuid4().hex
         img_path = os.path.join(self._screenshots_dir, f"{pic_uid}.png")
         image.save(img_path)
-        return os.path.relpath(img_path, self._screenshots_dir)
+        return img_path
 
     def run_browser_action(self, action_text: str) -> PageObservation:
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
         error = self.format_error(obs_dict["last_action_error"])
-        if error:
-            content = ""
-        elif self.axtree:
-            content = flatten_axtree(obs_dict["axtree_object"])
+        screen_path = self._save_last_screenshot(obs_dict["screenshot"])
+        if self.use_locator:
+            observation = PageScreenshotObservation(image_path=screen_path)
         else:
-            html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
-            content = self.html_to_markdown(html_content)
+            if error:
+                content = ""
+            elif self.axtree:
+                content = flatten_axtree(obs_dict["axtree_object"])
+            else:
+                html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
+                content = self.html_to_markdown(html_content)
 
-        screen_path = self._screenshot_to_img_file(obs_dict["screenshot"])
-        observation = PageObservation(
-            text=self.get_viewport(content),
-            current_page=self._current_viewport,
-            total_pages=self._n_viewports,
-            error=error,
-            metadata=StepMetadata(other=dict(reward=reward, truncated=truncated, info=info)),
-        )
-        observation.metadata.other["screenshot_path"] = screen_path
+            observation = PageObservation(
+                text=self.get_viewport(content),
+                current_page=self._current_viewport,
+                total_pages=self._n_viewports,
+                error=error,
+                metadata=StepMetadata(other=dict(reward=reward, truncated=truncated, info=info)),
+            )
+        observation.metadata.other["screenshot_path"] = os.path.relpath(screen_path, self._screenshots_dir)
         observation.metadata.other["env_finished"] = terminated
         return observation
 
@@ -327,10 +392,10 @@ class Browser(Multitool):
     def scroll(self, direction: str) -> PageObservation:
         if direction == "down" and self._current_viewport < self._n_viewports:
             self._current_viewport += 1
-            self.run_browser_action(f"scroll(0, {self.vieport_height})")
+            self._env.step(f"scroll(0, {self.viewport_height*0.9})")
         elif direction == "up" and self._current_viewport > 1:
             self._current_viewport -= 1
-            self.run_browser_action(f"scroll(0, -{self.vieport_height})")
+            self._env.step(f"scroll(0, -{self.viewport_height*0.9})")
         page = self._current_page[
             self.viewport_chars * (self._current_viewport - 1) : self.viewport_chars * self._current_viewport
         ]
@@ -359,11 +424,16 @@ class Browser(Multitool):
 
     def click(self, action: ClickAction) -> PageObservation:
         try:
-            self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
+            self.run_browser_action(f"click('{action.bid}'")
         except Exception as e:
             logger.warning(f"Click failed: {e}")
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
+
+    def click_locator(self, action: MouseClickAction) -> PageObservation:
+        x, y = self._locator.get_coords(self._last_image, f"click at {action.element_description}")
+        logger.info(f"Click at {action.element_description}: {x}, {y}")
+        return self.run_browser_action(f"mouse_click({x}, {y})")
 
     def select_option(self, action: SelectOptionAction) -> PageObservation:
         return self.run_browser_action(f"select_option('{action.bid}', '{action.option}')")
@@ -371,9 +441,18 @@ class Browser(Multitool):
     def hover(self, action: HoverAction) -> PageObservation:
         return self.run_browser_action(f"hover('{action.bid}')")
 
+    def hover_locator(self, action: MouseHoverAction) -> PageObservation:
+        x, y = self._locator.get_coords(self._last_image, f"click at {action.element_description}")
+        logger.info(f"Move cursor at {action.element_description}: {x}, {y}")
+        return self.run_browser_action(f"mouse_move({x}, {y})")
+
     def input_text(self, action: InputTextAction) -> PageObservation:
         text = action.text.replace("'", "\\'")
         return self.run_browser_action(f"fill('{action.bid}', '{text}')")
+
+    def input_text_locator(self, action: TypeTextAction) -> PageObservation:
+        text = action.text.replace("'", "\\'")
+        return self.run_browser_action(f"keyboard_type('{text}')")
 
     def press(self, action: PressAction) -> PageObservation:
         return self.run_browser_action(f"press('{action.bid}', '{action.key_comb}')")
