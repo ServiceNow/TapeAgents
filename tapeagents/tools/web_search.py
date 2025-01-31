@@ -39,6 +39,8 @@ def web_search(query: str, max_results: int = 5, retry_pause: int = 2, attempts:
         if not results:
             logger.warning(f"Empty search results, retrying in {retry_pause} seconds")
             time.sleep(retry_pause)
+    if not results:
+        raise Exception("Failed to get search results, try to use browser to access the search engine instead")
     return results
 
 
@@ -53,10 +55,12 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
         response = requests.request("POST", f"https://google.serper.dev/{topic}", headers=headers, data=payload)
         response_dict = response.json()
     except Exception as e:
+        logger.exception(f"Serper API error: {e}")
         raise FatalError(f"Failed to get search results: {e}")
-    results = response_dict.get("organic", []) + response_dict.get("videos", []) + response_dict.get("news", [])
-    for item in response_dict.get("knowledgeGraph", []):
-        results.append({"title": item["title"], "link": item.get("website", ""), "snippet": item["description"]})
+    organic = response_dict.get("organic", [])
+    videos = response_dict.get("videos", [])
+    news = response_dict.get("news", [])
+    results = organic + videos + news
     logger.info(f"Search response for query '{query}': code {response.status_code}, {len(results)} results")
     return [{"title": r["title"], "url": r["link"], "content": r.get("snippet", "")} for r in results[:max_results]]
 
@@ -101,5 +105,6 @@ class WebSearch(Tool):
         try:
             results = web_search(query)
         except Exception as e:
+            logger.exception(f"Failed to search the web: {e}")
             error = str(e)
         return SearchResultsObservation(query=action.query, serp=results, error=error)
