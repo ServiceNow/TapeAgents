@@ -48,7 +48,6 @@ logger = logging.getLogger(__name__)
 class GotoPageAction(Action):
     """
     Action that opens the page with the provided URL and returns the first page of its content.
-    To read the following pages use scroll_action.
     """
 
     kind: Literal["goto_page_action"] = "goto_page_action"
@@ -191,7 +190,6 @@ class Browser(Multitool):
         GotoPageAction,
         GoBackAction,
         GoForwardAction,
-        HoverAction,
         InputTextAction,
         PressAction,
         NextPageAction,
@@ -255,7 +253,6 @@ class Browser(Multitool):
                 GoBackAction: self.go_back,
                 GoForwardAction: self.go_forward,
                 GotoPageAction: self.goto_page,
-                HoverAction: self.hover,
                 NewTabAction: self.new_tab,
                 PressAction: self.press,
                 NextPageAction: self.next_page,
@@ -464,10 +461,7 @@ class Browser(Multitool):
             obs = PageObservation(text=page, current_page=self._current_viewport, total_pages=self._n_viewports)
         else:
             obs = PageObservation(
-                text="",
-                current_page=self._current_viewport,
-                total_pages=self._n_viewports,
-                error="No more pages to scroll",
+                text="No more pages to scroll", current_page=self._current_viewport, total_pages=self._n_viewports
             )
         return obs
 
@@ -481,10 +475,7 @@ class Browser(Multitool):
             obs = PageObservation(text=page, current_page=self._current_viewport, total_pages=self._n_viewports)
         else:
             obs = PageObservation(
-                text="",
-                current_page=self._current_viewport,
-                total_pages=self._n_viewports,
-                error="Already at the top page",
+                text="Already at the top page", current_page=self._current_viewport, total_pages=self._n_viewports
             )
         return obs
 
