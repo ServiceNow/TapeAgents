@@ -25,13 +25,12 @@ from tapeagents.tools.browser import (
     MouseHoverAction,
     PageScreenshotObservation,
     PressAction,
-    ScrollAction,
     SelectOptionAction,
     TypeTextAction,
 )
 from tapeagents.tools.calculator import CalculationResultObservation
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.simple_browser import NextPageAction, PageObservation, ReadDocumentAction
+from tapeagents.tools.simple_browser import NextPageAction, PageObservation, PreviousPageAction, ReadDocumentAction
 from tapeagents.tools.web_search import SearchAction, SearchResultsObservation
 
 
@@ -137,7 +136,8 @@ GaiaStep: TypeAlias = Union[
     MouseHoverAction,
     TypeTextAction,
     PressAction,
-    ScrollAction,
+    NextPageAction,
+    PreviousPageAction,
     SelectOptionAction,
     SearchAction,
     NextPageAction,

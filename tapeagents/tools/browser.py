@@ -26,7 +26,7 @@ from tapeagents.steps import ImageObservation
 from tapeagents.tools.base import Multitool
 from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.locator import Locator
-from tapeagents.tools.simple_browser import PageObservation
+from tapeagents.tools.simple_browser import NextPageAction, PageObservation, PreviousPageAction
 
 NODES_WITH_BID = [
     "button",
@@ -94,15 +94,6 @@ class TabFocusAction(Action):
 
     kind: Literal["tab_focus_action"] = "tab_focus_action"
     index: int = Field(description="index of the tab to focus")
-
-
-class ScrollAction(Action):
-    """
-    Action that scrolls the page in the provided direction and returns the next page of content.
-    """
-
-    kind: Literal["scroll_action"] = "scroll_action"
-    direction: str = Field(description="direction to scroll")
 
 
 class PressAction(Action):
@@ -203,14 +194,15 @@ class Browser(Multitool):
         HoverAction,
         InputTextAction,
         PressAction,
-        ScrollAction,
+        NextPageAction,
+        PreviousPageAction,
         SelectOptionAction,
     )
     observations: tuple[type[Observation], ...] = (PageObservation, PageScreenshotObservation)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
     axtree: bool = True
     use_locator: bool = False
-    viewport_chars: int = 64000
+    viewport_chars: int = 32000
     viewport_height: int = 720
     viewport_width: int = 1024
     timeout_ms: int = 30000
@@ -249,7 +241,8 @@ class Browser(Multitool):
                 GotoPageAction: self.goto_page,
                 MouseHoverAction: self.hover_locator,
                 NewTabAction: self.new_tab,
-                ScrollAction: self.scroll,
+                NextPageAction: self.next_page,
+                PreviousPageAction: self.previous_page,
                 TabFocusAction: self.tab_focus,
             }
             self.actions = tuple(self._action_map.keys())
@@ -265,7 +258,8 @@ class Browser(Multitool):
                 HoverAction: self.hover,
                 NewTabAction: self.new_tab,
                 PressAction: self.press,
-                ScrollAction: self.scroll,
+                NextPageAction: self.next_page,
+                PreviousPageAction: self.previous_page,
                 TabFocusAction: self.tab_focus,
             }
             self.actions = tuple(self._action_map.keys())
@@ -389,18 +383,6 @@ class Browser(Multitool):
             err = ""
         return err
 
-    def scroll(self, direction: str) -> PageObservation:
-        if direction == "down" and self._current_viewport < self._n_viewports:
-            self._current_viewport += 1
-            self._env.step(f"scroll(0, {self.viewport_height*0.9})")
-        elif direction == "up" and self._current_viewport > 1:
-            self._current_viewport -= 1
-            self._env.step(f"scroll(0, -{self.viewport_height*0.9})")
-        page = self._current_page[
-            self.viewport_chars * (self._current_viewport - 1) : self.viewport_chars * self._current_viewport
-        ]
-        return PageObservation(text=page, current_page=self._current_viewport, total_pages=self._n_viewports)
-
     def goto_page(self, action: GotoPageAction) -> PageObservation:
         # if the URL is a local file or a PDF, playwright cannot open it directly, so we read the content
         if action.url.startswith("file://") or action.url.startswith("/"):
@@ -472,8 +454,39 @@ class Browser(Multitool):
     def go_forward(self, action: GoForwardAction) -> PageObservation:
         return self.run_browser_action("go_forward()")
 
-    def next_page(self) -> PageObservation:
-        return self.scroll("down")
+    def next_page(self, action) -> PageObservation:
+        if self._current_viewport < self._n_viewports:
+            self._current_viewport += 1
+            self._env.step(f"scroll(0, {self.viewport_height})")
+            page = self._current_page[
+                self.viewport_chars * (self._current_viewport - 1) : self.viewport_chars * self._current_viewport
+            ]
+            obs = PageObservation(text=page, current_page=self._current_viewport, total_pages=self._n_viewports)
+        else:
+            obs = PageObservation(
+                text="",
+                current_page=self._current_viewport,
+                total_pages=self._n_viewports,
+                error="No more pages to scroll",
+            )
+        return obs
+
+    def previous_page(self, action) -> PageObservation:
+        if self._current_viewport > 1:
+            self._current_viewport -= 1
+            self._env.step(f"scroll(0, -{self.viewport_height})")
+            page = self._current_page[
+                self.viewport_chars * (self._current_viewport - 1) : self.viewport_chars * self._current_viewport
+            ]
+            obs = PageObservation(text=page, current_page=self._current_viewport, total_pages=self._n_viewports)
+        else:
+            obs = PageObservation(
+                text="",
+                current_page=self._current_viewport,
+                total_pages=self._n_viewports,
+                error="Already at the top page",
+            )
+        return obs
 
     def get_viewport(self, content: str) -> str:
         self._current_page = content

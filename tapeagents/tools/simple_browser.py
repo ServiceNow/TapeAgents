@@ -440,6 +440,14 @@ class NextPageAction(Action):
     kind: Literal["next_page_action"] = "next_page_action"
 
 
+class PreviousPageAction(Action):
+    """
+    Action that returns the previous page of the last document
+    """
+
+    kind: Literal["previous_page_action"] = "previous_page_action"
+
+
 class ReadDocumentAction(Action):
     """
     Action that loads the document, file, image or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
