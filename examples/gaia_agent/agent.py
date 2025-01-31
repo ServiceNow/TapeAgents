@@ -2,18 +2,17 @@ from tapeagents.agent import Agent
 from tapeagents.core import Step
 from tapeagents.llms import LLM
 from tapeagents.nodes import StandardNode
-from tapeagents.steps import ReasoningThought
 
 from .prompts import (
+    ACT,
     ALLOWED_STEPS,
     ALLOWED_STEPS_CODE,
     FACTS_SURVEY,
     FORMAT,
     PLAN,
-    REFLECT_OBSERVATION,
     SYSTEM_PROMPT,
 )
-from .steps import THOUGHTS, FactsSurvey, Plan, ReadingResultThought
+from .steps import THOUGHTS, FactsSurvey, Plan
 
 
 class GaiaAgent(Agent):
@@ -39,19 +38,12 @@ class GaiaAgent(Agent):
                 steps=FactsSurvey,
             ),
             StandardNode(
-                name="reflect",
-                system_prompt=SYSTEM_PROMPT,
-                guidance=REFLECT_OBSERVATION,
-                steps_prompt=steps_prompt,
-                steps=(ReadingResultThought, ReasoningThought),
-            ),
-            StandardNode(
                 name="act",
                 system_prompt=SYSTEM_PROMPT,
-                guidance=FORMAT,
+                guidance=ACT,
                 steps_prompt=steps_prompt,
                 steps=steps,
-                next_node="reflect",
+                next_node="act",
             ),
         ]
         return super().create(llm, nodes=nodes, max_iterations=2, **kwargs)

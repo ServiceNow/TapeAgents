@@ -8,6 +8,12 @@ FORMAT = "Output only a single step. DO NOT OUTPUT ANYTHING BESIDES THE JSON. It
 PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {FORMAT}'
 START = f"""Let's start executing the plan step by step, using allowed steps described earlier. {FORMAT}"""
 
+ACT = """
+Produce a json list with two steps in it.
+First step should be a reasoning (or reading result in case of a web page) that summarizes the last observation, observes the task progress and proposes the next step, mentioning the exact kind of step to perform.
+Second step should be an action that performs the proposed step. Make sure that you are not repeating the same action again, unless really necessary.
+"""
+
 REFLECT_OBSERVATION = f""""
 First, summarize the last observation.
 If the last action interacted with the page, describe how the it affected its content.
