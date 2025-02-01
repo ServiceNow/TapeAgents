@@ -33,17 +33,17 @@ def get_avg_rl_stats(rl_stats):
 def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
     """Compute sum of tensor with a masked values."""
     if axis is not None:
-        return (values * mask).sum(axis=axis)  # type: ignore
+        return (values * mask).nan_to_num(0).sum(axis=axis)  # type: ignore
     else:
-        return (values * mask).sum()
+        return (values * mask).nan_to_num(0).sum()
 
 
 def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
     """Compute mean of tensor with a masked values."""
     if axis is not None:
-        return (values * mask).sum(axis=axis) / mask.sum(axis=axis)  # type: ignore
+        return (values * mask).nan_to_num(0).sum(axis=axis) / mask.sum(axis=axis)  # type: ignore
     else:
-        return (values * mask).sum() / mask.sum()
+        return (values * mask).nan_to_num(0).sum() / mask.sum()
 
 
 def calculate_rewards_with_implicit_kl(row, reward_minus_kl_coef):

@@ -26,6 +26,8 @@ class TrainingMetrics:
     passes: int = 0
     completed_steps: int = 0
     samples: int = 0
+    samples_too_old_to_queue: int = 0
+    samples_too_old_to_train: int = 0
     train_loss: float = 1e9
     eval_loss: float = 1e9
     dev_loss: float = 1e9

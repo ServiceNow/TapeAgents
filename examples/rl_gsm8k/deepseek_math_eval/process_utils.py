@@ -40,6 +40,9 @@ def process_gsm8k_test(item):
 
 def process_math_test(item):
     question = item["problem"]
+    if "subject" in item and "type" not in item:
+        item["type"] = item["subject"]
+
     try:
         answer = extract_math_answer(question, item["solution"], task="cot")
     except Exception:
