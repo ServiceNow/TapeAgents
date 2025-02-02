@@ -143,15 +143,12 @@ def extract_tape_training_samples(
     assert dataset_name, "Dataset name must be provided"
 
     match dataset_name:
-        case name if name.startswith("math"):
+        case name if name.startswith("math") or name.startswith("eurus"):
             eval_fn = eval_math
             extract_fn = extract_math_answer
         case "gsm8k_test":
             eval_fn = eval_last_single_answer
             extract_fn = extract_last_single_answer
-        case name if name.startswith("eurus"):
-            eval_fn = eval_math
-            extract_fn = extract_math_answer
         case _:
             # Default to math dataset
             logger.debug(f"MATH dataset will be used for evaluation and extracting answer: {dataset_name}")
