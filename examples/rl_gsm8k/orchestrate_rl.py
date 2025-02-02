@@ -36,6 +36,9 @@ logger = logging.getLogger(__name__)
 
 
 def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
+    """
+    Deprecated, use load_datasets from rl/load_datasets.py
+    """
     match cfg.dataset_name:
         case "math":
             train_dataset_long_name = "hendrycks/competition_math"
@@ -117,7 +120,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, cfg: DictConfig
+    new_tape: RLMathTape, agent: CoTMathAgent, cfg: DictConfig, dataset_name: str = ""
 ) -> Tuple[List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -127,8 +130,7 @@ def extract_tape_training_samples(
         agent: CoTMathAgent
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
-        llm_calls: List of LLM calls
-        strict: check that every token matches between the vLLM and the HF tokenizer otherwise just compare their lengths
+        dataset_name: Name of the dataset (optional). If not provided, defaults to cfg.dataset_name
 
     Returns:
         Tuple containing:
@@ -137,18 +139,24 @@ def extract_tape_training_samples(
     """
     tape_prompt_tokens = 0
     tape_output_tokens = 0
-    match cfg.dataset_name:
-        case "math":
+    dataset_name = dataset_name or cfg.dataset_name
+    assert dataset_name, "Dataset name must be provided"
+
+    match dataset_name:
+        case name if name.startswith("math"):
             eval_fn = eval_math
             extract_fn = extract_math_answer
-        case "gsm8k":
+        case "gsm8k_test":
             eval_fn = eval_last_single_answer
             extract_fn = extract_last_single_answer
-        case "eurus":
+        case name if name.startswith("eurus"):
             eval_fn = eval_math
             extract_fn = extract_math_answer
         case _:
-            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+            # Default to math dataset
+            logger.debug(f"MATH dataset will be used for evaluation and extracting answer: {dataset_name}")
+            eval_fn = eval_math
+            extract_fn = extract_math_answer
 
     if "\\boxed" not in new_tape.steps[-1].reasoning:
         # LLM did not respect the formatting
