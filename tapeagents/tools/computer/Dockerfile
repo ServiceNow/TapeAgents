@@ -3,9 +3,9 @@ FROM docker.io/ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DEBIAN_PRIORITY=high
 
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get -y install \
+RUN apt-get update
+RUN apt-get -y upgrade
+RUN apt-get -y install \
     # UI Requirements
     xvfb \
     xterm \
@@ -48,7 +48,16 @@ RUN apt-get update && \
     tint2 \
     galculator \
     pcmanfm \
+    pciutils \
+    libpci3 \
+    mesa-utils \
     unzip && \
+    apt-get clean
+
+RUN apt-get -y install \
+    pciutils \
+    libpci3 \
+    mesa-utils && \
     apt-get clean
 
 # Install noVNC
@@ -57,11 +66,11 @@ RUN git clone --branch v1.5.0 https://github.com/novnc/noVNC.git /opt/noVNC && \
     ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
 
 # setup user
-ENV USERNAME=computeruse
+ENV USERNAME=computer
 ENV HOME=/home/$USERNAME
 RUN useradd -m -s /bin/bash -d $HOME $USERNAME
 RUN echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-USER computeruse
+USER computer
 WORKDIR $HOME
 
 # setup python
@@ -86,11 +95,11 @@ ENV PATH="$HOME/.pyenv/shims:$HOME/.pyenv/bin:$PATH"
 RUN python -m pip install --upgrade pip==23.1.2 setuptools==58.0.4 wheel==0.40.0 && \
     python -m pip config set global.disable-pip-version-check true
 
-RUN python -m pip install tapeagents
+RUN python -m pip install tapeagents streamlit
 
 # setup desktop env & app
-COPY --chown=$USERNAME:$USERNAME image/ $HOME
-COPY --chown=$USERNAME:$USERNAME ./ $HOME/computer/
+COPY --chown=$USERNAME:$USERNAME image $HOME
+COPY --chown=$USERNAME:$USERNAME ./ $HOME/api
 
 ARG DISPLAY_NUM=1
 ARG HEIGHT=768

@@ -3,31 +3,25 @@ Entrypoint for streamlit, see https://docs.streamlit.io/
 """
 
 import asyncio
-import base64
 import os
-import subprocess
-import traceback
-from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import StrEnum
-from functools import partial
 from pathlib import PosixPath
-from typing import cast
-from examples.gaia_agent.environment import get_env
+
+import streamlit as st
+from hydra.utils import instantiate
+from omegaconf import OmegaConf
+
 from examples.gaia_agent.agent import GaiaAgent
+from examples.gaia_agent.environment import get_env
 from examples.gaia_agent.steps import GaiaQuestion
 from examples.gaia_agent.tape import GaiaTape
-import httpx
-import streamlit as st
-from streamlit.delta_generator import DeltaGenerator
-
+from tapeagents.agent import Action
+from tapeagents.core import Step
 from tapeagents.dialog_tape import UserStep
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import to_pretty_str
 from tapeagents.steps import ReasoningThought
-from omegaconf import OmegaConf
-import hydra
-from hydra.utils import instantiate
 
 CONFIG_DIR = PosixPath("~/.anthropic").expanduser()
 API_KEY_FILE = CONFIG_DIR / "api_key"
@@ -105,14 +99,13 @@ async def main():
 
     # Load config
     cfg = OmegaConf.load("conf/gaia_demo.yaml")
-    
+
     # Initialize environment and agent
     playwright_dir = ".pw-browsers"
     os.environ["PLAYWRIGHT_BROWSERS_PATH"] = playwright_dir
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
 
     llm = instantiate(cfg.llm)
-
 
     env = get_env(cfg.exp_path, **cfg.env)
     agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
@@ -132,7 +125,9 @@ async def main():
 
         if prompt.lower() == "reset":
             st.session_state.tape = None
-            st.session_state.messages.append({"role": "assistant", "content": "Reset conversation, you can ask a new question now."})
+            st.session_state.messages.append(
+                {"role": "assistant", "content": "Reset conversation, you can ask a new question now."}
+            )
             st.rerun()
 
         with st.chat_message("assistant"):
@@ -140,11 +135,13 @@ async def main():
             message_placeholder.write("Thinking...")
 
             today_date_str = datetime.now().strftime("%Y-%m-%d")
-            
+
             if st.session_state.tape is None:
                 st.session_state.tape = GaiaTape(steps=[GaiaQuestion(content=f"Today is {today_date_str}.\n{prompt}")])
             else:
-                st.session_state.tape.steps[-1] = ReasoningThought(reasoning=st.session_state.tape.steps[-1].long_answer)
+                st.session_state.tape.steps[-1] = ReasoningThought(
+                    reasoning=st.session_state.tape.steps[-1].long_answer
+                )
                 st.session_state.tape = st.session_state.tape.append(UserStep(content=prompt))
 
             try:
@@ -164,16 +161,49 @@ async def main():
                         msg = render_step(step)
                         if msg:
                             message_placeholder.write(msg)
-                            st.session_state.messages.append({"role": "assistant" if step.kind == "page_observation" else "user", "content": msg})
+                            st.session_state.messages.append(
+                                {"role": "assistant" if step.kind == "page_observation" else "user", "content": msg}
+                            )
             except Exception as e:
                 error_msg = f"Failed to solve task: {e}"
                 st.session_state.tape.metadata.error = str(e)
                 message_placeholder.write(error_msg)
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
-def render_step(step):
-    # Copy the render_step function from ui.py
-    # ...existing code from ui.py render_step function...
+
+def render_step(step: Step) -> str:
+    msg = ""
+    if step.kind == "llm_output_parsing_failure_action":
+        msg = "LLM response error, retry"
+    elif step.kind == "plan_thought":
+        msg = f"Plan:\n{to_pretty_str(step.plan)}"
+    elif step.kind == "page_observation":
+        msg = "Reading web page..."
+    elif step.kind == "facts_survey_thought":
+        msg = f"Given facts:\n{to_pretty_str(step.given_facts)}"
+        if len(step.facts_to_lookup) > 0:
+            msg += f"\nFacts to look up:\n{to_pretty_str(step.facts_to_lookup)}"
+    elif step.kind == "reasoning_thought":
+        msg = step.reasoning
+    elif step.kind == "reading_result_thought":
+        msg = f'{step.fact_description}\nSupporting quote: "{step.quote_with_fact}"'
+    elif step.kind == "gaia_answer_action":
+        if step.success:
+            msg = f"Answer: {step.long_answer}"
+        else:
+            msg = f"No answer found:\n{step.overview}"
+    elif step.kind in ["python_code_action", "search_action", "watch_video_action"]:
+        msg = to_pretty_str(step.llm_dict())
+    elif step and step.kind == "scroll_action":
+        msg = "Scrolling..."
+    elif isinstance(step, Action):
+        msg = "Interacting with the browser..."
+    elif step and step.kind == "search_results_observation":
+        msg = step.error or to_pretty_str([f"[{r['url'][:30]}...]{r['title'][:60]}..." for r in step.serp])
+    elif step and step.kind == "code_execution_result":
+        msg = f"Code execution result: {step.result.output or ''}"
+    return msg
+
 
 def load_from_storage(filename: str) -> str | None:
     """Load data from a file in the storage directory."""

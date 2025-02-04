@@ -1,7 +1,7 @@
 #!/bin/bash
-
+podman rm -f computer
 podman run \
-    -v .:/home/computer/ \
+    --name computer \
     -p 5900:5900 \
     -p 8501:8501 \
     -p 6080:6080 \

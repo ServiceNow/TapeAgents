@@ -60,11 +60,11 @@ launcher_tooltip = 1
 #-------------------------------------
 # Launcher icon
 launcher_item_app = /usr/share/applications/libreoffice-calc.desktop
-launcher_item_app = /home/computeruse/.config/tint2/applications/terminal.desktop
-launcher_item_app = /home/computeruse/.config/tint2/applications/firefox-custom.desktop
+launcher_item_app = /home/computer/.config/tint2/applications/terminal.desktop
+launcher_item_app = /home/computer/.config/tint2/applications/firefox-custom.desktop
 launcher_item_app = /usr/share/applications/xpaint.desktop
 launcher_item_app = /usr/share/applications/xpdf.desktop
-launcher_item_app = /home/computeruse/.config/tint2/applications/gedit.desktop
+launcher_item_app = /home/computer/.config/tint2/applications/gedit.desktop
 launcher_item_app = /usr/share/applications/galculator.desktop
 
 #-------------------------------------
