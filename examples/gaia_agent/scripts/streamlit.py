@@ -5,15 +5,14 @@ Entrypoint for streamlit, see https://docs.streamlit.io/
 import asyncio
 import os
 from datetime import datetime
-from enum import StrEnum
-from pathlib import PosixPath
+from pathlib import Path
 
 import streamlit as st
+from hydra import compose, initialize
 from hydra.utils import instantiate
-from omegaconf import OmegaConf
 
 from examples.gaia_agent.agent import GaiaAgent
-from examples.gaia_agent.environment import get_env
+from examples.gaia_agent.environment import get_computer_env
 from examples.gaia_agent.steps import GaiaQuestion
 from examples.gaia_agent.tape import GaiaTape
 from tapeagents.agent import Action
@@ -23,7 +22,7 @@ from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import to_pretty_str
 from tapeagents.steps import ReasoningThought
 
-CONFIG_DIR = PosixPath("~/.anthropic").expanduser()
+CONFIG_DIR = Path(".streamlit_config")
 API_KEY_FILE = CONFIG_DIR / "api_key"
 STREAMLIT_STYLE = """
 <style>
@@ -40,18 +39,14 @@ STREAMLIT_STYLE = """
     .stAppDeployButton {
         visibility: hidden;
     }
+    h1 {
+        font-size: 2em !important;
+    }
 </style>
 """
 
-WARNING_TEXT = "⚠️ Security Alert: Never provide access to sensitive accounts or data, as malicious web content can hijack Claude's behavior"
 INTERRUPT_TEXT = "(user stopped or interrupted and wrote the following)"
 INTERRUPT_TOOL_ERROR = "human stopped or interrupted tool execution"
-
-
-class Sender(StrEnum):
-    USER = "user"
-    BOT = "assistant"
-    TOOL = "tool"
 
 
 def setup_state():
@@ -77,28 +72,22 @@ def setup_state():
 
 
 async def main():
-    """Render loop for streamlit"""
+    with initialize(version_base=None, config_path="../../../conf", job_name="computer_demo"):
+        cfg = compose(config_name="gaia_demo")
+
     setup_state()
 
     st.markdown(STREAMLIT_STYLE, unsafe_allow_html=True)
 
     st.title("TapeAgents Operator Demo")
 
-    if not os.getenv("HIDE_WARNING", False):
-        st.warning(WARNING_TEXT)
-
     with st.sidebar:
-        st.text_input("Model", key="model")
-
         st.text_input(
             "Openai API Key",
             type="password",
             key="api_key",
             on_change=lambda: save_to_storage("api_key", st.session_state.api_key),
         )
-
-    # Load config
-    cfg = OmegaConf.load("conf/gaia_demo.yaml")
 
     # Initialize environment and agent
     playwright_dir = ".pw-browsers"
@@ -107,7 +96,7 @@ async def main():
 
     llm = instantiate(cfg.llm)
 
-    env = get_env(cfg.exp_path, **cfg.env)
+    env = get_computer_env(cfg.exp_path, **cfg.env)
     agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
 
     # Chat interface

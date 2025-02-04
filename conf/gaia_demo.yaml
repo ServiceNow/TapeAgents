@@ -2,7 +2,7 @@ defaults:
   - llm: gpt4o
   - _self_
 
-exp_name: gpt4o_demo_hotel2
+exp_name: gpt4o_demo_locator2
 
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
@@ -23,7 +23,9 @@ agent:
   plain_code: false
 
 env:
+  computer_url: https://localhost:8000
   simple_browser: false
+  use_locator: true
   use_web_cache: true
   headless: false
   save_video: true

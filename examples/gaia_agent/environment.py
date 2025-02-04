@@ -4,6 +4,8 @@ from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tools.base import Multitool, Tool
 from tapeagents.tools.browser import Browser
 from tapeagents.tools.code_executor import CodeExecutor, CodeExecutorWithApproval
+from tapeagents.tools.computer.computer import Computer
+from tapeagents.tools.computer.remote import RemoteComputer
 from tapeagents.tools.media_reader import VideoReader
 from tapeagents.tools.simple_browser import SimpleBrowser
 from tapeagents.tools.web_search import WebSearch
@@ -37,5 +39,22 @@ def get_env(
             CodeExecutor(exp_path=exp_path),
             VideoReader(exp_path=exp_path),
             SimpleBrowser(exp_path=exp_path, kwargs=kwargs) if simple_browser else Browser(exp_path=exp_path, **kwargs),
+        ]
+    )
+
+
+def get_computer_env(
+    exp_path: str,
+    simple_browser: bool = False,
+    **kwargs,
+) -> ToolCollectionEnvironment:
+    if simple_browser:
+        logger.info("Using simple browser")
+    return EnvironmentWithUserChat(
+        tools=[
+            WebSearch(),
+            CodeExecutor(exp_path=exp_path),
+            VideoReader(exp_path=exp_path),
+            RemoteComputer(**kwargs),
         ]
     )

@@ -4,11 +4,9 @@ set -e
 ./start_all.sh
 ./novnc_startup.sh
 
-python http_server.py > /tmp/server_logs.txt 2>&1 &
 
-STREAMLIT_SERVER_PORT=8501 python -m streamlit run api/streamlit.py > /tmp/streamlit_stdout.log &
+echo "Tapeagents Computer is ready!"
+echo "Open http://localhost:6080/vnc.html?view_only=1&autoconnect=1&resize=scale in your browser to take a look"
 
-echo "Tapeagents Operator is ready!"
-echo "Open http://localhost:8080 in your browser to begin"
-
+python -m api.api | tee /tmp/api.log
 tail -f /dev/null
