@@ -1,55 +1,56 @@
-SYSTEM_PROMPT = """You are an expert AI Agent trained to assist user with complex information processing tasks.
+SYSTEM_PROMPT = """You are an expert AI Agent trained to assist users with complex information processing tasks.
 Your role is to understand user queries and respond in a helpful and accurate manner.
 Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
-Do not express your emotions or opinions about the user question."""
+Do not express emotions or opinions about user questions."""
 
-FORMAT = "Output only a single step. DO NOT OUTPUT ANYTHING BESIDES THE JSON. It will break the system that processes the output."
+FORMAT = "Output only a single step. DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JSON. It will break the system that processes the output."
 
-PLAN = f'What steps should I do to answer the question above? Be specific about how each step should be done. Respond with the thought kind="plan_thought". {FORMAT}'
-START = f"""Let's start executing the plan step by step, using allowed steps described earlier. {FORMAT}"""
+PLAN = f'What steps should I take to answer this question? Be specific about how each step should be performed. Respond with the thought kind="plan_thought". {FORMAT}'
 
-ACT = """
-Produce a json list with two steps in it.
-First step should be a reasoning (or reading result in case of a web page) that summarizes the last observation, observes the task progress and proposes the next step, mentioning the exact kind of step to perform.
-Second step should be an action that performs the proposed step. Make sure that you are not repeating the same action again, unless really necessary.
+START = f"""Let's start executing the plan step by step, using the allowed steps described earlier. {FORMAT}"""
+
+REFLECT_AND_ACT = """
+Produce a JSON list with two steps in it.
+The first step be the reasoning thought that was produced according to the following rules:
+    1. Summarize the last observation.
+    2. If the last action interacted with the page, describe how it affected its content.
+    3. Check if the action led to the desired outcome. Then explain its effect on the task and the plan.
+    4. If there are any errors, describe them and suggest reasons for the error and possible solutions.
+    5. Produce a list of things to do to accomplish the current step of the plan.
+    6. After that, propose the immediate next step.
+    7. If the intended element is not visible on the page, try scrolling the page.
+    8. If you see a cookie consent form, accept it first.
+    9. Quote the relevant part of the observation verbatim when the action depends on it, for example when interacting with the page.
+    10. Do not hallucinate unseen elements or results; only use the information from the observation.
+The second step should be a action that performs the proposed step.
 """
 
-REFLECT_OBSERVATION = f""""
-First, summarize the last observation.
-If the last action interacted with the page, describe how the it affected its content.
-Check if the action lead to desired outcome or not. Then explain its effect on the task and the plan.
-After that propose the next step to do, according to the plan.
-If the intended element is not visible on a page, try scroll the page.
-If you see the cookie consent form, accept it first.
-Quote the relevant part of the observation if the action depends on it, for example when interacting with the page.
-{FORMAT}"""
-
 VERIFY = f"""
-First state the answer that was found.
-Then observe and summarize as a list the whole history of interaction.
-Then think about how can you verify the answer.
-Finally, propose a list of steps to do verification.
+First, state the answer that was found.
+Then observe and summarize the entire history of interaction as a list.
+Then consider how you can verify the answer.
+Finally, propose a list of steps for verification.
 {FORMAT}"""
 
 ALLOWED_STEPS = """
-You can use the following tools: search the web, read web page or document, python code for computations and modeling, and reasoning.
-You are allowed to produce ONLY steps with the following json schemas:
+You can use the following tools: search the web, read web pages or documents, python code for computations and modeling, and reasoning.
+You are allowed to produce ONLY steps with the following JSON schemas:
 {allowed_steps}
-Do not reproduce schema when producing the steps, use it as a reference.
+Do not reproduce the schema when producing steps; use it as a reference.
 """
 
 ALLOWED_STEPS_CODE = """
-You can use the following tools: search the web, read web page or document, python code, and reasoning.
-You are allowed to produce ONLY steps with the following json schemas:
+You can use the following tools: search the web, read web pages or documents, python code, and reasoning.
+You are allowed to produce ONLY steps with the following JSON schemas:
 {allowed_steps}
-If you want to create a python code step, just output python code block inside the backticks, like this:
+If you want to create a python code step, output a python code block inside backticks, like this:
 ```python
 a = 1
 result = a*2
 print(result)
 ```
 Note that the last code line should print the result.
-Do not reproduce schema when producing the steps, use it as a reference.
+Do not reproduce the schema when producing steps; use it as a reference.
 """
 
 FACTS_SURVEY = f"""Before we begin executing the plan, please answer the following pre-survey to the best of your ability.
@@ -67,6 +68,6 @@ When answering this survey, keep in mind that "facts" will typically be specific
     3. Facts to derive
     4. Educated guesses
 
-Respond with thought kind="facts_survey_thought"! Follow the provided json schema and do not replicate the schema fields itself!
+Respond with thought kind="facts_survey_thought"! Follow the provided JSON schema and do not replicate the schema fields itself!
 {FORMAT}
 """

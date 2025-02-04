@@ -4,12 +4,11 @@ from tapeagents.llms import LLM
 from tapeagents.nodes import StandardNode
 
 from .prompts import (
-    ACT,
     ALLOWED_STEPS,
     ALLOWED_STEPS_CODE,
     FACTS_SURVEY,
-    FORMAT,
     PLAN,
+    REFLECT_AND_ACT,
     SYSTEM_PROMPT,
 )
 from .steps import THOUGHTS, FactsSurvey, Plan
@@ -40,7 +39,7 @@ class GaiaAgent(Agent):
             StandardNode(
                 name="act",
                 system_prompt=SYSTEM_PROMPT,
-                guidance=ACT,
+                guidance=REFLECT_AND_ACT,
                 steps_prompt=steps_prompt,
                 steps=steps,
                 next_node="act",
