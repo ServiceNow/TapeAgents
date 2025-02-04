@@ -48,6 +48,12 @@ Remember that your response should be a list and not a dictionary.
 {FORMAT}"""
 
 ALLOWED_STEPS = """
+You are allowed to produce ONLY steps with the following JSON schemas:
+{allowed_steps}
+Do not reproduce the schema when producing steps; use it as a reference.
+"""
+
+ACT_STEPS = """
 You can use the following tools: search the web, read web pages or documents, python code for computations and modeling, and reasoning.
 You are allowed to produce ONLY steps with the following JSON schemas:
 {allowed_steps}
@@ -83,6 +89,6 @@ When answering this survey, keep in mind that "facts" will typically be specific
     3. Facts to derive
     4. Educated guesses
 
-Respond with thought kind="facts_survey_thought"! Follow the provided JSON schema and do not replicate the schema fields itself!
+Respond with facts_survey_thought! Strictly follow the provided JSON schema of the step, do not replicate the schema fields itself!
 {FORMAT}
 """

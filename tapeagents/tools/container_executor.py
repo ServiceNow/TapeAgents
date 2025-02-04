@@ -32,7 +32,7 @@ from typing_extensions import Self
 logger = logging.getLogger(__name__)
 
 ANSI_ESCAPE_REGEX = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-DEFAULT_CONTAINER = "tapeagents-code-exec"
+DEFAULT_CONTAINER = os.environ.get("TAPEAGENTS_CODE_SANDBOX", "tapeagents-code-exec")
 
 
 def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
@@ -69,7 +69,7 @@ class ContainerExecutor:
 
     def __init__(
         self,
-        image: str = "python:3-slim",
+        image: str = "jupyter/scipy-notebook",
         container_name: Optional[str] = None,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
@@ -78,6 +78,7 @@ class ContainerExecutor:
         stop_container: bool = True,
         restart_if_exists: bool = False,
         execution_policies: Optional[Dict[str, bool]] = None,
+        no_deps: bool = False,
     ):
         """(Experimental) A code executor class that executes code through
         a command line environment in a Docker container.
@@ -110,6 +111,7 @@ class ContainerExecutor:
         Raises:
             ValueError: On argument error, or if the container fails to start.
         """
+        self.no_deps = no_deps
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
@@ -197,6 +199,8 @@ class ContainerExecutor:
             self.execution_policies.update(execution_policies)
 
     def install_deps(self):
+        if self.no_deps:
+            return
         for package in ["numpy", "scipy", "pandas[excel]", "sympy", "bio", "matplotlib", "seaborn", "geopy"]:
             self._container.exec_run(["pip", "install", package], tty=True)
             logger.info(f"Installed {package}")
@@ -301,7 +305,6 @@ def execute_code_in_container(
 
         if not filename:
             filename = f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
-
         if input_files is not None:
             for input_file_path_str in input_files:
                 input_file_path = Path(input_file_path_str)
@@ -503,7 +506,7 @@ def maybe_get_code_sandbox(exp_path: str) -> ContainerExecutor | None:
     return code_sandbox
 
 
-def init_code_sandbox(exp_path: str):
+def init_code_sandbox(exp_path: str, no_deps: bool = False) -> None:
     code_path = os.path.join(exp_path, "code")
     os.makedirs(code_path, exist_ok=True)
-    ContainerExecutor(work_dir=code_path, restart_if_exists=True)
+    ContainerExecutor(work_dir=code_path, restart_if_exists=True, no_deps=no_deps)

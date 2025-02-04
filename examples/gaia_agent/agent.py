@@ -4,6 +4,7 @@ from tapeagents.llms import LLM
 from tapeagents.nodes import StandardNode
 
 from .prompts import (
+    ACT_STEPS,
     ALLOWED_STEPS,
     ALLOWED_STEPS_CODE,
     FACTS_SURVEY,
@@ -20,7 +21,7 @@ class GaiaAgent(Agent):
 
     @classmethod
     def create(cls, llm: LLM, actions: tuple[Step, ...], plain_code: bool = False, **kwargs):
-        steps_prompt = ALLOWED_STEPS_CODE if plain_code else ALLOWED_STEPS
+        steps_prompt = ALLOWED_STEPS_CODE if plain_code else ACT_STEPS
         steps = actions + THOUGHTS
         nodes = [
             StandardNode(
