@@ -12,6 +12,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Multitool
+from tapeagents.tools.browser import OpenUrlAction
 
 from .steps import (
     ComputerObservation,
@@ -44,6 +45,7 @@ class Computer(Multitool):
         MouseClickAction,
         MouseDragAction,
         GetCursorPositionAction,
+        OpenUrlAction,
     )
     observations: tuple[type[Observation], ...] = (ComputerObservation,)
 
@@ -75,6 +77,7 @@ class Computer(Multitool):
             MouseClickAction: self._handle_mouse_click,
             MouseDragAction: self._handle_mouse_drag,
             GetCursorPositionAction: self._handle_get_cursor_position,
+            OpenUrlAction: self._handle_open_url,
         }
 
     def execute_action(self, action: Action) -> ComputerObservation:
@@ -112,7 +115,14 @@ class Computer(Multitool):
         x, y = self._scale_coordinates(
             "computer", int(output.split("X=")[1].split("\n")[0]), int(output.split("Y=")[1].split("\n")[0])
         )
-        return ComputerObservation(text=f"X={x},Y={y}")
+        obs = ComputerObservation(text=f"X={x},Y={y}")
+        screenshot = self._take_screenshot()
+        obs.base64_image = screenshot.base64_image
+        return obs
+
+    def _handle_open_url(self, action: OpenUrlAction) -> ComputerObservation:
+        """Open URL in Firefox-ESR browser"""
+        return self._execute_shell(f"{self._display_prefix}firefox-esr --new-tab {shlex.quote(action.url)}")
 
     def _execute_shell(self, command: str, take_screenshot=True) -> ComputerObservation:
         """Execute shell command and return observation"""
