@@ -33,7 +33,7 @@ class ImageObservation(Observation):
     image_path: str
     thumbnail_path: str = ""
     image_caption: str = ""
-    error: int | None = None
+    error: int | str | None = None
 
     def llm_view(self) -> list[dict]:
         content = []

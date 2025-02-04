@@ -63,9 +63,11 @@ class RemoteComputer(Multitool):
         try:
             response = requests.post(f"{self.computer_url}/execute", json=payload)
             response.raise_for_status()
+            print("Response received")
             obs_dict = response.json()
             return self.convert_observation(ComputerObservation(**obs_dict))
         except requests.exceptions.RequestException as e:
+            print(f"API request failed: {str(e)}")
             return ImageObservation(image_path="", error=f"API request failed: {str(e)}")
 
     def convert_observation(self, obs: ComputerObservation) -> ImageObservation:
@@ -81,5 +83,4 @@ class RemoteComputer(Multitool):
 
     def mouse_move(self, element_description: str, button: str = "left") -> ImageObservation:
         x, y = self._locator.get_coords(self._last_image, f"click at {element_description}")
-        x, y = int(x), int(y)
-        return self.remote_execute_action(MouseMoveAction(x=x, y=y))
+        return self.remote_execute_action(MouseMoveAction(x=int(x), y=int(y)))

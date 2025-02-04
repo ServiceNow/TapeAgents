@@ -122,7 +122,9 @@ class Computer(Multitool):
 
     def _handle_open_url(self, action: OpenUrlAction) -> ComputerObservation:
         """Open URL in Firefox-ESR browser"""
-        return self._execute_shell(f"{self._display_prefix}firefox-esr  --no-remote -new-tab {shlex.quote(action.url)}")
+        # Kill any existing Firefox-ESR instances
+        os.system(f"{self._display_prefix}pkill firefox-esr")
+        return self._execute_shell(f"{self._display_prefix}firefox-esr  --no-remote -url {shlex.quote(action.url)}")
 
     def _execute_shell(self, command: str, take_screenshot=True) -> ComputerObservation:
         """Execute shell command and return observation"""
