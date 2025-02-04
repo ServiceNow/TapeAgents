@@ -12,7 +12,6 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Multitool
-from tapeagents.tools.browser import OpenUrlAction
 
 from .steps import (
     ComputerObservation,
@@ -35,6 +34,16 @@ MAX_SCALING_TARGETS = {
 
 def chunks(s: str, chunk_size: int) -> list[str]:
     return [s[i : i + chunk_size] for i in range(0, len(s), chunk_size)]
+
+
+class OpenUrlAction(Action):
+    """
+    Action that opens a page with the provided URL and returns its first page content.
+    Use page_down_action to read subsequent pages.
+    """
+
+    kind: Literal["open_url_action"] = "open_url_action"
+    url: str = Field(description="URL to navigate to")
 
 
 class Computer(Multitool):
