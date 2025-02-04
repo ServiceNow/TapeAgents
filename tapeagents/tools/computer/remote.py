@@ -11,7 +11,6 @@ from .steps import (
     MouseClickAction,
     MouseDragAction,
     MouseMoveAction,
-    ScreenshotAction,
     TypeTextAction,
 )
 
@@ -24,7 +23,6 @@ class RemoteComputer(Multitool):
         MouseClickAction,
         MouseDragAction,
         GetCursorPositionAction,
-        ScreenshotAction,
     )
     observations: tuple[type[ComputerObservation], ...] = (ComputerObservation,)
     computer_url: str = Field(description="Remote tool API URL")

@@ -11,7 +11,6 @@ from .steps import (
     MouseClickAction,
     MouseDragAction,
     MouseMoveAction,
-    ScreenshotAction,
     TypeTextAction,
 )
 
@@ -24,7 +23,6 @@ ACTION_MAP = {
     "mouse_click": MouseClickAction,
     "mouse_drag": MouseDragAction,
     "get_cursor_position": GetCursorPositionAction,
-    "screenshot": ScreenshotAction,
 }
 
 
