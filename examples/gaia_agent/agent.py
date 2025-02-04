@@ -7,6 +7,7 @@ from .prompts import (
     ALLOWED_STEPS,
     ALLOWED_STEPS_CODE,
     FACTS_SURVEY,
+    FORMAT,
     PLAN,
     REFLECT_AND_ACT,
     SYSTEM_PROMPT,
@@ -39,7 +40,7 @@ class GaiaAgent(Agent):
             StandardNode(
                 name="act",
                 system_prompt=SYSTEM_PROMPT,
-                guidance=REFLECT_AND_ACT,
+                guidance=FORMAT,  # REFLECT_AND_ACT,
                 steps_prompt=steps_prompt,
                 steps=steps,
                 next_node="act",

@@ -2,7 +2,7 @@ defaults:
   - llm: gpt4o_mini
   - _self_
 
-exp_name: gpt4o_mini_val_uniagent1
+exp_name: gpt4o_mini_val_just_act_1
 
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
@@ -24,6 +24,7 @@ agent:
 
 env:
   simple_browser: false
+  navigation_only: true
   use_web_cache: true
 
 studio:

@@ -5,13 +5,17 @@ Do not express emotions or opinions about user questions."""
 
 FORMAT = "Output only a single step. DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JSON. It will break the system that processes the output."
 
-PLAN = f'What steps should I take to answer this question? Be specific about how each step should be performed. Respond with the thought kind="plan_thought". {FORMAT}'
+PLAN = f"""Write a concise multi-step plan explaining which steps should be performed to find the answer for the given task.
+Remember that you can use web search, browser, python code execution and access the youtube videos to reach your goals.
+Be specific about how each step should be performed. Only describe the intended actions here, do not perform them yet.
+Consider that next steps may depend on results of previous steps, so include conditional branching using "if" statements where needed.
+Respond with the thought kind="plan_thought". {FORMAT}"""
 
 START = f"""Let's start executing the plan step by step, using the allowed steps described earlier. {FORMAT}"""
 
-REFLECT_AND_ACT = """
+REFLECT_AND_ACT = f"""
 Produce a JSON list with two steps in it.
-The first step be the reasoning thought that was produced according to the following rules:
+The first step should be the reasoning thought produced according to the following rules:
     1. Summarize the last observation.
     2. If the last action interacted with the page, describe how it affected its content.
     3. Check if the action led to the desired outcome. Then explain its effect on the task and the plan.
@@ -22,14 +26,25 @@ The first step be the reasoning thought that was produced according to the follo
     8. If you see a cookie consent form, accept it first.
     9. Quote the relevant part of the observation verbatim when the action depends on it, for example when interacting with the page.
     10. Do not hallucinate unseen elements or results; only use the information from the observation.
-The second step should be a action that performs the proposed step.
-"""
+    11. If the web search snippets do not contain the information you are looking for, always inspect the most relevant search result.
+    12. Do not overuse the web search, you can use it only a few times.
+The second step should be an action that performs the proposed step.
+Remember that your response should be a list and not a dictionary.
+{FORMAT}"""
 
 VERIFY = f"""
-First, state the answer that was found.
-Then observe and summarize the entire history of interaction as a list.
-Then consider how you can verify the answer.
-Finally, propose a list of steps for verification.
+Produce a JSON list with two steps in it.
+The first step should be the reasoning thought produced according to the following rules:
+    - Recite the task and mention all the restrictions and requirements for the final answer found in the task description.
+    - Check if the task expected to have singular or multiple answers.
+    - Verify that the answer meets all following requirements from this list.
+    - Verify that the answer should be a number OR as few words as possible OR a comma-separated list of numbers and/or strings.
+    - Verify that the answer MUST follow any formatting instructions or requirements specified in the original task (e.g., alphabetization, sequencing, units, rounding, decimal places, etc.)
+    - If asked for a number, express it numerically, don't use commas, do not add anything after the number, don't include units such as $ or percent signs unless specified otherwise in the question.
+    - If asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
+    - If asked for a comma-separated list, apply the above rules depending on whether the elements are numbers or strings.
+The second step should be an verified_answer.
+Remember that your response should be a list and not a dictionary.
 {FORMAT}"""
 
 ALLOWED_STEPS = """
