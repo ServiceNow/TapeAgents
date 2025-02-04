@@ -167,6 +167,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "reward": masked_mean(rewards, masks_).item(),
         "max_reward": rewards[masks_].max().item(),
         "min_reward": rewards[masks_].min().item(),
+        "mean_entropy": -masked_sum(old_logprobs * torch.log(old_logprobs + 1e-9), masks_, axis=-1).mean().item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
         "mean_new_logprobs_positive_log_p_weights": masked_mean(
