@@ -5,6 +5,8 @@ import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from tapeagents.core import Action
+
 from .computer import Computer
 from .steps import (
     GetCursorPositionAction,
@@ -17,13 +19,13 @@ from .steps import (
 
 app = FastAPI()
 
-ACTION_MAP = {
-    "key_press": KeyPressAction,
-    "type_text": TypeTextAction,
-    "mouse_move": MouseMoveAction,
-    "mouse_click": MouseClickAction,
-    "mouse_drag": MouseDragAction,
-    "get_cursor_position": GetCursorPositionAction,
+ACTION_MAP: dict[str : type[Action]] = {
+    "key_press_action": KeyPressAction,
+    "type_text_action": TypeTextAction,
+    "mouse_move_action": MouseMoveAction,
+    "mouse_click_action": MouseClickAction,
+    "mouse_drag_action": MouseDragAction,
+    "get_cursor_position_action": GetCursorPositionAction,
 }
 
 
@@ -35,17 +37,26 @@ class ActionRequest(BaseModel):
 @app.post("/execute")
 async def execute_action(request: ActionRequest):
     try:
+        print(f"Received action request: {request}")
+        print(f"Action kind: {request.kind}")
+        print(f"Action params: {request.params}")
         if request.kind not in ACTION_MAP:
             raise ValueError(f"Unknown action type: {request.kind}")
 
-        action_class = ACTION_MAP[request.kind]
-        action = action_class(**request.params)
-
+        action_class: type[Action] = ACTION_MAP[request.kind]
+        print(f"Action class: {action_class}")
+        action = action_class.model_validate(request.params)
+        print(f"Action deserialized: {action}")
         observation = computer.execute_action(action)  # Use existing instance
-
-        return observation.model_dump()
+        print(f"Observation received {observation.kind}")
+        obs = observation.model_dump()
+        print_obs = observation.model_dump()
+        print_obs["base64_image"] = print_obs["base64_image"][:10]
+        print(f"Observation serialized: {print_obs}")
+        return obs
     except Exception as e:
         detail = f"{str(e)}\n{traceback.format_exc()}"
+        print(f"Error: {detail}")
         raise HTTPException(status_code=400, detail=detail)
 
 

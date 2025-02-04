@@ -4,6 +4,9 @@ echo "starting vnc"
 (x11vnc -display $DISPLAY \
     -forever \
     -shared \
+    -multiptr \
+    -cursor arrow \
+    -scale_cursor 2 \
     -wait 50 \
     -rfbport 5900 \
     -nopw \

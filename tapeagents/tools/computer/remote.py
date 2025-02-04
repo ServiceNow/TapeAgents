@@ -37,20 +37,26 @@ class RemoteComputer(Multitool):
         return super().model_post_init(__context)
 
     def execute_action(self, action: Action) -> ComputerObservation:
-        payload = {"kind": action.__class__.__name__.replace("Action", "").lower(), "params": action.model_dump()}
-
+        payload = {"kind": action.kind, "params": action.model_dump()}
         try:
-            response = requests.post(f"{self.url}/execute", json=payload)
+            response = requests.post(f"{self.computer_url}/execute", json=payload)
             response.raise_for_status()
-            return ComputerObservation(**response.json())
+            obs_dict = response.json()
+            return ComputerObservation(**obs_dict)
         except requests.exceptions.RequestException as e:
             return ComputerObservation(error=f"API request failed: {str(e)}")
 
     def move_and_click(self, element_description: str, button: str = "left") -> ComputerObservation:
-        self._take_screenshot()
         obs = self.execute_action(GetCursorPositionAction())
-        last_image = Image.open(BytesIO(base64.b64decode(obs.base64_image)))
+        bimage = obs.base64_image
+        if not bimage:
+            return ComputerObservation(error="Failed to get screenshot")
+        image_data = base64.b64decode(bimage)
+        with open("last_screenshot.png", "wb") as f:
+            f.write(image_data)
+        last_image = Image.open(BytesIO(image_data))
         x, y = self._locator.get_coords(last_image, f"click at {element_description}")
+        x, y = int(x), int(y)
         self.execute_action(MouseMoveAction(x=x, y=y))
         return self.execute_action(MouseClickAction(button=button))
 

@@ -15,4 +15,4 @@ echo "Streamlit ready, http://localhost:8501"
 python http_server.py > /tmp/http_server_stdout.log &
 echo "Tapeagents Operator is ready!"
 echo "Open http://localhost:8080 in your browser to begin"
-tail -f /dev/null
+tail -f /tmp/api_stdout.log

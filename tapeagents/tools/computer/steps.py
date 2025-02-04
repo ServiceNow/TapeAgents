@@ -51,6 +51,7 @@ class GetCursorPositionAction(Action):
 class ComputerObservation(Observation):
     """Base observation returned by computer actions"""
 
+    kind: Literal["computer_observation"] = "computer_observation"
     text: str = ""
     error: str = ""
     base64_image: str | None = None
