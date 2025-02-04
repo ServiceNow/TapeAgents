@@ -47,7 +47,7 @@ STREAMLIT_STYLE = """
 async def main():
     st.markdown(STREAMLIT_STYLE, unsafe_allow_html=True)
 
-    computer = RemoteComputer(url="http://localhost:8000")
+    computer = RemoteComputer(computer_url="http://localhost:8000")
 
     with st.chat_message("assistant"):
         st.write("Language controlled computer activated.")
