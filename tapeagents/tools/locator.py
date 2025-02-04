@@ -14,7 +14,7 @@ class Locator:
         except Exception as e:
             raise RuntimeError("Failed to obtain API key") from e
         self.vl_client = OpenAI(
-            base_url="https://b1f33040-640a-4259-a51d-a11650b9458f-8000.job.console.elementai.com/v1",
+            base_url=os.environ["LOCATOR_URL"],
             api_key=api_key,
         )
         self.model = "osunlp/UGround-V1-7B"
