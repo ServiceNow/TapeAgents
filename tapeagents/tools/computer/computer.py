@@ -20,6 +20,7 @@ from .steps import (
     MouseClickAction,
     MouseDragAction,
     MouseMoveAction,
+    OpenUrlAction,
     TypeTextAction,
 )
 
@@ -34,16 +35,6 @@ MAX_SCALING_TARGETS = {
 
 def chunks(s: str, chunk_size: int) -> list[str]:
     return [s[i : i + chunk_size] for i in range(0, len(s), chunk_size)]
-
-
-class OpenUrlAction(Action):
-    """
-    Action that opens a page with the provided URL and returns its first page content.
-    Use page_down_action to read subsequent pages.
-    """
-
-    kind: Literal["open_url_action"] = "open_url_action"
-    url: str = Field(description="URL to navigate to")
 
 
 class Computer(Multitool):
@@ -66,8 +57,8 @@ class Computer(Multitool):
     screenshot_delay: float = Field(default=2.0, description="Delay before screenshot")
     scaling_enabled: bool = Field(default=True, description="Enable resolution scaling")
     tmp_screenshots_dir: str = "/tmp/screenshots/"
-    typing_delay_ms: int = 12
-    typing_group_size: int = 50
+    typing_delay_ms: int = 120
+    typing_group_size: int = 3
     _xdotool: str = ""
     _display_prefix: str = ""
 
@@ -104,7 +95,7 @@ class Computer(Multitool):
             cmd = f"{self._xdotool} type --delay {self.typing_delay_ms} -- {shlex.quote(chunk)}"
             result = self._execute_shell(cmd, take_screenshot=False)
             output.append(result.text)
-        return self._take_screenshot(output="".join(output))
+        return self._take_screenshot()
 
     def _handle_mouse_move(self, action: MouseMoveAction) -> ComputerObservation:
         x, y = self._scale_coordinates("api", action.x, action.y)

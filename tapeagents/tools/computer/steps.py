@@ -5,6 +5,16 @@ from pydantic import Field
 from tapeagents.core import Action, Observation
 
 
+class OpenUrlAction(Action):
+    """
+    Action that opens a page with the provided URL and returns its first page content.
+    Use page_down_action to read subsequent pages.
+    """
+
+    kind: Literal["open_url_action"] = "open_url_action"
+    url: str = Field(description="URL to navigate to")
+
+
 class KeyPressAction(Action):
     """Action that simulates keyboard key press"""
 

@@ -14,6 +14,7 @@ from .steps import (
     MouseClickAction,
     MouseDragAction,
     MouseMoveAction,
+    OpenUrlAction,
     TypeTextAction,
 )
 
@@ -26,6 +27,7 @@ ACTION_MAP: dict[str : type[Action]] = {
     "mouse_click_action": MouseClickAction,
     "mouse_drag_action": MouseDragAction,
     "get_cursor_position_action": GetCursorPositionAction,
+    "open_url_action": OpenUrlAction,
 }
 
 
