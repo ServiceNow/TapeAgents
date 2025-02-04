@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Callable
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -59,6 +59,10 @@ class RLConfig(StepConfig):
     clamp_log_ratio_ref_new_value: float = field(
         default=10,
         metadata={"help": "Clamp the log ratio ref new value"},
+    )
+    aggregate_loss: Literal["mean", "sum"] = field(
+        default="mean",
+        metadata={"help": "How to aggregate the loss within a batch (when batch size is 1, there is no difference)"},
     )
 
 
@@ -147,7 +151,10 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
             raise ValueError(f"Unknown algorithm {config.algo}")
 
     num_nans = torch.isnan(loss).sum()
-    loss = -masked_sum(loss, masks_)
+    if config.aggregate_loss == "mean":
+        loss = -masked_mean(loss, masks_, axis=-1)
+    else:
+        loss = -masked_sum(loss, masks_, axis=-1)
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
     
     # normalize the loss by the micro batch size
