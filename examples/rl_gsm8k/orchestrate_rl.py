@@ -36,9 +36,6 @@ logger = logging.getLogger(__name__)
 
 
 def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
-    """
-    Deprecated, use load_datasets from rl/load_datasets.py
-    """
     match cfg.dataset_name:
         case "math":
             train_dataset_long_name = "hendrycks/competition_math"
