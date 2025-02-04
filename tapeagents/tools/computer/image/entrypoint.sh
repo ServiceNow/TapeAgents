@@ -6,6 +6,7 @@ set -e
 
 echo "Web VNC ready, http://localhost:6080/vnc.html?view_only=1&autoconnect=1&resize=scale"
 
+touch /tmp/api_stdout.log
 python -m api.api > /tmp/api_stdout.log 2>&1 &
 echo "Tool API ready, http://localhost:8000"
 

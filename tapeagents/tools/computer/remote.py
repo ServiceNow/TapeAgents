@@ -10,7 +10,7 @@ from pydantic import Field
 from tapeagents.core import Action
 from tapeagents.steps import ImageObservation
 from tapeagents.tools.base import Multitool
-from tapeagents.tools.browser import MouseClickAction, MouseHoverAction, OpenUrlAction
+from tapeagents.tools.browser import MouseClickAction, MouseHoverAction, OpenUrlAction, PageDownAction, PageUpAction
 from tapeagents.tools.locator import Locator
 
 from .steps import (
@@ -31,6 +31,8 @@ class RemoteComputer(Multitool):
         MouseClickAction,
         OpenUrlAction,
         KeyPressAction,
+        PageUpAction,
+        PageDownAction,
     )
     observations: tuple[type[ImageObservation], ...] = (ImageObservation,)
     computer_url: str = Field(description="Remote tool API URL")
@@ -47,8 +49,12 @@ class RemoteComputer(Multitool):
         if isinstance(action, MouseClickAction):
             self.mouse_move(action.element_description)
             return self.remote_execute_action(CompMouseClickAction(button="left"))
-        if isinstance(action, MouseHoverAction):
+        elif isinstance(action, MouseHoverAction):
             return self.mouse_move(action.element_description)
+        elif isinstance(action, PageUpAction):
+            return self.remote_execute_action(KeyPressAction(text="Page_Up"))
+        elif isinstance(action, PageDownAction):
+            return self.remote_execute_action(KeyPressAction(text="Page_Down"))
         else:
             return self.remote_execute_action(action)
 
