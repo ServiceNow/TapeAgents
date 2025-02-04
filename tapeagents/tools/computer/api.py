@@ -1,3 +1,4 @@
+import traceback
 from typing import Any, Dict
 
 import uvicorn
@@ -44,7 +45,8 @@ async def execute_action(request: ActionRequest):
 
         return observation.model_dump()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        detail = f"{str(e)}\n{traceback.format_exc()}"
+        raise HTTPException(status_code=400, detail=detail)
 
 
 @app.post("/save_file")
