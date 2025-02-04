@@ -61,7 +61,7 @@ class CodeExecutor(Tool):
         if len(lines) == 1 and "\\n" in lines[0]:
             lines = lines[0].split("\\n")
         lines = [f"# {action.name}"] + lines
-        if "print(" not in lines[-1]:
+        if "print(" not in lines[-1] and "break" not in lines[-1]:
             if " = " in lines[-1]:
                 name = lines[-1].split("=")[0].strip()
                 lines.append(f"print({name})")

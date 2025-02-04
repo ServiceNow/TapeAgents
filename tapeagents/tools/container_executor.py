@@ -69,7 +69,7 @@ class ContainerExecutor:
 
     def __init__(
         self,
-        image: str = "jupyter/scipy-notebook",
+        image: str = "python:3-slim",
         container_name: Optional[str] = None,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
@@ -168,7 +168,7 @@ class ContainerExecutor:
             self._container.start()
             _wait_for_ready(self._container)
             logger.info(f"Started container {container_name} from image {image}")
-            # self.install_deps()
+            self.install_deps()
 
         _wait_for_ready(self._container)
 
