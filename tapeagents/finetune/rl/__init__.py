@@ -152,9 +152,9 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
 
     num_nans = torch.isnan(loss).sum()
     if config.aggregate_loss == "mean":
-        loss = -masked_mean(loss, masks_, axis=-1)
+        loss = -masked_mean(loss, masks_, axis=-1).mean()
     else:
-        loss = -masked_sum(loss, masks_, axis=-1)
+        loss = -masked_sum(loss, masks_)
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
     
     # normalize the loss by the micro batch size
