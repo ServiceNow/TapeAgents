@@ -136,15 +136,20 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
 
             assert approx_kl.shape == masks_.shape
             assert approx_kl.shape == surrogate_loss.shape
-            loss = -masked_sum(surrogate_loss - config.kl_coef * approx_kl, masks_)
+            loss = surrogate_loss - config.kl_coef * approx_kl
+            # loss = -masked_sum(surrogate_loss - config.kl_coef * approx_kl, masks_)
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = -masked_sum(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
+            loss = new_log_probs * log_p_weights - config.kl_coef * approx_kl
+            # loss = -masked_sum(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
 
+    num_nans = torch.isnan(loss).sum()
+    loss = -masked_sum(loss, masks_)
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
+    
     # normalize the loss by the micro batch size
     loss = loss / masks.shape[0]
     stats = {
@@ -181,6 +186,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "ratio_ref_new": masked_mean(torch.exp(log_ratio_ref_new), masks_).item(),
         "ratio_ref_old": masked_mean(torch.exp(ref_logprobs - old_logprobs), masks_).item(),
         "clamp_log_ratio_ref_new_indicators": masked_mean(clamp_log_ratio_ref_new_indicators, masks_).item(),
+        "num_nans": num_nans.item(),
     }
     return loss, stats
 
