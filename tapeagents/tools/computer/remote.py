@@ -27,7 +27,7 @@ class RemoteComputer(Multitool):
         ScreenshotAction,
     )
     observations: tuple[type[ComputerObservation], ...] = (ComputerObservation,)
-    url: str = Field(description="Remote tool API URL")
+    computer_url: str = Field(description="Remote tool API URL")
 
     def execute_action(self, action: Action) -> ComputerObservation:
         payload = {"kind": action.__class__.__name__.replace("Action", "").lower(), "params": action.model_dump()}

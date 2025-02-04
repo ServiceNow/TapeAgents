@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from tapeagents.core import Action, Observation, StepMetadata
+from tapeagents.core import Action, Observation
 
 
 class KeyPressAction(Action):
@@ -46,12 +46,6 @@ class GetCursorPositionAction(Action):
     """Action that gets current cursor position"""
 
     kind: Literal["get_cursor_position_action"] = "get_cursor_position_action"
-
-
-class ScreenshotAction(Action):
-    """Action that takes a screenshot"""
-
-    kind: Literal["screenshot_action"] = "screenshot_action"
 
 
 class ComputerObservation(Observation):

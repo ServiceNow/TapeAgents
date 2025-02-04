@@ -20,7 +20,6 @@ from .steps import (
     MouseClickAction,
     MouseDragAction,
     MouseMoveAction,
-    ScreenshotAction,
     TypeTextAction,
 )
 
@@ -48,30 +47,25 @@ class Computer(Multitool):
     )
     observations: tuple[type[Observation], ...] = (ComputerObservation,)
 
-    width: int = Field(description="Screen width")
-    height: int = Field(description="Screen height")
-    display_num: int | None = Field(default=None, description="X display number")
-    display_height_px: int = Field(default=768, description="Display height in pixels")
-    display_width_px: int = Field(default=1024, description="Display width in pixels")
+    width: int = Field(description="Screen width", default=MAX_SCALING_TARGETS["XGA"][0])
+    height: int = Field(description="Screen height", default=MAX_SCALING_TARGETS["XGA"][1])
+    display_num: int | None = Field(default=1, description="X display number")
+    display_height_px: int = Field(default=MAX_SCALING_TARGETS["XGA"][0], description="Display height in pixels")
+    display_width_px: int = Field(default=MAX_SCALING_TARGETS["XGA"][1], description="Display width in pixels")
     screenshot_delay: float = Field(default=2.0, description="Delay before screenshot")
     scaling_enabled: bool = Field(default=True, description="Enable resolution scaling")
     tmp_screenshots_dir: str = "/tmp/screenshots/"
     typing_delay_ms: int = 12
     typing_group_size: int = 50
+    _xdotool: str = ""
+    _display_prefix: str = ""
 
     def model_post_init(self, __context: Any) -> None:
-        self.width = int(os.getenv("WIDTH") or 0)
-        self.height = int(os.getenv("HEIGHT") or 0)
-        assert self.width and self.height, "WIDTH, HEIGHT must be set"
-
         if (display_num := os.getenv("DISPLAY_NUM")) is not None:
             self.display_num = int(display_num)
-            self._display_prefix = f"DISPLAY=:{self.display_num} "
-        else:
-            self.display_num = None
-            self._display_prefix = ""
+        self._display_prefix = f"DISPLAY=:{self.display_num} "
 
-        self.xdotool = f"{self._display_prefix}xdotool"
+        self._xdotool = f"{self._display_prefix}xdotool"
 
         # Add action mapping
         self._action_map = {
@@ -81,7 +75,6 @@ class Computer(Multitool):
             MouseClickAction: self._handle_mouse_click,
             MouseDragAction: self._handle_mouse_drag,
             GetCursorPositionAction: self._handle_get_cursor_position,
-            ScreenshotAction: self._handle_screenshot,
         }
 
     def execute_action(self, action: Action) -> ComputerObservation:
@@ -91,30 +84,30 @@ class Computer(Multitool):
         raise ValueError(f"Unknown action type: {action_type}")
 
     def _handle_key_press(self, action: KeyPressAction) -> ComputerObservation:
-        return self._execute_shell(f"{self.xdotool} key -- {action.text}")
+        return self._execute_shell(f"{self._xdotool} key -- {action.text}")
 
     def _handle_type_text(self, action: TypeTextAction) -> ComputerObservation:
         output = []
         for chunk in chunks(action.text, self.typing_group_size):
-            cmd = f"{self.xdotool} type --delay {self.typing_delay_ms} -- {shlex.quote(chunk)}"
+            cmd = f"{self._xdotool} type --delay {self.typing_delay_ms} -- {shlex.quote(chunk)}"
             result = self._execute_shell(cmd, take_screenshot=False)
             output.append(result.text)
         return self._take_screenshot(output="".join(output))
 
     def _handle_mouse_move(self, action: MouseMoveAction) -> ComputerObservation:
         x, y = self._scale_coordinates("api", action.x, action.y)
-        return self._execute_shell(f"{self.xdotool} mousemove --sync {x} {y}")
+        return self._execute_shell(f"{self._xdotool} mousemove --sync {x} {y}")
 
     def _handle_mouse_click(self, action: MouseClickAction) -> ComputerObservation:
         click_arg = {"left": "1", "right": "3", "middle": "2", "double": "--repeat 2 --delay 500 1"}[action.button]
-        return self._execute_shell(f"{self.xdotool} click {click_arg}")
+        return self._execute_shell(f"{self._xdotool} click {click_arg}")
 
     def _handle_mouse_drag(self, action: MouseDragAction) -> ComputerObservation:
         x, y = self._scale_coordinates("api", action.x, action.y)
-        return self._execute_shell(f"{self.xdotool} mousedown 1 mousemove --sync {x} {y} mouseup 1")
+        return self._execute_shell(f"{self._xdotool} mousedown 1 mousemove --sync {x} {y} mouseup 1")
 
     def _handle_get_cursor_position(self, action: GetCursorPositionAction) -> ComputerObservation:
-        result = self._execute_shell(f"{self.xdotool} getmouselocation --shell", take_screenshot=False)
+        result = self._execute_shell(f"{self._xdotool} getmouselocation --shell", take_screenshot=False)
         output = result.text
         x, y = self._scale_coordinates(
             "computer", int(output.split("X=")[1].split("\n")[0]), int(output.split("Y=")[1].split("\n")[0])

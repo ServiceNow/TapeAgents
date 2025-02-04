@@ -95,7 +95,10 @@ ENV PATH="$HOME/.pyenv/shims:$HOME/.pyenv/bin:$PATH"
 RUN python -m pip install --upgrade pip==23.1.2 setuptools==58.0.4 wheel==0.40.0 && \
     python -m pip config set global.disable-pip-version-check true
 
-RUN python -m pip install tapeagents streamlit
+RUN python -m pip install streamlit
+RUN git clone -b ui_demo https://github.com/ServiceNow/TapeAgents.git && \
+    cd TapeAgents && \
+    python -m pip install .
 
 # setup desktop env & app
 COPY --chown=$USERNAME:$USERNAME image $HOME

@@ -16,7 +16,6 @@ from .steps import (
 )
 
 app = FastAPI()
-computer = Computer()  # Create single instance
 
 ACTION_MAP = {
     "key_press": KeyPressAction,
@@ -62,4 +61,8 @@ async def save_file(file: UploadFile = File(...), path: str = Form(...)):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    global computer
+    computer = Computer()  # Create single instance
+    port = 8000
+    print(f"Starting api on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
