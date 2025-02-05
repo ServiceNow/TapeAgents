@@ -30,7 +30,7 @@ def get_avg_rl_stats(rl_stats):
     return avg_rl_stats
 
 
-def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
+def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[int] = None) -> torch.Tensor:
     """Compute sum of tensor with a masked values."""
     if axis is not None:
         return (values * mask).nan_to_num(0).sum(axis=axis)  # type: ignore
@@ -38,7 +38,7 @@ def masked_sum(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = 
         return (values * mask).nan_to_num(0).sum()
 
 
-def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None) -> torch.Tensor:
+def masked_mean(values: torch.Tensor, mask: torch.Tensor, axis: Optional[int] = None) -> torch.Tensor:
     """Compute mean of tensor with a masked values."""
     if axis is not None:
         return (values * mask).nan_to_num(0).sum(axis=axis) / mask.sum(axis=axis)  # type: ignore

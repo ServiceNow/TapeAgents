@@ -1,18 +1,19 @@
 # https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/data_processing/process_utils.py
 import regex
 
-from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import extract_math_answer, strip_string
+from examples.rl_gsm8k.deepseek_math_eval.answer_extraction import (
+    extract_math_answer, strip_string)
 from examples.rl_gsm8k.deepseek_math_eval.eval_utils import parse_ground_truth
 
 
 def process_eurus_test(item):
     if "ability" not in item:
         # math 500 test set
-        answer = [item["expected_answer"]]
+        answer = [item["answer"]]
         return {
             "dataset": "math500",
             # Same prompt as https://github.com/PRIME-RL/PRIME/blob/49a58a8e4afd464f559f8d9f80418052f29cf3e4/README.md?plain=1#L93
-            "task": item["problem"] + "\n\nPresent the answer in LaTex format: \\boxed{Your answer}",
+            "task": item["problem"],
             "answer": answer
         }
     else:
@@ -25,9 +26,11 @@ def process_eurus_test(item):
         answer = answer.replace("\n", "")
         answer = "\\boxed{" + answer + "}"
         answer = extract_math_answer(item["prompt"][1]["content"], answer, task="cot")
+        task = item["prompt"][1]["content"]
+        task = task.replace("\n\nPresent the answer in LaTex format: \\boxed{Your answer}", "")
         return {
             "dataset": item["data_source"],
-            "task": item["prompt"][1]["content"],
+            "task": task,
             "answer": answer
         }
     
@@ -47,7 +50,7 @@ def process_math_test(item):
         answer = extract_math_answer(question, item["solution"], task="cot")
     except Exception:
         return
-    sample = {"dataset": "math-cot", "level": item["level"], "type": item["type"], "task": question, "answer": answer}
+    sample = {"dataset": "math-cot", "level": item["level"], "type": item.get("type", ""), "task": question, "answer": answer}
     return sample
 
 

@@ -50,7 +50,7 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
             builder_config = "main"
         case "eurus":
             train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
-            test_dataset_long_name = "alexpiche/math_test_cleaned"
+            test_dataset_long_name = "HuggingFaceH4/MATH-500"
             process_fn = process_eurus_test
             test_builder_config = None
             builder_config = "default"
@@ -127,8 +127,6 @@ def extract_tape_training_samples(
         agent: CoTMathAgent
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
-        llm_calls: List of LLM calls
-        strict: check that every token matches between the vLLM and the HF tokenizer otherwise just compare their lengths
 
     Returns:
         Tuple containing:
@@ -137,18 +135,17 @@ def extract_tape_training_samples(
     """
     tape_prompt_tokens = 0
     tape_output_tokens = 0
+
     match cfg.dataset_name:
-        case "math":
+        case name if name.startswith("math") or name.startswith("eurus"):
             eval_fn = eval_math
             extract_fn = extract_math_answer
         case "gsm8k":
             eval_fn = eval_last_single_answer
             extract_fn = extract_last_single_answer
-        case "eurus":
-            eval_fn = eval_math
-            extract_fn = extract_math_answer
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+
 
     if "\\boxed" not in new_tape.steps[-1].reasoning:
         # LLM did not respect the formatting
