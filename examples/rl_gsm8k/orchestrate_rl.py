@@ -127,7 +127,6 @@ def extract_tape_training_samples(
         agent: CoTMathAgent
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
-        dataset_name: Name of the dataset (optional). If not provided, defaults to cfg.dataset_name
 
     Returns:
         Tuple containing:
@@ -166,7 +165,6 @@ def extract_tape_training_samples(
             reward, success = cfg.rewards.correct_answer, 1
         else:
             # Incorrect answer or no answer
-            breakpoint()
             reward, success = cfg.rewards.wrong_answer, 0
 
     training_samples: list[TrainingText] = []
