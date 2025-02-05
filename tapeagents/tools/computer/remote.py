@@ -55,6 +55,12 @@ class RemoteComputer(Multitool):
             return self.remote_execute_action(KeyPressAction(text="Page_Up"))
         elif isinstance(action, PageDownAction):
             return self.remote_execute_action(KeyPressAction(text="Page_Down"))
+        elif isinstance(action, OpenUrlAction):
+            self.mouse_move("top address bar")
+            self.remote_execute_action(CompMouseClickAction(button="left"))
+            self.remote_execute_action(TypeTextAction(text=action.url))
+            self.remote_execute_action(KeyPressAction(text="Return"))
+            return self.remote_execute_action(GetCursorPositionAction())
         else:
             return self.remote_execute_action(action)
 
@@ -81,6 +87,10 @@ class RemoteComputer(Multitool):
         self._last_image = Image.open(BytesIO(image_data))
         return ImageObservation(image_path=image_name_with_timestamp, error=obs.error, image_caption=obs.text)
 
+    def get_screen(self) -> Image:
+        obs = self.remote_execute_action(GetCursorPositionAction())
+        return Image.open(obs.image_path)
+
     def mouse_move(self, element_description: str, button: str = "left") -> ImageObservation:
-        x, y = self._locator.get_coords(self._last_image, f"click at {element_description}")
+        x, y = self._locator.get_coords(self.get_screen(), f"click {element_description}")
         return self.remote_execute_action(MouseMoveAction(x=int(x), y=int(y)))

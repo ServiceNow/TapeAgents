@@ -20,7 +20,6 @@ from .steps import (
     MouseClickAction,
     MouseDragAction,
     MouseMoveAction,
-    OpenUrlAction,
     TypeTextAction,
 )
 
@@ -45,7 +44,6 @@ class Computer(Multitool):
         MouseClickAction,
         MouseDragAction,
         GetCursorPositionAction,
-        OpenUrlAction,
     )
     observations: tuple[type[Observation], ...] = (ComputerObservation,)
 
@@ -77,7 +75,6 @@ class Computer(Multitool):
             MouseClickAction: self._handle_mouse_click,
             MouseDragAction: self._handle_mouse_drag,
             GetCursorPositionAction: self._handle_get_cursor_position,
-            OpenUrlAction: self._handle_open_url,
         }
 
     def execute_action(self, action: Action) -> ComputerObservation:
@@ -119,12 +116,6 @@ class Computer(Multitool):
         screenshot = self._take_screenshot()
         obs.base64_image = screenshot.base64_image
         return obs
-
-    def _handle_open_url(self, action: OpenUrlAction) -> ComputerObservation:
-        """Open URL in Firefox-ESR browser"""
-        # Kill any existing Firefox-ESR instances
-        os.system(f"{self._display_prefix}pkill firefox-esr")
-        return self._execute_shell(f"{self._display_prefix}firefox-esr  --no-remote -url {shlex.quote(action.url)}")
 
     def _execute_shell(self, command: str, take_screenshot=True) -> ComputerObservation:
         """Execute shell command and return observation"""

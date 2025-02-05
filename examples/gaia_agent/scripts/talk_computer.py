@@ -39,15 +39,11 @@ STREAMLIT_STYLE = """
 async def main():
     st.markdown(STREAMLIT_STYLE, unsafe_allow_html=True)
     exp_path = ".talk_computer"
-    print("Initializing computer")
-    computer = RemoteComputer(exp_path=exp_path, computer_url="http://localhost:8000")
-    print("Computer initialized")
+    if "computer" not in st.session_state:
+        st.session_state.computer = RemoteComputer(exp_path=exp_path, computer_url="http://localhost:8000")
+    computer = st.session_state.computer
     if "messages" not in st.session_state:
-        st.session_state.messages = []
-    print(f"Found {len(st.session_state.messages)} messages in session state")
-
-    with st.chat_message("assistant"):
-        st.write("Language controlled computer activated.")
+        st.session_state.messages = [{"role": "assistant", "content": "Language controlled computer activated."}]
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
@@ -59,26 +55,32 @@ async def main():
         st.session_state.messages.append({"role": "user", "content": prompt})
 
         if prompt.startswith("open"):
-            url = prompt.split(" ")[1]
+            st.status("Opening...")
+            url = prompt.split(" ", maxsplit=1)[1]
             computer.execute_action(OpenUrlAction(url=url))
             msg = f"Opened {url}"
         elif prompt.startswith("click"):
-            target = prompt.split(" ")[1]
+            st.status("Clicking...")
+            target = prompt.split(" ", maxsplit=1)[1]
             computer.execute_action(MouseClickAction(element_description=target))
-            msg = "Clicked"
+            msg = f"Clicked '{target}'"
         elif prompt.startswith("type"):
-            text = prompt.split(" ")[1]
+            st.status("Typing...")
+            text = prompt.split(" ", maxsplit=1)[1]
             computer.execute_action(TypeTextAction(text=text))
-            msg = "Typed"
+            msg = "Done"
         elif prompt.startswith("input"):
-            text = prompt.split(" ")[1]
+            st.status("Typing...")
+            text = prompt.split(" ", maxsplit=1)[1]
             computer.execute_action(TypeTextAction(text=text))
             computer.execute_action(KeyPressAction(text="Return"))
             msg = "Done"
-        elif prompt == "up":
+        elif prompt == "up" or prompt == "scroll up":
+            st.status("Scrolling...")
             computer.execute_action(KeyPressAction(text="Page_Up"))
             msg = "Moved up"
-        elif prompt == "down":
+        elif prompt == "down" or prompt == "scroll":
+            st.status("Scrolling...")
             computer.execute_action(KeyPressAction(text="Page_Down"))
             msg = "Moved down"
 
