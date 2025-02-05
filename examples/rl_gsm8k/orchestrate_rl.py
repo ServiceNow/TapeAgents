@@ -168,6 +168,7 @@ def extract_tape_training_samples(
             reward, success = cfg.rewards.correct_answer, 1
         else:
             # Incorrect answer or no answer
+            breakpoint()
             reward, success = cfg.rewards.wrong_answer, 0
 
     training_samples: list[TrainingText] = []
