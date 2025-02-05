@@ -117,7 +117,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, cfg: DictConfig, dataset_name: str = ""
+    new_tape: RLMathTape, agent: CoTMathAgent, cfg: DictConfig
 ) -> Tuple[List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -136,21 +136,17 @@ def extract_tape_training_samples(
     """
     tape_prompt_tokens = 0
     tape_output_tokens = 0
-    dataset_name = dataset_name or cfg.dataset_name
-    assert dataset_name, "Dataset name must be provided"
 
-    match dataset_name:
+    match cfg.dataset_name:
         case name if name.startswith("math") or name.startswith("eurus"):
             eval_fn = eval_math
             extract_fn = extract_math_answer
-        case "gsm8k_test":
+        case "gsm8k":
             eval_fn = eval_last_single_answer
             extract_fn = extract_last_single_answer
         case _:
-            # Default to math dataset
-            logger.debug(f"MATH dataset will be used for evaluation and extracting answer: {dataset_name}")
-            eval_fn = eval_math
-            extract_fn = extract_math_answer
+            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+
 
     if "\\boxed" not in new_tape.steps[-1].reasoning:
         # LLM did not respect the formatting
