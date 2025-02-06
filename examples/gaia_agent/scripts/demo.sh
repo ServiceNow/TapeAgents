@@ -1,18 +1,89 @@
 #!/bin/bash
-if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
-    echo "Starting new computer container..."
-    ./tapeagents/tools/computer/run.sh > /tmp/demo_stdout.log 2>&1 &
-else
-    echo "Container 'computer' found"
-    if [[ "$*" == *"--restart"* ]]; then
-        echo "Restarting computer container..."
-        ./tapeagents/tools/computer/run.sh > /tmp/demo_stdout.log 2>&1 &
+
+# Add trap for cleanup without stopping podman machine
+cleanup() {
+    echo "Cleaning up..."
+    podman kill tapeagents-code-exec 2>/dev/null
+    pkill -f "tapeagents/tools/computer/image/http_server.py"
+    pkill -f "examples/gaia_agent/scripts/chat.py"
+    pkill -f "examples/gaia_agent/scripts/run_code_sandbox.py"
+    exit 0
+}
+
+# Set up trap for SIGINT and SIGTERM
+trap cleanup SIGINT SIGTERM
+
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo "Error: This script only works on macOS"
+    exit 1
+fi
+
+if ! command -v podman &> /dev/null; then
+    echo "Podman is not installed, installing..."
+
+    if ! command -v brew &> /dev/null; then
+        echo "Error: Homebrew is not installed. Please install it first."
+        echo "Visit https://brew.sh for installation instructions."
+        exit 1
+    fi
+    brew install podman
+    echo "Podman installed"
+    podman machine init > /dev/null 2>&1
+    nohup podman machine start
+    podman info
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to initialize Podman. Please check the error messages above."
+        exit 1
+    fi
+    echo "Podman initialized"
+fi
+if ! podman machine list | grep -q "Currently running"; then
+    nohup podman machine start > /dev/null 2>&1
+    echo "Podman machine started"
+    podman info
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to initialize Podman. Please check the error messages above."
+        exit 1
     fi
 fi
-podman kill tapeagents-code-exec
-pkill -f "tapeagents/tools/computer/image/http_server.py"
-pkill -f "examples/gaia_agent/scripts/chat.py"
-pkill -f "examples/gaia_agent/scripts/run_code_sandbox.py"
+if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
+    echo "No computer container found, starting one"
+    if ! podman images computer | grep -q "computer"; then
+        echo "No computer image found, building one"
+        podman images
+        podman build -t computer:latest tapeagents/tools/computer/
+        if [ $? -ne 0 ]; then
+            echo "Failed to build computer image"
+            exit 1
+        fi
+    else
+        echo "Computer image found"
+    fi
+    echo "Starting computer container"
+    nohup podman run --rm --name computer -p 5900:5900 -p 6080:6080 -p 8000:8000 -it computer:latest > /tmp/computer.log 2>&1 &
+    echo -n "Waiting for computer container to start"
+    # Wait up to 15 seconds for computer container to be running
+    for i in {1..15}; do
+        if podman ps | grep -q "computer"; then
+            break
+        fi
+        sleep 1
+        echo -n "."
+        if [ $i -eq 15 ]; then
+            echo "Error: Computer container failed to start within 15 seconds"
+            exit 1
+        fi
+    done
+    echo "."
+    echo -n "Wait for API to be ready..."
+    while ! grep -q "Uvicorn running on http://0.0.0.0:8000" /tmp/computer.log; do
+        sleep 1
+        echo -n "."
+    done
+    echo "."
+    echo "Computer started"
+fi
+
 echo "Starting Code Sandbox..."
 uv run examples/gaia_agent/scripts/run_code_sandbox.py &
 echo "Starting Chat UI..."
@@ -26,4 +97,4 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     xdg-open http://localhost:8080
 fi
-tail -f /tmp/demo_stdout.log
+tail -n 100 -f /tmp/demo_stdout.log
