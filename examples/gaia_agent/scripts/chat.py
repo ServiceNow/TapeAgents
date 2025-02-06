@@ -20,7 +20,7 @@ from tapeagents.core import Step
 from tapeagents.dialog_tape import UserStep
 from tapeagents.orchestrator import main_loop
 from tapeagents.steps import ReasoningThought
-from tapeagents.tools.computer.remote import GetCursorPositionAction
+from tapeagents.tools.computer.remote import GetCursorPositionAction, OpenUrlAction
 
 CONFIG_DIR = Path(".streamlit_config")
 API_KEY_FILE = CONFIG_DIR / "api_key"
@@ -94,9 +94,7 @@ async def main(cfg):
         today_date_str = datetime.now().strftime("%Y-%m-%d")
 
         if st.session_state.tape is None:
-            initial_obs = st.session_state.env.action_map[GetCursorPositionAction].execute_action(
-                GetCursorPositionAction()
-            )
+            initial_obs = st.session_state.env.action_map[OpenUrlAction].execute_action(GetCursorPositionAction())
             st.session_state.tape = GaiaTape(
                 steps=[initial_obs, GaiaQuestion(content=f"Today is {today_date_str}.\n{prompt}")]
             )
@@ -261,7 +259,7 @@ def render_step(step: Step) -> str:
         msg = f"Clicking {step.element_description}..."
         msg_type = "progress"
     elif step.kind in ["input_text_action", "type_text_action", "key_press_action"]:
-        msg = "Typing..."
+        msg = f"Typing '{step.text}'..."
         msg_type = "progress"
     elif step.kind in [
         "go_forward_action",
