@@ -102,6 +102,7 @@ cython_debug/
 /outputs/
 /examples/**/outputs/
 /data/
+.streamlit_config/
 
 *cache*.json
 !/tests/**/*cache*.json
