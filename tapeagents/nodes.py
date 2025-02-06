@@ -64,6 +64,7 @@ class StandardNode(Node):
     steps_prompt: str = "{allowed_steps}"  # prompt that describes the steps that the agent can take
     steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
     next_node: str = ""
+    trim_obs_except_last_n: int = 2
     _steps_type: Any = None
 
     def model_post_init(self, __context: Any) -> None:
@@ -97,7 +98,10 @@ class StandardNode(Node):
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
-            messages = self.tape_to_messages(cleaned_tape, steps_description, trim_obs_except_last_n=1)
+            old_trim = self.trim_obs_except_last_n
+            self.trim_obs_except_last_n = 1
+            messages = self.tape_to_messages(cleaned_tape, steps_description)
+            self.trim_obs_except_last_n = old_trim
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
@@ -149,7 +153,7 @@ class StandardNode(Node):
         content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
         return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 
-    def tape_to_messages(self, tape: Tape, steps_description: str, trim_obs_except_last_n: int = 2) -> list[dict]:
+    def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
         """
         Converts a Tape object and steps description into a list of messages for LLM conversation.
 
@@ -174,7 +178,7 @@ class StandardNode(Node):
         for i, step in enumerate(tape):
             steps_after_current = len(tape) - i - 1
             role = "assistant" if isinstance(step, AgentStep) else "user"
-            if isinstance(step, Observation) and steps_after_current >= trim_obs_except_last_n:
+            if isinstance(step, Observation) and steps_after_current >= self.trim_obs_except_last_n:
                 view = step.short_view()
             else:
                 view = step.llm_view()
@@ -277,20 +281,25 @@ class StandardNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
-        if llm_output.strip().startswith("```"):  # handle special case of code blocks
-            for code_block in extract_code_blocks(llm_output):
-                if code_block.language and code_block.language != "python":
-                    raise LLMOutputParsingFailureAction(f"Unsupported code block language: {code_block.language}")
-                yield PythonCodeAction(code=code_block.code)
-            return
-
         try:
             step_dicts = json.loads(sanitize_json_completion(llm_output))
             if isinstance(step_dicts, dict):
                 step_dicts = [step_dicts]
         except Exception as e:
             logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
-            yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
+            if llm_output.strip().startswith("```"):
+                for code_block in extract_code_blocks(llm_output):
+                    if code_block.language and code_block.language != "python":
+                        yield LLMOutputParsingFailureAction(
+                            error=f"Unsupported code block language: {code_block.language}", llm_output=llm_output
+                        )
+                    else:
+                        yield PythonCodeAction(code=code_block.code)
+                return
+            else:
+                yield LLMOutputParsingFailureAction(
+                    error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output
+                )
             return
 
         try:
