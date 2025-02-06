@@ -41,7 +41,7 @@ class GaiaAgent(Agent):
             StandardNode(
                 name="act",
                 system_prompt=SYSTEM_PROMPT,
-                guidance=FORMAT,  # REFLECT_AND_ACT,
+                guidance=REFLECT_AND_ACT,
                 steps_prompt=steps_prompt,
                 steps=steps,
                 next_node="act",

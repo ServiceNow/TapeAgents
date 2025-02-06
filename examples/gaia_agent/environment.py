@@ -50,7 +50,7 @@ def get_computer_env(
 ) -> ToolCollectionEnvironment:
     if simple_browser:
         logger.info("Using simple browser")
-    return EnvironmentWithUserChat(
+    return ToolCollectionEnvironment(
         tools=[
             WebSearch(),
             CodeExecutor(exp_path=exp_path),
