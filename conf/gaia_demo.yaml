@@ -1,38 +1,21 @@
-defaults:
-  - llm: gpt4o
-  - _self_
+llm:
+  _target_: tapeagents.llms.LiteLLM
+  model_name: chatgpt-4o-latest
+  use_cache: false
+  context_size: 128000
+  parameters:
+    temperature: 0.0
 
-exp_name: gpt4o_demo_locator2
+exp_name: gpt4o_demo_computer1
 
 exp_path: outputs/gaia/runs/${exp_name}
-split: validation
-batch: 16
-retry_unsolved: true
-
-only_tasks: [] # list of (level, task_num)
-# - [1, 0]
-# - [1, 1]
-# - [1, 2]
-# - [1, 3]
-# - [1, 4]
-# - [1, 5]
-# - [1, 6]
-# - [1, 7]
 
 agent:
   plain_code: false
 
 env:
-  computer_url: https://localhost:8000
-  simple_browser: false
-  use_locator: true
-  use_web_cache: true
-  headless: false
+  computer_url: http://localhost:8000
   save_video: true
-
-studio:
-  tape:
-    null
 
 hydra:
   run:

@@ -4,11 +4,12 @@ Entrypoint for streamlit, see https://docs.streamlit.io/
 
 import asyncio
 import os
+import traceback
 from datetime import datetime
 from pathlib import Path
 
+import omegaconf
 import streamlit as st
-from hydra import compose, initialize
 from hydra.utils import instantiate
 
 from examples.gaia_agent.agent import GaiaAgent
@@ -19,6 +20,7 @@ from tapeagents.core import Step
 from tapeagents.dialog_tape import UserStep
 from tapeagents.orchestrator import main_loop
 from tapeagents.steps import ReasoningThought
+from tapeagents.tools.computer.remote import GetCursorPositionAction
 
 CONFIG_DIR = Path(".streamlit_config")
 API_KEY_FILE = CONFIG_DIR / "api_key"
@@ -47,20 +49,26 @@ INTERRUPT_TEXT = "(user stopped or interrupted and wrote the following)"
 INTERRUPT_TOOL_ERROR = "human stopped or interrupted tool execution"
 
 
-def setup_state():
+def setup_state(cfg):
     if "api_key" not in st.session_state:
         # Try to load API key from file first, then environment
         st.session_state.api_key = load_from_storage("api_key") or os.getenv("OPENAI_API_KEY", "")
-    if "only_n_most_recent_images" not in st.session_state:
-        st.session_state.only_n_most_recent_images = 3
     if "tape" not in st.session_state:
         st.session_state.tape = None
+    if "env" not in st.session_state:
+        os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+        st.session_state.env = get_computer_env(cfg.exp_path, **cfg.env)
+    if "agent" not in st.session_state:
+        env = st.session_state.env
+        st.session_state.agent = GaiaAgent.create(instantiate(cfg.llm), actions=env.actions(), **cfg.agent)
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Hi, TapeAgents Operator here! How can I help you today?"}
+        ]
 
 
-async def main():
-    with initialize(version_base=None, config_path="../../../conf", job_name="computer_demo"):
-        cfg = compose(config_name="gaia_demo")
-    setup_state()
+async def main(cfg):
+    setup_state(cfg)
 
     st.markdown(STREAMLIT_STYLE, unsafe_allow_html=True)
 
@@ -75,32 +83,30 @@ async def main():
             st.session_state.tape = None
             st.rerun()
 
-    # Initialize environment and agent
-    playwright_dir = ".pw-browsers"
-    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = playwright_dir
-    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
-
-    llm = instantiate(cfg.llm)
-    env = get_computer_env(cfg.exp_path, **cfg.env)
-    agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
-
-    with st.chat_message("assistant"):
-        st.write("Hi, TapeAgents Operator here! How can I help you today?")
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
     if prompt := st.chat_input():
         with st.chat_message("user"):
             st.write(prompt)
-
+        st.session_state.messages.append({"role": "user", "content": prompt})
         today_date_str = datetime.now().strftime("%Y-%m-%d")
 
         if st.session_state.tape is None:
-            st.session_state.tape = GaiaTape(steps=[GaiaQuestion(content=f"Today is {today_date_str}.\n{prompt}")])
+            initial_obs = st.session_state.env.action_map[GetCursorPositionAction].execute_action(
+                GetCursorPositionAction()
+            )
+            st.session_state.tape = GaiaTape(
+                steps=[initial_obs, GaiaQuestion(content=f"Today is {today_date_str}.\n{prompt}")]
+            )
         else:
             st.session_state.tape.steps[-1] = ReasoningThought(reasoning=st.session_state.tape.steps[-1].long_answer)
             st.session_state.tape = st.session_state.tape.append(UserStep(content=prompt))
 
         try:
-            for event in main_loop(agent, st.session_state.tape, env, max_loops=50):
+            last_status = st.status("Thinking...")
+            for event in main_loop(st.session_state.agent, st.session_state.tape, st.session_state.env, max_loops=50):
                 msg = None
                 if partial_tape := (event.agent_tape or event.env_tape):
                     st.session_state.tape = partial_tape
@@ -112,21 +118,31 @@ async def main():
                 elif event.observation:
                     step = event.observation
                     msg, msg_type = render_step(step)
+                elif event.agent_event and event.agent_event.final_tape:
+                    st.session_state.tape = event.agent_event.final_tape
                 if msg:
+                    if last_status is not None:
+                        last_status.update(state="complete")
+                    last_status = None
                     if msg_type == "progress":
-                        st.spinner(msg)
+                        last_status = st.status(msg)
                     elif msg_type == "code":
                         with st.chat_message("assistant", avatar="💻"):
                             st.code(msg, language="python")
                     elif msg_type == "html":
                         with st.chat_message("assistant"):
                             st.html(msg)
+                    elif msg_type == "markdown":
+                        with st.chat_message("assistant"):
+                            st.markdown(msg)
                     else:  # default case for "write"
                         with st.chat_message("assistant"):
                             st.write(msg)
+                    st.session_state.messages.append({"role": "assistant", "content": msg})
 
         except Exception as e:
-            error_msg = f"Failed to solve task: {e}"
+            error_msg = f"Failed to solve task: {e}\nStack trace:\n{traceback.format_exc()}"
+            print(error_msg)
             st.session_state.tape.metadata.error = str(e)
             with st.chat_message("assistant"):
                 st.write(error_msg)
@@ -155,6 +171,10 @@ def render_step(step: Step) -> str:
         """
     elif step.kind == "page_observation":
         msg = "Reading web page..."
+        msg_type = "progress"
+    elif step.kind == "image":
+        msg = "Looking at the page..."
+        msg_type = "progress"
     elif step.kind == "facts_survey_thought":
         sections = []
         if step.given_facts:
@@ -197,6 +217,7 @@ def render_step(step: Step) -> str:
         """
     elif step.kind == "reasoning_thought":
         msg = step.reasoning
+        msg_type = "markdown"
     elif step.kind == "reading_result_thought":
         msg = f'{step.fact_description}\nSupporting quote: "{step.quote_with_fact}"'
     elif step.kind == "gaia_answer_action":
@@ -210,8 +231,6 @@ def render_step(step: Step) -> str:
                     <div style="color: #202124; line-height: 1.5;">
                         {step.long_answer}
                     </div>
-                    {f'<div style="margin-top: 8px; color: #666; font-size: 0.9em;">Raw answer: {step.answer}</div>' if str(step.answer) != step.long_answer else ''}
-                    {f'<div style="margin-top: 4px; color: #666; font-size: 0.9em;">Unit: {step.answer_unit}</div>' if step.answer_unit else ''}
                 </div>
             </div>
             """
@@ -238,20 +257,26 @@ def render_step(step: Step) -> str:
     elif step and step.kind == "page_up_action" or step.kind == "page_down_action":
         msg = "Scrolling..."
         msg_type = "progress"
+    elif step.kind == "mouse_click_action":
+        msg = f"Clicking {step.element_description}..."
+        msg_type = "progress"
+    elif step.kind in ["input_text_action", "type_text_action", "key_press_action"]:
+        msg = "Typing..."
+        msg_type = "progress"
     elif step.kind in [
-        "mouse_click_action",
-        "mouse_hover_action",
-        "open_url_action",
-        "input_text_action",
-        "type_text_action",
-        "click_action",
-        "select_option_action",
         "go_forward_action",
         "go_back_action",
+        "mouse_hover_action",
+        "click_action",
+        "select_option_action",
     ]:
-        msg = "Interacting with the browser..."
+        msg = "Interacting with the computer..."
         msg_type = "progress"
-    elif step and step.kind == "search_results_observation":
+    elif step.kind == "open_url_action":
+        msg = f"Opening {step.url}"
+        msg_type = "progress"
+
+    elif step.kind == "search_results_observation":
         if step.error:
             msg = step.error
         else:
@@ -271,7 +296,7 @@ def render_step(step: Step) -> str:
                     </div>
                 """)
             msg = '<div style="font-family: Arial, sans-serif;">' + "\n".join(results_html) + "</div>"
-    elif step and step.kind == "code_execution_result":
+    elif step.kind == "code_execution_result":
         result = step.result
         status_color = "#28a745" if result.exit_code == 0 else "#dc3545"  # green for success, red for error
         output = result.output.strip() if result.exit_code == 0 else ""
@@ -320,4 +345,5 @@ def save_to_storage(filename: str, data: str) -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    cfg = omegaconf.OmegaConf.load("conf/gaia_demo.yaml")
+    asyncio.run(main(cfg))
