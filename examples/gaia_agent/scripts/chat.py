@@ -14,7 +14,7 @@ from hydra.utils import instantiate
 
 from examples.gaia_agent.agent import GaiaAgent
 from examples.gaia_agent.environment import get_computer_env
-from examples.gaia_agent.steps import GaiaQuestion
+from examples.gaia_agent.steps import GaiaAnswer, GaiaQuestion
 from examples.gaia_agent.tape import GaiaTape
 from tapeagents.core import Step
 from tapeagents.dialog_tape import UserStep
@@ -53,8 +53,12 @@ def setup_state(cfg):
     if "api_key" not in st.session_state:
         # Try to load API key from file first, then environment
         st.session_state.api_key = load_from_storage("api_key") or os.getenv("OPENAI_API_KEY", "")
+    else:
+        os.environ["OPENAI_API_KEY"] = st.session_state.api_key
     if "serper_api_key" not in st.session_state:
         st.session_state.serper_api_key = load_from_storage("serper_api_key") or os.getenv("SERPER_API_KEY", "")
+    else:
+        os.environ["SERPER_API_KEY"] = st.session_state.serper_api_key
     if "tape" not in st.session_state:
         st.session_state.tape = None
     if "env" not in st.session_state:
@@ -63,7 +67,7 @@ def setup_state(cfg):
     if "agent" not in st.session_state:
         env = st.session_state.env
         st.session_state.agent = GaiaAgent.create(instantiate(cfg.llm), actions=env.actions(), **cfg.agent)
-    if "messages" not in st.session_state:
+    if st.session_state.tape is None:
         st.session_state.messages = [
             {"role": "assistant", "content": "Hi, TapeAgents Operator here! How can I help you today?"}
         ]
@@ -121,7 +125,10 @@ async def main(cfg):
                 steps=[initial_obs, GaiaQuestion(content=f"Today is {today_date_str}.\n{prompt}")]
             )
         else:
-            st.session_state.tape.steps[-1] = ReasoningThought(reasoning=st.session_state.tape.steps[-1].long_answer)
+            if isinstance(st.session_state.tape.steps[-1], GaiaAnswer):
+                st.session_state.tape.steps[-1] = ReasoningThought(
+                    reasoning=st.session_state.tape.steps[-1].long_answer
+                )
             st.session_state.tape = st.session_state.tape.append(UserStep(content=prompt))
 
         try:
@@ -360,7 +367,7 @@ def save_to_storage(filename: str, data: str) -> None:
         file_path.write_text(data)
         # Ensure only user can read/write the file
         file_path.chmod(0o600)
-        st.write(f"Saved {filename} to {CONFIG_DIR}")
+        st.warning(f"{filename} saved to {CONFIG_DIR}")
     except Exception as e:
         st.write(f"Debug: Error saving {filename}: {e}")
 
