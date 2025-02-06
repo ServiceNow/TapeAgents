@@ -29,18 +29,12 @@ if ! command -v podman &> /dev/null; then
     brew install podman
     echo "Podman installed"
     podman machine init > /dev/null 2>&1
-    nohup podman machine start > /dev/null 2>&1
-    podman info > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to initialize Podman. Please check the error messages above."
-        exit 1
-    fi
     echo "Podman initialized"
 fi
 if ! podman machine list | grep -q "Currently running"; then
     nohup podman machine start > /dev/null 2>&1
     echo "Podman machine started"
-    podman info
+    podman info > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo "Error: Failed to initialize Podman. Please check the error messages above."
         exit 1
