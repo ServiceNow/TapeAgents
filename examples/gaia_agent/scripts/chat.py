@@ -53,6 +53,8 @@ def setup_state(cfg):
     if "api_key" not in st.session_state:
         # Try to load API key from file first, then environment
         st.session_state.api_key = load_from_storage("api_key") or os.getenv("OPENAI_API_KEY", "")
+    if "serper_api_key" not in st.session_state:
+        st.session_state.serper_api_key = load_from_storage("serper_api_key") or os.getenv("SERPER_API_KEY", "")
     if "tape" not in st.session_state:
         st.session_state.tape = None
     if "env" not in st.session_state:
@@ -65,6 +67,20 @@ def setup_state(cfg):
         st.session_state.messages = [
             {"role": "assistant", "content": "Hi, TapeAgents Operator here! How can I help you today?"}
         ]
+        if not st.session_state.api_key:
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": "Please enter your OpenAI API key in the sidebar to start the conversation.",
+                }
+            )
+        if not st.session_state.serper_api_key:
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": "Please enter your Serper search API key in the sidebar to start the conversation.",
+                }
+            )
 
 
 async def main(cfg):
@@ -78,6 +94,12 @@ async def main(cfg):
             type="password",
             key="api_key",
             on_change=lambda: save_to_storage("api_key", st.session_state.api_key),
+        )
+        st.text_input(
+            "Serper API Key",
+            type="password",
+            key="serper_api_key",
+            on_change=lambda: save_to_storage("serper_api_key", st.session_state.serper_api_key),
         )
         if st.button("Reset Conversation"):
             st.session_state.tape = None
@@ -338,6 +360,7 @@ def save_to_storage(filename: str, data: str) -> None:
         file_path.write_text(data)
         # Ensure only user can read/write the file
         file_path.chmod(0o600)
+        st.write(f"Saved {filename} to {CONFIG_DIR}")
     except Exception as e:
         st.write(f"Debug: Error saving {filename}: {e}")
 
