@@ -55,6 +55,6 @@ def get_computer_env(
             WebSearch(),
             CodeExecutor(exp_path=exp_path),
             VideoReader(exp_path=exp_path),
-            RemoteComputer(**kwargs),
+            RemoteComputer(exp_path=exp_path, **kwargs),
         ]
     )
