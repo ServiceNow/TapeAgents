@@ -1,7 +1,6 @@
 import base64
 import os
 import time
-from io import BytesIO
 
 import requests
 from PIL import Image
@@ -39,10 +38,8 @@ class RemoteComputer(Multitool):
 
     def model_post_init(self, __context):
         self._locator = Locator()
-        self._last_image = None
         self._screenshot_dir = f"{self.exp_path}/attachments/remote_screenshots/"
         os.makedirs(self._screenshot_dir, exist_ok=True)
-        self.remote_execute_action(GetCursorPositionAction())
         return super().model_post_init(__context)
 
     def execute_action(self, action: Action) -> ImageObservation:
@@ -60,6 +57,7 @@ class RemoteComputer(Multitool):
             self.remote_execute_action(CompMouseClickAction(button="left"))
             self.remote_execute_action(TypeTextAction(text=action.url))
             self.remote_execute_action(KeyPressAction(text="Return"))
+            time.sleep(5)  # wait for page to load
             return self.remote_execute_action(GetCursorPositionAction())
         else:
             return self.remote_execute_action(action)
@@ -69,7 +67,6 @@ class RemoteComputer(Multitool):
         try:
             response = requests.post(f"{self.computer_url}/execute", json=payload)
             response.raise_for_status()
-            print("Response received")
             obs_dict = response.json()
             return self.convert_observation(ComputerObservation(**obs_dict))
         except requests.exceptions.RequestException as e:
@@ -84,8 +81,11 @@ class RemoteComputer(Multitool):
         image_name_with_timestamp = f"{self._screenshot_dir}/screen_{int(time.time())}.png"
         with open(image_name_with_timestamp, "wb") as f:
             f.write(image_data)
-        self._last_image = Image.open(BytesIO(image_data))
-        return ImageObservation(image_path=image_name_with_timestamp, error=obs.error, image_caption=obs.text)
+        return ImageObservation(
+            image_path=image_name_with_timestamp,
+            error=obs.error,
+            image_caption=f"Current state of the computer screen. Additional info: {obs.text}",
+        )
 
     def get_screen(self) -> Image:
         obs = self.remote_execute_action(GetCursorPositionAction())

@@ -174,10 +174,11 @@ class ClickAction(Action):
 
 class MouseClickAction(Action):
     """
-    Action that clicks an element on the page.
+    Action that clicks an element on the screen.
     When mentioning a date in the element description, use the format commonly spoken or written by humans,
     such as "2 February 2025," rather than machine-readable formats. The day should come before the month,
     and the year should be written in full (e.g., "3 November 2023" instead of "2023-11-03").
+    Only describe one specific element that is currently visible on the screen!
     """
 
     kind: Literal["mouse_click_action"] = "mouse_click_action"

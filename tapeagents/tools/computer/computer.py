@@ -55,7 +55,7 @@ class Computer(Multitool):
     screenshot_delay: float = Field(default=2.0, description="Delay before screenshot")
     scaling_enabled: bool = Field(default=True, description="Enable resolution scaling")
     tmp_screenshots_dir: str = "/tmp/screenshots/"
-    typing_delay_ms: int = 120
+    typing_delay_ms: int = 180
     typing_group_size: int = 3
     _xdotool: str = ""
     _display_prefix: str = ""
