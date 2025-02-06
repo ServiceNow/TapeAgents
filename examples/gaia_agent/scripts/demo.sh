@@ -29,8 +29,8 @@ if ! command -v podman &> /dev/null; then
     brew install podman
     echo "Podman installed"
     podman machine init > /dev/null 2>&1
-    nohup podman machine start
-    podman info
+    nohup podman machine start > /dev/null 2>&1
+    podman info > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo "Error: Failed to initialize Podman. Please check the error messages above."
         exit 1
@@ -87,8 +87,14 @@ fi
 echo "Starting Code Sandbox..."
 uv run examples/gaia_agent/scripts/run_code_sandbox.py &
 echo "Starting Chat UI..."
+if ! pip show streamlit &> /dev/null; then
+    echo "Streamlit is not installed, installing..."
+    python -m pip install streamlit > /dev/null 2>&1
+fi
+export LOCATOR_URL="https://snow-oleh_shliazhko-snow_oleh_shliazhko_interactive-8000.job.console.elementai.com/v1"
+
 python tapeagents/tools/computer/image/http_server.py > /tmp/demo_stdout.log 2>&1 &
-STREAMLIT_SERVER_PORT=8501 uv run -m streamlit run examples/gaia_agent/scripts/chat.py --server.headless true > /tmp/demo_stdout.log 2>&1 &
+STREAMLIT_SERVER_PORT=8501 python -m streamlit run examples/gaia_agent/scripts/chat.py --server.headless true > /tmp/demo_stdout.log 2>&1 &
 sleep 2
 echo "Tapeagents Operator is ready"
 echo "Open http://localhost:8080 in your browser to begin"
