@@ -12,8 +12,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Multitool
-
-from .steps import (
+from tapeagents.tools.computer.steps import (
     ComputerObservation,
     GetCursorPositionAction,
     KeyPressAction,

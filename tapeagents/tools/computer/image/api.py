@@ -6,15 +6,13 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from tapeagents.core import Action
-
-from .computer import Computer
-from .steps import (
+from tapeagents.tools.computer.computer import Computer
+from tapeagents.tools.computer.steps import (
     GetCursorPositionAction,
     KeyPressAction,
     MouseClickAction,
     MouseDragAction,
     MouseMoveAction,
-    OpenUrlAction,
     TypeTextAction,
 )
 
@@ -27,7 +25,6 @@ ACTION_MAP: dict[str : type[Action]] = {
     "mouse_click_action": MouseClickAction,
     "mouse_drag_action": MouseDragAction,
     "get_cursor_position_action": GetCursorPositionAction,
-    "open_url_action": OpenUrlAction,
 }
 
 

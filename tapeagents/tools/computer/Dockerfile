@@ -95,13 +95,11 @@ ENV PATH="$HOME/.pyenv/shims:$HOME/.pyenv/bin:$PATH"
 RUN python -m pip install --upgrade pip==23.1.2 setuptools==58.0.4 wheel==0.40.0 && \
     python -m pip config set global.disable-pip-version-check true
 
-RUN python -m pip install streamlit
-RUN python -m pip install tapeagents[converters]
+RUN python -m pip install tapeagents
 RUN python -m pip install --force-reinstall --no-deps git+https://github.com/ServiceNow/TapeAgents.git@ui_demo#egg=tapeagents
 
 # setup desktop env & app
 COPY --chown=$USERNAME:$USERNAME image $HOME
-COPY --chown=$USERNAME:$USERNAME ./ $HOME/api
 
 ARG DISPLAY_NUM=1
 ARG HEIGHT=768
