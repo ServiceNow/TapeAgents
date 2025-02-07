@@ -12,9 +12,9 @@ from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
 from tapeagents.orchestrator import main_loop
 
-from .agent import WebAgent
-from .environment import WebEnvironment
-from .steps import WebAction
+from ..agent import WebAgent
+from ..environment import WebEnvironment
+from ..steps import WebAction
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(
     version_base=None,
-    config_path="../../conf",
+    config_path="../../../conf",
     config_name="workarena_openai",
 )
 def main(cfg: DictConfig) -> None:

@@ -190,5 +190,5 @@ def main(dirname: str):
 
 
 if __name__ == "__main__":
-    assert len(sys.argv) == 2, "Usage: python -m examples.rl_webagent.tape_browser <dirname>"
+    assert len(sys.argv) == 2, "Usage: python -m examples.rl_webagent.scripts.tape_browser <dirname>"
     main(sys.argv[1])

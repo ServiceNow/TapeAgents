@@ -230,7 +230,7 @@ class Browser(Multitool):
         while not isinstance(self._env, BrowserEnv):
             self._env = self._env.env
         self._env.reset()
-        self._env.context.tracing.start(screenshots=True, snapshots=True)
+        self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
 
     def execute_action(self, action: Action) -> PageObservation:
         action_type = type(action)
@@ -249,22 +249,22 @@ class Browser(Multitool):
             **kwargs,
         )  # type: ignore
         start_obs, info = self._env.reset(seed=seed)
-        self._env.context.tracing.start(screenshots=True, snapshots=True)
-        self._env.chat.add_message(role="assistant", msg="Running TapeAgent...")
-        assert self._env.task is not None
+        self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
+        self._env.unwrapped.chat.add_message(role="assistant", msg="Running TapeAgent...")
+        assert self._env.unwrapped.task is not None
         info = {
-            "name": self._env.task.get_task_id(),
+            "name": self._env.unwrapped.task.get_task_id(),
             "goal": start_obs["goal"],
             "task_info": info["task_info"],
-            "video": os.path.basename(self._env.page.video.path()) if self._env.page.video else "",
-            "chat_video": os.path.basename(self._env.chat.page.video.path()) if self._env.chat.page.video else "",
+            "video": "", # os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
+            "chat_video": "", # os.path.basename(self._env.unwrapped.chat.page.video.path()) if self._env.unwrapped.chat.page.video else "",
         }
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
     def close(self):
         assert self._traces_dir is not None
-        self._env.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
+        self._env.unwrapped.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
         self._env.close()
 
     def _screenshot_to_img_file(self, image) -> str:

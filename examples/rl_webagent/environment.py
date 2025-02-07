@@ -49,10 +49,10 @@ class WebEnvironment(Environment):
 
     def validate_task(self, tape: WebTape) -> tuple[bool, dict]:
         answer = tape.steps[-1].text if isinstance(tape.steps[-1], FinalAnswerAction) else "Task finished"
-        self.browser._env.chat.add_message(role="assistant", msg=answer)
-        assert self.browser._env.task is not None
-        reward, stop, message, info = self.browser._env.task.validate(
-            self.browser._env.page, self.browser._env.chat.messages
+        self.browser._env.unwrapped.chat.add_message(role="assistant", msg=answer)
+        assert self.browser._env.unwrapped.task is not None
+        reward, stop, message, info = self.browser._env.unwrapped.task.validate(
+            self.browser._env.unwrapped.page, self.browser._env.unwrapped.chat.messages
         )
         result_dict = {
             "reward": reward,
@@ -67,11 +67,11 @@ class WebEnvironment(Environment):
         for step in tape.steps[-tape.metadata.n_added_steps :]:
             if isinstance(step, Action):
                 actions.append(step)
-            elif isinstance(step, ReflectionThought):
-                # send reflection to chat for user to see
-                self.browser._env.chat.add_message(
-                    role="assistant", msg=f"{step.last_action_achieved_effect}\nTodo: {step.next_action}"
-                )
+            # elif isinstance(step, ReflectionThought):
+            #     # send reflection to chat for user to see
+            #     self.browser._env.unwrapped.chat.add_message(
+            #         role="assistant", msg=f"{step.last_action_achieved_effect}\nTodo: {step.next_action}"
+            #     )
         for action in actions:
             try:
                 action_type = type(action)

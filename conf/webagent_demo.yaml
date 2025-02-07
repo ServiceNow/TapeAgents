@@ -1,0 +1,22 @@
+defaults:
+  - llm: gpt4o_mini
+  - _self_
+
+exp_name: webdemo1
+exp_path: outputs/webagent/runs/${exp_name}
+agent: baseline
+env:
+  exp_path: ${exp_path}
+  headless: True
+seeds: [42]
+
+environment_variables:
+  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
+  snow_instance_url: ???
+  snow_instance_uname: ???
+  snow_instance_pwd: ???
+
+hydra:
+  run:
+    dir: ${exp_path}

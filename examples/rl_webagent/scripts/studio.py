@@ -14,8 +14,8 @@ from omegaconf import DictConfig
 from tapeagents.llms import LLM
 from tapeagents.studio import Studio
 
-from .agent import WebAgent
-from .environment import WebEnvironment
+from ..agent import WebAgent
+from ..environment import WebEnvironment
 from .tape_browser import WebRender
 
 nest_asyncio.apply()
@@ -31,11 +31,16 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(
     version_base=None,
-    config_path="../../conf",
-    config_name="workarena_demo",
+    config_path="../../../conf",
+    config_name="webagent_demo",
 )
 def main(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+    os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
+    # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url
+    # os.environ["SNOW_INSTANCE_UNAME"] = cfg.environment_variables.snow_instance_uname
+    # os.environ["SNOW_INSTANCE_PWD"] = cfg.environment_variables.snow_instance_pwd
+
     llm: LLM = hydra.utils.instantiate(cfg.llm)
     env = WebEnvironment(**cfg.env)
     agent = WebAgent.create(llm)
