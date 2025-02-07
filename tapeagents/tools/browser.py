@@ -157,9 +157,21 @@ class ClickAction(Action):
     )
 
 
+class MouseClickAction(Action):
+    """
+    Action that moves the mouse to a location and click a mouse button.
+    """
+
+    kind: Literal["mouse_click_action"] = "mouse_click_action"
+    x: float = Field(description="x coordinate of the click")
+    y: float = Field(description="y coordinate of the click")
+    button: Literal["left", "middle", "right"] = Field(description="button to click", default="left")
+
+
 class Browser(Multitool):
     actions: tuple[type[Action], ...] = (
         ClickAction,
+        MouseClickAction,
         GotoPageAction,
         GoBackAction,
         GoForwardAction,
@@ -172,6 +184,8 @@ class Browser(Multitool):
     observations: tuple[type[Observation], ...] = (PageObservation,)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
     axtree: bool = True
+    html: bool = False
+    markdown_html: bool = False
     viewport_size: int = 64000
     timeout_ms: int = 30000
     headless: bool = True
@@ -197,6 +211,7 @@ class Browser(Multitool):
         self._n_viewports = 1
         self._action_map = {
             ClickAction: self.click,
+            MouseClickAction: self.mouse_click,
             SelectOptionAction: self.select_option,
             CloseTabAction: self.close_tab,
             InputTextAction: self.input_text,
@@ -256,8 +271,8 @@ class Browser(Multitool):
             "name": self._env.unwrapped.task.get_task_id(),
             "goal": start_obs["goal"],
             "task_info": info["task_info"],
-            "video": "", # os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
-            "chat_video": "", # os.path.basename(self._env.unwrapped.chat.page.video.path()) if self._env.unwrapped.chat.page.video else "",
+            "video": "",  # os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
+            "chat_video": "",  # os.path.basename(self._env.unwrapped.chat.page.video.path()) if self._env.unwrapped.chat.page.video else "",
         }
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
@@ -282,13 +297,25 @@ class Browser(Multitool):
     def run_browser_action(self, action_text: str) -> PageObservation:
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
         error = self.format_error(obs_dict["last_action_error"])
-        if error:
-            content = ""
-        elif self.axtree:
-            content = flatten_axtree(obs_dict["axtree_object"])
-        else:
-            html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
-            content = self.html_to_markdown(html_content)
+        content = ""
+        if not error:
+            if self.axtree:
+                content += "====================\n"
+                content += "Accessibility Tree:\n"
+                content += "====================\n"
+                content += flatten_axtree(obs_dict["axtree_object"])
+            if self.html:
+                content += "====================\n"
+                content += "HTML:\n"
+                content += "====================\n"
+                html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
+                content += html_content
+            if self.markdown_html:
+                content += "====================\n"
+                content += "Markdown:\n"
+                content += "====================\n"
+                html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
+                content += self.html_to_markdown(html_content)
 
         screen_path = self._screenshot_to_img_file(obs_dict["screenshot"])
         observation = PageObservation(
@@ -352,6 +379,11 @@ class Browser(Multitool):
 
     def click(self, action: ClickAction) -> PageObservation:
         self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
+        sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
+        return self.run_browser_action("noop()")
+
+    def mouse_click(self, action: MouseClickAction) -> PageObservation:
+        self.run_browser_action(f"mouse_click({action.x}, {action.y}, button='{action.button}')")
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 
