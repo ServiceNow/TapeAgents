@@ -3,20 +3,22 @@ import logging
 import os
 
 import hydra
+from browsergym.miniwob import ALL_MINIWOB_TASKS
 from hydra.utils import instantiate
 from omegaconf import DictConfig
+from termcolor import colored
 
 from tapeagents.io import save_json_tape
-from tapeagents.llms import TrainableLLM
+from tapeagents.llms import LLM
 from tapeagents.observe import retrieve_llm_calls
 from tapeagents.orchestrator import main_loop
-from tapeagents.tools.container_executor import ContainerExecutor
 
 from ..agent import WebAgent
-from ..steps import WebTape
-from ..environment import get_env
-from ..eval import load_dataset, task_to_observations
-from ..tape import GaiaMetadata, GaiaTape
+from ..environment import WebEnvironment
+from ..steps import WebAction, WebTaskMetadata
+
+# from ..eval import task_to_observations
+# from ..tape import GaiaMetadata, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,45 +27,62 @@ logger = logging.getLogger(__name__)
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="gaia_openai",
+    config_name="webagent_demo",
 )
 def main(cfg: DictConfig) -> None:
-    dset = load_dataset("validation")
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+    os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
+    # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url
+    # os.environ["SNOW_INSTANCE_UNAME"] = cfg.environment_variables.snow_instance_uname
+    # os.environ["SNOW_INSTANCE_PWD"] = cfg.environment_variables.snow_instance_pwd
+
     tapes_dir = f"{cfg.exp_path}/tapes"
     os.makedirs(tapes_dir, exist_ok=True)
-    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
-    level, task = cfg.only_tasks[0]
-    tape_name = f"debug_{level}_{task}"
-    tasks = dset[level]
-    task = tasks[task]
-    llm: TrainableLLM = instantiate(cfg.llm)
-    try:
-        code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
-    except Exception as e:
-        logger.error(f"Failed to create code sandbox: {e}")
-        code_sandbox = None
-    env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
-    agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
-    tape = GaiaTape(steps=task_to_observations(task))
-    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
+
+    task = ALL_MINIWOB_TASKS[0]
+    seed = cfg.seeds[0]
+    llm: LLM = instantiate(cfg.llm)
+    env = WebEnvironment(**cfg.env)
+    agent = WebAgent.create(llm)
+    tape, metadata = env.start_task(task, seed)
+    metadata["seed"] = seed
+    tape.metadata = WebTaskMetadata.model_validate(tape.metadata.model_dump() | metadata)
+
+    tape_name = f"debug_{task.get_task_id()}_seed{seed}"
+
+    logger.info(colored(f"Start task {task.get_task_id()} seed {seed}: {metadata['goal']}", "cyan"))
     step_count = 0
+    last_action = None
+    repeated_action_cnt = 0
     for event in main_loop(agent, tape, env, max_loops=50):
         if event.agent_event and event.agent_event.step:
             step = event.agent_event.step
             step_count += 1
+            # avoid repeating the same action more than 4 times
+            if isinstance(step, WebAction):
+                step_view = step.llm_view()
+                if step_view == last_action:
+                    repeated_action_cnt += 1
+                    if repeated_action_cnt > 4:
+                        logger.error("Repeated action detected more than 4 time, stop the task")
+                        break
+                else:
+                    repeated_action_cnt = 0
+                last_action = step_view
+            # print step and prompt messages
             llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
             logger.info(f"{step_count} RUN {step.metadata.agent}:{step.metadata.node}")
             if llm_calls:
                 for i, m in enumerate(llm_calls[0].prompt.messages):
-                    logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
+                    logger.info(colored(f"PROMPT M{i + 1}: {json.dumps(m, indent=2)}", "red"))
             logger.info(f"{step_count} STEP of {step.metadata.agent}:{step.metadata.node}")
-            logger.info(step.llm_view())
+            logger.info(colored(step.llm_view(), "cyan"))
             input("Press Enter to continue...")
             print("-" * 140)
         elif event.observation:
             step = event.observation
             step_count += 1
-            logger.info(f"OBSERVATION: {step.kind}")
+            logger.info(colored(f"OBSERVATION: {step.kind}", "green"))
             input("Press Enter to continue...")
             print("-" * 140)
         elif new_tape := (event.agent_tape or event.env_tape):

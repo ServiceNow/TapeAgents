@@ -3,11 +3,9 @@ import os
 
 import hydra
 from browsergym.workarena import ALL_WORKARENA_TASKS
-from browsergym.miniwob import ALL_MINIWOB_TASKS
 from omegaconf import DictConfig
 from termcolor import colored
 
-from tapeagents.agent import Agent
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
 from tapeagents.orchestrator import main_loop

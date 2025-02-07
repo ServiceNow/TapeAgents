@@ -1,20 +1,17 @@
-import platform
-from typing import Any
-
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.core import Prompt, Step
+from tapeagents.core import Step
 from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
-from tapeagents.tools.browser import PageObservation
-from tapeagents.utils import get_step_schemas_from_union_type
+from tapeagents.tools.simple_browser import PageObservation
 
 from .prompts import PromptRegistry
 from .steps import (
     WebAgentStep,
     WebTape,
 )
+
 
 class WebNode(MonoNode):
     system_prompt: str = PromptRegistry.system_prompt
@@ -48,9 +45,28 @@ class WebAgent(Agent):
         return super().create(
             llm,
             nodes=[
-                WebNode(name="set_goal", guidance=PromptRegistry.start),
-                WebNode(name="reflect", guidance=PromptRegistry.reflect),
-                WebNode(name="act", guidance=PromptRegistry.act, next_node="reflect"),
+                MonoNode(
+                    name="set_goal",
+                    guidance=PromptRegistry.start,
+                    system_prompt=PromptRegistry.system_prompt,
+                    steps_prompt=PromptRegistry.allowed_steps,
+                    agent_steps=WebAgentStep,
+                ),
+                MonoNode(
+                    name="reflect",
+                    guidance=PromptRegistry.reflect,
+                    system_prompt=PromptRegistry.system_prompt,
+                    steps_prompt=PromptRegistry.allowed_steps,
+                    agent_steps=WebAgentStep,
+                ),
+                MonoNode(
+                    name="act",
+                    guidance=PromptRegistry.act,
+                    system_prompt=PromptRegistry.system_prompt,
+                    steps_prompt=PromptRegistry.allowed_steps,
+                    agent_steps=WebAgentStep,
+                    next_node="reflect",
+                ),
             ],
             max_iterations=max_iterations,
         )

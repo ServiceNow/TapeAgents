@@ -1,8 +1,17 @@
-from typing import Literal, Union
+from typing import Any, Literal, Union
 
 from pydantic import Field
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Tape, Thought
+from tapeagents.core import (
+    Action,
+    LLMOutputParsingFailureAction,
+    Observation,
+    SetNextNode,
+    StopStep,
+    Tape,
+    TapeMetadata,
+    Thought,
+)
 from tapeagents.dialog_tape import DialogContext
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import (
@@ -11,6 +20,7 @@ from tapeagents.tools.browser import (
     GoForwardAction,
     HoverAction,
     InputTextAction,
+    MouseClickAction,
     PageObservation,
     PressAction,
     ScrollAction,
@@ -107,6 +117,7 @@ WebStep = Union[
     ReflectionThought,
     # browser actions
     ClickAction,
+    MouseClickAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,
@@ -123,7 +134,23 @@ WebStep = Union[
 ]
 
 
+class WebTaskMetadata(TapeMetadata):
+    ### things returned by browser.start_task()
+    name: str = Field(default_factory=str)
+    goal: str = Field(default_factory=str)
+    task_info: Any = None
+    video: Any = None
+    chat_video: Any = None
+    ###
+    seed: int = Field(default_factory=int)
+    result: Any = None
+    terminated: bool = False
+    attempt_number: int = 0
+    other: dict = Field(default_factory=dict)
+
+
 class WebTape(Tape[DialogContext, WebStep]):
+    metadata: WebTaskMetadata = Field(default_factory=WebTaskMetadata)
     context: DialogContext = DialogContext(tools=[])
 
 
@@ -133,6 +160,7 @@ WebAgentStep = (
     ReflectionThought,
     # browser actions
     ClickAction,
+    MouseClickAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,

@@ -10,6 +10,8 @@ from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
+from ..steps import WebTape
+
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ class WebTapeBrowser(TapeBrowser):
         failure_count = 0
         for tape in tapes:
             if "result" not in tape["metadata"]:
-                return "<h2>{filename}</h2"
+                return f"<h2>{filename}</h2>"
             result = tape["metadata"]["result"]
             if isinstance(result, bool):
                 acc.append(int(result))
@@ -185,7 +187,8 @@ class WebRender(CameraReadyRenderer):
 
 def main(dirname: str):
     renderer = WebRender(dirname)
-    browser = WebTapeBrowser(dirname, renderer)
+    # browser = WebTapeBrowser(dirname, renderer)
+    browser = TapeBrowser(WebTape, dirname, renderer, ".json")
     browser.launch(static_dir=dirname, port=7861)
 
 

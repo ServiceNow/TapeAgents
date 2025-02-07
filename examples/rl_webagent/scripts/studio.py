@@ -5,7 +5,6 @@ import gradio as gr
 import hydra
 import nest_asyncio
 import uvicorn
-from browsergym.workarena import ALL_WORKARENA_TASKS
 from browsergym.miniwob import ALL_MINIWOB_TASKS
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles

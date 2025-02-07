@@ -12,7 +12,7 @@ Do not reproduce schema when producing the steps, use it as a reference.
 
 hints = """
 HINTS:
-- You can use the BIDs of the elements to interact with them.
+- You can use the BIDs of the elements or the mouse position in x, y coordinates to interact with them.
 - To select value in the dropdown or combobox, ALWAYS use select_action.
 - To click on the checkbox or radio button, ALWAYS use BID of corresponding LabelText and not the BID of the element itself.
 - Press enter key to submit the search query.

@@ -1,14 +1,13 @@
 import logging
 from typing import Any
 
-from browsergym.workarena.tasks.base import AbstractServiceNowTask
-from browsergym.miniwob.base import AbstractMiniwobTask
 from browsergym.core.task import AbstractBrowserTask
 
 from tapeagents.core import LLMOutputParsingFailureAction
 from tapeagents.environment import Environment
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
+from tapeagents.tools.simple_browser import PageObservation
 from tapeagents.utils import FatalError
 
 from .steps import (
@@ -30,11 +29,12 @@ class WebEnvironment(Environment):
 
     def __init__(self, exp_path: str, headless: bool = True) -> None:
         super().__init__()
-        self.browser = Browser(headless=headless, log_path=exp_path, axtree=True)
+        self.browser = Browser(headless=headless, exp_path=exp_path, axtree=False, html=True)
+        # the creation of the browser will create a new openened task.
+        # let's close it and wait until start_task is called.
+        self.browser.close()
 
-    def start_task(
-        self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42
-    ) -> tuple[WebTape, dict[str, Any]]:
+    def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         obs = self.browser.run_browser_action("noop()")
@@ -67,17 +67,18 @@ class WebEnvironment(Environment):
         for step in tape.steps[-tape.metadata.n_added_steps :]:
             if isinstance(step, Action):
                 actions.append(step)
-            # elif isinstance(step, ReflectionThought):
-            #     # send reflection to chat for user to see
-            #     self.browser._env.unwrapped.chat.add_message(
-            #         role="assistant", msg=f"{step.last_action_achieved_effect}\nTodo: {step.next_action}"
-            #     )
+            elif isinstance(step, ReflectionThought):
+                # send reflection to chat for user to see
+                self.browser._env.unwrapped.chat.add_message(
+                    role="assistant", msg=f"{step.last_action_achieved_effect}\nTodo: {step.next_action}"
+                )
         for action in actions:
             try:
                 action_type = type(action)
                 if action_type == LLMOutputParsingFailureAction:
                     continue
                 observation = self.browser.run(action)
+                assert isinstance(observation, PageObservation)
                 tape = tape.append(observation)  # type: ignore
             except FatalError:
                 raise
