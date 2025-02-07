@@ -10,7 +10,7 @@ from tapeagents.core import Action
 from tapeagents.steps import ImageObservation
 from tapeagents.tools.base import Multitool
 from tapeagents.tools.browser import MouseClickAction, MouseHoverAction, OpenUrlAction, PageDownAction, PageUpAction
-from tapeagents.tools.locator import Locator
+from tapeagents.tools.grounding import GroundingModel
 
 from .steps import (
     ComputerObservation,
@@ -37,7 +37,7 @@ class RemoteComputer(Multitool):
     computer_url: str = Field(description="Remote tool API URL")
 
     def model_post_init(self, __context):
-        self._locator = Locator()
+        self._grounding = GroundingModel()
         self._screenshot_dir = f"{self.exp_path}/attachments/remote_screenshots/"
         os.makedirs(self._screenshot_dir, exist_ok=True)
         return super().model_post_init(__context)
@@ -92,5 +92,5 @@ class RemoteComputer(Multitool):
         return Image.open(obs.image_path)
 
     def mouse_move(self, element_description: str, button: str = "left") -> ImageObservation:
-        x, y = self._locator.get_coords(self.get_screen(), f"click {element_description}")
+        x, y = self._grounding.get_coords(self.get_screen(), f"click {element_description}")
         return self.remote_execute_action(MouseMoveAction(x=int(x), y=int(y)))

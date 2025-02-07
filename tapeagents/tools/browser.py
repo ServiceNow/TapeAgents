@@ -25,7 +25,7 @@ from tapeagents.core import Action, Observation, StepMetadata
 from tapeagents.steps import ImageObservation
 from tapeagents.tools.base import Multitool
 from tapeagents.tools.document_reader import read_document
-from tapeagents.tools.locator import Locator
+from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
 
 NODES_WITH_BID = [
@@ -205,7 +205,7 @@ class Browser(Multitool):
     observations: tuple[type[Observation], ...] = (PageObservation, PageScreenshotObservation)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
     axtree: bool = True
-    use_locator: bool = False
+    use_grounding: bool = False
     navigation_only: bool = False
     viewport_chars: int = 32000
     viewport_height: int = 720
@@ -227,7 +227,7 @@ class Browser(Multitool):
     _record_video_dir: str | None = None
     _screenshots_dir: str | None = None
     _task_id: str = ""
-    _locator: Locator | None = None
+    _grounding: GroundingModel | None = None
     _last_image: Image.Image | None = None
     _non_browser_doc: bool = False
 
@@ -235,17 +235,17 @@ class Browser(Multitool):
         self._current_page = ""
         self._current_viewport = 1
         self._n_viewports = 1
-        if self.use_locator:
-            self._locator = Locator()
-            logger.info("Using locator")
+        if self.use_grounding:
+            self._grounding = GroundingModel()
+            logger.info("Using grounding model")
             self._action_map = {
-                MouseClickAction: self.click_locator,
+                MouseClickAction: self.click_grounded,
                 CloseTabAction: self.close_tab,
-                TypeTextAction: self.input_text_locator,
+                TypeTextAction: self.input_text_grounded,
                 GoBackAction: self.go_back,
                 GoForwardAction: self.go_forward,
                 OpenUrlAction: self.goto_page,
-                MouseHoverAction: self.hover_locator,
+                MouseHoverAction: self.hover_grounded,
                 NewTabAction: self.new_tab,
                 PageDownAction: self.next_page,
                 PageUpAction: self.previous_page,
@@ -355,7 +355,7 @@ class Browser(Multitool):
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
         error = self.format_error(obs_dict["last_action_error"])
         screen_path = self._save_last_screenshot(obs_dict["screenshot"])
-        if self.use_locator:
+        if self.use_grounding:
             observation = PageScreenshotObservation(image_path=screen_path)
         else:
             if error:
@@ -425,8 +425,8 @@ class Browser(Multitool):
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 
-    def click_locator(self, action: MouseClickAction) -> PageObservation:
-        x, y = self._locator.get_coords(self._last_image, f"click at {action.element_description}")
+    def click_grounded(self, action: MouseClickAction) -> PageObservation:
+        x, y = self._grounding.get_coords(self._last_image, f"click at {action.element_description}")
         logger.info(f"Click at {action.element_description}: {x}, {y}")
         return self.run_browser_action(f"mouse_click({x}, {y})")
 
@@ -436,8 +436,8 @@ class Browser(Multitool):
     def hover(self, action: HoverAction) -> PageObservation:
         return self.run_browser_action(f"hover('{action.bid}')")
 
-    def hover_locator(self, action: MouseHoverAction) -> PageObservation:
-        x, y = self._locator.get_coords(self._last_image, f"click at {action.element_description}")
+    def hover_grounded(self, action: MouseHoverAction) -> PageObservation:
+        x, y = self._grounding.get_coords(self._last_image, f"click at {action.element_description}")
         logger.info(f"Move cursor at {action.element_description}: {x}, {y}")
         return self.run_browser_action(f"mouse_move({x}, {y})")
 
@@ -445,7 +445,7 @@ class Browser(Multitool):
         text = action.text.replace("'", "\\'")
         return self.run_browser_action(f"fill('{action.bid}', '{text}')")
 
-    def input_text_locator(self, action: TypeTextAction) -> PageObservation:
+    def input_text_grounded(self, action: TypeTextAction) -> PageObservation:
         text = action.text.replace("'", "\\'")
         return self.run_browser_action(f"keyboard_type('{text}')")
 

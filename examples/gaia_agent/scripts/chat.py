@@ -59,6 +59,18 @@ def setup_state(cfg):
         st.session_state.serper_api_key = load_from_storage("serper_api_key") or os.getenv("SERPER_API_KEY", "")
     else:
         os.environ["SERPER_API_KEY"] = st.session_state.serper_api_key
+    if "grounding_api_url" not in st.session_state:
+        st.session_state.grounding_api_url = load_from_storage("grounding_api_url") or os.getenv(
+            "GROUNDING_API_URL", "http://localhost:8010"
+        )
+    else:
+        os.environ["GROUNDING_API_URL"] = st.session_state.grounding_api_url
+    if "grounding_api_key" not in st.session_state:
+        st.session_state.grounding_api_key = load_from_storage("grounding_api_key") or os.getenv(
+            "GROUNDING_API_KEY", ""
+        )
+    else:
+        os.environ["GROUNDING_API_KEY"] = st.session_state.grounding_api_key
     if "tape" not in st.session_state:
         st.session_state.tape = None
     if "env" not in st.session_state:
@@ -104,6 +116,17 @@ async def main(cfg):
             type="password",
             key="serper_api_key",
             on_change=lambda: save_to_storage("serper_api_key", st.session_state.serper_api_key),
+        )
+        st.text_input(
+            "Grounding API URL",
+            key="grounding_api_url",
+            on_change=lambda: save_to_storage("grounding_api_url", st.session_state.grounding_api_url),
+        )
+        st.text_input(
+            "Grounding API Key",
+            type="password",
+            key="grounding_api_key",
+            on_change=lambda: save_to_storage("grounding_api_key", st.session_state.grounding_api_key),
         )
         if st.button("Reset Conversation"):
             st.session_state.tape = None

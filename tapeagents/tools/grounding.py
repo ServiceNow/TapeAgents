@@ -5,16 +5,20 @@ from io import BytesIO
 from openai import OpenAI
 
 
-class Locator:
+class GroundingModel:
     def __init__(self):
         try:
+            url = os.environ["GROUNDING_API_URL"]
+        except KeyError:
+            raise RuntimeError("GROUNDING_API_URL environment variable is not set")
+        try:
             api_key = os.popen("eai login token").read().strip()
-            if not api_key:
-                raise ValueError("Failed to get API key from 'eai login token'")
-        except Exception as e:
-            raise RuntimeError("Failed to obtain API key") from e
+        except Exception:
+            api_key = os.environ.get("GROUNDING_API_KEY")
+        if not api_key:
+            raise RuntimeError("Failed to get API key from 'eai login token' or GROUNDING_API_KEY environment variable")
         self.vl_client = OpenAI(
-            base_url=os.environ["LOCATOR_URL"],
+            base_url=f"{url}/v1",
             api_key=api_key,
         )
         self.model = "osunlp/UGround-V1-7B"
