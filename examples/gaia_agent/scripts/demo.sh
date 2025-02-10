@@ -69,7 +69,7 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
         fi
     done
     echo "."
-    echo -n "Wait for API to be ready..."
+    echo -n "Waiting for API init"
     while ! grep -q "Uvicorn running on http://0.0.0.0:8000" /tmp/computer.log; do
         sleep 1
         echo -n "."
@@ -81,14 +81,10 @@ fi
 echo "Starting Code Sandbox..."
 uv run examples/gaia_agent/scripts/run_code_sandbox.py &
 echo "Starting Chat UI..."
-if ! pip show streamlit &> /dev/null; then
-    echo "Streamlit is not installed, installing..."
-    python -m pip install streamlit > /dev/null 2>&1
-fi
 export GROUNDING_API_URL="https://snow-llmd-grounding-8000.job.console.elementai.com"
 
-python tapeagents/tools/computer/image/http_server.py > /tmp/demo_stdout.log 2>&1 &
-STREAMLIT_SERVER_PORT=8501 python -m streamlit run examples/gaia_agent/scripts/chat.py --server.headless true > /tmp/demo_stdout.log 2>&1 &
+uv run tapeagents/tools/computer/image/http_server.py > /tmp/demo_stdout.log 2>&1 &
+STREAMLIT_SERVER_PORT=8501 uv run -m streamlit run examples/gaia_agent/scripts/chat.py --server.headless true > /tmp/demo_stdout.log 2>&1 &
 sleep 2
 echo "Tapeagents Operator is ready"
 echo "Open http://localhost:8080 in your browser to begin"

@@ -43,13 +43,7 @@ def get_env(
     )
 
 
-def get_computer_env(
-    exp_path: str,
-    simple_browser: bool = False,
-    **kwargs,
-) -> ToolCollectionEnvironment:
-    if simple_browser:
-        logger.info("Using simple browser")
+def get_computer_env(exp_path: str, **kwargs) -> ToolCollectionEnvironment:
     return ToolCollectionEnvironment(
         tools=[
             WebSearch(),

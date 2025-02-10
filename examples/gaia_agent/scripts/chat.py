@@ -143,7 +143,9 @@ async def main(cfg):
         today_date_str = datetime.now().strftime("%Y-%m-%d")
 
         if st.session_state.tape is None:
-            initial_obs = st.session_state.env.action_map[OpenUrlAction].execute_action(GetCursorPositionAction())
+            initial_obs = st.session_state.env.action_map[GetCursorPositionAction].execute_action(
+                GetCursorPositionAction()
+            )
             st.session_state.tape = GaiaTape(
                 steps=[initial_obs, GaiaQuestion(content=f"Today is {today_date_str}.\n{prompt}")]
             )
@@ -310,13 +312,15 @@ def render_step(step: Step) -> str:
     elif step.kind == "mouse_click_action":
         msg = f"Clicking {step.element_description}..."
         msg_type = "progress"
+    elif step.kind == "mouse_hover_action":
+        msg = f"Hovering over {step.element_description}..."
+        msg_type = "progress"
     elif step.kind in ["input_text_action", "type_text_action", "key_press_action"]:
         msg = f"Typing '{step.text}'..."
         msg_type = "progress"
     elif step.kind in [
         "go_forward_action",
         "go_back_action",
-        "mouse_hover_action",
         "click_action",
         "select_option_action",
     ]:
