@@ -32,6 +32,7 @@ class RemoteComputer(Multitool):
         KeyPressAction,
         PageUpAction,
         PageDownAction,
+        GetCursorPositionAction,
     )
     observations: tuple[type[ImageObservation], ...] = (ImageObservation,)
     computer_url: str = Field(description="Remote tool API URL")
@@ -40,27 +41,44 @@ class RemoteComputer(Multitool):
         self._grounding = GroundingModel()
         self._screenshot_dir = f"{self.exp_path}/attachments/remote_screenshots/"
         os.makedirs(self._screenshot_dir, exist_ok=True)
-        return super().model_post_init(__context)
+        self._action_map = {
+            TypeTextAction: self.remote_execute_action,
+            MouseHoverAction: self.mouse_hover,
+            MouseClickAction: self.mouse_click,
+            OpenUrlAction: self.open_url,
+            KeyPressAction: self.remote_execute_action,
+            PageUpAction: self.page_up,
+            PageDownAction: self.page_down,
+            GetCursorPositionAction: self.remote_execute_action,
+        }
 
     def execute_action(self, action: Action) -> ImageObservation:
-        if isinstance(action, MouseClickAction):
-            self.mouse_move(action.element_description)
-            return self.remote_execute_action(CompMouseClickAction(button="left"))
-        elif isinstance(action, MouseHoverAction):
-            return self.mouse_move(action.element_description)
-        elif isinstance(action, PageUpAction):
-            return self.remote_execute_action(KeyPressAction(text="Page_Up"))
-        elif isinstance(action, PageDownAction):
-            return self.remote_execute_action(KeyPressAction(text="Page_Down"))
-        elif isinstance(action, OpenUrlAction):
-            self.mouse_move("top address bar")
-            self.remote_execute_action(CompMouseClickAction(button="left"))
-            self.remote_execute_action(TypeTextAction(text=action.url))
-            self.remote_execute_action(KeyPressAction(text="Return"))
-            time.sleep(5)  # wait for page to load
-            return self.remote_execute_action(GetCursorPositionAction())
-        else:
-            return self.remote_execute_action(action)
+        action_type = type(action)
+        if action_type in self._action_map:
+            return self._action_map[action_type](action)
+        raise ValueError(f"Unknown action type: {action_type}")
+
+    def mouse_hover(self, action: MouseHoverAction) -> ImageObservation:
+        x, y = self._grounding.get_coords(self.get_screen(), f"click {action.element_description}")
+        return self.remote_execute_action(MouseMoveAction(x=int(x), y=int(y)))
+
+    def mouse_click(self, action: MouseClickAction) -> ImageObservation:
+        self.mouse_hover(action)
+        return self.remote_execute_action(CompMouseClickAction(button="left"))
+
+    def open_url(self, action: OpenUrlAction) -> ImageObservation:
+        self.mouse_hover("top address bar")
+        self.remote_execute_action(CompMouseClickAction(button="left"))
+        self.remote_execute_action(TypeTextAction(text=action.url))
+        self.remote_execute_action(KeyPressAction(text="Return"))
+        time.sleep(5)
+        return self.remote_execute_action(GetCursorPositionAction())
+
+    def page_up(self, action: PageUpAction) -> ImageObservation:
+        return self.remote_execute_action(KeyPressAction(text="Page_Up"))
+
+    def page_down(self, action: PageDownAction) -> ImageObservation:
+        return self.remote_execute_action(KeyPressAction(text="Page_Down"))
 
     def remote_execute_action(self, action: Action) -> ImageObservation:
         payload = {"kind": action.kind, "params": action.model_dump()}
@@ -90,7 +108,3 @@ class RemoteComputer(Multitool):
     def get_screen(self) -> Image:
         obs = self.remote_execute_action(GetCursorPositionAction())
         return Image.open(obs.image_path)
-
-    def mouse_move(self, element_description: str, button: str = "left") -> ImageObservation:
-        x, y = self._grounding.get_coords(self.get_screen(), f"click {element_description}")
-        return self.remote_execute_action(MouseMoveAction(x=int(x), y=int(y)))

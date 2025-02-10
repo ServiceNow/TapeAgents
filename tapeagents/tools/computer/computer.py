@@ -1,13 +1,9 @@
 import base64
 import logging
-import os
-import shlex
-import shutil
 import time
-from pathlib import Path
 from typing import Any, Literal
-from uuid import uuid4
 
+import pyautogui
 from pydantic import Field
 
 from tapeagents.core import Action, Observation
@@ -48,32 +44,18 @@ class Computer(Multitool):
 
     width: int = Field(description="Screen width", default=MAX_SCALING_TARGETS["XGA"][0])
     height: int = Field(description="Screen height", default=MAX_SCALING_TARGETS["XGA"][1])
-    display_num: int | None = Field(default=1, description="X display number")
-    display_height_px: int = Field(default=MAX_SCALING_TARGETS["XGA"][0], description="Display height in pixels")
-    display_width_px: int = Field(default=MAX_SCALING_TARGETS["XGA"][1], description="Display width in pixels")
     screenshot_delay: float = Field(default=2.0, description="Delay before screenshot")
     scaling_enabled: bool = Field(default=True, description="Enable resolution scaling")
-    tmp_screenshots_dir: str = "/tmp/screenshots/"
     typing_delay_ms: int = 180
-    typing_group_size: int = 3
-    _xdotool: str = ""
-    _display_prefix: str = ""
 
     def model_post_init(self, __context: Any) -> None:
-        if (display_num := os.getenv("DISPLAY_NUM")) is not None:
-            self.display_num = int(display_num)
-        self._display_prefix = f"DISPLAY=:{self.display_num} "
-
-        self._xdotool = f"{self._display_prefix}xdotool"
-
-        # Add action mapping
         self._action_map = {
             KeyPressAction: self._handle_key_press,
             TypeTextAction: self._handle_type_text,
             MouseMoveAction: self._handle_mouse_move,
             MouseClickAction: self._handle_mouse_click,
             MouseDragAction: self._handle_mouse_drag,
-            GetCursorPositionAction: self._handle_get_cursor_position,
+            GetCursorPositionAction: self._take_screenshot,
         }
 
     def execute_action(self, action: Action) -> ComputerObservation:
@@ -83,79 +65,70 @@ class Computer(Multitool):
         raise ValueError(f"Unknown action type: {action_type}")
 
     def _handle_key_press(self, action: KeyPressAction) -> ComputerObservation:
-        return self._execute_shell(f"{self._xdotool} key -- {action.text}")
+        keys = action.text.replace.lower().replace("+", " ").split()
+        try:
+            pyautogui.hotkey(*keys)
+            obs = self._take_screenshot()
+        except Exception as e:
+            error = f"Key press {action.text} failed: {e}"
+            obs = ComputerObservation(error=error)
+        return obs
 
     def _handle_type_text(self, action: TypeTextAction) -> ComputerObservation:
-        output = []
-        for chunk in chunks(action.text, self.typing_group_size):
-            cmd = f"{self._xdotool} type --delay {self.typing_delay_ms} -- {shlex.quote(chunk)}"
-            result = self._execute_shell(cmd, take_screenshot=False)
-            output.append(result.text)
-        return self._take_screenshot()
+        try:
+            pyautogui.write(action.text, interval=self.typing_delay_ms / 1000)
+            obs = self._take_screenshot()
+        except Exception as e:
+            error = f"Typing failed: {e}"
+            obs = ComputerObservation(error=error)
+        return obs
 
     def _handle_mouse_move(self, action: MouseMoveAction) -> ComputerObservation:
         x, y = self._scale_coordinates("api", action.x, action.y)
-        return self._execute_shell(f"{self._xdotool} mousemove --sync {x} {y}")
+        try:
+            pyautogui.moveTo(x, y)
+            obs = self._take_screenshot()
+        except Exception as e:
+            error = f"Mouse move failed: {e}"
+            obs = ComputerObservation(error=error)
+        return obs
 
     def _handle_mouse_click(self, action: MouseClickAction) -> ComputerObservation:
-        click_arg = {"left": "1", "right": "3", "middle": "2", "double": "--repeat 2 --delay 500 1"}[action.button]
-        return self._execute_shell(f"{self._xdotool} click {click_arg}")
+        try:
+            if action.button == "double":
+                pyautogui.doubleClick()
+            else:
+                pyautogui.click(button=action.button)
+            obs = self._take_screenshot()
+        except Exception as e:
+            error = f"Mouse click failed: {e}"
+            obs = ComputerObservation(error=error)
+        return obs
 
     def _handle_mouse_drag(self, action: MouseDragAction) -> ComputerObservation:
         x, y = self._scale_coordinates("api", action.x, action.y)
-        return self._execute_shell(f"{self._xdotool} mousedown 1 mousemove --sync {x} {y} mouseup 1")
-
-    def _handle_get_cursor_position(self, action: GetCursorPositionAction) -> ComputerObservation:
-        result = self._execute_shell(f"{self._xdotool} getmouselocation --shell", take_screenshot=False)
-        output = result.text
-        x, y = self._scale_coordinates(
-            "computer", int(output.split("X=")[1].split("\n")[0]), int(output.split("Y=")[1].split("\n")[0])
-        )
-        obs = ComputerObservation(text=f"X={x},Y={y}")
-        screenshot = self._take_screenshot()
-        obs.base64_image = screenshot.base64_image
-        return obs
-
-    def _execute_shell(self, command: str, take_screenshot=True) -> ComputerObservation:
-        """Execute shell command and return observation"""
         try:
-            output = os.popen(command).read()
-            error = ""
+            pyautogui.dragTo(x, y)
+            obs = self._take_screenshot()
         except Exception as e:
-            output = ""
-            error = str(e)
-
-        obs = ComputerObservation(text=output, error=error)
-
-        if take_screenshot:
-            time.sleep(self.screenshot_delay)
-            screenshot = self._take_screenshot()
-            obs.base64_image = screenshot.base64_image
-
+            error = f"Mouse drag failed: {e}"
+            obs = ComputerObservation(error=error)
         return obs
 
     def _take_screenshot(self) -> ComputerObservation:
         """Take screenshot and return observation with base64 image"""
-        output_dir = Path(self.tmp_screenshots_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        path = output_dir / f"screenshot_{uuid4().hex}.png"
-
-        if shutil.which("gnome-screenshot"):
-            cmd = f"{self._display_prefix}gnome-screenshot -f {path} -p"
-        else:
-            cmd = f"{self._display_prefix}scrot -p {path}"
-
+        time.sleep(self.screenshot_delay)
         try:
-            os.system(cmd)
+            screenshot = pyautogui.screenshot()
             if self.scaling_enabled:
-                x, y = self._scale_coordinates("computer", self.width, self.height)
-                os.system(f"convert {path} -resize {x}x{y}! {path}")
-
-            base64_image = base64.b64encode(path.read_bytes()).decode()
-            path.unlink()  # Delete temporary file
-            return ComputerObservation(base64_image=base64_image)
+                screenshot = screenshot.resize((self.width, self.height))
+            base64_image = base64.b64encode(screenshot.tobytes()).decode("utf-8")
+            x, y = pyautogui.position()
+            x, y = self._scale_coordinates("computer", x, y)
+            obs = ComputerObservation(base64_image=base64_image, text=f"[{x}, {y}]")
         except Exception as e:
-            return ComputerObservation(error=f"Screenshot failed: {e}")
+            obs = ComputerObservation(error=f"Screenshot failed: {e}")
+        return obs
 
     def _scale_coordinates(self, source: Literal["api", "computer"], x: int, y: int) -> tuple[int, int]:
         """Scale coordinates based on target resolution"""

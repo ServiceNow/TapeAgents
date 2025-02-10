@@ -33,6 +33,7 @@ dependencies = [
   "pathvalidate~=3.2",
   "playwright~=1.42",
   "podman~=5.0",
+  "pyautogui>=0.9.54",
   "pydantic~=2.9",
   "pyyaml~=6.0",
   "tavily-python~=0.3",

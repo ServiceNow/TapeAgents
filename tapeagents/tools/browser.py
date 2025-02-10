@@ -140,7 +140,7 @@ class HoverAction(Action):
 
 class MouseHoverAction(Action):
     """
-    Action that hovers over an element on the page with the provided BID
+    Action that hovers over an icon or control on the screen
     """
 
     kind: Literal["mouse_hover_action"] = "mouse_hover_action"
