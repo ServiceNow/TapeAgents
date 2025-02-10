@@ -67,7 +67,7 @@ class RemoteComputer(Multitool):
         return self.remote_execute_action(CompMouseClickAction(button="left"))
 
     def open_url(self, action: OpenUrlAction) -> ImageObservation:
-        self.mouse_hover("top address bar")
+        self.mouse_hover(MouseHoverAction(element_description="top address bar"))
         self.remote_execute_action(CompMouseClickAction(button="left"))
         self.remote_execute_action(TypeTextAction(text=action.url))
         self.remote_execute_action(KeyPressAction(text="Return"))
