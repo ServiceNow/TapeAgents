@@ -69,7 +69,7 @@ def setup_state(cfg):
         st.session_state.grounding_api_key = load_from_storage("grounding_api_key") or os.getenv(
             "GROUNDING_API_KEY", ""
         )
-    else:
+    if st.session_state.grounding_api_key:
         os.environ["GROUNDING_API_KEY"] = st.session_state.grounding_api_key
     if "tape" not in st.session_state:
         st.session_state.tape = None

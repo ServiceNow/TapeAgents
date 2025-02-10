@@ -12,7 +12,7 @@ class GroundingModel:
         except KeyError:
             raise RuntimeError("GROUNDING_API_URL environment variable is not set")
         try:
-            api_key = os.popen("eai login token").read().strip()
+            api_key = os.popen("eai login --profile default token").read().strip()
         except Exception:
             api_key = os.environ.get("GROUNDING_API_KEY")
         if not api_key:
