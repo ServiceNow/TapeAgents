@@ -15,7 +15,7 @@ from tapeagents.orchestrator import main_loop
 
 from ..agent import WebAgent
 from ..environment import WebEnvironment
-from ..steps import WebAction, WebTaskMetadata
+from ..steps import WebAction
 
 # from ..eval import task_to_observations
 # from ..tape import GaiaMetadata, GaiaTape
@@ -39,14 +39,16 @@ def main(cfg: DictConfig) -> None:
     tapes_dir = f"{cfg.exp_path}/tapes"
     os.makedirs(tapes_dir, exist_ok=True)
 
-    task = ALL_MINIWOB_TASKS[0]
+    task = ALL_MINIWOB_TASKS[1]
     seed = cfg.seeds[0]
+
     llm: LLM = instantiate(cfg.llm)
     env = WebEnvironment(**cfg.env)
     agent = WebAgent.create(llm)
+
     tape, metadata = env.start_task(task, seed)
     metadata["seed"] = seed
-    tape.metadata = WebTaskMetadata.model_validate(tape.metadata.model_dump() | metadata)
+    tape.metadata.result = metadata
 
     tape_name = f"debug_{task.get_task_id()}_seed{seed}"
 

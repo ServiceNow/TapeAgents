@@ -135,13 +135,6 @@ WebStep = Union[
 
 
 class WebTaskMetadata(TapeMetadata):
-    ### things returned by browser.start_task()
-    name: str = Field(default_factory=str)
-    goal: str = Field(default_factory=str)
-    task_info: Any = None
-    video: Any = None
-    chat_video: Any = None
-    ###
     seed: int = Field(default_factory=int)
     result: Any = None
     terminated: bool = False

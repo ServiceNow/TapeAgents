@@ -29,10 +29,7 @@ class WebEnvironment(Environment):
 
     def __init__(self, exp_path: str, headless: bool = True) -> None:
         super().__init__()
-        self.browser = Browser(headless=headless, exp_path=exp_path, axtree=False, html=True)
-        # the creation of the browser will create a new openened task.
-        # let's close it and wait until start_task is called.
-        self.browser.close()
+        self.browser = Browser(headless=headless, exp_path=exp_path, lazy_env_init=True, axtree=False, html=True)
 
     def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"

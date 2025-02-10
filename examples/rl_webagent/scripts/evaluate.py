@@ -2,7 +2,7 @@ import logging
 import os
 
 import hydra
-from browsergym.workarena import ALL_WORKARENA_TASKS
+from browsergym.miniwob import ALL_MINIWOB_TASKS
 from omegaconf import DictConfig
 from termcolor import colored
 
@@ -22,19 +22,26 @@ logger = logging.getLogger(__name__)
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="workarena_openai",
+    config_name="webagent_demo",
 )
 def main(cfg: DictConfig) -> None:
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+    os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
+    # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url
+    # os.environ["SNOW_INSTANCE_UNAME"] = cfg.environment_variables.snow_instance_uname
+    # os.environ["SNOW_INSTANCE_PWD"] = cfg.environment_variables.snow_instance_pwd
+
+    tapes_dir = os.path.join(cfg.exp_path, "tapes")
+    os.makedirs(tapes_dir, exist_ok=True)
+
     llm: LLM = hydra.utils.instantiate(cfg.llm)
     env = WebEnvironment(**cfg.env)
     agent = WebAgent.create(llm)
-    tapes_dir = os.path.join(cfg.exp_path, "tapes")
-    os.makedirs(tapes_dir, exist_ok=True)
-    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
+
     last_action = None
     repeated_action_cnt = 0
     for seed in cfg.seeds:
-        for i, task in enumerate(ALL_WORKARENA_TASKS):
+        for i, task in enumerate(ALL_MINIWOB_TASKS):
             task_name = f"task{i}_seed{seed}_{task.get_task_id()}"
             fname = f"{task_name}.json"
             if os.path.exists(os.path.join(tapes_dir, fname)):

@@ -194,6 +194,7 @@ class Browser(Multitool):
     page_load_time_sec: int = 1
     gym_kwargs: dict = {}
     gym_task: str = "browsergym/openended"
+    lazy_env_init: bool = False
 
     _env: BrowserEnv = None  # type: ignore
     _current_page: str = ""
@@ -233,19 +234,23 @@ class Browser(Multitool):
             os.makedirs(self._record_video_dir, exist_ok=True)
             os.makedirs(self._screenshots_dir, exist_ok=True)
 
-        self._env = gym.make(
-            self.gym_task,
-            headless=self.headless,
-            record_video_dir=self._record_video_dir if self.save_video else None,
-            action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
-            timeout=self.timeout_ms,
-            task_kwargs={"start_url": "about:blank"},
-            **self.gym_kwargs,
-        )  # type: ignore
-        while not isinstance(self._env, BrowserEnv):
-            self._env = self._env.env
-        self._env.reset()
-        self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
+        if not self.lazy_env_init:
+            self._env = gym.make(
+                self.gym_task,
+                headless=self.headless,
+                record_video_dir=self._record_video_dir if self.save_video else None,
+                # make all possible actions available to the environment
+                action_mapping=HighLevelActionSet(
+                    demo_mode="default", subsets=["chat", "infeas", "bid", "coord", "nav", "tab"]
+                ).to_python_code,
+                timeout=self.timeout_ms,
+                task_kwargs={"start_url": "about:blank"},
+                **self.gym_kwargs,
+            )  # type: ignore
+            while not isinstance(self._env, BrowserEnv):
+                self._env = self._env.env
+            self._env.reset()
+            self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
 
     def execute_action(self, action: Action) -> PageObservation:
         action_type = type(action)
@@ -259,7 +264,9 @@ class Browser(Multitool):
             task_id,
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
-            action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
+            action_mapping=HighLevelActionSet(
+                demo_mode="default", subsets=["chat", "infeas", "bid", "coord", "nav", "tab"]
+            ).to_python_code,
             timeout=self.timeout_ms,
             **kwargs,
         )  # type: ignore
