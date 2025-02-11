@@ -48,6 +48,15 @@ class GetCursorPositionAction(Action):
     kind: Literal["get_cursor_position_action"] = "get_cursor_position_action"
 
 
+class OpenUrlAction(Action):
+    """
+    Action that opens a URL in the browser.
+    """
+
+    kind: Literal["open_url_action"] = "open_url_action"
+    url: str = Field(description="URL to navigate to")
+
+
 class ComputerObservation(Observation):
     """Base observation returned by computer actions"""
 

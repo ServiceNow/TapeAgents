@@ -18,17 +18,9 @@ from .steps import (
     KeyPressAction,
     MouseClickAction as CompMouseClickAction,
     MouseMoveAction,
+    OpenUrlAction,
     TypeTextAction,
 )
-
-
-class OpenUrlAction(Action):
-    """
-    Action that opens a URL in the browser.
-    """
-
-    kind: Literal["open_url_action"] = "open_url_action"
-    url: str = Field(description="URL to navigate to")
 
 
 class MouseClickAction(Action):
@@ -92,7 +84,7 @@ class RemoteComputer(Multitool):
             TypeTextAction: self.remote_execute_action,
             MouseHoverAction: self.mouse_hover,
             MouseClickAction: self.mouse_click,
-            OpenUrlAction: self.open_url,
+            OpenUrlAction: self.remote_execute_action,
             KeyPressAction: self.remote_execute_action,
             PageUpAction: self.page_up,
             PageDownAction: self.page_down,
@@ -112,14 +104,6 @@ class RemoteComputer(Multitool):
     def mouse_click(self, action: MouseClickAction) -> ImageObservation:
         self.mouse_hover(action)
         return self.remote_execute_action(CompMouseClickAction(button="left"))
-
-    def open_url(self, action: OpenUrlAction) -> ImageObservation:
-        self.mouse_hover(MouseHoverAction(element_description="top address bar"))
-        self.remote_execute_action(CompMouseClickAction(button="left"))
-        self.remote_execute_action(TypeTextAction(text=action.url))
-        self.remote_execute_action(KeyPressAction(text="Return"))
-        time.sleep(5)
-        return self.remote_execute_action(GetCursorPositionAction())
 
     def page_up(self, action: PageUpAction) -> ImageObservation:
         return self.remote_execute_action(KeyPressAction(text="Page_Up"))

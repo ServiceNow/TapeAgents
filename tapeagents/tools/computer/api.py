@@ -89,6 +89,14 @@ def get_cursor_position() -> dict:
         return {"error": f"Get cursor position failed: {e}"}
 
 
+def open_url(url: str) -> dict:
+    try:
+        os.popen(f"open {url}").read()
+        return _take_screenshot()
+    except Exception as e:
+        return {"error": f"Get cursor position failed: {e}"}
+
+
 ACTION_MAP: dict[str:callable] = {
     "key_press_action": key_press,
     "type_text_action": type_text,
@@ -96,6 +104,7 @@ ACTION_MAP: dict[str:callable] = {
     "mouse_click_action": mouse_click,
     "mouse_drag_action": mouse_drag,
     "get_cursor_position_action": get_cursor_position,
+    "open_url_action": open_url,
 }
 
 

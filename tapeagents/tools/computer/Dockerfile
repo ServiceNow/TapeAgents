@@ -12,3 +12,4 @@ RUN apt -y install --no-install-recommends libreoffice
 
 RUN python3 -m pip config set global.break-system-packages true
 RUN python3 -m pip install pyautogui uvicorn fastapi python-multipart pillow pyscreeze numpy scipy pandas[excel] sympy bio matplotlib seaborn geopy
+COPY api.py /api.py

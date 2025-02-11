@@ -4,7 +4,7 @@
 cleanup() {
     echo "Cleaning up..."
     podman kill tapeagents-code-exec 2>/dev/null
-    pkill -f "tapeagents/tools/computer/image/http_server.py"
+    pkill -f "$(dirname "$0")/http_server.py"
     pkill -f "examples/gaia_agent/scripts/chat.py"
     pkill -f "examples/gaia_agent/scripts/run_code_sandbox.py"
     exit 0
@@ -54,8 +54,7 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
         echo "Computer image found"
     fi
     echo "Starting computer container"
-    echo "Bind $(pwd)/tapeagents/tools/computer/home to /config in container"
-    podman run -p 3000:3000 -p 8000:8000 --mount type=bind,source=$(pwd)/tapeagents/tools/computer/home,target=/config -it computer /bin/bash -c "HOME=/config DISPLAY=:1 python3 /config/api.py" > /tmp/computer2.log 2>&1 &
+    podman run -p 3000:3000 -p 8000:8000 --mount type=bind,source=$(pwd)/tapeagents/tools/computer/home,target=/config -it computer /bin/bash -c "HOME=/config DISPLAY=:1 python3 /api.py" > /tmp/computer2.log 2>&1 &
     echo -n "Waiting for computer container to start"
     # Wait up to 15 seconds for computer container to be running
     for i in {1..15}; do

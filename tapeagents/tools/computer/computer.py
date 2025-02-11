@@ -1,5 +1,6 @@
 import base64
 import logging
+import os
 import time
 from typing import Any, Literal
 
@@ -15,6 +16,7 @@ from tapeagents.tools.computer.steps import (
     MouseClickAction,
     MouseDragAction,
     MouseMoveAction,
+    OpenUrlAction,
     TypeTextAction,
 )
 
@@ -39,6 +41,7 @@ class Computer(Multitool):
         MouseClickAction,
         MouseDragAction,
         GetCursorPositionAction,
+        OpenUrlAction,
     )
     observations: tuple[type[Observation], ...] = (ComputerObservation,)
 
@@ -56,6 +59,7 @@ class Computer(Multitool):
             MouseClickAction: self._handle_mouse_click,
             MouseDragAction: self._handle_mouse_drag,
             GetCursorPositionAction: self._take_screenshot,
+            OpenUrlAction: self._handle_open_url,
         }
 
     def execute_action(self, action: Action) -> ComputerObservation:
@@ -63,6 +67,15 @@ class Computer(Multitool):
         if action_type in self._action_map:
             return self._action_map[action_type](action)
         raise ValueError(f"Unknown action type: {action_type}")
+
+    def _handle_open_url(self, action: OpenUrlAction) -> ComputerObservation:
+        try:
+            os.popen(f"open {action.url}").read()
+            obs = self._take_screenshot()
+        except Exception as e:
+            error = f"Open URL {action.url} failed: {e}"
+            obs = ComputerObservation(error=error)
+        return obs
 
     def _handle_key_press(self, action: KeyPressAction) -> ComputerObservation:
         keys = action.text.replace.lower().replace("+", " ").split()
