@@ -1,4 +1,5 @@
 import base64
+import logging
 import os
 import time
 from typing import Literal
@@ -21,6 +22,9 @@ from .steps import (
     OpenUrlAction,
     TypeTextAction,
 )
+
+logger = logging.getLogger("remote")
+logger.setLevel(logging.INFO)
 
 
 class MouseClickAction(Action):
@@ -119,19 +123,16 @@ class RemoteComputer(Multitool):
             obs_dict = response.json()
             return self.convert_observation(ComputerObservation(**obs_dict))
         except requests.exceptions.RequestException as e:
-            print(f"API request failed: {str(e)}")
+            logger.error(f"API request failed: {str(e)}")
             return ImageObservation(image_path="", error=f"API request failed: {str(e)}")
 
     def convert_observation(self, obs: ComputerObservation) -> ImageObservation:
         bimage = obs.base64_image
         if not bimage:
             return ComputerObservation(error="Failed to get screenshot")
-        image_data = base64.b64decode(bimage)
-        print(f"Received image data: {len(image_data)} bytes")
         image_name_with_timestamp = f"{self._screenshot_dir}/screen_{int(time.time())}.png"
-        print(f"Saving image to {image_name_with_timestamp}")
         with open(image_name_with_timestamp, "wb") as f:
-            f.write(image_data)
+            f.write(base64.b64decode(bimage))
         return ImageObservation(
             image_path=image_name_with_timestamp,
             error=obs.error,
@@ -142,5 +143,4 @@ class RemoteComputer(Multitool):
         obs = self.remote_execute_action(GetCursorPositionAction())
         if obs.error:
             raise ValueError(f"Failed to get screen: {obs.error}")
-        print(f"screen in image {obs.image_path}")
         return Image.open(obs.image_path)

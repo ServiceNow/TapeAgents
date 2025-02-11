@@ -225,8 +225,11 @@ def render_step(step: Step) -> str:
         msg = "Reading web page..."
         msg_type = "progress"
     elif step.kind == "image":
-        msg = "Looking at the page..."
-        msg_type = "progress"
+        if step.error:
+            msg = f"<div style='color: red;'>{step.error}</div>"
+        else:
+            msg = "Looking at the page..."
+            msg_type = "progress"
     elif step.kind == "facts_survey_thought":
         sections = []
         if step.given_facts:

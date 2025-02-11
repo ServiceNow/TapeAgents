@@ -1,4 +1,5 @@
 import base64
+import logging
 import os
 import time
 import traceback
@@ -10,7 +11,15 @@ from PIL import Image
 
 app = FastAPI()
 TYPING_DELAY_SEC = 0.18
-SCREENSHOT_DELAY = 2.0
+SCREENSHOT_DELAY = 1.0
+WEB_PAGE_LOAD_DELAY = 4.0
+
+logger = logging.getLogger("API")
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 
 def _take_screenshot() -> dict:
@@ -27,7 +36,7 @@ def _take_screenshot() -> dict:
         return {"base64_image": base64_image, "text": f"[{x}, {y}]"}
     except Exception as e:
         err = f"Screenshot failed: {e}\n{traceback.format_exc()}"
-        print(err)
+        logger.exception(str(e))
         return {"error": err}
 
 
@@ -91,10 +100,13 @@ def get_cursor_position() -> dict:
 
 def open_url(url: str) -> dict:
     try:
-        os.popen(f"open {url}").read()
+        logger.info(f"Opening URL: {url}")
+        os.system(f"open {url} &")
+        time.sleep(WEB_PAGE_LOAD_DELAY)
         return _take_screenshot()
     except Exception as e:
-        return {"error": f"Get cursor position failed: {e}"}
+        logger.error(f"Open URL {url} failed: {e}")
+        return {"error": f"Open URL {url} failed: {e}"}
 
 
 ACTION_MAP: dict[str:callable] = {
@@ -114,21 +126,19 @@ async def execute_action(request: dict):
         if not isinstance(request, dict) or "kind" not in request or "params" not in request:
             raise ValueError("Request must contain 'kind' and 'params' fields")
 
-        print(f"Received action request: {request}")
-        print(f"Action kind: {request['kind']}")
-        print(f"Action params: {request['params']}")
-
         if request["kind"] not in ACTION_MAP:
             raise ValueError(f"Unknown action type: {request['kind']}")
         kwargs = request["params"]
         kwargs.pop("metadata", None)
         kwargs.pop("kind", None)
+        logger.info(f"Run action: {request['kind']} with params: {kwargs}")
         observation = ACTION_MAP[request["kind"]](**kwargs)
+        if observation.get("error"):
+            logger.error(f"Action failed: {observation['error']}")
         return observation
     except Exception as e:
-        detail = f"{str(e)}\n{traceback.format_exc()}"
-        print(f"Error: {detail}")
-        raise HTTPException(status_code=400, detail=detail)
+        logger.exception(str(e))
+        raise HTTPException(status_code=400, detail=f"{str(e)}\n{traceback.format_exc()}")
 
 
 @app.post("/save_file")
