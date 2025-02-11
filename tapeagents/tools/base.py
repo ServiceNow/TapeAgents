@@ -78,7 +78,7 @@ class Multitool(BaseModel):
         except FatalError:
             raise
         except Exception as e:
-            logger.error(f"Action failure: {e}")
+            logger.exception(f"Action failure: {e}")
             observation = ActionExecutionFailure(error=str(e))
         assert isinstance(observation, self.observations + (ActionExecutionFailure,))
         return observation
