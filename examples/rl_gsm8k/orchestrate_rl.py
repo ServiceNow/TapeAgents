@@ -14,12 +14,12 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
-import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
+import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
@@ -38,7 +38,8 @@ logger = logging.getLogger(__name__)
 def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
     match cfg.dataset_name:
         case "math":
-            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            train_dataset_long_name = "hendrycks/competition_math"
+            test_dataset_long_name = "HuggingFaceH4/MATH-500"
             process_fn = process_math_test
             builder_config = "main"
         case "gsm8k":
