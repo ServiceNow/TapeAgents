@@ -4,18 +4,13 @@ llm:
   use_cache: false
   context_size: 128000
   parameters:
-    temperature: 0.0
+    temperature: 0.4
 
-exp_name: gpt4o_demo_computer1
-
+exp_name: gpt4o_demo_computer2
 exp_path: outputs/gaia/runs/${exp_name}
-
-agent:
-  plain_code: false
 
 env:
   computer_url: http://localhost:8000
-  save_video: true
 
 hydra:
   run:
