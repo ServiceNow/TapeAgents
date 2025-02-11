@@ -54,7 +54,8 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
         echo "Computer image found"
     fi
     echo "Starting computer container"
-    nohup podman run --rm --name computer -p 5900:5900 -p 6080:6080 -p 8000:8000 -it computer:latest > /tmp/computer.log 2>&1 &
+    echo "Bind $(pwd)/tapeagents/tools/computer/home to /config in container"
+    podman run -p 3000:3000 -p 8000:8000 --mount type=bind,source=$(pwd)/tapeagents/tools/computer/home,target=/config -it computer /bin/bash -c "HOME=/config DISPLAY=:1 python3 /config/api.py" > /tmp/computer2.log 2>&1 &
     echo -n "Waiting for computer container to start"
     # Wait up to 15 seconds for computer container to be running
     for i in {1..15}; do
@@ -84,9 +85,9 @@ uv run examples/gaia_agent/scripts/run_code_sandbox.py &
 echo "Starting Chat UI..."
 export GROUNDING_API_URL="https://snow-llmd-grounding-8000.job.console.elementai.com"
 mkdir -p .cache
-uv run tapeagents/tools/computer/image/http_server.py > /tmp/demo_stdout.log 2>&1 &
+uv run $(dirname "$0")/http_server.py > /tmp/demo_stdout.log 2>&1 &
 STREAMLIT_SERVER_PORT=8501 uv run -m streamlit run examples/gaia_agent/scripts/chat.py --server.headless true > /tmp/demo_stdout.log 2>&1 &
-sleep 2
+sleep 3
 echo "Tapeagents Operator is ready"
 echo "Open http://localhost:8080 in your browser to begin"
 if [[ "$OSTYPE" == "darwin"* ]]; then
