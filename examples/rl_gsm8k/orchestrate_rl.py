@@ -41,7 +41,8 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
             train_dataset_long_name = "hendrycks/competition_math"
             test_dataset_long_name = "HuggingFaceH4/MATH-500"
             process_fn = process_math_test
-            builder_config = "main"
+            train_builder_config = "main"
+            test_builder_config = "default"
         case "gsm8k":
             train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
@@ -54,8 +55,8 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
-    test_dataset = load_dataset(test_dataset_long_name, builder_config, split="test", trust_remote_code=True)
+    train_dataset = load_dataset(train_dataset_long_name, train_builder_config, split="train", trust_remote_code=True)
+    test_dataset = load_dataset(test_dataset_long_name, test_builder_config, split="test", trust_remote_code=True)
     train_samples = [
         process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
     ]
