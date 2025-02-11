@@ -9,6 +9,9 @@ llm:
 exp_name: gpt4o_demo_computer2
 exp_path: outputs/gaia/runs/${exp_name}
 
+agent:
+  plain_code: false
+
 env:
   computer_url: http://localhost:8000
 

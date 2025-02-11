@@ -54,7 +54,7 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
         echo "Computer image found"
     fi
     echo "Starting computer container"
-    ./tapeagents/tools/computer/run.sh
+    ./tapeagents/tools/computer/run.sh > /tmp/demo_stdout.log 2>&1 &
     echo -n "Waiting for computer container to start"
     # Wait up to 15 seconds for computer container to be running
     for i in {1..15}; do
