@@ -78,7 +78,7 @@ def main(cfg: DictConfig) -> None:
             success, result = env.validate_task(tape)
             metadata["success"] = success
             metadata.update(result)
-            env.finish_task(task_name)
+            env.finish_task()
             os.unlink(tmp_fpath)  # remove temporary file
             tape.metadata.result = metadata
             save_json_tape(tape, tapes_dir, fname)

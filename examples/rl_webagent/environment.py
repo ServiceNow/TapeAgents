@@ -38,9 +38,9 @@ class WebEnvironment(Environment):
         tape = WebTape(steps=[obs, WebTask(task=info["goal"])])
         return tape, info
 
-    def finish_task(self, task_name: str) -> None:
+    def finish_task(self) -> None:
         try:
-            self.browser.close(task_name)
+            self.browser.close()
         except Exception as e:
             logger.error(f"Failed to properly close task: {e}")
 
