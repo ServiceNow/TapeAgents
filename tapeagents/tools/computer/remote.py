@@ -1,6 +1,7 @@
 import base64
 import os
 import time
+from typing import Literal
 
 import requests
 from PIL import Image
@@ -9,7 +10,6 @@ from pydantic import Field
 from tapeagents.core import Action
 from tapeagents.steps import ImageObservation
 from tapeagents.tools.base import Multitool
-from tapeagents.tools.browser import MouseClickAction, MouseHoverAction, OpenUrlAction, PageDownAction, PageUpAction
 from tapeagents.tools.grounding import GroundingModel
 
 from .steps import (
@@ -20,6 +20,53 @@ from .steps import (
     MouseMoveAction,
     TypeTextAction,
 )
+
+
+class OpenUrlAction(Action):
+    """
+    Action that opens a URL in the browser.
+    """
+
+    kind: Literal["open_url_action"] = "open_url_action"
+    url: str = Field(description="URL to navigate to")
+
+
+class MouseClickAction(Action):
+    """
+    Action that clicks an element on the computer screen.
+    When mentioning a date in the element description, use the format commonly spoken or written by humans,
+    such as "2 February 2025," rather than machine-readable formats. The day should come before the month,
+    and the year should be written in full (e.g., "3 November 2023" instead of "2023-11-03").
+    Only describe one specific element that is currently visible on the screen!
+    """
+
+    kind: Literal["mouse_click_action"] = "mouse_click_action"
+    element_description: str = Field(description="brief description of the element to click")
+
+
+class MouseHoverAction(Action):
+    """
+    Action that hovers over an icon or control on the computer screen
+    """
+
+    kind: Literal["mouse_hover_action"] = "mouse_hover_action"
+    element_description: str = Field(description="brief description of the element to hover over")
+
+
+class PageDownAction(Action):
+    """
+    Action that scrolls down to display the next page of the current view.
+    """
+
+    kind: Literal["page_down_action"] = "page_down_action"
+
+
+class PageUpAction(Action):
+    """
+    Action that scrolls up to display the previous page of the current view.
+    """
+
+    kind: Literal["page_up_action"] = "page_up_action"
 
 
 class RemoteComputer(Multitool):
@@ -96,7 +143,9 @@ class RemoteComputer(Multitool):
         if not bimage:
             return ComputerObservation(error="Failed to get screenshot")
         image_data = base64.b64decode(bimage)
+        print(f"Received image data: {len(image_data)} bytes")
         image_name_with_timestamp = f"{self._screenshot_dir}/screen_{int(time.time())}.png"
+        print(f"Saving image to {image_name_with_timestamp}")
         with open(image_name_with_timestamp, "wb") as f:
             f.write(image_data)
         return ImageObservation(
@@ -107,4 +156,7 @@ class RemoteComputer(Multitool):
 
     def get_screen(self) -> Image:
         obs = self.remote_execute_action(GetCursorPositionAction())
+        if obs.error:
+            raise ValueError(f"Failed to get screen: {obs.error}")
+        print(f"screen in image {obs.image_path}")
         return Image.open(obs.image_path)

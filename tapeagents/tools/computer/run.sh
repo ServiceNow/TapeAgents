@@ -1,10 +1,2 @@
 #!/bin/bash
-podman rm -f computer
-podman run \
-    --name computer \
-    -e OPENAI_API_KEY=$OPENAI_API_KEY \
-    -e SERPER_API_KEY=$SERPER_API_KEY \
-    -p 5900:5900 \
-    -p 6080:6080 \
-    -p 8000:8000 \
-    -it computer:latest
+podman run -p 3000:3000 -p 8000:8000 --mount type=bind,source=$(pwd)/home,target=/config -it computer /bin/bash -c "HOME=/config DISPLAY=:1 python3 /config/api.py"
