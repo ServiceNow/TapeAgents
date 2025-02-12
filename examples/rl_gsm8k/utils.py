@@ -7,7 +7,6 @@ import threading
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, TextIO, Union
-
 import numpy as np
 import psutil
 import requests
@@ -17,6 +16,7 @@ from transformers import PreTrainedTokenizer
 
 from tapeagents.config import is_debug_mode
 from tapeagents.llms import LLMOutput, Prompt
+from .dist_utils import DistributedManager
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,9 @@ class VLLMServiceManager:
         self.process: Optional[subprocess.Popen] = None
         self.open_files: list[TextIO] = []
         self.stats = {}
+        self.port = port
+
+        self.dist_manager = DistributedManager()
 
     def get_base_urls(self) -> list[str]:
         return [f"http://127.0.0.1:{port}" for port in self.ports]
@@ -131,12 +134,10 @@ class VLLMServiceManager:
         """
 
         threads = []
-
         for i, device_number in enumerate(
             generate_cuda_device_strings(torch.cuda.device_count(), self.gpus_per_model_instance)
         ):
             port = self.port + i
-            # start_llm(device_number, port, assistant_procs, ports)
             thread = threading.Thread(target=self._start_llm, args=(device_number, port))
             threads.append(thread)
             thread.start()
@@ -287,12 +288,18 @@ def load_state(state_path):
         return {"iteration": 0}
 
 
-def save_state(state, state_path):
+def save_state(state, state_path, dist_manager: DistributedManager):
+    if not dist_manager.is_main_process():
+        return
+
     with open(state_path, "w") as f:
         json.dump(state, f)
 
 
-def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
+def clean_up(target_path: Path, state: Dict, state_path: str | Path, dist_manager: DistributedManager) -> None:
+    if not dist_manager.is_main_process():
+        return
+
     os.makedirs(target_path, exist_ok=True)
 
     def remove_dir(directory: Path):
@@ -301,7 +308,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
 
     # Reset the state iteration steps
     state["iteration"] = 0
-    save_state(state, state_path)
+    save_state(state, state_path, dist_manager)
 
     logger.info("Cleaning up checkpoints and training state")
     # list of log files to erase
@@ -321,6 +328,7 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
         target_path / "rollouts",
         target_path / "tapes",
         target_path / "conf",
+        target_path / "sync",
         target_path / "finetune" / "current",
         target_path / "finetune" / "logs",
         target_path / "finetune" / "intermediate",
@@ -343,7 +351,13 @@ def calculate_stats(stats):
     }
 
 
-def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str, use_deepspeed: bool = False) -> None:
+def launch_training(
+    config_dir: str, 
+    config_name: str, 
+    accelerate_cfg_path: str,
+    use_deepspeed: bool = False,
+    dist_manager: Optional[DistributedManager] = None,
+) -> None:
     """
     Launch training process with proper GPU configuration and error handling.
 
@@ -352,58 +366,96 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
         config_name (str): Name of the config file
         accelerate_cfg_path (str): Path to accelerate config
         use_deepspeed (bool, optional): Whether to use DeepSpeed. Defaults to False.
-
-    Raises:
-        ValueError: If no GPUs are available
-        RuntimeError: If training process fails
+        dist_manager (Optional[DistributedManager], optional): Distributed manager instance. Defaults to None.
     """
-    # Check GPU availability
-    num_gpus = torch.cuda.device_count()
+    # Debug information
+    logger.info("Process Information:")
+    logger.info(f"Process ID: {os.getpid()}")
+    logger.info(f"Parent Process ID: {os.getppid()}")
+    logger.info(f"Process Working Directory: {os.getcwd()}")
+
+    GLOBAL_RANK = dist_manager.get_rank()
+    MASTER_PORT = dist_manager.get_master_port()
+    MASTER_ADDRESS = dist_manager.get_master_address()
+    WORLD_SIZE = dist_manager.get_world_size()
+    
+    logger.info("Environment Variables:")
+    for key in ["RANK", "LOCAL_RANK", "WORLD_SIZE", "MASTER_ADDR", "MASTER_PORT"]:
+        logger.info(f"{key}: {os.environ.get(key)}")
+    
+    num_gpus = torch.cuda.device_count() * WORLD_SIZE
+    is_multinode = WORLD_SIZE > 1
     if num_gpus == 0:
         raise ValueError("No GPUs available for finetuning")
+
+    if is_multinode and not use_deepspeed:
+        raise ValueError("Multi-node training is only supported with DeepSpeed.")
 
     base_cmd = [
         "accelerate",
         "launch",
-        "--mixed_precision=bf16",
         "--config_file",
         accelerate_cfg_path,
+        "--mixed_precision=bf16",
+    ]
+    if num_gpus > 1:
+        if use_deepspeed:
+            base_cmd.extend([
+                "--num_processes",
+                str(num_gpus),
+            ])
+            if is_multinode:
+                base_cmd.extend([
+                    "--num_machines",
+                    str(WORLD_SIZE),
+                    "--machine_rank",
+                    str(GLOBAL_RANK),
+                    "--main_process_ip",
+                    MASTER_ADDRESS,
+                    "--main_process_port",
+                    MASTER_PORT,
+                ])
+            base_cmd.extend([
+                "--use_deepspeed",
+                "--deepspeed_config_file",
+                "conf/accelerate/ds_multinode_8b.json",
+            ])
+            if is_multinode:
+                base_cmd.extend([
+                    "--deepspeed_multinode_launcher",
+                    "standard",
+                    "--same_network",
+                ])
+        else:
+            base_cmd.extend([
+                "--multi_gpu",
+                "--num_processes",
+                str(num_gpus),
+            ])
+
+    base_cmd.extend([
         "examples/rl_gsm8k/run_finetune.py",
         "--config-dir",
         config_dir,
         "--config-name",
         config_name,
-    ]
-
-    if num_gpus > 1:
-        if use_deepspeed:
-            base_cmd[2:2] = [
-                "--num_processes",
-                str(num_gpus),
-                "--use_deepspeed",
-                "--deepspeed_config_file",
-                "conf/accelerate/deepspeed_stage3_bf16.json",
-            ]
-        else:
-            base_cmd[2:2] = [
-                "--multi_gpu",
-                "--num_processes",
-                str(num_gpus),
-            ]
+    ])
 
     logger.info(f"Launching training with command: {' '.join(base_cmd)}")
+
     try:
         subprocess.run(
             base_cmd,
-            check=True,  # Raises CalledProcessError if return code != 0
-            text=True,
-            capture_output=False,
+            env=os.environ,
+            shell=False,
+            check=True,
         )
 
     except subprocess.CalledProcessError as e:
-        # Capture both stdout and stderr for debugging
         error_msg = (
-            f"Training process failed with exit code {e.returncode}\n" f"stdout: {e.stdout}\n" f"stderr: {e.stderr}"
+            f"Training process failed with exit code {e.returncode}\n"
+            f"stdout: {e.stdout}\n"
+            f"stderr: {e.stderr}"
         )
         raise RuntimeError(error_msg) from e
     except Exception as e:

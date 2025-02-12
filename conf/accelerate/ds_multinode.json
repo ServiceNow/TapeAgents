@@ -1,0 +1,85 @@
+{
+    "zero_optimization": {
+        "stage": 3,
+        "overlap_comm": true,
+        "contiguous_gradients": true,
+        "reduce_scatter": true,
+        "sub_group_size": 8e7,
+        "reduce_bucket_size": "auto",
+        "stage3_prefetch_bucket_size": "auto",
+        "stage3_param_persistence_threshold": 1e6,
+        "stage3_max_live_parameters": 1.5e8,
+        "stage3_max_reuse_distance": 1.5e8,
+        "gather_16bit_weights_on_model_save": true,
+        "offload_optimizer": {
+            "device": "cpu",
+            "pin_memory": true,
+            "fast_init": true,
+            "buffer_count": 8,
+            "pipeline_read": true,
+            "pipeline_write": true
+        },
+        "offload_param": {
+            "device": "none",
+            "pin_memory": true
+        },
+        "memory_efficient_linear": true,
+        "round_robin_gradients": true
+    },
+    "bf16": {
+        "enabled": "auto",
+        "loss_scale": 0
+    },
+    "gradient_clipping": "auto",
+    "train_micro_batch_size_per_gpu": "auto",
+    "gradient_accumulation_steps": "auto",
+    "train_batch_size": "auto",
+    "activation_checkpointing": {
+        "partition_activations": true,
+        "cpu_checkpointing": false,
+        "contiguous_memory_optimization": true,
+        "synchronize_checkpoint_boundary": true,
+        "profile": false
+    },
+    "communication_data_type": "bf16",
+    "communication_data_parallel": {
+        "nccl_start_collective_timeout": 3600,
+        "nccl_timeout": 3600,
+        "hierarchical_allreduce": true,
+        "allreduce_always_fp32": false
+    },
+    "wall_clock_breakdown": true,
+    "monitor_config": {
+        "enabled": true,
+        "tag": "ds_train",
+        "csv_monitor": {
+            "enabled": true,
+            "output_path": "/mnt/results/logs/",
+            "job_name": "llama_train"
+        }
+    },
+    "torch_cuda_alloc_conf": {
+        "max_split_size_mb": 128,
+        "garbage_collection_threshold": 0.8
+    },
+    "aio": {
+        "block_size": 1048576,
+        "queue_depth": 24,
+        "single_submit": false,
+        "overlap_events": true,
+        "thread_count": 6
+    },
+    "wandb": {
+        "enabled": false
+    },
+    "elastic_training": {
+        "enabled": true,
+        "max_out_of_sync_steps": 200,
+        "sync_timeout": 3600,
+        "num_retries": 3
+    },
+    "distributed": {
+        "timeout": 3600,
+        "initialization_timeout": 3600
+    }
+}
