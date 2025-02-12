@@ -20,7 +20,7 @@ from tapeagents.core import Step
 from tapeagents.dialog_tape import UserStep
 from tapeagents.orchestrator import main_loop
 from tapeagents.steps import ReasoningThought
-from tapeagents.tools.computer.remote import GetCursorPositionAction, OpenUrlAction
+from tapeagents.tools.computer.remote import GetCursorPositionAction
 
 CONFIG_DIR = Path(".streamlit_config")
 API_KEY_FILE = CONFIG_DIR / "api_key"

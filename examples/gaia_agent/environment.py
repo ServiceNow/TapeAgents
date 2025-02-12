@@ -3,8 +3,7 @@ import logging
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tools.base import Multitool, Tool
 from tapeagents.tools.browser import Browser
-from tapeagents.tools.code_executor import CodeExecutor, CodeExecutorWithApproval
-from tapeagents.tools.computer.computer import Computer
+from tapeagents.tools.code_executor import CodeExecutor
 from tapeagents.tools.computer.remote import RemoteComputer
 from tapeagents.tools.media_reader import VideoReader
 from tapeagents.tools.simple_browser import SimpleBrowser

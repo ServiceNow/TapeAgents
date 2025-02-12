@@ -8,7 +8,6 @@ from .prompts import (
     ALLOWED_STEPS,
     ALLOWED_STEPS_CODE,
     FACTS_SURVEY,
-    FORMAT,
     PLAN,
     REFLECT_AND_ACT,
     SYSTEM_PROMPT,
