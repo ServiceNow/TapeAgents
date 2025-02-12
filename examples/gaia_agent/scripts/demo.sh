@@ -53,8 +53,10 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
     else
         echo "Computer image found"
     fi
+    # Initialize the log file
+    > /tmp/demo_stdout.log
     echo "Starting computer container"
-    ./tapeagents/tools/computer/run.sh > /tmp/demo_stdout.log 2>&1 &
+    ./tapeagents/tools/computer/run.sh >> /tmp/demo_stdout.log 2>&1 &
     echo -n "Waiting for computer container to start"
     # Wait up to 15 seconds for computer container to be running
     for i in {1..15}; do
@@ -70,7 +72,7 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
     done
     echo "."
     echo -n "Waiting for API init"
-    while ! grep -q "Uvicorn running on http://0.0.0.0:8000" /tmp/computer.log; do
+    while ! grep -q "Uvicorn running on" /tmp/demo_stdout.log; do
         sleep 1
         echo -n "."
     done
@@ -79,13 +81,13 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
 fi
 
 echo "Starting Code Sandbox..."
-export DOCKER_HOST=http+unix:///var/run/docker.sock
+export DOCKER_HOST=http+unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
 uv run examples/gaia_agent/scripts/run_code_sandbox.py &
 echo "Starting Chat UI..."
 export GROUNDING_API_URL="https://snow-llmd-grounding-8000.job.console.elementai.com"
 mkdir -p .cache
-uv run $(dirname "$0")/http_server.py > /tmp/demo_stdout.log 2>&1 &
-STREAMLIT_SERVER_PORT=8501 uv run -m streamlit run examples/gaia_agent/scripts/chat.py --server.headless true > /tmp/demo_stdout.log 2>&1 &
+uv run $(dirname "$0")/http_server.py >> /tmp/demo_stdout.log 2>&1 &
+STREAMLIT_SERVER_PORT=8501 uv run -m streamlit run examples/gaia_agent/scripts/chat.py --server.headless true >> /tmp/demo_stdout.log 2>&1 &
 sleep 3
 echo "Tapeagents Operator is ready"
 echo "Open http://localhost:8080 in your browser to begin"
