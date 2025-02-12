@@ -41,7 +41,10 @@ def init_wandb(
         resume = not cfg.finetune.force_restart
     else:
         raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
-    wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
+    if cfg.finetune.wandb_name:
+        wandb_name = cfg.finetune.wandb_name
+    else:
+        wandb_name = run_dir.name if cfg.finetune.wandb_use_basename else str(run_dir)
 
     if len(wandb_name) > 128:
         logger.warning(f"wandb_name: {wandb_name} is longer than 128 characters. Truncating to 128 characters.")
