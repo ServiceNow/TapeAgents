@@ -83,14 +83,13 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
     echo "Computer started"
 fi
 
-echo "Starting Code Sandbox..."
 podman machine set --user-mode-networking
 export DOCKER_HOST=http+unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
 # Install dependencies
 uv sync --all-extras
+echo "Starting Code Sandbox"
 uv run $SCRIPT_DIR/run_code_sandbox.py &
-echo "Starting Chat UI..."
-export GROUNDING_API_URL="https://snow-llmd-grounding-8000.job.console.elementai.com"
+echo "Starting Chat UI"
 mkdir -p .cache
 uv run $(dirname "$0")/http_server.py >> /tmp/demo_stdout.log 2>&1 &
 STREAMLIT_SERVER_PORT=8501 uv run -m streamlit run $SCRIPT_DIR/chat.py --server.headless true >> /tmp/demo_stdout.log 2>&1 &
