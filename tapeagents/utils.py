@@ -5,6 +5,7 @@ Various utility functions.
 import base64
 import difflib
 import fcntl
+import importlib
 import json
 import os
 from contextlib import contextmanager
@@ -125,6 +126,19 @@ def acquire_timeout(lock, timeout):
     finally:
         if result:
             lock.release()
+
+
+def class_for_name(full_name: str) -> Any:
+    if "." in full_name:
+        module_name, class_name = full_name.rsplit(".", 1)
+    else:
+        module_name = "."
+        class_name = full_name
+    # load the module, will raise ImportError if module cannot be loaded
+    m = importlib.import_module(module_name)
+    # get the class, will raise AttributeError if class cannot be found
+    c = getattr(m, class_name)
+    return c
 
 
 class Lock:

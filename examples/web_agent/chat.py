@@ -10,15 +10,12 @@ from pathlib import Path
 
 import omegaconf
 import streamlit as st
-from hydra.utils import instantiate
 
-from examples.gaia_agent.agent import GaiaAgent
-from examples.gaia_agent.environment import get_computer_env
 from examples.gaia_agent.steps import GaiaAnswer, GaiaQuestion
 from examples.gaia_agent.tape import GaiaTape
 from tapeagents.core import Step
 from tapeagents.dialog_tape import UserStep
-from tapeagents.orchestrator import main_loop
+from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 from tapeagents.steps import ReasoningThought
 from tapeagents.tools.computer.remote import GetCursorPositionAction
 
@@ -75,10 +72,9 @@ def setup_state(cfg):
         st.session_state.tape = None
     if "env" not in st.session_state:
         os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
-        st.session_state.env = get_computer_env(cfg.exp_path, **cfg.env)
-    if "agent" not in st.session_state:
-        env = st.session_state.env
-        st.session_state.agent = GaiaAgent.create(instantiate(cfg.llm), actions=env.actions(), **cfg.agent)
+        agent, env = get_agent_and_env_from_config(cfg)
+        st.session_state.env = env
+        st.session_state.agent = agent
     if st.session_state.tape is None:
         st.session_state.messages = [
             {"role": "assistant", "content": "Hi, TapeAgents Operator here! How can I help you today?"}
@@ -411,5 +407,5 @@ def save_to_storage(filename: str, data: str) -> None:
 
 
 if __name__ == "__main__":
-    cfg = omegaconf.OmegaConf.load("conf/gaia_demo.yaml")
+    cfg = omegaconf.OmegaConf.load("conf/web_agent.yaml")
     asyncio.run(main(cfg))

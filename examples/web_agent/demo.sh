@@ -1,14 +1,17 @@
 #!/bin/bash
 
 # Add trap for cleanup without stopping podman machine
+SCRIPT_DIR=$(dirname "$0")
+echo "Script dir: $SCRIPT_DIR"
 cleanup() {
     echo "Cleaning up..."
     podman kill tapeagents-code-exec 2>/dev/null
     pkill -f "$(dirname "$0")/http_server.py"
-    pkill -f "examples/gaia_agent/scripts/chat.py"
-    pkill -f "examples/gaia_agent/scripts/run_code_sandbox.py"
+    pkill -f "$SCRIPT_DIR/chat.py"
+    pkill -f "$SCRIPT_DIR/run_code_sandbox.py"
     exit 0
 }
+
 
 # Set up trap for SIGINT and SIGTERM
 trap cleanup SIGINT SIGTERM
@@ -85,12 +88,12 @@ podman machine set --user-mode-networking
 export DOCKER_HOST=http+unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
 # Install dependencies
 uv sync --all-extras
-uv run examples/gaia_agent/scripts/run_code_sandbox.py &
+uv run $SCRIPT_DIR/run_code_sandbox.py &
 echo "Starting Chat UI..."
 export GROUNDING_API_URL="https://snow-llmd-grounding-8000.job.console.elementai.com"
 mkdir -p .cache
 uv run $(dirname "$0")/http_server.py >> /tmp/demo_stdout.log 2>&1 &
-STREAMLIT_SERVER_PORT=8501 uv run -m streamlit run examples/gaia_agent/scripts/chat.py --server.headless true >> /tmp/demo_stdout.log 2>&1 &
+STREAMLIT_SERVER_PORT=8501 uv run -m streamlit run $SCRIPT_DIR/chat.py --server.headless true >> /tmp/demo_stdout.log 2>&1 &
 sleep 3
 echo "Tapeagents Operator is ready"
 echo "Open http://localhost:8080 in your browser to begin"

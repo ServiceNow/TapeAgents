@@ -6,17 +6,21 @@ from openai import OpenAI
 
 
 class GroundingModel:
-    def __init__(self):
-        try:
-            url = os.environ["GROUNDING_API_URL"]
-        except KeyError:
-            raise RuntimeError("GROUNDING_API_URL environment variable is not set")
-        try:
-            api_key = os.popen("eai login --profile default token").read().strip()
-        except Exception:
-            api_key = os.environ.get("GROUNDING_API_KEY")
+    def __init__(self, url: str = "", api_key: str = ""):
+        if not url:
+            try:
+                url = os.environ["GROUNDING_API_URL"]
+            except KeyError:
+                raise RuntimeError("GROUNDING_API_URL environment variable is not set")
         if not api_key:
-            raise RuntimeError("Failed to get API key from 'eai login token' or GROUNDING_API_KEY environment variable")
+            try:
+                api_key = os.popen("eai login --profile default token").read().strip()
+            except Exception:
+                api_key = os.environ.get("GROUNDING_API_KEY")
+            if not api_key:
+                raise RuntimeError(
+                    "Failed to get API key from 'eai login token' or GROUNDING_API_KEY environment variable"
+                )
         self.vl_client = OpenAI(
             base_url=f"{url}/v1",
             api_key=api_key,

@@ -6,6 +6,8 @@ import enum
 import logging
 from typing import Generator, Generic
 
+from hydra.utils import instantiate
+from omegaconf import DictConfig
 from pydantic import BaseModel, Field
 from termcolor import colored
 
@@ -72,6 +74,12 @@ class MainLoopStream(Generic[TapeType]):
         if last_final_tape is not None:
             return last_final_tape
         raise ValueError("No tape by either the agent or the environment")
+
+
+def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, Environment]:
+    environment: Environment = instantiate(cfg.environment)
+    agent: Agent = instantiate(cfg.agent, known_actions=environment.actions())
+    return agent, environment
 
 
 def main_loop(

@@ -8,7 +8,7 @@ from typing import Annotated, Any, Generator, Type, Union
 
 from pydantic import Field, TypeAdapter, ValidationError
 
-from tapeagents.agent import Agent, Node
+from tapeagents.agent import Action, Agent, Node
 from tapeagents.core import (
     AgentStep,
     LLMOutput,
@@ -25,7 +25,7 @@ from tapeagents.llms import LLMStream
 from tapeagents.steps import BranchStep
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import extract_code_blocks
-from tapeagents.utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
+from tapeagents.utils import FatalError, class_for_name, get_step_schemas_from_union_type, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
@@ -62,14 +62,25 @@ class StandardNode(Node):
     guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
     steps_prompt: str = "{allowed_steps}"  # prompt that describes the steps that the agent can take
-    steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
+    steps: type[Step] | list[type[Step] | str] | str = Field(exclude=True)
+    use_known_actions: bool = False
     next_node: str = ""
     trim_obs_except_last_n: int = 2
     _steps_type: Any = None
 
     def model_post_init(self, __context: Any) -> None:
-        self._steps_type = Annotated[Union[self.steps], Field(discriminator="kind")]
+        self.prepare_step_types()
         super().model_post_init(__context)
+
+    def prepare_step_types(self, actions: list[type[Step]] = None):
+        actions = actions or []
+        step_classes_or_str = actions + (self.steps if isinstance(self.steps, list) else [self.steps])
+        step_classes = tuple([class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str])
+        self._steps_type = Annotated[Union[step_classes], Field(discriminator="kind")]
+
+    def add_known_actions(self, actions: list[type[Step]]):
+        if self.use_known_actions:
+            self.prepare_step_types(actions)
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.

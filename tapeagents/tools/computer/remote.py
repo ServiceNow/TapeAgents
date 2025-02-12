@@ -79,9 +79,10 @@ class RemoteComputer(Multitool):
     )
     observations: tuple[type[ImageObservation], ...] = (ImageObservation,)
     computer_url: str = Field(description="Remote tool API URL")
+    grounding_api_url: str = Field(description="Grounding API URL")
 
     def model_post_init(self, __context):
-        self._grounding = GroundingModel()
+        self._grounding = GroundingModel(url=self.grounding_api_url)
         self._screenshot_dir = f"{self.exp_path}/attachments/remote_screenshots/"
         os.makedirs(self._screenshot_dir, exist_ok=True)
         self._action_map = {

@@ -203,6 +203,7 @@ class Agent(BaseModel, Generic[TapeType]):
         default_factory=lambda: [],
         description="List of nodes in the agent, order of the list used to determine the priority during activation. Nodes must have unique names.",
     )
+    known_actions: list[type[Action]] = Field(default_factory=list)
     max_iterations: int = 100
     store_llm_calls: bool = False
 
@@ -213,7 +214,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def model_post_init(self, __context: Any) -> None:
         if not self.name:
             # by default use the class name without the values for type variables
-            # e.g. "Agent" instea of "Agent[Tape[...]]""
+            # e.g. "Agent" instead of "Agent[Tape[...]]""
             self.name = self.__class__.__name__.split("[")[0]
         names = set()
         for i, agent in enumerate(self.subagents):
@@ -234,6 +235,8 @@ class Agent(BaseModel, Generic[TapeType]):
                 raise ValueError(
                     f'Duplicate node name "{node.name}" in node {i}, pass a unique name to the node during creation'
                 )
+            if hasattr(node, "add_known_actions"):
+                node.add_known_actions(self.known_actions)
             node_names.add(node.name)
         return super().model_post_init(__context)
 
