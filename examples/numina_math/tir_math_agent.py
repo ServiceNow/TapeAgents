@@ -5,6 +5,7 @@ from pydantic import Field
 
 from tapeagents.agent import Agent
 from tapeagents.core import (
+    Action,
     LLMOutputParsingFailureAction,
     Observation,
     Prompt,
@@ -19,7 +20,7 @@ from tapeagents.llms import LLM
 from tapeagents.nodes import MonoNode
 from tapeagents.environment import Environment
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.calculator import CalculationResultObservation
+from tapeagents.tools.calculator import CalculationResultObservation, calculate
 
 logger = logging.getLogger(__name__)
 
@@ -95,28 +96,6 @@ class TIRMathAgent(Agent):
         return agent
 
 
-class MathEnvironment(Environment):
-    def __init__(self) -> None:
-        super().__init__()
-
-    def react(self, tape: MathTape) -> MathTape:
-        actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
-        for action in actions:
-            if isinstance(action, LLMOutputParsingFailureAction):
-                continue
-            try:
-                match action:
-                    case UseCalculatorAction():
-                        observation = CalculationResultObservation(result=calculate(action.expression, {}))
-                        tape = tape.append(observation)
-                    case _:
-                        raise Exception(f"Unknown action: {type(action)}")
-            except Exception as e:
-                tape = tape.append(ActionExecutionFailure(error=str(e)))
-                break
-        return tape
-
-
 TIRMathTape = Tape[
     None,
     Union[
@@ -128,3 +107,25 @@ TIRMathTape = Tape[
         LLMOutputParsingFailureAction,
     ],
 ]
+
+
+class MathEnvironment(Environment):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def react(self, tape: TIRMathTape) -> TIRMathTape:
+        actions = [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
+        for action in actions:
+            if isinstance(action, LLMOutputParsingFailureAction):
+                continue
+            try:
+                match action:
+                    case PythonCodeAction():
+                        observation = CalculationResultObservation(result=calculate(action.expression, {}))
+                        tape = tape.append(observation)
+                    case _:
+                        raise Exception(f"Unknown action: {type(action)}")
+            except Exception as e:
+                tape = tape.append(ActionExecutionFailure(error=str(e)))
+                break
+        return tape
