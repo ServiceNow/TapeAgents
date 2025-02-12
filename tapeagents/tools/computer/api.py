@@ -11,7 +11,7 @@ from PIL import Image
 
 app = FastAPI()
 TYPING_DELAY_SEC = 0.18
-SCREENSHOT_DELAY = 1.0
+SCREENSHOT_DELAY = 3.0
 WEB_PAGE_LOAD_DELAY = 4.0
 
 logger = logging.getLogger("API")
