@@ -134,7 +134,15 @@ async def main(cfg):
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            msg_type = message.get("type", "write")
+            if msg_type == "code":
+                st.code(message["content"], language="python")
+            elif msg_type == "html":
+                st.html(message["content"])
+            elif msg_type == "markdown":
+                st.markdown(message["content"])
+            else:
+                st.write(message["content"])
 
     if prompt := st.chat_input():
         with st.chat_message("user"):
@@ -190,7 +198,7 @@ async def main(cfg):
                     else:  # default case for "write"
                         with st.chat_message("assistant"):
                             st.write(msg)
-                    st.session_state.messages.append({"role": "assistant", "content": msg})
+                    st.session_state.messages.append({"role": "assistant", "content": msg, "type": msg_type})
 
         except Exception as e:
             error_msg = f"Failed to solve task: {e}\nStack trace:\n{traceback.format_exc()}"

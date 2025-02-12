@@ -65,7 +65,7 @@ def type_text(text: str) -> dict:
 def mouse_move(x: int, y: int) -> dict:
     try:
         scaled_x, scaled_y = _scale_coordinates("api", x, y)
-        pyautogui.moveTo(scaled_x, scaled_y)
+        pyautogui.moveTo(scaled_x, scaled_y, duration=0.5)
         return _take_screenshot()
     except Exception as e:
         return {"error": f"Mouse move failed: {e}"}
