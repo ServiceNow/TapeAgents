@@ -55,6 +55,9 @@ class Environment(ABC, Generic[TapeType]):
     def raise_unexpected_action(self, action: Action):
         raise ValueError(f"Unexpected action type: {action}")
 
+    def actions(self) -> tuple[type[Action], ...]:
+        return tuple()
+
 
 class EmptyEnvironment(Environment):
     def react(self, tape: Tape) -> list[Observation]:

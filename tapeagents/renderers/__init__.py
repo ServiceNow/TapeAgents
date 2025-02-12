@@ -81,7 +81,7 @@ def to_pretty_str(a: Any, prefix: str = "", indent: int = 2) -> str:
     """
     view = ""
     if isinstance(a, list) and len(a):
-        if len(str(a)) < 80:
+        if len(str(a)) < 8:
             view = str(a)
         else:
             lines = []

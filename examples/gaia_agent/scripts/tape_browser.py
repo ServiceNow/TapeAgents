@@ -145,7 +145,11 @@ class GaiaTapeBrowser(TapeBrowser):
         if tape.metadata.terminated:
             error = "T"
         last_action = None
+        tokens = 0
         for step in tape:
+            llm_call = self.llm_calls.get(step.metadata.prompt_id)
+            tokens += llm_call.prompt_length_tokens if llm_call else 0
+            tokens += llm_call.output_length_tokens if llm_call else 0
             if isinstance(step, Action):
                 last_action = step
             if step.kind == "search_results_observation" and not step.serp:
@@ -165,7 +169,7 @@ class GaiaTapeBrowser(TapeBrowser):
             mark += f"[{error}]"
         if mark:
             mark += " "
-        return f"{i+1} {mark}{tape[0].content[:32]}"  # type: ignore
+        return f"{i+1} {mark}({tokens: }t) {tape[0].content[:32]}"  # type: ignore
 
     def get_tape_label(self, tape: GaiaTape) -> str:
         llm_calls_num = 0

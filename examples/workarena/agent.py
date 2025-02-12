@@ -6,11 +6,25 @@ from pydantic import Field
 from tapeagents.agent import Agent
 from tapeagents.core import Prompt, Step
 from tapeagents.llms import LLM
-from tapeagents.nodes import MonoNode
+from tapeagents.nodes import StandardNode
 from tapeagents.tools.browser import PageObservation
 from tapeagents.utils import get_step_schemas_from_union_type
 
-from .prompts import PromptRegistry
+from .prompts import (
+    ABSTRACT_EXAMPLE,
+    ACT,
+    ALLOWED_STEPS,
+    BASELINE_STEPS_PROMPT,
+    BASELINE_SYSTEM_PROMPT,
+    BE_CAUTIOUS,
+    CONCRETE_EXAMPLE,
+    GOAL_INSTRUCTIONS,
+    HINTS,
+    MAC_HINT,
+    REFLECT,
+    START,
+    SYSTEM_PROMPT,
+)
 from .steps import (
     WorkArenaAction,
     WorkArenaAgentStep,
@@ -20,7 +34,7 @@ from .steps import (
 )
 
 
-class WorkArenaBaselineNode(MonoNode):
+class WorkArenaBaselineNode(StandardNode):
     """
     Agent that is close to the original workarena one.
     Implemented features (best feature set for gpt4o from workarena paper):
@@ -38,23 +52,21 @@ class WorkArenaBaselineNode(MonoNode):
 
     def make_prompt(self, agent: Any, tape: WorkArenaTape) -> Prompt:
         assert isinstance(tape.steps[1], WorkArenaTask)
-        goal = PromptRegistry.goal_instructions.format(goal=tape.steps[1].task)
+        goal = GOAL_INSTRUCTIONS.format(goal=tape.steps[1].task)
         obs = [s for s in tape if isinstance(s, PageObservation)][-1].text
         history = self.history_prompt(tape)
-        allowed_steps = PromptRegistry.allowed_steps.format(
-            allowed_steps=get_step_schemas_from_union_type(WorkArenaBaselineStep)
-        )
-        mac_hint = PromptRegistry.mac_hint if platform.system() == "Darwin" else ""
+        allowed_steps = ALLOWED_STEPS.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaBaselineStep))
+        mac_hint = MAC_HINT if platform.system() == "Darwin" else ""
         main_prompt = f"""{goal}\n{obs}\n{history}
-{PromptRegistry.baseline_steps_prompt}{allowed_steps}{mac_hint}
-{PromptRegistry.hints}
-{PromptRegistry.be_cautious}
-{PromptRegistry.abstract_example}
-{PromptRegistry.concrete_example}
+{BASELINE_STEPS_PROMPT}{allowed_steps}{mac_hint}
+{HINTS}
+{BE_CAUTIOUS}
+{ABSTRACT_EXAMPLE}
+{CONCRETE_EXAMPLE}
         """.strip()
         return Prompt(
             messages=[
-                {"role": "system", "content": PromptRegistry.baseline_system_prompt},
+                {"role": "system", "content": BASELINE_SYSTEM_PROMPT},
                 {"role": "user", "content": main_prompt},
             ]
         )
@@ -76,41 +88,15 @@ class WorkArenaBaselineNode(MonoNode):
         return prompt
 
 
-class WorkArenaNode(MonoNode):
-    system_prompt: str = PromptRegistry.system_prompt
-    steps_prompt: str = PromptRegistry.allowed_steps
-    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True, default=WorkArenaAgentStep)
-
-    def prepare_tape(self, tape: WorkArenaTape, max_chars: int = 100):
-        """
-        Trim all page observations except the last two.
-        """
-        tape = super().prepare_tape(tape)  # type: ignore
-        page_positions = [i for i, step in enumerate(tape.steps) if isinstance(step, PageObservation)]
-        if len(page_positions) < 2:
-            return tape
-        prev_page_position = page_positions[-2]
-        steps = []
-        for step in tape.steps[:prev_page_position]:
-            if isinstance(step, PageObservation):
-                short_text = f"{step.text[:max_chars]}\n..." if len(step.text) > max_chars else step.text
-                new_step = step.model_copy(update=dict(text=short_text))
-            else:
-                new_step = step
-            steps.append(new_step)
-        trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[prev_page_position:]))
-        return trimmed_tape
-
-
 class WorkArenaAgent(Agent):
     @classmethod
     def create(cls, llm: LLM, max_iterations: int = 4):
         return super().create(
             llm,
             nodes=[
-                WorkArenaNode(name="set_goal", guidance=PromptRegistry.start),
-                WorkArenaNode(name="reflect", guidance=PromptRegistry.reflect),
-                WorkArenaNode(name="act", guidance=PromptRegistry.act, next_node="reflect"),
+                StandardNode(name="set_goal", system_prompt=SYSTEM_PROMPT, guidance=START),
+                StandardNode(name="reflect", system_prompt=SYSTEM_PROMPT, guidance=REFLECT),
+                StandardNode(name="act", system_prompt=SYSTEM_PROMPT, guidance=ACT, next_node="reflect"),
             ],
             max_iterations=max_iterations,
         )

@@ -8,7 +8,7 @@ from typing import Annotated, Any, Generator, Type, Union
 
 from pydantic import Field, TypeAdapter, ValidationError
 
-from tapeagents.agent import Agent, Node
+from tapeagents.agent import Action, Agent, Node
 from tapeagents.core import (
     AgentStep,
     LLMOutput,
@@ -22,15 +22,16 @@ from tapeagents.core import (
     Tape,
 )
 from tapeagents.llms import LLMStream
+from tapeagents.steps import BranchStep
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import extract_code_blocks
-from tapeagents.utils import FatalError, get_step_schemas_from_union_type, sanitize_json_completion
+from tapeagents.utils import FatalError, class_for_name, get_step_schemas_from_union_type, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
 
 
-class MonoNode(Node):
+class StandardNode(Node):
     """
     A node for simple monolithic agents that handles simple prompt generation, and universal LLM output parsing.
 
@@ -60,14 +61,26 @@ class MonoNode(Node):
 
     guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
-    steps_prompt: str = ""  # prompt that describes the steps that the agent can take
-    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True)
+    steps_prompt: str = "{allowed_steps}"  # prompt that describes the steps that the agent can take
+    steps: type[Step] | list[type[Step] | str] | str = Field(exclude=True)
+    use_known_actions: bool = False
     next_node: str = ""
+    trim_obs_except_last_n: int = 2
     _steps_type: Any = None
 
     def model_post_init(self, __context: Any) -> None:
-        self._steps_type = Annotated[Union[self.agent_steps], Field(discriminator="kind")]
+        self.prepare_step_types()
         super().model_post_init(__context)
+
+    def prepare_step_types(self, actions: list[type[Step]] = None):
+        actions = actions or []
+        step_classes_or_str = actions + (self.steps if isinstance(self.steps, list) else [self.steps])
+        step_classes = tuple([class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str])
+        self._steps_type = Annotated[Union[step_classes], Field(discriminator="kind")]
+
+    def add_known_actions(self, actions: list[type[Step]]):
+        if self.use_known_actions:
+            self.prepare_step_types(actions)
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -96,8 +109,10 @@ class MonoNode(Node):
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
-            cleaned_tape = self.trim_tape(cleaned_tape)
-        messages = self.tape_to_messages(cleaned_tape, steps_description)
+            old_trim = self.trim_obs_except_last_n
+            self.trim_obs_except_last_n = 1
+            messages = self.tape_to_messages(cleaned_tape, steps_description)
+            self.trim_obs_except_last_n = old_trim
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
@@ -171,9 +186,14 @@ class MonoNode(Node):
             messages.append({"role": "system", "content": self.system_prompt})
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
-        for step in tape:
+        for i, step in enumerate(tape):
+            steps_after_current = len(tape) - i - 1
             role = "assistant" if isinstance(step, AgentStep) else "user"
-            messages.append({"role": role, "content": step.llm_view()})
+            if isinstance(step, Observation) and steps_after_current >= self.trim_obs_except_last_n:
+                view = step.short_view()
+            else:
+                view = step.llm_view()
+            messages.append({"role": role, "content": view})
         if self.guidance:
             messages.append({"role": "user", "content": self.guidance})
         return messages
@@ -272,20 +292,25 @@ class MonoNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
-        if llm_output.strip().startswith("```"):  # handle special case of code blocks
-            for code_block in extract_code_blocks(llm_output):
-                if code_block.language and code_block.language != "python":
-                    raise LLMOutputParsingFailureAction(f"Unsupported code block language: {code_block.language}")
-                yield PythonCodeAction(code=code_block.code)
-            return
-
         try:
             step_dicts = json.loads(sanitize_json_completion(llm_output))
             if isinstance(step_dicts, dict):
                 step_dicts = [step_dicts]
         except Exception as e:
             logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
-            yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output)
+            if llm_output.strip().startswith("```"):
+                for code_block in extract_code_blocks(llm_output):
+                    if code_block.language and code_block.language != "python":
+                        yield LLMOutputParsingFailureAction(
+                            error=f"Unsupported code block language: {code_block.language}", llm_output=llm_output
+                        )
+                    else:
+                        yield PythonCodeAction(code=code_block.code)
+                return
+            else:
+                yield LLMOutputParsingFailureAction(
+                    error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output
+                )
             return
 
         try:
@@ -355,7 +380,11 @@ class ControlFlowNode(Node):
         Yields:
             step (SetNextNode): A step indicating which node should be executed next
         """
-        yield SetNextNode(next_node=self.select_node(tape))
+        next_node = self.select_node(tape)
+        if next_node is None:
+            yield BranchStep()
+        else:
+            yield SetNextNode(next_node=next_node)
 
     def select_node(self, tape: Tape) -> str:
         """
@@ -373,6 +402,14 @@ class ControlFlowNode(Node):
             NotImplementedError: If the method is not implemented in the subclass.
         """
         raise NotImplementedError("Implement this method in the subclass to set the next node according to your logic")
+
+
+class IfLastStep(ControlFlowNode):
+    next_node: str
+    step_class: type[Step]
+
+    def select_node(self, tape: Tape) -> str:
+        return self.next_node if isinstance(tape[-1], self.step_class) else None
 
 
 class ObservationControlNode(ControlFlowNode):
@@ -443,6 +480,15 @@ class FixedStepsNode(Node):
     ) -> Generator[Step | PartialStep, None, None]:
         for step in self.steps:
             yield step
+
+
+class GoTo(Node):
+    next_node: str
+
+    def generate_steps(
+        self, agent: Any, tape: Tape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        yield SetNextNode(next_node=self.next_node)
 
 
 class CallSubagent(Node):

@@ -1,0 +1,20 @@
+llm:
+  _target_: tapeagents.llms.LiteLLM
+  model_name: chatgpt-4o-latest
+  use_cache: false
+  context_size: 128000
+  parameters:
+    temperature: 0.4
+
+exp_name: gpt4o_demo_computer2
+exp_path: outputs/gaia/runs/${exp_name}
+
+agent:
+  plain_code: false
+
+env:
+  computer_url: http://localhost:8000
+
+hydra:
+  run:
+    dir: ${exp_path}

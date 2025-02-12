@@ -152,7 +152,12 @@ class Studio:
 
     def render_agent(self, agent_dict: dict) -> str:
         agent = self.validate_agent(agent_dict)
-        return yaml.dump(agent.model_dump(), sort_keys=False)
+        try:
+            agent_config = yaml.dump(agent.model_dump(), sort_keys=False)
+        except Exception as e:
+            logger.exception(f"Failed to get agent configuration: {e}")
+            agent_config = "Failed to get agent configuration"
+        return agent_config
 
     def update_agent(self, config: str) -> dict:
         return self.original_agent.update(yaml.safe_load(config)).model_dump()

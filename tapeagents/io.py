@@ -16,7 +16,7 @@ from pydantic import TypeAdapter
 from tapeagents.agent import Agent
 from tapeagents.config import ATTACHMENT_DEFAULT_DIR
 from tapeagents.core import Tape, TapeType
-from tapeagents.steps import ImageObservation, UnknownStep, VideoObservation
+from tapeagents.steps import UnknownStep, VideoObservation
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
 
 def save_tape_images(tape: Tape, images_dir: str):
     for i, step in enumerate(tape):
-        if isinstance(step, ImageObservation):
+        if hasattr(step, "image_path"):
             image_path = os.path.join(images_dir, f"{step.metadata.id}.png")
             shutil.copy(step.image_path, image_path)
 

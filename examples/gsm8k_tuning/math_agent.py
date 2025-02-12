@@ -17,7 +17,7 @@ from tapeagents.core import (
 from tapeagents.environment import Environment
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
-from tapeagents.nodes import MonoNode
+from tapeagents.nodes import StandardNode
 from tapeagents.orchestrator import main_loop
 from tapeagents.tools.calculator import calculate
 
@@ -115,18 +115,18 @@ class MathAgent(Agent):
         return super().create(
             llm,
             nodes=[
-                MonoNode(
+                StandardNode(
                     name="start",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
-                    agent_steps=MathAgentStep,
+                    steps=MathAgentStep,
                     guidance=START_TASK_GUIDANCE,
                 ),
-                MonoNode(
+                StandardNode(
                     name="default",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
-                    agent_steps=MathAgentStep,
+                    steps=MathAgentStep,
                     guidance=HINTS,
                     next_node="default",
                 ),
