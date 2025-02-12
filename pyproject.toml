@@ -36,6 +36,7 @@ dependencies = [
   "pyautogui>=0.9.54",
   "pydantic~=2.9",
   "pyyaml~=6.0",
+  "streamlit>=1.42.0",
   "tavily-python~=0.3",
   "termcolor~=2.4",
   "tqdm~=4.66",
