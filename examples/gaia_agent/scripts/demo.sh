@@ -81,6 +81,7 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
 fi
 
 echo "Starting Code Sandbox..."
+podman machine set --user-mode-networking
 export DOCKER_HOST=http+unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
 # Install dependencies
 uv sync --all-extras
