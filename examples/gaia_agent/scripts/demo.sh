@@ -82,6 +82,8 @@ fi
 
 echo "Starting Code Sandbox..."
 export DOCKER_HOST=http+unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
+# Install dependencies
+uv sync --all-extras
 uv run examples/gaia_agent/scripts/run_code_sandbox.py &
 echo "Starting Chat UI..."
 export GROUNDING_API_URL="https://snow-llmd-grounding-8000.job.console.elementai.com"
