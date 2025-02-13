@@ -134,7 +134,7 @@ async def main(cfg):
             st.write(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
         today_date_str = datetime.now().strftime("%Y-%m-%d")
-
+        last_status = st.status("Thinking...")
         if st.session_state.tape is None:
             initial_obs = st.session_state.env.action_map[GetCursorPositionAction].execute_action(
                 GetCursorPositionAction()
@@ -150,19 +150,19 @@ async def main(cfg):
             st.session_state.tape = st.session_state.tape.append(UserStep(content=prompt))
 
         try:
-            last_status = st.status("Thinking...")
             for event in main_loop(st.session_state.agent, st.session_state.tape, st.session_state.env, max_loops=50):
                 msg = None
+                icon = ""
                 if partial_tape := (event.agent_tape or event.env_tape):
                     st.session_state.tape = partial_tape
                 if event.agent_event and event.agent_event.step:
                     step = event.agent_event.step
                     if step.kind in ["set_next_node"]:
                         continue
-                    msg, msg_type = render_step(step)
+                    msg, msg_type, icon = render_step(step)
                 elif event.observation:
                     step = event.observation
-                    msg, msg_type = render_step(step)
+                    msg, msg_type, icon = render_step(step)
                 elif event.agent_event and event.agent_event.final_tape:
                     st.session_state.tape = event.agent_event.final_tape
                 if msg:
@@ -172,11 +172,15 @@ async def main(cfg):
                     if msg_type == "progress":
                         last_status = st.status(msg)
                     elif msg_type == "code":
-                        with st.chat_message("assistant", avatar="💻"):
+                        with st.chat_message("assistant", avatar=":material/code:"):
                             st.code(msg, language="python")
                     elif msg_type == "html":
-                        with st.chat_message("assistant"):
-                            st.html(msg)
+                        if icon:
+                            with st.chat_message("assistant", avatar=f":material/{icon}:"):
+                                st.html(msg)
+                        else:
+                            with st.chat_message("assistant"):
+                                st.html(msg)
                     elif msg_type == "markdown":
                         with st.chat_message("assistant"):
                             st.markdown(msg)
@@ -196,6 +200,7 @@ async def main(cfg):
 def render_step(step: Step) -> str:
     msg = ""
     msg_type = "html"
+    icon = ""
     if step.kind == "plan_thought":
         steps_html = "\n".join(
             [
@@ -226,13 +231,14 @@ def render_step(step: Step) -> str:
     elif step.kind == "computer_observation":
         if step.output:
             msg = f"""
-            <div style="font-family: 'Monaco', 'Menlo', monospace; margin: 10px 0; border-radius: 8px; overflow: hidden;">
+            <div style="font-family: 'Monaco', 'Menlo', monospace; font-size: 10pt; margin: 10px 0; border-radius: 8px; overflow: hidden;">
                 <div style="padding: 15px; background: #f8f9fa; border: 1px solid #eee;">
                     <div style="white-space: pre-wrap;"><code>{step.output}</code></div>
                     {f'<div style="white-space: pre-wrap; color: #dc3545;"><span style="color: #b71c1c;">Error:</span><br><code>{step.error}</code></div>' if step.error else ''}
                 </div>
             </div>
             """
+            icon = "output"
         else:
             msg = "Looking at the screen..."
             msg_type = "progress"
@@ -287,7 +293,7 @@ def render_step(step: Step) -> str:
             <div style="font-family: Arial, sans-serif; margin: 10px 0;">
                 <div style="background: #e7f3ff; border-left: 4px solid #1a73e8; padding: 15px; border-radius: 4px;">
                     <div style="font-weight: bold; color: #1a73e8; font-size: 1.1em; margin-bottom: 10px;">
-                        🎯 Final Answer
+                        🎯 Answer
                     </div>
                     <div style="color: #202124; line-height: 1.5;">
                         {step.long_answer}
@@ -362,14 +368,14 @@ def render_step(step: Step) -> str:
                     </div>
                 """)
             msg = '<div style="font-family: Arial, sans-serif;">' + "\n".join(results_html) + "</div>"
+        icon = "output"
     elif step.kind == "code_execution_result":
         result = step.result
         status_color = "#28a745" if result.exit_code == 0 else "#dc3545"  # green for success, red for error
         output = result.output.strip() if result.exit_code == 0 else ""
         error = result.output.strip() if result.exit_code != 0 else ""
-
         msg = f"""
-        <div style="font-family: 'Monaco', 'Menlo', monospace; margin: 10px 0; border-radius: 8px; overflow: hidden;">
+        <div style="font-family: 'Monaco', 'Menlo', monospace; font-size: 10pt; margin: 10px 0; border-radius: 8px; overflow: hidden;">
             <div style="padding: 8px 15px; background: {status_color}; color: white; font-size: 0.9em;">
                 Exit Code: {result.exit_code}
             </div>
@@ -379,10 +385,11 @@ def render_step(step: Step) -> str:
             </div>
         </div>
         """
+        icon = "output"
     else:
         msg = step.llm_dict()
         msg_type = "write"
-    return msg, msg_type
+    return msg, msg_type, icon
 
 
 def load_from_storage(filename: str) -> str | None:

@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import logging
 import os
@@ -9,7 +8,7 @@ import traceback
 
 import pyautogui
 import uvicorn
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException
 from PIL import Image
 
 app = FastAPI()
@@ -122,32 +121,28 @@ def maybe_truncate(content: str, truncate_after: int | None = MAX_RESPONSE_LEN):
     )
 
 
-async def run(
+def run(
     cmd: str,
     timeout: float | None = 120.0,  # seconds
     truncate_after: int | None = MAX_RESPONSE_LEN,
 ):
-    """Run a shell command asynchronously with a timeout."""
-    process = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-
+    """Run a shell command with a timeout."""
     try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate(timeout=timeout)
         return (
             process.returncode or 0,
             maybe_truncate(stdout.decode(), truncate_after=truncate_after),
             maybe_truncate(stderr.decode(), truncate_after=truncate_after),
         )
-    except asyncio.TimeoutError as exc:
-        try:
-            process.kill()
-        except ProcessLookupError:
-            pass
+    except subprocess.TimeoutExpired as exc:
+        process.kill()
         raise TimeoutError(f"Command '{cmd}' timed out after {timeout} seconds") from exc
 
 
 def run_command(command: str) -> dict:
     try:
-        exit_code, output, error = asyncio.run(run(command))
+        exit_code, output, error = run(command)
         obs = _take_screenshot()
         obs["output"] = output
         if exit_code != 0:
@@ -194,17 +189,6 @@ async def execute_action(request: dict):
     except Exception as e:
         logger.exception(str(e))
         raise HTTPException(status_code=400, detail=f"{str(e)}\n{traceback.format_exc()}")
-
-
-@app.post("/save_file")
-async def save_file(file: UploadFile = File(...), path: str = Form(...)):
-    try:
-        content = await file.read()
-        with open(path, "wb") as f:
-            f.write(content)
-        return {"status": "success", "message": f"File saved to {path}"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 if __name__ == "__main__":

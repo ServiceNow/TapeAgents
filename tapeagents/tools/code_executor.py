@@ -42,11 +42,21 @@ class CodeExecutor(Tool):
     cached: bool = True
     exp_path: str = ""
     max_output_length: int = 3000
+    container_name: str = "tapeagents-code-exec"
+    mounted_dir: str = ""
+    container_work_dir: str = "/workspace"
 
     def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
         code = self.prepare_code(action)
         code_dir = os.path.join(self.exp_path, "code")
-        result = execute_code_in_container([CodeBlock(code=code, language="python")], code_dir, action.input_files)
+        result = execute_code_in_container(
+            [CodeBlock(code=code, language="python")],
+            work_dir=code_dir,
+            input_files=action.input_files,
+            container_name=self.container_name,
+            mounted_dir=self.mounted_dir,
+            container_work_dir=self.container_work_dir,
+        )
         result.output = result.output[: self.max_output_length].strip()
         obs = CodeExecutionResult(result=result)
         return obs

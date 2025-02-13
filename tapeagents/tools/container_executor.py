@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 ANSI_ESCAPE_REGEX = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 DEFAULT_CONTAINER = os.environ.get("TAPEAGENTS_CODE_SANDBOX", "tapeagents-code-exec")
@@ -259,6 +260,8 @@ def execute_code_in_container(
     work_dir: str,
     input_files: list[str] | None = None,
     container_name: str = DEFAULT_CONTAINER,
+    container_work_dir: str = "/workspace",
+    mounted_dir: str = "",
     timeout: int = 60,
 ) -> CommandLineCodeResult:
     """Execute the code blocks and return the result. Suitable to run in child processes.
@@ -285,6 +288,10 @@ def execute_code_in_container(
     output_files = []
     files: list[Path] = []
     last_exit_code = 0
+    if mounted_dir:
+        mounted_dir = Path(mounted_dir)
+        if not mounted_dir.is_dir():
+            mounted_dir.mkdir(parents=True)
     for code_block in code_blocks:
         lang = LANGUAGE_ALIASES.get(code_block.language.lower(), code_block.language.lower())
         if lang not in DEFAULT_EXECUTION_POLICY:
@@ -297,33 +304,39 @@ def execute_code_in_container(
 
         # Check if there is a filename comment
         try:
-            filename = _get_file_name_from_content(code, work_dir)
+            code_filename = _get_file_name_from_content(code, work_dir)
         except ValueError:
             outputs.append("Filename is not in the workspace")
             last_exit_code = 1
             break
 
-        if not filename:
-            filename = f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
+        if not code_filename:
+            code_filename = f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
         if input_files is not None:
             for input_file_path_str in input_files:
                 input_file_path = Path(input_file_path_str)
                 copy_file_path = work_dir / input_file_path.name
-                container_file_path = os.path.join("/workspace", input_file_path.name)
+                container_file_path = os.path.join(container_work_dir, input_file_path.name)
                 shutil.copy(input_file_path, copy_file_path)
-                logger.info(f"Replace `{input_file_path}` with `{container_file_path}`")
+                if mounted_dir:
+                    shutil.copy(input_file_path, mounted_dir / input_file_path.name)
+                    logger.info(f"Copy `{input_file_path}` to mounted dir `{mounted_dir / input_file_path.name}`")
+                logger.info(f"Put `{input_file_path}` at `{container_file_path}` inside container")
                 code = code.replace(input_file_path_str, container_file_path)
-        code_path = work_dir / filename
+        code_path = work_dir / code_filename
         with code_path.open("w", encoding="utf-8") as fout:
             fout.write(code)
         files.append(code_path)
+        if mounted_dir:
+            shutil.copy(code_path, mounted_dir / code_filename)
+            logger.info(f"Copy `{code_path}` to mounted dir `{mounted_dir / code_filename}`")
 
         if not execute_code:
             outputs.append(f"Code saved to {str(code_path)}\n")
             continue
         import podman as docker
 
-        command = ["timeout", str(timeout), _cmd(lang), filename]
+        command = ["timeout", str(timeout), _cmd(lang), os.path.join(container_work_dir, code_filename)]
         try:
             exit_code, output = container.exec_run(command, tty=True)
             logger.info(f"Executed: {command}, Exit code: {exit_code}\n Output: {output}")
