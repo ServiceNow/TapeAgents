@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 import os
 import random
+import re
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
@@ -21,47 +22,30 @@ from tqdm import tqdm
 
 import wandb
 from tapeagents.agent import Agent
-from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.core import LLMCall, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 
 from .cot_math_agent import CoTMathAgent, RLMathTape, Task
-from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer
-from .deepseek_math_eval.eval_script import eval_last_single_answer, eval_math
-from .deepseek_math_eval.process_utils import process_eurus_test, process_gsm8k_test, process_math_test
 from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
 
 logger = logging.getLogger(__name__)
 
 
-def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
-    match cfg.dataset_name:
-        case "math":
-            train_dataset_long_name = "hendrycks/competition_math"
-            test_dataset_long_name = "HuggingFaceH4/MATH-500"
-            process_fn = process_math_test
-            train_builder_config = "main"
-            test_builder_config = "default"
-        case "gsm8k":
-            train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
-            process_fn = process_gsm8k_test
-            train_builder_config = test_builder_config = "main"
-        case "eurus":
-            train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
-            test_dataset_long_name = "alexpiche/math_test_cleaned"
-            process_fn = process_eurus_test
-            builder_config = "default"
-        case _:
-            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
+def process_gsm8k(item):
+    answer = item["answer"].split("#### ")[-1]
+    sample = {"dataset": "gsm8k-cot", "task": item["question"], "answer": answer}
+    return sample
 
-    train_dataset = load_dataset(train_dataset_long_name, train_builder_config, split="train", trust_remote_code=True)
-    test_dataset = load_dataset(test_dataset_long_name, test_builder_config, split="test", trust_remote_code=True)
+def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
+    train_dataset = load_dataset("openai/gsm8k", "main", split="train", trust_remote_code=True)
+    test_dataset = load_dataset("openai/gsm8k", "main", split="test", trust_remote_code=True)
     train_samples = [
-        process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
+        process_gsm8k(s) for s in tqdm(train_dataset, desc="Processing train samples") 
     ]
     test_samples = [
-        process_fn(s) for s in tqdm(test_dataset, desc="Processing test samples") if process_fn(s) is not None
+        process_gsm8k(s) for s in tqdm(test_dataset, desc="Processing test samples") 
     ]
     logger.info(f"Loaded {len(train_samples)} training samples")
     logger.info(f"Loaded {len(test_samples)} test samples")
@@ -135,32 +119,21 @@ def extract_tape_training_samples(
     """
     tape_prompt_tokens = 0
     tape_output_tokens = 0
-    match cfg.dataset_name:
-        case "math":
-            eval_fn = eval_math
-            extract_fn = extract_math_answer
-        case "gsm8k":
-            eval_fn = eval_last_single_answer
-            extract_fn = extract_last_single_answer
-        case "eurus":
-            eval_fn = eval_math
-            extract_fn = extract_math_answer
-        case _:
-            raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    if any([isinstance(step, LLMOutputParsingFailureAction) for step in new_tape.steps]):
+    reasoning = new_tape.steps[-1].reasoning
+    begin_boxed = reasoning.rfind("\\boxed")
+    prediction = reasoning[begin_boxed:]
+    prediction = prediction.replace("\\boxed{", "").replace("}", "").strip()
+    number_match = re.search(r'-?\d+', prediction)
+    if not number_match:
         # LLM produced a step that was unparsable. Negative reward.
         no_error, reward, success = 0, -1, 0
     else:
         no_error = 1
-        prediction = extract_fn(new_tape.steps[0].task, new_tape.steps[-1].reasoning, "cot")  # type: ignore
+        prediction = number_match.group()
         answer = new_tape.steps[0].metadata.other["value"]
-        if eval_fn(
-            {
-                "prediction": prediction,
-                "answer": answer,
-            }
-        ):
+
+        if prediction == answer:
             # Correct answer
             reward, success = 1, 1
         else:

@@ -1,13 +1,12 @@
 defaults:
-  - finetune: rl_llama31_8b
+  - finetune: rl_gsm8k
   - _self_
 
-dataset_name: gsm8k
 n_workers_per_gpu: 32
 get_logprobs_workers_per_gpu: 4
 max_loops: 1
 test_every_n_iterations: 5
-model_path: /mnt/llmd/base_models/deepseek-math-7b-instruct
+model_path: /mnt/llmd/base_models/Llama-3.2-1B-Instruct
 max_agent_forks: 1024
 attempts: 64
 force_restart: false
@@ -35,7 +34,6 @@ finetune:
   seq_length: 4096
 
 system_prompt: ""
-# Same prompt as https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/run_subset_parallel.py#L26
 task_template: |-
   {task}\nPlease reason step by step, and put your final answer within \boxed{{}}.
 overflow_reward: 0
