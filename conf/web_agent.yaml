@@ -1,5 +1,5 @@
 exp_name: gpt4o_web_agent
-exp_path: outputs/gaia/runs/${exp_name}
+exp_path: outputs/web_agent/runs/${exp_name}
 
 llm:
   _target_: tapeagents.llms.LiteLLM
@@ -77,15 +77,16 @@ agent:
       system_prompt: ${agent.templates.system_prompt}
       guidance: |
         Produce a JSON list with two steps in it.
-        The first step should be the reasoning thought produced according to the following rules:
+        The first step should be the reasoning step with a bullet-point list of thoughts strictly following the rules:
           1. Summarize the last observation and describe any webpage interactions/effects.
           2. Evaluate action success, explain impact on task/plan, and describe any errors with solutions.
-          3. List next steps to accomplish current plan step and propose immediate action.
-          4. For webpage interactions:
+          3. If the last action was not successful, ask yourself about the reasons for failure.
+          4. List next steps to accomplish current plan step and propose immediate action.
+          5. For webpage interactions:
             - Accept cookie consents first
             - Quote relevant observation parts verbatim
             - Close popups before interacting
-            - Scroll to view hidden elements
+            - If last action was not successful, check if the target element is visible, use scrolling if its not.
         The second step should be an action that performs the proposed step.
         ${agent.templates.format}
       steps_prompt: ${agent.templates.allowed_steps}
