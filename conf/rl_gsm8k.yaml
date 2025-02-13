@@ -8,11 +8,11 @@ get_logprobs_workers_per_gpu: 4
 max_loops: 1
 test_every_n_iterations: 5
 model_path: /mnt/llmd/base_models/deepseek-math-7b-instruct
-max_agent_forks: 1024
-attempts: 64
+max_agent_forks: 1024  # total number of samples to generate
+attempts: 64  # number of samples to generate per context
 force_restart: false
 max_iterations: 1000
-use_rejection_sampling: false
+use_rejection_sampling: false  # if true, will not save trajectories with <= 0 reward during data generation phase
 llm:
   parameters:
     max_tokens: 3072
