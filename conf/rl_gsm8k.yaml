@@ -5,10 +5,10 @@ defaults:
 n_workers_per_gpu: 32
 get_logprobs_workers_per_gpu: 4
 max_loops: 1
-test_every_n_iterations: 5
+test_every_n_iterations: 1
 model_path: /mnt/llmd/base_models/Llama-3.2-1B-Instruct
-max_agent_forks: 1024
-attempts: 64
+max_agent_forks: 6000
+attempts: 8 
 force_restart: false
 max_iterations: 1000
 use_rejection_sampling: false
