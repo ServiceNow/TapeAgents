@@ -221,7 +221,20 @@ def render_step(step: Step) -> str:
         if step.error:
             msg = f"<div style='color: red;'>{step.error}</div>"
         else:
-            msg = "Looking at the page..."
+            msg = "Looking at the image..."
+            msg_type = "progress"
+    elif step.kind == "computer_observation":
+        if step.output:
+            msg = f"""
+            <div style="font-family: 'Monaco', 'Menlo', monospace; margin: 10px 0; border-radius: 8px; overflow: hidden;">
+                <div style="padding: 15px; background: #f8f9fa; border: 1px solid #eee;">
+                    <div style="white-space: pre-wrap;"><code>{step.output}</code></div>
+                    {f'<div style="white-space: pre-wrap; color: #dc3545;"><span style="color: #b71c1c;">Error:</span><br><code>{step.error}</code></div>' if step.error else ''}
+                </div>
+            </div>
+            """
+        else:
+            msg = "Looking at the screen..."
             msg_type = "progress"
     elif step.kind == "facts_survey_thought":
         sections = []
@@ -307,6 +320,9 @@ def render_step(step: Step) -> str:
         msg_type = "progress"
     elif step.kind == "mouse_click_action":
         msg = f"Clicking {step.element_description}..."
+        msg_type = "progress"
+    elif step.kind == "run_terminal_command":
+        msg = f"$> {step.command}"
         msg_type = "progress"
     elif step.kind == "mouse_hover_action":
         msg = f"Hovering over {step.element_description}..."

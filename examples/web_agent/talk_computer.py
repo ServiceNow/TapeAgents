@@ -13,6 +13,7 @@ from tapeagents.tools.computer.remote import (
     RemoteComputer,
     TypeTextAction,
 )
+from tapeagents.tools.computer.steps import RunTerminalCommand
 
 STREAMLIT_STYLE = """
 <style>
@@ -40,7 +41,11 @@ async def main():
     st.markdown(STREAMLIT_STYLE, unsafe_allow_html=True)
     exp_path = ".talk_computer"
     if "computer" not in st.session_state:
-        st.session_state.computer = RemoteComputer(exp_path=exp_path, computer_url="http://localhost:8000")
+        st.session_state.computer = RemoteComputer(
+            exp_path=exp_path,
+            computer_url="http://localhost:8000",
+            grounding_api_url="https://snow-llmd-grounding-8000.job.console.elementai.com",
+        )
     computer = st.session_state.computer
     if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Language controlled computer activated."}]
@@ -59,6 +64,13 @@ async def main():
             url = prompt.split(" ", maxsplit=1)[1]
             computer.execute_action(OpenUrlAction(url=url))
             msg = f"Opened {url}"
+        elif prompt.startswith("run"):
+            st.status("Running...")
+            command = prompt.split(" ", maxsplit=1)[1]
+            obs = computer.execute_action(RunTerminalCommand(command=command))
+            msg = obs.output
+            if obs.error:
+                msg += [f"\n\nError: {obs.error}"]
         elif prompt.startswith("click"):
             st.status("Clicking...")
             target = prompt.split(" ", maxsplit=1)[1]
