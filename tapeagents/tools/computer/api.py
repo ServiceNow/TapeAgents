@@ -13,7 +13,7 @@ from PIL import Image
 
 app = FastAPI()
 TYPING_DELAY_MS = 180
-SCREENSHOT_DELAY = 3.0
+SCREENSHOT_DELAY = 2.0
 WEB_PAGE_LOAD_DELAY = 4.0
 
 logger = logging.getLogger("API")
@@ -33,7 +33,6 @@ def _take_screenshot() -> dict:
             screenshot.save(tmp.name)
             tmp.seek(0)
             base64_image = base64.b64encode(tmp.read()).decode()
-        print(f"png size: {len(base64_image)}")
         return {"base64_image": base64_image}
     except Exception as e:
         err = f"Screenshot failed: {e}\n{traceback.format_exc()}"
@@ -44,7 +43,7 @@ def _take_screenshot() -> dict:
 def key_press(text: str) -> dict:
     try:
         keys = text.lower().replace("+", " ").split()
-        print(f"Pressing keys: {keys}")
+        logger.info(f"Pressing keys: {keys}")
         pyautogui.hotkey(*keys)
         return _take_screenshot()
     except Exception as e:
@@ -69,7 +68,7 @@ def mouse_move(x: int, y: int) -> dict:
 
 def mouse_click(button: str) -> dict:
     try:
-        if button == "double":
+        if button == "double_left":
             pyautogui.doubleClick()
         else:
             pyautogui.click(button=button)
@@ -193,5 +192,5 @@ async def execute_action(request: dict):
 
 if __name__ == "__main__":
     port = 8000
-    print(f"Starting api on port {port}")
+    logger.info(f"Starting api on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)

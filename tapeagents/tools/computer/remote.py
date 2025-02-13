@@ -42,6 +42,9 @@ class MouseClickAction(Action):
     """
 
     kind: Literal["mouse_click_action"] = "mouse_click_action"
+    button: Literal["left", "double_left", "right"] = Field(
+        description="mouse button to click, double_left for double left click", default="left"
+    )
     element_description: str = Field(description="brief description of the element to click")
 
 
@@ -115,7 +118,7 @@ class RemoteComputer(Multitool):
 
     def mouse_click(self, action: MouseClickAction) -> ImageObservation:
         self.mouse_hover(action)
-        return self.remote_execute_action(CompMouseClickAction(button="left"))
+        return self.remote_execute_action(CompMouseClickAction(button=action.button))
 
     def page_up(self, action: PageUpAction) -> ImageObservation:
         return self.remote_execute_action(KeyPressAction(text="Page_Up"))

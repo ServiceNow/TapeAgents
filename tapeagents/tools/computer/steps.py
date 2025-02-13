@@ -33,7 +33,9 @@ class MouseClickAction(Action):
     """Action that performs mouse click"""
 
     kind: Literal["mouse_click_action"] = "mouse_click_action"
-    button: Literal["left", "right", "middle", "double"] = Field(description="Mouse button to click", default="left")
+    button: Literal["left", "right", "middle", "double_left"] = Field(
+        description="Mouse button to click", default="left"
+    )
 
 
 class MouseDragAction(Action):
