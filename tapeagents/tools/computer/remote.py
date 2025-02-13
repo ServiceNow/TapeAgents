@@ -20,11 +20,16 @@ from .steps import (
     MouseClickAction as CompMouseClickAction,
     MouseMoveAction,
     OpenUrlAction,
+    RunTerminalCommand,
     TypeTextAction,
 )
 
 logger = logging.getLogger("remote")
 logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(funcName)s - %(message)s")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 
 class MouseClickAction(Action):
@@ -76,6 +81,7 @@ class RemoteComputer(Multitool):
         PageUpAction,
         PageDownAction,
         GetCursorPositionAction,
+        RunTerminalCommand,
     )
     observations: tuple[type[ImageObservation], ...] = (ImageObservation,)
     computer_url: str = Field(description="Remote tool API URL")
@@ -94,6 +100,7 @@ class RemoteComputer(Multitool):
             PageUpAction: self.page_up,
             PageDownAction: self.page_down,
             GetCursorPositionAction: self.remote_execute_action,
+            RunTerminalCommand: self.remote_execute_action,
         }
 
     def execute_action(self, action: Action) -> ImageObservation:
@@ -122,23 +129,20 @@ class RemoteComputer(Multitool):
             response = requests.post(f"{self.computer_url}/execute", json=payload)
             response.raise_for_status()
             obs_dict = response.json()
-            return self.convert_observation(ComputerObservation(**obs_dict))
+            logger.info(f"Received observation: {obs_dict.keys()}")
+            return self.save_screenshot(ComputerObservation(**obs_dict))
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {str(e)}")
             return ImageObservation(image_path="", error=f"API request failed: {str(e)}")
 
-    def convert_observation(self, obs: ComputerObservation) -> ImageObservation:
-        bimage = obs.base64_image
-        if not bimage:
-            return ComputerObservation(error="Failed to get screenshot")
-        image_name_with_timestamp = f"{self._screenshot_dir}/screen_{int(time.time())}.png"
-        with open(image_name_with_timestamp, "wb") as f:
-            f.write(base64.b64decode(bimage))
-        return ImageObservation(
-            image_path=image_name_with_timestamp,
-            error=obs.error,
-            image_caption=f"Current state of the computer screen. Additional info: {obs.text}",
-        )
+    def save_screenshot(self, obs: ComputerObservation) -> ImageObservation:
+        if obs.base64_image:
+            fname = f"{self._screenshot_dir}/screen_{int(time.time())}.png"
+            with open(fname, "wb") as f:
+                f.write(base64.b64decode(obs.base64_image))
+            obs.image_path = fname
+            obs.base64_image = None
+        return obs
 
     def get_screen(self) -> Image:
         obs = self.remote_execute_action(GetCursorPositionAction())

@@ -2,7 +2,9 @@ from typing import Literal
 
 from pydantic import Field
 
-from tapeagents.core import Action, Observation
+from tapeagents.core import Action
+from tapeagents.steps import ImageObservation
+from tapeagents.utils import image_base64_message
 
 
 class KeyPressAction(Action):
@@ -13,7 +15,7 @@ class KeyPressAction(Action):
 
 
 class TypeTextAction(Action):
-    """Action that types text character by character"""
+    """Action that types text character by character. Use \n in the end for Enter key press"""
 
     kind: Literal["type_text_action"] = "type_text_action"
     text: str = Field(description="Text to type")
@@ -57,10 +59,29 @@ class OpenUrlAction(Action):
     url: str = Field(description="URL to navigate to")
 
 
-class ComputerObservation(Observation):
+class RunTerminalCommand(Action):
+    """
+    Action that executes a command in the terminal.
+    """
+
+    kind: Literal["run_terminal_command"] = "run_terminal_command"
+    command: str = Field(description="Command to execute")
+
+
+class ComputerObservation(ImageObservation):
     """Base observation returned by computer actions"""
 
     kind: Literal["computer_observation"] = "computer_observation"
-    text: str = ""
-    error: str = ""
+    output: str = ""
+    image_path: str = ""
     base64_image: str | None = None
+
+    def llm_view(self) -> list[dict]:
+        content = []
+        if self.output:
+            content.append({"type": "text", "text": self.output})
+        if self.error:
+            content.append({"type": "text", "text": f"Error: {self.error}"})
+        if self.image_path:
+            content.append(image_base64_message(self.image_path))
+        return content

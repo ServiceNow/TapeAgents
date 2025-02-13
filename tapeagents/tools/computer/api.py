@@ -1,6 +1,9 @@
+import asyncio
 import base64
 import logging
 import os
+import subprocess
+import tempfile
 import time
 import traceback
 
@@ -10,13 +13,13 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from PIL import Image
 
 app = FastAPI()
-TYPING_DELAY_SEC = 0.18
+TYPING_DELAY_MS = 180
 SCREENSHOT_DELAY = 3.0
 WEB_PAGE_LOAD_DELAY = 4.0
 
 logger = logging.getLogger("API")
 logger.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(funcName)s - %(message)s")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
@@ -27,21 +30,16 @@ def _take_screenshot() -> dict:
     time.sleep(SCREENSHOT_DELAY)
     try:
         screenshot: Image = pyautogui.screenshot()
-        screenshot_path = "temp_screenshot.png"
-        screenshot.save(screenshot_path)
-        with open(screenshot_path, "rb") as image_file:
-            base64_image = base64.b64encode(image_file.read()).decode()
-        os.remove(screenshot_path)
-        x, y = pyautogui.position()
-        return {"base64_image": base64_image, "text": f"[{x}, {y}]"}
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=True) as tmp:
+            screenshot.save(tmp.name)
+            tmp.seek(0)
+            base64_image = base64.b64encode(tmp.read()).decode()
+        print(f"png size: {len(base64_image)}")
+        return {"base64_image": base64_image}
     except Exception as e:
         err = f"Screenshot failed: {e}\n{traceback.format_exc()}"
         logger.exception(str(e))
         return {"error": err}
-
-
-def _scale_coordinates(source: str, x: int, y: int):
-    return x, y
 
 
 def key_press(text: str) -> dict:
@@ -54,9 +52,9 @@ def key_press(text: str) -> dict:
         return {"error": f"Key press {text} failed: {e}"}
 
 
-def type_text(text: str) -> dict:
+def type_text(text: str, delay_ms: int = TYPING_DELAY_MS) -> dict:
     try:
-        pyautogui.write(text, interval=TYPING_DELAY_SEC)
+        pyautogui.write(text, interval=delay_ms / 1000)
         return _take_screenshot()
     except Exception as e:
         return {"error": f"Typing failed: {e}"}
@@ -64,8 +62,7 @@ def type_text(text: str) -> dict:
 
 def mouse_move(x: int, y: int) -> dict:
     try:
-        scaled_x, scaled_y = _scale_coordinates("api", x, y)
-        pyautogui.moveTo(scaled_x, scaled_y, duration=0.5)
+        pyautogui.moveTo(x, y, duration=0.2)
         return _take_screenshot()
     except Exception as e:
         return {"error": f"Mouse move failed: {e}"}
@@ -84,8 +81,7 @@ def mouse_click(button: str) -> dict:
 
 def mouse_drag(x: int, y: int) -> dict:
     try:
-        scaled_x, scaled_y = _scale_coordinates("api", x, y)
-        pyautogui.dragTo(scaled_x, scaled_y)
+        pyautogui.dragTo(x, y)
         return _take_screenshot()
     except Exception as e:
         return {"error": f"Mouse drag failed: {e}"}
@@ -93,20 +89,77 @@ def mouse_drag(x: int, y: int) -> dict:
 
 def get_cursor_position() -> dict:
     try:
-        return _take_screenshot()
+        obs = _take_screenshot()
+        x, y = pyautogui.position()
+        obs["output"] = f"[{x}, {y}]"
+        return obs
     except Exception as e:
         return {"error": f"Get cursor position failed: {e}"}
 
 
-def open_url(url: str) -> dict:
+def open_url(url: str, load_delay: int = WEB_PAGE_LOAD_DELAY) -> dict:
     try:
         logger.info(f"Opening URL: {url}")
         os.system(f"open {url} &")
-        time.sleep(WEB_PAGE_LOAD_DELAY)
+        time.sleep(load_delay)
         return _take_screenshot()
     except Exception as e:
-        logger.error(f"Open URL {url} failed: {e}")
-        return {"error": f"Open URL {url} failed: {e}"}
+        error = f"Open URL {url} failed: {e}"
+        logger.error(error)
+        return {"error": error}
+
+
+TRUNCATED_MESSAGE: str = "<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>"
+MAX_RESPONSE_LEN: int = 16000
+
+
+def maybe_truncate(content: str, truncate_after: int | None = MAX_RESPONSE_LEN):
+    """Truncate content and append a notice if content exceeds the specified length."""
+    return (
+        content
+        if not truncate_after or len(content) <= truncate_after
+        else content[:truncate_after] + TRUNCATED_MESSAGE
+    )
+
+
+async def run(
+    cmd: str,
+    timeout: float | None = 120.0,  # seconds
+    truncate_after: int | None = MAX_RESPONSE_LEN,
+):
+    """Run a shell command asynchronously with a timeout."""
+    process = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+
+    try:
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        return (
+            process.returncode or 0,
+            maybe_truncate(stdout.decode(), truncate_after=truncate_after),
+            maybe_truncate(stderr.decode(), truncate_after=truncate_after),
+        )
+    except asyncio.TimeoutError as exc:
+        try:
+            process.kill()
+        except ProcessLookupError:
+            pass
+        raise TimeoutError(f"Command '{cmd}' timed out after {timeout} seconds") from exc
+
+
+def run_command(command: str) -> dict:
+    try:
+        exit_code, output, error = asyncio.run(run(command))
+        obs = _take_screenshot()
+        obs["output"] = output
+        if exit_code != 0:
+            obs["error"] = f"exit code: {exit_code}"
+            if error:
+                logger.info(f"Error: {error}")
+                obs["error"] += f"\nstderr: {error}"
+        return obs
+    except Exception as e:
+        error = f"Command {command} failed: {e}"
+        logger.error(error)
+        return {"error": error}
 
 
 ACTION_MAP: dict[str:callable] = {
@@ -117,6 +170,7 @@ ACTION_MAP: dict[str:callable] = {
     "mouse_drag_action": mouse_drag,
     "get_cursor_position_action": get_cursor_position,
     "open_url_action": open_url,
+    "run_terminal_command": run_command,
 }
 
 
@@ -135,6 +189,7 @@ async def execute_action(request: dict):
         observation = ACTION_MAP[request["kind"]](**kwargs)
         if observation.get("error"):
             logger.error(f"Action failed: {observation['error']}")
+        logger.info(f"Return observation: {observation.keys()}")
         return observation
     except Exception as e:
         logger.exception(str(e))
