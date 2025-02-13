@@ -231,7 +231,7 @@ def generate_training_data(
     overflow_stats = defaultdict(list)
     training_samples: List[TrainingText] = []
 
-    logger.info(f"Run the agent on {cfg.dataset_name} {split_name}")
+    logger.info(f"Run the agent on {split_name}")
 
     start_making_tapes = time.time()
     with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
@@ -391,7 +391,7 @@ def main(cfg: DictConfig):
                     }
 
                     # Log results
-                    logger.info(f"{cfg.dataset_name} {split_name} stats:")
+                    logger.info(f"{split_name} stats:")
                     for stat_name, stat_value in stats.items():
                         logger.info(f"{stat_name}: {stat_value}")
                 assistant_vllm_stats = vllm_service_manager.get_stats()
