@@ -46,7 +46,7 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
         case "gsm8k":
             train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
-            builder_config = "main"
+            train_builder_config = test_builder_config = "main"
         case "eurus":
             train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
             test_dataset_long_name = "alexpiche/math_test_cleaned"
