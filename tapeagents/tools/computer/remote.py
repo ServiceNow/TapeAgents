@@ -152,3 +152,6 @@ class RemoteComputer(Multitool):
         if obs.error:
             raise ValueError(f"Failed to get screen: {obs.error}")
         return Image.open(obs.image_path)
+
+    def reset(self):
+        self.remote_execute_action(RunTerminalCommand(command='xdotool search "" windowkill %@'))

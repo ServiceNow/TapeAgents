@@ -86,6 +86,9 @@ class Multitool(BaseModel):
     def execute_action(self, action: Action) -> Observation:
         raise NotImplementedError
 
+    def reset(self) -> None:
+        pass
+
     def close(self) -> None:
         """
         Perform any necessary cleanup actions.

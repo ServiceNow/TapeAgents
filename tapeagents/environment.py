@@ -58,6 +58,12 @@ class Environment(ABC, Generic[TapeType]):
     def actions(self) -> tuple[type[Action], ...]:
         return tuple()
 
+    def reset(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
 
 class EmptyEnvironment(Environment):
     def react(self, tape: Tape) -> list[Observation]:
@@ -153,8 +159,8 @@ class ToolCollectionEnvironment(Environment):
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
-        multitools = [tool for tool in tools if isinstance(tool, Multitool)]
-        for multitool in multitools:
+        self.multitools = [tool for tool in tools if isinstance(tool, Multitool)]
+        for multitool in self.multitools:
             self.action_map |= {action: multitool for action in multitool.actions}
 
     def actions(self) -> tuple[type[Action], ...]:
@@ -174,6 +180,10 @@ class ToolCollectionEnvironment(Environment):
             observation.metadata.other["action_kind"] = action.kind
             tape = tape.append(observation)
         return tape
+
+    def reset(self) -> None:
+        for tool in self.multitools:
+            tool.reset()
 
     def close(self) -> None:
         for tool in self.tools:

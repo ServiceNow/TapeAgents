@@ -115,6 +115,7 @@ async def main(cfg):
         )
         if st.button("Reset Conversation"):
             st.session_state.tape = None
+            st.session_state.env.reset()
             st.rerun()
 
     for message in st.session_state.messages:
