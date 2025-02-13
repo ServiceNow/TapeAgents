@@ -14,12 +14,12 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
-import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
+import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
@@ -38,13 +38,15 @@ logger = logging.getLogger(__name__)
 def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
     match cfg.dataset_name:
         case "math":
-            train_dataset_long_name = test_dataset_long_name = "hendrycks/competition_math"
+            train_dataset_long_name = "hendrycks/competition_math"
+            test_dataset_long_name = "HuggingFaceH4/MATH-500"
             process_fn = process_math_test
-            builder_config = "main"
+            train_builder_config = "main"
+            test_builder_config = "default"
         case "gsm8k":
             train_dataset_long_name = test_dataset_long_name = "openai/gsm8k"
             process_fn = process_gsm8k_test
-            builder_config = "main"
+            train_builder_config = test_builder_config = "main"
         case "eurus":
             train_dataset_long_name = "PRIME-RL/Eurus-2-RL-Data"
             test_dataset_long_name = "alexpiche/math_test_cleaned"
@@ -53,8 +55,8 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
         case _:
             raise ValueError(f"Unknown dataset: {cfg.dataset_name}")
 
-    train_dataset = load_dataset(train_dataset_long_name, builder_config, split="train", trust_remote_code=True)
-    test_dataset = load_dataset(test_dataset_long_name, builder_config, split="test", trust_remote_code=True)
+    train_dataset = load_dataset(train_dataset_long_name, train_builder_config, split="train", trust_remote_code=True)
+    test_dataset = load_dataset(test_dataset_long_name, test_builder_config, split="test", trust_remote_code=True)
     train_samples = [
         process_fn(s) for s in tqdm(train_dataset, desc="Processing train samples") if process_fn(s) is not None
     ]
@@ -196,7 +198,8 @@ def extract_tape_training_samples(
 
             # check if the last produced token is the end of sequence token
             overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
-            trace.reward = cfg.overflow_reward if overflow else reward
+            reward = cfg.overflow_reward if overflow else reward
+            trace.reward = reward
             overflows.append(overflow)
             trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
             trace.group_id = new_tape.metadata.parent_id
