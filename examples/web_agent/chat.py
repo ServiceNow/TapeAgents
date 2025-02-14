@@ -137,9 +137,8 @@ async def main(cfg):
         today_date_str = datetime.now().strftime("%Y-%m-%d")
         last_status = st.status("Thinking...")
         if st.session_state.tape is None:
-            initial_obs = st.session_state.env.action_map[GetCursorPositionAction].execute_action(
-                GetCursorPositionAction()
-            )
+            initial_obs = st.session_state.env.step(GetCursorPositionAction())
+            initial_obs.output = ""
             st.session_state.tape = GaiaTape(
                 steps=[initial_obs, GaiaQuestion(content=f"Today is {today_date_str}.\n{prompt}")]
             )
