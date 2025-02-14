@@ -35,6 +35,8 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
     cuda_device_strings = []
     for start_gpu in range(0, total_gpus, gpus_per_model):
         end_gpu = start_gpu + gpus_per_model
+        if end_gpu > total_gpus:
+            raise ValueError(f"Requested {gpus_per_model} GPUs per model, but only {total_gpus} GPUs are available")
         cuda_devices = ",".join(str(i) for i in range(start_gpu, end_gpu))
         cuda_device_strings.append(cuda_devices)
     return cuda_device_strings
