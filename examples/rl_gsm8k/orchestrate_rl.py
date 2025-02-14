@@ -38,7 +38,7 @@ def process_gsm8k(item):
     sample = {"dataset": "gsm8k-cot", "task": item["question"], "answer": answer}
     return sample
 
-def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
+def load_datasets() -> Tuple[list, list]:
     train_dataset = load_dataset("openai/gsm8k", "main", split="train", trust_remote_code=True)
     test_dataset = load_dataset("openai/gsm8k", "main", split="test", trust_remote_code=True)
     train_samples = [
@@ -53,6 +53,16 @@ def load_datasets(cfg: DictConfig) -> Tuple[list, list]:
 
 
 def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
+    """
+    Annotates training traces with reference model log probabilities.
+
+    Args:
+        llm (TrainableLLM): The reference language model to get log probabilities from
+        traces (List[TrainingText]): List of training traces to annotate
+
+    Returns:
+        None: The traces are modified in-place by adding ref_logprobs
+    """
     prompt_token_ids = []
     completion_token_ids = []
     for trace in traces:
@@ -78,8 +88,6 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
     Returns:
         list[RLMathTape]: List of RLMathTape objects initialized with the math problems as Task steps.
-            Each tape contains a single starting Task step with the question and expected answer value
-            stored in metadata.
     """
     tapes: list[RLMathTape] = []
     for problem in tqdm(problems, desc="Converting problems to unique tapes", unit="problem"):
@@ -88,7 +96,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
             template=cfg.task_template,
             metadata=StepMetadata(
                 other={
-                    "value": problem["answer"],
+                    "value": problem["answer"], # expected answer
                 }
             ),
         )
@@ -113,9 +121,15 @@ def extract_tape_training_samples(
         strict: check that every token matches between the vLLM and the HF tokenizer otherwise just compare their lengths
 
     Returns:
-        Tuple containing:
-        - List of training samples with rewards and logprobs
-        - Dictionary with statistics (reward, steps, success, no_errors)
+        Tuple[List[TrainingText], Dict[str, int]]:
+            - List of training samples (`TrainingText`) extracted from the tape.
+            - Dictionary with tape-level statistics, including:
+                - 'reward': Reward for the tape (-1, 0, or 1).
+                - 'success': 1 if the answer is correct, 0 otherwise.
+                - 'no_error': 1 if the LLM output is parsable, 0 otherwise.
+                - 'prompt_tokens': Total prompt tokens used in the tape.
+                - 'output_tokens': Total output tokens generated in the tape.
+                - 'overflows': Number of times the output overflowed token limit.
     """
     tape_prompt_tokens = 0
     tape_output_tokens = 0
@@ -144,10 +158,12 @@ def extract_tape_training_samples(
     # For each LLM interaction in the tape:
     # - Create a training sample from the prompt and output
     # - Get log probabilities of the output tokens
-    # - Set group ID for tracking
+    # - Set group ID for tracking and advantage calculation
     for step in new_tape.steps:
         if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
+            # Skip steps without LLM calls
             continue
+
         llm_call = step.metadata.other["llm_call"]
 
         if isinstance(llm_call, dict):
@@ -158,6 +174,7 @@ def extract_tape_training_samples(
 
         overflows = []
         if split_name == "train":
+            # Create a training sample from the LLM call if it's the training split
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]
@@ -180,7 +197,6 @@ def extract_tape_training_samples(
 
     tape_stats = {
         "reward": reward,
-        "steps": len(new_tape.steps),
         "success": success,
         "no_error": no_error,
         "prompt_tokens": tape_prompt_tokens,
@@ -191,6 +207,14 @@ def extract_tape_training_samples(
 
 
 def batch_run_agent_replica(agent: CoTMathAgent, tapes: list[RLMathTape]) -> tuple[Agent, list[RLMathTape]]:
+    """
+    Returns:
+    tuple[Agent, list[RLMathTape]]: A tuple containing:
+        - agent (Agent): The updated agent after running the batch of tapes.
+                         Agent state might be modified during the `run_batch` operation.
+        - final_tapes (list[RLMathTape]): The list of `RLMathTape` objects after the agent
+                                         has run on them. These tapes will be completed with agent interactions.
+    """
     final_tapes = agent.run_batch(tapes)
     # There is some statistics that we track in the agent in a mutable way
     return agent, final_tapes
@@ -292,7 +316,7 @@ def main(cfg: DictConfig):
     if cfg.force_restart:
         clean_up(exp_path, state, state_path)
 
-    train_samples, test_samples = load_datasets(cfg)
+    train_samples, test_samples = load_datasets()
     conf_dir = exp_path / "conf"
     os.makedirs(conf_dir, exist_ok=True)
     finetune_path = exp_path / "finetune"
@@ -307,6 +331,8 @@ def main(cfg: DictConfig):
 
         try:
             all_results = {}
+            # Collect tapes using the assistant model
+            # We might also evaluate the assistant model on the test set
             with VLLMServiceManager(
                 exp_path=exp_path,
                 service_name="actor",
@@ -332,18 +358,7 @@ def main(cfg: DictConfig):
                     for base_url in vllm_service_manager.get_base_urls()
                 ]
 
-                test_llms = [
-                    TrainableLLM(
-                        base_url=base_url,
-                        model_name=str(assistant_model_path),
-                        tokenizer_name=str(assistant_model_path),
-                        parameters=cfg.test_llm.parameters,
-                        use_cache=False,
-                        observe_llm_calls=False,
-                    )
-                    for base_url in vllm_service_manager.get_base_urls()
-                ]
-
+                # one agent per LLM
                 train_agent_replicas = [
                     CoTMathAgent.create(
                         system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length
@@ -353,7 +368,19 @@ def main(cfg: DictConfig):
 
                 splits = [("train", train_agent_replicas, train_tapes)]
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
+                    # Create test agent replicas with different LLM parameters
                     test_tapes = convert_problems_to_tapes(test_samples, cfg)
+                    test_llms = [
+                        TrainableLLM(
+                            base_url=base_url,
+                            model_name=str(assistant_model_path),
+                            tokenizer_name=str(assistant_model_path),
+                            parameters=cfg.test_llm.parameters,
+                            use_cache=False,
+                            observe_llm_calls=False,
+                        )
+                        for base_url in vllm_service_manager.get_base_urls()
+                    ]
                     test_agent_replicas = [
                         CoTMathAgent.create(
                             system_prompt=cfg.system_prompt, llm=llm, max_prompt_length=cfg.max_prompt_length
@@ -361,6 +388,7 @@ def main(cfg: DictConfig):
                         for llm in test_llms
                     ]
                     splits.append(("test", test_agent_replicas, test_tapes))
+
                 for split_name, agent_replicas, tapes in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
                     agent_replicas_with_stats, new_tapes, split_training_samples, stats = generate_training_data(
@@ -411,6 +439,7 @@ def main(cfg: DictConfig):
         )
 
         try:
+            # Populate reference logprobs using the reference model 
             with VLLMServiceManager(
                 exp_path=exp_path,
                 service_name="reference",
@@ -468,8 +497,10 @@ def main(cfg: DictConfig):
                 f.write(trace.model_dump_json() + "\n")
                 f.flush()
 
+        # Create a config for this finetuning iteration
         finetune_cfg = cfg.copy()
 
+        # we increment the number of steps to interrupt the training
         checkpoint_steps = finetune_cfg.finetune.save_checkpoint_steps
         interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps)
 
@@ -483,6 +514,7 @@ def main(cfg: DictConfig):
         OmegaConf.save(finetune_cfg, config_path)
 
         start_finetune = time.time()
+        # launch the finetuning in a subprocess
         launch_training(
             str(conf_dir),
             str(state["iteration"]),
