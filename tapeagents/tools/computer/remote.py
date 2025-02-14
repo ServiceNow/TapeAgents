@@ -91,7 +91,6 @@ class RemoteComputer(Multitool):
             KeyPressAction: self.remote_execute_action,
             PageUpAction: self.page_up,
             PageDownAction: self.page_down,
-            GetCursorPositionAction: self.remote_execute_action,
             RunTerminalCommand: self.remote_execute_action,
         }
         if self.use_grounding:
@@ -100,6 +99,7 @@ class RemoteComputer(Multitool):
         else:
             self._action_map[MouseXYClickAction] = self.remote_execute_action
             self._action_map[MouseXYMoveAction] = self.remote_execute_action
+            self._action_map[GetCursorPositionAction] = self.remote_execute_action
         self.actions = tuple(self._action_map.keys())
 
     def execute_action(self, action: Action) -> ImageObservation:

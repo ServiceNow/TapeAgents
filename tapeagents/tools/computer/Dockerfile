@@ -16,3 +16,4 @@ RUN apt -y install xdotool
 
 COPY api.py /api.py
 RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN ln -s /config /home/user
