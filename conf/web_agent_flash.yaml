@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - llm: gpt4o
+  - llm: gemini_flash_2
   - agent: web_plan_react
   - environment: web_computer
 
