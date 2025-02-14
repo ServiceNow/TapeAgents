@@ -30,6 +30,9 @@ The example can be run in 2 hours on a H100 (should also run on a A100):
 uv run -m examples.rl_gsm8k.orchestrate_rl
 ```
 
+By default, the script uses `conf/rl_gsm8k.yaml` as the configuration file. 
+
+
 ## Overview of examples.rl_gsm8k.orchestrate_rl
 
 ![overview](image.png)
@@ -38,11 +41,11 @@ uv run -m examples.rl_gsm8k.orchestrate_rl
 
 #### Collect tapes
 
-* the current model is served on the gpus using vllm.
-* a subset of `cfg.max_agent_forks/cfg.attempts` tasks from the train set of gsm8k is sampled and replicated `cfg.attempts` times each for a total of `cfg.max_agent_forks` tasks.
-* the agent produce complete tapes for each of these tasks using temperature `llm.parameters.temperature`.
-* traces are created from these new tapes.
-* the log prob of the traces under the current model are computed.
+* The current model is served on the gpus using vllm.
+* A subset of `cfg.max_agent_forks/cfg.attempts` tasks from the train set of gsm8k is sampled and replicated `cfg.attempts` times each for a total of `cfg.max_agent_forks` tasks.
+* the agent produce complete tapes for each of these tasks using temperature `cfg.llm.parameters.temperature`.
+* Traces are created from these new tapes.
+* The log prob of the traces under the current model are collected during inference.
 
 #### Annotate tapes with rewards
 
@@ -53,12 +56,12 @@ uv run -m examples.rl_gsm8k.orchestrate_rl
 
 #### Annotate tapes with ref log probs
 
-* the current model is taken down and the reference model is now served on all gpus using vllm.
-* the log prob from the reference model (llama 3.2 1b instruct) are computed for the most recent traces.
+* The current model is taken down and the reference model is now served on all gpus using vllm.
+* The log prob from the reference model (llama 3.2 1b instruct) are computed for the most recent traces.
 
 ### Evaluation (Not shown in the figure)
 
-* every `cfg.test_every_n_iterations` iterations, the agent is evaluated with temperature 0 on the complete test set of gsm8k. No traces are produced on the test set.
+* Every `cfg.test_every_n_iterations` iterations, the agent is evaluated with temperature 0 on the complete test set of gsm8k. No traces are produced on the test set.
 
 ### Finetune
 
