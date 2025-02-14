@@ -2,9 +2,9 @@
 
 ![alt text](<Screenshot 2025-02-14 at 9.26.34 AM.png>)
 
-This example demonstrates how to train a reinforcement learning [Llama 3.2 1B](https://huggingface.co/meta-llama/Llama-3.2-1B) to solve math problems from the [GSM8k](https://huggingface.co/datasets/openai/gsm8k) dataset.
+This example demonstrates how to train a reinforcement learning [Llama 3.2 1B Instruct](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct) to solve math problems from the [GSM8k](https://huggingface.co/datasets/openai/gsm8k) dataset.
 
-Meta reports that the model obtains [44.4 on the GSM8k dataset (8 shot, CoT)](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/). In this example, we will be strict and instruct the model to output its answer within `\\boxed{}` which it initially fails to do. At the end of training the model respects the format and obtains a score of ~53 on the test set. 
+Meta reports that the model obtains [44.4 on the GSM8k dataset (8 shot, CoT)](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/). In this example, we will be strict and instruct the model to output its answer within `\boxed{}` which it initially fails to do. At the end of training the model respects the format and obtains a score of ~53 on the test set. 
 
 ## Quickstart
 
@@ -16,10 +16,10 @@ We use VLLM for inference in our training pipeline. Install it as follows:
 pip install 'tapeagents[finetune]'
 ```
 
-Make sure you have a Huggingface account with access to <https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct> and use `huggingface-cli` to login to the Hugging Face Hub. You may also want to test your vllm installation and downloading the model's weights by running the following command:
+Make sure you have a Huggingface account with access to <https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct> and use `huggingface-cli` to login to the Hugging Face Hub. You may also want to test your vllm installation and downloading the model's weights by running the following command:
 
 ```bash
-uv run -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3.1-8B-Instruct --dtype bfloat16
+uv run -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-3.2-1B-Instruct --dtype bfloat16
 ```
 
 #### Run training loop

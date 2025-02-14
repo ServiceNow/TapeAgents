@@ -171,7 +171,7 @@ def extract_tape_training_samples(
 
             # check if the last produced token is the end of sequence token
             overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
-            reward = cfg.overflow_reward if overflow else reward
+            reward = -1 if overflow else reward
             trace.reward = reward
             overflows.append(overflow)
             trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
@@ -223,7 +223,6 @@ def generate_training_data(
     start_make_data = time.time()
     os.makedirs(tapes_dir, exist_ok=True)
     reward_stats = defaultdict(list)
-    step_stats = defaultdict(list)
     no_errors_stats = defaultdict(list)
     success_stats = defaultdict(list)
     prompt_tokens_stats = defaultdict(list)
@@ -245,7 +244,6 @@ def generate_training_data(
         tape_training_samples, tape_stats = extract_tape_training_samples(new_tape, agent_replicas[0], split_name, cfg)
         training_samples.extend(tape_training_samples)
         reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
-        step_stats[new_tape.metadata.parent_id].append(tape_stats["steps"])
         success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
         no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
         prompt_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
@@ -261,7 +259,6 @@ def generate_training_data(
 
     stats = {
         **{f"{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
-        **{f"{split_name}_{k}_steps": v for k, v in calculate_stats(step_stats).items()},
         **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
         **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
         **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens_stats).items()},
