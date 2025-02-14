@@ -35,7 +35,7 @@ By default, the script uses `conf/rl_gsm8k.yaml` as the configuration file.
 
 ## Overview of examples.rl_gsm8k.orchestrate_rl
 
-![overview](image.png)
+![overview](image-1.png)
 
 ### Collect online RL training data
 
