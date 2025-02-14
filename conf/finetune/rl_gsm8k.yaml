@@ -17,9 +17,9 @@ wandb_resume: always
 # Whether to use only the basename or the full path as the run name
 wandb_use_basename: false
 config_name: meta-llama/Meta-Llama-3.1-8B-Instruct
-learning_rate: 0.0000025
+learning_rate: 0.000002
 train_batch_size: 4
-gradient_accumulation_passes: 256
+gradient_accumulation_passes: 8
 seq_length: 4096
 load_as_bf16: True
 max_train_steps: 100000
@@ -30,10 +30,10 @@ log_each_n_steps: 1
 resume_dataloader: false
 cuda_empty_cache: true
 use_safetensors: true
-weight_decay: 0.1
+weight_decay: 0.01
 gradient_clipping_threshold: 1
 rl:
-  kl_coef: 0.0  # GRPO beta coefficient
+  kl_coef: 0.01  # GRPO beta coefficient
   reward_minus_kl_coef: 0.0  # RLOO beta coefficient
   use_advantages: true
-  algo: reinforce
+  algo: grpo
