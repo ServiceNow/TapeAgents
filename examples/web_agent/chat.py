@@ -11,10 +11,8 @@ from pathlib import Path
 import streamlit as st
 from hydra import compose, initialize
 
-from examples.gaia_agent.steps import GaiaAnswer, GaiaQuestion
-from examples.gaia_agent.tape import GaiaTape
-from tapeagents.core import Step
-from tapeagents.dialog_tape import UserStep
+from tapeagents.core import Step, Tape
+from tapeagents.dialog_tape import AssistantAnswer, UserStep
 from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 from tapeagents.steps import ReasoningThought
 from tapeagents.tools.computer.remote import GetCursorPositionAction
@@ -139,14 +137,10 @@ async def main(cfg):
         if st.session_state.tape is None:
             initial_obs = st.session_state.env.step(GetCursorPositionAction())
             initial_obs.output = ""
-            st.session_state.tape = GaiaTape(
-                steps=[initial_obs, GaiaQuestion(content=f"Today is {today_date_str}.\n{prompt}")]
-            )
+            st.session_state.tape = Tape(steps=[initial_obs, UserStep(content=f"Today is {today_date_str}.\n{prompt}")])
         else:
-            if isinstance(st.session_state.tape.steps[-1], GaiaAnswer):
-                st.session_state.tape.steps[-1] = ReasoningThought(
-                    reasoning=st.session_state.tape.steps[-1].long_answer
-                )
+            if isinstance(st.session_state.tape.steps[-1], AssistantAnswer):
+                st.session_state.tape.steps[-1] = ReasoningThought(reasoning=st.session_state.tape.steps[-1].answer)
             st.session_state.tape = st.session_state.tape.append(UserStep(content=prompt))
 
         try:
@@ -287,7 +281,7 @@ def render_step(step: Step) -> str:
         msg_type = "markdown"
     elif step.kind == "reading_result_thought":
         msg = f'{step.fact_description}\nSupporting quote: "{step.quote_with_fact}"'
-    elif step.kind == "gaia_answer_action":
+    elif step.kind == "assistant_answer":
         if step.success:
             msg = f"""
             <div style="font-family: Arial, sans-serif; margin: 10px 0;">
@@ -296,7 +290,7 @@ def render_step(step: Step) -> str:
                         🎯 Answer
                     </div>
                     <div style="color: #202124; line-height: 1.5;">
-                        {step.long_answer}
+                        {step.answer}
                     </div>
                 </div>
             </div>
@@ -309,7 +303,7 @@ def render_step(step: Step) -> str:
                         ❌ Could Not Find Answer
                     </div>
                     <div style="color: #202124; line-height: 1.5;">
-                        {step.overview}
+                        {step.answer}
                     </div>
                 </div>
             </div>
@@ -420,5 +414,5 @@ def save_to_storage(filename: str, data: str) -> None:
 
 if __name__ == "__main__":
     with initialize(version_base=None, config_path="../../conf", job_name="web_chat"):
-        cfg = compose(config_name="web_agent.yaml")
+        cfg = compose(config_name="web_agent_flash.yaml")
     asyncio.run(main(cfg))
