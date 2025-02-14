@@ -1,4 +1,4 @@
-# RL for GSM8k
+# Training Llama 3.2 1b with GRPO on GSM8k
 
 ![learning curves](<Screenshot 2025-02-14 at 9.26.34 AM.png>)
 
@@ -24,7 +24,7 @@ uv run -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-3.2-1B-Ins
 
 #### Run training loop
 
-The example can be run with the following command on a H100s (should also run on a A100):
+The example can be run in 2 hours on a H100 (should also run on a A100):
 
 ```bash
 uv run -m examples.rl_gsm8k.orchestrate_rl
@@ -54,12 +54,13 @@ uv run -m examples.rl_gsm8k.orchestrate_rl
 #### Annotate tapes with ref log probs
 
 * the current model is taken down and the reference model is now served on all gpus using vllm.
-* the log prob from the reference model (llama 3.1 8b) are computed for the most recent traces.
+* the log prob from the reference model (llama 3.2 1b instruct) are computed for the most recent traces.
 
 ### Evaluation (Not shown in the figure)
 
-* every 5 iterations, the agent is evaluated with temperature 0 on the complete test set of gsm8k. No traces are produced on the test set.
+* every `cfg.test_every_n_iterations` iterations, the agent is evaluated with temperature 0 on the complete test set of gsm8k. No traces are produced on the test set.
 
 ### Finetune
 
-* RL (grpo or reinforce) training is performed on the latest batch of data using a separate process. This makes it easier to manage memory with the main process. Otherwise there are sometimes issues with the gpus not being completely empty after fine tuning.
+* GRPO training is performed on the latest batch of data using a separate process. This makes it easier to manage GPU memory with the main process. Otherwise there are sometimes issues with the GPUs not being completely empty after fine tuning.
+* The finetuning length between each sampling iteration can be controlled via `cfg.finetune.save_checkpoint_steps` and the batch size can be controlled using `cfg.finetune.train_batch_size` and `cfg.finetune.gradient_accumulation_passes`.
