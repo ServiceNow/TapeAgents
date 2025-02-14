@@ -70,6 +70,7 @@ class RunTerminalCommand(Action):
 
     kind: Literal["run_terminal_command"] = "run_terminal_command"
     command: str = Field(description="Command to execute")
+    wait_output: bool = Field(description="Whether to wait for command to finish", default=True)
 
 
 class ComputerObservation(ImageObservation):

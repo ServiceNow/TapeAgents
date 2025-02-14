@@ -78,7 +78,7 @@ class Computer(Multitool):
 
     def _handle_command(self, action: RunTerminalCommand) -> ComputerObservation:
         try:
-            obs_dict = run_command(action.command)
+            obs_dict = run_command(action.command, wait_output=action.wait_output)
             obs = ComputerObservation(**obs_dict)
         except Exception as e:
             obs = ComputerObservation(error=f"Command {action.command} failed: {e}")

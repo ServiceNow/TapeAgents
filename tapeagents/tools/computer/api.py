@@ -11,17 +11,19 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from PIL import Image
 
-app = FastAPI()
-TYPING_DELAY_MS = 180
-SCREENSHOT_DELAY = 2.0
-WEB_PAGE_LOAD_DELAY = 4.0
-
 logger = logging.getLogger("API")
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(funcName)s - %(message)s")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
+
+TYPING_DELAY_MS = 180
+SCREENSHOT_DELAY = 2.0
+WEB_PAGE_LOAD_DELAY = 4.0
+MAX_RESPONSE_LEN: int = 16000
+RUN_TIMEOUT_SEC = 5.0
+TRUNCATED_MESSAGE: str = "<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>"
 
 
 def _take_screenshot() -> dict:
@@ -109,10 +111,6 @@ def open_url(url: str, load_delay: int = WEB_PAGE_LOAD_DELAY) -> dict:
         return {"error": error}
 
 
-TRUNCATED_MESSAGE: str = "<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>"
-MAX_RESPONSE_LEN: int = 16000
-
-
 def maybe_truncate(content: str, truncate_after: int | None = MAX_RESPONSE_LEN):
     """Truncate content and append a notice if content exceeds the specified length."""
     return (
@@ -124,26 +122,31 @@ def maybe_truncate(content: str, truncate_after: int | None = MAX_RESPONSE_LEN):
 
 def run(
     cmd: str,
-    timeout: float | None = 120.0,  # seconds
+    wait_output: bool,
+    timeout_sec: float = RUN_TIMEOUT_SEC,
     truncate_after: int | None = MAX_RESPONSE_LEN,
 ):
     """Run a shell command with a timeout."""
     try:
+        stdout, stderr = "", ""
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate(timeout=timeout)
+        if wait_output:
+            stdout, stderr = process.communicate(timeout=timeout_sec)
+            stdout = stdout.decode()
+            stderr = stderr.decode()
         return (
             process.returncode or 0,
-            maybe_truncate(stdout.decode(), truncate_after=truncate_after),
-            maybe_truncate(stderr.decode(), truncate_after=truncate_after),
+            maybe_truncate(stdout, truncate_after=truncate_after),
+            maybe_truncate(stderr, truncate_after=truncate_after),
         )
     except subprocess.TimeoutExpired as exc:
         process.kill()
-        raise TimeoutError(f"Command '{cmd}' timed out after {timeout} seconds") from exc
+        raise TimeoutError(f"Command '{cmd}' timed out after {timeout_sec} seconds") from exc
 
 
-def run_command(command: str) -> dict:
+def run_command(command: str, wait_output: bool) -> dict:
     try:
-        exit_code, output, error = run(command)
+        exit_code, output, error = run(command, wait_output)
         obs = _take_screenshot()
         obs["output"] = output
         if exit_code != 0:
@@ -168,6 +171,8 @@ ACTION_MAP: dict[str:callable] = {
     "open_url_action": open_url,
     "run_terminal_command": run_command,
 }
+
+app = FastAPI()
 
 
 @app.post("/execute")
