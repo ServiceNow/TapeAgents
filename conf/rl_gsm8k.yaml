@@ -1,5 +1,5 @@
 defaults:
-  - finetune: rl_gsm8k
+  - finetune: grpo
   - _self_
 
 n_workers_per_gpu: 32
@@ -11,7 +11,6 @@ max_agent_forks: 6000
 attempts: 8 
 force_restart: false
 max_iterations: 1000
-use_rejection_sampling: false
 llm:
   parameters:
     max_tokens: 3072

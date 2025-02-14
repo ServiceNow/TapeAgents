@@ -16,7 +16,7 @@ wandb_project_name: tapeagents
 wandb_resume: always
 # Whether to use only the basename or the full path as the run name
 wandb_use_basename: false
-config_name: meta-llama/Meta-Llama-3.1-8B-Instruct
+config_name: ???
 learning_rate: 0.000002
 train_batch_size: 4
 gradient_accumulation_passes: 8
