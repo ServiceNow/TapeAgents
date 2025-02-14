@@ -1,6 +1,10 @@
-# RL for GSM8k (WIP)
+# RL for GSM8k
 
-This example demonstrates how to train a reinforcement learning agent to solve math problems from the [GSM8k](https://huggingface.co/datasets/openai/gsm8k) dataset.
+![alt text](<Screenshot 2025-02-14 at 9.26.34 AM.png>)
+
+This example demonstrates how to train a reinforcement learning [Llama 3.2 1B](https://huggingface.co/meta-llama/Llama-3.2-1B) to solve math problems from the [GSM8k](https://huggingface.co/datasets/openai/gsm8k) dataset.
+
+Meta reports that the model obtains [44.4 on the GSM8k dataset (8 shot, CoT)](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/). In this example, we will be strict and instruct the model to output its answer within `\\boxed{}` which it initially fails to do. At the end of training the model respects the format and obtains a score of ~53 on the test set. 
 
 ## Quickstart
 
@@ -34,7 +38,7 @@ uv run -m examples.rl_gsm8k.orchestrate_rl
 
 #### Collect tapes
 
-* the current model (updated llama 3.1 8b) is served on all the gpus using vllm.
+* the current model is served on the gpus using vllm.
 * a subset of 16 tasks from the train set of gsm8k is sampled and replicated 64 times each for a total of 1024 tasks.
 * the agent produce complete tapes for each of these 1024 tasks using temperature 0.7.
 * traces are created from these new tapes.
@@ -43,9 +47,9 @@ uv run -m examples.rl_gsm8k.orchestrate_rl
 #### Annotate tapes with rewards
 
 * For each trace, the reward is computed as follows:
-  * +1 for correct answer
-  * 0 for incorrect answer or no answer
-  * -1 for step that cannot be parsed to json
+  * +1 for correct answer.
+  * 0 for incorrect answer.
+  * -1 for step that cannot be parsed to
 
 #### Annotate tapes with ref log probs
 
