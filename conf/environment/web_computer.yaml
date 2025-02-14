@@ -1,0 +1,14 @@
+_target_: tapeagents.environment.ToolCollectionEnvironment
+tools:
+  - _target_: tapeagents.tools.web_search.WebSearch
+  - _target_: tapeagents.tools.media_reader.VideoReader
+    exp_path: ${exp_path}
+  - _target_: tapeagents.tools.computer.remote.RemoteComputer
+    exp_path: ${exp_path}
+    computer_url: http://localhost:8000
+    grounding_api_url: https://snow-llmd-grounding-8000.job.console.elementai.com
+  - _target_: tapeagents.tools.code_executor.CodeExecutor
+    exp_path: ${exp_path}
+    container_name: computer
+    mounted_dir: .computer/home/workplace
+    container_work_dir: /config/workplace

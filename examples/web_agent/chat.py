@@ -8,8 +8,8 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-import omegaconf
 import streamlit as st
+from hydra import compose, initialize
 
 from examples.gaia_agent.steps import GaiaAnswer, GaiaQuestion
 from examples.gaia_agent.tape import GaiaTape
@@ -419,5 +419,6 @@ def save_to_storage(filename: str, data: str) -> None:
 
 
 if __name__ == "__main__":
-    cfg = omegaconf.OmegaConf.load("conf/web_agent.yaml")
+    with initialize(version_base=None, config_path="../../conf", job_name="web_chat"):
+        cfg = compose(config_name="web_agent.yaml")
     asyncio.run(main(cfg))

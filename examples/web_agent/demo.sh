@@ -9,8 +9,8 @@ cleanup() {
     exit 0
 }
 
-pkill -f "$SCRIPT_DIR/http_server.py"
-pkill -f "$SCRIPT_DIR/chat.py"
+pkill -f "http_server.py"
+pkill -f "chat.py"
 
 # Set up trap for SIGINT and SIGTERM
 trap cleanup SIGINT SIGTERM
