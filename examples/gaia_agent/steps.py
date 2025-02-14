@@ -67,6 +67,15 @@ class FactsSurvey(Thought):
     )
 
 
+class ExtractedFacts(Thought):
+    """
+    Thought that contains the list of facts extracted from the document
+    """
+
+    kind: Literal["extracted_facts_thought"] = "extracted_facts_thought"
+    extracted_facts: list[str] | dict[str, Any] | str = Field(description="facts extracted from the observation")
+
+
 class GaiaQuestion(Observation):
     kind: Literal["question"] = "question"
     content: str

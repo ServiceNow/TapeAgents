@@ -13,9 +13,10 @@ from hydra import compose, initialize
 
 from tapeagents.core import Step, Tape
 from tapeagents.dialog_tape import AssistantAnswer, UserStep
+from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 from tapeagents.steps import ReasoningThought
-from tapeagents.tools.computer.remote import GetCursorPositionAction
+from tapeagents.tools.computer.remote import MouseHoverAction
 
 CONFIG_DIR = Path(".streamlit_config")
 API_KEY_FILE = CONFIG_DIR / "api_key"
@@ -68,6 +69,9 @@ def setup_state(cfg):
         st.session_state.env = env
         st.session_state.agent = agent
     if st.session_state.tape is None:
+        st.session_state.tapes_dir = os.path.join(cfg.exp_path, "tapes")
+        st.session_state.tape_name = f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        st.session_state.images_dir = os.path.join(cfg.exp_path, "attachments", "images")
         st.session_state.messages = [
             {"role": "assistant", "content": "Hi, TapeAgents Operator here! How can I help you today?"}
         ]
@@ -135,8 +139,7 @@ async def main(cfg):
         today_date_str = datetime.now().strftime("%Y-%m-%d")
         last_status = st.status("Thinking...")
         if st.session_state.tape is None:
-            initial_obs = st.session_state.env.step(GetCursorPositionAction())
-            initial_obs.output = ""
+            initial_obs = st.session_state.env.step(MouseHoverAction(element_description="center of the screen"))
             st.session_state.tape = Tape(steps=[initial_obs, UserStep(content=f"Today is {today_date_str}.\n{prompt}")])
         else:
             if isinstance(st.session_state.tape.steps[-1], AssistantAnswer):
@@ -149,6 +152,8 @@ async def main(cfg):
                 icon = ""
                 if partial_tape := (event.agent_tape or event.env_tape):
                     st.session_state.tape = partial_tape
+                    save_json_tape(partial_tape, st.session_state.tapes_dir, st.session_state.tape_name)
+                    save_tape_images(partial_tape, st.session_state.images_dir)
                 if event.agent_event and event.agent_event.step:
                     step = event.agent_event.step
                     if step.kind in ["set_next_node"]:
@@ -414,5 +419,5 @@ def save_to_storage(filename: str, data: str) -> None:
 
 if __name__ == "__main__":
     with initialize(version_base=None, config_path="../../conf", job_name="web_chat"):
-        cfg = compose(config_name="web_agent_flash.yaml")
+        cfg = compose(config_name="web_agent.yaml")
     asyncio.run(main(cfg))

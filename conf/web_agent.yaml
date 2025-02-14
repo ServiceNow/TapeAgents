@@ -6,3 +6,7 @@ defaults:
 
 exp_name: gpt4o_web_agent
 exp_path: outputs/web_agent/runs/${exp_name}
+
+hydra:
+  run:
+    dir: ${exp_path}
