@@ -1,6 +1,6 @@
 # RL for GSM8k
 
-![alt text](<Screenshot 2025-02-14 at 9.26.34 AM.png>)
+![learning curves](<Screenshot 2025-02-14 at 9.26.34 AM.png>)
 
 This example demonstrates how to train a reinforcement learning [Llama 3.2 1B Instruct](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct) to solve math problems from the [GSM8k](https://huggingface.co/datasets/openai/gsm8k) dataset.
 
@@ -30,9 +30,9 @@ The example can be run with the following command on a H100s (should also run on
 uv run -m examples.rl_gsm8k.orchestrate_rl
 ```
 
-## Overview
+## Overview of examples.rl_gsm8k.orchestrate_rl
 
-![image](https://github.com/user-attachments/assets/c715de7a-8d15-4504-9c7c-d8ad28726941)
+![overview](image.png)
 
 ### Collect online RL training data
 
