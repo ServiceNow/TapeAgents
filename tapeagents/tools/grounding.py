@@ -3,6 +3,7 @@ import os
 from io import BytesIO
 
 from openai import OpenAI
+from PIL import Image
 
 
 class GroundingModel:
@@ -27,12 +28,12 @@ class GroundingModel:
         )
         self.model = "osunlp/UGround-V1-7B"
 
-    def get_coords(self, image, command):
+    def get_coords(self, image: Image, element_description: str):
         img_width, img_height = image.size
         buffered = BytesIO()
         image.save(buffered, format="PNG")
         base64_image = base64.b64encode(buffered.getvalue()).decode()
-        messages = self.format_openai_template(command, base64_image)
+        messages = self.format_openai_template(f"click {element_description}", base64_image)
         completion = self.vl_client.chat.completions.create(model=self.model, messages=messages, temperature=0.0)
         out_text = completion.choices[0].message.content
         str_x, str_y = out_text.strip("()").split(",")

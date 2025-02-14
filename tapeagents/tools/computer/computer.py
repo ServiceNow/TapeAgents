@@ -119,7 +119,7 @@ class Computer(Multitool):
 
     def _handle_mouse_click(self, action: MouseClickAction) -> ComputerObservation:
         try:
-            obs_dict = mouse_click(action.button)
+            obs_dict = mouse_click(action.x, action.y, button=action.button)
             obs = ComputerObservation(**obs_dict)
         except Exception as e:
             obs = ComputerObservation(error=f"Mouse click failed: {e}")

@@ -17,8 +17,8 @@ from .steps import (
     ComputerObservation,
     GetCursorPositionAction,
     KeyPressAction,
-    MouseClickAction as CompMouseClickAction,
-    MouseMoveAction,
+    MouseClickAction as MouseXYClickAction,
+    MouseMoveAction as MouseXYMoveAction,
     OpenUrlAction,
     RunTerminalCommand,
     TypeTextAction,
@@ -75,19 +75,10 @@ class PageUpAction(Action):
 
 class RemoteComputer(Multitool):
     exp_path: str | None = None
-    actions: tuple[type[Action], ...] = (
-        TypeTextAction,
-        MouseHoverAction,
-        MouseClickAction,
-        OpenUrlAction,
-        KeyPressAction,
-        PageUpAction,
-        PageDownAction,
-        GetCursorPositionAction,
-        RunTerminalCommand,
-    )
+    actions: tuple[type[Action], ...] = ()
     observations: tuple[type[ImageObservation], ...] = (ImageObservation,)
     computer_url: str = Field(description="Remote tool API URL")
+    use_grounding: bool = Field(description="Whether to use grounding model", default=True)
     grounding_api_url: str = Field(description="Grounding API URL")
 
     def model_post_init(self, __context):
@@ -96,8 +87,6 @@ class RemoteComputer(Multitool):
         os.makedirs(self._screenshot_dir, exist_ok=True)
         self._action_map = {
             TypeTextAction: self.remote_execute_action,
-            MouseHoverAction: self.mouse_hover,
-            MouseClickAction: self.mouse_click,
             OpenUrlAction: self.remote_execute_action,
             KeyPressAction: self.remote_execute_action,
             PageUpAction: self.page_up,
@@ -105,6 +94,13 @@ class RemoteComputer(Multitool):
             GetCursorPositionAction: self.remote_execute_action,
             RunTerminalCommand: self.remote_execute_action,
         }
+        if self.use_grounding:
+            self._action_map[MouseClickAction] = self.mouse_click
+            self._action_map[MouseHoverAction] = self.mouse_hover
+        else:
+            self._action_map[MouseXYClickAction] = self.remote_execute_action
+            self._action_map[MouseXYMoveAction] = self.remote_execute_action
+        self.actions = tuple(self._action_map.keys())
 
     def execute_action(self, action: Action) -> ImageObservation:
         action_type = type(action)
@@ -113,12 +109,12 @@ class RemoteComputer(Multitool):
         raise ValueError(f"Unknown action type: {action_type}")
 
     def mouse_hover(self, action: MouseHoverAction) -> ImageObservation:
-        x, y = self._grounding.get_coords(self.get_screen(), f"click {action.element_description}")
-        return self.remote_execute_action(MouseMoveAction(x=int(x), y=int(y)))
+        x, y = self._grounding.get_coords(self.get_screen(), action.element_description)
+        return self.remote_execute_action(MouseXYMoveAction(x=int(x), y=int(y)))
 
     def mouse_click(self, action: MouseClickAction) -> ImageObservation:
-        self.mouse_hover(action)
-        return self.remote_execute_action(CompMouseClickAction(button=action.button))
+        x, y = self._grounding.get_coords(self.get_screen(), action.element_description)
+        return self.remote_execute_action(MouseXYClickAction(x=int(x), y=int(y), button=action.button))
 
     def page_up(self, action: PageUpAction) -> ImageObservation:
         return self.remote_execute_action(KeyPressAction(text="Page_Up"))

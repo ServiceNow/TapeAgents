@@ -33,6 +33,8 @@ class MouseClickAction(Action):
     """Action that performs mouse click"""
 
     kind: Literal["mouse_click_action"] = "mouse_click_action"
+    x: int = Field(description="X coordinate")
+    y: int = Field(description="Y coordinate")
     button: Literal["left", "right", "middle", "double_left"] = Field(
         description="Mouse button to click", default="left"
     )

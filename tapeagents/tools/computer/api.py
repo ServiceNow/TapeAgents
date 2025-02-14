@@ -66,8 +66,10 @@ def mouse_move(x: int, y: int) -> dict:
         return {"error": f"Mouse move failed: {e}"}
 
 
-def mouse_click(button: str) -> dict:
+def mouse_click(x: int, y: int, button: str) -> dict:
     try:
+        pyautogui.moveTo(x, y, duration=0.2)
+        time.sleep(TYPING_DELAY_MS / 1000)
         if button == "double_left":
             pyautogui.doubleClick()
         else:
