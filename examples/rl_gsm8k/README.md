@@ -39,8 +39,8 @@ uv run -m examples.rl_gsm8k.orchestrate_rl
 #### Collect tapes
 
 * the current model is served on the gpus using vllm.
-* a subset of 16 tasks from the train set of gsm8k is sampled and replicated 64 times each for a total of 1024 tasks.
-* the agent produce complete tapes for each of these 1024 tasks using temperature 0.7.
+* a subset of `cfg.max_agent_forks/cfg.attempts` tasks from the train set of gsm8k is sampled and replicated `cfg.attempts` times each for a total of `cfg.max_agent_forks` tasks.
+* the agent produce complete tapes for each of these tasks using temperature `llm.parameters.temperature`.
 * traces are created from these new tapes.
 * the log prob of the traces under the current model are computed.
 
@@ -49,7 +49,7 @@ uv run -m examples.rl_gsm8k.orchestrate_rl
 * For each trace, the reward is computed as follows:
   * +1 for correct answer.
   * 0 for incorrect answer.
-  * -1 for step that cannot be parsed to
+  * -1 for answer that cannot be parsed or overflow.
 
 #### Annotate tapes with ref log probs
 
