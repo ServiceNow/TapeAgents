@@ -720,7 +720,8 @@ class Agent(BaseModel, Generic[TapeType]):
             current_subagents = [self.delegate(tapes[i]) for i in active_indices]
             prompts = [subagent.make_prompt(tape) for subagent, tape in zip(current_subagents, tapes)]
             llm_calls = self.llm.batch_generate(prompts)
-            for i in active_indices:
+            current_active = list(active_indices)
+            for i in current_active:
                 # Run the equivalent of agent.run_iteration
                 llm_stream = LLMStream(
                     (LLMEvent(output=output) for output in (llm_calls[i].output,)), llm_calls[i].prompt

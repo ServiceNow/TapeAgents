@@ -568,10 +568,9 @@ class TrainableLLM(CachedLLM):
             if logprob:
                 try:
                     # We assume that the server was launched with --return-tokens-as-token-ids
-                    # and that the tokens are provided as: ['token_id:1271', 'token_id:1505', '
                     logprobs.append(
                         TokenLogprob(
-                            token_id=int(logprob["token"].split(":")[-1]),
+                            token_id=logprob["token"],
                             logprob=logprob["logprob"],
                             generated=1,
                         )
@@ -719,7 +718,7 @@ class TrainableLLM(CachedLLM):
                     # list of dicts format similar to /v1/chat/completions
 
                     chat_completion_logprobs = [
-                        {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
+                        {"token": int(completion_logprobs["tokens"][j].split(":")[1]), "logprob": completion_logprobs["token_logprobs"][j]}
                         for j in range(len(completion_logprobs["tokens"]))
                     ]
                     logprobs = self.make_llm_call_logprobs(prompt_token_ids[i], chat_completion_logprobs)
