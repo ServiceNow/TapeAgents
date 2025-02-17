@@ -8,10 +8,9 @@ from typing import Annotated, Any, Generator, Type, Union
 
 from pydantic import Field, TypeAdapter, ValidationError
 
-from tapeagents.agent import Action, Agent, Node
+from tapeagents.agent import Agent, Node
 from tapeagents.core import (
     AgentStep,
-    LLMOutput,
     LLMOutputParsingFailureAction,
     Observation,
     PartialStep,
@@ -21,11 +20,11 @@ from tapeagents.core import (
     StopStep,
     Tape,
 )
-from tapeagents.llms import LLMStream
+from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import BranchStep
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import extract_code_blocks
-from tapeagents.utils import FatalError, class_for_name, get_step_schemas_from_union_type, sanitize_json_completion
+from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
@@ -212,7 +211,7 @@ class StandardNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        allowed_steps = get_step_schemas_from_union_type(self._steps_type)
+        allowed_steps = agent.llm.get_step_schema(self._steps_type)
         return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def generate_steps(

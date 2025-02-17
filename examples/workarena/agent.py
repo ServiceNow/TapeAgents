@@ -8,7 +8,6 @@ from tapeagents.core import Prompt, Step
 from tapeagents.llms import LLM
 from tapeagents.nodes import StandardNode
 from tapeagents.tools.browser import PageObservation
-from tapeagents.utils import get_step_schemas_from_union_type
 
 from .prompts import (
     ABSTRACT_EXAMPLE,
@@ -55,7 +54,7 @@ class WorkArenaBaselineNode(StandardNode):
         goal = GOAL_INSTRUCTIONS.format(goal=tape.steps[1].task)
         obs = [s for s in tape if isinstance(s, PageObservation)][-1].text
         history = self.history_prompt(tape)
-        allowed_steps = ALLOWED_STEPS.format(allowed_steps=get_step_schemas_from_union_type(WorkArenaBaselineStep))
+        allowed_steps = ALLOWED_STEPS.format(allowed_steps=agent.llm.get_step_schema(WorkArenaBaselineStep))
         mac_hint = MAC_HINT if platform.system() == "Darwin" else ""
         main_prompt = f"""{goal}\n{obs}\n{history}
 {BASELINE_STEPS_PROMPT}{allowed_steps}{mac_hint}
