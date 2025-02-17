@@ -70,4 +70,4 @@ echo "ffmpeg installed successfully."
 
 echo "All dependencies installed successfully."
 echo ""
-echo "You can now run the agent with the following command: uv run -m examples.gaia_agent.scripts.ui"
+echo "You can now run the agent with the following command: uv run -m examples.gaia_agent.scripts.browsergym_ui"

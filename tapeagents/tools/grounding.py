@@ -16,8 +16,10 @@ class GroundingModel:
         if not api_key:
             try:
                 api_key = os.popen("eai login --profile default token").read().strip()
+                if not api_key:
+                    api_key = os.getenv("GROUNDING_API_KEY")
             except Exception:
-                api_key = os.environ.get("GROUNDING_API_KEY")
+                api_key = os.getenv("GROUNDING_API_KEY")
             if not api_key:
                 raise RuntimeError(
                     "Failed to get API key from 'eai login token' or GROUNDING_API_KEY environment variable"
