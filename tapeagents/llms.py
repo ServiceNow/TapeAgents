@@ -1292,9 +1292,11 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
         TrainingText: A dataclass containing:
 
             - text (str): The formatted conversation text
-            - n_predicted (int): Length of the output text portion
+            - n_predicted (int): Length of the output tokens
             - input_ids (list[int]): The token ids of the entire conversation (prompt + output)
             - labels (list[int]): The masked_token_id for all but the output tokens
+            - prompt_text (str): The formatted prompt text
+            - output_text (str): The formatted output text
 
     Note:
         - Uses tokenizer's chat template to format conversations
@@ -1310,17 +1312,17 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
         prompt.messages + [{"role": "assistant", "content": output.content}],
         tokenize=False,
     )
-    text_tokens = tokenizer(text, add_special_tokens=False)["input_ids"]
+    tokens = tokenizer(text, add_special_tokens=False)["input_ids"]
 
     output_text = text[len(prompt_text) :]
-    output_text_tokens = text_tokens[len(prompt_tokens) :]
+    output_tokens = tokens[len(prompt_tokens) :]
 
     if tokenizer.bos_token and text.startswith(tokenizer.bos_token):
         text = text[len(tokenizer.bos_token) :]
-        text_tokens = text_tokens[1 :]
+        tokens = tokens[1 :]
 
     # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
     # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-    labels = [MASKED_TOKEN_ID] * (len(text_tokens) - len(output_text_tokens)) + output_text_tokens
+    labels = [MASKED_TOKEN_ID] * (len(tokens) - len(output_tokens)) + output_tokens
 
-    return TrainingText(text=text, n_predicted=len(output_text_tokens), input_ids=text_tokens, labels=labels, prompt_text=prompt_text, output_text=output_text)
+    return TrainingText(text=text, n_predicted=len(output_tokens), input_ids=tokens, labels=labels, prompt_text=prompt_text, output_text=output_text)
