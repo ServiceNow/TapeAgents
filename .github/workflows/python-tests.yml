@@ -34,4 +34,4 @@ jobs:
       - name: Run fast tests with pytest
         run: HF_TOKEN="${{ secrets.HF_HUB_TOKEN }}" make test
       - name: Run core tests with minimal dependencies
-        run: make test-core
+        run: make test
