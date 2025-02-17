@@ -25,6 +25,8 @@ from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
+from tapeagents.finetune.data import MASKED_TOKEN_ID
+
 from .config import DB_DEFAULT_FILENAME, common_cache_dir
 from .core import LLMOutput, Prompt, TokenLogprob, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
@@ -1291,21 +1293,34 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
 
             - text (str): The formatted conversation text
             - n_predicted (int): Length of the output text portion
+            - input_ids (list[int]): The token ids of the entire conversation (prompt + output)
+            - labels (list[int]): The masked_token_id for all but the output tokens
 
     Note:
         - Uses tokenizer's chat template to format conversations
         - Removes BOS token if present in the beginning of the text
+        - Labels are the same length as input_ids
+        - Labels are masked_token_id for all but the output tokens
     """
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )
+    prompt_tokens = tokenizer(prompt_text)["input_ids"]
     text = tokenizer.apply_chat_template(
         prompt.messages + [{"role": "assistant", "content": output.content}],
         tokenize=False,
     )
+    text_tokens = tokenizer(text)["input_ids"]
+
     output_text = text[len(prompt_text) :]
+    output_text_tokens = text_tokens[len(prompt_tokens) :]
+    assert len(output_text_tokens) == len(output_text), f"{len(output_text_tokens)} != {len(output_text)}"
+
+    # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+    # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+    labels = [MASKED_TOKEN_ID] * (len(text_tokens) - len(output_text_tokens)) + output_text_tokens
 
     if tokenizer.bos_token and text.startswith(tokenizer.bos_token):
         text = text[len(tokenizer.bos_token) :]
 
-    return TrainingText(text=text, n_predicted=len(output_text))
+    return TrainingText(text=text, n_predicted=len(output_text), input_ids=text_tokens, labels=labels)

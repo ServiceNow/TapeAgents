@@ -183,8 +183,10 @@ def extract_tape_training_samples(
             # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
             labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
-            trace.input_ids = input_ids
-            trace.labels = labels
+            # trace.input_ids = input_ids
+            # trace.labels = labels
+            assert trace.input_ids == input_ids, f"{trace.input_ids}\n!=\n{input_ids}"
+            assert trace.labels == labels, f"{trace.labels}\n!=\n{labels}"
 
             # check if the last produced token is the end of sequence token
             overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
