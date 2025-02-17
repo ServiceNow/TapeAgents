@@ -25,6 +25,8 @@ from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 from termcolor import colored
 
+from tapeagents.finetune.data import MASKED_TOKEN_ID
+
 from .config import DB_DEFAULT_FILENAME, common_cache_dir
 from .core import LLMOutput, Prompt, TokenLogprob, TrainingText
 from .observe import LLMCall, observe_llm_call, retrieve_all_llm_calls
@@ -1299,13 +1301,22 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )
+    prompt_tokens = tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
     text = tokenizer.apply_chat_template(
         prompt.messages + [{"role": "assistant", "content": output.content}],
         tokenize=False,
     )
+    tokens = tokenizer(text, add_special_tokens=False)["input_ids"]
+
     output_text = text[len(prompt_text) :]
+    output_tokens = tokens[len(prompt_tokens) :]
 
     if tokenizer.bos_token and text.startswith(tokenizer.bos_token):
         text = text[len(tokenizer.bos_token) :]
+        tokens = tokens[1 :]
 
-    return TrainingText(text=text, n_predicted=len(output_text))
+    # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+    # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+    labels = [MASKED_TOKEN_ID] * (len(tokens) - len(output_tokens)) + output_tokens
+
+    return TrainingText(text=text, n_predicted=len(output_tokens), input_ids=tokens, labels=labels, prompt_text=prompt_text, output_text=output_text)
