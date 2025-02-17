@@ -1305,22 +1305,22 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
     prompt_text = tokenizer.apply_chat_template(
         conversation=prompt.messages, tokenize=False, add_generation_prompt=True
     )
-    prompt_tokens = tokenizer(prompt_text)["input_ids"]
+    prompt_tokens = tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
     text = tokenizer.apply_chat_template(
         prompt.messages + [{"role": "assistant", "content": output.content}],
         tokenize=False,
     )
-    text_tokens = tokenizer(text)["input_ids"]
+    text_tokens = tokenizer(text, add_special_tokens=False)["input_ids"]
 
     output_text = text[len(prompt_text) :]
     output_text_tokens = text_tokens[len(prompt_tokens) :]
-    assert len(output_text_tokens) == len(output_text), f"{len(output_text_tokens)} != {len(output_text)}"
+
+    if tokenizer.bos_token and text.startswith(tokenizer.bos_token):
+        text = text[len(tokenizer.bos_token) :]
+        text_tokens = text_tokens[1 :]
 
     # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
     # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
     labels = [MASKED_TOKEN_ID] * (len(text_tokens) - len(output_text_tokens)) + output_text_tokens
 
-    if tokenizer.bos_token and text.startswith(tokenizer.bos_token):
-        text = text[len(tokenizer.bos_token) :]
-
-    return TrainingText(text=text, n_predicted=len(output_text), input_ids=text_tokens, labels=labels)
+    return TrainingText(text=text, n_predicted=len(output_text_tokens), input_ids=text_tokens, labels=labels, prompt_text=prompt_text, output_text=output_text)
