@@ -1,8 +1,6 @@
 defaults:
+  - web_agent
   - _self_
-  - llm: gemini_flash_2
-  - agent: web_plan_react
-  - environment: web_computer
+  - override llm: gemini_flash_2
 
-exp_name: gpt4o_web_agent
-exp_path: outputs/web_agent/runs/${exp_name}
+exp_name: flash_web_agent
