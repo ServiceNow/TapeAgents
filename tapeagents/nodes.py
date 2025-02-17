@@ -8,7 +8,7 @@ from typing import Annotated, Any, Generator, Type, Union
 
 from pydantic import Field, TypeAdapter, ValidationError
 
-from tapeagents.agent import Action, Agent, Node
+from tapeagents.agent import Agent, Node
 from tapeagents.core import (
     AgentStep,
     LLMOutput,
