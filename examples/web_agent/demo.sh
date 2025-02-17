@@ -63,15 +63,15 @@ if ! podman ps --format "{{.Names}}" | grep -q "^computer$"; then
     echo "Starting computer container"
     ./tapeagents/tools/computer/run.sh >> /tmp/demo_stdout.log 2>&1 &
     echo -n "Waiting for computer container to start"
-    # Wait up to 15 seconds for computer container to be running
-    for i in {1..15}; do
+    # Wait up to 30 seconds for computer container to be running
+    for i in {1..30}; do
         if podman ps | grep -q "computer"; then
             break
         fi
         sleep 1
         echo -n "."
-        if [ $i -eq 15 ]; then
-            echo "Error: Computer container failed to start within 15 seconds"
+        if [ $i -eq 30 ]; then
+            echo "Error: Computer container failed to start within 30 seconds"
             exit 1
         fi
     done
