@@ -1291,8 +1291,12 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
     Returns:
         TrainingText: A dataclass containing:
 
-            - text (str): The formatted conversation text
-            - n_predicted (int): Length of the output text portion
+            - text (str): The formatted conversation text (prompt + output)
+            - n_predicted (int): Length of the output tokens
+            - input_ids (list[int]): The token ids of the entire conversation (prompt + output)
+            - labels (list[int]): The masked_token_id for all but the output tokens
+            - prompt_text (str): The formatted prompt text
+            - output_text (str): The formatted output text
 
     Note:
         - Uses tokenizer's chat template to format conversations
