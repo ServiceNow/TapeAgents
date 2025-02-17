@@ -21,7 +21,6 @@ classifiers = [
 ]
 dependencies = [
   "browsergym~=0.13",
-  "dspy>=2.6.3",
   "fastapi~=0.115",
   "gradio~=5.11",
   "hydra-core~=1.3",

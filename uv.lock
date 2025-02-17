@@ -5522,11 +5522,10 @@ wheels = [
 
 [[package]]
 name = "tapeagents"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "." }
 dependencies = [
     { name = "browsergym" },
-    { name = "dspy" },
     { name = "fastapi" },
     { name = "gradio" },
     { name = "hydra-core" },
@@ -5610,7 +5609,6 @@ requires-dist = [
     { name = "browsergym", specifier = "~=0.13" },
     { name = "datasets", marker = "extra == 'finetune'", specifier = "~=2.21" },
     { name = "deepspeed", marker = "extra == 'finetune'", specifier = "~=0.15.4" },
-    { name = "dspy", specifier = ">=2.6.3" },
     { name = "easyocr", marker = "extra == 'converters'", specifier = "~=1.7" },
     { name = "fastapi", specifier = "~=0.115" },
     { name = "ffmpeg-python", marker = "extra == 'converters'", specifier = "~=0.2" },
