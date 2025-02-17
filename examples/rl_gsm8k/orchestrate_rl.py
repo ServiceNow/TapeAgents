@@ -185,8 +185,8 @@ def extract_tape_training_samples(
 
             # trace.input_ids = input_ids
             # trace.labels = labels
-            assert trace.input_ids == input_ids[1:], f"{trace.input_ids}\n!=\n{input_ids[1:]}"
-            assert trace.labels == labels[1:], f"{trace.labels}\n!=\n{labels[1:]}"
+            assert trace.input_ids == input_ids[1:], f"{trace.input_ids}\n!=\n{input_ids[1:]}\n---\n{agent.llm.tokenizer.decode(trace.input_ids)}\n!=\n{agent.llm.tokenizer.decode(input_ids[1:])}"
+            assert trace.labels == labels[1:], f"{trace.labels}\n!=\n{labels[1:]}\n---\n{agent.llm.tokenizer.decode(trace.labels)}\n!=\n{agent.llm.tokenizer.decode(labels[1:])}"
 
             # check if the last produced token is the end of sequence token
             overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
