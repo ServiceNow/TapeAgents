@@ -10,7 +10,7 @@ Meta reports that the model obtains [44.4 on the GSM8k dataset (8 shot, CoT)](ht
 
 #### Prerequisities
 
-We use VLLM for inference in our training pipeline. Install it as follows:
+We use vLLM for inference in our training pipeline. Install it as follows:
 
 ```bash
 pip install 'tapeagents[finetune]'
@@ -19,7 +19,7 @@ pip install 'tapeagents[finetune]'
 Make sure you have a Huggingface account with access to <https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct> and use `huggingface-cli` to login to the Hugging Face Hub. You may also want to test your vllm installation and downloading the model's weights by running the following command:
 
 ```bash
-uv run -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-3.2-1B-Instruct --dtype bfloat16
+python -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-3.2-1B-Instruct --dtype bfloat16
 ```
 
 #### Run training loop
@@ -27,7 +27,7 @@ uv run -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-3.2-1B-Ins
 The example can be run in 2 hours on a H100 (should also run on a A100):
 
 ```bash
-uv run -m examples.rl_gsm8k.orchestrate_rl
+python -m examples.rl_gsm8k.orchestrate_rl
 ```
 
 By default, the script uses `conf/rl_gsm8k.yaml` as the configuration file. 
