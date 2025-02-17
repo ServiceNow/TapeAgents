@@ -220,7 +220,10 @@ class GaiaTapeBrowser(TapeBrowser):
             for r in raw_exps:
                 exp_dir = os.path.join(self.tapes_folder, r)
                 try:
-                    cfg = get_exp_config_dict(exp_dir)
+                    try:
+                        cfg = get_exp_config_dict(exp_dir)
+                    except Exception:
+                        cfg = {}
                     if "split" in cfg:
                         set_name = cfg["split"]
                     elif "data_dir" in cfg:

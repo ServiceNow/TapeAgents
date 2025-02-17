@@ -13,8 +13,9 @@ from typing import Callable, Optional, Type
 
 from pydantic import BaseModel
 
-from .config import sqlite_db_path
-from .core import LLMCall, LLMOutput, Prompt, Tape
+from tapeagents.config import sqlite_db_path
+from tapeagents.core import Prompt, Tape
+from tapeagents.llms.types import LLMCall, LLMOutput
 
 logger = logging.getLogger(__name__)
 

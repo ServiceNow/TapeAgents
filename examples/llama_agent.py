@@ -3,9 +3,9 @@ import os
 import tempfile
 
 from tapeagents.agent import Agent
-from tapeagents.core import LLMOutput, PartialStep, Prompt, Tape, TapeMetadata, TrainingText
+from tapeagents.core import PartialStep, Prompt, Tape, TapeMetadata, TrainingText
 from tapeagents.dialog_tape import AssistantStep, DialogTape, SystemStep, UserStep
-from tapeagents.llms import LLM, LLMStream, TrainableLLM
+from tapeagents.llms import LLM, LLMOutput, LLMStream, TrainableLLM
 from tapeagents.prompting import tape_to_messages
 
 

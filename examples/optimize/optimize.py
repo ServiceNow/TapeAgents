@@ -7,8 +7,8 @@ import dspy
 import dspy.evaluate
 import hydra
 import tqdm
-from dsp.utils import deduplicate
 from dspy.datasets import HotPotQA
+from dspy.dsp.utils import deduplicate
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 

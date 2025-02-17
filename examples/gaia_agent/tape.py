@@ -19,4 +19,4 @@ class GaiaMetadata(TapeMetadata):
 
 class GaiaTape(Tape[DialogContext, GaiaStep]):
     metadata: GaiaMetadata = Field(default_factory=GaiaMetadata)
-    context: DialogContext = DialogContext(tools=[])
+    context: DialogContext | None = DialogContext(tools=[])

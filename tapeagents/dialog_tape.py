@@ -9,13 +9,12 @@ from typing import Any, Callable, Literal, TypeAlias
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
-from .agent import Annotator
-from .core import (
+from tapeagents.agent import Annotator
+from tapeagents.core import (
     Action,
     AgentEvent,
     Call,
     FinalStep,
-    LLMOutput,
     Observation,
     Pass,
     Respond,
@@ -24,6 +23,7 @@ from .core import (
     Tape,
     Thought,
 )
+from tapeagents.llms import LLMOutput
 
 
 class SystemStep(Observation):

@@ -21,10 +21,10 @@ from termcolor import colored
 from tqdm import tqdm
 
 from tapeagents.agent import Agent
-from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, StepMetadata, TrainingText
+from tapeagents.core import LLMOutputParsingFailureAction, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.llms import TrainableLLM
+from tapeagents.llms import LLMCall, TrainableLLM
 
 from .cot_math_agent import CoTMathAgent, RLMathTape, Task
 from .deepseek_math_eval.answer_extraction import extract_last_single_answer, extract_math_answer

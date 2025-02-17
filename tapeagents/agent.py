@@ -12,17 +12,12 @@ from typing import Any, Generator, Generic
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
 
-from tapeagents.core import LLMOutputParsingFailureAction
-from tapeagents.observe import observe_llm_call
-from tapeagents.view import TapeViewStack
-
-from .core import (
+from tapeagents.core import (
     Action,
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
-    LLMCall,
-    LLMOutput,
+    LLMOutputParsingFailureAction,
     MakeObservation,
     ObservationMakerTapeType,
     PartialStep,
@@ -34,7 +29,9 @@ from .core import (
     Thought,
     TrainingText,
 )
-from .llms import LLM, LLMEvent, LLMStream, TrainableLLM
+from tapeagents.llms import LLM, LLMCall, LLMEvent, LLMOutput, LLMStream, TrainableLLM
+from tapeagents.observe import observe_llm_call
+from tapeagents.view import TapeViewStack
 
 DEFAULT = "default"
 

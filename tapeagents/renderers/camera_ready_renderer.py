@@ -15,7 +15,7 @@ from tapeagents.dialog_tape import (
 )
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.io import UnknownStep
-from tapeagents.observe import LLMCall
+from tapeagents.llms import LLMCall
 from tapeagents.renderers.basic import BasicRenderer
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import ANSI_ESCAPE_REGEX, CodeBlock
