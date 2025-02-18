@@ -57,10 +57,6 @@ class LiteLLM(CachedLLM):
 
     def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
         while True:
-            if "response_schema" in kwargs:
-                response_schema = kwargs.pop("response_schema")
-                response_format = {"type": "json_object", "response_schema": response_schema}
-                kwargs["response_format"] = response_format
             for k, v in self.parameters.items():
                 if isinstance(v, DictConfig):
                     kwargs[k] = OmegaConf.to_container(v)

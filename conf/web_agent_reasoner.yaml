@@ -1,0 +1,8 @@
+defaults:
+  - web_agent
+  - _self_
+  - llm@reasoner: sonnet
+  - override llm: gpt4o-mini
+  - override agent: plan_react_with_reasoner
+
+exp_name: sonnet_gpt4o_mini_web_reasoner

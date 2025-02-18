@@ -104,6 +104,7 @@ class Node(BaseModel):
     """
 
     name: str = ""
+    llm: str = DEFAULT
 
     def model_post_init(self, __context: Any) -> None:
         if not self.name:
@@ -232,6 +233,8 @@ class Agent(BaseModel, Generic[TapeType]):
                 raise ValueError(
                     f'Duplicate node name "{node.name}" in node {i}, pass a unique name to the node during creation'
                 )
+            if node.llm not in self.llms:
+                raise ValueError(f"Node {node.name} references unknown LLM {node.llm}")
             if hasattr(node, "add_known_actions"):
                 node.add_known_actions(self.known_actions)
             node_names.add(node.name)
@@ -627,8 +630,10 @@ class Agent(BaseModel, Generic[TapeType]):
         if llm_stream is None:
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:
-                raise NotImplementedError("TODO: implement LLM choice in the prompt")
-            llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
+                llm = self.llms[self.select_node(tape).llm]
+            else:
+                llm = self.llm
+            llm_stream = llm.generate(prompt) if prompt else LLMStream(None, prompt)
         for step in self.generate_steps(tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.prompt_id = llm_stream.prompt.id

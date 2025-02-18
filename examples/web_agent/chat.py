@@ -120,6 +120,14 @@ async def main(cfg):
             st.session_state.env.reset()
             st.rerun()
 
+    today_date_str = datetime.now().strftime("%Y-%m-%d")
+    if st.session_state.tape is None:
+        initial_obs = st.session_state.env.step(MouseHoverAction(element_description="center of the screen"))
+        st.session_state.tape = Tape(steps=[initial_obs, UserStep(content=f"Today is {today_date_str}")])
+    else:
+        if isinstance(st.session_state.tape.steps[-1], AssistantAnswer):
+            st.session_state.tape.steps[-1] = ReasoningThought(reasoning=st.session_state.tape.steps[-1].answer)
+
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             msg_type = message.get("type", "write")
@@ -136,15 +144,9 @@ async def main(cfg):
         with st.chat_message("user"):
             st.write(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
-        today_date_str = datetime.now().strftime("%Y-%m-%d")
+
         last_status = st.status("Thinking...")
-        if st.session_state.tape is None:
-            initial_obs = st.session_state.env.step(MouseHoverAction(element_description="center of the screen"))
-            st.session_state.tape = Tape(steps=[initial_obs, UserStep(content=f"Today is {today_date_str}.\n{prompt}")])
-        else:
-            if isinstance(st.session_state.tape.steps[-1], AssistantAnswer):
-                st.session_state.tape.steps[-1] = ReasoningThought(reasoning=st.session_state.tape.steps[-1].answer)
-            st.session_state.tape = st.session_state.tape.append(UserStep(content=prompt))
+        st.session_state.tape = st.session_state.tape.append(UserStep(content=prompt))
 
         try:
             for event in main_loop(st.session_state.agent, st.session_state.tape, st.session_state.env, max_loops=50):
@@ -385,6 +387,9 @@ def render_step(step: Step) -> str:
         </div>
         """
         icon = "output"
+    elif step.kind == "extracted_facts_thought":
+        msg = step.extracted_facts
+        msg_type = "write"
     else:
         msg = step.llm_dict()
         msg_type = "write"

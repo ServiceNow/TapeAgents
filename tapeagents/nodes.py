@@ -21,7 +21,7 @@ from tapeagents.core import (
     Tape,
 )
 from tapeagents.llms import LLMOutput, LLMStream
-from tapeagents.steps import BranchStep
+from tapeagents.steps import BranchStep, ReasoningThought
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import extract_code_blocks
 from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
@@ -60,8 +60,8 @@ class StandardNode(Node):
 
     guidance: str = ""  # guidance text that is attached to the end of the prompt
     system_prompt: str = ""
-    steps_prompt: str = "{allowed_steps}"  # prompt that describes the steps that the agent can take
-    steps: type[Step] | list[type[Step] | str] | str = Field(exclude=True)
+    steps_prompt: str = ""  # use {allowed_steps} to insert steps schema
+    steps: type[Step] | list[type[Step] | str] | str = Field(exclude=True, default_factory=list)
     use_known_actions: bool = False
     next_node: str = ""
     trim_obs_except_last_n: int = 2
@@ -74,6 +74,8 @@ class StandardNode(Node):
     def prepare_step_types(self, actions: list[type[Step]] = None):
         actions = actions or []
         step_classes_or_str = actions + (self.steps if isinstance(self.steps, list) else [self.steps])
+        if not step_classes_or_str:
+            return
         step_classes = tuple([class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str])
         self._steps_type = Annotated[Union[step_classes], Field(discriminator="kind")]
 
@@ -107,7 +109,7 @@ class StandardNode(Node):
         cleaned_tape = self.prepare_tape(tape)
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
-        if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
+        if agent.llms[self.llm].count_tokens(messages) > (agent.llms[self.llm].context_size - 500):
             old_trim = self.trim_obs_except_last_n
             self.trim_obs_except_last_n = 1
             messages = self.tape_to_messages(cleaned_tape, steps_description)
@@ -211,7 +213,9 @@ class StandardNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        allowed_steps = agent.llm.get_step_schema(self._steps_type)
+        if not self._steps_type:
+            return self.steps_prompt
+        allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type)
         return self.steps_prompt.format(allowed_steps=allowed_steps)
 
     def generate_steps(
@@ -291,6 +295,9 @@ class StandardNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
+        if not self.steps_prompt:
+            yield ReasoningThought(reasoning=llm_output)
+            return
         try:
             step_dicts = json.loads(sanitize_json_completion(llm_output))
             if isinstance(step_dicts, dict):

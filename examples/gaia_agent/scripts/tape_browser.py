@@ -169,7 +169,8 @@ class GaiaTapeBrowser(TapeBrowser):
             mark += f"[{error}]"
         if mark:
             mark += " "
-        return f"{i+1} {mark}({tokens: }t) {tape[0].content[:32]}"  # type: ignore
+        name = tape[0].content[:32] if hasattr(tape[0], "content") else tape[0].short_view()[:32]
+        return f"{i+1} {mark}({tokens: }t) {name}"  # type: ignore
 
     def get_tape_label(self, tape: GaiaTape) -> str:
         llm_calls_num = 0

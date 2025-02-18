@@ -1,5 +1,5 @@
 _target_: tapeagents.llms.LiteLLM
-model_name: gemini/gemini-2.0-flash-thinking-exp-01-21
+model_name: openrouter/anthropic/claude-3.5-sonnet
 use_cache: false
 context_size: 128000
 parameters:
