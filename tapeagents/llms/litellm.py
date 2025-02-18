@@ -51,7 +51,7 @@ class LiteLLM(CachedLLM):
         return {"input": costs["input_cost_per_token"], "output": costs["output_cost_per_token"]}
 
     def get_step_schema(self, cls):
-        get_step_schemas_from_union_type(cls)
+        return get_step_schemas_from_union_type(cls)
 
     def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
         while True:
