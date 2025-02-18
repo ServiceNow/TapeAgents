@@ -11,9 +11,8 @@ from pydantic import Field
 from tapeagents.core import Action
 from tapeagents.steps import ImageObservation
 from tapeagents.tools.base import Multitool
-from tapeagents.tools.grounding import GroundingModel
-
-from .steps import (
+from tapeagents.tools.computer import launch_container
+from tapeagents.tools.computer.steps import (
     ComputerObservation,
     GetCursorPositionAction,
     KeyPressAction,
@@ -23,10 +22,11 @@ from .steps import (
     RunTerminalCommand,
     TypeTextAction,
 )
+from tapeagents.tools.grounding import GroundingModel
 
-logger = logging.getLogger("remote")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(funcName)s - %(message)s")
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s:%(lineno)d - %(funcName)s - %(message)s")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
@@ -80,6 +80,8 @@ class RemoteComputer(Multitool):
     computer_url: str = Field(description="Remote tool API URL")
     use_grounding: bool = Field(description="Whether to use grounding model", default=True)
     grounding_api_url: str = Field(description="Grounding API URL")
+    container_image: str = "computer"
+    container_name: str = "computer"
 
     def model_post_init(self, __context):
         self._grounding = GroundingModel(url=self.grounding_api_url)
@@ -101,6 +103,7 @@ class RemoteComputer(Multitool):
             self._action_map[MouseXYMoveAction] = self.remote_execute_action
             self._action_map[GetCursorPositionAction] = self.remote_execute_action
         self.actions = tuple(self._action_map.keys())
+        launch_container(self.container_image, self.container_name, stop_at_exit=True)
 
     def execute_action(self, action: Action) -> ImageObservation:
         action_type = type(action)
@@ -151,3 +154,6 @@ class RemoteComputer(Multitool):
 
     def reset(self):
         self.remote_execute_action(RunTerminalCommand(command='xdotool search "" windowkill %@'))
+
+    def close(self):
+        return super().close()

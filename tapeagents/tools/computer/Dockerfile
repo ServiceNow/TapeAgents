@@ -15,5 +15,6 @@ RUN python3 -m pip install pyautogui uvicorn fastapi python-multipart pillow pys
 RUN apt -y install xdotool
 
 COPY api.py /api.py
+COPY start.sh /custom-cont-init.d/start.sh
 RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN ln -s /config /home/user
