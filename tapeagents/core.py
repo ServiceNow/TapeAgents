@@ -24,6 +24,8 @@ class TrainingText(BaseModel):
         reward (float): The reward associated with the training instance. Defaults to 0.0.
         logprobs (List[float]): A list of log probabilities of the completion tokens from the assistant model.
         ref_logprobs (List[float]): A list of reference log probabilities of the completion tokens from the reference model.
+        input_ids (List[int]): The tokenized input ids of the text.
+        labels (List[int]): The tokenized labels of the text (i.e., masked token ids for the prompt and regular token ids for the prediction).
         group_id (str, optional): ID of the group. It is used by the RL finetuning script to normalize rewards.
         prompt_text (str): Portion of the text that serves as the prompt (i.e., the text excluding the predicted tokens).
         output_text (str): Portion of the text that represents the predicted output (i.e., the last n_predicted tokens).
