@@ -15,12 +15,12 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
+import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
-import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import LLMCall, StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
@@ -38,15 +38,12 @@ def process_gsm8k(item):
     sample = {"dataset": "gsm8k-cot", "task": item["question"], "answer": answer}
     return sample
 
+
 def load_datasets() -> Tuple[list, list]:
     train_dataset = load_dataset("openai/gsm8k", "main", split="train", trust_remote_code=True)
     test_dataset = load_dataset("openai/gsm8k", "main", split="test", trust_remote_code=True)
-    train_samples = [
-        process_gsm8k(s) for s in tqdm(train_dataset, desc="Processing train samples") 
-    ]
-    test_samples = [
-        process_gsm8k(s) for s in tqdm(test_dataset, desc="Processing test samples") 
-    ]
+    train_samples = [process_gsm8k(s) for s in tqdm(train_dataset, desc="Processing train samples")]
+    test_samples = [process_gsm8k(s) for s in tqdm(test_dataset, desc="Processing test samples")]
     logger.info(f"Loaded {len(train_samples)} training samples")
     logger.info(f"Loaded {len(test_samples)} test samples")
     return train_samples, test_samples
@@ -96,7 +93,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
             template=cfg.task_template,
             metadata=StepMetadata(
                 other={
-                    "value": problem["answer"], # expected answer
+                    "value": problem["answer"],  # expected answer
                 }
             ),
         )
@@ -138,7 +135,7 @@ def extract_tape_training_samples(
     begin_boxed = reasoning.rfind("\\boxed")
     prediction = reasoning[begin_boxed:]
     prediction = prediction.replace("\\boxed{", "").replace("}", "").strip()
-    number_match = re.search(r'-?\d+', prediction)
+    number_match = re.search(r"-?\d+", prediction)
     if not number_match:
         # LLM produced a step that was unparsable. Negative reward.
         no_error, reward, success = 0, -1, 0
@@ -441,7 +438,7 @@ def main(cfg: DictConfig):
         )
 
         try:
-            # Populate reference logprobs using the reference model 
+            # Populate reference logprobs using the reference model
             with VLLMServiceManager(
                 exp_path=exp_path,
                 service_name="reference",
