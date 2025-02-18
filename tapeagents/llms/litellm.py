@@ -28,6 +28,8 @@ class LiteLLM(CachedLLM):
         Function calling during streaming is not yet implemented and will raise NotImplementedError.
     """
 
+    simple_schemas: bool = True
+
     def count_tokens(self, messages: list[dict] | str) -> int:
         """
         Count the number of tokens in a message or string.
@@ -51,7 +53,7 @@ class LiteLLM(CachedLLM):
         return {"input": costs["input_cost_per_token"], "output": costs["output_cost_per_token"]}
 
     def get_step_schema(self, cls):
-        return get_step_schemas_from_union_type(cls)
+        return get_step_schemas_from_union_type(cls, self.simple_schemas)
 
     def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
         while True:

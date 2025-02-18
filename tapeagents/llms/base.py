@@ -168,7 +168,7 @@ class LLM(BaseModel, ABC):
         }
 
     def get_step_schema(self, cls):
-        pass
+        raise NotImplementedError("get_step_schema method not implemented")
 
 
 class NoTokenizerError(ValueError):

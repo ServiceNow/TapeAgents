@@ -419,5 +419,5 @@ def save_to_storage(filename: str, data: str) -> None:
 
 if __name__ == "__main__":
     with initialize(version_base=None, config_path="../../conf", job_name="web_chat"):
-        cfg = compose(config_name="web_agent.yaml")
+        cfg = compose(config_name="web_agent_flash.yaml")
     asyncio.run(main(cfg))
