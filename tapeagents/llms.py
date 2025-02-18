@@ -1292,7 +1292,7 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
         TrainingText: A dataclass containing:
 
             - text (str): The formatted conversation text (prompt + output)
-            - n_predicted (int): Length of the output tokens
+            - n_predicted (int): Length of the output text portion
             - input_ids (list[int]): The token ids of the entire conversation (prompt + output)
             - labels (list[int]): The masked_token_id for all but the output tokens
             - prompt_text (str): The formatted prompt text
@@ -1317,10 +1317,17 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
 
     if tokenizer.bos_token and text.startswith(tokenizer.bos_token):
         text = text[len(tokenizer.bos_token) :]
-        tokens = tokens[1 :]
+        tokens = tokens[1:]
 
     # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
     # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
     labels = [MASKED_TOKEN_ID] * (len(tokens) - len(output_tokens)) + output_tokens
 
-    return TrainingText(text=text, n_predicted=len(output_tokens), input_ids=tokens, labels=labels, prompt_text=prompt_text, output_text=output_text)
+    return TrainingText(
+        text=text,
+        n_predicted=len(output_text),
+        input_ids=tokens,
+        labels=labels,
+        prompt_text=prompt_text,
+        output_text=output_text,
+    )
