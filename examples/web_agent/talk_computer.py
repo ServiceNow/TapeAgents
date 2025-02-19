@@ -60,41 +60,48 @@ async def main():
         st.session_state.messages.append({"role": "user", "content": prompt})
 
         if prompt.startswith("open"):
-            st.status("Opening...")
             url = prompt.split(" ", maxsplit=1)[1]
+            if not url.startswith("http"):
+                url = "https://" + url
+            st.status(f"Opening {url}")
             computer.execute_action(OpenUrlAction(url=url))
             msg = f"Opened {url}"
         elif prompt.startswith("run"):
-            st.status("Running...")
             command = prompt.split(" ", maxsplit=1)[1]
+            st.status(f"Running `{command}`")
             obs = computer.execute_action(RunTerminalCommand(command=command))
             msg = obs.output
             if obs.error:
                 msg += [f"\n\nError: {obs.error}"]
         elif prompt.startswith("click"):
-            st.status("Clicking...")
             target = prompt.split(" ", maxsplit=1)[1]
+            st.status(f"Clicking {target}")
             computer.execute_action(MouseClickAtAction(element_description=target))
             msg = f"Clicked '{target}'"
         elif prompt.startswith("type"):
-            st.status("Typing...")
             text = prompt.split(" ", maxsplit=1)[1]
+            st.status(f"Typing '{text}'")
             computer.execute_action(TypeTextAction(text=text))
             msg = "Done"
         elif prompt.startswith("input"):
-            st.status("Typing...")
             text = prompt.split(" ", maxsplit=1)[1]
+            st.status(f"Typing '{text}'")
             computer.execute_action(TypeTextAction(text=text))
             computer.execute_action(KeyPressAction(text="Return"))
             msg = "Done"
         elif prompt == "up" or prompt == "scroll up":
-            st.status("Scrolling...")
+            st.status("Scrolling up")
             computer.execute_action(KeyPressAction(text="Page_Up"))
             msg = "Moved up"
         elif prompt == "down" or prompt == "scroll":
-            st.status("Scrolling...")
+            st.status("Scrolling down")
             computer.execute_action(KeyPressAction(text="Page_Down"))
             msg = "Moved down"
+        elif prompt.startswith("hotkey"):
+            st.status("Pressing hotkey")
+            keys = prompt.split(" ", maxsplit=1)[1]
+            computer.execute_action(KeyPressAction(text=keys))
+            msg = f"Pressed '{keys}'"
 
         if msg:
             with st.chat_message("assistant"):
