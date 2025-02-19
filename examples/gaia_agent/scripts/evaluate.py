@@ -13,8 +13,6 @@ from tapeagents.llms import TrainableLLM
 from tapeagents.orchestrator import get_agent_and_env_from_config
 from tapeagents.tools.container_executor import init_code_sandbox
 
-from ..agent import GaiaAgent
-from ..environment import get_env
 from ..eval import get_exp_config_dict, load_dataset, solve_task
 
 logger = logging.getLogger(__name__)

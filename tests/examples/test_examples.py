@@ -18,7 +18,7 @@ from tapeagents.environment import EmptyEnvironment
 from tapeagents.io import load_tapes
 from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
 from tapeagents.observe import init_sqlite_if_not_exists, retrieve_tape_llm_calls
-from tapeagents.orchestrator import replay_tape, replay_tapes
+from tapeagents.orchestrator import get_agent_and_env_from_config, replay_tape, replay_tapes
 from tapeagents.team import TeamTape
 from tests.make_test_data import run_test_in_tmp_dir
 
@@ -40,8 +40,6 @@ from examples.form_filler.scripts.prepare_test_assets import (
     load_user_input_tapes,
     load_user_reference_tapes,
 )
-from examples.gaia_agent.agent import GaiaAgent
-from examples.gaia_agent.environment import get_env
 from examples.gaia_agent.tape import GaiaTape
 from examples.llama_agent import LLAMAChatBot
 from examples.optimize.optimize import make_agentic_rag_agent, make_env
@@ -159,9 +157,9 @@ def test_gaia_agent():
             shutil.copyfileobj(f_in, f_out)
     try:
         os.environ["TAPEAGENTS_CACHE_DIR"] = f"{run_dir}/cache"
-        llm = mock_llm(run_dir)
-        env = get_env(run_dir, simple_browser=True)
-        agent = GaiaAgent.create(llm, actions=env.actions())
+        with open("config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent, env = get_agent_and_env_from_config(cfg)
         tapes = load_tapes(
             GaiaTape,
             os.path.join(run_dir, "tapes"),

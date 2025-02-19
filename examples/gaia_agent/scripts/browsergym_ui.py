@@ -4,19 +4,16 @@ import logging
 import os
 
 import hydra
-from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.core import Action, Observation, Step
 from tapeagents.dialog_tape import UserStep
 from tapeagents.io import save_json_tape, save_tape_images
-from tapeagents.orchestrator import main_loop
+from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 from tapeagents.renderers import to_pretty_str
 from tapeagents.steps import ReasoningThought
 from tapeagents.tools.container_executor import init_code_sandbox
 
-from ..agent import GaiaAgent
-from ..environment import get_env
 from ..steps import GaiaQuestion
 from ..tape import GaiaTape
 
@@ -47,10 +44,8 @@ def main(cfg: DictConfig) -> None:
     os.makedirs(tapes_dir, exist_ok=True)
     images_dir = os.path.join(cfg.exp_path, "attachments", "images")
     os.makedirs(images_dir, exist_ok=True)
-    llm = instantiate(cfg.llm)
     init_code_sandbox(cfg.exp_path)
-    env = get_env(cfg.exp_path, **cfg.env)
-    agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
+    agent, env = get_agent_and_env_from_config(cfg)
     env.chat.add_message(role="assistant", msg="TapeAgent Ready")
     today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     tape = None

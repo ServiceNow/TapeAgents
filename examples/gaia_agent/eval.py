@@ -11,6 +11,7 @@ from huggingface_hub import snapshot_download
 from pdf2image import convert_from_path
 from termcolor import colored
 
+from tapeagents.agent import Agent
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
@@ -19,7 +20,6 @@ from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.web_search import SearchAction
 
-from .agent import GaiaAgent
 from .scorer import question_scorer
 from .steps import GaiaAnswer, GaiaQuestion, ImageObservation
 from .tape import GaiaMetadata, GaiaTape
@@ -103,7 +103,7 @@ def load_dataset(split: str):
 
 def solve_task(
     task: dict,
-    agent: GaiaAgent,
+    agent: Agent,
     env: ToolCollectionEnvironment,
     level: int,
     max_loops: int = 50,
