@@ -17,6 +17,7 @@ from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.io import UnknownStep
 from tapeagents.llms import LLMCall
 from tapeagents.renderers.basic import BasicRenderer
+from tapeagents.steps import ReasoningThought
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import ANSI_ESCAPE_REGEX, CodeBlock
 from tapeagents.view import Broadcast, Call, Respond
@@ -160,6 +161,8 @@ class CameraReadyRenderer(BasicRenderer):
                     text += render_image(file)
         elif isinstance(step, PythonCodeAction):
             text = f"# {step.name}\n{maybe_fold(step.code, 2000)}"
+        elif isinstance(step, ReasoningThought):
+            text = step.reasoning
         else:
             foldable_keys = ["content", "text"]
             content = ""

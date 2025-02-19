@@ -477,6 +477,11 @@ class PageObservation(Observation):
 
 
 class SimpleBrowser(Multitool):
+    """
+    Simple text-based web browser for reading documents and web pages.
+    Can load web page or document from a URL or file path and scroll through its content.
+    """
+
     actions: tuple[type[Action], ...] = (ReadDocumentAction, PageDownAction)
     observations: tuple[type[Observation], ...] = (PageObservation,)
     exp_path: str

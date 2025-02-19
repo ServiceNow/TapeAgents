@@ -1,10 +1,12 @@
 defaults:
-  - llm: gpt4o_mini
   - _self_
+  - llm: gpt4o_mini
+  - agent: gaia
+  - environment: web_browser
 
-exp_name: gpt4o_mini_val_browsergym_reproduce1
-
+exp_name: gpt4o_mini_val_browsergym_fromconf1
 exp_path: outputs/gaia/runs/${exp_name}
+
 split: validation
 batch: 16
 retry_unsolved: true
@@ -18,18 +20,6 @@ only_tasks: [] # list of (level, task_num)
 # - [1, 5]
 # - [1, 6]
 # - [1, 7]
-
-agent:
-  plain_code: false
-
-env:
-  simple_browser: false
-  navigation_only: true
-  use_web_cache: true
-
-studio:
-  tape:
-    null
 
 hydra:
   run:

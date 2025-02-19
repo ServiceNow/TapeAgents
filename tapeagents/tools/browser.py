@@ -190,6 +190,10 @@ class PageScreenshotObservation(ImageObservation):
 
 
 class Browser(Multitool):
+    """
+    Browser tool that can load web pages and interact with their content.
+    """
+
     actions: tuple[type[Action], ...] = (
         ClickAction,
         OpenUrlAction,

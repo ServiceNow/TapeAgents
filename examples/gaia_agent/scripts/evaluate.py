@@ -10,6 +10,7 @@ from omegaconf import DictConfig
 
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.llms import TrainableLLM
+from tapeagents.orchestrator import get_agent_and_env_from_config
 from tapeagents.tools.container_executor import init_code_sandbox
 
 from ..agent import GaiaAgent
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="gaia_openai",
+    config_name="gaia_agent",
 )
 def main(cfg: DictConfig) -> None:
     tasks = load_dataset(cfg.split)
@@ -107,12 +108,8 @@ def task_worker(cfg: DictConfig, level: int, task_num: int):
     os.makedirs(images_dir, exist_ok=True)
 
     t = time.perf_counter()
-    env = get_env(cfg.exp_path, **cfg.env)
-    timers["create_env"] = time.perf_counter() - t
-
-    t = time.perf_counter()
-    agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
-    timers["create_agent"] = time.perf_counter() - t
+    agent, env = get_agent_and_env_from_config(cfg)
+    timers["create_agent_env"] = time.perf_counter() - t
 
     tape = solve_task(task, agent, env, level)
 
