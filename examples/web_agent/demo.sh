@@ -18,6 +18,7 @@ if ! command -v podman &> /dev/null; then
     echo "Podman initialized"
 fi
 if ! podman machine list | grep -q "Currently running"; then
+    podman machine set --user-mode-networking
     nohup podman machine start > /dev/null 2>&1
     echo "Podman machine started"
     podman info > /dev/null 2>&1
@@ -26,7 +27,6 @@ if ! podman machine list | grep -q "Currently running"; then
         exit 1
     fi
 fi
-podman machine set --user-mode-networking
 export DOCKER_HOST=http+unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
 if ! podman images computer | grep -q "computer"; then
     echo "No computer image found, building one"
