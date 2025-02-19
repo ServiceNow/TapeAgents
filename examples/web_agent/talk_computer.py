@@ -91,11 +91,11 @@ async def main():
             msg = "Done"
         elif prompt == "up" or prompt == "scroll up":
             st.status("Scrolling up")
-            computer.execute_action(KeyPressAction(text="Page_Up"))
+            computer.execute_action(KeyPressAction(text="pageup"))
             msg = "Moved up"
         elif prompt == "down" or prompt == "scroll":
             st.status("Scrolling down")
-            computer.execute_action(KeyPressAction(text="Page_Down"))
+            computer.execute_action(KeyPressAction(text="pagedown"))
             msg = "Moved down"
         elif prompt.startswith("hotkey"):
             st.status("Pressing hotkey")

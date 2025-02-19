@@ -8,7 +8,11 @@ from tapeagents.utils import image_base64_message
 
 
 class KeyPressAction(Action):
-    """Action that simulates keyboard key press"""
+    """
+    Action that simulates keyboard key press. Use + to separate keys.
+    Supports aliases: ctrl, shift, alt, esc, enter, tab, backspace, delete, home, end, pageup, pagedown, up, down, left, right.
+    Example: "ctrl+c" or "ctrl+shift+t"
+    """
 
     kind: Literal["key_press_action"] = "key_press_action"
     text: str = Field(description="Key combination to press")

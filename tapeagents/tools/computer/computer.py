@@ -88,10 +88,10 @@ class Computer(Multitool):
         return self.remote_execute_action(MouseClickAction(x=int(x), y=int(y), button=action.button))
 
     def page_up(self, action: PageUpAction) -> ComputerObservation:
-        return self.remote_execute_action(KeyPressAction(text="Page_Up"))
+        return self.remote_execute_action(KeyPressAction(text="pageup"))
 
     def page_down(self, action: PageDownAction) -> ComputerObservation:
-        return self.remote_execute_action(KeyPressAction(text="Page_Down"))
+        return self.remote_execute_action(KeyPressAction(text="pagedown"))
 
     def remote_execute_action(self, action: Action) -> ComputerObservation:
         payload = {"kind": action.kind, "params": action.model_dump()}
