@@ -15,6 +15,7 @@ templates:
     {tools_description}
   thought_format: |
     Important! Respond with the plain text, do not include any JSON or code.
+    Do not output anything besides what I asked in this message.
   allowed_steps: |
     You have access to the following tools:
     {tools_description}
@@ -69,6 +70,7 @@ nodes:
         5. Describe the expected effect of the proposed action.
       ${agent.templates.thought_format}
     steps_prompt: ${agent.templates.allowed_tools}
+
   - _target_: tapeagents.nodes.StandardNode
     name: act
     system_prompt: ${agent.templates.system_prompt}
@@ -85,7 +87,9 @@ nodes:
     name: summarize
     system_prompt: ${agent.templates.system_prompt}
     guidance: |
-      Summarize last observation and describe the results of the last action visible in it.
+      Summarize last observation. If its an image, thoroughly describe it with all details.
+      If its a screenshot, thoroughly descrive every visible element in it with its status and content.
+      Describe the results of the last action visible in it.
       Do not hallucinate or make up any information, only describe what you see in the observation image or its text.
       Do not guess or assume action effects, describe only visible changes.
       ${agent.templates.thought_format}

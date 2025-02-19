@@ -230,7 +230,7 @@ def render_step(step: Step) -> str:
             msg = "Looking at the image..."
             msg_type = "progress"
     elif step.kind == "computer_observation":
-        if step.output:
+        if not step.base64_image:
             msg = f"""
             <div style="font-family: 'Monaco', 'Menlo', monospace; font-size: 10pt; margin: 10px 0; border-radius: 8px; overflow: hidden;">
                 <div style="padding: 15px; background: #f8f9fa; border: 1px solid #eee;">
