@@ -213,9 +213,7 @@ class StandardNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        if not self._steps_type:
-            return self.steps_prompt
-        allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type)
+        allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type) if self._steps_type else ""
         return self.steps_prompt.format(allowed_steps=allowed_steps, tools_description=agent.tools_description)
 
     def generate_steps(
@@ -295,7 +293,7 @@ class StandardNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
-        if not self.steps_prompt:
+        if not self._steps_type:
             yield ReasoningThought(reasoning=llm_output)
             return
         try:

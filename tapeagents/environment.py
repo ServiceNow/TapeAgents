@@ -193,7 +193,7 @@ class ToolCollectionEnvironment(Environment):
         return observation
 
     def reset(self) -> None:
-        for tool in self.multitools:
+        for tool in self.tools:
             tool.reset()
 
     def close(self) -> None:
