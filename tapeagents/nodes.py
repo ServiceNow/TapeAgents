@@ -20,6 +20,7 @@ from tapeagents.core import (
     StopStep,
     Tape,
 )
+from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import BranchStep, ReasoningThought
 from tapeagents.tools.code_executor import PythonCodeAction
@@ -192,6 +193,8 @@ class StandardNode(Node):
             role = "assistant" if isinstance(step, AgentStep) else "user"
             if isinstance(step, Observation) and steps_after_current >= self.trim_obs_except_last_n:
                 view = step.short_view()
+            elif isinstance(step, (UserStep, ReasoningThought)):
+                view = step.content
             else:
                 view = step.llm_view()
             messages.append({"role": role, "content": view})
@@ -294,6 +297,7 @@ class StandardNode(Node):
             LLMOutputParsingFailureAction objects.
         """
         if not self._steps_type:
+            # if no steps type is enforced, just yield the reasoning thought
             yield ReasoningThought(reasoning=llm_output)
             return
         try:

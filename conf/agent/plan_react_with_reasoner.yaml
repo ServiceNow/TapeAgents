@@ -60,17 +60,15 @@ nodes:
     system_prompt: ${agent.templates.system_prompt}
     guidance: |
       Observe the current state of the task and produce the reflection text strictly following these rules:
-        1. Summarize the last observation and describe any webpage interactions/effects.
-        2. Evaluate the action's success, explain its impact on the task and our plan,
-        3. If the last action was not successful, describe errors and the possible reasons for failure.
-        4. List the next steps to accomplish the current plan step and propose immediate actions.
-        5. For webpage interactions:
-          - Accept cookie consents first.
-          - Close popups before interacting.
+        1. Evaluate the action's success, explain its impact on the task and our plan,
+        2. If the last action was not successful, describe errors and the possible reasons for failure.
+        3. List the next steps to accomplish the current plan step and propose single next immediate action.
+        4. When proposing webpage interactions:
+          - Always accept cookie and close popups first before interacting
           - If the last action was not successful, check if the target element is visible and use scrolling if it is not.
+        5. Describe the expected effect of the proposed action.
       ${agent.templates.thought_format}
     steps_prompt: ${agent.templates.allowed_tools}
-
   - _target_: tapeagents.nodes.StandardNode
     name: act
     system_prompt: ${agent.templates.system_prompt}
@@ -82,4 +80,14 @@ nodes:
       - examples.gaia_agent.steps.ExtractedFacts
       - tapeagents.dialog_tape.AssistantAnswer
     use_known_actions: true
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: summarize
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Summarize last observation and describe the results of the last action visible in it.
+      Do not hallucinate or make up any information, only describe what you see in the observation image or its text.
+      Do not guess or assume action effects, describe only visible changes.
+      ${agent.templates.thought_format}
+    steps_prompt: ${agent.templates.allowed_tools}
     next_node: reflect
