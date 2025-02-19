@@ -162,12 +162,16 @@ class ToolCollectionEnvironment(Environment):
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
-        self.multitools = [tool for tool in tools if isinstance(tool, Multitool)]
-        for multitool in self.multitools:
+        multitools = [tool for tool in tools if isinstance(tool, Multitool)]
+        for multitool in multitools:
             self.action_map |= {action: multitool for action in multitool.actions}
 
     def actions(self) -> tuple[type[Action], ...]:
         return tuple(self.action_map.keys())
+
+    def tools_description(self) -> list[str]:
+        desc_list = [tool.description() for tool in self.tools]
+        return "\n".join(f"- {desc}" for desc in desc_list)
 
     def react(self, tape: Tape) -> Tape:
         for action in self.last_actions(tape):

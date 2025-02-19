@@ -32,7 +32,7 @@ class PythonCodeAction(Action):
 
 class CodeExecutor(Tool):
     """
-    Tool to execute the python code snippet.
+    Executes the python code snippet
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

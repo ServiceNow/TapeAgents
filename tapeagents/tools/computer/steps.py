@@ -29,6 +29,15 @@ class MouseMoveAction(Action):
     y: int = Field(description="Y coordinate")
 
 
+class MouseHoverAction(Action):
+    """
+    Action that hovers over an icon or control on the computer screen
+    """
+
+    kind: Literal["mouse_hover_action"] = "mouse_hover_action"
+    element_description: str = Field(description="brief description of the element to hover over")
+
+
 class MouseClickAction(Action):
     """Action that performs mouse click"""
 
@@ -38,6 +47,22 @@ class MouseClickAction(Action):
     button: Literal["left", "right", "middle", "double_left"] = Field(
         description="Mouse button to click", default="left"
     )
+
+
+class MouseClickAtAction(Action):
+    """
+    Action that clicks an element on the computer screen.
+    When mentioning a date in the element description, use the format commonly spoken or written by humans,
+    such as "2 February 2025," rather than machine-readable formats. The day should come before the month,
+    and the year should be written in full (e.g., "3 November 2023" instead of "2023-11-03").
+    Only describe one specific element that is currently visible on the screen!
+    """
+
+    kind: Literal["mouse_click_at_action"] = "mouse_click_at_action"
+    button: Literal["left", "double_left", "right"] = Field(
+        description="mouse button to click, double_left for double left click", default="left"
+    )
+    element_description: str = Field(description="brief description of the element to click")
 
 
 class MouseDragAction(Action):
@@ -90,3 +115,19 @@ class ComputerObservation(ImageObservation):
         if self.image_path:
             content.append(image_base64_message(self.image_path))
         return content
+
+
+class PageDownAction(Action):
+    """
+    Action that scrolls down to display the next page of the current view.
+    """
+
+    kind: Literal["page_down_action"] = "page_down_action"
+
+
+class PageUpAction(Action):
+    """
+    Action that scrolls up to display the previous page of the current view.
+    """
+
+    kind: Literal["page_up_action"] = "page_up_action"

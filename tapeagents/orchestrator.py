@@ -15,7 +15,7 @@ from tapeagents.config import is_debug_mode
 
 from .agent import Agent
 from .core import AgentEvent, Observation, Step, StopStep, TapeType
-from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
+from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo, ToolCollectionEnvironment
 from .renderers import step_view
 from .utils import FatalError, diff_dicts
 
@@ -76,9 +76,11 @@ class MainLoopStream(Generic[TapeType]):
         raise ValueError("No tape by either the agent or the environment")
 
 
-def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, Environment]:
-    environment: Environment = instantiate(cfg.environment)
-    agent: Agent = instantiate(cfg.agent, known_actions=environment.actions())
+def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
+    environment: ToolCollectionEnvironment = instantiate(cfg.environment)
+    agent: Agent = instantiate(
+        cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
+    )
     return agent, environment
 
 

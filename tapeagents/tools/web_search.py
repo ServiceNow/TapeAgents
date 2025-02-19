@@ -86,7 +86,7 @@ class SearchResultsObservation(Observation):
 
 class WebSearch(Tool):
     """
-    Tool that performs a search in the web, wikipedia or youtube
+    Performs a search in the web, wikipedia or youtube
     """
 
     action: type[Action] = SearchAction

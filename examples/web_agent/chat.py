@@ -16,7 +16,7 @@ from tapeagents.dialog_tape import AssistantAnswer, UserStep
 from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 from tapeagents.steps import ReasoningThought
-from tapeagents.tools.computer.remote import MouseHoverAction
+from tapeagents.tools.computer.steps import MouseHoverAction
 
 CONFIG_DIR = Path(".streamlit_config")
 API_KEY_FILE = CONFIG_DIR / "api_key"
@@ -322,10 +322,13 @@ def render_step(step: Step) -> str:
     elif step.kind == "python_code_action":
         msg = step.code
         msg_type = "code"
-    elif step and step.kind == "page_up_action" or step.kind == "page_down_action":
-        msg = "Scrolling..."
+    elif step and step.kind == "page_up_action":
+        msg = "Scrolling up..."
         msg_type = "progress"
-    elif step.kind == "mouse_click_action":
+    elif step.kind == "page_down_action":
+        msg = "Scrolling down..."
+        msg_type = "progress"
+    elif step.kind == "mouse_click_at_action":
         msg = f"Clicking {step.element_description}..."
         msg_type = "progress"
     elif step.kind == "run_terminal_command":

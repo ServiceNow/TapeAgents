@@ -3,7 +3,7 @@ tools:
   - _target_: tapeagents.tools.web_search.WebSearch
   - _target_: tapeagents.tools.media_reader.VideoReader
     exp_path: ${exp_path}
-  - _target_: tapeagents.tools.computer.remote.RemoteComputer
+  - _target_: tapeagents.tools.computer.Computer
     exp_path: ${exp_path}
     computer_url: http://localhost:8000
     grounding_api_url: https://snow-llmd-grounding-8000.job.console.elementai.com

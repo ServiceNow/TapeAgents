@@ -15,6 +15,8 @@ RUN python3 -m pip install pyautogui uvicorn fastapi python-multipart pillow pys
 RUN apt -y install xdotool
 
 COPY api.py /api.py
-COPY start.sh /custom-cont-init.d/start.sh
+RUN mkdir -p /custom-cont-init.d && \
+    echo $'#!/bin/bash\nHOME=/config DISPLAY=:1 python3 /api.py &\necho "API started"' > /custom-cont-init.d/start.sh && \
+    chmod +x /custom-cont-init.d/start.sh
 RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN ln -s /config /home/user

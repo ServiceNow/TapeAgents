@@ -1,4 +1,5 @@
 import logging
+import re
 
 from pydantic import BaseModel
 
@@ -11,7 +12,32 @@ from tapeagents.utils import FatalError
 logger = logging.getLogger(__name__)
 
 
-class Tool(BaseModel):
+class BaseTool(BaseModel):
+    def run(self, action: Action) -> Observation:
+        raise NotImplementedError
+
+    def execute_action(self, action: Action) -> Observation:
+        raise NotImplementedError
+
+    def reset(self) -> None:
+        pass
+
+    def close(self) -> None:
+        """
+        Perform any necessary cleanup actions.
+        """
+        pass
+
+    def description(self) -> str:
+        """
+        Return a description of the tool.
+        """
+        doc = self.__doc__.replace("\n", " ").strip()
+        doc = re.sub(r"\s+", " ", doc)
+        return f"{self.__class__.__name__} - {doc}"
+
+
+class Tool(BaseTool):
     """
     Tool is a base class for descriptions of a function that can be called.
     Defines the input action and the output observation.
@@ -52,17 +78,8 @@ class Tool(BaseModel):
         assert isinstance(observation, (self.observation, ActionExecutionFailure))
         return observation
 
-    def execute_action(self, action: Action) -> Observation:
-        raise NotImplementedError
 
-    def close(self) -> None:
-        """
-        Perform any necessary cleanup actions.
-        """
-        pass
-
-
-class Multitool(BaseModel):
+class Multitool(BaseTool):
     """
     Multitool is a class that provides a set of functions performing
     explicitly defined set of actions operating on a shared stateful environment.
@@ -82,15 +99,3 @@ class Multitool(BaseModel):
             observation = ActionExecutionFailure(error=str(e))
         assert isinstance(observation, self.observations + (ActionExecutionFailure,))
         return observation
-
-    def execute_action(self, action: Action) -> Observation:
-        raise NotImplementedError
-
-    def reset(self) -> None:
-        pass
-
-    def close(self) -> None:
-        """
-        Perform any necessary cleanup actions.
-        """
-        pass

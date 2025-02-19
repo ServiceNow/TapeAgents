@@ -430,6 +430,11 @@ def ytd_progress_hook(d: dict) -> None:
 
 
 class VideoReader(Tool):
+    """
+    Opens video from a youtube URL.
+    Can access the video content, thumbnail, subtitles and audio.
+    """
+
     action: type[Action] = WatchVideoAction
     observation: type[Observation] = VideoObservation
     cached: bool = True

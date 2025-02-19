@@ -6,14 +6,14 @@ import asyncio
 
 import streamlit as st
 
-from tapeagents.tools.computer.remote import (
+from tapeagents.tools.computer import Computer
+from tapeagents.tools.computer.steps import (
     KeyPressAction,
-    MouseClickAction,
+    MouseClickAtAction,
     OpenUrlAction,
-    RemoteComputer,
+    RunTerminalCommand,
     TypeTextAction,
 )
-from tapeagents.tools.computer.steps import RunTerminalCommand
 
 STREAMLIT_STYLE = """
 <style>
@@ -41,7 +41,7 @@ async def main():
     st.markdown(STREAMLIT_STYLE, unsafe_allow_html=True)
     exp_path = ".talk_computer"
     if "computer" not in st.session_state:
-        st.session_state.computer = RemoteComputer(
+        st.session_state.computer = Computer(
             exp_path=exp_path,
             computer_url="http://localhost:8000",
             grounding_api_url="https://snow-llmd-grounding-8000.job.console.elementai.com",
@@ -74,7 +74,7 @@ async def main():
         elif prompt.startswith("click"):
             st.status("Clicking...")
             target = prompt.split(" ", maxsplit=1)[1]
-            computer.execute_action(MouseClickAction(element_description=target))
+            computer.execute_action(MouseClickAtAction(element_description=target))
             msg = f"Clicked '{target}'"
         elif prompt.startswith("type"):
             st.status("Typing...")

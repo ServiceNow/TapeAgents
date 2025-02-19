@@ -199,7 +199,7 @@ class StandardNode(Node):
             messages.append({"role": "user", "content": self.guidance})
         return messages
 
-    def get_steps_description(self, tape: Tape, agent: Any) -> str:
+    def get_steps_description(self, tape: Tape, agent: Agent) -> str:
         """
         Get the steps description for the agent's task.
 
@@ -208,7 +208,7 @@ class StandardNode(Node):
 
         Args:
             tape (Tape): The tape object containing the context and state information.
-            agent (Any): The agent object that will execute the steps.
+            agent (Agent): The agent object that will execute the steps.
 
         Returns:
             str: The steps prompt describing the sequence of actions.
@@ -216,7 +216,7 @@ class StandardNode(Node):
         if not self._steps_type:
             return self.steps_prompt
         allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type)
-        return self.steps_prompt.format(allowed_steps=allowed_steps)
+        return self.steps_prompt.format(allowed_steps=allowed_steps, tools_description=agent.tools_description)
 
     def generate_steps(
         self, agent: Any, tape: Tape, llm_stream: LLMStream
