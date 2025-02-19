@@ -19,7 +19,8 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 TYPING_DELAY_MS = 180
-SCREENSHOT_DELAY = 2.0
+SCREENSHOT_DELAY = 0.5
+CLICK_DELAY = 3.0
 WEB_PAGE_LOAD_DELAY = 4.0
 MAX_RESPONSE_LEN: int = 16000
 RUN_TIMEOUT_SEC = 5.0
@@ -35,7 +36,7 @@ def _take_screenshot() -> dict:
             screenshot.save(tmp.name)
             tmp.seek(0)
             base64_image = base64.b64encode(tmp.read()).decode()
-        return {"base64_image": base64_image}
+        return {"base64_image": base64_image, "output": "Screenshot of the current computer screen"}
     except Exception as e:
         err = f"Screenshot failed: {e}\n{traceback.format_exc()}"
         logger.exception(str(e))
@@ -76,6 +77,7 @@ def mouse_click(x: int, y: int, button: str) -> dict:
             pyautogui.doubleClick()
         else:
             pyautogui.click(button=button)
+        time.sleep(CLICK_DELAY)
         return _take_screenshot()
     except Exception as e:
         return {"error": f"Mouse click failed: {e}"}
