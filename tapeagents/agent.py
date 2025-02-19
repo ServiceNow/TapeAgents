@@ -538,6 +538,7 @@ class Agent(BaseModel, Generic[TapeType]):
         for step in node.generate_steps(self, tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.node = node.name
+                step.metadata.llm = node.llm
             yield step
 
     def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:

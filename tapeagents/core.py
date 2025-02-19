@@ -61,6 +61,7 @@ class StepMetadata(BaseModel):
     prompt_id: str = ""
     node: str = ""
     agent: str = ""
+    llm: str = ""
     other: dict[str, Any] = Field(default_factory=dict)
 
 
