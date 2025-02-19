@@ -46,24 +46,25 @@ def main(cfg: DictConfig) -> None:
     os.makedirs(images_dir, exist_ok=True)
     init_code_sandbox(cfg.exp_path)
     agent, env = get_agent_and_env_from_config(cfg)
-    env.chat.add_message(role="assistant", msg="TapeAgent Ready")
+    chat = [t for t in env.tools if t.__class__.__name__ == "Browser"][0]._env.chat
+    chat.add_message(role="assistant", msg="TapeAgent Ready")
     today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     tape = None
-    env.chat.wait_for_user_message()
-    content = env.chat.messages[-1]["message"]
+    chat.wait_for_user_message()
+    content = chat.messages[-1]["message"]
     while content.lower() != "stop":
         if content.lower() == "reset":
             tape = None
-            env.chat.add_message(role="assistant", msg="Reset conversation, you can ask a new question now.")
-            env.chat.wait_for_user_message()
-            content = env.chat.messages[-1]["message"]
+            chat.add_message(role="assistant", msg="Reset conversation, you can ask a new question now.")
+            chat.wait_for_user_message()
+            content = chat.messages[-1]["message"]
         if tape is None:
             tape = GaiaTape(steps=[GaiaQuestion(content=f"Today is {today_date_str}.\n{content}")])
         else:
             # continue the conversation, replace the last answer step with a reasoning step
             tape.steps[-1] = ReasoningThought(reasoning=tape.steps[-1].long_answer)
             tape = tape.append(UserStep(content=content))
-        env.chat.add_message(role="assistant", msg="Thinking...")
+        chat.add_message(role="assistant", msg="Thinking...")
         try:
             for event in main_loop(agent, tape, env, max_loops=50):
                 if partial_tape := (event.agent_tape or event.env_tape):
@@ -74,18 +75,18 @@ def main(cfg: DictConfig) -> None:
                         continue
                     msg = render_step(step)
                     if msg:
-                        env.chat.add_message(role="assistant", msg=msg)
+                        chat.add_message(role="assistant", msg=msg)
                 elif event.observation:
                     step = event.observation
                     msg = render_step(step)
                     if msg:
-                        env.chat.add_message(role="assistant" if step.kind == "page_observation" else "user", msg=msg)
+                        chat.add_message(role="assistant" if step.kind == "page_observation" else "user", msg=msg)
         except Exception as e:
             tape.metadata.error = str(e)
             logger.exception(f"Failed to solve task: {e}")
-            env.chat.add_message(role="assistant", msg=f"Failed to solve task: {e}")
-        env.chat.wait_for_user_message()
-        content = env.chat.messages[-1]["message"]
+            chat.add_message(role="assistant", msg=f"Failed to solve task: {e}")
+        chat.wait_for_user_message()
+        content = chat.messages[-1]["message"]
     env.close()
     save_json_tape(tape, tapes_dir, "demo1")
     save_tape_images(tape, images_dir)
