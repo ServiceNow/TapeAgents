@@ -1,8 +1,8 @@
 defaults:
   - web_agent
   - _self_
-  - llm@reasoner: sonnet
-  - override llm: gpt4o-mini
+  - llm@reasoner: gemini_flash_2_thinking
+  - override llm: gemini_flash_2
   - override agent: plan_react_with_reasoner
 
-exp_name: sonnet_gpt4o_mini_web_reasoner
+exp_name: flash_2_web_reasoner
