@@ -163,6 +163,14 @@ class CachedLLM(LLM):
 
         return LLMStream(_implementation(), prompt)
 
+    def quick_response(self, text_prompt: str) -> str:
+        prompt = Prompt(messages=[{"role": "user", "content": text_prompt}])
+        outputs = []
+        for e in self.generate(prompt):
+            if e.output:
+                outputs.append(e.output.content)
+        return "".join(outputs)
+
     @abstractmethod
     def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
         pass

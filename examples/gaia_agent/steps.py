@@ -118,6 +118,7 @@ class GaiaAnswer(StopStep):
 
 THOUGHTS = (ReasoningThought, GaiaAnswer)
 GaiaStep: TypeAlias = Union[
+    ExtractedFacts,
     ClickAction,
     OpenUrlAction,
     GoBackAction,
