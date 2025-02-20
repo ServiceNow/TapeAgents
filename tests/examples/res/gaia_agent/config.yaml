@@ -1,9 +1,25 @@
-exp_name: gpt4o_mini_val_browsergym_fromconf1
+exp_name: gpt4o_mini_testgen1
 exp_path: outputs/gaia/runs/${exp_name}
 split: validation
 batch: 16
 retry_unsolved: true
-only_tasks: []
+only_tasks:
+- - 1
+  - 0
+- - 1
+  - 1
+- - 1
+  - 2
+- - 1
+  - 3
+- - 1
+  - 4
+- - 1
+  - 5
+- - 1
+  - 6
+- - 1
+  - 7
 llm:
   _target_: tapeagents.llms.LiteLLM
   model_name: gpt-4o-mini-2024-07-18

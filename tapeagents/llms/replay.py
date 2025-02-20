@@ -46,6 +46,7 @@ class ReplayLLM(LLM):
     llm_calls: list[LLMCall]
     count_tokens_fn: Callable = lambda x: 0
     make_training_text_fn: Callable = lambda x, y: TrainingText(text="", n_predicted=0)
+    _get_step_schema: Callable = lambda: None
 
     @classmethod
     def from_llm(cls, llm: LLM, run_dir: str, prompts_file: str = DB_DEFAULT_FILENAME):
@@ -75,7 +76,11 @@ class ReplayLLM(LLM):
         replay_llm.tokenizer = llm.tokenizer
         replay_llm.count_tokens_fn = llm.count_tokens
         replay_llm.make_training_text_fn = llm.make_training_text
+        replay_llm._get_step_schema = llm.get_step_schema
         return replay_llm
+
+    def get_step_schema(self, *args, **kwargs):
+        return self._get_step_schema(*args, **kwargs)
 
     def model_post_init(self, __context: Any) -> None:
         dups = 0
@@ -113,7 +118,7 @@ class ReplayLLM(LLM):
             if prompt_key in self.outputs:
                 logger.debug(colored("prompt cache hit", "green"))
                 output = self.outputs[prompt_key]
-            elif len(prompt_key) < 10000:
+            elif len(prompt_key) < 20000:
                 logger.warning(
                     colored(f"prompt of size {len(prompt_key)} not found, checking similar ones..", "yellow")
                 )

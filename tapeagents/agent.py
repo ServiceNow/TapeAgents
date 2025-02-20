@@ -234,8 +234,10 @@ class Agent(BaseModel, Generic[TapeType]):
                 raise ValueError(
                     f'Duplicate node name "{node.name}" in node {i}, pass a unique name to the node during creation'
                 )
-            if node.llm not in self.llms:
-                raise ValueError(f"Node {node.name} references unknown LLM {node.llm}")
+            if self.llms and node.llm not in self.llms:
+                raise ValueError(
+                    f"Node {node.name} references unknown LLM {node.llm}. Known LLMs: {list(self.llms.keys())}"
+                )
             if hasattr(node, "add_known_actions"):
                 node.add_known_actions(self.known_actions)
             node_names.add(node.name)
@@ -538,7 +540,8 @@ class Agent(BaseModel, Generic[TapeType]):
         for step in node.generate_steps(self, tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.node = node.name
-                step.metadata.llm = node.llm
+                if node.llm:
+                    step.metadata.llm = node.llm
             yield step
 
     def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
@@ -633,7 +636,7 @@ class Agent(BaseModel, Generic[TapeType]):
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:
                 llm = self.llms[self.select_node(tape).llm]
-            else:
+            elif len(self.llms) == 1:
                 llm = self.llm
             llm_stream = llm.generate(prompt) if prompt else LLMStream(None, prompt)
         for step in self.generate_steps(tape, llm_stream):
