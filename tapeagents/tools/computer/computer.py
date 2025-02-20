@@ -2,6 +2,7 @@ import atexit
 import base64
 import logging
 import os
+import socket
 import time
 
 import podman
@@ -27,11 +28,6 @@ from tapeagents.tools.computer.steps import (
 from tapeagents.tools.grounding import GroundingModel
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s:%(lineno)d - %(funcName)s - %(message)s")
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
 
 
 class Computer(Multitool):
@@ -45,7 +41,7 @@ class Computer(Multitool):
     exp_path: str | None = None
     actions: tuple[type[Action], ...] = ()
     observations: tuple[type[ComputerObservation], ...] = (ComputerObservation,)
-    computer_url: str
+    computer_url: str = "http://localhost"
     use_grounding: bool = True
     grounding_api_url: str
     container_image: str = "computer"
@@ -71,7 +67,11 @@ class Computer(Multitool):
             self._action_map[MouseMoveAction] = self.remote_execute_action
             self._action_map[GetCursorPositionAction] = self.remote_execute_action
         self.actions = tuple(self._action_map.keys())
-        launch_container(self.container_image, self.container_name, stop_at_exit=True)
+        if os.environ.get("REUSE_COMPUTER_CONTAINER"):
+            self.api_port = 8000
+            os.environ["COMPUTER_CONTAINER_NAME"] = self.container_name
+        else:
+            self.api_port = launch_container(self.container_image, self.container_name, stop_at_exit=True)
 
     def execute_action(self, action: Action) -> ComputerObservation:
         action_type = type(action)
@@ -96,7 +96,7 @@ class Computer(Multitool):
     def remote_execute_action(self, action: Action) -> ComputerObservation:
         payload = {"kind": action.kind, "params": action.model_dump()}
         try:
-            response = requests.post(f"{self.computer_url}/execute", json=payload)
+            response = requests.post(f"{self.computer_url}:{self.api_port}/execute", json=payload)
             response.raise_for_status()
             obs_dict = response.json()
             logger.info(f"Received observation: {obs_dict.keys()}")
@@ -127,12 +127,44 @@ class Computer(Multitool):
         return super().close()
 
 
-def launch_container(container_image="computer", container_name="computer", stop_at_exit=False):
+def find_free_port(start_port: int) -> int:
+    """Find the first available TCP port starting from start_port."""
+    port = start_port
+    max_port = start_port + 1000
+    while port < max_port:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("", port))
+                return port
+        except OSError:
+            logger.warning(f"Port {port} is already in use, trying next")
+            port += 1
+    raise RuntimeError(f"No free ports in range {start_port}-{max_port}")
+
+
+def launch_container(
+    container_image="computer",
+    container_name="computer",
+    stop_at_exit=False,
+    reuse_container=False,
+) -> int:
     podman_client = podman.from_env()
-    try:
+    logger.info(f"Reuse container: {reuse_container}")
+    if reuse_container and podman_client.containers.exists(container_name):
+        logger.info(f"Container '{container_name}' already exists, reusing it.")
         container = podman_client.containers.get(container_name)
-    except podman.errors.NotFound:
-        logger.info(f"Creating container from image '{container_image}'")
+        container.start()
+        api_port = 8000
+    else:
+        unique_container_name = container_name
+        i = 0
+        while podman_client.containers.exists(unique_container_name):
+            i += 1
+            if i > 100:
+                raise RuntimeError(f"Too many containers with the same name '{container_name}'")
+            unique_container_name = f"{container_name}_{i}"
+        logger.info(f"Start container '{unique_container_name}' from image '{container_image}' ")
+        os.environ["COMPUTER_CONTAINER_NAME"] = unique_container_name
         home_dir = os.path.join(os.getcwd(), ".computer")
         zip_home = os.path.join(os.path.dirname(__file__), "home.zip")
         if os.path.exists(home_dir):
@@ -142,14 +174,18 @@ def launch_container(container_image="computer", container_name="computer", stop
             os.makedirs(home_dir)
         os.system(f"unzip -qq -o {zip_home} -d {home_dir}")
         logger.info(f"Recreated home directory from zip: {zip_home}")
+        if reuse_container:
+            api_port = 8000
+            vnc_port = 3000
+        else:
+            api_port = find_free_port(8000)
+            vnc_port = find_free_port(3000)
+        logger.info(f"Use ports: api {api_port}, vnc {vnc_port}")
         container = podman_client.containers.create(
             container_image,
-            name=container_name,
+            name=unique_container_name,
             auto_remove=True,
-            ports={
-                "3000": 3000,
-                "8000": 8000,
-            },
+            ports={"8000": api_port, "3000": vnc_port},
             mounts=[
                 {
                     "type": "bind",
@@ -171,8 +207,11 @@ def launch_container(container_image="computer", container_name="computer", stop
             try:
                 logger.info(f"Stopping container {container.name}")
                 container.stop()
+                container.remove(force=True)
             except podman.errors.NotFound:
                 pass
             atexit.unregister(cleanup)
 
         atexit.register(cleanup)
+
+    return api_port

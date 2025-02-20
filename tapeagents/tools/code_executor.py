@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -14,7 +15,8 @@ from tapeagents.tools.container_executor import (
     _get_file_name_from_content,
     execute_code_in_container,
 )
-from tapeagents.tools.python_interpreter import run_python_code
+
+logger = logging.getLogger(__name__)
 
 
 class PythonCodeAction(Action):
@@ -43,28 +45,26 @@ class CodeExecutor(Tool):
     exp_path: str = ""
     max_output_length: int = 3000
     container_name: str = "tapeagents-code-exec"
+    reuse_computer_container: bool = False
     mounted_dir: str = ""
     container_work_dir: str = "/workspace"
 
     def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
         code = self.prepare_code(action)
         code_dir = os.path.join(self.exp_path, "code")
+        container_name = os.environ["COMPUTER_CONTAINER_NAME"] if self.reuse_computer_container else self.container_name
+        logger.info(f"Executing code in container {container_name}")
         result = execute_code_in_container(
             [CodeBlock(code=code, language="python")],
             work_dir=code_dir,
             input_files=action.input_files,
-            container_name=self.container_name,
+            container_name=container_name,
             mounted_dir=self.mounted_dir,
             container_work_dir=self.container_work_dir,
         )
         result.output = result.output[: self.max_output_length].strip()
         obs = CodeExecutionResult(result=result)
         return obs
-
-    def _run_restricted_python(self, code: str) -> CodeExecutionResult:
-        result, stdout, stderr = run_python_code(code, {})
-        output = f"{result[:self.max_output_length].strip()}\n\nstdout:\n{stdout}\n\nstderr:\n{stderr}"
-        return CodeExecutionResult(result=CommandLineCodeResult(output=output, exit_code=0 if not stderr else 1))
 
     def prepare_code(self, action: PythonCodeAction) -> str:
         lines = action.code.splitlines()

@@ -56,7 +56,7 @@ mkdir -p .cache
 > /tmp/demo_stdout.log
 uv run -m tapeagents.tools.computer
 uv run -m http.server 8080 --directory $SCRIPT_DIR/static_content >> /tmp/demo_stdout.log 2>&1 &
-uv run -m streamlit run $SCRIPT_DIR/chat.py --server.headless true >> /tmp/demo_stdout.log 2>&1 &
+REUSE_COMPUTER_CONTAINER=1 uv run -m streamlit run $SCRIPT_DIR/chat.py --server.headless true >> /tmp/demo_stdout.log 2>&1 &
 sleep 3
 echo "Tapeagents Operator is ready"
 echo "Open http://localhost:8080 in your browser to begin"

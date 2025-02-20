@@ -3,6 +3,7 @@ Entrypoint for streamlit, see https://docs.streamlit.io/
 """
 
 import asyncio
+import logging
 import os
 import traceback
 from datetime import datetime
@@ -17,6 +18,16 @@ from tapeagents.io import save_json_tape, save_tape_images
 from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 from tapeagents.steps import ReasoningThought
 from tapeagents.tools.computer.steps import MouseHoverAction
+
+# Set up all loggers to print to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    force=True,  # This overwrites any existing logger configurations
+    format="%(asctime)s - %(levelname)s - %(name)s:%(lineno)d - %(funcName)s - %(message)s",
+    handlers=[
+        logging.StreamHandler()  # Explicitly add stdout handler
+    ],
+)
 
 CONFIG_DIR = Path(".streamlit_config")
 API_KEY_FILE = CONFIG_DIR / "api_key"

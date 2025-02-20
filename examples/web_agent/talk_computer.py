@@ -43,7 +43,6 @@ async def main():
     if "computer" not in st.session_state:
         st.session_state.computer = Computer(
             exp_path=exp_path,
-            computer_url="http://localhost:8000",
             grounding_api_url="https://snow-llmd-grounding-8000.job.console.elementai.com",
         )
     computer = st.session_state.computer
