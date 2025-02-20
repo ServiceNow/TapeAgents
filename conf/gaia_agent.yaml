@@ -1,15 +1,15 @@
 defaults:
   - _self_
   - llm: gpt4o_mini
-  - agent: gaia
+  - agent: gaia_react
   - environment: web_browser
 
-exp_name: gpt4o_mini_val_browsergym_fromconf1
+exp_name: gpt4o_mini_react1
 exp_path: outputs/gaia/runs/${exp_name}
 
 split: validation
 batch: 16
-retry_unsolved: false
+retry_unsolved: true
 
 only_tasks: [] # list of (level, task_num)
 # - [1, 0]
