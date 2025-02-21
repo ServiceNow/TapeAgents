@@ -4,6 +4,7 @@ import shutil
 import typing
 from pathlib import Path
 from typing import Any, Type
+import time
 
 import torch
 import transformers
@@ -319,35 +320,44 @@ def save_model_only(
     Use only for inference or later JGA evaluation, not for resuming training
 
     The accelerate version must be called on *all* accelerate processes because all of them must save their shards.
-    The DeepSpeed version is only called on the main process because the checkpointing and conversion mechanism will gather the shards from all processes.
     """
+    start_time = time.time()
+    
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
     accelerator.wait_for_everyone()
 
     logger.info(f"Save model to {output_dir}")
 
     unwrapped_model = accelerator.unwrap_model(model) if unwrap else model
+    
     if lora:
         lora_save(output_dir, unwrapped_model)
         return
 
-    # for non-deepspeed models
     elif isinstance(unwrapped_model, transformers.PreTrainedModel):
+        state_dict = accelerator.get_state_dict(model)
         logger.info("Saving model using transformers save_pretrained")
-        unwrapped_model.save_pretrained(  # type: ignore
+        save_start = time.time()
+        unwrapped_model.save_pretrained(
             output_dir,
             is_main_process=accelerator.is_main_process,
-            save_function=accelerator.save,
-            state_dict=accelerator.get_state_dict(model),
+            state_dict=state_dict,
             safe_serialization=safe_serialization,
         )
+        save_time = time.time()
+        logger.info(f"Model save_pretrained took {save_time - save_start:.2f}s")
         logger.info(f"Saved model to {output_dir}")
+
     else:
         raise ValueError(f"model is neither a deepspeed model nor a transformers.PreTrainedModel: {type(model)}")
 
+    # safetensors issue: https://github.com/huggingface/accelerate/issues/2698
     if os.path.exists(output_dir / "model.safetensors") and os.path.exists(output_dir / "model.safetensors.index.json"):
         logger.info("Hide model.safetensors because it utterly confuses the HF model loading code")
         os.rename(output_dir / "model.safetensors", output_dir / "model.safetensors.bak")
+
+    end_time = time.time()
+    logger.info(f"Total save time: {end_time - start_time:.2f}s")
 
 
 def save_tokenizer_only(
