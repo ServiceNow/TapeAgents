@@ -13,12 +13,12 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
-import wandb
 from browsergym.miniwob import ALL_MINIWOB_TASKS
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
+import wandb
 from tapeagents.core import LLMCall, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
@@ -41,26 +41,31 @@ from ..utils import (
 logger = logging.getLogger(__name__)
 
 
-def load_webtasks() -> Tuple[list[dict], list[dict]]:
+def load_webtasks(train_split: float = 0.6, seeds: list[int] = [0, 1, 2, 3, 4]) -> Tuple[list[dict], list[dict]]:
     """
     Load web tasks from the MiniWoB dataset.
 
     Returns:
         Tuple[list[dict], list[dict]]: Train and test task lists
     """
-    # For now use all tasks for both train and test
-    # Could split tasks or use different seeds for train/test
-    tasks = ALL_MINIWOB_TASKS
+    logger.info(f"Loading {len(ALL_MINIWOB_TASKS)} MiniWoB tasks")
+    n_train_tasks = int(len(ALL_MINIWOB_TASKS) * train_split)
+    n_test_tasks = len(ALL_MINIWOB_TASKS) - n_train_tasks
+    logger.info(f"Splitting {len(ALL_MINIWOB_TASKS)} tasks into {n_train_tasks} train and {n_test_tasks} test")
+
+    train_tasks = ALL_MINIWOB_TASKS[:n_train_tasks]
+    test_tasks = ALL_MINIWOB_TASKS[n_train_tasks:]
+
     train_samples = [
         {"dataset": "miniwob", "task": task, "seed": seed}
-        for task in tasks
-        for seed in range(5)  # Use 5 different seeds for training
+        for task in train_tasks
+        for seed in seeds
     ]
 
     test_samples = [
         {"dataset": "miniwob", "task": task, "seed": seed}
-        for task in tasks
-        for seed in range(5, 7)  # Use 2 different seeds for testing
+        for task in test_tasks
+        for seed in seeds
     ]
 
     logger.info(f"Loaded {len(train_samples)} training samples")
@@ -113,32 +118,29 @@ def batch_run_agent_replica(agent: WebAgent, env: WebEnvironment, task: dict) ->
         tape, metadata = env.start_task(task["task"], task["seed"])
 
         # Run agent-environment loop
-        last_action = None
-        repeated_action_cnt = 0
-        for event in main_loop(agent, tape, env, max_loops=20):
-            if event.agent_event and event.agent_event.step:
-                step = event.agent_event.step
-
-                # Get immediate reward for action
-                immediate_reward = env.get_step_reward(step) if hasattr(env, "get_step_reward") else None
-                if hasattr(step, "metadata"):
-                    step.metadata.other["reward"] = immediate_reward
-
-                # Check for repeated actions
-                if isinstance(step, WebAction):
-                    step_view = step.llm_view()
-                    if step_view == last_action:
-                        repeated_action_cnt += 1
-                        if repeated_action_cnt > 4:
-                            break
-                    else:
-                        repeated_action_cnt = 0
-                    last_action = step_view
-
-                tape = tape.append(step)
-
-            if event.observation:
-                tape = tape.append(event.observation)
+        tape = main_loop(agent, tape, env, max_loops=20).get_final_tape()
+        # last_action = None
+        # repeated_action_cnt = 0
+        # for event in main_loop(agent, tape, env, max_loops=20):
+        #     if event.agent_event and event.agent_event.step:
+        #         step = event.agent_event.step
+        #         # Get immediate reward for action
+        #         immediate_reward = env.get_step_reward(step) if hasattr(env, "get_step_reward") else None
+        #         if hasattr(step, "metadata"):
+        #             step.metadata.other["reward"] = immediate_reward
+        #         # Check for repeated actions
+        #         if isinstance(step, WebAction):
+        #             step_view = step.llm_view()
+        #             if step_view == last_action:
+        #                 repeated_action_cnt += 1
+        #                 if repeated_action_cnt > 4:
+        #                     break
+        #             else:
+        #                 repeated_action_cnt = 0
+        #             last_action = step_view
+        #         tape = tape.append(step)
+        #     if event.observation:
+        #         tape = tape.append(event.observation)
 
         # Get final reward
         success, result = env.validate_task(tape)
@@ -254,13 +256,14 @@ def generate_training_data(
     ### STEP 1: run the agents on their tasks in parallel ###
     start_making_tapes = time.time()
     with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
-        futures = [
-            executor.submit(batch_run_agent_replica, agent, env, task)
-            for agent, env, task in zip(agent_replicas, envs, tasks)
-        ]
-        results = [future.result() for future in futures]
-        agent_replicas = [r[0] for r in results]
-        final_tapes = [r[1] for r in results]
+        # futures = [
+        #     executor.submit(batch_run_agent_replica, agent, env, task)
+        #     for agent, env, task in zip(agent_replicas, envs, tasks)
+        # ]
+        # results = [future.result() for future in futures]
+        # other way of doing this:
+        results = executor.map(batch_run_agent_replica, agent_replicas, envs, tasks)
+        agent_replicas, final_tapes = zip(*[(r[0], r[1]) for r in results])
 
     logger.info(f"Making tapes took {time.time() - start_making_tapes}")
 
@@ -304,8 +307,14 @@ def generate_training_data(
     return agent_replicas, final_tapes, training_samples, stats
 
 
-@hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
+@hydra.main(config_path="../../../conf/", config_name="rl_webagent", version_base="1.3.2")
 def main(cfg: DictConfig):
+    os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.output_dir, "tapedata.sqlite")
+    os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
+    # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url
+    # os.environ["SNOW_INSTANCE_UNAME"] = cfg.environment_variables.snow_instance_uname
+    # os.environ["SNOW_INSTANCE_PWD"] = cfg.environment_variables.snow_instance_pwd
+
     ### Step 0: init logging, wandb, rl state, paths ###
     multiprocessing.set_start_method("spawn")  # necessary to use gpus in subprocesses
     random.seed(42)
@@ -329,7 +338,7 @@ def main(cfg: DictConfig):
     finetune_path = exp_path / "finetune"
 
     ### Step 1: load datasets ###
-    train_samples, test_samples = load_webtasks()
+    train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
 
     ### repeat until we have reached the max number of iterations ###
     ### each iteration is a forward pass (agent making predictions on tapes), a reference pass (reference model populating ref_logprobs), and a finetuning run on the generated training samples ###
@@ -355,51 +364,57 @@ def main(cfg: DictConfig):
                 **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.actor_vllm_kwargs)),
             ) as vllm_service_manager:
                 ### Step 2.1: create train & test splits ###
-                sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
+                sub_samples = random.sample(train_samples, min(len(train_samples), cfg.max_agent_forks // cfg.attempts))
+                logger.info(f"[it{state['iteration']}] Subsampling {len(sub_samples)} train tasks out of {len(train_samples)}. Each task will be repeated {cfg.attempts} times")
                 # Repeat each task cfg.attempts times
                 train_tasks = [copy.deepcopy(task) for task in sub_samples for _ in range(cfg.attempts)]
                 n_train_tasks = len(train_tasks)
+                logger.info(f"[it{state['iteration']}] Total number of train tasks: {n_train_tasks} (max target was {cfg.max_agent_forks})")
 
                 # Get number of VLLM services available
                 vllm_services = vllm_service_manager.get_base_urls()
                 n_services = len(vllm_services)
+                logger.info(f"[it{state['iteration']}] Splitting tasks, envs, and agents across {n_services} VLLM services")
 
                 # Calculate how many agents to create per service (distribute evenly)
                 agents_per_service = (n_train_tasks + n_services - 1) // n_services  # Ceiling division
-
+                logger.info(f"[it{state['iteration']}] Each service will be used for {agents_per_service} agents, environment, and task")
                 # Create LLMs, agents, and environments - one of each per task, agents distributed across services
-                train_llms = []
-                for service_idx, base_url in enumerate(vllm_services):
+                train_llms = [
+                    TrainableLLM(
+                        base_url=base_url,
+                        model_name=str(assistant_model_path),
+                        tokenizer_name=str(assistant_model_path),
+                        parameters=cfg.llm.parameters,
+                        use_cache=False,
+                        collect_logprobs=True,
+                        observe_llm_calls=False,
+                    )
+                    for base_url in vllm_services
+                ]
+                train_agent_replicas = []
+                train_envs = []
+                for llm_idx, llm in enumerate(train_llms):
                     # Calculate how many agents to create for this service
-                    start_idx = service_idx * agents_per_service
-                    end_idx = min((service_idx + 1) * agents_per_service, n_train_tasks)
+                    start_idx = llm_idx * agents_per_service
+                    end_idx = min((llm_idx + 1) * agents_per_service, n_train_tasks)
                     n_agents_this_service = end_idx - start_idx
-
-                    # Create LLMs and environments for this service's tasks
-                    service_llms = [
-                        TrainableLLM(
-                            base_url=base_url,
-                            model_name=str(assistant_model_path),
-                            tokenizer_name=str(assistant_model_path),
-                            parameters=cfg.llm.parameters,
-                            use_cache=False,
-                            collect_logprobs=True,
-                            observe_llm_calls=False,
-                        )
-                        for _ in range(n_agents_this_service)
-                    ]
-                    train_llms.extend(service_llms)
-
-                # Create one agent per LLM
-                train_agent_replicas = [WebAgent.create(llm) for llm in train_llms]
-                train_envs = [WebEnvironment(**cfg.env) for _ in range(n_train_tasks)]
+                    train_agent_replicas.extend([WebAgent.create(llm) for _ in range(n_agents_this_service)])
+                    train_env_path = f"{exp_path}/envs/train/it{state['iteration']}/llm{llm_idx}"
+                    train_envs.extend([WebEnvironment(
+                        exp_path=f"{train_env_path}/agent{i}",
+                        headless=cfg.env.headless,
+                        ax_tree=cfg.env.ax_tree,
+                        html=cfg.env.html,
+                        markdown_html=cfg.env.markdown_html,
+                    ) for i in range(n_agents_this_service)])
                 assert len(train_agent_replicas) == len(train_envs) == len(train_tasks), (
                     f"Number of train agents ({len(train_agent_replicas)}) and environments ({len(train_envs)}) "
                     f"!= number of train tasks ({len(train_tasks)})"
                 )
                 # Create train split
                 logger.info(
-                    f"Creating train split with {len(train_agent_replicas)} agents & environments "
+                    f"[it{state['iteration']}] Created train split with {len(train_agent_replicas)} agents & environments "
                     f"(distributed across {n_services} VLLM services) "
                     f"for {len(train_tasks)} tasks"
                 )
@@ -408,37 +423,43 @@ def main(cfg: DictConfig):
                 # Create test split if needed
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                     # Calculate how many agents to create for this service
+                    logger.info(f"[it{state['iteration']}] Creating test split with {len(test_samples)} tasks, llms, envs, and agents")
                     n_test_tasks = len(test_samples)
                     agents_per_service = (n_test_tasks + n_services - 1) // n_services
-
+                    logger.info(f"[it{state['iteration']}] Each service will be used for {agents_per_service} agents, environment, and task")
                     # Create test LLMs, agents, and environments - one of each per task
-                    test_llms = []
-                    for service_idx, base_url in enumerate(vllm_services):
-                        start_idx = service_idx * agents_per_service
-                        end_idx = min((service_idx + 1) * agents_per_service, n_test_tasks)
+                    test_llms = [
+                        TrainableLLM(
+                            base_url=base_url,
+                            model_name=str(assistant_model_path),
+                            tokenizer_name=str(assistant_model_path),
+                            parameters=cfg.test_llm.parameters,
+                            use_cache=False,
+                            observe_llm_calls=False,
+                        )
+                        for base_url in vllm_services
+                    ]
+                    test_agent_replicas = []
+                    test_envs = []
+                    for llm_idx, llm in enumerate(test_llms):
+                        start_idx = llm_idx * agents_per_service
+                        end_idx = min((llm_idx + 1) * agents_per_service, n_test_tasks)
                         n_agents_this_service = end_idx - start_idx
-
-                        service_llms = [
-                            TrainableLLM(
-                                base_url=base_url,
-                                model_name=str(assistant_model_path),
-                                tokenizer_name=str(assistant_model_path),
-                                parameters=cfg.test_llm.parameters,
-                                use_cache=False,
-                                observe_llm_calls=False,
-                            )
-                            for _ in range(n_agents_this_service)
-                        ]
-                        test_llms.extend(service_llms)
-
-                    test_agent_replicas = [WebAgent.create(llm) for llm in test_llms]
-                    test_envs = [WebEnvironment(**cfg.env) for _ in range(n_test_tasks)]
+                        test_agent_replicas.extend([WebAgent.create(llm) for _ in range(n_agents_this_service)])
+                        test_env_path = f"{exp_path}/envs/test/it{state['iteration']}/llm{llm_idx}"
+                        test_envs.extend([WebEnvironment(
+                            exp_path=f"{test_env_path}/agent{i}",
+                            headless=cfg.env.headless,
+                            ax_tree=cfg.env.ax_tree,
+                            html=cfg.env.html,
+                            markdown_html=cfg.env.markdown_html,
+                        ) for i in range(n_agents_this_service)])
                     assert len(test_agent_replicas) == len(test_envs) == len(test_samples), (
                         f"Number of test agents ({len(test_agent_replicas)}) and environments ({len(test_envs)}) "
                         f"!= number of test tasks ({len(test_samples)})"
                     )
                     logger.info(
-                        f"Creating test split with {len(test_agent_replicas)} agents & environments "
+                        f"[it{state['iteration']}] Created test split with {len(test_agent_replicas)} agents & environments "
                         f"(distributed across {n_services} VLLM services) "
                         f"for {len(test_samples)} tasks"
                     )

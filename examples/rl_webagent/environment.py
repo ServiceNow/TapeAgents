@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any
 
 from browsergym.core.task import AbstractBrowserTask
@@ -27,9 +28,10 @@ class WebEnvironment(Environment):
     Translates action steps into gym browser python commands in the form of a string.
     """
 
-    def __init__(self, exp_path: str, headless: bool = True) -> None:
+    def __init__(self, exp_path: str, headless: bool = True, ax_tree: bool = False, html: bool = True, markdown_html: bool = False) -> None:
         super().__init__()
-        self.browser = Browser(headless=headless, exp_path=exp_path, lazy_env_init=True, axtree=False, html=True)
+        os.makedirs(exp_path, exist_ok=True)
+        self.browser = Browser(headless=headless, exp_path=exp_path, lazy_env_init=True, axtree=ax_tree, html=html, markdown_html=markdown_html)
 
     def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
