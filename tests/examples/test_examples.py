@@ -16,7 +16,7 @@ from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.io import load_tapes
-from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
+from tapeagents.llms import LLM, LiteLLM, ReplayLLM, TrainableLLM
 from tapeagents.observe import init_sqlite_if_not_exists, retrieve_tape_llm_calls
 from tapeagents.orchestrator import get_agent_and_env_from_config, replay_tape, replay_tapes
 from tapeagents.team import TeamTape
@@ -178,7 +178,7 @@ def test_gaia_agent():
 
 def test_workarena_agent():
     run_dir = str(res_path / "workarena" / "guided")
-    llm = mock_llm(run_dir)
+    llm = ReplayLLM.from_llm(LiteLLM(model_name="mock"), run_dir)
     agent = WorkArenaAgent.create(llm)
     tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")

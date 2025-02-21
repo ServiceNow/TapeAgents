@@ -93,9 +93,28 @@ class WorkArenaAgent(Agent):
         return super().create(
             llm,
             nodes=[
-                StandardNode(name="set_goal", system_prompt=SYSTEM_PROMPT, guidance=START),
-                StandardNode(name="reflect", system_prompt=SYSTEM_PROMPT, guidance=REFLECT),
-                StandardNode(name="act", system_prompt=SYSTEM_PROMPT, guidance=ACT, next_node="reflect"),
+                StandardNode(
+                    name="set_goal",
+                    system_prompt=SYSTEM_PROMPT,
+                    guidance=START,
+                    steps_prompt=ALLOWED_STEPS,
+                    steps=WorkArenaAgentStep,
+                ),
+                StandardNode(
+                    name="reflect",
+                    system_prompt=SYSTEM_PROMPT,
+                    guidance=REFLECT,
+                    steps_prompt=ALLOWED_STEPS,
+                    steps=WorkArenaAgentStep,
+                ),
+                StandardNode(
+                    name="act",
+                    system_prompt=SYSTEM_PROMPT,
+                    guidance=ACT,
+                    next_node="reflect",
+                    steps_prompt=ALLOWED_STEPS,
+                    steps=WorkArenaAgentStep,
+                ),
             ],
             max_iterations=max_iterations,
         )
