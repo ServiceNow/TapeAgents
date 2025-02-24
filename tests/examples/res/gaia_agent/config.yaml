@@ -1,5 +1,5 @@
 exp_name: gpt4o_mini_testgen1
-exp_path: outputs/gaia/runs/${exp_name}
+exp_path: /tmp/
 split: validation
 batch: 16
 retry_unsolved: true
