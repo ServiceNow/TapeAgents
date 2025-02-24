@@ -3,15 +3,93 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from statistics import mean
-from typing import Any
+from typing import Any, Generator
 
 import numpy as np
 from Levenshtein import ratio
 from pydantic import BaseModel
 
-from tapeagents.core import Prompt, TrainingText
-from tapeagents.llms.types import LLMCall, LLMOutput, LLMStream
+from tapeagents.core import LLMCall, LLMOutput, Prompt, TrainingText
 from tapeagents.observe import observe_llm_call
+
+
+class LLMEvent(BaseModel):
+    """An event class representing either a chunk of LLM output or the final LLM output.
+
+    This class encapsulates events that occur during LLM processing, handling both
+    intermediate chunks of output and the final complete output.
+
+    Attributes:
+        chunk (str, optional): A partial text output from the LLM stream.
+        output (LLMOutput, optional): The complete output from the LLM.
+        llm_call (LLMCall, optional): The entire LLMCall object.
+    """
+
+    chunk: str | None = None
+    output: LLMOutput | None = None
+    llm_call: LLMCall | None = None
+
+
+class LLMStream:
+    """A wrapper class for LLM generators that provides convenient iteration and output extraction.
+
+    This class wraps a generator that yields LLMEvents and provides methods to:
+
+    - Iterate through events
+    - Extract complete LLM output
+    - Get the assistant's response text
+
+    LLMStream stores the LLM call object when the generator yields it.
+
+    Attributes:
+        generator: Generator yielding LLMEvents or None if empty
+        prompt: The prompt used to generate the LLM response:
+
+    Raises:
+        ValueError: When trying to iterate null stream, when no output is produced,
+                   or when output is not an assistant message with content
+    """
+
+    def __init__(self, generator: Generator[LLMEvent, None, None] | None, prompt: Prompt):
+        self.generator = generator
+        self.prompt = prompt
+
+    def __bool__(self):
+        return self.generator is not None
+
+    def __iter__(self):
+        if self.generator is None:
+            raise ValueError("can't iterate a null stream")
+        return self
+
+    def __next__(self) -> LLMEvent:
+        if self.generator is None:
+            raise StopIteration
+        event = next(self.generator)
+        if event.llm_call:
+            self.llm_call = event.llm_call
+        return event
+
+    def get_output(self) -> LLMOutput:
+        """Returns first LLMOutput found in events"""
+        for event in self:
+            if event.output:
+                return event.output
+        raise ValueError("LLM did not produce an output")
+
+    def get_text(self) -> str:
+        """Returns content of first assistant message found"""
+        o = self.get_output()
+        if not o.role == "assistant" or o.content is None:
+            raise ValueError("LLM did not produce an assistant message")
+        return o.content
+
+    def get_llm_call(self) -> LLMCall:
+        """Returns the LLMCall object"""
+        for event in self:
+            if event.llm_call:
+                break
+        return self.llm_call
 
 
 class LLM(BaseModel, ABC):

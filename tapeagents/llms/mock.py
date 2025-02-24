@@ -1,8 +1,7 @@
 import time
 
-from tapeagents.core import Prompt, TrainingText
-from tapeagents.llms.base import LLM
-from tapeagents.llms.types import LLMEvent, LLMOutput, LLMStream
+from tapeagents.core import LLMOutput, Prompt, TrainingText
+from tapeagents.llms.base import LLM, LLMEvent, LLMStream
 
 
 class MockLLM(LLM):

@@ -8,9 +8,8 @@ from pydantic import Field
 from termcolor import colored
 
 from tapeagents.config import DB_DEFAULT_FILENAME
-from tapeagents.core import Prompt, TrainingText
-from tapeagents.llms.base import LLM, closest_prompt
-from tapeagents.llms.types import LLMCall, LLMEvent, LLMOutput, LLMStream
+from tapeagents.core import LLMOutput, Prompt, TrainingText
+from tapeagents.llms.base import LLM, LLMCall, LLMEvent, LLMStream, closest_prompt
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.utils import FatalError, diff_strings
 

@@ -9,9 +9,8 @@ from typing import Generator
 from termcolor import colored
 
 from tapeagents.config import common_cache_dir
-from tapeagents.core import Prompt
-from tapeagents.llms.base import LLM, closest_prompt
-from tapeagents.llms.types import LLMEvent, LLMOutput, LLMStream
+from tapeagents.core import LLMOutput, Prompt
+from tapeagents.llms.base import LLM, LLMEvent, LLMStream, closest_prompt
 from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.utils import diff_strings
 

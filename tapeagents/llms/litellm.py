@@ -7,8 +7,8 @@ import requests
 from omegaconf import DictConfig, OmegaConf
 
 from tapeagents.core import Prompt, TrainingText
+from tapeagents.llms.base import LLMEvent, LLMOutput
 from tapeagents.llms.cached import CachedLLM
-from tapeagents.llms.types import LLMEvent, LLMOutput
 from tapeagents.utils import get_step_schemas_from_union_type
 
 requests.packages.urllib3.disable_warnings()  # type: ignore

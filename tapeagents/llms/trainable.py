@@ -9,9 +9,9 @@ import transformers
 from pydantic import Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from tapeagents.core import Prompt, TokenLogprob, TrainingText
+from tapeagents.core import LLMCall, LLMOutput, Prompt, TokenLogprob, TrainingText
+from tapeagents.llms.base import LLMEvent
 from tapeagents.llms.cached import CachedLLM
-from tapeagents.llms.types import LLMCall, LLMEvent, LLMOutput
 from tapeagents.utils import get_step_schemas_from_union_type
 
 # force replacement of the tokenizer during testing
