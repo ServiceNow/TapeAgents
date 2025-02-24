@@ -4,8 +4,16 @@ from typing import Any, Literal, TypeAlias, Union
 
 from pydantic import Field
 
-from tapeagents.core import LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Thought
-from tapeagents.dialog_tape import UserStep
+from tapeagents.core import (
+    LLMOutputParsingFailureAction,
+    Observation,
+    SetNextNode,
+    StopStep,
+    Tape,
+    TapeMetadata,
+    Thought,
+)
+from tapeagents.dialog_tape import DialogContext, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.steps import (
     ActionExecutionFailure,
@@ -156,3 +164,17 @@ GaiaStep: TypeAlias = Union[
     SetNextNode,
     UserStep,
 ]
+
+
+class GaiaMetadata(TapeMetadata):
+    task: dict = Field(default_factory=dict)
+    result: Any = None
+    terminated: bool = False
+    attempt_number: int = 0
+    level: int = 0
+    other: dict = Field(default_factory=dict)
+
+
+class GaiaTape(Tape[DialogContext, GaiaStep]):
+    metadata: GaiaMetadata = Field(default_factory=GaiaMetadata)
+    context: DialogContext | None = DialogContext(tools=[])

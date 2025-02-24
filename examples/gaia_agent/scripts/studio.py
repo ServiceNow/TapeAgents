@@ -11,8 +11,7 @@ from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.studio import Studio
 from tapeagents.tools.container_executor import init_code_sandbox
 
-from ..steps import GaiaQuestion
-from ..tape import GaiaTape
+from ..steps import GaiaQuestion, GaiaTape
 
 logging.basicConfig(
     level=logging.INFO,

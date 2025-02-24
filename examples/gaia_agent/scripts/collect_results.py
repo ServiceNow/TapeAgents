@@ -2,10 +2,10 @@ import logging
 import os
 from collections import defaultdict
 
-from examples.gaia_agent.tape import GaiaTape
 from tapeagents.io import load_tapes
 
 from ..eval import ensemble_files, majority_vote, tape_correct
+from ..steps import GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 

@@ -12,8 +12,7 @@ from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
 from ..eval import calculate_accuracy, get_exp_config_dict, tape_correct
-from ..steps import GaiaStep
-from ..tape import GaiaTape
+from ..steps import GaiaStep, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 

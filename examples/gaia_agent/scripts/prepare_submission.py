@@ -6,7 +6,7 @@ import sys
 from tapeagents.io import load_tapes
 
 from ..eval import get_exp_config_dict, load_dataset
-from ..tape import GaiaTape
+from ..steps import GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 

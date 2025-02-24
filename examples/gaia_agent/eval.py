@@ -21,8 +21,7 @@ from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.web_search import SearchAction
 
 from .scorer import question_scorer
-from .steps import GaiaAnswer, GaiaQuestion, ImageObservation
-from .tape import GaiaMetadata, GaiaTape
+from .steps import GaiaAnswer, GaiaMetadata, GaiaQuestion, GaiaTape, ImageObservation
 
 logger = logging.getLogger(__name__)
 

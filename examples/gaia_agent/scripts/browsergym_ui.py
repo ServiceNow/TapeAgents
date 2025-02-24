@@ -14,8 +14,7 @@ from tapeagents.renderers import to_pretty_str
 from tapeagents.steps import ReasoningThought
 from tapeagents.tools.container_executor import init_code_sandbox
 
-from ..steps import GaiaQuestion
-from ..tape import GaiaTape
+from ..steps import GaiaQuestion, GaiaTape
 
 logger = logging.getLogger(__name__)
 

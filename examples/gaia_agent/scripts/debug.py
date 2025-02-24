@@ -10,7 +10,7 @@ from tapeagents.observe import retrieve_llm_calls
 from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 
 from ..eval import load_dataset, task_to_observations
-from ..tape import GaiaMetadata, GaiaTape
+from ..steps import GaiaMetadata, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

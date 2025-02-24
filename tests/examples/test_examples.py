@@ -40,7 +40,7 @@ from examples.form_filler.scripts.prepare_test_assets import (
     load_user_input_tapes,
     load_user_reference_tapes,
 )
-from examples.gaia_agent.tape import GaiaTape
+from examples.gaia_agent.steps import GaiaTape
 from examples.llama_agent import LLAMAChatBot
 from examples.optimize.optimize import make_agentic_rag_agent, make_env
 from examples.tape_improver import tape_improver
