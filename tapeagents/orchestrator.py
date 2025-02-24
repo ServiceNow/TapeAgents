@@ -6,6 +6,7 @@ import enum
 import logging
 from typing import Generator, Generic
 
+import pydantic
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from pydantic import BaseModel, Field
@@ -77,10 +78,16 @@ class MainLoopStream(Generic[TapeType]):
 
 
 def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
-    environment: ToolCollectionEnvironment = instantiate(cfg.environment)
-    agent: Agent = instantiate(
-        cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
-    )
+    try:
+        environment: ToolCollectionEnvironment = instantiate(cfg.environment)
+    except pydantic.ValidationError as validation_error:
+        raise FatalError(f"Environment config error {validation_error.errors()}")
+    try:
+        agent: Agent = instantiate(
+            cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
+        )
+    except pydantic.ValidationError as validation_error:
+        raise FatalError(f"Agent config error {validation_error.errors()}")
     return agent, environment
 
 
