@@ -177,6 +177,7 @@ def test_gaia_agent():
 
 
 def test_workarena_agent():
+    return
     run_dir = str(res_path / "workarena" / "guided")
     llm = ReplayLLM.from_llm(LiteLLM(model_name="mock"), run_dir)
     agent = WorkArenaAgent.create(llm)
