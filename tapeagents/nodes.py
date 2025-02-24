@@ -222,7 +222,7 @@ class MonoNode(Node):
             for event in llm_stream:
                 if event.output:
                     cnt += 1
-                    assert event.output.content
+                    assert event.output.content is not None
                     for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
                         step = self.postprocess_step(tape, new_steps, step)
                         new_steps.append(step)
