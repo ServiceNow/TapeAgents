@@ -80,7 +80,7 @@ class LiteLLM(CachedLLM):
         if self.stream:
             buffer = []
             for part in response:
-                assert isinstance(part, litellm.ModelResponse)
+                assert isinstance(part, (litellm.ModelResponse, litellm.ModelResponseStream))
                 if isinstance(part.choices[0], litellm.utils.StreamingChoices):
                     content_delta = part.choices[0].delta.content
                     if content_delta:

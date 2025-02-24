@@ -12,6 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from tapeagents.core import Prompt, TokenLogprob, TrainingText
 from tapeagents.llms.cached import CachedLLM
 from tapeagents.llms.types import LLMCall, LLMEvent, LLMOutput
+from tapeagents.utils import get_step_schemas_from_union_type
 
 # force replacement of the tokenizer during testing
 _MOCK_TOKENIZER: str = ""
@@ -283,6 +284,9 @@ class TrainableLLM(CachedLLM):
             result.append(llm_call)
         self._stats["time_postprocess_llm_response"].append(time.time() - start_postprocess_time)
         return result
+
+    def get_step_schema(self, cls):
+        return get_step_schemas_from_union_type(cls)
 
     def load_tokenizer(self):
         """
