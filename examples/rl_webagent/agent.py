@@ -1,10 +1,12 @@
+from typing import Any, Generator
 from pydantic import Field
 
-from tapeagents.agent import Agent
-from tapeagents.core import Step
-from tapeagents.llms import LLM
+from tapeagents.agent import Agent, Node
+from tapeagents.core import AgentStep, LLMOutputParsingFailureAction, PartialStep, SetNextNode, Step, StopStep
+from tapeagents.llms import LLM, LLMStream
 from tapeagents.nodes import MonoNode
 from tapeagents.tools.simple_browser import PageObservation
+from tapeagents.utils import FatalError
 
 from .prompts import PromptRegistry
 from .steps import (
@@ -14,30 +16,125 @@ from .steps import (
 
 
 class WebNode(MonoNode):
-    system_prompt: str = PromptRegistry.system_prompt
-    steps_prompt: str = PromptRegistry.allowed_steps
-    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True, default=WebAgentStep)
+    max_retries: int = 3
+    current_retries: int = 0
 
-    def prepare_tape(self, tape: WebTape, max_chars: int = 100):
-        """
-        Trim all page observations except the last two.
-        """
-        tape = super().prepare_tape(tape)  # type: ignore
-        page_positions = [i for i, step in enumerate(tape.steps) if isinstance(step, PageObservation)]
-        if len(page_positions) < 2:
-            return tape
-        prev_page_position = page_positions[-2]
-        steps = []
-        for step in tape.steps[:prev_page_position]:
-            if isinstance(step, PageObservation):
-                short_text = f"{step.text[:max_chars]}\n..." if len(step.text) > max_chars else step.text
-                new_step = step.model_copy(update=dict(text=short_text))
-            else:
-                new_step = step
-            steps.append(new_step)
-        trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[prev_page_position:]))
-        return trimmed_tape
+    # def prepare_tape(self, tape: WebTape, max_chars: int = 100):
+    #     """
+    #     Trim all page observations except the last two.
+    #     """
+    #     tape = super().prepare_tape(tape)  # type: ignore
+    #     page_positions = [i for i, step in enumerate(tape.steps) if isinstance(step, PageObservation)]
+    #     if len(page_positions) < 2:
+    #         return tape
+    #     prev_page_position = page_positions[-2]
+    #     steps = []
+    #     for step in tape.steps[:prev_page_position]:
+    #         if isinstance(step, PageObservation):
+    #             short_text = f"{step.text[:max_chars]}\n..." if len(step.text) > max_chars else step.text
+    #             new_step = step.model_copy(update=dict(text=short_text))
+    #         else:
+    #             new_step = step
+    #         steps.append(new_step)
+    #     trimmed_tape = tape.model_copy(update=dict(steps=steps + tape.steps[prev_page_position:]))
+    #     return trimmed_tape
 
+    def tape_to_messages(self, tape: WebTape, steps_description: str) -> list[dict]:
+        """
+        Converts a Tape object and steps description into a list of messages for LLM conversation.
+
+        Modifications from the original MonoNode:
+        - If the last step is an LLMOutputParsingFailureAction, put the guidance before the assistant step
+          and add a new guidance message that asks to retry. Otherwise, use the default behavior.
+
+        Args:
+            tape (Tape): A Tape object containing conversation steps.
+            steps_description (str): A description of the conversation steps.
+
+        Returns:
+            list[dict]: A list of dictionaries representing the conversation messages.
+                       Each dictionary contains 'role' and 'content' keys.
+                       Roles can be 'system', 'user', or 'assistant'.
+                       The system prompt is always the first message.
+                       If steps_description is provided, it's added as a user message.
+                       Messages from tape are added with roles based on step type.
+                       If guidance exists, it's added as the final user message.
+        """
+        if len(tape.steps) > 0 and isinstance(tape.steps[-1], LLMOutputParsingFailureAction):
+            messages: list[dict] = []
+            if self.system_prompt:
+                messages.append({"role": "system", "content": self.system_prompt})
+            if steps_description:
+                messages.append({"role": "user", "content": steps_description})
+            # ignore the last parsing error step for now, will add it later
+            for step in tape.steps[:-1]:
+                role = "assistant" if isinstance(step, AgentStep) else "user"
+                messages.append({"role": role, "content": step.llm_view()})
+            if self.guidance:
+                messages.append({"role": "user", "content": self.guidance})
+            # add the last parsing error step
+            messages.append({"role": "assistant", "content": tape.steps[-1].llm_view()})
+            # add the new guidance message that asks to retry
+            messages.append({"role": "user", "content": "You made a mistake, please try again."})
+            return messages
+        else:
+            return super().tape_to_messages(tape, steps_description)
+
+    def generate_steps(
+        self, agent: Agent, tape: WebTape, llm_stream: LLMStream
+    ) -> Generator[Step | PartialStep, None, None]:
+        """
+        Generates a sequence of steps based on the LLM stream output.
+
+        This method processes the output from a language model stream and converts it into a series of steps.
+        It handles the parsing of completions and post-processing of steps.
+
+        Modifications from the original MonoNode:
+        - If the last step is an LLMOutputParsingFailureAction, retry the current node
+          up to max_retries times. Otherwise, use the default node selection logic.
+
+        Args:
+            agent (Any): The agent instance that will execute the steps.
+            tape (Tape): The tape object containing the execution context and history.
+            llm_stream (LLMStream): The stream of language model outputs to process.
+
+        Yields:
+            Union[Step, PartialStep]: Individual steps generated from the LLM stream output.
+
+        Raises:
+            FatalError: If no completions are generated from the LLM stream.
+
+        Note:
+            - If the node has a next_node defined and the final step is not a StopStep,
+              it will yield a SetNextNode step to continue the execution flow.
+        """
+        new_steps = []
+        try:
+            cnt = 0
+            for event in llm_stream:
+                if event.output:
+                    cnt += 1
+                    assert event.output.content
+                    for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
+                        step = self.postprocess_step(tape, new_steps, step)
+                        new_steps.append(step)
+                        yield step
+                        # if the last step is an LLMOutputParsingFailureAction, retry the current node up to max_retries times
+                        if isinstance(step, LLMOutputParsingFailureAction) and self.current_retries < self.max_retries:
+                            retry_step = SetNextNode(next_node=self.name)
+                            new_steps.append(retry_step)
+                            yield retry_step
+                            self.current_retries += 1
+                            break
+                        else:
+                            self.current_retries = 0
+            if not cnt:
+                raise FatalError("No completions!")
+        except FatalError:
+            raise
+
+        if self.next_node and not isinstance(new_steps[-1], StopStep) and not isinstance(new_steps[-1], SetNextNode):
+            yield SetNextNode(next_node=self.next_node)
 
 class WebAgent(Agent):
     @classmethod
@@ -45,21 +142,21 @@ class WebAgent(Agent):
         agent = super().create(
             llm,
             nodes=[
-                MonoNode(
+                WebNode(
                     name="set_goal",
                     guidance=PromptRegistry.start,
                     system_prompt=PromptRegistry.system_prompt,
                     steps_prompt=PromptRegistry.allowed_steps,
                     agent_steps=WebAgentStep,
                 ),
-                MonoNode(
+                WebNode(
                     name="reflect",
                     guidance=PromptRegistry.reflect,
                     system_prompt=PromptRegistry.system_prompt,
                     steps_prompt=PromptRegistry.allowed_steps,
                     agent_steps=WebAgentStep,
                 ),
-                MonoNode(
+                WebNode(
                     name="act",
                     guidance=PromptRegistry.act,
                     system_prompt=PromptRegistry.system_prompt,
@@ -74,3 +171,21 @@ class WebAgent(Agent):
         if agent.llm.tokenizer is None:
             agent.llm.load_tokenizer()
         return agent
+
+    # def select_node(self, tape: WebTape) -> Node:
+    #     """
+    #     Select the next node to execute based on the current state of the tape.
+
+    #     If the last step is an LLMOutputParsingFailureAction, retry the current node
+    #     up to max_retries times. Otherwise, use the default node selection logic.
+    #     """
+    #     # if the tape is empty, use the default node selection logic
+    #     if len(tape.steps) == 0:
+    #         return super().select_node(tape)
+    #     # if the last step is an LLMOutputParsingFailureAction, retry the current node
+    #     last_step = tape.steps[-1]
+    #     if isinstance(last_step, LLMOutputParsingFailureAction):
+    #         view = self.compute_view(tape).top
+    #         return self.find_node(view.last_node)
+    #     # otherwise, use the default node selection logic
+    #     return super().select_node(tape)

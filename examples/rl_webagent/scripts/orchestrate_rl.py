@@ -219,6 +219,7 @@ def generate_training_data(
     tasks: list[dict],
     tapes_dir: Path,
     split_name: str,
+    n_processes: int,
 ) -> Tuple[list[WebAgent], List[WebTape], List[TrainingText], Dict[str, float]]:
     """
     Generate complete tapes and training samples from a list of tasks.
@@ -255,15 +256,31 @@ def generate_training_data(
 
     ### STEP 1: run the agents on their tasks in parallel ###
     start_making_tapes = time.time()
-    with ProcessPoolExecutor(max_workers=len(agent_replicas)) as executor:
-        # futures = [
-        #     executor.submit(batch_run_agent_replica, agent, env, task)
-        #     for agent, env, task in zip(agent_replicas, envs, tasks)
-        # ]
-        # results = [future.result() for future in futures]
-        # other way of doing this:
-        results = executor.map(batch_run_agent_replica, agent_replicas, envs, tasks)
-        agent_replicas, final_tapes = zip(*[(r[0], r[1]) for r in results])
+    final_tapes = []
+    updated_agents = []
+
+    for batch_start in range(0, len(agent_replicas), n_processes):
+        batch_end = min(batch_start + n_processes, len(agent_replicas))
+        batch_agents = agent_replicas[batch_start:batch_end]
+        batch_envs = envs[batch_start:batch_end]
+        batch_tasks = tasks[batch_start:batch_end]
+
+        with ProcessPoolExecutor(max_workers=n_processes) as executor:
+            # futures = [
+            #     executor.submit(batch_run_agent_replica, agent, env, task)
+            #     for agent, env, task in zip(batch_agents, batch_envs, batch_tasks)
+            # ]
+            # results = [future.result() for future in futures]
+            # other way of doing this:
+            results = executor.map(batch_run_agent_replica, batch_agents, batch_envs, batch_tasks)
+            batch_updated_agents, batch_tapes = zip(*[(r[0], r[1]) for r in results])
+
+            updated_agents.extend(batch_updated_agents)
+            final_tapes.extend(batch_tapes)
+
+        logger.info(f"Completed batch {batch_start//n_processes + 1} of {(len(agent_replicas) + n_processes - 1)//n_processes}")
+
+    agent_replicas = updated_agents  # Update the original agent_replicas list
 
     logger.info(f"Making tapes took {time.time() - start_making_tapes}")
 
@@ -469,7 +486,7 @@ def main(cfg: DictConfig):
                 for split_name, agent_replicas, envs, tasks in splits:
                     tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
                     agent_replicas_with_stats, new_tapes, split_training_samples, stats = generate_training_data(
-                        agent_replicas, envs, tasks, tapes_dir, split_name
+                        agent_replicas, envs, tasks, tapes_dir, split_name, cfg.n_processes_for_data_generation
                     )
 
                     llm_stats = agent_replicas_with_stats[0].llm.get_stats()

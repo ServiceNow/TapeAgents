@@ -97,7 +97,7 @@ class MonoNode(Node):
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         if agent.llm.count_tokens(messages) > (agent.llm.context_size - 500):
             cleaned_tape = self.trim_tape(cleaned_tape)
-        messages = self.tape_to_messages(cleaned_tape, steps_description)
+            messages = self.tape_to_messages(cleaned_tape, steps_description)
         return Prompt(messages=messages)
 
     def prepare_tape(self, tape: Tape) -> Tape:
@@ -275,7 +275,7 @@ class MonoNode(Node):
         if llm_output.strip().startswith("```"):  # handle special case of code blocks
             for code_block in extract_code_blocks(llm_output):
                 if code_block.language and code_block.language != "python":
-                    raise LLMOutputParsingFailureAction(f"Unsupported code block language: {code_block.language}")
+                    raise ValueError(f"Unsupported code block language: {code_block.language}")
                 yield PythonCodeAction(code=code_block.code)
             return
 

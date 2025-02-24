@@ -73,8 +73,7 @@ class WebEnvironment(Environment):
                 )
         for action in actions:
             try:
-                action_type = type(action)
-                if action_type == LLMOutputParsingFailureAction:
+                if isinstance(action, LLMOutputParsingFailureAction):
                     continue
                 observation = self.browser.run(action)
                 assert isinstance(observation, PageObservation)
