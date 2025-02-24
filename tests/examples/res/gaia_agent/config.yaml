@@ -128,6 +128,7 @@ environment:
   - _target_: tapeagents.tools.media_reader.VideoReader
     exp_path: ${exp_path}
   - _target_: tapeagents.tools.browser.Browser
+    mock: true
     exp_path: ${exp_path}
     navigation_only: true
   - _target_: tapeagents.tools.code_executor.CodeExecutor
