@@ -79,10 +79,10 @@ class Tool(BaseTool):
         return observation
 
 
-class Multitool(BaseTool):
+class StatefulTool(BaseTool):
     """
-    Multitool is a class that provides a set of functions performing
-    explicitly defined set of actions operating on a shared stateful environment.
+    Class that provides a set of functions performing
+    explicitly defined set of actions operating on a shared stateful context.
     """
 
     actions: tuple[type[Action], ...]

@@ -15,7 +15,7 @@ from pydantic import TypeAdapter
 from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
 from tapeagents.dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
-from tapeagents.tools.base import Multitool, Tool
+from tapeagents.tools.base import StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 
@@ -156,15 +156,15 @@ class CodeExecutionEnvironment(Environment):
 
 
 class ToolCollectionEnvironment(Environment):
-    action_map: dict[type[Action], Tool | Multitool]
+    action_map: dict[type[Action], Tool | StatefulTool]
 
-    def __init__(self, tools: list[Tool | Multitool]) -> None:
+    def __init__(self, tools: list[Tool | StatefulTool]) -> None:
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
-        multitools = [tool for tool in tools if isinstance(tool, Multitool)]
-        for multitool in multitools:
-            self.action_map |= {action: multitool for action in multitool.actions}
+        for tool in tools:
+            if isinstance(tool, StatefulTool):
+                self.action_map |= {action: tool for action in tool.actions}
 
     def actions(self) -> tuple[type[Action], ...]:
         return tuple(self.action_map.keys())

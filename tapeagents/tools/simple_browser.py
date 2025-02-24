@@ -34,7 +34,7 @@ from termcolor import colored
 
 from tapeagents.config import common_cache_dir, force_cache
 from tapeagents.core import Action, Observation
-from tapeagents.tools.base import Multitool
+from tapeagents.tools.base import StatefulTool
 from tapeagents.utils import FatalError, diff_strings
 
 from .converters import (
@@ -476,7 +476,7 @@ class PageObservation(Observation):
         return json.dumps(view, indent=2, ensure_ascii=False)
 
 
-class SimpleBrowser(Multitool):
+class SimpleBrowser(StatefulTool):
     """
     Simple text-based web browser for reading documents and web pages.
     Can load web page or document from a URL or file path and scroll through its content.

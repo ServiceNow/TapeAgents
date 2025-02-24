@@ -10,7 +10,7 @@ import requests
 from PIL import Image
 
 from tapeagents.core import Action
-from tapeagents.tools.base import Multitool
+from tapeagents.tools.base import StatefulTool
 from tapeagents.tools.computer.steps import (
     ComputerObservation,
     GetCursorPositionAction,
@@ -30,7 +30,7 @@ from tapeagents.tools.grounding import GroundingModel
 logger = logging.getLogger(__name__)
 
 
-class Computer(Multitool):
+class Computer(StatefulTool):
     """
     Computer tool for executing actions in the container with linux desktop.
     Can execute linux terminal commands, open URLs in the browser.

@@ -23,7 +23,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation, StepMetadata
 from tapeagents.steps import ImageObservation
-from tapeagents.tools.base import Multitool
+from tapeagents.tools.base import StatefulTool
 from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
@@ -189,7 +189,7 @@ class PageScreenshotObservation(ImageObservation):
     kind: Literal["page_screenshot_observation"] = "page_screenshot_observation"
 
 
-class Browser(Multitool):
+class Browser(StatefulTool):
     """
     Browser tool that can load web pages and interact with their content.
     """
