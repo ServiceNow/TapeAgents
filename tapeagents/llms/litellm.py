@@ -55,7 +55,14 @@ class LiteLLM(CachedLLM):
     def get_step_schema(self, cls):
         return get_step_schemas_from_union_type(cls, self.simple_schemas)
 
-    def _generate(self, prompt: Prompt, **kwargs) -> Generator[LLMEvent, None, None]:
+    def _generate(
+        self,
+        prompt: Prompt,
+        max_retries: int = 5,
+        retry_count: int = 0,
+        base_delay: float = 0.5,
+        **kwargs,
+    ) -> Generator[LLMEvent, None, None]:
         while True:
             for k, v in self.parameters.items():
                 if isinstance(v, DictConfig):
@@ -71,6 +78,15 @@ class LiteLLM(CachedLLM):
                     **kwargs,
                 )
                 break
+            except litellm.RateLimitError as e:
+                retry_count += 1
+                if retry_count > max_retries:
+                    logger.error(f"Rate limit exceeded after {max_retries} retries")
+                    raise e
+
+                delay = base_delay * (2 ** (retry_count - 1))
+                logger.warning(f"Rate limit hit, retrying in {delay:.2f} seconds (attempt {retry_count}/{max_retries})")
+                time.sleep(delay)
             except litellm.Timeout:
                 logger.error("API Timeout, retrying in 1 sec")
                 time.sleep(1.0)
