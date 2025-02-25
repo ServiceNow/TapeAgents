@@ -19,10 +19,6 @@ from tapeagents.dialog_tape import (
     AssistantStep,
     AssistantThought,
     DialogTape,
-    FunctionCall,
-    ToolCall,
-    ToolCalls,
-    ToolResult,
     UserStep,
 )
 from tapeagents.environment import ToolEnvironment
@@ -35,6 +31,7 @@ from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.renderers.pretty import PrettyRenderer
 from tapeagents.studio import Studio
 from tapeagents.tape_browser import TapeBrowser
+from tapeagents.tool_calling import FunctionCall, ToolCall, ToolCalls, ToolResult
 
 from .func_templates import make_answer_template, make_query_template
 from .load_demos import load_agentic_rag_demos, load_rag_demos

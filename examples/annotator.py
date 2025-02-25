@@ -12,13 +12,11 @@ from tapeagents.dialog_tape import (
     DialogAnnotatorTape,
     DialogContext,
     DialogTape,
-    ToolCalls,
-    ToolResult,
-    ToolSpec,
     UserStep,
 )
 from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.renderers import render_dialog_plain_text
+from tapeagents.tool_calling import ToolCalls, ToolResult, ToolSpec
 
 _ANNOTATOR_PROMPT: str = """Here is a dialog between a user and an assistant.
 

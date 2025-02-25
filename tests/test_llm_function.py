@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 from tapeagents.core import Prompt
-from tapeagents.dialog_tape import ToolResult, UserStep
+from tapeagents.dialog_tape import UserStep
 from tapeagents.llm_function import (
     AssistantOutput,
     Input,
@@ -10,6 +10,7 @@ from tapeagents.llm_function import (
     ReasoningOutput,
 )
 from tapeagents.llms import LLMEvent, LLMOutput, LLMStream
+from tapeagents.tool_calling import ToolResult
 from tapeagents.utils import diff_strings
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))

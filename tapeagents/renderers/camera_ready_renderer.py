@@ -9,8 +9,6 @@ from tapeagents.dialog_tape import (
     AssistantStep,
     DialogContext,
     SystemStep,
-    ToolCalls,
-    ToolResult,
     UserStep,
 )
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
@@ -18,6 +16,7 @@ from tapeagents.io import UnknownStep
 from tapeagents.llms import LLMCall
 from tapeagents.renderers.basic import BasicRenderer
 from tapeagents.steps import ReasoningThought
+from tapeagents.tool_calling import ToolCalls, ToolResult
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import ANSI_ESCAPE_REGEX, CodeBlock
 from tapeagents.view import Broadcast, Call, Respond

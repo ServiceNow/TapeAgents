@@ -14,7 +14,8 @@ from pydantic import TypeAdapter
 
 from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
-from tapeagents.dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
+from tapeagents.dialog_tape import AssistantStep, DialogTape
+from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
 from tapeagents.tools.base import StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError

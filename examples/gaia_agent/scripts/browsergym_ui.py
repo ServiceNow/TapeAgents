@@ -6,6 +6,7 @@ import os
 import hydra
 from omegaconf import DictConfig
 
+from examples.gaia_agent.steps import GaiaQuestion, GaiaTape
 from tapeagents.core import Action, Observation, Step
 from tapeagents.dialog_tape import UserStep
 from tapeagents.io import save_json_tape, save_tape_images
@@ -13,8 +14,6 @@ from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 from tapeagents.renderers import to_pretty_str
 from tapeagents.steps import ReasoningThought
 from tapeagents.tools.container_executor import init_code_sandbox
-
-from ..steps import GaiaQuestion, GaiaTape
 
 logger = logging.getLogger(__name__)
 

@@ -6,9 +6,10 @@ from typing import Any
 
 from tapeagents.agent import Agent
 from tapeagents.core import Step, Tape
-from tapeagents.dialog_tape import AssistantStep, DialogTape, ToolCalls, ToolResult, UserStep
+from tapeagents.dialog_tape import AssistantStep, DialogTape, UserStep
 from tapeagents.observe import retrieve_tape_llm_calls
 from tapeagents.renderers.basic import BasicRenderer
+from tapeagents.tool_calling import ToolCalls, ToolResult
 
 
 def render_dialog_plain_text(tape: DialogTape | None) -> str:
