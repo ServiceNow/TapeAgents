@@ -23,6 +23,7 @@ from tapeagents.core import (
 from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import BranchStep, ReasoningThought
+from tapeagents.tool_calling import as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import extract_code_blocks
 from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
@@ -66,7 +67,9 @@ class StandardNode(Node):
     use_known_actions: bool = False
     next_node: str = ""
     trim_obs_except_last_n: int = 2
+    use_function_call: bool = False
     _steps_type: Any = None
+    _step_classes: list[type[Step]] | None = None
 
     def model_post_init(self, __context: Any) -> None:
         self.prepare_step_types()
@@ -77,8 +80,8 @@ class StandardNode(Node):
         step_classes_or_str = actions + (self.steps if isinstance(self.steps, list) else [self.steps])
         if not step_classes_or_str:
             return
-        step_classes = tuple([class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str])
-        self._steps_type = Annotated[Union[step_classes], Field(discriminator="kind")]
+        self._step_classes = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
+        self._steps_type = Annotated[Union[tuple(self._step_classes)], Field(discriminator="kind")]
 
     def add_known_actions(self, actions: list[type[Step]]):
         if self.use_known_actions:
@@ -115,7 +118,10 @@ class StandardNode(Node):
             self.trim_obs_except_last_n = 1
             messages = self.tape_to_messages(cleaned_tape, steps_description)
             self.trim_obs_except_last_n = old_trim
-        return Prompt(messages=messages)
+        prompt = Prompt(messages=messages)
+        if self.use_function_call:
+            prompt.tools = [as_openai_tool(s) for s in self._step_classes]
+        return prompt
 
     def prepare_tape(self, tape: Tape) -> Tape:
         """
@@ -218,6 +224,8 @@ class StandardNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
+        if self.use_function_call:
+            return ""
         allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type) if self._steps_type else ""
         return self.steps_prompt.format(allowed_steps=allowed_steps, tools_description=agent.tools_description)
 
