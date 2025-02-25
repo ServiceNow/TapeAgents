@@ -42,6 +42,7 @@ class Computer(StatefulTool):
     actions: tuple[type[Action], ...] = ()
     observations: tuple[type[ComputerObservation], ...] = (ComputerObservation,)
     computer_url: str = "http://localhost"
+    api_port: int = 8000
     use_grounding: bool = True
     grounding_api_url: str
     container_image: str = "computer"
@@ -68,7 +69,6 @@ class Computer(StatefulTool):
             self._action_map[GetCursorPositionAction] = self.remote_execute_action
         self.actions = tuple(self._action_map.keys())
         if os.environ.get("REUSE_COMPUTER_CONTAINER"):
-            self.api_port = 8000
             os.environ["COMPUTER_CONTAINER_NAME"] = self.container_name
         else:
             self.api_port = launch_container(self.container_image, self.container_name, stop_at_exit=True)
