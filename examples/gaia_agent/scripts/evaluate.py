@@ -109,7 +109,7 @@ def task_worker(cfg: DictConfig, level: int, task_num: int):
     agent, env = get_agent_and_env_from_config(cfg)
     timers["create_agent_env"] = time.perf_counter() - t
 
-    tape = solve_task(task, agent, env, level)
+    tape = solve_task(task, agent, env, level, task_num, tapes_dir)
 
     t = time.perf_counter()
     env.close()

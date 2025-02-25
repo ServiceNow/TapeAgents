@@ -1,14 +1,14 @@
 defaults:
   - _self_
-  - llm: gpt4o
+  - llm: sonnet
   - agent: gaia
   - environment: web_browser
 
-exp_name: gpt4o_fromconf2
+exp_name: sonnet37_val1
 exp_path: outputs/gaia/runs/${exp_name}
 
 split: validation
-batch: 16
+batch: 4
 retry_unsolved: true
 
 only_tasks: [] # list of (level, task_num)

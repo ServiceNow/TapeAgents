@@ -105,16 +105,26 @@ def solve_task(
     agent: Agent,
     env: ToolCollectionEnvironment,
     level: int,
+    task_num: int,
+    tapes_dir: str,
     max_loops: int = 50,
     max_action_repetitions: int = 3,
 ) -> GaiaTape:
     start_steps = task_to_observations(task)
     t = time.perf_counter()
     tape = GaiaTape(steps=start_steps)
+    loop_timout_sec = 30 * 60
     try:
+        start_time = time.perf_counter()
         for event in main_loop(agent, tape, env, max_loops=max_loops):
+            if time.perf_counter() - start_time > loop_timout_sec:
+                tape.metadata.error = "Timeout, task took too long"
+                logger.warning("Timeout, task took too long")
+                break
             if partial_tape := (event.agent_tape or event.env_tape):
                 tape = partial_tape
+                tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
+                save_json_tape(tape, tapes_dir, f"l{level}_task{task_num:03d}")
             if action_repetitions(tape) >= max_action_repetitions:
                 break
     except Exception as e:

@@ -22,7 +22,9 @@ templates:
     {allowed_steps}
     Do not reproduce the schema when producing steps; use it as a reference.
   format: >
-    Output only a single JSON dict. Do not repeat the last thought again.
+    Output only a single JSON dict.
+    Do not repeat the last thought again.
+    If the last action does not change the observation, do not repeat it!
     DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JSON. 
     It will break the system that processes the output.
 
