@@ -1,3 +1,4 @@
+from itertools import takewhile
 from typing import Any, Generator
 from pydantic import Field
 
@@ -19,9 +20,15 @@ class WebNode(MonoNode):
     max_retries: int = 3
     current_retries: int = 0
 
-    # def prepare_tape(self, tape: WebTape, max_chars: int = 100):
+    # def trim_tape(self, tape: WebTape) -> WebTape:
     #     """
     #     Trim all page observations except the last two.
+
+    #     Args:
+    #         tape (Tape): The tape object to be trimmed.
+
+    #     Returns:
+    #         Tape: The trimmed tape object.
     #     """
     #     tape = super().prepare_tape(tape)  # type: ignore
     #     page_positions = [i for i, step in enumerate(tape.steps) if isinstance(step, PageObservation)]
@@ -44,8 +51,9 @@ class WebNode(MonoNode):
         Converts a Tape object and steps description into a list of messages for LLM conversation.
 
         Modifications from the original MonoNode:
-        - If the last step is an LLMOutputParsingFailureAction, put the guidance before the assistant step
-          and add a new guidance message that asks to retry. Otherwise, use the default behavior.
+        - If the last n steps are LLMOutputParsingFailureAction, put the guidance before the error steps
+          and add a new guidance message that asks to retry.
+        - Otherwise, remove all LLMOutputParsingFailureAction steps and use the default behavior on the cleaned tape.
 
         Args:
             tape (Tape): A Tape object containing conversation steps.
@@ -66,19 +74,28 @@ class WebNode(MonoNode):
                 messages.append({"role": "system", "content": self.system_prompt})
             if steps_description:
                 messages.append({"role": "user", "content": steps_description})
-            # ignore the last parsing error step for now, will add it later
-            for step in tape.steps[:-1]:
+            # ignore the last n consecutive parsing error steps for now, will add them later
+            n_parsing_errors = 0
+            for step in reversed(tape.steps):
+                if isinstance(step, LLMOutputParsingFailureAction):
+                    n_parsing_errors += 1
+                else:
+                    break
+            for step in tape.steps[:-n_parsing_errors]:
                 role = "assistant" if isinstance(step, AgentStep) else "user"
                 messages.append({"role": role, "content": step.llm_view()})
+            # add the initial guidance message
             if self.guidance:
                 messages.append({"role": "user", "content": self.guidance})
-            # add the last parsing error step
-            messages.append({"role": "assistant", "content": tape.steps[-1].llm_view()})
-            # add the new guidance message that asks to retry
-            messages.append({"role": "user", "content": "You made a mistake, please try again."})
+            # add the last n parsing error steps and the new guidance message that asks to retry
+            for step in tape.steps[-n_parsing_errors:]:
+                messages.append({"role": "assistant", "content": step.llm_view()})
+                messages.append({"role": "user", "content": "You made a mistake. Look at your generation (in 'llm_output') and the error message (in 'error') and please try again."})
             return messages
         else:
-            return super().tape_to_messages(tape, steps_description)
+            steps_without_parsing_errors = [step for step in tape.steps if not isinstance(step, LLMOutputParsingFailureAction)]
+            cleaned_tape = tape.model_copy(update=dict(steps=steps_without_parsing_errors))
+            return super().tape_to_messages(cleaned_tape, steps_description)
 
     def generate_steps(
         self, agent: Agent, tape: WebTape, llm_stream: LLMStream
@@ -120,12 +137,15 @@ class WebNode(MonoNode):
                         new_steps.append(step)
                         yield step
                         # if the last step is an LLMOutputParsingFailureAction, retry the current node up to max_retries times
-                        if isinstance(step, LLMOutputParsingFailureAction) and self.current_retries < self.max_retries:
-                            retry_step = SetNextNode(next_node=self.name)
-                            new_steps.append(retry_step)
-                            yield retry_step
-                            self.current_retries += 1
-                            break
+                        if isinstance(step, LLMOutputParsingFailureAction):
+                            if self.current_retries < self.max_retries:
+                                retry_step = SetNextNode(next_node=self.name)
+                                new_steps.append(retry_step)
+                                yield retry_step
+                                self.current_retries += 1
+                                break
+                            else:
+                                raise FatalError(f"Max retries reached for node {self.name}!")
                         else:
                             self.current_retries = 0
             if not cnt:

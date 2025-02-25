@@ -137,8 +137,6 @@ WebStep = Union[
 class WebTaskMetadata(TapeMetadata):
     seed: int = Field(default_factory=int)
     result: Any = None
-    terminated: bool = False
-    attempt_number: int = 0
     other: dict = Field(default_factory=dict)
 
 

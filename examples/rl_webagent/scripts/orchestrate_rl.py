@@ -24,6 +24,7 @@ from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 from tapeagents.orchestrator import main_loop
+from tapeagents.tools.simple_browser import PageObservation
 
 from ..agent import WebAgent, WebTape
 from ..environment import WebEnvironment
@@ -118,31 +119,29 @@ def batch_run_agent_replica(agent: WebAgent, env: WebEnvironment, task: dict) ->
         tape, metadata = env.start_task(task["task"], task["seed"])
 
         # Run agent-environment loop
-        tape = main_loop(agent, tape, env, max_loops=20).get_final_tape()
-        # last_action = None
-        # repeated_action_cnt = 0
-        # for event in main_loop(agent, tape, env, max_loops=20):
-        #     if event.agent_event and event.agent_event.step:
-        #         step = event.agent_event.step
-        #         # Get immediate reward for action
-        #         immediate_reward = env.get_step_reward(step) if hasattr(env, "get_step_reward") else None
-        #         if hasattr(step, "metadata"):
-        #             step.metadata.other["reward"] = immediate_reward
-        #         # Check for repeated actions
-        #         if isinstance(step, WebAction):
-        #             step_view = step.llm_view()
-        #             if step_view == last_action:
-        #                 repeated_action_cnt += 1
-        #                 if repeated_action_cnt > 4:
-        #                     break
-        #             else:
-        #                 repeated_action_cnt = 0
-        #             last_action = step_view
-        #         tape = tape.append(step)
-        #     if event.observation:
-        #         tape = tape.append(event.observation)
+        # tape = main_loop(agent, tape, env, max_loops=20).get_final_tape()
+        last_action = None
+        repeated_action_cnt = 0
+        for event in main_loop(agent, tape, env, max_loops=20):
+            if event.agent_event and event.agent_event.step:
+                step = event.agent_event.step
+                # Check for repeated actions
+                if isinstance(step, WebAction):
+                    step_view = step.llm_view()
+                    if step_view == last_action:
+                        repeated_action_cnt += 1
+                        if repeated_action_cnt > 4:
+                            break
+                    else:
+                        repeated_action_cnt = 0
+                    last_action = step_view
+                tape = tape.append(step)
+            if event.observation:
+                # PageObservation have the reward in metadata.other["reward"]
+                tape = tape.append(event.observation)
 
-        # Get final reward
+        # Get final reward (1.0 if success, where success is defined as result["reward"] > 0)
+        # result is a dict of reward, stop, message, info
         success, result = env.validate_task(tape)
         final_reward = 1.0 if success else 0.0
         tape.metadata.result = {"success": success, **result, "final_reward": final_reward}
@@ -195,7 +194,8 @@ def extract_tape_training_samples_and_stats(
             trace.input_ids = input_ids
             trace.labels = labels
 
-            # Get step-specific reward if available, otherwise use final reward
+            # Step specific reward are in the next PageObservation step
+            # TODO: change code to fetch these.
             step_reward = step.metadata.other.get("reward", final_reward)
             trace.reward = step_reward
 

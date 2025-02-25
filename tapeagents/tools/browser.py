@@ -330,10 +330,10 @@ class Browser(Multitool):
             current_page=self._current_viewport,
             total_pages=self._n_viewports,
             error=error,
-            metadata=StepMetadata(other=dict(reward=reward, truncated=truncated, info=info)),
+            metadata=StepMetadata(other=dict(
+                reward=reward, env_finished=terminated, truncated=truncated, info=info, screenshot_path=screen_path
+            )),
         )
-        observation.metadata.other["screenshot_path"] = screen_path
-        observation.metadata.other["env_finished"] = terminated
         return observation
 
     def html_to_markdown(self, html_content):
