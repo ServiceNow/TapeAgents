@@ -22,7 +22,7 @@ templates:
     {allowed_steps}
     Do not reproduce the schema when producing steps; use it as a reference.
   format: >
-    Output only a single JSON dict. 
+    Output only a single JSON dict. Do not repeat the last thought again.
     DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JSON. 
     It will break the system that processes the output.
 
@@ -56,7 +56,7 @@ nodes:
     name: act
     system_prompt: ${agent.templates.system_prompt}
     guidance: |
-      Produce single next step.
+      Produce single next step. If the answer is ready, produce gaia_answer_action.
       ${agent.templates.format}
     steps_prompt: ${agent.templates.allowed_steps}
     steps:
