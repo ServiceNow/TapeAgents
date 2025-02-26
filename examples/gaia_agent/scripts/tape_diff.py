@@ -10,7 +10,7 @@ from tapeagents.renderers.basic import BasicRenderer
 from tapeagents.utils import diff_strings
 
 from ..eval import calculate_accuracy, tape_correct
-from ..tape import GaiaTape
+from ..steps import GaiaTape
 
 
 class TapeDiffGUI:

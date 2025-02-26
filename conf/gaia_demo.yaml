@@ -1,0 +1,26 @@
+defaults:
+  - _self_
+  - llm: gpt4o_mini
+  - agent: gaia
+
+exp_name: gpt4o_mini_val_browsergym_fromconf1
+exp_path: outputs/gaia/runs/${exp_name}
+
+environment:
+  _target_: tapeagents.environment.ToolCollectionEnvironment
+  tools:
+    - _target_: tapeagents.tools.web_search.WebSearch
+    - _target_: tapeagents.tools.media_reader.VideoReader
+      exp_path: ${exp_path}
+    - _target_: tapeagents.tools.browser.Browser
+      exp_path: ${exp_path}
+      headless: false
+      save_video: true
+      navigation_only: true
+    - _target_: tapeagents.tools.code_executor.CodeExecutor
+      exp_path: ${exp_path}
+
+
+hydra:
+  run:
+    dir: ${exp_path}

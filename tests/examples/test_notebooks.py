@@ -24,7 +24,7 @@ def test_intro_notebook():
                 os.environ["TAPEAGENTS_SQLITE_DB"] = "{sqlite_path}"
                 os.environ["TAPEAGENTS_CACHE_DIR"] = "{cache_dir}"
                 os.environ["TAPEAGENTS_FORCE_CACHE"] = "1"
-                llms._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
+                llms.cached._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
                 """,
                 before=0,
             )

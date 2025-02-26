@@ -14,8 +14,9 @@ from pydantic import TypeAdapter
 
 from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
-from tapeagents.dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
-from tapeagents.tools.base import Multitool, Tool
+from tapeagents.dialog_tape import AssistantStep, DialogTape
+from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
+from tapeagents.tools.base import StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 
@@ -45,6 +46,9 @@ class Environment(ABC, Generic[TapeType]):
     def react(self, tape: TapeType) -> TapeType:
         pass
 
+    def step(self, action: Action) -> Observation:
+        raise NotImplementedError
+
     def raise_external_observation_needed(self, action: Action):
         raise ExternalObservationNeeded(
             action,
@@ -54,6 +58,15 @@ class Environment(ABC, Generic[TapeType]):
 
     def raise_unexpected_action(self, action: Action):
         raise ValueError(f"Unexpected action type: {action}")
+
+    def actions(self) -> tuple[type[Action], ...]:
+        return tuple()
+
+    def reset(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
 
 
 class EmptyEnvironment(Environment):
@@ -144,33 +157,45 @@ class CodeExecutionEnvironment(Environment):
 
 
 class ToolCollectionEnvironment(Environment):
-    action_map: dict[type[Action], Tool | Multitool]
+    action_map: dict[type[Action], Tool | StatefulTool]
 
-    def __init__(self, tools: list[Tool | Multitool]) -> None:
+    def __init__(self, tools: list[Tool | StatefulTool]) -> None:
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
-        multitools = [tool for tool in tools if isinstance(tool, Multitool)]
-        for multitool in multitools:
-            self.action_map |= {action: multitool for action in multitool.actions}
+        for tool in tools:
+            if isinstance(tool, StatefulTool):
+                self.action_map |= {action: tool for action in tool.actions}
 
     def actions(self) -> tuple[type[Action], ...]:
         return tuple(self.action_map.keys())
+
+    def tools_description(self) -> list[str]:
+        desc_list = [tool.description() for tool in self.tools]
+        return "\n".join(f"- {desc}" for desc in desc_list)
 
     def react(self, tape: Tape) -> Tape:
         for action in self.last_actions(tape):
             if isinstance(action, LLMOutputParsingFailureAction):
                 continue
-            t = time.perf_counter()
-            action_type = type(action)
-            if action_type not in self.action_map:
-                raise Exception(f"Unknown action: {action_type}")
-            tool = self.action_map[action_type]
-            observation = tool.run(action)
-            observation.metadata.other["action_execution_time"] = time.perf_counter() - t
-            observation.metadata.other["action_kind"] = action.kind
+            observation = self.step(action)
             tape = tape.append(observation)
         return tape
+
+    def step(self, action: Action) -> Observation:
+        t = time.perf_counter()
+        action_type = type(action)
+        if action_type not in self.action_map:
+            raise Exception(f"Unknown action: {action_type}")
+        tool = self.action_map[action_type]
+        observation = tool.run(action)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
+        return observation
+
+    def reset(self) -> None:
+        for tool in self.tools:
+            tool.reset()
 
     def close(self) -> None:
         for tool in self.tools:

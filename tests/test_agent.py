@@ -145,7 +145,7 @@ def test_create_with_kwargs():
 
 
 def test_create_with_dict_llms_and_templates():
-    llms = {"llm1": MockLLM(), "llm2": MockLLM()}
+    llms = {"default": MockLLM(), "llm2": MockLLM()}
     templates = {"template1": "template_string1", "template2": "template_string2"}
     agent = MockAgent.create(llms, templates=templates)  # type: ignore
 
@@ -246,11 +246,13 @@ def test_run_iteration_with_multiple_llms():
         def select_node(self, tape):
             return MockNode()
 
-    agent = MockAgent(llms={"llm1": EmptyLLM(), "llm2": EmptyLLM()})
+    agent = MockAgent(llms={"default": EmptyLLM(), "llm2": EmptyLLM()})
     tape = MockTape()
 
-    with pytest.raises(NotImplementedError, match="TODO: implement LLM choice in the prompt"):
-        list(agent.run_iteration(tape))
+    for step in agent.run_iteration(tape):
+        assert isinstance(step, (PartialStep, Action))
+        if not isinstance(step, PartialStep):
+            assert step.metadata.llm == "default"
 
 
 def test_run_iteration_with_agent_step():

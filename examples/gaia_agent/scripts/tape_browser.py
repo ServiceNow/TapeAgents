@@ -12,8 +12,7 @@ from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.tape_browser import TapeBrowser
 
 from ..eval import calculate_accuracy, get_exp_config_dict, tape_correct
-from ..steps import GaiaStep
-from ..tape import GaiaTape
+from ..steps import GaiaStep, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 
@@ -145,7 +144,11 @@ class GaiaTapeBrowser(TapeBrowser):
         if tape.metadata.terminated:
             error = "T"
         last_action = None
+        tokens = 0
         for step in tape:
+            llm_call = self.llm_calls.get(step.metadata.prompt_id)
+            tokens += llm_call.prompt_length_tokens if llm_call else 0
+            tokens += llm_call.output_length_tokens if llm_call else 0
             if isinstance(step, Action):
                 last_action = step
             if step.kind == "search_results_observation" and not step.serp:
@@ -165,7 +168,8 @@ class GaiaTapeBrowser(TapeBrowser):
             mark += f"[{error}]"
         if mark:
             mark += " "
-        return f"{i+1} {mark}{tape[0].content[:32]}"  # type: ignore
+        name = tape[0].content[:32] if hasattr(tape[0], "content") else tape[0].short_view()[:32]
+        return f"{i+1} {mark}({tokens: }t) {name}"  # type: ignore
 
     def get_tape_label(self, tape: GaiaTape) -> str:
         llm_calls_num = 0
@@ -216,7 +220,10 @@ class GaiaTapeBrowser(TapeBrowser):
             for r in raw_exps:
                 exp_dir = os.path.join(self.tapes_folder, r)
                 try:
-                    cfg = get_exp_config_dict(exp_dir)
+                    try:
+                        cfg = get_exp_config_dict(exp_dir)
+                    except Exception:
+                        cfg = {}
                     if "split" in cfg:
                         set_name = cfg["split"]
                     elif "data_dir" in cfg:

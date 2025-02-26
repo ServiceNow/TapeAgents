@@ -2,19 +2,16 @@ import logging
 import os
 
 import hydra
-from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.config import ATTACHMENT_DEFAULT_DIR
 from tapeagents.io import load_tapes
+from tapeagents.orchestrator import get_agent_and_env_from_config
 from tapeagents.renderers.camera_ready_renderer import CameraReadyRenderer
 from tapeagents.studio import Studio
-from tapeagents.tools.container_executor import maybe_get_code_sandbox
+from tapeagents.tools.container_executor import init_code_sandbox
 
-from ..agent import GaiaAgent
-from ..environment import get_env
-from ..steps import GaiaQuestion
-from ..tape import GaiaTape
+from ..steps import GaiaQuestion, GaiaTape
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,14 +25,12 @@ logger = logging.getLogger(__name__)
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="gaia_openai",
+    config_name="gaia_agent",
 )
 def main(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
-    llm = instantiate(cfg.llm)
-    code_sandbox = maybe_get_code_sandbox(cfg.exp_path)
-    env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
-    agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
+    init_code_sandbox(cfg.exp_path)
+    agent, env = get_agent_and_env_from_config(cfg)
     content = "How many calories in 2 teaspoons of hummus"
     if cfg.studio.tape:
         tape = load_tapes(GaiaTape, cfg.studio.tape, ".json")[0]

@@ -1,4 +1,3 @@
-from tapeagents.dialog_tape import ToolResult
 from tapeagents.llm_function import (
     AssistantOutput,
     Input,
@@ -6,6 +5,7 @@ from tapeagents.llm_function import (
     ReasoningOutput,
     ToolCallOutput,
 )
+from tapeagents.tool_calling import ToolResult
 
 
 def render_contexts(contexts: list[str]) -> str:

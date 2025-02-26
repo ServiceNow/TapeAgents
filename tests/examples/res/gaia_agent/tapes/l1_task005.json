@@ -1,10 +1,10 @@
 {
     "metadata": {
-        "id": "ec8173db-b7df-47e0-9ffc-40dbadf08798",
-        "parent_id": "5cc49a19-30c0-4262-8633-442021d08535",
-        "author": "gaia_agent_v3",
+        "id": "6e5916ba-32dd-4bee-9d98-93d4d2e12b6a",
+        "parent_id": "e37417a9-ccce-4577-81dd-2c5ca16becb3",
+        "author": "web_agent",
         "author_tape_id": null,
-        "n_added_steps": 3,
+        "n_added_steps": 1,
         "error": null,
         "result": "Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery",
         "task": {
@@ -26,12 +26,11 @@
         "level": 1,
         "other": {
             "timers": {
-                "solve_task": 16.774192249999032,
-                "load_task": 0.0011800829961430281,
-                "instantiate_llm": 0.0016725000023143366,
-                "create_env": 0.0006229999999050051,
-                "create_agent": 0.0002531670033931732,
-                "close_env": 0.0006367499881889671
+                "solve_task": 15.147011583001586,
+                "load_task": 0.0017532920028315857,
+                "instantiate_llm": 0.0014651250094175339,
+                "create_agent_env": 6.4833817500039,
+                "close_env": 0.19573962499271147
             }
         }
     },
@@ -41,10 +40,11 @@
     "steps": [
         {
             "metadata": {
-                "id": "85b5b28e-ac55-4346-959e-4e473f84353b",
+                "id": "fdc220e1-2271-48f5-a808-e2057f334dae",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
+                "llm": "",
                 "other": {}
             },
             "kind": "question",
@@ -53,50 +53,35 @@
         },
         {
             "metadata": {
-                "id": "2bb00131-ee11-4f3b-aa78-5e31b26fbba7",
-                "prompt_id": "5bb4ad4a-a5c6-4aed-9152-b0be50a27f10",
+                "id": "a1e53a2f-42e0-4822-b76e-644dc097b123",
+                "prompt_id": "7bbc3d60-bcdd-4569-abf9-e14fcae1f0e3",
                 "node": "plan",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
-            "kind": "plan_thought",
-            "plan": [
-                "Search for the paper titled \"Pie Menus or Linear Menus, Which Is Better?\" to identify the authors and their publication details.",
-                "Check the publication year to confirm it is from 2015.",
-                "List the authors in the format First M. Last and check their publication history to identify who has authored prior papers.",
-                "Determine which author has prior publications and note their name.",
-                "Search for the first paper authored by that specific author before 2015.",
-                "Extract the title of that first paper."
-            ]
+            "kind": "reasoning_thought",
+            "reasoning": "1. Perform a web search for the paper titled \"Pie Menus or Linear Menus, Which Is Better?\" to find its authors and publication details.\n2. Identify the authors from the search results and note their names in the format \"First M. Last.\"\n3. Check if any of the authors have prior publications by searching for their names along with the keyword \"publications\" or \"papers.\"\n4. If an author with prior publications is found, list their previously authored papers.\n5. Identify the title of the first paper authored by that specific author.\n6. If no authors with prior publications are found, note that no such author exists."
         },
         {
             "metadata": {
-                "id": "1bd7a15f-fc1f-4a49-b721-a831cb001620",
-                "prompt_id": "bc776d49-c69a-4e98-80a3-d52b4e5bde5d",
+                "id": "a99f8af1-18ed-43dc-96c6-400df2601576",
+                "prompt_id": "81bb3767-84f0-4671-87cc-a4dd806dfe37",
                 "node": "facts_survey",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
-            "kind": "facts_survey_thought",
-            "given_facts": [
-                "The paper title is \"Pie Menus or Linear Menus, Which Is Better?\"",
-                "The paper was published in 2015."
-            ],
-            "facts_to_lookup": [
-                "The authors of the paper \"Pie Menus or Linear Menus, Which Is Better?\"",
-                "The publication history of each author to identify prior papers."
-            ],
-            "facts_to_derive": [
-                "The first paper authored by the author who had authored prior papers."
-            ],
-            "facts_to_guess": []
+            "kind": "reasoning_thought",
+            "reasoning": "1. Specific facts or figures given in the request: \n   - The title of the paper: \"Pie Menus or Linear Menus, Which Is Better?\"\n   - The year of publication: 2015.\n\n2. Facts that may need to be looked up and where they might be found:\n   - The authors of the paper \"Pie Menus or Linear Menus, Which Is Better?\" can be found in academic databases or search engines like Google Scholar, ResearchGate, or directly through a web search.\n\n3. Facts that may need to be derived:\n   - The title of the first paper authored by the author who had prior publications.\n\n4. Facts that are recalled from memory, hunches, well-reasoned guesses, etc.:\n   - No specific facts are recalled; the task requires looking up information."
         },
         {
             "metadata": {
-                "id": "7b521f19-73c6-4064-984d-9ea420ee99bf",
-                "prompt_id": "6561fd30-4041-4622-9efa-8dfeb2779bef",
-                "node": "start",
-                "agent": "gaia_agent_v3",
+                "id": "bc2b092f-a124-4ea3-8319-d5186f9c73cb",
+                "prompt_id": "9f0d4c24-098b-491a-968c-18e32efe9eb9",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
             "kind": "search_action",
@@ -105,12 +90,25 @@
         },
         {
             "metadata": {
-                "id": "fea7dc5e-aed4-4146-8598-2624ee031ea6",
+                "id": "47290390-f85c-4b0c-a59c-f9ce6364c358",
+                "prompt_id": "9f0d4c24-098b-491a-968c-18e32efe9eb9",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "6a278db6-e7c9-45a9-86a6-04056aed111f",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
+                "llm": "",
                 "other": {
-                    "action_execution_time": 1.1741719169949647,
+                    "action_execution_time": 0.8243714999989606,
                     "action_kind": "search_action"
                 }
             },
@@ -133,7 +131,7 @@
                     "content": "Pie Menus or Linear Menus, Which Is Better? · Pietro Murano, Iram Khan · Published 9 September 2015 · Computer Science."
                 },
                 {
-                    "title": "Pie Menus or Linear Menus, Which Is Better? - OsloMet ODA",
+                    "title": "Pie Menus or Linear Menus, Which Is Better? - oda.​oslomet.​no",
                     "url": "https://oda.oslomet.no/oda-xmlui/handle/10642/3162",
                     "content": "Murano, P., & Khan, I. N. (2015). Pie Menus or Linear Menus, Which Is Better?. Journal of Emerging Trends in Computing and Information Sciences, 6(9)."
                 },
@@ -147,44 +145,24 @@
         },
         {
             "metadata": {
-                "id": "4ac7b16a-179f-42a3-bb0f-7e81a1a440a0",
-                "prompt_id": "13b0d1b9-ddc0-46cd-955f-5f74ae35f648",
+                "id": "0bcfe1c8-51e4-4d6e-b04f-b8b2219be1e0",
+                "prompt_id": "54efad75-cbf3-41ff-9a37-165ef1ca6060",
                 "node": "act",
-                "agent": "gaia_agent_v3",
-                "other": {}
-            },
-            "kind": "reasoning_thought",
-            "reasoning": "The authors of the paper \"Pie Menus or Linear Menus, Which Is Better?\" are Pietro Murano and Iram Khan. I will now check the publication history of Pietro Murano to find his first paper before 2015."
-        },
-        {
-            "metadata": {
-                "id": "25a273b0-1b98-4984-82c8-7eb565b37317",
-                "prompt_id": "13b0d1b9-ddc0-46cd-955f-5f74ae35f648",
-                "node": "act",
-                "agent": "gaia_agent_v3",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "563afe71-89eb-4cbd-9f90-c6713d63ed93",
-                "prompt_id": "f96dca50-d13b-4152-8148-6ca4f6c04ff5",
-                "node": "act",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
             "kind": "search_action",
             "source": "web",
-            "query": "Pietro Murano publication history"
+            "query": "Pietro Murano publications"
         },
         {
             "metadata": {
-                "id": "f233780d-867c-4171-9d2b-39d63195ca8d",
-                "prompt_id": "f96dca50-d13b-4152-8148-6ca4f6c04ff5",
+                "id": "8a033f84-6f23-4655-b923-b9d23478062e",
+                "prompt_id": "54efad75-cbf3-41ff-9a37-165ef1ca6060",
                 "node": "act",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
             "kind": "set_next_node",
@@ -192,17 +170,86 @@
         },
         {
             "metadata": {
-                "id": "0aaa4e15-730a-4938-afea-2f4c34647a3f",
+                "id": "e755a9c7-18ce-459a-8b16-0ecfca503055",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
+                "llm": "",
                 "other": {
-                    "action_execution_time": 0.739365582994651,
+                    "action_execution_time": 0.7391075830091722,
                     "action_kind": "search_action"
                 }
             },
             "kind": "search_results_observation",
-            "query": "Pietro Murano publication history",
+            "query": "Pietro Murano publications",
+            "serp": [
+                {
+                    "title": "Publications - Pietro Murano",
+                    "url": "http://pietromurano.org/publications.html",
+                    "content": "Murano, Pietro (2001) A New Software Agent 'Learning' Algorithm - PDF, People in Control An International Conference on Human Interfaces in Control Rooms, ..."
+                },
+                {
+                    "title": "‪Pietro Murano‬ - ‪Google Scholar‬",
+                    "url": "https://scholar.google.com/citations?user=L9um4xoAAAAJ&hl=en",
+                    "content": "Professor (Full) of Human Computer Interaction - ‪‪Cited by 341‬‬ - ‪Human Computer Interaction‬ - ‪Usability‬ - ‪Interaction‬ - ‪UX‬ - ‪User Experience‬"
+                },
+                {
+                    "title": "Pietro MURANO | Department of Computer Science | Research profile",
+                    "url": "https://www.researchgate.net/profile/Pietro-Murano",
+                    "content": "Publications. Publications (43). The Usability of Persistent and Non-Persistent ... Conference Paper. Full-text available. Jan 2005. Pietro Murano."
+                },
+                {
+                    "title": "Pietro Murano - dblp",
+                    "url": "https://dblp.org/pid/86/3190",
+                    "content": "List of computer science publications by Pietro Murano."
+                },
+                {
+                    "title": "Pietro Murano - OsloMet",
+                    "url": "https://www.oslomet.no/en/about/employee/piemur/",
+                    "content": "Publications and research. Scientific publications (30); Textbooks (1); Dissemination (44) ..."
+                }
+            ],
+            "error": null
+        },
+        {
+            "metadata": {
+                "id": "9e10695a-ec53-4625-b7b5-4f0a397c4ee6",
+                "prompt_id": "8ae7b4c9-d823-4d4b-997a-a24946887e9a",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "first paper authored by Pietro Murano"
+        },
+        {
+            "metadata": {
+                "id": "3e5ac9a4-668c-4fc9-bbe5-b7e1ed332036",
+                "prompt_id": "8ae7b4c9-d823-4d4b-997a-a24946887e9a",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "cda7f7fb-e2e8-4de1-bd83-f869280b2a2a",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.8334714169905055,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "first paper authored by Pietro Murano",
             "serp": [
                 {
                     "title": "Publications - Pietro Murano",
@@ -210,104 +257,43 @@
                     "content": "Murano, Pietro (2003) Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery - PDF, 7th International Conference on ..."
                 },
                 {
+                    "title": "Pietro MURANO | Department of Computer Science | Research profile",
+                    "url": "https://www.researchgate.net/profile/Pietro-Murano",
+                    "content": "Dr Pietro Murano currently works at the Department of Computer Science, Oslo Metropolitan University. Dr Murano does research in Human-computer ..."
+                },
+                {
                     "title": "‪Pietro Murano‬ - ‪Google Scholar‬",
                     "url": "https://scholar.google.com/citations?user=L9um4xoAAAAJ&hl=en",
-                    "content": "Pietro Murano. Professor (Full) of Human Computer Interaction. Verified ... International Journal of Pervasive Computing and Communications 10 (1), 115 ..."
+                    "content": "User interface menu design performance and user preferences: a review and ways forward. P Murano, M Sander. International Journal of Advanced Computer Science ..."
                 },
                 {
-                    "title": "[PDF] AN ALGORITHM FOR AUTOMATICALLY DETECTING DYSLEXIA ...",
-                    "url": "http://pietromurano.org/Papers/Algorithm-Detect-Dyslexia-on-Fly-Shrestha-Murano-Published-Version.pdf",
-                    "content": "His recent publications include Shrestha, S., & Murano, P. ... Dr Pietro Murano is a Computer Scientist and Associate Professor at OsloMet - Oslo Metropolitan."
+                    "title": "Paperweights: the history of a fine Murano glass work of art",
+                    "url": "https://www.muranonet.com/blogs/unfold-venice/paperweights-the-history-of-a-fine-murano-glass-work-of-art?srsltid=AfmBOopIuRRf67O16BHFqIm5QIlzQSk72alV7lzgV865yvi948dxKn9-",
+                    "content": "We have to wait 1845 to see the first examples of Murano glass paperweights. Thanks to ancient techniques and motives, in this year the glassmaker Pietro ..."
                 },
                 {
-                    "title": "The Origins of Murano Glass - Beachcombing Magazine",
-                    "url": "https://www.beachcombingmagazine.com/blogs/news/the-origins-of-murano-glass",
-                    "content": "Murano glass is synonymous with Venetian glass, and the origins of glassmaking in Venice go back to the times of the Roman Empire when precast glass was used ..."
-                },
-                {
-                    "title": "The Crown Jewels -- Glass Paperweights",
-                    "url": "https://www.paperweight.org/index.php?option=com_dailyplanetblog&tag=history",
-                    "content": "They are the perfect example of form following function. Venetian Scramble by Pietro Bagaglia, Murano, c 1845. The finest were made by the French factories ..."
+                    "title": "Pietro Murano | OsloMet—Oslo Metropolitan University",
+                    "url": "https://oslomet.academia.edu/PietroMurano",
+                    "content": "Refereed Journal Papers by Pietro Murano ... Firstly the paper will summarise the author's three internationally published experiments and results."
                 }
             ],
             "error": null
         },
         {
             "metadata": {
-                "id": "4eae6fb8-2aac-4a02-9510-ecd004a64f04",
-                "prompt_id": "8b1e44b6-0633-4821-ad82-b321fc32b8fe",
+                "id": "ee5a8331-ba9c-4495-ada6-3e1dc08f2fa8",
+                "prompt_id": "9b308067-d3b7-4c24-bf63-1724e84b0550",
                 "node": "act",
-                "agent": "gaia_agent_v3",
-                "other": {}
-            },
-            "kind": "read_document_action",
-            "url": "http://pietromurano.org/publications.html",
-            "fact_description": "first paper authored by Pietro Murano before 2015",
-            "fact_name": "first paper title"
-        },
-        {
-            "metadata": {
-                "id": "75c518b9-42aa-4b1c-b16f-378e2296166c",
-                "prompt_id": "8b1e44b6-0633-4821-ad82-b321fc32b8fe",
-                "node": "act",
-                "agent": "gaia_agent_v3",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "4372cce7-cbc8-4b87-90f7-7697dd04c970",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "other": {
-                    "action_execution_time": 1.3882172080047894,
-                    "action_kind": "read_document_action"
-                }
-            },
-            "kind": "page_observation",
-            "text": "Title: Pietro Murano - Publications\n=======================\nPietro Murano\n=============\n\nPublications\n============\n\n* [Home](http://pietromurano.org/index.html)\n* [Research](http://pietromurano.org/research.html)\n* [Lecturing](http://pietromurano.org/lecturing.html)\n* [Administration](http://pietromurano.org/administration.html)\n* [Popular Media](http://pietromurano.org/popular_media.html)\n* [Contact](http://pietromurano.org/contact.html)\n\nThis section lists all my publications and where possible the publications are included. Click on a title to read a paper.\n--------------------------------------------------------------------------------------------------------------------------\n\nINTERNATIONAL REFEREED JOURNAL PAPERS\n-------------------------------------\n\nAl\\-Jasim, Alyaa \\& Murano, Pietro (2023\\) [Designing User Interface Toggles for Usability \\- PDF](http://pietromurano.org/Papers/JUX_Al-Jasim_Murano_Aug_2023_PUBLISHED_VERSION.pdf), Journal of User Experience, Volume 18, Issue 4, August 2023\\.\n\nShrestha, Sayush Lal \\& Murano, Pietro (2022\\) [The Design and Evaluation of an Online Dictionary User\nInterface \\- PDF](http://pietromurano.org/Papers/Online Dictionary User Interface - Shrestha-Murano PUBLISHED VERSION.pdf), International Journal of Computing and Digital Systems, Volume 1, March 2022\\.\n\nKeya, Rashika Tasnim \\& Murano, Pietro (2022\\) [Is Carousel Interaction Really Usable? \\- PDF](http://pietromurano.org/Papers/Keya Murano PUBLISHED VERSION.pdf), First Monday, Volume 27, Issue 1, January 2022\\.\n\nChaudhary, Karan Singh \\& Murano, Pietro (2021\\)  [The Design and Evaluation of a New Smartwatch User Interface\\- PDF](http://pietromurano.org/Papers/Chaudhary Murano Published Version.pdf), International Journal of Interactive Mobile Technologies (iJIM), Vol. 15, Issue 13, 2021\\.\n\nAwale, Bikram \\& Murano, Pietro (2020\\)  [A Preliminary Usability and Universal Design Evaluation of a Television App User Interface \\- PDF](http://pietromurano.org/Papers/Awale Murano PUBLISHED Version.pdf), Baltic Journal of Modern Computing, Vol. 8, Issue 3, 2020\\.\n\nSharma, Sushil \\& Murano, Pietro (2020\\)  [A Usability Evaluation of Web User Interface Scrolling Types \\- PDF](http://pietromurano.org/Papers/Sharma-Murano-Paper - Final Version.pdf), First Monday, Vol. 25, Issue 3, February 2020\\.\n\nSuru, Hassan Umar \\& Murano, Pietro (2019\\)  [Security and User Interface Usability of Graphical Authentication Systems A Review\n \\- PDF](http://pietromurano.org/Papers/Published Version Murano Suru.pdf), International Journal of Computer Trends and Technology, Vol. 67, Issue 2, February, p.17\\-36\\.\n\nMurano, Pietro \\& Ali, Rao Muhammad Danial (2018\\)  [A Preliminary Investigation into the Usability of Force Touch Interaction in a Mobile Context\n \\- PDF](http://pietromurano.org/Papers/Force-Touch-Mobile-Context-Murano-Ali-Published-Version.pdf), International Journal of Interactive Mobile Technologies, Vol. 12, Issue 5, p.169\\-181\\.\n\nShrestha, Suraj \\& Murano, Pietro (2018\\)  [An Algorithm For Automatically\nDetecting Dyslexia On The Fly\n \\- PDF](http://pietromurano.org/Papers/Algorithm-Detect-Dyslexia-on-Fly-Shrestha-Murano-Published-Version.pdf), International Journal of Computer Science \\& Information Technology, Vol. 10, Issue 3, p.1\\-18, (c) AIRCC Publishing Corporation.\n\nMurano, Pietro (2018\\)  [A New User Interface for a Text Proofreading Web Portal in a Digitization\nand Crowdsourcing Context\n \\- PDF](http://pietromurano.org/Papers/Crowdsourcing-Paper-FINAL-Web.pdf), International Journal of Web Information Systems, Vol. 14, Issue 1, p.107\\-122\\.\n\nShrestha, Suraj \\& Murano, Pietro (2016\\)  [A Universally Designed and Usable Data Visualization for A Mobile Application in the Context of Rheumatoid Arthritis\n \\- PDF](http://pietromurano.org/Papers/A_Universally_Designed_and_Usable_Data_Visualization-PUBLISHED VERSION.pdf), International Journal of Advanced Computer Science and Applications, Vol. 7, Issue 12, December 2016\\.\n\nMurano, Pietro \\& Sander, Margrete (2016\\)  [User Interface Menu Design Performance and User Preferences: A Review and Ways Forward \\- PDF](http://pietromurano.org/Papers/Published_Version_User_Interface_Menu_Design_Performance_and_User_Preferences_Murano_Sander.pdf), International Journal of Advanced Computer Science and Applications, Vol. 7, Issue 4, April 2016\\.\n\nMurano, Pietro \\& Khan, Iram N. (2015\\)  [Pie Menus or Linear Menus, Which Is Better? \\- PDF](http://pietromurano.org/Papers/Murano-Khan-Published-Version.pdf), Journal of Emerging Trends in Computing and Information Sciences, Vol. 6, Issue 9, September 2015\\.\n\nMurano, Pietro \\& Lomas, Tracey J. (2015\\)  [Menu Positioning on Web Pages. Does it Matter? \\- PDF](http://pietromurano.org/Papers/IJACSA-Murano-Lomas-Published-Version.pdf), International Journal of Advanced Computer Science and Applications, Vol. 6, Issue 4, April 2015\\.\n\nTravis, Charlotte \\& Murano, Pietro (2014\\) A Comparative Study of the Usability of Touch\\-Based and Mouse\\-Based Interaction, International Journal of Pervasive Computing and Communications, Vol. 10, Issue 1\\. PAPER RECEIVED AN EMERALD HIGHLY COMMENDED AWARD 2015\n\nMurano, Pietro \\& Oenga, Kennedy K. (2012\\)  [The Impact on Effectiveness and User Satisfaction of Menu Positioning on Web Pages \\- PDF](http://pietromurano.org/Papers/IJACSA-Murano-Oenga-Journal-Final.pdf), International Journal of Advanced Computer Science and Applications, Vol. 3, Issue 9, September 2012\\.\n\nMurano, Pietro, Gee, Anthony \\& Holt, Patrik O'Brian (2011\\) [Evaluation of an Anthropomorphic User Interface in a Travel Reservation Context and Affordances \\- PDF](http://pietromurano.org/Papers/JoC-Murano-Holt-Gee-Anthro-TravelRes.pdf), Journal of Computing, Volume 3, Issue 8, August 2011\\.\n\nMurano, Pietro \\& Holt, Patrik O'Brian (2011\\) [Evaluation of Human\\-Like Anthropomorphism in the Context of Online Bidding and Affordances \\- PDF](http://pietromurano.org/Papers/JoC-Murano-Holt-Anthro-Bidding-Affordances-Final.pdf), Journal of Computing, Vol 3, Issue 6, June 2011\\.\n\nMurano, Pietro \\& Sethi, Tanvi (2011\\)  [Anthropomorphic User Interface Feedback in a Sewing Context and Affordances \\- PDF](http://pietromurano.org/Papers/IJACSA-Murano-Sethi-Sewing-Affordances.pdf), International Journal of Advanced Computer Science and Applications, Vol 2, Issue 4, April 2011\\.\n\nMurano, Pietro \\& Holt, Patrik O'Brian (2011\\)  [Evaluation of Anthropomorphic Feedback for an Online Auction and Affordances \\- PDF](http://pietromurano.org/Papers/Murano-IJCSI-Final.pdf), International Journal of Computer Science Issues, Vol 8, Issue 2, March 2011\\.\n\nMurano, Pietro \\& Holt, Patrik O'Brian (2007\\) Anthropomorphic Feedback In User Interfaces: The Effect of Personality Traits, Context and Grice's Maxims on Effectiveness and Preferences. International Journal of Technology and Human Interaction, Vol 3, Issue 4, p. 52\\-63\\. \\- IDEA Group Inc.\n\nMurano, Pietro \\& Mackey, Dino (2007\\) Usefulness of VRML Building Models in a Direction Finding Context. Interacting With Computers \\- Elsevier .\n\nBOOK CHAPTERS\n-------------\n\nSzentirmai, Attila Bekkvik \\& Murano, Pietro (2023\\)  [New Universal Design Heuristics for Mobile Augmented Reality Applications \\- PDF](http://pietromurano.org/Papers/Published Version Szentirmai Murano 2023.pdf), HCI International 2023 – Late Breaking Papers, 25th International Conference on Human\\-Computer Interaction, HCII 2023, Copenhagen, Denmark, July 23–28, 2023\n Proceedings, Part II Springer LNCS 14055, Eds. Gao, Qin; Zhou, Jia; Duffy, Vincent G.; Antona, Margherita; Stephanidis, Constantine.\n\nMurano, Pietro, Holt, Patrik O'Brian (2009\\) Anthropomorphic Feedback In User Interfaces: The Effect of Personality Traits, Context and Grice's Maxims on Effectiveness and Preferences, In Cross\\-Disciplinary Advances in Human Computer Interaction, User Modeling, Social Computing and Adaptive Interfaces, Eds. Zaphiris, Panayiotis \\& Ang, Chee Siang, IGI Global.\n\nMurano, Pietro (2006\\) Why Anthropomorphic User Interface Feedback can be Effective and Preferred by Users, In Enterprise Information Systems 7, Eds. Chen, Chin\\-Sheng, Filipe, Joaquim, Seruca, Isabel and Cordeiro, Jose, (c) Springer.\n\nINTERNATIONAL REFEREED PAPERS\n-----------------------------\n\nMurano, Pietro \\& Kongshaug, Petter (2024\\)  [The Usability of Persistent and Non\\-Persistent Headers on Web Pages \\- PDF](http://pietromurano.org/Papers/Murano Kongshaug Web Page Headers.pdf), Proceedings of the 26th International Conference on Enterprise Information Systems (ICEIS 2024\\), April 28\\-30, 2024, Angers \\- France (c) \\- INSTICC, SciTePress.\n\nMunir, Mubashar \\& Murano, Pietro (2023\\)  [The Usability of Hidden Functional Elements in Mobile User Interfaces \\- PDF](http://pietromurano.org/Papers/Munir-Murano-Hidden-Elements-Published-Version.pdf), Proceedings of the 25th International Conference on Enterprise Information Systems (ICEIS 2023\\), April 24\\-26, 2023, Prague \\- Czech Republic (c) \\- INSTICC, SciTePress.\n\nFerati, Mexhid, Murano, Pietro \\& Giannoumis, G. Anthony (2017\\)  [Universal Design of User Interfaces in Self\\-driving Cars \\- PDF](http://pietromurano.org/Papers/Ferati_Murano_Giannoumis_web.pdf), Proceedings of the AHFE 2017 International Conference on Design for Inclusion, July 17\\-21, 2017, The Westin Bonaventure Hotel, Los Angeles, California, USA (c) \\- Springer.\n\nMurano, Pietro \\& Holt, Patrik O'Brian (2010\\)  [Evaluation of an Anthropomorphic User Interface in a Telephone Bidding Context and Affordances \\- PDF](http://pietromurano.org/Papers/Murano-Voices-Bidding-Final.pdf), 12th International Conference on Enterprise Information Systems, Madeira, Portugal, 8\\-12 June. (c) \\- INSTICC. In Cooperation With ACM SIGCHI\n\nMurano, Pietro \\& Tuah, Nooralisa Mohd (2010\\)  [Effectiveness and Preferences of Anthropomorphic Feedback in a Statistics Context \\- PDF](http://pietromurano.org/Papers/Murano-Tuah-Anthro-Statistics.pdf), 12th International Conference on Enterprise Information Systems, Madeira, Portugal, 8\\-12 June. (c) \\- INSTICC. In Cooperation With ACM SIGCHI\n\nMurano, Pietro, Malik, Amir \\& Holt, Patrik O'Brian (2009\\) [Evaluation of Anthropomorphic User Interface Feedback in an Email Client Context and Affordances \\- PDF](http://pietromurano.org/Papers/ICEIS-Milan-Final.pdf), 11th International Conference on Enterprise Information Systems, Milan, Italy, 6\\-10 May. (c) \\- INSTICC.\n\nMurano, Pietro, Ede, Christopher \\& Holt, Patrik O'Brian (2008\\) [Effectiveness and Preferences of Anthropomorphic User Interface Feedback in a PC Building Context and Cognitive Load \\- PDF](http://pietromurano.org/Papers/ICEIS-BarcelonaV2.pdf), 10th International Conference on Enterprise Information Systems, Barcelona, Spain, 12\\-16 June 2008\\. (c) \\- INSTICC.\n\nMurano, Pietro, Gee, Anthony \\& Holt, Patrik O'Brian (2007\\) [Anthropomorphic Vs Non\\-Anthropomorphic User Interface Feedback for Online Hotel Bookings \\- PDF](http://pietromurano.org/Papers/PM-iceis-Portugal-Final.pdf), 9th International Conference on Enterprise Information Systems, Funchal, Madeira, Portugal, 12\\-16 June 2007\\. (c) \\- INSTICC.\n\nMurano, Pietro \\& Mackey, Dino (2005\\) [Effectiveness of VRML Building Models for Direction Finding \\- PDF](http://pietromurano.org/Papers/HCI-2005-LasVegas-paper.pdf), HCI International 2005 \\- 11th International Conference on Human\\-Computer Interaction, Las Vegas, USA, 22\\-27 July 2005\n\nMurano, Pietro (2005\\) [Why Anthropomorphic User Interface Feedback Can be Effective and Preferred by Users \\- PDF](http://pietromurano.org/Papers/ICEIS-Miami-2005.pdf), 7th International Conference on Enterprise Information Systems, Miami, USA, 25\\-28 May 2005\\. (c) \\- INSTICC \\- RECEIVED A BEST PAPER AWARD\\-PUBLISHED AS BOOK CHAPTER by Springer.\n\nMurano, Pietro (2003\\) [Anthropomorphic Vs Non\\-Anthropomorphic Software Interface Feedback for Online Factual Delivery \\- PDF](http://pietromurano.org/Papers/IV-LondonV2.pdf), 7th International Conference on Information Visualisation (IV 2003\\) An International Conference on Computer Visualisation and Graphics Applications, London, England, 16\\-18 July 2003, (c) \\- IEEE.\n\nMurano, Pietro (2002\\) [Anthropomorphic Vs Non\\-Anthropomorphic Software Interface Feedback for Online Systems Usage \\- PDF](http://pietromurano.org/Papers/parisV2-1.pdf), 7th European Research Consortium for Informatics and Mathematics (ERCIM) Workshop \\- 'User Interfaces for All' \\- Special Theme: 'Universal Access'.Paris(Chantilly),France 24,25 October 2002\\. Published in Lecture Notes in Computer Science (C) \\- Springer.\n\nMurano, Pietro (2002\\) [Effectiveness of Mapping Human\\-Oriented Information to Feedback From a Software Interface \\- PDF](http://pietromurano.org/Papers/EFL.pdf), Proceedings of the 24th International Conference on Information Technology Interfaces, Cavtat, Croatia, 24\\-27 June 2002\\.\n\nMurano, Pietro (2001\\) [A New Software Agent 'Learning' Algorithm \\- PDF](http://pietromurano.org/Papers/Agent-Algorithm-2001.pdf), People in Control An International Conference on Human Interfaces in Control Rooms, Cockpits and Command Centres, UMIST, UK, IEE.\n\nMurano, Pietro (2001\\) [Mapping Human\\-Oriented Information to Software Agents for Online Systems Usage \\- PDF](http://pietromurano.org/Papers/Systems-Usage-2001.pdf) People in Control An International Conference on Human Interfaces in Control Rooms, Cockpits and Command Centres, UMIST, UK, IEE.\n\nINTERNATIONAL PRESENTATIONS\n---------------------------\n\nRitchings, Tim. Papoulakis, George. Garvey, David. Murano, Pietro. Sheta, Walaa. (2003\\) [Augmenting Environments By Automated Sign Location and Text Detection \\- PDF](http://pietromurano.org/Papers/HCII2003.pdf) HCI International 2003, 10th International Conference on Human Computer Interaction \\- Symposium on Human Interface (Japan) 2003 \\- 5th International Conference on Engineering Psychology and Cognitive Ergonomics \\- 2nd International Conference on Universal Access in Human Computer Interaction. 22\\-27 June 2003, Crete, Greece.\n\nEffectiveness of Mapping Human\\-Oriented Information to Software Agents for Online Teaching Environments Womens Engineering Society (WES) 73rd Annual Conference \\- Human Interface With Machines. UCLAN,UK, September 2000\\.\n\n(C) Pietro Murano (applies to entire site content) All rights reserved.",
-            "current_page": 1,
-            "total_pages": 1,
-            "error": null
-        },
-        {
-            "metadata": {
-                "id": "b8abbcf2-b4a6-4762-bc36-872b90f51a60",
-                "prompt_id": "e59711e6-37d1-4063-be18-0ae2361f3197",
-                "node": "act",
-                "agent": "gaia_agent_v3",
-                "other": {}
-            },
-            "kind": "reasoning_thought",
-            "reasoning": "The first paper authored by Pietro Murano before 2015 is titled \"Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery\" published in 2003."
-        },
-        {
-            "metadata": {
-                "id": "cd5d0b77-5a78-4d28-88e3-84f9f4b9fcbc",
-                "prompt_id": "e59711e6-37d1-4063-be18-0ae2361f3197",
-                "node": "act",
-                "agent": "gaia_agent_v3",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "2273e3a2-4236-44cc-8f73-90dd4d3531d8",
-                "prompt_id": "cc4dcd7a-1d38-4854-9358-b8760bf41a9c",
-                "node": "act",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
             "kind": "gaia_answer_action",
             "success": true,
-            "overview": "Identified the first paper authored by Pietro Murano before 2015.",
+            "overview": "Identified Pietro Murano as an author of the paper. The first paper authored by him is 'Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery' published in 2003.",
             "answer_unit": "",
-            "answer": "Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery"
+            "answer": "Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery",
+            "long_answer": "The first paper authored by Pietro Murano is titled 'Anthropomorphic Vs Non-Anthropomorphic Software Interface Feedback for Online Factual Delivery', published in 2003."
         }
     ]
 }

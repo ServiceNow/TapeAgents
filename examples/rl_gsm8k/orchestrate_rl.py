@@ -22,10 +22,10 @@ from termcolor import colored
 from tqdm import tqdm
 
 from tapeagents.agent import Agent
-from tapeagents.core import LLMCall, StepMetadata, TrainingText
+from tapeagents.core import StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.llms import TrainableLLM
+from tapeagents.llms import LLMCall, TrainableLLM
 
 from .cot_math_agent import CoTMathAgent, RLMathTape, Task
 from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging

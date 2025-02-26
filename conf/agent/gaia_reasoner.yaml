@@ -1,0 +1,97 @@
+_target_: tapeagents.agent.Agent
+name : web_agent
+max_iterations: 2
+llms:
+  default: ${llm}
+  reasoner: ${reasoner}
+templates:
+  system_prompt: |
+    You are an expert AI Agent trained to assist users with complex information processing tasks.
+    Your role is to understand user queries and respond in a helpful and accurate manner.
+    Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
+    Do not express emotions or opinions about user questions.
+  allowed_tools: |
+    You have access to the following tools:
+    {tools_description}
+  thought_format: |
+    Important! Respond with the plain text, do not include any JSON or code.
+    Do not output anything besides what I asked in this message.
+  allowed_steps: |
+    You have access to the following tools:
+    {tools_description}
+    You are allowed to produce ONLY steps with the following JSON schemas:
+    {allowed_steps}
+    Do not reproduce the schema when producing steps; use it as a reference.
+  format: >
+    Output only a single JSON dict or a single JSON list.
+    DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JSON.
+    It will break the system that processes the output.
+
+nodes:
+  - _target_: tapeagents.nodes.StandardNode
+    name: plan
+    llm: reasoner
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Write a concise multi-step plan explaining which steps should be performed to find the answer for the given task.
+      Remember that you can use web search, browser, python code execution and access the youtube videos to reach your goals.
+      Be specific about how each step should be performed. Only describe the intended actions here, do not perform them yet.
+      Consider that next steps may depend on results of previous steps, so include conditional branching using "if" statements where needed.
+      ${agent.templates.thought_format}
+    steps_prompt: ${agent.templates.allowed_tools}
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: facts_survey
+    llm: reasoner
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Before we begin executing the plan, please answer the following pre-survey.
+          1. List any specific facts or figures that are GIVEN in the request itself.
+          2. List any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found.
+          3. List any facts that may need to be derived (e.g., via logical deduction, simulation, or computation).
+          4. List any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
+      Do not include empty lists in your answer.
+      When answering this survey, keep in mind that "facts" will typically be specific names, dates, statistics, etc.
+      ${agent.templates.thought_format}
+    steps_prompt: ${agent.templates.allowed_tools}
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: reflect
+    llm: reasoner
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Observe the current state of the task and produce the reflection text strictly following these rules:
+        1. Evaluate the action's success, explain its impact on the task and our plan,
+        2. If the last action was not successful, describe errors and the possible reasons for failure.
+        3. List the next steps to accomplish the current plan step and propose single next immediate action.
+        4. When proposing webpage interactions:
+          - Always accept cookie and close popups first before interacting
+          - If the last action was not successful, check if the target element is visible and use scrolling if it is not.
+        5. Describe the expected effect of the proposed action.
+      ${agent.templates.thought_format}
+    steps_prompt: ${agent.templates.allowed_tools}
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: act
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Produce one of the allowed actions that performs the proposed step.
+      ${agent.templates.format}
+    steps_prompt: ${agent.templates.allowed_steps}
+    steps:
+      - examples.gaia_agent.steps.ExtractedFacts
+      - examples.gaia_agent.steps.GaiaAnswer
+    use_known_actions: true
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: summarize
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Summarize last observation. If its an image, thoroughly describe it with all details.
+      If its a screenshot, thoroughly descrive every visible element in it with its status and content.
+      Describe the results of the last action visible in it.
+      Do not hallucinate or make up any information, only describe what you see in the observation image or its text.
+      Do not guess or assume action effects, describe only visible changes.
+      ${agent.templates.thought_format}
+    steps_prompt: ${agent.templates.allowed_tools}
+    next_node: reflect

@@ -1,0 +1,7 @@
+_target_: tapeagents.llms.LiteLLM
+model_name: gemini/gemini-2.0-flash
+use_cache: false
+simple_schemas: false
+context_size: 128000
+parameters:
+  temperature: 0.0

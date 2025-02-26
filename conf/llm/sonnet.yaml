@@ -1,0 +1,6 @@
+_target_: tapeagents.llms.LiteLLM
+model_name: openrouter/anthropic/claude-3.7-sonnet
+use_cache: false
+context_size: 128000
+parameters:
+  temperature: 0.2

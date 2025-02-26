@@ -11,6 +11,7 @@ from huggingface_hub import snapshot_download
 from pdf2image import convert_from_path
 from termcolor import colored
 
+from tapeagents.agent import Agent
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
@@ -19,10 +20,8 @@ from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.web_search import SearchAction
 
-from .agent import GaiaAgent
 from .scorer import question_scorer
-from .steps import GaiaAnswer, GaiaQuestion, ImageObservation
-from .tape import GaiaMetadata, GaiaTape
+from .steps import GaiaAnswer, GaiaMetadata, GaiaQuestion, GaiaTape, ImageObservation
 
 logger = logging.getLogger(__name__)
 
@@ -103,19 +102,30 @@ def load_dataset(split: str):
 
 def solve_task(
     task: dict,
-    agent: GaiaAgent,
+    agent: Agent,
     env: ToolCollectionEnvironment,
     level: int,
+    task_num: int,
+    tapes_dir: str,
     max_loops: int = 50,
     max_action_repetitions: int = 3,
 ) -> GaiaTape:
     start_steps = task_to_observations(task)
     t = time.perf_counter()
     tape = GaiaTape(steps=start_steps)
+    loop_timout_sec = 30 * 60
+    tmp_file = os.path.join(tapes_dir, f"l{level}_task{task_num:03d}.json.tmp")
     try:
+        start_time = time.perf_counter()
         for event in main_loop(agent, tape, env, max_loops=max_loops):
+            if time.perf_counter() - start_time > loop_timout_sec:
+                tape.metadata.error = "Timeout, task took too long"
+                logger.warning("Timeout, task took too long")
+                break
             if partial_tape := (event.agent_tape or event.env_tape):
                 tape = partial_tape
+                tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
+                save_json_tape(tape, tmp_file)
             if action_repetitions(tape) >= max_action_repetitions:
                 break
     except Exception as e:
@@ -128,6 +138,8 @@ def solve_task(
         tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
     )
     tape.metadata.other["timers"] = {"solve_task": time.perf_counter() - t}
+    if os.path.exists(tmp_file):
+        os.unlink(tmp_file)
     return tape
 
 

@@ -15,11 +15,9 @@ from tapeagents.core import Prompt, Step, Tape
 from tapeagents.dialog_tape import (
     AssistantStep,
     AssistantThought,
-    FunctionCall,
-    ToolCall,
-    ToolCalls,
 )
 from tapeagents.llms import LLMStream
+from tapeagents.tool_calling import FunctionCall, ToolCall, ToolCalls
 
 logger = logging.getLogger(__name__)
 

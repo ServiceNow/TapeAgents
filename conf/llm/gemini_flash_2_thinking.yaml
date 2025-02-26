@@ -1,0 +1,6 @@
+_target_: tapeagents.llms.LiteLLM
+model_name: gemini/gemini-2.0-flash-thinking-exp-01-21
+use_cache: false
+context_size: 128000
+parameters:
+  temperature: 0.0

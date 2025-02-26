@@ -4,12 +4,9 @@ import pathlib
 from tapeagents.dialog_tape import (
     AssistantStep,
     AssistantThought,
-    FunctionCall,
-    ToolCall,
-    ToolCalls,
-    ToolResult,
     UserStep,
 )
+from tapeagents.tool_calling import FunctionCall, ToolCall, ToolCalls, ToolResult
 
 res_dir = pathlib.Path(__file__).parent.resolve() / "res"
 

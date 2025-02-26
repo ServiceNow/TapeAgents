@@ -4,7 +4,8 @@ Utilities for converting between tape steps and LLM messages.
 
 from tapeagents.agent import Agent
 from tapeagents.core import AgentStep, Call, Observation, Pass, Prompt, Respond, SetNextNode, Step, Tape
-from tapeagents.dialog_tape import SystemStep, ToolResult
+from tapeagents.dialog_tape import SystemStep
+from tapeagents.tool_calling import ToolResult
 from tapeagents.view import TapeView
 
 

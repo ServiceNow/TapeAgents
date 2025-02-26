@@ -16,7 +16,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from transformers import PreTrainedTokenizer
 
 from tapeagents.config import is_debug_mode
-from tapeagents.llms import LLMOutput, Prompt
+from tapeagents.core import Prompt
+from tapeagents.llms import LLMOutput
 
 logger = logging.getLogger(__name__)
 
