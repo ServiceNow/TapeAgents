@@ -1,8 +1,9 @@
-import logging
+import json
 import re
 import string
+import warnings
 
-logger = logging.getLogger(__name__)
+import numpy as np
 
 
 def normalize_number_str(number_str: str) -> float:
@@ -13,7 +14,7 @@ def normalize_number_str(number_str: str) -> float:
     try:
         return float(number_str)
     except ValueError:
-        logger.debug(f"String {number_str} cannot be normalized to number str.")
+        print(f"String {number_str} cannot be normalized to number str.")
         return float("inf")
 
 
@@ -29,7 +30,7 @@ def question_scorer(
     model_answer: str,
     ground_truth: str,
 ) -> bool:
-    def is_float(element) -> bool:
+    def is_float(element: any) -> bool:
         try:
             float(element)
             return True
@@ -38,13 +39,13 @@ def question_scorer(
 
     # if gt is a number
     if is_float(ground_truth):
-        logger.debug(f"Evaluating {model_answer} as a number.")
+        print(f"Evaluating {model_answer} as a number.")
         normalized_answer = normalize_number_str(model_answer)
         return normalized_answer == float(ground_truth)
 
     # if gt is a list
     elif any(char in ground_truth for char in [",", ";"]):
-        logger.debug(f"Evaluating {model_answer} as a comma separated list.")
+        print(f"Evaluating {model_answer} as a comma separated list.")
         # question with the fish: normalization removes punct
 
         gt_elems = split_string(ground_truth)
@@ -52,7 +53,7 @@ def question_scorer(
 
         # check length is the same
         if len(gt_elems) != len(ma_elems):
-            logger.debug("Answer lists have different lengths, returning False.")
+            warnings.warn("Answer lists have different lengths, returning False.", UserWarning)
             return False
 
         # compare each element as float or str
@@ -70,24 +71,21 @@ def question_scorer(
 
     # if gt is a str
     else:
-        logger.debug(f"Evaluating {model_answer} as a string.")
+        print(f"Evaluating {model_answer} as a string.")
         return normalize_str(model_answer) == normalize_str(ground_truth)
 
 
 def normalize_str(input_str, remove_punct=True) -> str:
     """
-
     Normalize a string by:
     - Removing all white spaces
     - Optionally removing punctuation (if remove_punct is True)
     - Converting to lowercase
-
-    Args:
-        input_str: str, the string to normalize
-        remove_punct: bool, whether to remove punctuation (default: True)
-
+    Parameters:
+    - input_str: str, the string to normalize
+    - remove_punct: bool, whether to remove punctuation (default: True)
     Returns:
-        str, the normalized string
+    - str, the normalized string
     """
     # Remove all white spaces. Required e.g for seagull vs. sea gull
     no_spaces = re.sub(r"\s", "", input_str)
