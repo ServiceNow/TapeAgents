@@ -10,7 +10,7 @@ We demonstrate how it solves tasks from the [GAIA Benchmark](https://huggingface
 
 ## Structure
 
-The agent is defined using this [config](conf/gaia_agent.yaml), which implements the following workflow:
+The agent is defined using this [config](../../conf/gaia_agent.yaml), which implements the following workflow:
 
 - Expose the set of all available actions and thoughts to the model in each prompt
 - Render the whole tape into the prompt, trimming only when the tape does not fit into the context window
@@ -27,8 +27,8 @@ Results are also available on the [Hugging Face Leaderboard](https://huggingface
 
 | Model | Validation Accuracy | Test Accuracy |
 | --- | --- | --- |
-| Sonnet 3.7 maj@3 | 55.76 | |
-| Sonnet 3.7 | 53.94 | |
+| Sonnet 3.7 maj@3 | 55.8 | |
+| Sonnet 3.7 | 53.9 | |
 | GPT-4o | 37.0 | 33.2 |
 | GPT-4o mini maj@3 | 32.3 | |
 | GPT-4o mini | 27.3 | 21.9 |
