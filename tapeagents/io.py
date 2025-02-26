@@ -113,7 +113,8 @@ def save_json_tape(tape: Tape, tapes_dir: str, name: str = ""):
         ```
 
     """
-    os.makedirs(tapes_dir, exist_ok=True)
+    if name:
+        os.makedirs(tapes_dir, exist_ok=True)
     fname = name if name.endswith(".json") else f"{name}.json"
     fpath = os.path.join(tapes_dir, fname) if name else tapes_dir
     with open(fpath, "w") as f:

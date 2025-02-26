@@ -4,7 +4,7 @@ defaults:
   - agent: gaia
   - environment: web_browser
 
-exp_name: sonnet37_val1
+exp_name: sonnet37_val3
 exp_path: outputs/gaia/runs/${exp_name}
 
 split: validation

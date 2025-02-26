@@ -4,13 +4,13 @@ from collections import defaultdict
 
 from tapeagents.io import load_tapes
 
-from ..eval import ensemble_files, majority_vote, tape_correct
+from ..eval import ensemble_files, load_dataset, majority_vote, tape_correct
 from ..steps import GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 
 
-def main(root: str, runs: list[str]):
+def main_old(root: str, runs: list[str]):
     by_level_by_run = defaultdict(lambda: defaultdict(list))
     for run in runs:
         tapes_dir = os.path.join(root, run, "tapes")
@@ -45,15 +45,49 @@ def main(root: str, runs: list[str]):
         print(f"Avg. {run}: {sum(acc) / len(acc):.3f} ({sum(acc)} of {len(acc)})")
 
 
+def main(root: str, runs: list[str], split: str):
+    tasks_by_level = load_dataset(split)
+    tasks = [task for level in tasks_by_level.values() for task in level]
+    print(f"Tasks: {len(tasks)}")
+    task_solutions = defaultdict(list)
+    for run in runs:
+        tapes_dir = os.path.join(root, run, "tapes")
+        tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_dir, file_extension=".json")
+        print(f"Run {run}: {len(tapes)} tapes")
+        for tape in tapes:
+            try:
+                task_solutions[tape.metadata.task["task_id"]].append(tape)
+            except KeyError as e:
+                print(f"Missing task id of task {tape.metadata.task} in tape {tape.metadata.id}")
+                raise e
+    maj_name = f"maj@{len(runs)}"
+    results = {run: [] for run in runs} | {maj_name: []}
+    for task in tasks:
+        tapes = task_solutions[task["task_id"]]
+        task_results = [tape.metadata.result for tape in tapes]
+        if len(task_results) < len(runs):
+            print(f"Missing tapes for task {task['task_id']}, add {len(runs) - len(task_results)} Nones")
+            task_results += [None] * (len(runs) - len(task_results))
+        best_idx = majority_vote(task_results)
+        results[maj_name].append(tapes[best_idx])
+        for i in range(len(runs)):
+            results[runs[i]].append(tapes[i] if i < len(tapes) else None)
+    for run, results in results.items():
+        assert len(results) == len(tasks), "Results length mismatch"
+        acc = [int(tape_correct(tape)) if tape else 0 for tape in results]
+        print(f"Avg. {run}: {sum(acc) / len(acc):.3f} ({sum(acc)} of {len(acc)})")
+
+
 if __name__ == "__main__":
     root = "outputs/gaia/runs/"
     runs = [
-        "gpt4o_mini_val_sf_oldcode1",
-        "gpt4o_mini_val_sf_oldcode2",
-        "gpt4o_mini_val_sf_oldcode3",
+        "sonnet37_val1",
+        "sonnet37_val2",
+        "sonnet37_val3",
     ]
-    ensemble = "gpt4o_mini_val_sf_oldcode_maj1"
-    main(root, runs)
+    ensemble = "sonnet37_val_maj3"
+    split = "validation"
+    main(root, runs, split)
     if ensemble:
         tape_dirs = [os.path.join(root, run, "tapes") for run in runs]
         out = os.path.join(root, ensemble)

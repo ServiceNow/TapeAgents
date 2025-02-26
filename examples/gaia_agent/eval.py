@@ -114,6 +114,7 @@ def solve_task(
     t = time.perf_counter()
     tape = GaiaTape(steps=start_steps)
     loop_timout_sec = 30 * 60
+    tmp_file = os.path.join(tapes_dir, f"l{level}_task{task_num:03d}.json.tmp")
     try:
         start_time = time.perf_counter()
         for event in main_loop(agent, tape, env, max_loops=max_loops):
@@ -124,7 +125,7 @@ def solve_task(
             if partial_tape := (event.agent_tape or event.env_tape):
                 tape = partial_tape
                 tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
-                save_json_tape(tape, tapes_dir, f"l{level}_task{task_num:03d}")
+                save_json_tape(tape, tmp_file)
             if action_repetitions(tape) >= max_action_repetitions:
                 break
     except Exception as e:
@@ -137,6 +138,8 @@ def solve_task(
         tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
     )
     tape.metadata.other["timers"] = {"solve_task": time.perf_counter() - t}
+    if os.path.exists(tmp_file):
+        os.unlink(tmp_file)
     return tape
 
 
