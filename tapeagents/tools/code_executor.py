@@ -44,7 +44,6 @@ class CodeExecutor(Tool):
     cached: bool = True
     exp_path: str = ""
     max_output_length: int = 3000
-    container_name: str = "tapeagents-code-exec"
     reuse_computer_container: bool = False
     mounted_dir: str = ""
     container_work_dir: str = "/workspace"
@@ -52,7 +51,9 @@ class CodeExecutor(Tool):
     def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
         code = self.prepare_code(action)
         code_dir = os.path.join(self.exp_path, "code")
-        container_name = os.environ["COMPUTER_CONTAINER_NAME"] if self.reuse_computer_container else self.container_name
+        container_name = (
+            os.environ["COMPUTER_CONTAINER_NAME"] if self.reuse_computer_container else self.exp_path.replace("/", "-")
+        )
         logger.info(f"Executing code in container {container_name}")
         result = execute_code_in_container(
             [CodeBlock(code=code, language="python")],

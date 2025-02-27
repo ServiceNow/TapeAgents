@@ -171,7 +171,6 @@ class ContainerExecutor:
             self._container.start()
             _wait_for_ready(self._container)
             logger.info(f"Started container {container_name} from image {image}")
-            self.install_deps()
 
         _wait_for_ready(self._container)
 
@@ -198,13 +197,6 @@ class ContainerExecutor:
         self.execution_policies = self.DEFAULT_EXECUTION_POLICY.copy()
         if execution_policies is not None:
             self.execution_policies.update(execution_policies)
-
-    def install_deps(self):
-        if self.no_deps:
-            return
-        for package in ["numpy", "scipy", "pandas[excel]", "sympy", "bio", "matplotlib", "seaborn", "geopy"]:
-            self._container.exec_run(["pip", "install", package], tty=True)
-            logger.info(f"Installed {package}")
 
     @property
     def timeout(self) -> int:
@@ -522,4 +514,5 @@ def maybe_get_code_sandbox(exp_path: str) -> ContainerExecutor | None:
 def init_code_sandbox(exp_path: str, no_deps: bool = False) -> None:
     code_path = os.path.join(exp_path, "code")
     os.makedirs(code_path, exist_ok=True)
-    ContainerExecutor(work_dir=code_path, restart_if_exists=True, no_deps=no_deps)
+    container_name = exp_path.replace("/", "-")
+    ContainerExecutor(work_dir=code_path, container_name=container_name, restart_if_exists=True, no_deps=no_deps)
