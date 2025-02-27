@@ -214,6 +214,9 @@ class CameraReadyRenderer(BasicRenderer):
             role = f"{m['role']} ({m['name']})" if "name" in m else m["role"]
             prompt_messages.append(f"{role}: {m['content'] if 'content' in m else m['tool_calls']}")
         prompt_text = "\n--\n".join(prompt_messages)
+        output = llm_call.output.content or ""
+        if llm_call.output.tool_calls:
+            output += f"\nTool calls:\n{'\n'.join([call.to_json() for call in llm_call.output.tool_calls])}"
         prompt_length_str = (
             f"{llm_call.prompt_length_tokens} tokens"
             if llm_call.prompt_length_tokens
@@ -235,7 +238,7 @@ class CameraReadyRenderer(BasicRenderer):
         if llm_call.output:
             html += f"""
                     <div style='flex: 1;'>
-                        <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word;'>{llm_call.output.content}</pre>
+                        <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word;'>{output}</pre>
                     </div>"""
 
         html += """
