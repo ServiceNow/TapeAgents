@@ -232,8 +232,9 @@ class StandardNode(Node):
             str: The steps prompt describing the sequence of actions.
         """
         if self.use_function_calls:
-            return ""
-        allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type) if self._steps_type else ""
+            allowed_steps = ""
+        else:
+            allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type) if self._steps_type else ""
         return self.steps_prompt.format(allowed_steps=allowed_steps, tools_description=agent.tools_description)
 
     def generate_steps(
@@ -327,7 +328,7 @@ class StandardNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
-        if not self._steps_type or self.use_function_calls:
+        if not self._steps_type or (self.use_function_calls and not self.allow_code_blocks):
             # just yield the reasoning thought without parsing
             yield ReasoningThought(reasoning=llm_output)
             return
@@ -348,7 +349,6 @@ class StandardNode(Node):
                         )
                     else:
                         yield PythonCodeAction(code=code_block.code)
-                return
             else:
                 yield LLMOutputParsingFailureAction(
                     error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output
