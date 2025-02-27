@@ -8,9 +8,10 @@ import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import hydra
+from joblib import Parallel, delayed
 import numpy as np
 import torch
 from browsergym.miniwob import ALL_MINIWOB_TASKS
@@ -19,10 +20,11 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
-from tapeagents.core import LLMCall, TrainingText
+from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.llms import TrainableLLM
+from tapeagents.llms import TrainableLLM, trainable_llm_make_training_text
+from tapeagents.observe import retrieve_all_llm_calls
 from tapeagents.orchestrator import main_loop
 from tapeagents.tools.simple_browser import PageObservation
 
@@ -102,7 +104,7 @@ def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[Trai
         assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
 
 
-def batch_run_agent_replica(agent: WebAgent, env: WebEnvironment, task: dict) -> tuple[WebAgent, WebTape]:
+def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
     """
     Run agent on a single web task with its environment.
 
@@ -112,7 +114,7 @@ def batch_run_agent_replica(agent: WebAgent, env: WebEnvironment, task: dict) ->
         task: Task dict containing 'task' (MiniWoB task) and 'seed'
 
     Returns:
-        tuple[WebAgent, WebTape]: Updated agent and completed tape
+        WebTape: Completed tape
     """
     try:
         # Initialize task in environment - this creates the initial tape with web observation and task
@@ -154,23 +156,40 @@ def batch_run_agent_replica(agent: WebAgent, env: WebEnvironment, task: dict) ->
         # Always close the environment
         env.finish_task()
 
-    return agent, tape
+    return tape
 
 
 def extract_tape_training_samples_and_stats(
-    new_tape: WebTape, agent: WebAgent, split_name: str
+    new_tape: WebTape, split_name: str, tokenizer: Any
 ) -> Tuple[List[TrainingText], Dict[str, int]]:
     """
-    Extract training samples with per-action rewards and final reward.
+    Process a single tape to extract training samples and statistics.
+
+    Args:
+        new_tape: The tape to process containing web task steps
+        split_name: Name of split ('train' or 'test')
+        tokenizer: Tokenizer to use for generating training traces
+
+    Returns:
+        Tuple[List[TrainingText], Dict[str, int]]:
+            - List of training samples (`TrainingText`) extracted from the tape.
+            - Dictionary with tape-level statistics, including:
+                - 'reward': Reward for the tape (-1, 0, or 1).
+                - 'success': 1 if the answer is correct, 0 otherwise.
+                - 'no_error': 1 if the LLM output is parsable, 0 otherwise.
+                - 'prompt_tokens': Total prompt tokens used in the tape.
+                - 'output_tokens': Total output tokens generated in the tape.
+                - 'overflows': Number of times the output overflowed token limit.
     """
     # Get final reward from tape metadata
     final_reward = new_tape.metadata.result["final_reward"]
     success = new_tape.metadata.result["success"]
+    no_error = not isinstance(new_tape.steps[-1], LLMOutputParsingFailureAction) and new_tape.metadata.result.get("error") is None
 
     training_samples: list[TrainingText] = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
-
+    overflows = []
     # For each LLM interaction in the tape:
     for step in new_tape.steps:
         if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
@@ -185,7 +204,7 @@ def extract_tape_training_samples_and_stats(
 
         if split_name == "train":
             # Create training sample
-            trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
+            trace = trainable_llm_make_training_text(llm_call.prompt, llm_call.output, tokenizer)
 
             input_ids = [lp.token_id for lp in llm_call.logprobs]
             labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
@@ -193,6 +212,10 @@ def extract_tape_training_samples_and_stats(
 
             trace.input_ids = input_ids
             trace.labels = labels
+
+            # check if the last produced token is the end of sequence token
+            overflow = input_ids[-1] != tokenizer.eos_token_id
+            overflows.append(overflow)
 
             # Step specific reward are in the next PageObservation step
             # TODO: change code to fetch these.
@@ -208,97 +231,145 @@ def extract_tape_training_samples_and_stats(
         "success": success,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
+        "no_error": no_error,
+        "overflows": sum(overflows),
     }
 
     return training_samples, tape_stats
 
 
-def generate_training_data(
-    agent_replicas: list[WebAgent],
-    envs: list[WebEnvironment],
-    tasks: list[dict],
-    tapes_dir: Path,
+def generate_data(
+    cfg: DictConfig,
+    task: dict,
+    url: str,
     split_name: str,
-    n_processes: int,
-) -> Tuple[list[WebAgent], List[WebTape], List[TrainingText], Dict[str, float]]:
+    iteration: int,
+) -> Tuple[WebTape, List[TrainingText], Dict[str, int]]:
+    """
+    Worker function for generating tapes and training samples for a single task.
+    This function will create the agent, env, and llm inside it.
+    It will then run the main_loop() to generate the tape.
+    It will then extract the training samples from the tape.
+    Finally the new tapes and training samples will be returned.
+    """
+    exp_path = Path(cfg.output_dir)
+    if os.path.exists(exp_path / "finetune/current"):
+        model_path = str(exp_path / "finetune/current")
+    else:
+        model_path = cfg.model_path
+
+    tapes_dir = exp_path / "tapes" / split_name / str(iteration)
+    os.makedirs(tapes_dir, exist_ok=True)
+
+    timers = {}
+    ### STEP 0: create llm, env, agent ###
+    t = time.perf_counter()
+    llm = TrainableLLM(
+        base_url=url,
+        model_name=str(model_path),
+        tokenizer_name=str(model_path),
+        parameters=cfg.llm.parameters,
+        use_cache=False,
+        collect_logprobs=True,
+        observe_llm_calls=False,
+    )
+    timers["instantiated_llm"] = time.perf_counter() - t
+
+    t = time.perf_counter()
+    env_path = f"{exp_path}/envs/{split_name}/it{iteration}/{task['task'].get_task_id()}"
+    env = WebEnvironment(
+        exp_path=env_path,
+        headless=cfg.env.headless,
+        ax_tree=cfg.env.ax_tree,
+        html=cfg.env.html,
+        markdown_html=cfg.env.markdown_html,
+    )
+    timers["instantiated_env"] = time.perf_counter() - t
+
+    t = time.perf_counter()
+    agent = WebAgent.create(llm)
+    timers["instantiated_agent"] = time.perf_counter() - t
+
+    ### STEP 1: run the agent on its task ###
+    t = time.perf_counter()
+    new_tape = run_agent(agent, env, task)
+    timers["generated_new_tape"] = time.perf_counter() - t
+
+    ### STEP 2: extract training samples from the newly generated tape ###
+    t = time.perf_counter()
+    llm.load_tokenizer()  # make sure llm.tokenizer is loaded
+    # 1 tape -> multiple training samples because of multiple LLM calls
+    tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
+    timers["extract_training_samples"] = time.perf_counter() - t
+
+    new_tape.metadata.other["timers"] |= timers
+    return new_tape, tape_training_samples, tape_stats
+
+
+def batch_generate_data(
+    cfg: DictConfig,
+    tasks: list[dict],
+    urls: list[str],
+    split_name: str,
+    iteration: int,
+) -> Tuple[List[WebTape], List[TrainingText], Dict[str, float]]:
     """
     Generate complete tapes and training samples from a list of tasks.
 
     Args:
-        agent_replicas: List of WebAgents that interact with their own web environment
-        envs: List of WebEnvironments (one per agent/task)
+        cfg: Config
         tasks: List of task dicts containing 'task' (MiniWoB task) and 'seed'
-        tapes_dir: Directory to save processed episodes
+        urls: List of urls to use for the llm
         split_name: Name of split ('train' or other)
-
+        iteration: Current iteration number
     Returns:
         Tuple containing:
-        - List of WebAgents (agent state can be modified during batch run)
         - List of completed WebTapes
         - List of training samples with rewards and logprobs
         - Dictionary of performance statistics and execution times
     """
-    assert len(agent_replicas) == len(envs) == len(tasks), (
-        f"Number of agents ({len(agent_replicas)}), environments ({len(envs)}), " f"and tasks ({len(tasks)}) must match"
+    assert len(urls) == len(tasks), (
+        f"Number of urls ({len(urls)}), and tasks ({len(tasks)}) must match"
     )
-
     start_make_data = time.time()
-    os.makedirs(tapes_dir, exist_ok=True)
+
     reward_stats = defaultdict(list)  # map from parent tape id to list of rewards
     success_stats = defaultdict(list)  # map from parent tape id to list of successes
     no_errors_stats = defaultdict(list)  # map from parent tape id to list of no_errors
     prompt_tokens_stats = defaultdict(list)  # map from parent tape id to list of prompt tokens length
     output_tokens_stats = defaultdict(list)  # map from parent tape id to list of output tokens length
     overflow_stats = defaultdict(list)  # map from parent tape id to list of overflows
+
     training_samples: List[TrainingText] = []
 
-    logger.info(f"Run the agent on {split_name}")
-
     ### STEP 1: run the agents on their tasks in parallel ###
-    start_making_tapes = time.time()
-    final_tapes = []
-    updated_agents = []
+    logger.info(f"Run the agent on {split_name}")
+    final_tapes, tape_training_samples, tape_stats = Parallel(n_jobs=cfg.n_processes_for_data_generation, prefer="processes")(
+        [delayed(generate_data)(cfg, task, url, split_name, iteration) for task, url in zip(tasks, urls)]
+    )  # will return lists only when all tasks are finished in the same order as the tasks
+    logger.info(f"Making tapes took {time.time() - start_make_data}")
+    # final_tapes is a list of tapes
+    # training_samples is a list of list of training samples
+    # tape_stats is a list of dict of stats
+    assert len(final_tapes) == len(tape_training_samples) == len(tape_stats) == len(tasks), (
+        f"Number of tapes ({len(final_tapes)}), "
+        f"training samples ({len(tape_training_samples)}), "
+        f"stats ({len(tape_stats)}) and tasks ({len(tasks)}) must match"
+    )
 
-    for batch_start in range(0, len(agent_replicas), n_processes):
-        batch_end = min(batch_start + n_processes, len(agent_replicas))
-        batch_agents = agent_replicas[batch_start:batch_end]
-        batch_envs = envs[batch_start:batch_end]
-        batch_tasks = tasks[batch_start:batch_end]
-
-        with ProcessPoolExecutor(max_workers=n_processes) as executor:
-            # futures = [
-            #     executor.submit(batch_run_agent_replica, agent, env, task)
-            #     for agent, env, task in zip(batch_agents, batch_envs, batch_tasks)
-            # ]
-            # results = [future.result() for future in futures]
-            # other way of doing this:
-            results = executor.map(batch_run_agent_replica, batch_agents, batch_envs, batch_tasks)
-            batch_updated_agents, batch_tapes = zip(*[(r[0], r[1]) for r in results])
-
-            updated_agents.extend(batch_updated_agents)
-            final_tapes.extend(batch_tapes)
-
-        logger.info(f"Completed batch {batch_start//n_processes + 1} of {(len(agent_replicas) + n_processes - 1)//n_processes}")
-
-    agent_replicas = updated_agents  # Update the original agent_replicas list
-
-    logger.info(f"Making tapes took {time.time() - start_making_tapes}")
-
-    ### STEP 2: extract training samples and stats from the tapes ###
-    for new_tape in tqdm(final_tapes, total=len(final_tapes), desc="Extracting training data from tapes", unit="tape"):
-        tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(
-            new_tape, agent_replicas[0], split_name
-        )
-        # 1 tape -> multiple training samples because of multiple LLM calls
-        training_samples.extend(tape_training_samples)
-        reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
-        success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
-        no_errors_stats[new_tape.metadata.parent_id].append(tape_stats["no_error"])
-        prompt_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
-        output_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
-        overflow_stats[new_tape.metadata.parent_id].append(tape_stats["overflows"])
+    ### STEP 2: aggregate training samples and stats ###
+    for new_tape, samples, stats in zip(final_tapes, tape_training_samples, tape_stats):
+        training_samples.extend(samples)
+        reward_stats[new_tape.metadata.parent_id].append(stats["reward"])
+        success_stats[new_tape.metadata.parent_id].append(stats["success"])
+        no_errors_stats[new_tape.metadata.parent_id].append(stats["no_error"])
+        prompt_tokens_stats[new_tape.metadata.parent_id].append(stats["prompt_tokens"])
+        output_tokens_stats[new_tape.metadata.parent_id].append(stats["output_tokens"])
+        overflow_stats[new_tape.metadata.parent_id].append(stats["overflows"])
 
     ### STEP 3: save the tapes ###
+    exp_path = Path(cfg.output_dir)
+    tapes_dir = exp_path / "tapes" / split_name / str(iteration)
     start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
@@ -321,7 +392,7 @@ def generate_training_data(
             f"{split_name}_overflows": np.mean([np.mean(ov) for ov in overflow_stats.values()]),
         },
     }
-    return agent_replicas, final_tapes, training_samples, stats
+    return final_tapes, training_samples, stats
 
 
 @hydra.main(config_path="../../../conf/", config_name="rl_webagent", version_base="1.3.2")
@@ -391,107 +462,48 @@ def main(cfg: DictConfig):
                 # Get number of VLLM services available
                 vllm_services = vllm_service_manager.get_base_urls()
                 n_services = len(vllm_services)
-                logger.info(f"[it{state['iteration']}] Splitting tasks, envs, and agents across {n_services} VLLM services")
 
-                # Calculate how many agents to create per service (distribute evenly)
-                agents_per_service = (n_train_tasks + n_services - 1) // n_services  # Ceiling division
-                logger.info(f"[it{state['iteration']}] Each service will be used for {agents_per_service} agents, environment, and task")
-                # Create LLMs, agents, and environments - one of each per task, agents distributed across services
-                train_llms = [
-                    TrainableLLM(
-                        base_url=base_url,
-                        model_name=str(assistant_model_path),
-                        tokenizer_name=str(assistant_model_path),
-                        parameters=cfg.llm.parameters,
-                        use_cache=False,
-                        collect_logprobs=True,
-                        observe_llm_calls=False,
-                    )
-                    for base_url in vllm_services
-                ]
-                train_agent_replicas = []
-                train_envs = []
-                for llm_idx, llm in enumerate(train_llms):
-                    # Calculate how many agents to create for this service
-                    start_idx = llm_idx * agents_per_service
-                    end_idx = min((llm_idx + 1) * agents_per_service, n_train_tasks)
-                    n_agents_this_service = end_idx - start_idx
-                    train_agent_replicas.extend([WebAgent.create(llm) for _ in range(n_agents_this_service)])
-                    train_env_path = f"{exp_path}/envs/train/it{state['iteration']}/llm{llm_idx}"
-                    train_envs.extend([WebEnvironment(
-                        exp_path=f"{train_env_path}/agent{i}",
-                        headless=cfg.env.headless,
-                        ax_tree=cfg.env.ax_tree,
-                        html=cfg.env.html,
-                        markdown_html=cfg.env.markdown_html,
-                    ) for i in range(n_agents_this_service)])
-                assert len(train_agent_replicas) == len(train_envs) == len(train_tasks), (
-                    f"Number of train agents ({len(train_agent_replicas)}) and environments ({len(train_envs)}) "
-                    f"!= number of train tasks ({len(train_tasks)})"
-                )
-                # Create train split
-                logger.info(
-                    f"[it{state['iteration']}] Created train split with {len(train_agent_replicas)} agents & environments "
-                    f"(distributed across {n_services} VLLM services) "
-                    f"for {len(train_tasks)} tasks"
-                )
-                splits = [("train", train_agent_replicas, train_envs, train_tasks)]
+                train_urls = [vllm_services[task_idx % n_services] for task_idx in range(n_train_tasks)]
+                splits = [("train", train_tasks, train_urls)]
 
                 # Create test split if needed
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
                     # Calculate how many agents to create for this service
-                    logger.info(f"[it{state['iteration']}] Creating test split with {len(test_samples)} tasks, llms, envs, and agents")
-                    n_test_tasks = len(test_samples)
-                    agents_per_service = (n_test_tasks + n_services - 1) // n_services
-                    logger.info(f"[it{state['iteration']}] Each service will be used for {agents_per_service} agents, environment, and task")
-                    # Create test LLMs, agents, and environments - one of each per task
-                    test_llms = [
-                        TrainableLLM(
-                            base_url=base_url,
-                            model_name=str(assistant_model_path),
-                            tokenizer_name=str(assistant_model_path),
-                            parameters=cfg.test_llm.parameters,
-                            use_cache=False,
-                            observe_llm_calls=False,
-                        )
-                        for base_url in vllm_services
-                    ]
-                    test_agent_replicas = []
-                    test_envs = []
-                    for llm_idx, llm in enumerate(test_llms):
-                        start_idx = llm_idx * agents_per_service
-                        end_idx = min((llm_idx + 1) * agents_per_service, n_test_tasks)
-                        n_agents_this_service = end_idx - start_idx
-                        test_agent_replicas.extend([WebAgent.create(llm) for _ in range(n_agents_this_service)])
-                        test_env_path = f"{exp_path}/envs/test/it{state['iteration']}/llm{llm_idx}"
-                        test_envs.extend([WebEnvironment(
-                            exp_path=f"{test_env_path}/agent{i}",
-                            headless=cfg.env.headless,
-                            ax_tree=cfg.env.ax_tree,
-                            html=cfg.env.html,
-                            markdown_html=cfg.env.markdown_html,
-                        ) for i in range(n_agents_this_service)])
-                    assert len(test_agent_replicas) == len(test_envs) == len(test_samples), (
-                        f"Number of test agents ({len(test_agent_replicas)}) and environments ({len(test_envs)}) "
-                        f"!= number of test tasks ({len(test_samples)})"
-                    )
-                    logger.info(
-                        f"[it{state['iteration']}] Created test split with {len(test_agent_replicas)} agents & environments "
-                        f"(distributed across {n_services} VLLM services) "
-                        f"for {len(test_samples)} tasks"
-                    )
-                    splits.append(("test", test_agent_replicas, test_envs, test_samples))
+                    logger.info(f"[it{state['iteration']}] Creating test split with {len(test_samples)} tasks")
+                    test_urls = [vllm_services[task_idx % n_services] for task_idx in range(len(test_samples))]
+                    splits.append(("test", test_samples, test_urls))
 
                 ### Step 2.2: generate continuations for each split ###
-                for split_name, agent_replicas, envs, tasks in splits:
-                    tapes_dir = exp_path / "tapes" / split_name / str(state["iteration"])
-                    agent_replicas_with_stats, new_tapes, split_training_samples, stats = generate_training_data(
-                        agent_replicas, envs, tasks, tapes_dir, split_name, cfg.n_processes_for_data_generation
-                    )
+                for split_name, tasks, urls in splits:
+                    assert len(tasks) == len(urls)
+                    logger.info(f"Run the agent on {split_name}")
+                    new_tapes, split_training_samples, stats = batch_generate_data(cfg, tasks, urls, split_name, state["iteration"])
 
-                    llm_stats = agent_replicas_with_stats[0].llm.get_stats()
+                    # SKIP llm stats for now because each subprocess has its own llm and we will not be able to aggregate them.
+
+                    # old way of doing it was to return the stats from the agent's llm and then do this:
+                    # llm_stats = agent_replicas_with_stats[0].llm.get_stats()
+                    # llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
+                    # but returning the agent or the llm from a subprocess can be tricky as it is a complex datastructure that must be transferred to the main process
+                    # also, since each process has its own llm, it will have its own stats and we will not be able to aggregate them
+
+                    # One way to try to get some stats is to load the sqlite file and then do this (copied from gaia_agent/scripts/tape_browser.py):
+                    # sqlite_fpath = os.path.join(cfg.output_dir, "tapedata.sqlite")
+                    # llm_calls: dict[str, LLMCall] = {llm_call.prompt.id: llm_call for llm_call in retrieve_all_llm_calls(sqlite_fpath)}
+                    # for llm_call in llm_calls.values():
+                    #     prompt_tokens_num += llm_call.prompt_length_tokens
+                    #     output_tokens_num += llm_call.output_length_tokens
+                    #     total_cost += llm_call.cost
+
+                    # stats.update(llm_stats)
+                    # this would add the following to the stats:
+                    # llm/{split_name}_time_send_request
+                    # llm/{split_name}_time_log_output
+                    # llm/{split_name}_total_prompt_tokens
+                    # llm/{split_name}_total_output_tokens
+                    # llm/{split_name}_time_postprocess_llm_response
+
                     make_data_took = stats[f"execution_time/{split_name}_make_data"]
-                    llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
                     throughput_stats = {
                         f"{split_name}_prompt_tokens_per_sec": stats[f"{split_name}_prompt_tokens"] / make_data_took,
                         f"{split_name}_output_tokens_per_sec": stats[f"{split_name}_output_tokens"] / make_data_took,
@@ -500,7 +512,6 @@ def main(cfg: DictConfig):
                         )
                         / make_data_took,
                     }
-                    stats.update(llm_stats)
                     stats.update(throughput_stats)
 
                     all_results[split_name] = {

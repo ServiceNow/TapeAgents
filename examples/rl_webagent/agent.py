@@ -192,20 +192,3 @@ class WebAgent(Agent):
             agent.llm.load_tokenizer()
         return agent
 
-    # def select_node(self, tape: WebTape) -> Node:
-    #     """
-    #     Select the next node to execute based on the current state of the tape.
-
-    #     If the last step is an LLMOutputParsingFailureAction, retry the current node
-    #     up to max_retries times. Otherwise, use the default node selection logic.
-    #     """
-    #     # if the tape is empty, use the default node selection logic
-    #     if len(tape.steps) == 0:
-    #         return super().select_node(tape)
-    #     # if the last step is an LLMOutputParsingFailureAction, retry the current node
-    #     last_step = tape.steps[-1]
-    #     if isinstance(last_step, LLMOutputParsingFailureAction):
-    #         view = self.compute_view(tape).top
-    #         return self.find_node(view.last_node)
-    #     # otherwise, use the default node selection logic
-    #     return super().select_node(tape)

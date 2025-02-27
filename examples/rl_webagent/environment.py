@@ -66,7 +66,7 @@ class WebEnvironment(Environment):
             "message": message,
             "info": info,
         }
-        return bool(reward > 0), result_dict
+        return bool(reward > 0.5), result_dict
 
     def react(self, tape: WebTape) -> WebTape:
         actions = []
