@@ -124,7 +124,7 @@ def main_loop(
             yield MainLoopEvent(agent_tape=agent_tape)
 
             # --- RUN THE ENVIRONMENT ---
-            if isinstance(agent_tape.steps[-1], StopStep):
+            if any([isinstance(step, StopStep) for step in agent_tape.steps]):
                 logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
                 yield MainLoopEvent(status=MainLoopStatus.FINISHED)
                 return
