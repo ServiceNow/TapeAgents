@@ -16,7 +16,7 @@ llm:
     max_tokens: 3072
     temperature: 0.7
 test_llm:
-  parameters: 
+  parameters:
     max_tokens: ${...llm.parameters.max_tokens}
     temperature: 0.
     top_p: 1.0

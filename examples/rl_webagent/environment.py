@@ -50,9 +50,16 @@ class WebEnvironment(Environment):
         answer = tape.steps[-1].text if isinstance(tape.steps[-1], FinalAnswerAction) else "Task finished"
         self.browser._env.unwrapped.chat.add_message(role="assistant", msg=answer)
         assert self.browser._env.unwrapped.task is not None
-        reward, stop, message, info = self.browser._env.unwrapped.task.validate(
-            self.browser._env.unwrapped.page, self.browser._env.unwrapped.chat.messages
-        )
+        try:
+            reward, stop, message, info = self.browser._env.unwrapped.task.validate(
+                self.browser._env.unwrapped.page, self.browser._env.unwrapped.chat.messages
+            )
+        except Exception as e:
+            logger.exception(f"Error during task validation: {e}")
+            reward = 0
+            stop = True
+            message = f"Task validation failed with error: {e}"
+            info = {}
         result_dict = {
             "reward": reward,
             "stop": stop,
@@ -76,7 +83,11 @@ class WebEnvironment(Environment):
                 if isinstance(action, LLMOutputParsingFailureAction):
                     continue
                 observation = self.browser.run(action)
-                assert isinstance(observation, PageObservation)
+                if isinstance(observation, ActionExecutionFailure):
+                    logger.exception(f"Error during action execution: {observation.error}")
+                    tape = tape.append(observation)
+                    break
+                assert isinstance(observation, PageObservation), f"Observation is not a PageObservation: {observation}"
                 tape = tape.append(observation)  # type: ignore
             except FatalError:
                 raise
