@@ -4,6 +4,7 @@ Nodes are the building blocks of a TapeAgent, representing atomic units of the a
 
 import json
 import logging
+import re
 from typing import Annotated, Any, Generator, Type, Union
 
 from litellm import ChatCompletionMessageToolCall
@@ -22,11 +23,11 @@ from tapeagents.core import (
     Tape,
 )
 from tapeagents.dialog_tape import UserStep
+from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import BranchStep, ReasoningThought
 from tapeagents.tool_calling import as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.container_executor import extract_code_blocks
 from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
 
@@ -69,6 +70,7 @@ class StandardNode(Node):
     next_node: str = ""
     trim_obs_except_last_n: int = 2
     use_function_calls: bool = False
+    allow_code_blocks: bool = False
     _steps_type: Any = None
     _step_classes: list[type[Step]] | None = None
 
@@ -82,6 +84,9 @@ class StandardNode(Node):
         if not step_classes_or_str:
             return
         self._step_classes = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
+        if self.allow_code_blocks:
+            # remove PythonCodeAction from the list of step classes
+            self._step_classes = [c for c in self._step_classes if c != PythonCodeAction]
         self._name_to_cls = {c.__name__: c for c in self._step_classes}
         self._steps_type = Annotated[Union[tuple(self._step_classes)], Field(discriminator="kind")]
 
@@ -276,7 +281,7 @@ class StandardNode(Node):
         except FatalError:
             raise
 
-        if self.next_node and not isinstance(new_steps[-1], StopStep):
+        if self.next_node and not isinstance(new_steps[-1] if new_steps else None, StopStep):
             yield SetNextNode(next_node=self.next_node)
 
     def tool_call_to_step(self, tool_call: ChatCompletionMessageToolCall) -> Step:
@@ -285,7 +290,8 @@ class StandardNode(Node):
             return LLMOutputParsingFailureAction(
                 error=f"Unknown tool call: {tool_call.function.name}", llm_output=tool_call
             )
-        return step_cls.model_validate_json(tool_call.function.arguments)
+        args = tool_call.function.arguments
+        return step_cls.model_validate_json(args) if args else step_cls()
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         """
@@ -331,9 +337,12 @@ class StandardNode(Node):
                 step_dicts = [step_dicts]
         except Exception as e:
             logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
-            if llm_output.strip().startswith("```"):
-                for code_block in extract_code_blocks(llm_output):
-                    if code_block.language and code_block.language != "python":
+            if self.allow_code_blocks and "```" in llm_output:
+                logger.info("Parsing code blocks from LLM output")
+                for code_block in self.extract_code_blocks(llm_output):
+                    if isinstance(code_block, str):
+                        yield ReasoningThought(reasoning=code_block)
+                    elif code_block.language and code_block.language != "python":
                         yield LLMOutputParsingFailureAction(
                             error=f"Unsupported code block language: {code_block.language}", llm_output=llm_output
                         )
@@ -365,6 +374,30 @@ class StandardNode(Node):
         for step in steps:
             step.metadata.prompt_id = prompt_id
             yield step
+
+    def extract_code_blocks(self, text: str) -> list[CodeBlock | str]:
+        """Extract code blocks and plain text from a string."""
+        results = []
+        pattern = r"```(.*?)\n(.*?)```"
+        last_end = 0
+        for match in re.finditer(pattern, text, re.DOTALL):
+            # Add text before this code block
+            start = match.start()
+            if start > last_end:
+                results.append(text[last_end:start])
+
+            # Extract language and code
+            language = match.group(1).strip()
+            code = match.group(2)
+            results.append(CodeBlock(code=code, language=language))
+
+            last_end = match.end()
+
+        # Add remaining text
+        if last_end < len(text):
+            results.append(text[last_end:])
+
+        return [r for r in results if r]  # Filter out empty strings
 
     def trim_tape(self, tape: Tape) -> Tape:
         """
