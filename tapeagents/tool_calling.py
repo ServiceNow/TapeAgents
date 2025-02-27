@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable, Literal
 
 from langchain_core.utils.function_calling import convert_to_openai_tool
@@ -9,6 +10,8 @@ from pydantic import BaseModel
 
 from tapeagents.core import Action, Observation
 from tapeagents.llms import LLMOutput
+
+logger = logging.getLogger(__name__)
 
 
 class FunctionSpec(BaseModel):
@@ -153,14 +156,19 @@ def as_openai_tool(action: Action) -> dict:
     props = schema["properties"]
     props.pop("metadata", None)
     props.pop("kind", None)
+    name = schema["title"]
+    description = schema.get("description", "")
+    if len(description) > 1024:
+        description = description[:1024]
+        logger.warning(f"Description of {name} truncated to 1024 characters: {description}")
     return ToolSpec(
         function=FunctionSpec(
-            name=schema["title"],
-            description=schema["description"],
+            name=name,
+            description=description,
             parameters={
                 "type": "object",
                 "properties": props,
-                "required": schema["required"],
+                "required": schema.get("required", []),
             },
         )
     ).model_dump()

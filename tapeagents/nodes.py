@@ -6,6 +6,7 @@ import json
 import logging
 from typing import Annotated, Any, Generator, Type, Union
 
+from litellm import ChatCompletionMessageToolCall
 from pydantic import Field, TypeAdapter, ValidationError
 
 from tapeagents.agent import Agent, Node
@@ -67,7 +68,7 @@ class StandardNode(Node):
     use_known_actions: bool = False
     next_node: str = ""
     trim_obs_except_last_n: int = 2
-    use_function_call: bool = False
+    use_function_calls: bool = False
     _steps_type: Any = None
     _step_classes: list[type[Step]] | None = None
 
@@ -81,6 +82,7 @@ class StandardNode(Node):
         if not step_classes_or_str:
             return
         self._step_classes = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
+        self._name_to_cls = {c.__name__: c for c in self._step_classes}
         self._steps_type = Annotated[Union[tuple(self._step_classes)], Field(discriminator="kind")]
 
     def add_known_actions(self, actions: list[type[Step]]):
@@ -119,7 +121,7 @@ class StandardNode(Node):
             messages = self.tape_to_messages(cleaned_tape, steps_description)
             self.trim_obs_except_last_n = old_trim
         prompt = Prompt(messages=messages)
-        if self.use_function_call:
+        if self.use_function_calls:
             prompt.tools = [as_openai_tool(s) for s in self._step_classes]
         return prompt
 
@@ -224,7 +226,7 @@ class StandardNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        if self.use_function_call:
+        if self.use_function_calls:
             return ""
         allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type) if self._steps_type else ""
         return self.steps_prompt.format(allowed_steps=allowed_steps, tools_description=agent.tools_description)
@@ -259,11 +261,16 @@ class StandardNode(Node):
             for event in llm_stream:
                 if event.output:
                     cnt += 1
-                    assert event.output.content
-                    for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
-                        step = self.postprocess_step(tape, new_steps, step)
-                        new_steps.append(step)
-                        yield step
+                    if event.output.content:
+                        for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
+                            step = self.postprocess_step(tape, new_steps, step)
+                            new_steps.append(step)
+                            yield step
+                    if self.use_function_calls and event.output.tool_calls:
+                        for tool_call in event.output.tool_calls:
+                            step = self.tool_call_to_step(tool_call)
+                            new_steps.append(step)
+                            yield step
             if not cnt:
                 raise FatalError("No completions!")
         except FatalError:
@@ -271,6 +278,14 @@ class StandardNode(Node):
 
         if self.next_node and not isinstance(new_steps[-1], StopStep):
             yield SetNextNode(next_node=self.next_node)
+
+    def tool_call_to_step(self, tool_call: ChatCompletionMessageToolCall) -> Step:
+        step_cls = self._name_to_cls.get(tool_call.function.name)
+        if step_cls is None:
+            return LLMOutputParsingFailureAction(
+                error=f"Unknown tool call: {tool_call.function.name}", llm_output=tool_call
+            )
+        return step_cls.model_validate_json(tool_call.function.arguments)
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         """
@@ -306,8 +321,8 @@ class StandardNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
-        if not self._steps_type:
-            # if no steps type is enforced, just yield the reasoning thought
+        if not self._steps_type or self.use_function_calls:
+            # just yield the reasoning thought without parsing
             yield ReasoningThought(reasoning=llm_output)
             return
         try:

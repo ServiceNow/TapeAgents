@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="gaia_agent",
+    config_name="agent_debug",
 )
 def main(cfg: DictConfig) -> None:
     dset = load_dataset("validation")
