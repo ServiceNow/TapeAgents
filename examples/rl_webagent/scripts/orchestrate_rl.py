@@ -343,11 +343,11 @@ def batch_generate_data(
     training_samples: List[TrainingText] = []
 
     ### STEP 1: run the agents on their tasks in parallel ###
-    logger.info(f"Run the agent on {split_name}")
+    logger.info(f"[it{iteration}] Run the agent on {split_name} with {cfg.n_processes_for_data_generation} processes.")
     final_tapes, tape_training_samples, tape_stats = Parallel(n_jobs=cfg.n_processes_for_data_generation, prefer="processes")(
         [delayed(generate_data)(cfg, task, url, split_name, iteration) for task, url in zip(tasks, urls)]
     )  # will return lists only when all tasks are finished in the same order as the tasks
-    logger.info(f"Making tapes took {time.time() - start_make_data}")
+    logger.info(f"[it{iteration}] Making tapes took {time.time() - start_make_data}")
     # final_tapes is a list of tapes
     # training_samples is a list of list of training samples
     # tape_stats is a list of dict of stats
@@ -476,7 +476,6 @@ def main(cfg: DictConfig):
                 ### Step 2.2: generate continuations for each split ###
                 for split_name, tasks, urls in splits:
                     assert len(tasks) == len(urls)
-                    logger.info(f"Run the agent on {split_name}")
                     new_tapes, split_training_samples, stats = batch_generate_data(cfg, tasks, urls, split_name, state["iteration"])
 
                     # SKIP llm stats for now because each subprocess has its own llm and we will not be able to aggregate them.
@@ -521,9 +520,9 @@ def main(cfg: DictConfig):
                     }
 
                     # Log results
-                    logger.info(f"{split_name} stats:")
+                    logger.info(f"[it{state['iteration']}] {split_name} stats:")
                     for stat_name, stat_value in stats.items():
-                        logger.info(f"{stat_name}: {stat_value}")
+                        logger.info(f"  {stat_name}: {stat_value}")
                 # keep track of the starting time of the assistant model
                 assistant_model_starting_time = vllm_service_manager.get_stats()["starting_time"]
             ### end with vllm_service_manager("actor")
@@ -533,7 +532,7 @@ def main(cfg: DictConfig):
 
         ### Step 3: log all stats from forward pass###
         training_samples: list[TrainingText] = all_results["train"]["training_samples"]
-        logger.info(f"Collected {len(training_samples)} training samples")
+        logger.info(f"[it{state['iteration']}] Collected {len(training_samples)} training samples")
         stats = all_results["train"]["stats"]
         if "test" in all_results:  # test is only present every cfg.test_every_n_iterations
             stats.update(all_results["test"]["stats"])
@@ -601,9 +600,9 @@ def main(cfg: DictConfig):
             "execution_time/starting_assistantmodel_vllm": assistant_model_starting_time,
             "execution_time/starting_refmodel_vllm": refmodel_starting_time,
         }
-        logger.info("Logprob population stats:")
+        logger.info(f"[it{state['iteration']}] Logprob population stats:")
         for stat_name, stat_value in logprob_stats.items():
-            logger.info(f"{stat_name}: {stat_value}")
+            logger.info(f"  {stat_name}: {stat_value}")
         wandb.log(logprob_stats, step=state["iteration"])
 
         ### Step 6: save the training samples ###

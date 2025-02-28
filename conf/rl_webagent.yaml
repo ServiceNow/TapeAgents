@@ -2,7 +2,6 @@ defaults:
   - finetune: grpo
   - _self_
 
-n_workers_per_gpu: 32
 get_logprobs_workers_per_gpu: 4
 n_processes_for_data_generation: 8  # Number of concurrent processes for generating training data
 test_every_n_iterations: 1
