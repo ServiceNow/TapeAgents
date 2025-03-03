@@ -134,14 +134,13 @@ WebStep = Union[
 ]
 
 
-class WebTaskMetadata(TapeMetadata):
+class WebTapeMetadata(TapeMetadata):
     seed: int = Field(default_factory=int)
-    result: Any = None
     other: dict = Field(default_factory=dict)
 
 
 class WebTape(Tape[DialogContext, WebStep]):
-    metadata: WebTaskMetadata = Field(default_factory=WebTaskMetadata)
+    metadata: WebTapeMetadata = Field(default_factory=WebTapeMetadata)
     context: DialogContext = DialogContext(tools=[])
 
 

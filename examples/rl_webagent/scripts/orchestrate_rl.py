@@ -15,12 +15,13 @@ from joblib import Parallel, delayed
 import numpy as np
 import torch
 from browsergym.miniwob import ALL_MINIWOB_TASKS
+from browsergym.workarena import ALL_WORKARENA_TASKS
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
 import wandb
-from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, TrainingText
+from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, TapeMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM, trainable_llm_make_training_text
@@ -30,7 +31,7 @@ from tapeagents.tools.simple_browser import PageObservation
 
 from ..agent import WebAgent, WebTape
 from ..environment import WebEnvironment
-from ..steps import WebAction
+from ..steps import WebAction, WebTapeMetadata
 from ..utils import (
     VLLMServiceManager,
     calculate_stats,
@@ -76,34 +77,6 @@ def load_webtasks(train_split: float = 0.6, seeds: list[int] = [0, 1, 2, 3, 4]) 
     return train_samples, test_samples
 
 
-def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
-    """
-    Annotates training traces with reference model log probabilities.
-
-    Args:
-        llm (TrainableLLM): The reference language model to get log probabilities from
-        traces (List[TrainingText]): List of training traces to annotate
-
-    Returns:
-        None: The traces are modified in-place by adding ref_logprobs
-    """
-    prompt_token_ids = []
-    completion_token_ids = []
-    for trace in traces:
-        assert trace.input_ids, f"Input IDs are empty for trace: {trace}"
-        assert trace.logprobs, f"Logprobs are empty for trace: {trace}"
-        prompt_token_ids.append(trace.input_ids[: -len(trace.logprobs)])
-        completion_token_ids.append(trace.input_ids[-len(trace.logprobs) :])
-    try:
-        all_ref_logprobs = llm.get_batch_logprobs_token_ids(prompt_token_ids, completion_token_ids)
-    except Exception as e:
-        logger.error(f"Failed to get ref logprobs: {e}")
-        return
-    for trace, ref_logprobs in zip(traces, all_ref_logprobs):
-        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
-        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
-
-
 def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
     """
     Run agent on a single web task with its environment.
@@ -119,30 +92,12 @@ def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
     try:
         # Initialize task in environment - this creates the initial tape with web observation and task
         tape, metadata = env.start_task(task["task"], task["seed"])
+        # metadata is a dict with: str:name, str:goal, dict:task_info as a result of running gym_env.reset(seed=seed)
 
         # Run agent-environment loop
-        # tape = main_loop(agent, tape, env, max_loops=20).get_final_tape()
-        last_action = None
-        repeated_action_cnt = 0
-        for event in main_loop(agent, tape, env, max_loops=20):
-            if event.agent_event and event.agent_event.step:
-                step = event.agent_event.step
-                # Check for repeated actions
-                if isinstance(step, WebAction):
-                    step_view = step.llm_view()
-                    if step_view == last_action:
-                        repeated_action_cnt += 1
-                        if repeated_action_cnt > 4:
-                            break
-                    else:
-                        repeated_action_cnt = 0
-                    last_action = step_view
-                tape = tape.append(step)
-            if event.observation:
-                # PageObservation have the reward in metadata.other["reward"]
-                tape = tape.append(event.observation)
+        tape = main_loop(agent, tape, env, max_loops=20).get_final_tape()
 
-        # Get final reward (1.0 if success, where success is defined as result["reward"] > 0)
+        # Get final reward (1.0 if success, where success is defined as result["reward"] > 0.5)
         # result is a dict of reward, stop, message, info
         success, result = env.validate_task(tape)
         final_reward = 1.0 if success else 0.0
@@ -152,10 +107,15 @@ def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
         logger.error(f"Failed to run task: {e}")
         tape.metadata.result = {"success": False, "final_reward": 0.0, "error": str(e)}
 
-    finally:
-        # Always close the environment
-        env.finish_task()
+    # Close the environment
+    env.finish_task()
 
+    # Convert tape metadata to WebTapeMetadata if needed (not needed when no new step is added)
+    if not isinstance(tape.metadata, WebTapeMetadata):
+        tape.metadata = WebTapeMetadata(
+            **tape.metadata.model_dump(),
+            seed=task["seed"],
+        )
     return tape
 
 
@@ -191,6 +151,7 @@ def extract_tape_training_samples_and_stats(
     tape_output_tokens = 0
     overflows = []
     # For each LLM interaction in the tape:
+    # TODO: consider if we create a training sample for each LLM call or just one for the whole tape...
     for step in new_tape.steps:
         if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
             continue
@@ -258,9 +219,6 @@ def generate_data(
     else:
         model_path = cfg.model_path
 
-    tapes_dir = exp_path / "tapes" / split_name / str(iteration)
-    os.makedirs(tapes_dir, exist_ok=True)
-
     timers = {}
     ### STEP 0: create llm, env, agent ###
     t = time.perf_counter()
@@ -302,7 +260,7 @@ def generate_data(
     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
     timers["extract_training_samples"] = time.perf_counter() - t
 
-    new_tape.metadata.other["timers"] |= timers
+    new_tape.metadata.other["timers"] = timers
     return new_tape, tape_training_samples, tape_stats
 
 
@@ -333,32 +291,25 @@ def batch_generate_data(
     )
     start_make_data = time.time()
 
+    ### STEP 1: run the agents on their tasks in parallel ###
+    logger.info(f"[it{iteration}] Run the agent on {split_name} with {cfg.n_processes_for_data_generation} processes.")
+    results = Parallel(n_jobs=cfg.n_processes_for_data_generation, prefer="processes")(
+        [delayed(generate_data)(cfg, task, url, split_name, iteration) for task, url in zip(tasks, urls)]
+    )  # will return a list when all tasks are finished in the same order as the tasks
+    logger.info(f"[it{iteration}] Making tapes took {time.time() - start_make_data}")
+    assert len(results) == len(tasks), f"Number of results ({len(results)}) and tasks ({len(tasks)}) must match"
+
+    ### STEP 2: aggregate training samples and stats ###
+    final_tapes: list[WebTape] = []  # list of final tapes
+    training_samples: List[TrainingText] = []  # list of training samples
     reward_stats = defaultdict(list)  # map from parent tape id to list of rewards
     success_stats = defaultdict(list)  # map from parent tape id to list of successes
     no_errors_stats = defaultdict(list)  # map from parent tape id to list of no_errors
     prompt_tokens_stats = defaultdict(list)  # map from parent tape id to list of prompt tokens length
     output_tokens_stats = defaultdict(list)  # map from parent tape id to list of output tokens length
     overflow_stats = defaultdict(list)  # map from parent tape id to list of overflows
-
-    training_samples: List[TrainingText] = []
-
-    ### STEP 1: run the agents on their tasks in parallel ###
-    logger.info(f"[it{iteration}] Run the agent on {split_name} with {cfg.n_processes_for_data_generation} processes.")
-    final_tapes, tape_training_samples, tape_stats = Parallel(n_jobs=cfg.n_processes_for_data_generation, prefer="processes")(
-        [delayed(generate_data)(cfg, task, url, split_name, iteration) for task, url in zip(tasks, urls)]
-    )  # will return lists only when all tasks are finished in the same order as the tasks
-    logger.info(f"[it{iteration}] Making tapes took {time.time() - start_make_data}")
-    # final_tapes is a list of tapes
-    # training_samples is a list of list of training samples
-    # tape_stats is a list of dict of stats
-    assert len(final_tapes) == len(tape_training_samples) == len(tape_stats) == len(tasks), (
-        f"Number of tapes ({len(final_tapes)}), "
-        f"training samples ({len(tape_training_samples)}), "
-        f"stats ({len(tape_stats)}) and tasks ({len(tasks)}) must match"
-    )
-
-    ### STEP 2: aggregate training samples and stats ###
-    for new_tape, samples, stats in zip(final_tapes, tape_training_samples, tape_stats):
+    for new_tape, samples, stats in results:
+        final_tapes.append(new_tape)
         training_samples.extend(samples)
         reward_stats[new_tape.metadata.parent_id].append(stats["reward"])
         success_stats[new_tape.metadata.parent_id].append(stats["success"])
@@ -370,6 +321,7 @@ def batch_generate_data(
     ### STEP 3: save the tapes ###
     exp_path = Path(cfg.output_dir)
     tapes_dir = exp_path / "tapes" / split_name / str(iteration)
+    os.makedirs(tapes_dir, exist_ok=True)
     start_dump = time.time()
     with open(tapes_dir / "tapes.json", "w") as f:
         json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
@@ -393,6 +345,34 @@ def batch_generate_data(
         },
     }
     return final_tapes, training_samples, stats
+
+
+def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[TrainingText]):
+    """
+    Annotates training traces with reference model log probabilities.
+
+    Args:
+        llm (TrainableLLM): The reference language model to get log probabilities from
+        traces (List[TrainingText]): List of training traces to annotate
+
+    Returns:
+        None: The traces are modified in-place by adding ref_logprobs
+    """
+    prompt_token_ids = []
+    completion_token_ids = []
+    for trace in traces:
+        assert trace.input_ids, f"Input IDs are empty for trace: {trace}"
+        assert trace.logprobs, f"Logprobs are empty for trace: {trace}"
+        prompt_token_ids.append(trace.input_ids[: -len(trace.logprobs)])
+        completion_token_ids.append(trace.input_ids[-len(trace.logprobs) :])
+    try:
+        all_ref_logprobs = llm.get_batch_logprobs_token_ids(prompt_token_ids, completion_token_ids)
+    except Exception as e:
+        logger.error(f"Failed to get ref logprobs: {e}")
+        return
+    for trace, ref_logprobs in zip(traces, all_ref_logprobs):
+        trace.ref_logprobs = [c["logprob"] for c in ref_logprobs["content"]]
+        assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
 
 
 @hydra.main(config_path="../../../conf/", config_name="rl_webagent", version_base="1.3.2")
@@ -527,6 +507,7 @@ def main(cfg: DictConfig):
                 assistant_model_starting_time = vllm_service_manager.get_stats()["starting_time"]
             ### end with vllm_service_manager("actor")
         except Exception as e:
+            logger.exception(e, stack_info=True)
             logger.error(colored(f"Failed to solve task: {e}", "red"))
             raise e
 
