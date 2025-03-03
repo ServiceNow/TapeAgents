@@ -3,6 +3,7 @@ import os
 from typing import Any
 
 from browsergym.core.task import AbstractBrowserTask
+from browsergym.miniwob.base import AbstractMiniwobTask
 
 from tapeagents.core import LLMOutputParsingFailureAction
 from tapeagents.environment import Environment
@@ -17,6 +18,7 @@ from .steps import (
     ReflectionThought,
     WebTape,
     WebTask,
+    WebTapeMetadata,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,7 +39,7 @@ class WebEnvironment(Environment):
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         obs = self.browser.run_browser_action("noop()")
-        tape = WebTape(steps=[obs, WebTask(task=info["goal"])])
+        tape = WebTape(metadata=WebTapeMetadata(seed=seed), steps=[obs, WebTask(task=info["goal"])])
         return tape, info
 
     def finish_task(self) -> None:
@@ -54,6 +56,10 @@ class WebEnvironment(Environment):
             reward, stop, message, info = self.browser._env.unwrapped.task.validate(
                 self.browser._env.unwrapped.page, self.browser._env.unwrapped.chat.messages
             )
+            # in AbstractMiniwobTask.validate() the reward is defined as float(info["RAW_REWARD_GLOBAL"] > 0) so it will alwayd be 0 or 1
+            # let's keep the raw reward for now and define success as reward > 0.5
+            if isinstance(self.browser._env.unwrapped.task, AbstractMiniwobTask):
+                reward = info["RAW_REWARD_GLOBAL"]
         except Exception as e:
             logger.exception(f"Error during task validation: {e}")
             reward = 0
