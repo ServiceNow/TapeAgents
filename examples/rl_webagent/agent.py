@@ -1,9 +1,10 @@
 from itertools import takewhile
 from typing import Any, Generator
+
 from pydantic import Field
 
 from tapeagents.agent import Agent, Node
-from tapeagents.core import AgentStep, LLMOutputParsingFailureAction, PartialStep, SetNextNode, Step, StopStep
+from tapeagents.core import Action, AgentStep, LLMOutputParsingFailureAction, PartialStep, SetNextNode, Step, StopStep
 from tapeagents.llms import LLM, LLMStream
 from tapeagents.nodes import MonoNode
 from tapeagents.tools.simple_browser import PageObservation
@@ -12,12 +13,14 @@ from tapeagents.utils import FatalError
 from .prompts import PromptRegistry
 from .steps import (
     WebAgentStep,
+    WebStep,
     WebTape,
 )
 
 
 class WebNode(MonoNode):
     max_retries: int = 3
+    max_same_action: int = 4
     current_retries: int = 0
 
     # def trim_tape(self, tape: WebTape) -> WebTape:
@@ -125,6 +128,11 @@ class WebNode(MonoNode):
             - If the node has a next_node defined and the final step is not a StopStep,
               it will yield a SetNextNode step to continue the execution flow.
         """
+        # get the last action and the number of repetitions
+        previous_actions = [step for step in tape.steps if isinstance(step, Action)]
+        last_action = previous_actions[-1] if previous_actions else None
+        n_last_actions = len(list(takewhile(lambda x: x == last_action, reversed(previous_actions))))
+
         new_steps = []
         try:
             cnt = 0
@@ -134,9 +142,20 @@ class WebNode(MonoNode):
                     assert event.output.content
                     for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
                         step = self.postprocess_step(tape, new_steps, step)
+                        # check that the new step is not a repetition of the last action up to max_same_action times
+                        if isinstance(step, Action):
+                            if step == last_action:
+                                n_last_actions += 1
+                                if n_last_actions > self.max_same_action:
+                                    raise FatalError(f"Max same action reached! {step}")
+                            else:
+                                n_last_actions = 1
+                                last_action = step
+
                         new_steps.append(step)
                         yield step
-                        # if the last step is an LLMOutputParsingFailureAction, retry the current node up to max_retries times
+
+                        # if the last step was an LLMOutputParsingFailureAction, retry the current node up to max_retries times
                         if isinstance(step, LLMOutputParsingFailureAction):
                             if self.current_retries < self.max_retries:
                                 retry_step = SetNextNode(next_node=self.name)
