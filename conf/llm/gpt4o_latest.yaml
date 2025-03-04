@@ -1,6 +1,0 @@
-_target_: tapeagents.llms.LiteLLM
-model_name: chatgpt-4o-latest
-use_cache: false
-context_size: 128000
-parameters:
-  temperature: 0.0
