@@ -723,10 +723,6 @@ class TrainableLLM(CachedLLM):
                         for j in range(len(completion_logprobs["tokens"]))
                     ]
                     logprobs = self.make_llm_call_logprobs(prompt_token_ids[i], chat_completion_logprobs)
-                    chat_completion_tokens = [
-                        int(token["token"].split(":")[-1]) for token in chat_completion_logprobs[1:]
-                    ]
-                    logprobs = self.get_logprobs_token_ids(prompt_token_ids[i], chat_completion_tokens)
                     # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
                     for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
                         if content.endswith(eos_str):
