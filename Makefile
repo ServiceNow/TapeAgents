@@ -13,6 +13,9 @@ lint-check:
 test:
 	@uv run --all-extras pytest -s --color=yes -m "not slow" tests/
 
+coverage:
+	@uv run --all-extras pytest --cov=tapeagents  -s --color=yes -m "not slow" tests/
+
 test-core:
 	@uv run pytest -s --color=yes tests/ --ignore-glob="tests/*/*"
 

@@ -3,19 +3,14 @@ import logging
 import os
 
 import hydra
-from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.io import save_json_tape
-from tapeagents.llms import TrainableLLM
 from tapeagents.observe import retrieve_llm_calls
-from tapeagents.orchestrator import main_loop
-from tapeagents.tools.container_executor import ContainerExecutor
+from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 
-from ..agent import GaiaAgent
-from ..environment import get_env
 from ..eval import load_dataset, task_to_observations
-from ..tape import GaiaMetadata, GaiaTape
+from ..steps import GaiaMetadata, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,7 +19,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="gaia_openai",
+    config_name="agent_debug",
 )
 def main(cfg: DictConfig) -> None:
     dset = load_dataset("validation")
@@ -35,14 +30,7 @@ def main(cfg: DictConfig) -> None:
     tape_name = f"debug_{level}_{task}"
     tasks = dset[level]
     task = tasks[task]
-    llm: TrainableLLM = instantiate(cfg.llm)
-    try:
-        code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
-    except Exception as e:
-        logger.error(f"Failed to create code sandbox: {e}")
-        code_sandbox = None
-    env = get_env(cfg.exp_path, code_sandbox=code_sandbox, **cfg.env)
-    agent = GaiaAgent.create(llm, actions=env.actions(), **cfg.agent)
+    agent, env = get_agent_and_env_from_config(cfg)
     tape = GaiaTape(steps=task_to_observations(task))
     tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
     step_count = 0

@@ -6,7 +6,10 @@ from pathlib import Path
 import transformers
 from omegaconf import DictConfig
 
+from tapeagents.finetune.data import load_samples
 from tapeagents.io import load_tapes
+from tapeagents.llms import LLM, LLMCall, ReplayLLM, TrainableLLM
+from tapeagents.orchestrator import replay_tapes
 
 sys.path.append(str(Path(__file__).parent.parent.resolve()))  # allow to import from examples
 
@@ -17,10 +20,6 @@ from examples.rl_gsm8k.orchestrate_rl import (
     RLMathTape,
     extract_tape_training_samples,
 )
-from tapeagents.core import LLMCall
-from tapeagents.finetune.data import load_samples
-from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
-from tapeagents.orchestrator import replay_tapes
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from tapeagents.core import Episode, Observation, Step, Tape
 from tapeagents.dialog_tape import UserStep
-from tapeagents.observe import LLMCall
+from tapeagents.llms import LLMCall
 
 
 class BasicRenderer:

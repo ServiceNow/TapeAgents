@@ -11,6 +11,7 @@ from huggingface_hub import snapshot_download
 from pdf2image import convert_from_path
 from termcolor import colored
 
+from tapeagents.agent import Agent
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
@@ -19,10 +20,8 @@ from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.web_search import SearchAction
 
-from .agent import GaiaAgent
 from .scorer import question_scorer
-from .steps import GaiaAnswer, GaiaQuestion, ImageObservation
-from .tape import GaiaMetadata, GaiaTape
+from .steps import GaiaAnswer, GaiaMetadata, GaiaQuestion, GaiaTape, ImageObservation
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +40,10 @@ def tape_correct(tape: GaiaTape) -> bool:
     if golden == "?":  # placeholder for hidden answer in test set
         return False
     return question_scorer(predicted, golden)
+
+
+def tape_without_result(tape: GaiaTape) -> bool:
+    return tape.metadata.result in ["", "None", None]
 
 
 def calculate_accuracy(tapes: list[GaiaTape], show_intermediate=False, show_wrong=False):
@@ -103,19 +106,30 @@ def load_dataset(split: str):
 
 def solve_task(
     task: dict,
-    agent: GaiaAgent,
+    agent: Agent,
     env: ToolCollectionEnvironment,
     level: int,
+    task_num: int,
+    tapes_dir: str,
     max_loops: int = 50,
     max_action_repetitions: int = 3,
 ) -> GaiaTape:
     start_steps = task_to_observations(task)
     t = time.perf_counter()
     tape = GaiaTape(steps=start_steps)
+    loop_timout_sec = 30 * 60
+    tmp_file = os.path.join(tapes_dir, f"l{level}_task{task_num:03d}.json.tmp")
     try:
+        start_time = time.perf_counter()
         for event in main_loop(agent, tape, env, max_loops=max_loops):
+            if time.perf_counter() - start_time > loop_timout_sec:
+                tape.metadata.error = "Timeout, task took too long"
+                logger.warning("Timeout, task took too long")
+                break
             if partial_tape := (event.agent_tape or event.env_tape):
                 tape = partial_tape
+                tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
+                save_json_tape(tape, tmp_file)
             if action_repetitions(tape) >= max_action_repetitions:
                 break
     except Exception as e:
@@ -128,6 +142,8 @@ def solve_task(
         tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
     )
     tape.metadata.other["timers"] = {"solve_task": time.perf_counter() - t}
+    if os.path.exists(tmp_file):
+        os.unlink(tmp_file)
     return tape
 
 
@@ -144,6 +160,8 @@ def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> l
     ensemble = []
     improved = 0
     degraded = 0
+    added_result = 0
+    no_result = 0
     for i, tapes in enumerate(zip(*all_tapes)):
         tapes: list[GaiaTape] = tapes
         results = [tape.metadata.result for tape in tapes]
@@ -155,21 +173,26 @@ def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> l
                     break
         best_tape = tapes[most_common_idx].copy()
 
-        orig = tapes[0]
-        orig_correct = int(tape_correct(orig))
+        tape0 = tapes[0]
+        tape0_correct = int(tape_correct(tape0))
         ensemble_correct = int(tape_correct(best_tape))
         expected = tapes[0].metadata.task["Final answer"]
-        log_message = f"{i+1}: {orig_correct} -> {ensemble_correct} | choose {most_common_idx+1} ({best_tape.metadata.result}) of {results}. Expected: {expected}"
-        if orig_correct < ensemble_correct:
+        change = "switched" if best_tape.metadata.result != results[0] else "same"
+        log_message = f"{i+1}: {tape0_correct} -> {ensemble_correct} | {change} {most_common_idx+1} ({best_tape.metadata.result}) of {results}. Expected: {expected}"
+        if tape0_correct < ensemble_correct:
             logger.info("Improved")
             improved += 1
-            logger.info(log_message)
-        elif orig_correct > ensemble_correct:
+        elif tape0_correct > ensemble_correct:
             logger.info("Degraded")
             degraded += 1
-            logger.info(log_message)
+        if tape_without_result(best_tape):
+            no_result += 1
+        if tape_without_result(tape0) and not tape_without_result(best_tape):
+            added_result += 1
+            logger.info("Added result")
+        logger.info(log_message)
         ensemble.append(best_tape)
-    logger.info(f"Improved {improved}, degraded {degraded}")
+    logger.info(f"Improved {improved}, degraded {degraded}, no result {no_result}, added result {added_result}")
     return ensemble
 
 

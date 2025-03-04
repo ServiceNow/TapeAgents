@@ -34,7 +34,7 @@ from termcolor import colored
 
 from tapeagents.config import common_cache_dir, force_cache
 from tapeagents.core import Action, Observation
-from tapeagents.tools.base import Multitool
+from tapeagents.tools.base import StatefulTool
 from tapeagents.utils import FatalError, diff_strings
 
 from .converters import (
@@ -50,7 +50,7 @@ _CACHE_PREFIX = "web_cache"
 
 
 class SimpleTextBrowser:
-    """An extremely simple text-based web browser suitable for Agentic use."""
+    """A minimal text-based web browser designed for AI agent use."""
 
     user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 
@@ -381,7 +381,10 @@ class SimpleTextBrowser:
 
     def get_page(self, url: str) -> tuple[str, int, int]:
         """
-        Load web page and return content of its first viewport (first screen), current page number and total number of pages.
+        Loads a web page and returns a tuple containing:
+        - Content of its first viewport (first screen)
+        - Current page number
+        - Total number of pages
         """
         self._page_error = 0
         if url.startswith("/"):
@@ -432,23 +435,32 @@ class SimpleTextBrowser:
         return self.page_content
 
 
-class NextPageAction(Action):
+class PageDownAction(Action):
     """
-    Action that returns the next page of the last document
+    Action that scrolls down to display the next page of the current document.
     """
 
-    kind: Literal["next_page_action"] = "next_page_action"
+    kind: Literal["page_down_action"] = "page_down_action"
+
+
+class PageUpAction(Action):
+    """
+    Action that scrolls up to display the previous page of the current document.
+    """
+
+    kind: Literal["page_up_action"] = "page_up_action"
 
 
 class ReadDocumentAction(Action):
     """
-    Action that loads the document, file, image or page from the provided url or file path and returns the first page of its content. To read the following pages use next_page_action
+    Action that loads a document, file, image, or web page from the provided URL or file path.
+    Returns the first page of its content. Use page_down_action to view subsequent pages.
     """
 
     kind: Literal["read_document_action"] = "read_document_action"
-    url: str = Field(description="url of the document")
-    fact_description: str = Field(description="description of the fact to look for in the document")
-    fact_name: str = Field(description="fact name to look for in the document")
+    url: str = Field(description="URL or file path of the document")
+    fact_description: str = Field(description="Description of the fact to search for in the document")
+    fact_name: str = Field(description="Name of the fact to search for in the document")
 
 
 class PageObservation(Observation):
@@ -458,9 +470,19 @@ class PageObservation(Observation):
     total_pages: int
     error: int | str | None = None
 
+    def short_view(self):
+        view = self.llm_dict()
+        view["text"] = view["text"][:100] + "..."
+        return json.dumps(view, indent=2, ensure_ascii=False)
 
-class SimpleBrowser(Multitool):
-    actions: tuple[type[Action], ...] = (ReadDocumentAction, NextPageAction)
+
+class SimpleBrowser(StatefulTool):
+    """
+    Simple text-based web browser for reading documents and web pages.
+    Can load web page or document from a URL or file path and scroll through its content.
+    """
+
+    actions: tuple[type[Action], ...] = (ReadDocumentAction, PageDownAction)
     observations: tuple[type[Observation], ...] = (PageObservation,)
     exp_path: str
     kwargs: dict[str, Any]
@@ -469,7 +491,7 @@ class SimpleBrowser(Multitool):
     def model_post_init(self, __context: Any):
         self._browser = SimpleTextBrowser(**self.kwargs)
 
-    def execute_action(self, action: ReadDocumentAction | NextPageAction) -> PageObservation:
+    def execute_action(self, action: ReadDocumentAction | PageDownAction) -> PageObservation:
         if isinstance(action, ReadDocumentAction):
             text, total_pages, error = self._browser.get_page(action.url)
             obs = PageObservation(text=text, current_page=1, total_pages=total_pages, error=error or None)
