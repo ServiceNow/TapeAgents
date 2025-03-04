@@ -216,7 +216,8 @@ class CameraReadyRenderer(BasicRenderer):
         prompt_text = "\n--\n".join(prompt_messages)
         output = llm_call.output.content or ""
         if llm_call.output.tool_calls:
-            output += f"\nTool calls:\n{'\n'.join([call.to_json() for call in llm_call.output.tool_calls])}"
+            tool_calls = "\n".join([call.to_json() for call in llm_call.output.tool_calls])
+            output += f"\nTool calls:\n{tool_calls}"
         prompt_length_str = (
             f"{llm_call.prompt_length_tokens} tokens"
             if llm_call.prompt_length_tokens
