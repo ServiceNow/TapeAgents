@@ -42,6 +42,10 @@ def tape_correct(tape: GaiaTape) -> bool:
     return question_scorer(predicted, golden)
 
 
+def tape_without_result(tape: GaiaTape) -> bool:
+    return tape.metadata.result in ["", "None", None]
+
+
 def calculate_accuracy(tapes: list[GaiaTape], show_intermediate=False, show_wrong=False):
     accs = []
     accuracy = 0.0
@@ -156,6 +160,8 @@ def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> l
     ensemble = []
     improved = 0
     degraded = 0
+    added_result = 0
+    no_result = 0
     for i, tapes in enumerate(zip(*all_tapes)):
         tapes: list[GaiaTape] = tapes
         results = [tape.metadata.result for tape in tapes]
@@ -167,21 +173,26 @@ def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> l
                     break
         best_tape = tapes[most_common_idx].copy()
 
-        orig = tapes[0]
-        orig_correct = int(tape_correct(orig))
+        tape0 = tapes[0]
+        tape0_correct = int(tape_correct(tape0))
         ensemble_correct = int(tape_correct(best_tape))
         expected = tapes[0].metadata.task["Final answer"]
-        log_message = f"{i+1}: {orig_correct} -> {ensemble_correct} | choose {most_common_idx+1} ({best_tape.metadata.result}) of {results}. Expected: {expected}"
-        if orig_correct < ensemble_correct:
+        change = "switched" if best_tape.metadata.result != results[0] else "same"
+        log_message = f"{i+1}: {tape0_correct} -> {ensemble_correct} | {change} {most_common_idx+1} ({best_tape.metadata.result}) of {results}. Expected: {expected}"
+        if tape0_correct < ensemble_correct:
             logger.info("Improved")
             improved += 1
-            logger.info(log_message)
-        elif orig_correct > ensemble_correct:
+        elif tape0_correct > ensemble_correct:
             logger.info("Degraded")
             degraded += 1
-            logger.info(log_message)
+        if tape_without_result(best_tape):
+            no_result += 1
+        if tape_without_result(tape0) and not tape_without_result(best_tape):
+            added_result += 1
+            logger.info("Added result")
+        logger.info(log_message)
         ensemble.append(best_tape)
-    logger.info(f"Improved {improved}, degraded {degraded}")
+    logger.info(f"Improved {improved}, degraded {degraded}, no result {no_result}, added result {added_result}")
     return ensemble
 
 

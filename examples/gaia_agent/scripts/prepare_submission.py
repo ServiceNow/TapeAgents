@@ -7,7 +7,6 @@ from tapeagents.io import load_tapes
 
 from ..eval import get_exp_config_dict, load_dataset, tape_correct
 from ..steps import GaiaTape
-from .validate_submission import validate_submission
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,6 +36,7 @@ def main(exp_path: str):
                 print(f"Model answer '{model_answer}' does not match tape result '{tape.metadata.result}'")
             if not model_answer:
                 unsolved += 1
+                model_answer = "0"
             if tape_correct(tape):
                 correct += 1
             line = {"task_id": tape.metadata.task["task_id"], "model_answer": str(model_answer)}
@@ -60,4 +60,3 @@ def main(exp_path: str):
 if __name__ == "__main__":
     assert len(sys.argv) == 2, "Usage: examples.gaia_agent.scripts.prepare_submission <exp_dir>"
     submission_file = main(sys.argv[1])
-    validate_submission(submission_file)

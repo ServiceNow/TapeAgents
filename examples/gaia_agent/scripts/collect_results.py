@@ -10,41 +10,6 @@ from ..steps import GaiaTape
 logging.basicConfig(level=logging.INFO)
 
 
-def main_old(root: str, runs: list[str]):
-    by_level_by_run = defaultdict(lambda: defaultdict(list))
-    for run in runs:
-        tapes_dir = os.path.join(root, run, "tapes")
-        tapes: list[GaiaTape] = load_tapes(GaiaTape, tapes_dir, file_extension=".json")  # type: ignore
-        for tape in tapes:
-            by_level_by_run[tape.metadata.level][run].append(tape)
-
-    maj_name = f"maj@{len(runs)}"
-    avg = {run: [] for run in runs} | {maj_name: []}
-    print("Accuracy")
-    for lvl_name, lvl_runs in by_level_by_run.items():
-        acc_by_run = defaultdict(list)
-        avg_acc = []
-        run_names = []
-        run_tapes = []
-        for run_name, tapes in lvl_runs.items():
-            run_names.append(run_name)
-            run_tapes.append(tapes)
-            acc_by_run[run_name] = [int(tape_correct(tape)) for tape in tapes]
-            avg[run_name] += acc_by_run[run_name]
-        for tapes in zip(*run_tapes):
-            best_idx = majority_vote([tape.metadata.result for tape in tapes])
-            best_tape = tapes[best_idx]
-            avg_acc.append(int(tape_correct(best_tape)))
-        avg[maj_name] += avg_acc
-        for run_name, acc in acc_by_run.items():
-            print(f"L{lvl_name} {run_name}: {sum(acc) / len(acc):.3f} ({sum(acc)} of {len(acc)})")
-        print(f"L{lvl_name} {maj_name}: {sum(avg_acc) / len(avg_acc):.3f} ({sum(avg_acc)} of {len(avg_acc)})")
-        print()
-
-    for run, acc in avg.items():
-        print(f"Avg. {run}: {sum(acc) / len(acc):.3f} ({sum(acc)} of {len(acc)})")
-
-
 def main(root: str, runs: list[str], split: str):
     tasks_by_level = load_dataset(split)
     tasks = [task for level in tasks_by_level.values() for task in level]
@@ -75,18 +40,19 @@ def main(root: str, runs: list[str], split: str):
     for run, results in results.items():
         assert len(results) == len(tasks), "Results length mismatch"
         acc = [int(tape_correct(tape)) if tape else 0 for tape in results]
-        print(f"Avg. {run}: {sum(acc) / len(acc):.3f} ({sum(acc)} of {len(acc)})")
+        empty_results = [tape.metadata.result in ["", "None", None] for tape in results]
+        print(f"Avg. {run}: {sum(acc) / len(acc):.3f} ({sum(acc)} of {len(acc)}), {sum(empty_results)} no results")
 
 
 if __name__ == "__main__":
     root = "outputs/gaia/runs/"
     runs = [
-        "sonnet37_val1",
-        "sonnet37_val2",
-        "sonnet37_val3",
+        "sonnet37_test1",
+        "sonnet37_test2",
+        "sonnet37_test3",
     ]
-    ensemble = "sonnet37_val_maj3"
-    split = "validation"
+    ensemble = "sonnet37_test_maj3"
+    split = "test"
     main(root, runs, split)
     if ensemble:
         tape_dirs = [os.path.join(root, run, "tapes") for run in runs]

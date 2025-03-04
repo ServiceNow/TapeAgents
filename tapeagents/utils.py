@@ -8,11 +8,13 @@ import fcntl
 import importlib
 import json
 import os
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 import jsonref
+from PIL import Image
 from pydantic import TypeAdapter
 from termcolor import colored
 
@@ -108,9 +110,14 @@ def get_step_schemas_from_union_type(cls, simplify: bool = True) -> str:
 
 
 def image_base64_message(image_path: str) -> dict:
-    image_extension = os.path.splitext(image_path)[1][1:]
-    content_type = f"image/{image_extension}"
-    base64_image = encode_image(image_path)
+    max_size = 1280
+    image = Image.open(image_path)
+    if image.size[0] > max_size or image.size[1] > max_size:
+        image.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+    with tempfile.NamedTemporaryFile() as tmp:
+        image.save(tmp.name, "PNG")
+        base64_image = encode_image(tmp.name)
+        content_type = "image/png"
     message = {"type": "image_url", "image_url": {"url": f"data:{content_type};base64,{base64_image}"}}
     return message
 
