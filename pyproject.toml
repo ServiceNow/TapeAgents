@@ -72,6 +72,7 @@ dev = [
 [project.optional-dependencies]
 converters = [
   "beautifulsoup4~=4.12",
+  "docling==2.15.0",
   "easyocr~=1.7",
   "ffmpeg-python~=0.2",
   "lxml[html-clean]~=5.2",
@@ -85,7 +86,7 @@ converters = [
   "puremagic~=1.26",
   "pydub~=0.25",
   "pyparsing~=3.1",
-  "python-pptx~=0.6",
+  "python-pptx~=1.0.2",
   "readability-lxml>=0.8",
   "webvtt-py~=0.5",
   "xlrd~=2.0",

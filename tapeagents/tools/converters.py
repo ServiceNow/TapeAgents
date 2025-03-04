@@ -40,12 +40,22 @@ from bs4 import BeautifulSoup
 from readability import Document
 
 # Optional PDF support
-IS_PDF_CAPABLE = False
+IS_PDF_MINER_CAPABLE = False
 try:
     import pdfminer
     import pdfminer.high_level
 
-    IS_PDF_CAPABLE = True
+    IS_PDF_MINER_CAPABLE = True
+except ModuleNotFoundError:
+    pass
+
+IS_PDF_DOCLING_CAPABLE = False
+try:
+    from docling.datamodel.base_models import InputFormat
+    from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, TableStructureOptions
+    from docling.document_converter import DocumentConverter as DoclingDocumentConverter, PdfFormatOption
+
+    IS_PDF_DOCLING_CAPABLE = True
 except ModuleNotFoundError:
     pass
 
@@ -307,7 +317,7 @@ class YouTubeConverter(DocumentConverter):
         return None
 
 
-class PdfConverter(DocumentConverter):
+class PdfMinerConverter(DocumentConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a PDF
         extension = kwargs.get("file_extension", "")
@@ -317,6 +327,26 @@ class PdfConverter(DocumentConverter):
         return DocumentConverterResult(
             title=None,
             text_content=pdfminer.high_level.extract_text(local_path),
+        )
+
+
+class PdfConverter(DocumentConverter):
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # Bail if not a PDF
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() != ".pdf":
+            return None
+        pipeline_options = PdfPipelineOptions(
+            do_table_structure=True, table_structure_options=TableStructureOptions(mode=TableFormerMode.ACCURATE)
+        )
+        converter = DoclingDocumentConverter(
+            format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
+        )
+        result = converter.convert(local_path)
+        markdown = result.document.export_to_markdown()
+        return DocumentConverterResult(
+            title=None,
+            text_content=markdown,
         )
 
 
@@ -606,6 +636,7 @@ class FileConverter:
         self,
         requests_session: Optional[requests.Session] = None,
         mlm_client: Optional[Any] = None,
+        preferred_pdf_converter: Optional[type[PdfConverter | PdfMinerConverter]] = PdfConverter,
     ):
         if requests_session is None:
             self._requests_session = requests.Session()
@@ -630,8 +661,10 @@ class FileConverter:
         self.register_page_converter(Mp3Converter())
         self.register_page_converter(ImageConverter())
 
-        if IS_PDF_CAPABLE:
+        if IS_PDF_DOCLING_CAPABLE and preferred_pdf_converter == PdfConverter:
             self.register_page_converter(PdfConverter())
+        elif IS_PDF_MINER_CAPABLE and preferred_pdf_converter == PdfMinerConverter:
+            self.register_page_converter(PdfMinerConverter())
 
     def convert(self, source, **kwargs):
         """
