@@ -6,6 +6,7 @@ import base64
 import difflib
 import fcntl
 import importlib
+import io
 import json
 import os
 import tempfile
@@ -110,8 +111,16 @@ def get_step_schemas_from_union_type(cls, simplify: bool = True) -> str:
 
 
 def image_base64_message(image_path: str) -> dict:
-    max_size = 1280
-    image = Image.open(image_path)
+    image_extension = os.path.splitext(image_path)[1][1:]
+    content_type = f"image/{image_extension}"
+    base64_image = encode_image(image_path)
+    message = {"type": "image_url", "image_url": {"url": f"data:{content_type};base64,{base64_image}"}}
+    return message
+
+
+def resize_base64_message(message: dict, max_size: int = 1280) -> dict:
+    base64_image = message["image_url"]["url"].split(",", maxsplit=1)[1]
+    image = Image.open(io.BytesIO(base64.b64decode(base64_image)))
     if image.size[0] > max_size or image.size[1] > max_size:
         image.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
     with tempfile.NamedTemporaryFile() as tmp:

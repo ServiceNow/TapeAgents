@@ -136,7 +136,20 @@ class ReplayLLM(LLM):
                             logger.warning(f"STEP{i}: {diff_strings(aa, bb)}\n")
                 raise FatalError("prompt not found")
             else:
-                logger.warning(f"prompt of size {len(prompt_key)} not found, skipping..")
+                messages_previews = []
+                for m in prompt.messages:
+                    try:
+                        if isinstance(m["content"], list):
+                            msg = "[text,img]"
+                        else:
+                            m_dict = json.loads(m["content"])
+                            msg = list(m_dict.keys())
+                        messages_previews.append({"role": m["role"], "content": msg})
+                    except Exception:
+                        messages_previews.append({"role": m["role"], "content": "text"})
+                logger.warning(
+                    f"prompt with {len(prompt.messages)} messages {messages_previews}, {len(prompt_key)} chars not found, skipping.."
+                )
                 raise FatalError("prompt not found")
             yield LLMEvent(output=LLMOutput(content=output))
 

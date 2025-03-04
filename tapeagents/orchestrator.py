@@ -290,7 +290,7 @@ def replay_tapes(
                 raise FatalError("Tape mismatch")
             ok += 1
         except FatalError as e:
-            logger.error(colored(f"Fatal error: {e}, skip tape {tape.metadata.id}", "red"))
+            logger.error(colored(f"Fatal error: {e}, skip tape {i}/{len(tapes)} ({tape.metadata.id})", "red"))
             fails += 1
             if stop_on_error:
                 raise e

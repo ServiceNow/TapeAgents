@@ -8,7 +8,7 @@ from tapeagents.core import Prompt
 from tapeagents.llms.base import LLMEvent, LLMOutput
 from tapeagents.llms.cached import CachedLLM
 from tapeagents.llms.litellm import logger
-from tapeagents.utils import get_step_schemas_from_union_type
+from tapeagents.utils import get_step_schemas_from_union_type, resize_base64_message
 
 
 class Claude(CachedLLM):
@@ -90,6 +90,7 @@ class Claude(CachedLLM):
                 texts = []
                 for submessage in message["content"]:
                     if submessage["type"] == "image_url":
+                        submessage = resize_base64_message(submessage)
                         url = submessage["image_url"]["url"]
                         content_type, base64_image = url.split(";base64,")
                         img_message = {
