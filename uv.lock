@@ -5722,7 +5722,7 @@ requires-dist = [
     { name = "langchain-community", specifier = "~=0.3" },
     { name = "langchain-core", specifier = "~=0.1" },
     { name = "levenshtein", specifier = "~=0.25" },
-    { name = "litellm", specifier = "~=1.51" },
+    { name = "litellm", specifier = "~=1.61" },
     { name = "lxml", extras = ["html-clean"], marker = "extra == 'converters'", specifier = "~=5.2" },
     { name = "mammoth", marker = "extra == 'converters'", specifier = "~=1.8" },
     { name = "markdownify", marker = "extra == 'converters'", specifier = "~=0.13" },
