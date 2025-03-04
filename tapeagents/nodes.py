@@ -66,6 +66,7 @@ class StandardNode(Node):
     system_prompt: str = ""
     steps_prompt: str = ""  # use {allowed_steps} to insert steps schema
     steps: type[Step] | list[type[Step] | str] | str = Field(exclude=True, default_factory=list)
+    thought_step: type[Step] | None = None
     use_known_actions: bool = False
     next_node: str = ""
     trim_obs_except_last_n: int = 2
@@ -330,7 +331,8 @@ class StandardNode(Node):
         """
         if not self._steps_type or (self.use_function_calls and not self.allow_code_blocks):
             # just yield the reasoning thought without parsing
-            yield ReasoningThought(reasoning=llm_output)
+            thought_cls = self.thought_step or ReasoningThought
+            yield thought_cls(reasoning=llm_output)
             return
         try:
             step_dicts = json.loads(sanitize_json_completion(llm_output))
