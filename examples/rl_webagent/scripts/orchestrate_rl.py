@@ -105,7 +105,7 @@ def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
 
     except Exception as e:
         logger.error(f"Failed to run task: {e}")
-        tape.metadata.result = {"success": False, "final_reward": 0.0, "error": str(e)}
+        tape.metadata.result = {"success": False, "reward": 0.0, "final_reward": 0.0, "error": str(e)}
 
     # Close the environment
     env.finish_task()
@@ -142,17 +142,42 @@ def extract_tape_training_samples_and_stats(
                 - 'overflows': Number of times the output overflowed token limit.
     """
     # Get final reward from tape metadata
-    final_reward = new_tape.metadata.result["final_reward"]
     success = new_tape.metadata.result["success"]
+    final_reward = new_tape.metadata.result["final_reward"]  # 0 if no sucess (reward <=0.5), 1 if success (reward > 0.5)
+    raw_reward = new_tape.metadata.result["reward"]
     no_error = not isinstance(new_tape.steps[-1], LLMOutputParsingFailureAction) and new_tape.metadata.result.get("error") is None
+    if not no_error:
+        final_reward = -1.0
+        raw_reward = -1.0
+
+    n_llm_calls = len([step for step in new_tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None])
+    if n_llm_calls == 0:
+        logger.warning(colored(f"tape {new_tape.metadata.id} has no LLM calls. n_steps:{len(new_tape.steps)}. final_reward:{final_reward}. raw_reward:{raw_reward}.", "red"))
+
+    raw_step_rewards = [(i, step.metadata.other.get("info", {}).get("task_info", {}).get("RAW_REWARD_GLOBAL", None)) for i, step in enumerate(new_tape.steps)]
+    raw_step_rewards = [(i, reward) for i, reward in raw_step_rewards if reward is not None]  # filter out nones
+    n_positive_rewards = len([reward for _, reward in raw_step_rewards if reward > 0])  # count number of positive rewards
+    if n_positive_rewards > 1:
+        logger.warning(colored(f"tape {new_tape.metadata.id} has {n_positive_rewards} positive rewards, but using final reward. Consider using step rewards instead.", "red"))
+
+    # design the reward. a few options to explore:
+    # - use final_reward at all steps
+    # - use raw_reward at all steps
+    # - use final_reward / n_llm_calls at all steps
+    # - use raw_reward / n_llm_calls at all steps
+    # - use step rewards at all steps (likely 0 everywhere except the last step)
+
+    # reward_to_use = final_reward
+    reward_to_use = raw_reward
+    # reward_to_use /= n_llm_calls if no_error else -1.0
+    # reward_to_use = None  # use step rewards instead
 
     training_samples: list[TrainingText] = []
     tape_prompt_tokens = 0
     tape_output_tokens = 0
     overflows = []
-    # For each LLM interaction in the tape:
-    # TODO: consider if we create a training sample for each LLM call or just one for the whole tape...
-    for step in new_tape.steps:
+    # For each LLM interaction in the tape, make a training example.
+    for i, step in enumerate(new_tape.steps):
         if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
             continue
 
@@ -178,10 +203,12 @@ def extract_tape_training_samples_and_stats(
             overflow = input_ids[-1] != tokenizer.eos_token_id
             overflows.append(overflow)
 
-            # Step specific reward are in the next PageObservation step
-            # TODO: change code to fetch these.
-            step_reward = step.metadata.other.get("reward", final_reward)
-            trace.reward = step_reward
+            if reward_to_use is not None:
+                trace.reward = reward_to_use
+            else:
+                # Step specific reward are in the **next** PageObservation step, so the first step with index > i.
+                step_reward = [r for j, r in raw_step_rewards if j > i][0]
+                trace.reward = step_reward
 
             trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
             trace.group_id = new_tape.metadata.parent_id
@@ -206,6 +233,8 @@ def generate_data(
     split_name: str,
     iteration: int,
 ) -> Tuple[WebTape, List[TrainingText], Dict[str, int]]:
+    # TODO: we could write a parralel version of this with 1 agent running multiple tasks in parallel
+    # by using agent.run_batch & environment.react_batch in some sort of main_loop_batch() function.
     """
     Worker function for generating tapes and training samples for a single task.
     This function will create the agent, env, and llm inside it.
@@ -228,7 +257,7 @@ def generate_data(
         tokenizer_name=str(model_path),
         parameters=cfg.llm.parameters,
         use_cache=False,
-        collect_logprobs=True,
+        collect_logprobs=split_name == "train",
         observe_llm_calls=False,
     )
     timers["instantiated_llm"] = time.perf_counter() - t
@@ -292,12 +321,37 @@ def batch_generate_data(
     start_make_data = time.time()
 
     ### STEP 1: run the agents on their tasks in parallel ###
-    logger.info(f"[it{iteration}] Run the agent on {split_name} with {cfg.n_processes_for_data_generation} processes.")
+    logger.info(f"[it{iteration}] Run the agent on {split_name} with {cfg.n_processes_for_data_generation} processes")
     results = Parallel(n_jobs=cfg.n_processes_for_data_generation, prefer="processes")(
         [delayed(generate_data)(cfg, task, url, split_name, iteration) for task, url in zip(tasks, urls)]
     )  # will return a list when all tasks are finished in the same order as the tasks
     logger.info(f"[it{iteration}] Making tapes took {time.time() - start_make_data}")
     assert len(results) == len(tasks), f"Number of results ({len(results)}) and tasks ({len(tasks)}) must match"
+
+    ##### DEBUG: load tapes form file #####
+    # exp_path = Path(cfg.output_dir)
+    # tapes_dir = exp_path / "tapes" / split_name / str(iteration)
+    # with open(tapes_dir / "tapes.json", "r") as f:
+    #     all_tapes = [WebTape(**tape) for tape in json.load(f)]
+
+    # if os.path.exists(exp_path / "finetune/current"):
+    #     model_path = str(exp_path / "finetune/current")
+    # else:
+    #     model_path = cfg.model_path
+    # llm = TrainableLLM(
+    #     base_url=urls[0],
+    #     model_name=str(model_path),
+    #     tokenizer_name=str(model_path),
+    #     parameters=cfg.llm.parameters,
+    #     use_cache=False,
+    #     collect_logprobs=True,
+    #     observe_llm_calls=False,
+    # )
+    # llm.load_tokenizer()
+    # results = []
+    # for new_tape in all_tapes:
+    #     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
+    #     results.append((new_tape, tape_training_samples, tape_stats))
 
     ### STEP 2: aggregate training samples and stats ###
     final_tapes: list[WebTape] = []  # list of final tapes
@@ -446,12 +500,12 @@ def main(cfg: DictConfig):
                 train_urls = [vllm_services[task_idx % n_services] for task_idx in range(n_train_tasks)]
                 splits = [("train", train_tasks, train_urls)]
 
-                # Create test split if needed
-                if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                    # Calculate how many agents to create for this service
-                    logger.info(f"[it{state['iteration']}] Creating test split with {len(test_samples)} tasks")
-                    test_urls = [vllm_services[task_idx % n_services] for task_idx in range(len(test_samples))]
-                    splits.append(("test", test_samples, test_urls))
+                # Create test split if needed TODO: uncomment when ready
+                # if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
+                #     # Calculate how many agents to create for this service
+                #     logger.info(f"[it{state['iteration']}] Creating test split with {len(test_samples)} tasks")
+                #     test_urls = [vllm_services[task_idx % n_services] for task_idx in range(len(test_samples))]
+                #     splits.append(("test", test_samples, test_urls))
 
                 ### Step 2.2: generate continuations for each split ###
                 for split_name, tasks, urls in splits:
