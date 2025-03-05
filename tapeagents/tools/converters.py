@@ -18,6 +18,7 @@ import base64
 import copy
 import html
 import json
+import logging
 import mimetypes
 import os
 import re
@@ -39,6 +40,8 @@ import whisper
 from bs4 import BeautifulSoup
 from readability import Document
 
+logger = logging.getLogger(__name__)
+
 # Optional PDF support
 IS_PDF_MINER_CAPABLE = False
 try:
@@ -46,8 +49,8 @@ try:
     import pdfminer.high_level
 
     IS_PDF_MINER_CAPABLE = True
-except ModuleNotFoundError:
-    pass
+except ModuleNotFoundError as e:
+    logger.warning(f"PDF conversion support via `pdfminer` not available: {str(e)}")
 
 IS_PDF_DOCLING_CAPABLE = False
 try:
@@ -56,8 +59,8 @@ try:
     from docling.document_converter import DocumentConverter as DoclingDocumentConverter, PdfFormatOption
 
     IS_PDF_DOCLING_CAPABLE = True
-except ModuleNotFoundError:
-    pass
+except ModuleNotFoundError as e:
+    logger.warning(f"PDF conversion support via `docling` not available: {str(e)}")
 
 # Optional YouTube transcription support
 IS_YOUTUBE_TRANSCRIPT_CAPABLE = False
@@ -65,8 +68,8 @@ try:
     from youtube_transcript_api import YouTubeTranscriptApi
 
     IS_YOUTUBE_TRANSCRIPT_CAPABLE = True
-except ModuleNotFoundError:
-    pass
+except ModuleNotFoundError as e:
+    logger.warning(f"YouTube transcript support via `youtube_transcript_api` not available: {str(e)}")
 
 
 class DocumentConverterResult:
