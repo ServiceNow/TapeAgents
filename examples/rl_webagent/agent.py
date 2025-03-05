@@ -178,7 +178,7 @@ class WebNode(MonoNode):
 class WebAgent(Agent):
     @classmethod
     def create(cls, llm: LLM, max_iterations: int = 4):
-        agent = super().create(
+        return super().create(
             llm,
             nodes=[
                 WebNode(
@@ -205,9 +205,6 @@ class WebAgent(Agent):
                 ),
             ],
             max_iterations=max_iterations,
+            store_llm_calls=True,
         )
-        agent.store_llm_calls = True
-        if agent.llm.tokenizer is None:
-            agent.llm.load_tokenizer()
-        return agent
 

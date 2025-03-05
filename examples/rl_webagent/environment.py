@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Any
+from joblib import Parallel, delayed
 
 from browsergym.core.task import AbstractBrowserTask
 from browsergym.miniwob.base import AbstractMiniwobTask
@@ -102,3 +103,10 @@ class WebEnvironment(Environment):
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape
+
+    def react_batch(self, tapes: list[WebTape], n_processes: int) -> list[WebTape]:
+        results = Parallel(n_jobs=n_processes)(
+            [delayed(self.react)(tape) for tape in tapes]
+        )
+        return results
+
