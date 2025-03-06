@@ -150,6 +150,11 @@ def extract_tape_training_samples_and_stats(
         final_reward = -1.0
         raw_reward = -1.0
 
+    # TODO: update rewards
+    # -1 if it doesn't fit the format, does not finish the reasoning, reason on an action step, ...
+    # 0 if follows the format but fails to succeed
+    # 1 if follows the format and succeeds
+
     n_llm_calls = len([step for step in new_tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None])
     if n_llm_calls == 0:
         logger.warning(colored(f"tape {new_tape.metadata.id} has no LLM calls. n_steps:{len(new_tape.steps)}. final_reward:{final_reward}. raw_reward:{raw_reward}.", "red"))
