@@ -266,7 +266,7 @@ class StandardNode(Node):
             if not event.output:
                 continue
             if event.output.content:
-                new_steps += list(self.parse_completion(event.output.content, llm_stream.prompt.id))
+                new_steps += list(self.parse_completion(event.output.content))
             if event.output.tool_calls and self.use_function_calls:
                 new_steps += [self.tool_call_to_step(tool_call) for tool_call in event.output.tool_calls]
             for i, step in enumerate(new_steps):
@@ -309,7 +309,7 @@ class StandardNode(Node):
         """
         return step
 
-    def parse_completion(self, llm_output: str, prompt_id: str) -> Generator[Step, None, None]:
+    def parse_completion(self, llm_output: str) -> Generator[Step, None, None]:
         """Parse LLM completion output into a sequence of agent steps.
 
         This method processes the LLM output string by parsing it as JSON and validating it against
@@ -317,10 +317,9 @@ class StandardNode(Node):
 
         Args:
             llm_output (str): The raw output string from the LLM to be parsed
-            prompt_id (str): Identifier for the prompt that generated this completion
 
         Yields:
-            Step: Individual validated agent steps with prompt_id metadata
+            Step: Individual validated agent steps
             LLMOutputParsingFailureAction: Error information if parsing or validation fails
 
         Note:
@@ -371,7 +370,6 @@ class StandardNode(Node):
             yield LLMOutputParsingFailureAction(error=f"Failed to parse LLM output dict: {e}", llm_output=llm_output)
             return
         for step in steps:
-            step.metadata.prompt_id = prompt_id
             yield step
 
     def extract_code_blocks(self, text: str) -> list[CodeBlock | str]:
