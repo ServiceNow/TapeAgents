@@ -263,17 +263,18 @@ class StandardNode(Node):
         """
         new_steps = []
         for event in llm_stream:
-            if event.output:
-                if event.output.content:
-                    new_steps += list(self.parse_completion(event.output.content, llm_stream.prompt.id))
-                if self.use_function_calls and event.output.tool_calls:
-                    new_steps += [self.tool_call_to_step(tool_call) for tool_call in event.output.tool_calls]
-                for i, step in enumerate(new_steps):
-                    yield self.postprocess_step(tape, new_steps[:i], step)
-                    if isinstance(step, LLMOutputParsingFailureAction):
-                        yield SetNextNode(next_node=self.name)  # loop to the same node to retry
-                        yield UserStep(content="Try again")
-                        break
+            if not event.output:
+                continue
+            if event.output.content:
+                new_steps += list(self.parse_completion(event.output.content, llm_stream.prompt.id))
+            if event.output.tool_calls and self.use_function_calls:
+                new_steps += [self.tool_call_to_step(tool_call) for tool_call in event.output.tool_calls]
+            for i, step in enumerate(new_steps):
+                yield self.postprocess_step(tape, new_steps[:i], step)
+                if isinstance(step, LLMOutputParsingFailureAction):
+                    yield SetNextNode(next_node=self.name)  # loop to the same node to retry
+                    yield UserStep(content="Try again")
+                    break
         if not new_steps:
             raise FatalError("No completions!")
         if (
