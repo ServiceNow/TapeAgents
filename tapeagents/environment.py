@@ -14,7 +14,7 @@ from pydantic import TypeAdapter
 
 from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
-from tapeagents.dialog_tape import AssistantStep, DialogTape
+from tapeagents.dialog_tape import AssistantStep, DialogTape, UserStep
 from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
 from tapeagents.tools.base import StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
@@ -176,8 +176,6 @@ class ToolCollectionEnvironment(Environment):
 
     def react(self, tape: Tape) -> Tape:
         for action in self.last_actions(tape):
-            if isinstance(action, LLMOutputParsingFailureAction):
-                continue
             observation = self.step(action)
             tape = tape.append(observation)
         return tape
@@ -185,6 +183,8 @@ class ToolCollectionEnvironment(Environment):
     def step(self, action: Action) -> Observation:
         t = time.perf_counter()
         action_type = type(action)
+        if isinstance(action, LLMOutputParsingFailureAction):
+            return UserStep(content="Try again")
         if action_type not in self.action_map:
             raise Exception(f"Unknown action: {action_type}")
         tool = self.action_map[action_type]
