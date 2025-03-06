@@ -262,27 +262,25 @@ class StandardNode(Node):
               it will yield a SetNextNode step to continue the execution flow.
         """
         new_steps = []
-        try:
-            cnt = 0
-            for event in llm_stream:
-                if event.output:
-                    cnt += 1
-                    if event.output.content:
-                        for step in self.parse_completion(event.output.content, llm_stream.prompt.id):
-                            step = self.postprocess_step(tape, new_steps, step)
-                            new_steps.append(step)
-                            yield step
-                    if self.use_function_calls and event.output.tool_calls:
-                        for tool_call in event.output.tool_calls:
-                            step = self.tool_call_to_step(tool_call)
-                            new_steps.append(step)
-                            yield step
-            if not cnt:
-                raise FatalError("No completions!")
-        except FatalError:
-            raise
-
-        if self.next_node and not isinstance(new_steps[-1] if new_steps else None, StopStep):
+        for event in llm_stream:
+            if event.output:
+                if event.output.content:
+                    new_steps += list(self.parse_completion(event.output.content, llm_stream.prompt.id))
+                if self.use_function_calls and event.output.tool_calls:
+                    new_steps += [self.tool_call_to_step(tool_call) for tool_call in event.output.tool_calls]
+                for i, step in enumerate(new_steps):
+                    yield self.postprocess_step(tape, new_steps[:i], step)
+                    if isinstance(step, LLMOutputParsingFailureAction):
+                        yield SetNextNode(next_node=self.name)  # loop to the same node to retry
+                        yield UserStep(content="Try again")
+                        break
+        if not new_steps:
+            raise FatalError("No completions!")
+        if (
+            self.next_node
+            and not isinstance(new_steps[-1], StopStep)
+            and not any(isinstance(step, SetNextNode) for step in new_steps)
+        ):
             yield SetNextNode(next_node=self.next_node)
 
     def tool_call_to_step(self, tool_call: ChatCompletionMessageToolCall) -> Step:
