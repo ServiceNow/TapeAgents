@@ -1,8 +1,8 @@
 {
     "metadata": {
-        "id": "76d54570-0133-4db8-9ee1-1b7346b15bf8",
-        "parent_id": "048c8497-aeb7-4a51-bbf0-da025f7758a9",
-        "author": "gaia_agent_v3",
+        "id": "a0c33a0f-9c23-47df-9c35-52f0cfc62b9f",
+        "parent_id": "b8fa3895-2435-4dad-b3b5-4ab6927273dd",
+        "author": "web_agent",
         "author_tape_id": null,
         "n_added_steps": 1,
         "error": null,
@@ -26,12 +26,11 @@
         "level": 1,
         "other": {
             "timers": {
-                "solve_task": 10.766366291005397,
-                "load_task": 0.0011026659922208637,
-                "instantiate_llm": 0.000941999998758547,
-                "create_env": 0.0005964579904684797,
-                "create_agent": 0.00025229099264834076,
-                "close_env": 0.0005247080116532743
+                "solve_task": 12.689768041003845,
+                "load_task": 0.0018930000078398734,
+                "instantiate_llm": 0.0019128329877275974,
+                "create_agent_env": 6.175087875002646,
+                "close_env": 0.18647891700675245
             }
         }
     },
@@ -41,10 +40,11 @@
     "steps": [
         {
             "metadata": {
-                "id": "0f664372-1519-4aac-9d62-e79b23c5397b",
+                "id": "61524092-f840-4373-896d-dca5da1284ed",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
+                "llm": "",
                 "other": {}
             },
             "kind": "question",
@@ -53,113 +53,48 @@
         },
         {
             "metadata": {
-                "id": "992d2c42-ab0e-4cd0-b02e-75e088d5bdc6",
-                "prompt_id": "1b454237-7008-493d-a497-7675c20c55b2",
+                "id": "03ab9c5f-c0b3-43a0-906d-88843586d5b6",
+                "prompt_id": "00c3dd97-019c-435c-8a5f-0f6823dcd2f4",
                 "node": "plan",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
-            "kind": "plan_thought",
-            "plan": [
-                "Search for the University of Leicester paper titled \"Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?\"",
-                "Locate the section of the paper that discusses the volume of the fish bag.",
-                "Extract the specific volume measurement provided in the paper, ensuring it is in cubic meters (m^3).",
-                "Verify the context of the volume measurement to ensure it pertains to the fish bag as mentioned in the question."
-            ]
+            "kind": "reasoning_thought",
+            "reasoning": "1. Perform a web search for the paper titled \"Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?\" to locate the document or relevant summaries.\n   \n2. If the paper is found, check for a PDF or direct link to access the full text. If not found, search for summaries or reviews that might contain the volume information.\n\n3. Once the paper is accessed, use the search function (Ctrl+F) to look for keywords such as \"volume,\" \"fish bag,\" or \"m^3\" to locate the specific section that discusses the volume of the fish bag.\n\n4. If the volume is found in the text, note the value. If not, check the references or appendices of the paper for any calculations or additional information related to the fish bag volume.\n\n5. If the volume is still unclear, perform a secondary web search for discussions or analyses of the paper that might mention the fish bag volume.\n\n6. Compile the findings and present the volume in m^3."
         },
         {
             "metadata": {
-                "id": "4c8462ab-c098-412d-8897-a2192a392801",
-                "prompt_id": "6176465b-52e0-40a6-83af-8fb419e1d9bc",
+                "id": "b6b36b64-661d-4aa2-aa68-169cd00f235e",
+                "prompt_id": "08efc67f-c509-414d-b4e5-122ddd644d7c",
                 "node": "facts_survey",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
-            "kind": "facts_survey_thought",
-            "given_facts": [
-                "The paper is titled 'Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?'",
-                "The paper is associated with the University of Leicester."
-            ],
-            "facts_to_lookup": [
-                "The volume of the fish bag mentioned in the paper.",
-                "The full text of the paper to find the relevant section."
-            ],
-            "facts_to_derive": [],
-            "facts_to_guess": []
+            "kind": "reasoning_thought",
+            "reasoning": "1. Specific facts or figures given in the request: None.\n\n2. Facts that may need to be looked up: The volume of the fish bag calculated in the University of Leicester paper \"Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?\" This information can be found in the paper itself or summaries/reviews of it.\n\n3. Facts that may need to be derived: None.\n\n4. Facts that are recalled from memory, hunches, well-reasoned guesses: None."
         },
         {
             "metadata": {
-                "id": "60b072b6-47f5-4daa-9f09-033da3921dc4",
-                "prompt_id": "20270ebe-d304-4911-af69-7e2da68ed852",
-                "node": "start",
-                "agent": "gaia_agent_v3",
+                "id": "5fe8da39-c4d7-4379-a39a-b524facc07bc",
+                "prompt_id": "7c868017-9cac-4f13-9ad8-8c22a2be376d",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
             "kind": "search_action",
             "source": "web",
-            "query": "Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet? University of Leicester paper"
+            "query": "Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet volume of fish bag m^3"
         },
         {
             "metadata": {
-                "id": "9e385519-1776-42a5-b3f4-541b4a6cfc67",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "other": {
-                    "action_execution_time": 0.7000072919909144,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet? University of Leicester paper",
-            "serp": [
-                {
-                    "title": "[PDF] Can Hiccup Supply Enough Fish to Maintain a Dragon's Diet?",
-                    "url": "https://journals.le.ac.uk/index.php/jist/article/download/733/684/1496",
-                    "content": "This paper investigates the feasibility of Hiccup, a teenage boy, being able to supply enough fish to maintain the dragon's diet by catching and ..."
-                },
-                {
-                    "title": "Can Hiccup Supply Enough Fish to Maintain a Dragon's Diet?",
-                    "url": "https://openpolar.no/Record/ftleicesterunojs:oai:ojs1.journals.le.ac.uk:article%2F733",
-                    "content": "Hiccup would have had to carry 828 fish weighing at total of 8592 kg over the twelve days, which is unrealistic since he struggles to lift a shield in combat."
-                },
-                {
-                    "title": "View of Can Hiccup Supply Enough Fish to Maintain a Dragon's Diet?",
-                    "url": "https://journals.le.ac.uk/index.php/jist/article/view/733/684",
-                    "content": "Return to Article Details Can Hiccup Supply Enough Fish to Maintain a Dragon's Diet? Download Download PDF. Thumbnails Document Outline Attachments"
-                },
-                {
-                    "title": "The Nutritional Value of Toothless' Meals",
-                    "url": "https://journals.le.ac.uk/index.php/jist/article/view/734",
-                    "content": "A previous paper determined that it was unfeasible that Hiccup would be able to carry the amount of fish depicted in the film, however this paper assumes ..."
-                },
-                {
-                    "title": "The Nutritional Value of Toothless' Meals - Open Polar",
-                    "url": "https://openpolar.no/Record/ftleicesterunojs:oai:ojs1.journals.le.ac.uk:article%2F734",
-                    "content": "Toothless uses 1.33x105 kJ in a day, so the amount of fish Hiccup brings would be sufficient to maintain his metabolism. Similar Items. Can Hiccup Supply Enough ..."
-                }
-            ],
-            "error": null
-        },
-        {
-            "metadata": {
-                "id": "6974eb96-d003-43c0-b6fd-2ecc3c4d0048",
-                "prompt_id": "199700fe-668a-45aa-aa7f-c28fe64ac0cb",
+                "id": "b6e1db9f-6308-47ab-9f53-b3697620187e",
+                "prompt_id": "7c868017-9cac-4f13-9ad8-8c22a2be376d",
                 "node": "act",
-                "agent": "gaia_agent_v3",
-                "other": {}
-            },
-            "kind": "read_document_action",
-            "url": "https://journals.le.ac.uk/index.php/jist/article/download/733/684/1496",
-            "fact_description": "volume of the fish bag",
-            "fact_name": "fish bag volume"
-        },
-        {
-            "metadata": {
-                "id": "46f46f52-5d3d-4cf8-8235-37450f9b33ac",
-                "prompt_id": "199700fe-668a-45aa-aa7f-c28fe64ac0cb",
-                "node": "act",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
             "kind": "set_next_node",
@@ -167,34 +102,62 @@
         },
         {
             "metadata": {
-                "id": "1d2d017f-5284-441a-a0dc-dd792bc5168c",
+                "id": "02aa54dc-285e-4c55-9e0d-811380f99420",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
+                "llm": "",
                 "other": {
-                    "action_execution_time": 1.8556902080017608,
-                    "action_kind": "read_document_action"
+                    "action_execution_time": 1.1044279159978032,
+                    "action_kind": "search_action"
                 }
             },
-            "kind": "page_observation",
-            "text": "Journal of Interdisciplinary Science Topics\n\nCan Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?\n\nAmal Doua\nThe Centre for Interdisciplinary Science, University of Leicester\n\n31/03/2017\n\nAbstract\nToothless is a Night Fury dragon who appears in the How to Train Your Dragon (HTTYD) franchise, and is\nsaid to be the rarest, fastest, and most intelligent of the dragon species. In the 2010 film, Toothless is struck\ndown  during  a  dragon  raid  and  loses  his  left  tail-fin,  leaving  him  trapped  in  a  sunken  area.  This  paper\ninvestigates  the  feasibility  of  Hiccup,  a  teenage  boy,  being  able  to  supply  enough  fish  to  maintain  the\ndragon’s diet by catching and bringing fish to him. It was found that in the twelve days that Toothless was\ntrapped, he would have required 13 Icelandic cod and 56 Atlantic salmon every day, which totalled 716 kg.\nHiccup  would  have  had  to  carry  828  fish  weighing  at  total  of  8592  kg  over  the  twelve  days,  which  is\nunrealistic since he struggles to lift a shield in combat.\n\nIntroduction\nThe  How  to  Train  Your  Dragon  franchise  is  loosely\nbased on the popular book series by Cressida Cowell\n[1]. The events take  place in  Viking  Scotland, in the\nsmall village of Berk which is repeatedly attacked by\ndragons. One of the  deadliest  dragon  species  is the\nNight Fury, which was previously unseen by any living\nperson.  It  is  described  as  the  “unholy  offspring  of\nlightning  and  death  itself”  due  to  its  speed  and\ncamouflage abilities [2]. Toothless is the only known\nNight Fury, and is shown to be intelligent and playful\nwhile also deadly.\n\nHiccup Horrendous Haddock III, the main protagonist,\nis  a  small  teenage  boy  eager  to  prove  himself  as  a\nViking. Using an invention which closely resembles a\nnet  gun,  Hiccup  strikes  down  Toothless  during  a\ndragon  raid.  Toothless’  left  caudal  fin  is  severed,\nrendering him unable to fly out of the sunken area,\nknown as The Cove [3]. Fish are a large component of\nis  exclusively\na  dragon’s  diet,  and  Toothless\ndependent  on  fish  for  nutrition  [4].  This  paper\ninvestigates  whether  Hiccup  is  able  to  maintain\nToothless’ feeding habits while he is trapped in The\nCove.\n\nAssumptions\nSeveral  assumptions  and  simplifications  must  be\nmade  to  calculate  the  required  values.  During  the\ntime  lapse  montages  in  the  film,  it  is  taken  that\n\nToothless is in The Cove for a total of twelve days [5].\nIt is assumed that Hiccup visited once a day for the\nduration of Toothless’ stay.\n\nOn  the  third  day,  Hiccup  brings  a  sack  of  fish,  and\nmentions that it contains Icelandic cod and salmon.\nThere  is  also  a  pond  in  the  clearing,  and  one  scene\nshows  Toothless  hunting  for  fish.  However,  in  this\npaper,  it  is  assumed  that  Toothless  relies  solely  on\nHiccup for nutrition. During his time in The Cove, it is\nassumed  that  his  diet  consists  of  only  salmon  and\ncod. It is also assumed that each sack contained the\nsame amount of fish, and that he received the same\namount every day for twelve days.\n\nThe sack is modelled as a cylinder, while the fish have\nbeen modelled as prolate spheroids (see Appendix for\nvisual aids).\n\nFigure 1 – Comparison of size of Hiccup to bag [5].\n\nSize of the bag\nHiccup is said to be 1.625 m tall [6], and using average\nmale  proportions,  the  bag  appears  to  be  3/8  of  his\nheight [7]. Therefore, the height of the bag,\n\n:\n\n𝐻𝐻𝑏𝑏𝑏𝑏𝑏𝑏\n\n\fCan Hiccup Supply Enough Fish to Maintain a Dragon’s Diet? March 31st 2017\n\n3\n8\n\n𝐻𝐻𝑏𝑏𝑏𝑏𝑏𝑏 ≈\n\n(1)\nThe  bag  appears  to  have  the  same  height  as  the\ndiameter;  the  diameter  is  taken  to  be  0.6094  m.\nHence the radius,\n\n(1.625 𝑚𝑚) ≈ 0.6094 𝑚𝑚\n\n:\n\n𝑟𝑟\n\n𝑟𝑟 =\nSo, the volume of the bag,\n\n(0.6094) = 0.3047 𝑚𝑚\n\n is:\n\n1\n2\n\n𝑉𝑉𝑏𝑏𝑏𝑏𝑏𝑏\n2\n\n𝑉𝑉𝑏𝑏𝑏𝑏𝑏𝑏 = 𝜋𝜋𝑟𝑟\n2\n𝑉𝑉𝑏𝑏𝑏𝑏𝑏𝑏 = 𝜋𝜋 × (0.3047 𝑚𝑚)\n\nℎ\n\n× (0.6094 𝑚𝑚)\nTherefore, the bag has a capacity of 0.1777 m3.\n\n∴ 𝑉𝑉𝑏𝑏𝑏𝑏𝑏𝑏 = 0.1777 𝑚𝑚\n\n3\n\n(2)\n\n(3)\n\n(4)\n\nFish sizes\nThe  fish  considered  in  Toothless’  diet  are  Atlantic\nsalmon,  Salmo  salar  [8],  and  Icelandic  cod,  Gadus\nmorhua [9]. The average dimensions are summarised\nin Table 1.\n\nSpecies\n\nLength (m)\n\nMass (kg)\n\nAtlantic salmon  0.70 – 0.75 [8]\n\n3.5 – 13.5 [8]\n\nIcelandic cod  0.55 – 0.90 [9]  40.0 – 96.0 [9, 10]\nTable 1 – Dimensions of fish\n\nThe length of salmon was calculated by comparing to\nHiccup’s height [7]; the salmon was determined to be\n1/4 of his height. The width was then established by\ntracing  the  image  and  comparing  the  ratio  of  the\nlength  to  width.  This  was  replicated  for  cod.  The\nvalues were close to the lower estimates in Table 1;\nthe final values used are summarised in Table 2.\n\nSpecies\n\nLength (m)  Width (m)  Mass (kg)\n\nAtlantic salmon\n\n0.4063\n\n0.0864\n\n3.5\n\nIcelandic cod\nTable 2 – Dimensions of fish used for calculations\n\n0.1567\n\n0.5500\n\n40.0\n\nThe volume of a prolate spheroid,\n\n:\n\n𝑉𝑉𝑝𝑝𝑝𝑝\n\n2\n\n width,\n\nWhere\nis  the  radius  and\n𝑎𝑎 = 1/2\nTherefore, for salmon\n𝑐𝑐\n\n4\n3\n\n𝑉𝑉𝑝𝑝𝑝𝑝 =\n\n𝜋𝜋𝑎𝑎\n\n𝑐𝑐\n length and\n  half  the  head-to-tail  length.\n𝑎𝑎\n, and\n\n𝑐𝑐 = 1/2\n\n𝑎𝑎 < 𝑐𝑐\n\n(5)\n;\n\n and\n\n𝑎𝑎 = 0.043\n\n𝑐𝑐 = 0.203\n\n and\nfor cod\nvolumes of the salmon,\n\n𝑎𝑎 = 0.078\n\n. Using Eq.  (5) the\n\n, and cod,\n\n, are hence:\n\n𝑐𝑐 = 0.275\n𝑉𝑉𝑆𝑆\n\n𝑉𝑉𝐶𝐶\n\n𝑉𝑉𝑆𝑆 =\n\n2\n𝜋𝜋(0.043)\n\n(0.203) = 0.0016 𝑚𝑚\n\n(6)\n\n3\n\n3\n\n2\n𝜋𝜋(0.078)\n\n𝑉𝑉𝐶𝐶 =\n\n(7)\nTherefore, the volumes of each salmon and cod are\n0.0016 and 0.0071 m3 respectively.\n\n(0.275) = 0.0071 𝑚𝑚\n\n4\n3\n4\n3\n\nPortion size\nThe number of each fish,\n, is multiplied by\nthe volumes from Eq. (6) and (7) respectively. This is\n𝑁𝑁𝑆𝑆\nequal to the total volume of the bag from Eq. (4):\n\n and\n\n𝑁𝑁𝐶𝐶\n\nIt  is  assumed  that  the  salmon  and  cod  occupy  the\n0.1777 = 0.0016𝑁𝑁𝑆𝑆 + 0.0071𝑁𝑁𝐶𝐶\n(8)\nsame volumes in the bag, and that they are efficiently\npacked so the entire sack is occupied. Therefore;\n\n0.0889 = 0.0016𝑁𝑁𝑆𝑆\n∴ 𝑁𝑁𝑆𝑆 = 56\n\nThe masses of the fishes are:\n\n0.0889 = 0.0071𝑁𝑁𝐶𝐶\n∴ 𝑁𝑁𝐶𝐶 = 13\n\n(9)\n\n(10)\n\n𝑀𝑀𝑆𝑆 = 56(3.5 𝑘𝑘𝑘𝑘) = 196.0 𝑘𝑘𝑘𝑘\n\n(11)\n\nTherefore, in one day the bag contains 56 salmon and\n𝑀𝑀𝐶𝐶 = 25(40 𝑘𝑘𝑘𝑘) = 520.0 𝑘𝑘𝑘𝑘\n(12)\n13 cod, with a total weight of 716.0 kg.\n\nConclusion\nIn the film, it appears that Toothless was in The Cove\nfor twelve days and it was assumed that he was solely\ndependent on Hiccup for nutrition. The bag used to\nprovide food was calculated as having a capacity of\n0.1777 m3, and could hold 56 Atlantic salmon and 13\nIcelandic cod. Hiccup would have to carry 716 kg of\nfish to The Cove every day, a total of 8592 kg over the\nperiod of twelve days. Hiccup is depicted as physically\nweak,  and  is  unable  to  even  hold  up  a  shield  for  a\nprolonged time. It is therefore concluded that Hiccup\nwould be unable to carry the bag and could not feed\nToothless  for  the  duration  of  his  time  in  The  Cove,\nunless he made several trips, used less heavy fish, or\ndidn’t fully fill the sack.\n\n\fCan Hiccup Supply Enough Fish to Maintain a Dragon’s Diet? March 31st 2017\n\nReferences\n[1]   How to Train Your Dragon Wikia (2017) Toothless (Franchise), 8 March 2017. [Online]. Available at:\nhttp://howtotrainyourdragon.wikia.com/wiki/Toothless_(Franchise). [Accessed 10 March 2017].\n\n[2]   How to Train Your Dragon Wikia (2017) Night Fury, 7 March 2017. [Online]. Available at:\nhttp://howtotrainyourdragon.wikia.com/wiki/Night_Fury. [Accessed 17 March 2017].\n\n[3]   School of Dragons (2014) The Cove. [Online]. Available at: http://www.schoolofdragons.com/how-to-\n\ntrain-your-dragon/areas/the-cove. [Accessed 16 March 2017].\n\n[4]   How to Train Your Dragon Wikia (2016) Fish, 11 December 2016. [Online]. Available at:\n\nhttp://howtotrainyourdragon.wikia.com/wiki/Fish. [Accessed 16 March 2017].\n\n[5]   Sanders, C. & DeBlois, B. (2010) How To Train Your Dragon. [Film]. United States of America:\n\nDreamWorks Animation.\n\n[6]   Endy (2013) So regarding Hiccup's height - An analysis by a man of science, 2013. [Online]. Available at:\n\nhttp://thatendyperson.tumblr.com/post/55555820720/so-regarding-hiccups-height-an-analysis-by-a.\n[Accessed 17 March 2017].\n\n[7]   idrawdigital (2009) Drawing Tutorial: Anatomy and Proportion #1, 14 January 2009. [Online]. Available\nat: http://www.idrawdigital.com/2009/01/drawing-tutorial-anatomy-and-proportion-1/. [Accessed 17\nMarch 2017].\n\n[8]   NOAA Fisheries (2016) Atlantic salmon (Salmo salar), 10 February 2016. [Online]. Available at:\nhttp://www.nmfs.noaa.gov/pr/species/fish/atlantic-salmon.html. [Accessed 16 March 2017].\n\n[9]   Icelandic Seafood International (2013) Icelandic Cod. [Online]. Available at:\n\nhttp://www.icelandseafood.is/responsibility/main-species-fact-sheets-2/icelandic-cod-2/. [Accessed 16\nMarch 2017].\n\n[10]  Wilmot, C. (2005) Gadus morhua (On-line), Animal Diversity Web. [Online]. Available at:\nhttp://animaldiversity.org/accounts/Gadus_morhua/. [Accessed 17 March 2017].\n\n\fCan Hiccup Supply Enough Fish to Maintain a Dragon’s Diet? March 31st 2017\n\nAppendix\n\nProlate spheroid:\n\na\n\na\n\nc\n\nFigure A – Prolate spheroid where\n\n length and\n\n;\n\n is the radius and\n\n is the\n\n width,\nhead-to-tail length\n\n 𝑎𝑎 = 1/2\n\n𝑐𝑐 = 1/2\n\n𝑎𝑎 < 𝑐𝑐\n\n𝑎𝑎\n\n𝑐𝑐\n\nAtlantic salmon:\n\nIcelandic cod\n\nFigure B – Atlantic salmon from HTTYD TV series [A1]\n\nFigure C – Icelandic cod [A2]\n\n\fCan Hiccup Supply Enough Fish to Maintain a Dragon’s Diet? March 31st 2017\n\nHiccup holding salmon:\n\nFigure D – Hiccup holding Atlantic salmon [A3]\n\nSalmon with prolate spheroid overlaid:\n\nwidth\n\nc\n\na\n\na\n\nlength\n\nFigure E – Atlantic salmon with prolate spheroid overlaid\n\nUsing  average  male  proportions  [A4],  the  salmon  is  considered  to  be  1/4  of  Hiccup’s  height  (Figure  D).\nTherefore, the length is calculated to be 0.4063 m with a width of 0.0864 m. Since this was around the lower\nestimate of Table 1, the mass was taken as 3.5 kg.\n\n\fCan Hiccup Supply Enough Fish to Maintain a Dragon’s Diet? March 31st 2017\n\nCod with prolate spheroid overlaid:\n\nwidth\n\nc\n\na\n\na\n\nlength\n\nFigure F – Icelandic cod with prolate spheroid overlaid\n\nSince the salmon length was on the lower scale of the estimates in Table 1, the lower estimate of length for\ncod was used. Length was hence taken as being 0.5500 m and the width was calculated to be 0.1567 m. The\nlower mass estimate was taken as 40 kg.\n\nAppendix Additional References\n\n[A1]   How to Train Your Dragon Wikia (2016) Fish, 11 December 2016. [Online]. Available at:\nhttp://howtotrainyourdragon.wikia.com/wiki/Fish. [Accessed 16 March 2017].\n\n[A2]   Wikipedia (2017) Cod, 15 February 2017. [Online]. Available at: https://en.wikipedia.org/wiki/Cod.\n\n[Accessed 17 March 2017].\n\n[A3]   Sanders, C. & DeBlois, B. (2010) How To Train Your Dragon. [Film]. United States of America:\n\nDreamWorks Animation.\n\n[A4]   idrawdigital (2009) Drawing Tutorial: Anatomy and Proportion #1, 14 January 2009. [Online]. Available\nat: http://www.idrawdigital.com/2009/01/drawing-tutorial-anatomy-and-proportion-1/. [Accessed 17\nMarch 2017].\n\n\fCan Hiccup Supply Enough Fish to Maintain a Dragon’s Diet? March 31st 2017\n\nReferences\n\n[1]  How to Train Your Dragon Wikia, “Fish,” 11 December 2016. [Online]. Available:\nhttp://howtotrainyourdragon.wikia.com/wiki/Fish. [Accessed 16 March 2017].\n\n[2]  Wikipedia, “Cod,” 15 February 2017. [Online]. Available: https://en.wikipedia.org/wiki/Cod. [Accessed\n\n17 March 2017].\n\n[3]  C. Sanders and B. DeBlois, Directors, How To Train Your Dragon. [Film]. United States of America:\n\nDreamWorks Animation, 2010.\n\n[4]  idrawdigital, “Drawing Tutorial: Anatomy and Proportion #1,” 14 January 2009. [Online]. Available:\nhttp://www.idrawdigital.com/2009/01/drawing-tutorial-anatomy-and-proportion-1/. [Accessed 17\nMarch 2017].",
-            "current_page": 1,
-            "total_pages": 1,
+            "kind": "search_results_observation",
+            "query": "Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet volume of fish bag m^3",
+            "serp": [
+                {
+                    "title": "View of Can Hiccup Supply Enough Fish to Maintain a Dragon's Diet?",
+                    "url": "https://journals.le.ac.uk/index.php/jist/article/view/733/684",
+                    "content": "The bag used to provide food was calculated as having a capacity of 0.1777 m3, and could hold 56 Atlantic salmon and 13 Icelandic cod. Hiccup would have to ..."
+                },
+                {
+                    "title": "[PDF] Can Hiccup Supply Enough Fish to Maintain a Dragon's Diet?",
+                    "url": "https://journals.le.ac.uk/index.php/jist/article/download/733/684/1496",
+                    "content": "The bag used to provide food was calculated as having a capacity of 0.1777 m3, and could hold 56 Atlantic salmon and 13 Icelandic cod. Hiccup ..."
+                },
+                {
+                    "title": "Can Hiccup Supply Enough Fish to Maintain a Dragon's Diet?",
+                    "url": "https://openpolar.no/Record/ftleicesterunojs:oai:ojs1.journals.le.ac.uk:article%2F733",
+                    "content": "This paper investigates the feasibility of Hiccup, a teenage boy, being able to supply enough fish to maintain the dragon's diet by catching and bringing fish ..."
+                },
+                {
+                    "title": "Hiccup Haddock | Universal Studios Wiki - Fandom",
+                    "url": "https://universalstudios.fandom.com/wiki/Hiccup_Haddock",
+                    "content": "Hiccup Horrendous Haddock III is the protagonist of DreamWorks Animation's How to Train Your Dragon franchise. He is the Viking son of the chief, ..."
+                },
+                {
+                    "title": "I'm really concerned and sad that I should put my Golden Ram down ...",
+                    "url": "https://www.facebook.com/groups/379120905458325/posts/8552238008146533/",
+                    "content": "Put in small hospital tank/1gal fish bowl with an airstone and a good airpump. If the fish is eating keep water clean and consistent temperature (79.5 -82°F)."
+                }
+            ],
             "error": null
         },
         {
             "metadata": {
-                "id": "da7fb254-5cf4-4964-9f4b-9aa2be32b8aa",
-                "prompt_id": "06d3dd07-1f1f-49a2-91a3-da49506a2b83",
+                "id": "9163ff61-2617-47cf-be08-fbbab7e8ce78",
+                "prompt_id": "78d53980-b58d-4e85-8f70-63c76bbb586f",
                 "node": "act",
-                "agent": "gaia_agent_v3",
+                "agent": "web_agent",
+                "llm": "default",
                 "other": {}
             },
             "kind": "gaia_answer_action",
             "success": true,
-            "overview": "The volume of the fish bag calculated in the paper.",
+            "overview": "Found the volume of the fish bag in the paper.",
             "answer_unit": "m^3",
-            "answer": "0.1777"
+            "answer": "0.1777",
+            "long_answer": "The volume of the fish bag calculated in the University of Leicester paper 'Can Hiccup Supply Enough Fish to Maintain a Dragon’s Diet?' is 0.1777 m^3."
         }
     ]
 }

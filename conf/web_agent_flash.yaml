@@ -1,0 +1,6 @@
+defaults:
+  - web_agent
+  - _self_
+  - override llm: gemini_flash_2
+
+exp_name: flash_web_agent

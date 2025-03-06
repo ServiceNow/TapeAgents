@@ -1,0 +1,8 @@
+defaults:
+  - web_agent
+  - _self_
+  - llm@reasoner: gemini_flash_2_thinking
+  - override llm: gemini_flash_2
+  - override agent: plan_react_with_reasoner
+
+exp_name: flash_2_web_reasoner

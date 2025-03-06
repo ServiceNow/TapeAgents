@@ -1,0 +1,26 @@
+defaults:
+  - _self_
+  - llm: sonnet
+  - agent: web_plan_react_fcall
+  - environment: web_simple_browser
+
+split: validation
+batch: 1
+retry_unsolved: false
+
+only_tasks: # list of (level, task_num)
+- [1, 0]
+# - [1, 1]
+# - [1, 2]
+# - [1, 3]
+# - [1, 4]
+# - [1, 5]
+# - [1, 6]
+# - [1, 7]
+
+exp_name: fcall_debug_sonnet
+exp_path: outputs/web_agent/runs/${exp_name}
+
+hydra:
+  run:
+    dir: ${exp_path}

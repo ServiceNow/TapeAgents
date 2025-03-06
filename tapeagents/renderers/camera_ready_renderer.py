@@ -9,14 +9,14 @@ from tapeagents.dialog_tape import (
     AssistantStep,
     DialogContext,
     SystemStep,
-    ToolCalls,
-    ToolResult,
     UserStep,
 )
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
 from tapeagents.io import UnknownStep
-from tapeagents.observe import LLMCall
+from tapeagents.llms import LLMCall
 from tapeagents.renderers.basic import BasicRenderer
+from tapeagents.steps import ReasoningThought
+from tapeagents.tool_calling import ToolCalls, ToolResult
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.tools.container_executor import ANSI_ESCAPE_REGEX, CodeBlock
 from tapeagents.view import Broadcast, Call, Respond
@@ -160,6 +160,8 @@ class CameraReadyRenderer(BasicRenderer):
                     text += render_image(file)
         elif isinstance(step, PythonCodeAction):
             text = f"# {step.name}\n{maybe_fold(step.code, 2000)}"
+        elif isinstance(step, ReasoningThought):
+            text = step.reasoning
         else:
             foldable_keys = ["content", "text"]
             content = ""
@@ -212,6 +214,10 @@ class CameraReadyRenderer(BasicRenderer):
             role = f"{m['role']} ({m['name']})" if "name" in m else m["role"]
             prompt_messages.append(f"{role}: {m['content'] if 'content' in m else m['tool_calls']}")
         prompt_text = "\n--\n".join(prompt_messages)
+        output = llm_call.output.content or ""
+        if llm_call.output.tool_calls:
+            tool_calls = "\n".join([call.to_json() for call in llm_call.output.tool_calls])
+            output += f"\nTool calls:\n{tool_calls}"
         prompt_length_str = (
             f"{llm_call.prompt_length_tokens} tokens"
             if llm_call.prompt_length_tokens
@@ -233,7 +239,7 @@ class CameraReadyRenderer(BasicRenderer):
         if llm_call.output:
             html += f"""
                     <div style='flex: 1;'>
-                        <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word;'>{llm_call.output.content}</pre>
+                        <pre style='font-size: 12px; white-space: pre-wrap; word-wrap: break-word; word-break: break-all; overflow-wrap: break-word;'>{output}</pre>
                     </div>"""
 
         html += """

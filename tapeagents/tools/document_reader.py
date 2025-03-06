@@ -1,17 +1,26 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Tool
-from tapeagents.tools.converters import FileConversionException, FileConverter, UnsupportedFormatException
+from tapeagents.tools.converters import (
+    FileConversionException,
+    FileConverter,
+    PdfConverter,
+    PdfMinerConverter,
+    UnsupportedFormatException,
+)
 
 
-def read_document(path: str) -> tuple[str, str | None]:
+def read_document(
+    path: str, preferred_pdf_converter: Optional[type[PdfConverter | PdfMinerConverter]] = PdfConverter
+) -> tuple[str, str | None]:
+    """Read a document, file or image and and convert it to Markdown."""
     try:
         text = ""
         error = None
-        text = FileConverter().convert(path).text_content
+        text = FileConverter(preferred_pdf_converter=preferred_pdf_converter).convert(path).text_content
     except UnsupportedFormatException as e:
         error = f"Failed to read document {path}: {e}"
     except FileConversionException as e:
@@ -43,7 +52,8 @@ class DocumentReader(Tool):
 
     action: type[Action] = ReadLocalDocumentAction
     observation: type[Observation] = DocumentObservation
+    preferred_pdf_converter: Optional[type[PdfConverter | PdfMinerConverter]] = PdfConverter
 
     def execute_action(self, action: ReadLocalDocumentAction) -> DocumentObservation:
-        text, error = read_document(action.path)
+        text, error = read_document(action.path, self.preferred_pdf_converter)
         return DocumentObservation(text=text, error=error)

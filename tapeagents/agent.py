@@ -12,17 +12,12 @@ from typing import Any, Generator, Generic
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
 
-from tapeagents.core import LLMOutputParsingFailureAction
-from tapeagents.observe import observe_llm_call
-from tapeagents.view import TapeViewStack
-
-from .core import (
+from tapeagents.core import (
     Action,
     AgentEvent,
     AgentStep,
     AnnotatorTapeType,
-    LLMCall,
-    LLMOutput,
+    LLMOutputParsingFailureAction,
     MakeObservation,
     ObservationMakerTapeType,
     PartialStep,
@@ -34,7 +29,9 @@ from .core import (
     Thought,
     TrainingText,
 )
-from .llms import LLM, LLMEvent, LLMStream, TrainableLLM
+from tapeagents.llms import LLM, LLMCall, LLMEvent, LLMOutput, LLMStream, TrainableLLM
+from tapeagents.observe import observe_llm_call
+from tapeagents.view import TapeViewStack
 
 DEFAULT = "default"
 
@@ -107,6 +104,7 @@ class Node(BaseModel):
     """
 
     name: str = ""
+    llm: str = DEFAULT
 
     def model_post_init(self, __context: Any) -> None:
         if not self.name:
@@ -203,6 +201,8 @@ class Agent(BaseModel, Generic[TapeType]):
         default_factory=lambda: [],
         description="List of nodes in the agent, order of the list used to determine the priority during activation. Nodes must have unique names.",
     )
+    known_actions: list[type[Action]] = Field(default_factory=list)
+    tools_description: str = ""
     max_iterations: int = 100
     store_llm_calls: bool = False
 
@@ -213,7 +213,7 @@ class Agent(BaseModel, Generic[TapeType]):
     def model_post_init(self, __context: Any) -> None:
         if not self.name:
             # by default use the class name without the values for type variables
-            # e.g. "Agent" instea of "Agent[Tape[...]]""
+            # e.g. "Agent" instead of "Agent[Tape[...]]""
             self.name = self.__class__.__name__.split("[")[0]
         names = set()
         for i, agent in enumerate(self.subagents):
@@ -234,6 +234,12 @@ class Agent(BaseModel, Generic[TapeType]):
                 raise ValueError(
                     f'Duplicate node name "{node.name}" in node {i}, pass a unique name to the node during creation'
                 )
+            if self.llms and node.llm not in self.llms:
+                raise ValueError(
+                    f"Node {node.name} references unknown LLM {node.llm}. Known LLMs: {list(self.llms.keys())}"
+                )
+            if hasattr(node, "add_known_actions"):
+                node.add_known_actions(self.known_actions)
             node_names.add(node.name)
         return super().model_post_init(__context)
 
@@ -534,6 +540,8 @@ class Agent(BaseModel, Generic[TapeType]):
         for step in node.generate_steps(self, tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.node = node.name
+                if node.llm:
+                    step.metadata.llm = node.llm
             yield step
 
     def make_llm_output(self, tape: TapeType, index: int) -> LLMOutput:
@@ -627,8 +635,10 @@ class Agent(BaseModel, Generic[TapeType]):
         if llm_stream is None:
             prompt = self.make_prompt(tape)
             if len(self.llms) > 1:
-                raise NotImplementedError("TODO: implement LLM choice in the prompt")
-            llm_stream = self.llm.generate(prompt) if prompt else LLMStream(None, prompt)
+                llm = self.llms[self.select_node(tape).llm]
+            elif len(self.llms) == 1:
+                llm = self.llm
+            llm_stream = llm.generate(prompt) if prompt else LLMStream(None, prompt)
         for step in self.generate_steps(tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.prompt_id = llm_stream.prompt.id

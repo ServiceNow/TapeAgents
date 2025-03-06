@@ -5,13 +5,17 @@ Various utility functions.
 import base64
 import difflib
 import fcntl
+import importlib
+import io
 import json
 import os
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 import jsonref
+from PIL import Image
 from pydantic import TypeAdapter
 from termcolor import colored
 
@@ -86,20 +90,22 @@ def sanitize_json_completion(completion: str) -> str:
 
 
 def without(d: dict, key: str) -> dict:
-    d.pop(key)
+    if key in d:
+        d.pop(key)
     return d
 
 
-def get_step_schemas_from_union_type(cls) -> str:
+def get_step_schemas_from_union_type(cls, simplify: bool = True) -> str:
     schema = TypeAdapter(cls).json_schema()
     dereferenced_schema: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
     clean_schema = []
     for step in dereferenced_schema["oneOf"]:
-        step = without(step, "title")
         step["properties"] = without(step["properties"], "metadata")
-        for prop in step["properties"]:
-            step["properties"][prop] = without(step["properties"][prop], "title")
-        step["properties"]["kind"] = {"const": step["properties"]["kind"]["const"]}
+        if simplify:
+            step = without(step, "title")
+            for prop in step["properties"]:
+                step["properties"][prop] = without(step["properties"][prop], "title")
+            step["properties"]["kind"] = {"const": step["properties"]["kind"]["const"]}
         clean_schema.append(step)
     return json.dumps(clean_schema, ensure_ascii=False)
 
@@ -108,6 +114,19 @@ def image_base64_message(image_path: str) -> dict:
     image_extension = os.path.splitext(image_path)[1][1:]
     content_type = f"image/{image_extension}"
     base64_image = encode_image(image_path)
+    message = {"type": "image_url", "image_url": {"url": f"data:{content_type};base64,{base64_image}"}}
+    return message
+
+
+def resize_base64_message(message: dict, max_size: int = 1280) -> dict:
+    base64_image = message["image_url"]["url"].split(",", maxsplit=1)[1]
+    image = Image.open(io.BytesIO(base64.b64decode(base64_image)))
+    if image.size[0] > max_size or image.size[1] > max_size:
+        image.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+    with tempfile.NamedTemporaryFile() as tmp:
+        image.save(tmp.name, "PNG")
+        base64_image = encode_image(tmp.name)
+        content_type = "image/png"
     message = {"type": "image_url", "image_url": {"url": f"data:{content_type};base64,{base64_image}"}}
     return message
 
@@ -125,6 +144,19 @@ def acquire_timeout(lock, timeout):
     finally:
         if result:
             lock.release()
+
+
+def class_for_name(full_name: str) -> Any:
+    if "." in full_name:
+        module_name, class_name = full_name.rsplit(".", 1)
+    else:
+        module_name = "."
+        class_name = full_name
+    # load the module, will raise ImportError if module cannot be loaded
+    m = importlib.import_module(module_name)
+    # get the class, will raise AttributeError if class cannot be found
+    c = getattr(m, class_name)
+    return c
 
 
 class Lock:

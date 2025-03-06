@@ -10,9 +10,6 @@ from tapeagents.dialog_tape import (
     AssistantStep,
     DialogContext,
     DialogTape,
-    ToolCalls,
-    ToolResult,
-    ToolSpec,
     UserStep,
 )
 from tapeagents.environment import (
@@ -22,6 +19,7 @@ from tapeagents.environment import (
 from tapeagents.llms import LiteLLM, LLMStream
 from tapeagents.orchestrator import main_loop
 from tapeagents.prompting import tape_to_messages
+from tapeagents.tool_calling import ToolCalls, ToolResult, ToolSpec
 
 MOCK_TOOL_ENV_PROMPT_TEMPLATE = """You will generate result of the following function call
 
