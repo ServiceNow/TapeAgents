@@ -159,12 +159,12 @@ class SelectOptionAction(Action):
     option: str = Field(description="option to select")
 
 
-class ClickAction(Action):
+class ClickBIDAction(Action):
     """
     Action that clicks the element on the page with the provided BID
     """
 
-    kind: Literal["click_action"] = "click_action"
+    kind: Literal["click_bid_action"] = "click_bid_action"
     bid: str = Field(description="BID of the element to click")
     button: Literal["left", "middle", "right"] = Field(description="button to click", default="left")
     modifiers: list[Literal["Alt", "Control", "Meta", "Shift"]] = Field(
@@ -172,7 +172,7 @@ class ClickAction(Action):
     )
 
 
-class MouseClickAction(Action):
+class ClickElementAction(Action):
     """
     Action that clicks an element on the screen.
     When mentioning a date in the element description, use the format commonly spoken or written by humans,
@@ -181,8 +181,19 @@ class MouseClickAction(Action):
     Only describe one specific element that is currently visible on the screen!
     """
 
-    kind: Literal["mouse_click_action"] = "mouse_click_action"
+    kind: Literal["click_element_action"] = "click_element_action"
     element_description: str = Field(description="brief description of the element to click")
+
+
+class ClickCoordinatesAction(Action):
+    """
+    Action that moves the mouse to a (x, y) coordinate location and click a mouse button.
+    """
+
+    kind: Literal["click_coordinates_action"] = "click_coordinates_action"
+    x: float = Field(description="x coordinate of the click")
+    y: float = Field(description="y coordinate of the click")
+    button: Literal["left", "middle", "right"] = Field(description="button to click", default="left")
 
 
 class PageScreenshotObservation(ImageObservation):
@@ -194,23 +205,10 @@ class Browser(StatefulTool):
     Browser tool that can load web pages and interact with their content.
     """
 
-    actions: tuple[type[Action], ...] = (
-        ClickAction,
-        OpenUrlAction,
-        GoBackAction,
-        GoForwardAction,
-        HoverAction,
-        InputTextAction,
-        PressAction,
-        PageDownAction,
-        PageUpAction,
-        SelectOptionAction,
-    )
+    actions: tuple[type[Action], ...] = ()  # will get assigned in model_post_init
     observations: tuple[type[Observation], ...] = (PageObservation, PageScreenshotObservation)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
-    axtree: bool = True
-    html: bool = False
-    markdown_html: bool = False
+    observation_format: Literal["axtree", "html", "markdown_html"] = "axtree"
     use_grounding: bool = False
     navigation_only: bool = False
     viewport_chars: int = 32000
@@ -246,7 +244,7 @@ class Browser(StatefulTool):
             self._grounding = GroundingModel()
             logger.info("Using grounding model")
             self._action_map = {
-                MouseClickAction: self.click_grounded,
+                ClickElementAction: self.click_grounded,
                 CloseTabAction: self.close_tab,
                 TypeTextAction: self.input_text_grounded,
                 GoBackAction: self.go_back,
@@ -261,7 +259,7 @@ class Browser(StatefulTool):
         elif self.navigation_only:
             logger.info("Navigation only mode")
             self._action_map = {
-                ClickAction: self.click,
+                ClickBIDAction: self.click_bid,
                 GoBackAction: self.go_back,
                 GoForwardAction: self.go_forward,
                 OpenUrlAction: self.goto_page,
@@ -270,9 +268,8 @@ class Browser(StatefulTool):
             }
         else:
             self._action_map = {
-                # TODO: check if we need to add back MouseClickAction for Miniwob
-                ClickAction: self.click,
-                MouseClickAction: self.mouse_click,
+                ClickBIDAction: self.click_bid,
+                ClickCoordinatesAction: self.click_coordinates,
                 SelectOptionAction: self.select_option,
                 InputTextAction: self.input_text,
                 GoBackAction: self.go_back,
@@ -297,8 +294,6 @@ class Browser(StatefulTool):
             self.gym_task,
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
-            # make all possible actions available to the environment TODO: check if ok for miniwob
-            # action_mapping=HighLevelActionSet(demo_mode="default", subsets=["chat", "infeas", "bid", "coord", "nav", "tab"]).to_python_code,
             action_mapping=HighLevelActionSet(demo_mode="default", subsets=["coord", "workarena++"]).to_python_code,
             timeout=self.timeout_ms,
             viewport={"width": self.viewport_width, "height": self.viewport_height},
@@ -325,9 +320,7 @@ class Browser(StatefulTool):
             task_id,
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
-            action_mapping=HighLevelActionSet(
-                demo_mode="default", subsets=["chat", "infeas", "bid", "coord", "nav", "tab"]
-            ).to_python_code,
+            action_mapping=HighLevelActionSet(demo_mode="default", subsets=["coord", "workarena++"]).to_python_code,
             timeout=self.timeout_ms,
             **kwargs,
         )  # type: ignore
@@ -372,28 +365,17 @@ class Browser(StatefulTool):
         if self.use_grounding:
             observation = PageScreenshotObservation(image_path=screen_path)
         else:
-            content = ""
             if error:
                 content = ""
-            elif self.axtree:
-                content += "====================\n"
-                content += "Accessibility Tree:\n"
-                content += "====================\n"
-                content += flatten_axtree(obs_dict["axtree_object"])
-            elif self.html:
-                content += "====================\n"
-                content += "HTML:\n"
-                content += "====================\n"
-                html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
-                content += html_content
-            elif self.markdown_html:
-                content += "====================\n"
-                content += "Markdown:\n"
-                content += "====================\n"
+            elif self.observation_format == "axtree":
+                content = flatten_axtree(obs_dict["axtree_object"])
+            elif self.observation_format == "html":
+                content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
+            elif self.observation_format == "markdown_html":
                 html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
                 content += self.html_to_markdown(html_content)
             else:
-                raise ValueError(f"No output format selected: axtree={self.axtree}, html={self.html}, markdown_html={self.markdown_html}")
+                raise ValueError(f"Unknown observation format: {self.observation_format}")
 
             observation = PageObservation(
                 text=self.get_viewport(content),
@@ -446,7 +428,7 @@ class Browser(StatefulTool):
             )
         return obs
 
-    def click(self, action: ClickAction) -> PageObservation:
+    def click_bid(self, action: ClickBIDAction) -> PageObservation:
         try:
             self.run_browser_action(f"click('{action.bid}'")
         except Exception as e:
@@ -454,13 +436,12 @@ class Browser(StatefulTool):
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 
-    # TODO: check if ok with Miniwob
-    # def mouse_click(self, action: MouseClickAction) -> PageObservation:
-    #     self.run_browser_action(f"mouse_click({action.x}, {action.y}, button='{action.button}')")
-    #     sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
-    #     return self.run_browser_action("noop()")
+    def click_coordinates(self, action: ClickCoordinatesAction) -> PageObservation:
+        self.run_browser_action(f"mouse_click({action.x}, {action.y}, button='{action.button}')")
+        sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
+        return self.run_browser_action("noop()")
 
-    def click_grounded(self, action: MouseClickAction) -> PageObservation:
+    def click_grounded(self, action: ClickElementAction) -> PageObservation:
         x, y = self._grounding.get_coords(self._last_image, f"click at {action.element_description}")
         logger.info(f"Click at {action.element_description}: {x}, {y}")
         return self.run_browser_action(f"mouse_click({x}, {y})")

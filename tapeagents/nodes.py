@@ -53,7 +53,7 @@ class StandardNode(Node):
 
     Example:
         ```python
-        node = MonoNode(
+        node = StandardNode(
             guidance="Please respond with next action",
             system_prompt="You are a helpful assistant",
             steps_prompt="Available steps: think, act, finish",
