@@ -184,7 +184,7 @@ class StandardNode(Node):
         content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
         return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 
-    def steps_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
+    def steps_to_messages(self, steps: list[Step], steps_description: str) -> list[dict]:
         """
         Converts a Tape object and steps description into a list of messages for LLM conversation.
 
@@ -206,8 +206,8 @@ class StandardNode(Node):
             messages.append({"role": "system", "content": self.system_prompt})
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
-        for i, step in enumerate(tape):
-            steps_after_current = len(tape) - i - 1
+        for i, step in enumerate(steps):
+            steps_after_current = len(steps) - i - 1
             role = "assistant" if isinstance(step, AgentStep) else "user"
             if isinstance(step, Observation) and steps_after_current >= self.trim_obs_except_last_n:
                 view = step.short_view()
