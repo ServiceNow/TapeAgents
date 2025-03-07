@@ -68,17 +68,7 @@ class CodeExecutor(Tool):
         return obs
 
     def prepare_code(self, action: PythonCodeAction) -> str:
-        lines = action.code.splitlines()
-        if len(lines) == 1 and "\\n" in lines[0]:
-            lines = lines[0].split("\\n")
-        lines = [f"# {action.name}"] + lines
-        if "print(" not in lines[-1] and "break" not in lines[-1]:
-            if " = " in lines[-1]:
-                name = lines[-1].split("=")[0].strip()
-                lines.append(f"print({name})")
-            else:
-                lines[-1] = f"print({lines[-1]})"
-        return "\n".join(lines)
+        return f"# {action.name}\n{action.code}"
 
     def trim_output(self, output: str) -> str:
         if len(output) > self.max_output_length:
