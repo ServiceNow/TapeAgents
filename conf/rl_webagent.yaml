@@ -57,9 +57,6 @@ use_deepspeed: false
 # config for the WebEnvironment & Browser tool in TapeAgents
 env:
   headless: True
-  ax_tree: False  # False for miniwob
-  html: True
-  markdown_html: False
 # data config
 seeds: [0]
 # seeds: [0, 42, 1337, 900, 103]

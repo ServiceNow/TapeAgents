@@ -11,7 +11,7 @@ llm:
     top_k: 50
 
 # exp_name: gpt4o_mini_t0
-exp_name: llama3_8b_t0
+exp_name: llama3_8b_t0_2025-03-07
 exp_path: outputs/webagent/runs/${exp_name}
 
 env:
@@ -21,7 +21,7 @@ env:
 seeds: [0, 42, 1337, 900, 103]
 
 environment_variables:
-  miniwob_url: file:////home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
   # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
   # snow_instance_url: ???
   # snow_instance_uname: ???
