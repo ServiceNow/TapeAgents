@@ -6,7 +6,7 @@ import os
 import random
 import time
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -21,17 +21,17 @@ from termcolor import colored
 from tqdm import tqdm
 
 import wandb
-from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, TapeMetadata, TrainingText
+from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.llms import TrainableLLM, trainable_llm_make_training_text
-from tapeagents.observe import retrieve_all_llm_calls
+from tapeagents.llms import TrainableLLM
+from tapeagents.llms.trainable import trainable_llm_make_training_text
 from tapeagents.orchestrator import main_loop
 from tapeagents.tools.simple_browser import PageObservation
 
 from ..agent import WebAgent, WebTape
 from ..environment import WebEnvironment
-from ..steps import WebAction, WebTapeMetadata
+from ..steps import WebTapeMetadata
 from ..utils import (
     VLLMServiceManager,
     calculate_stats,
@@ -97,7 +97,6 @@ def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
         # Run agent-environment loop
         tape = main_loop(agent, tape, env, max_loops=20).get_final_tape()
 
-        # Get final reward (1.0 if success, where success is defined as result["reward"] > 0.5)
         # result is a dict of reward, stop, message, info
         success, result = env.validate_task(tape)
         final_reward = 1.0 if success else 0.0

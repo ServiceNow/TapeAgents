@@ -8,6 +8,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from termcolor import colored
 
+from tapeagents.core import Action
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
 from tapeagents.observe import retrieve_llm_calls
@@ -15,10 +16,6 @@ from tapeagents.orchestrator import main_loop
 
 from ..agent import WebAgent
 from ..environment import WebEnvironment
-from ..steps import WebAction
-
-# from ..eval import task_to_observations
-# from ..tape import GaiaMetadata, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -61,7 +58,7 @@ def main(cfg: DictConfig) -> None:
             step = event.agent_event.step
             step_count += 1
             # avoid repeating the same action more than 4 times
-            if isinstance(step, WebAction):
+            if isinstance(step, Action):
                 step_view = step.llm_view()
                 if step_view == last_action:
                     repeated_action_cnt += 1

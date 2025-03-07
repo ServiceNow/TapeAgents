@@ -11,13 +11,13 @@ from omegaconf import DictConfig
 from termcolor import colored
 
 from examples.rl_webagent.utils import VLLMServiceManager
+from tapeagents.core import Action
 from tapeagents.io import save_json_tape
-from tapeagents.llms import LLM, TrainableLLM
+from tapeagents.llms import TrainableLLM
 from tapeagents.orchestrator import main_loop
 
 from ..agent import WebAgent
 from ..environment import WebEnvironment
-from ..steps import WebAction
 
 logging.basicConfig(level=logging.INFO)
 
@@ -65,7 +65,6 @@ def main(cfg: DictConfig) -> None:
             )
             for base_url in vllm_service_manager.get_base_urls()
         ]
-        # llm: LLM = hydra.utils.instantiate(cfg.llm)
         env = WebEnvironment(**cfg.env)
         agent = WebAgent.create(llms[0])
 
@@ -90,7 +89,7 @@ def main(cfg: DictConfig) -> None:
                         if event.agent_event and event.agent_event.step:
                             step = event.agent_event.step
                             # avoid repeating the same action more than 4 times
-                            if isinstance(step, WebAction):
+                            if isinstance(step, Action):
                                 step_view = step.llm_view()
                                 if step_view == last_action:
                                     repeated_action_cnt += 1
@@ -111,11 +110,13 @@ def main(cfg: DictConfig) -> None:
                     final_reward = 1.0 if success else 0.0
                     tape.metadata.result.update({"success": success, **result, "final_reward": final_reward})
                 except Exception as e:
+                    logger.exception(e, stack_info=True)
                     logger.error(f"Failed to run task: {e}")
                     tape.metadata.result.update({"success": False, "reward": 0.0, "final_reward": 0.0, "error": str(e)})
 
                 env.finish_task()
                 os.unlink(tmp_fpath)  # remove temporary file
+                logger.info(colored(f"reward: {tape.metadata.result['reward']}", "cyan"))
                 save_json_tape(tape, tapes_dir, fname)
                 logger.info(f"Saved tape to {fname}")
 
@@ -123,6 +124,11 @@ def main(cfg: DictConfig) -> None:
                 if task.get_task_id() not in task_successes:
                     task_successes[task.get_task_id()] = []
                 task_successes[task.get_task_id()].append(tape.metadata.result["reward"])
+
+                overall_r = sum([sum(task_successes[task_id]) for task_id in task_successes]) / sum(
+                    [len(task_successes[task_id]) for task_id in task_successes]
+                )
+                logger.info(colored(f"average reward: {overall_r}", "cyan"))
 
                 with open(os.path.join(cfg.exp_path, "task_successes.json"), "w") as f:
                     json.dump(task_successes, f)

@@ -1,9 +1,8 @@
-from typing import Any, Literal, Union
+from typing import Literal, Union
 
 from pydantic import Field
 
 from tapeagents.core import (
-    Action,
     LLMOutputParsingFailureAction,
     Observation,
     SetNextNode,
@@ -15,41 +14,27 @@ from tapeagents.core import (
 from tapeagents.dialog_tape import DialogContext
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import (
-    ClickAction,
+    ClickBIDAction,
+    ClickCoordinatesAction,
     GoBackAction,
     GoForwardAction,
     HoverAction,
     InputTextAction,
-    MouseClickAction,
     PageObservation,
     PressAction,
-    ScrollAction,
     SelectOptionAction,
 )
-
-
-################### Base Step Classes ###################
-class WebThought(Thought):
-    pass
-
-
-class WebAction(Action):
-    pass
-
-
-class WebObservation(Observation):
-    pass
 
 
 ################### Steps ###################
 
 
-class WebTask(WebObservation):
+class WebTask(Observation):
     kind: Literal["task"] = "task"
     task: str
 
 
-class ReasoningThought(WebThought):
+class ReasoningThought(Thought):
     """
     Thoughts produced by the agent during the reasoning process.
     """
@@ -58,7 +43,7 @@ class ReasoningThought(WebThought):
     reasoning: str = Field(description="chain of thoughts")
 
 
-class ReflectionThought(WebThought):
+class ReflectionThought(Thought):
     """
     Review the current state of the page and previous steps to find the best possible next action to accomplish the task:
     1. Produce reasoning thougt explaining the observed state, think about which blocks could be relevant to the given task and its current state, note relevant BIDs.
@@ -96,7 +81,7 @@ class ReflectionThought(WebThought):
     )
 
 
-class FinalAnswerAction(WebAction, StopStep):
+class FinalAnswerAction(StopStep):
     """
     Action that provides the final answer to the user after completing the task.
     Should be produced when the agent has finished the task.
@@ -116,13 +101,12 @@ WebStep = Union[
     ReasoningThought,
     ReflectionThought,
     # browser actions
-    ClickAction,
-    MouseClickAction,
+    ClickBIDAction,
+    ClickCoordinatesAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,
     PressAction,
-    ScrollAction,
     # TabFocusAction,
     # NewTabAction,
     # CloseTabAction,
@@ -149,13 +133,30 @@ WebAgentStep = (
     ReasoningThought,
     ReflectionThought,
     # browser actions
-    ClickAction,
-    MouseClickAction,
+    ClickBIDAction,
+    ClickCoordinatesAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,
     PressAction,
-    ScrollAction,
+    # TabFocusAction,
+    # NewTabAction,
+    # CloseTabAction,
+    GoBackAction,
+    GoForwardAction,
+    # GotoPageAction,
+    FinalAnswerAction,
+)
+
+
+WebAgentAction = (
+    # browser actions
+    ClickBIDAction,
+    ClickCoordinatesAction,
+    SelectOptionAction,
+    HoverAction,
+    InputTextAction,
+    PressAction,
     # TabFocusAction,
     # NewTabAction,
     # CloseTabAction,

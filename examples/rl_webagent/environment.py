@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any
+from typing import Any, Literal
 from joblib import Parallel, delayed
 
 from browsergym.core.task import AbstractBrowserTask
@@ -31,10 +31,10 @@ class WebEnvironment(Environment):
     Translates action steps into gym browser python commands in the form of a string.
     """
 
-    def __init__(self, exp_path: str, headless: bool = True, ax_tree: bool = False, html: bool = True, markdown_html: bool = False) -> None:
+    def __init__(self, exp_path: str, headless: bool = True, observation_format: Literal["axtree", "html", "markdown_html"] = "html") -> None:
         super().__init__()
         os.makedirs(exp_path, exist_ok=True)
-        self.browser = Browser(headless=headless, exp_path=exp_path, lazy_env_init=True, axtree=ax_tree, html=html, markdown_html=markdown_html)
+        self.browser = Browser(headless=headless, exp_path=exp_path, mock=True, observation_format=observation_format)
 
     def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
@@ -57,16 +57,16 @@ class WebEnvironment(Environment):
             reward, stop, message, info = self.browser._env.unwrapped.task.validate(
                 self.browser._env.unwrapped.page, self.browser._env.unwrapped.chat.messages
             )
-            # in AbstractMiniwobTask.validate() the reward is defined as float(info["RAW_REWARD_GLOBAL"] > 0) so it will alwayd be 0 or 1
-            # let's keep the raw reward for now and define success as reward > 0.5
-            if isinstance(self.browser._env.unwrapped.task, AbstractMiniwobTask):
-                reward = info["RAW_REWARD_GLOBAL"]
         except Exception as e:
             logger.exception(f"Error during task validation: {e}")
             reward = 0
             stop = True
             message = f"Task validation failed with error: {e}"
             info = {}
+        # in AbstractMiniwobTask.validate() the reward is defined as float(info["RAW_REWARD_GLOBAL"] > 0) so it will alwayd be 0 or 1
+        # let's keep the raw reward for now and define success as reward > 0.5
+        if isinstance(self.browser._env.unwrapped.task, AbstractMiniwobTask) and "RAW_REWARD_GLOBAL" in info:
+            reward = info["RAW_REWARD_GLOBAL"]
         result_dict = {
             "reward": reward,
             "stop": stop,
