@@ -71,6 +71,7 @@ class StandardNode(Node):
     trim_obs_except_last_n: int = 2
     use_function_calls: bool = False
     allow_code_blocks: bool = False
+    structured_output: bool = False
     _steps_type: Any = None
     _step_classes: list[type[Step]] | None = None
 
@@ -87,6 +88,8 @@ class StandardNode(Node):
         if self.allow_code_blocks:
             # remove PythonCodeAction from the list of step classes
             self._step_classes = [c for c in self._step_classes if c != PythonCodeAction]
+        if self.structured_output:
+            assert len(self._step_classes) == 1, "Structured output requires exactly one output step class"
         self._name_to_cls = {c.__name__: c for c in self._step_classes}
         self._steps_type = Annotated[Union[tuple(self._step_classes)], Field(discriminator="kind")]
 
@@ -117,20 +120,21 @@ class StandardNode(Node):
             4. Checks token count and trims if needed
             5. Reconstructs messages if trimming occurred
         """
-        cleaned_tape = self.prepare_tape(tape)
-        steps_description = self.get_steps_description(tape, agent)
-        messages = self.tape_to_messages(cleaned_tape, steps_description)
+        steps = self.get_steps(tape, agent)
+        steps_description = self.get_steps_description(agent)
+        messages = self.steps_to_messages(steps, steps_description)
         if agent.llms[self.llm].count_tokens(messages) > (agent.llms[self.llm].context_size - 500):
             old_trim = self.trim_obs_except_last_n
             self.trim_obs_except_last_n = 1
-            messages = self.tape_to_messages(cleaned_tape, steps_description)
+            messages = self.steps_to_messages(steps, steps_description)
             self.trim_obs_except_last_n = old_trim
-        prompt = Prompt(messages=messages)
-        if self.use_function_calls:
-            prompt.tools = [as_openai_tool(s) for s in self._step_classes]
+
+        response_format = self._step_classes[0] if self.structured_output else None
+        tools = [as_openai_tool(s) for s in self._step_classes] if self.use_function_calls else None
+        prompt = Prompt(messages=messages, tools=tools, response_format=response_format)
         return prompt
 
-    def prepare_tape(self, tape: Tape) -> Tape:
+    def get_steps(self, tape: Tape, agent: Agent) -> list[Step]:
         """
         Prepares tape by filtering out control flow steps.
 
@@ -143,8 +147,9 @@ class StandardNode(Node):
         Returns:
             Tape: A new tape instance containing only non-control flow steps.
         """
-        steps_without_control_flow = [step for step in tape.steps if not isinstance(step, SetNextNode)]
-        return tape.model_copy(update=dict(steps=steps_without_control_flow))
+        steps = agent.compute_view(tape).top.steps
+        steps_without_control_flow = [step for step in steps if not isinstance(step, (SetNextNode, Call, Respond))]
+        return steps_without_control_flow
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         """
@@ -179,7 +184,7 @@ class StandardNode(Node):
         content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
         return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 
-    def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
+    def steps_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
         """
         Converts a Tape object and steps description into a list of messages for LLM conversation.
 
@@ -217,7 +222,7 @@ class StandardNode(Node):
             messages.append({"role": "user", "content": self.guidance})
         return messages
 
-    def get_steps_description(self, tape: Tape, agent: Agent) -> str:
+    def get_steps_description(self, agent: Agent) -> str:
         """
         Get the steps description for the agent's task.
 
@@ -231,10 +236,9 @@ class StandardNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        if self.use_function_calls:
-            allowed_steps = ""
-        else:
-            allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type) if self._steps_type else ""
+        allowed_steps = ""
+        if self._steps_type and not self.use_function_calls:
+            allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type)
         return self.steps_prompt.format(allowed_steps=allowed_steps, tools_description=agent.tools_description)
 
     def generate_steps(

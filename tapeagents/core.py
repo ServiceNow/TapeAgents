@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, List, Literal, TypeAlias, TypeVar
+from typing import Any, Generic, Iterable, Iterator, List, Literal, Type, TypeAlias, TypeVar
 from uuid import uuid4
 
 import litellm
@@ -335,6 +335,7 @@ class Prompt(BaseModel):
     tools: list[dict] | None = None
     messages: list[dict] = Field(default_factory=list)
     token_ids: list[int] = Field(default_factory=list)
+    response_format: dict | Type[BaseModel] | None = None
 
     @staticmethod
     def from_user_message(content: str) -> Prompt:
