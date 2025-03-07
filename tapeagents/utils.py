@@ -16,7 +16,7 @@ from typing import Any
 
 import jsonref
 from PIL import Image
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 from termcolor import colored
 
 
@@ -108,6 +108,18 @@ def get_step_schemas_from_union_type(cls, simplify: bool = True) -> str:
             step["properties"]["kind"] = {"const": step["properties"]["kind"]["const"]}
         clean_schema.append(step)
     return json.dumps(clean_schema, ensure_ascii=False)
+
+
+def step_schema(step: BaseModel, simple: bool = True) -> str:
+    schema = step.model_json_schema()
+    step_dict: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
+    step_dict["properties"].pop("metadata", None)
+    if simple:
+        step_dict.pop("title", None)
+        for prop in step_dict["properties"]:
+            step_dict["properties"][prop].pop("title", None)
+        step_dict["properties"]["kind"] = {"const": step_dict["properties"]["kind"]["const"]}
+    return json.dumps(step_dict, ensure_ascii=False, indent=2)
 
 
 def image_base64_message(image_path: str) -> dict:
