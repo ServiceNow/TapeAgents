@@ -68,8 +68,8 @@ class TapeView(BaseModel, Generic[StepType]):
                 self.next_node = ""
             self.last_prompt_id = step.metadata.prompt_id
             self.last_node = step.metadata.node
-        if isinstance(step, SetNextNode):
-            self.next_node = step.next_node
+            if isinstance(step, SetNextNode):
+                self.next_node = step.next_node
         self.steps_by_kind[kind].append(step)
 
     def get_output(self, subagent_name_or_index: int | str) -> StepType:
