@@ -2,10 +2,10 @@ defaults:
   - finetune: grpo
   - _self_
 
-n_workers_per_gpu: 32
 get_logprobs_workers_per_gpu: 4
+n_processes_for_data_generation: 8  # Number of concurrent processes for generating training data
 test_every_n_iterations: 1
-model_path: /mnt/llmd/base_models/Llama-3.2-1B-Instruct
+model_path: /mnt/llmd/base_models/Llama-3.1-8B-Instruct
 max_agent_forks: 6000  # total number of samples to generate
 attempts: 8  # number of samples to generate per context
 force_restart: false
@@ -15,7 +15,7 @@ llm:
     max_tokens: 3072
     temperature: 0.7
 test_llm:
-  parameters: 
+  parameters:
     max_tokens: ${...llm.parameters.max_tokens}
     temperature: 0.
     top_p: 1.0
@@ -30,11 +30,6 @@ finetune:
   # for the info in how many sequences are used for each weight update.
   save_checkpoint_steps: 10
   seq_length: 4096
-
-system_prompt: ""
-task_template: |-
-  {task}\nPlease reason step by step, and put your final answer within \boxed{{}}.
-max_prompt_length: 1024
 
 vllm_config:
   vllm_kwargs:
@@ -55,9 +50,24 @@ vllm_config:
     --enable-chunked-prefill: ""
     --max-num-batched-tokens: 1024
 
-output_dir: outputs/rl_gsm8k_deepspeed
+output_dir: outputs/rl_gsm8k_llama32_1b
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 use_deepspeed: false
+
+# config for the WebEnvironment & Browser tool in TapeAgents
+env:
+  headless: True
+# data config
+seeds: [0]
+# seeds: [0, 42, 1337, 900, 103]
+train_split: 0.6  # 0.6 of tasks for training, 0.4 for testing
+
+environment_variables:
+  miniwob_url: file:////home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
+  # snow_instance_url: ???
+  # snow_instance_uname: ???
+  # snow_instance_pwd: ???
 
 hydra:
   run:

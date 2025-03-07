@@ -8,7 +8,7 @@ The agents could use OpenAI or big LLAMA models to solve these tasks.
 
 ## Structure
 
-Both agents are built using the [MonoNode](../../tapeagents/nodes.py), which implement the following workflow:
+Both agents are built using the [StandardNode](../../tapeagents/nodes.py), which implement the following workflow:
 
 - Expose the set of all available actions and thoughts to the model in each prompt
 - Render the whole tape into the prompt, trimming only in case when the tape does not fit into the context window

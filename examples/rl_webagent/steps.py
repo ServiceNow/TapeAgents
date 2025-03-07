@@ -2,45 +2,39 @@ from typing import Literal, Union
 
 from pydantic import Field
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Tape, Thought
+from tapeagents.core import (
+    LLMOutputParsingFailureAction,
+    Observation,
+    SetNextNode,
+    StopStep,
+    Tape,
+    TapeMetadata,
+    Thought,
+)
 from tapeagents.dialog_tape import DialogContext
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import (
     ClickBIDAction,
+    ClickCoordinatesAction,
     GoBackAction,
     GoForwardAction,
     HoverAction,
     InputTextAction,
-    PageDownAction,
     PageObservation,
-    PageUpAction,
     PressAction,
     SelectOptionAction,
 )
 
 
-################### Base Step Classes ###################
-class WorkArenaThought(Thought):
-    pass
-
-
-class WorkArenaAction(Action):
-    pass
-
-
-class WorkArenaObservation(Observation):
-    pass
-
-
 ################### Steps ###################
 
 
-class WorkArenaTask(WorkArenaObservation):
+class WebTask(Observation):
     kind: Literal["task"] = "task"
     task: str
 
 
-class ReasoningThought(WorkArenaThought):
+class ReasoningThought(Thought):
     """
     Thoughts produced by the agent during the reasoning process.
     """
@@ -49,7 +43,7 @@ class ReasoningThought(WorkArenaThought):
     reasoning: str = Field(description="chain of thoughts")
 
 
-class ReflectionThought(WorkArenaThought):
+class ReflectionThought(Thought):
     """
     Review the current state of the page and previous steps to find the best possible next action to accomplish the task:
     1. Produce reasoning thougt explaining the observed state, think about which blocks could be relevant to the given task and its current state, note relevant BIDs.
@@ -87,7 +81,7 @@ class ReflectionThought(WorkArenaThought):
     )
 
 
-class FinalAnswerAction(WorkArenaAction, StopStep):
+class FinalAnswerAction(StopStep):
     """
     Action that provides the final answer to the user after completing the task.
     Should be produced when the agent has finished the task.
@@ -98,8 +92,8 @@ class FinalAnswerAction(WorkArenaAction, StopStep):
     text: str = Field(description="final answer to the user")
 
 
-WorkArenaStep = Union[
-    WorkArenaTask,
+WebStep = Union[
+    WebTask,
     PageObservation,
     ActionExecutionFailure,
     LLMOutputParsingFailureAction,
@@ -108,12 +102,11 @@ WorkArenaStep = Union[
     ReflectionThought,
     # browser actions
     ClickBIDAction,
+    ClickCoordinatesAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,
     PressAction,
-    PageDownAction,
-    PageUpAction,
     # TabFocusAction,
     # NewTabAction,
     # CloseTabAction,
@@ -125,38 +118,45 @@ WorkArenaStep = Union[
 ]
 
 
-class WorkArenaTape(Tape[DialogContext, WorkArenaStep]):
+class WebTapeMetadata(TapeMetadata):
+    seed: int = Field(default_factory=int)
+    other: dict = Field(default_factory=dict)
+
+
+class WebTape(Tape[DialogContext, WebStep]):
+    metadata: WebTapeMetadata = Field(default_factory=WebTapeMetadata)
     context: DialogContext = DialogContext(tools=[])
 
 
-WorkArenaBaselineStep = (
-    # thoughts
-    ReasoningThought,
-    # browser actions
-    ClickBIDAction,
-    SelectOptionAction,
-    HoverAction,
-    InputTextAction,
-    PressAction,
-    PageDownAction,
-    PageUpAction,
-    GoBackAction,
-    GoForwardAction,
-    FinalAnswerAction,
-)
-
-WorkArenaAgentStep = (
+WebAgentStep = (
     # thoughts
     ReasoningThought,
     ReflectionThought,
     # browser actions
     ClickBIDAction,
+    ClickCoordinatesAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,
     PressAction,
-    PageDownAction,
-    PageUpAction,
+    # TabFocusAction,
+    # NewTabAction,
+    # CloseTabAction,
+    GoBackAction,
+    GoForwardAction,
+    # GotoPageAction,
+    FinalAnswerAction,
+)
+
+
+WebAgentAction = (
+    # browser actions
+    ClickBIDAction,
+    ClickCoordinatesAction,
+    SelectOptionAction,
+    HoverAction,
+    InputTextAction,
+    PressAction,
     # TabFocusAction,
     # NewTabAction,
     # CloseTabAction,
