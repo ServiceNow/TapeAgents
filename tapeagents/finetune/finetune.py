@@ -81,6 +81,9 @@ def run_finetuning_loop(
     samples_per_pass = num_processes * args.train_batch_size
     if (ds_plugin := accelerator.state.deepspeed_plugin) is not None:
         logger.info("Manual inform Deepspeed about micro batch size and gradient accumulation")
+        ds_plugin.deepspeed_config["train_micro_batch_size_per_gpu"] = (
+            args.train_batch_size
+        )
         ds_plugin.deepspeed_config["gradient_accumulation_steps"] = (
                 args.gradient_accumulation_passes )
         if args.gradient_clipping_threshold:
