@@ -26,8 +26,12 @@ def main(cfg: DictConfig):
     agent, env = get_agent_and_env_from_config(cfg)
 
     print("Run the agent!")
-    do_loop(agent, DialogTape() + [UserStep(content="Perform the calculation 2 + 2. Perform the calculation 3 + 3.")], env)
-    do_loop(agent, DialogTape() + [UserStep(content="Perform the calculation 2 + 2. Perform the calculation 5 + 2.")], env)
+    do_loop(
+        agent, DialogTape() + [UserStep(content="Perform the calculation 2 + 2. Perform the calculation 3 + 3.")], env
+    )
+    do_loop(
+        agent, DialogTape() + [UserStep(content="Perform the calculation 2 + 2. Perform the calculation 5 + 2.")], env
+    )
 
 
 if __name__ == "__main__":

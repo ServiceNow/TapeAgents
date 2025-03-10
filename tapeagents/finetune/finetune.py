@@ -15,9 +15,14 @@ from transformers import get_scheduler, set_seed
 
 from tapeagents.core import TrainingText
 
-from .checkpoints import (load_model, load_tokenizer, load_training_state,
-                          remove_results, save_model_and_tokenizer,
-                          save_training_state)
+from .checkpoints import (
+    load_model,
+    load_tokenizer,
+    load_training_state,
+    remove_results,
+    save_model_and_tokenizer,
+    save_training_state,
+)
 from .context import accelerator, logger
 from .data import create_dataloader, prepare_dataloaders
 from .eval import evaluate_and_get_metrics

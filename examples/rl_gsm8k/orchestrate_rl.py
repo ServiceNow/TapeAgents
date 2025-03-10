@@ -14,12 +14,12 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
+import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
-import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
@@ -269,7 +269,6 @@ def generate_training_data(
         prompt_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
         output_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
         overflow_stats[new_tape.metadata.parent_id].append(tape_stats["overflows"])
-
 
     end_make_data = time.time()
 
