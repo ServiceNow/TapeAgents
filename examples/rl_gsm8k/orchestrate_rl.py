@@ -270,11 +270,6 @@ def generate_training_data(
         output_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
         overflow_stats[new_tape.metadata.parent_id].append(tape_stats["overflows"])
 
-    #start_dump = time.time()
-    #with open(tapes_dir / "tapes.json", "w") as f:
-    #    breakpoint()
-    #    json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
-    #end_dump = time.time()
 
     end_make_data = time.time()
 
@@ -285,7 +280,6 @@ def generate_training_data(
         **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens_stats).items()},
         **{f"{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens_stats).items()},
         **{
-            #f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
             f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
