@@ -64,7 +64,7 @@ class StepMetadata(BaseModel):
     node: str = ""
     agent: str = ""
     llm: str = ""
-    other: dict[str, Any] = Field(default_factory=dict)
+    other: dict[str, Any] = Field(default_factory=dict, exclude=True)
 
 
 class Step(BaseModel):
