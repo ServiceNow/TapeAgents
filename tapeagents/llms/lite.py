@@ -75,6 +75,7 @@ class LiteLLM(CachedLLM):
                     messages=prompt.messages,
                     tools=prompt.tools,
                     stream=self.stream,
+                    response_format=prompt.response_format,
                     **kwargs,
                 )
                 break

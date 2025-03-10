@@ -238,10 +238,14 @@ class Agent(BaseModel, Generic[TapeType]):
                 raise ValueError(
                     f"Node {node.name} references unknown LLM {node.llm}. Known LLMs: {list(self.llms.keys())}"
                 )
-            if hasattr(node, "add_known_actions"):
-                node.add_known_actions(self.known_actions)
             node_names.add(node.name)
         return super().model_post_init(__context)
+
+    def update_subagents(self):
+        for subagent in self.subagents:
+            subagent.tools_description = self.tools_description
+            subagent.known_actions = self.known_actions
+            subagent.update_subagents()
 
     @property
     def manager(self):

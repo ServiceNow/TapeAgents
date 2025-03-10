@@ -5,7 +5,7 @@ Nodes are the building blocks of a TapeAgent, representing atomic units of the a
 import json
 import logging
 import re
-from typing import Annotated, Any, Generator, Type, Union
+from typing import Annotated, Any, Callable, Generator, Type, Union
 
 from litellm import ChatCompletionMessageToolCall
 from pydantic import Field, TypeAdapter, ValidationError
@@ -28,7 +28,7 @@ from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import BranchStep, ReasoningThought
 from tapeagents.tool_calling import as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
+from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion, step_schema
 from tapeagents.view import Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
@@ -71,15 +71,17 @@ class StandardNode(Node):
     trim_obs_except_last_n: int = 2
     use_function_calls: bool = False
     allow_code_blocks: bool = False
+    structured_output: bool = False
     _steps_type: Any = None
     _step_classes: list[type[Step]] | None = None
+    _tools: dict[str, dict] | None = None
+    _tool_name_to_cls: dict[str, type[Step]] | None = None
 
     def model_post_init(self, __context: Any) -> None:
-        self.prepare_step_types()
         super().model_post_init(__context)
 
-    def prepare_step_types(self, actions: list[type[Step]] = None):
-        actions = actions or []
+    def prepare_step_types(self, agent: Agent):
+        actions = agent.known_actions if self.use_known_actions else []
         step_classes_or_str = actions + (self.steps if isinstance(self.steps, list) else [self.steps])
         if not step_classes_or_str:
             return
@@ -87,14 +89,14 @@ class StandardNode(Node):
         if self.allow_code_blocks:
             # remove PythonCodeAction from the list of step classes
             self._step_classes = [c for c in self._step_classes if c != PythonCodeAction]
-        self._name_to_cls = {c.__name__: c for c in self._step_classes}
+        if self.structured_output:
+            assert len(self._step_classes) == 1, "Structured output requires exactly one output step class"
         self._steps_type = Annotated[Union[tuple(self._step_classes)], Field(discriminator="kind")]
+        if self.use_function_calls:
+            self._tools = {step_cls: as_openai_tool(step_cls) for step_cls in self._step_classes}
+            self._tool_name_to_cls = {tool["function"]["name"]: step_cls for step_cls, tool in self._tools.items()}
 
-    def add_known_actions(self, actions: list[type[Step]]):
-        if self.use_known_actions:
-            self.prepare_step_types(actions)
-
-    def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
+    def make_prompt(self, agent: Agent, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
 
         This method constructs a prompt by processing the tape content and agent steps description
@@ -117,20 +119,22 @@ class StandardNode(Node):
             4. Checks token count and trims if needed
             5. Reconstructs messages if trimming occurred
         """
-        cleaned_tape = self.prepare_tape(tape)
-        steps_description = self.get_steps_description(tape, agent)
-        messages = self.tape_to_messages(cleaned_tape, steps_description)
+        self.prepare_step_types(agent)
+        steps = self.get_steps(tape, agent)
+        steps_description = self.get_steps_description(agent)
+        messages = self.steps_to_messages(steps, steps_description)
         if agent.llms[self.llm].count_tokens(messages) > (agent.llms[self.llm].context_size - 500):
             old_trim = self.trim_obs_except_last_n
             self.trim_obs_except_last_n = 1
-            messages = self.tape_to_messages(cleaned_tape, steps_description)
+            messages = self.steps_to_messages(steps, steps_description)
             self.trim_obs_except_last_n = old_trim
-        prompt = Prompt(messages=messages)
-        if self.use_function_calls:
-            prompt.tools = [as_openai_tool(s) for s in self._step_classes]
+
+        response_format = self._step_classes[0] if self.structured_output else None
+        tools = list(self._tools.values()) if self.use_function_calls else None
+        prompt = Prompt(messages=messages, tools=tools, response_format=response_format)
         return prompt
 
-    def prepare_tape(self, tape: Tape) -> Tape:
+    def get_steps(self, tape: Tape, agent: Agent) -> list[Step]:
         """
         Prepares tape by filtering out control flow steps.
 
@@ -143,8 +147,9 @@ class StandardNode(Node):
         Returns:
             Tape: A new tape instance containing only non-control flow steps.
         """
-        steps_without_control_flow = [step for step in tape.steps if not isinstance(step, SetNextNode)]
-        return tape.model_copy(update=dict(steps=steps_without_control_flow))
+        steps = agent.compute_view(tape).top.steps
+        steps_without_control_flow = [step for step in steps if not isinstance(step, (SetNextNode, Call, Respond))]
+        return steps_without_control_flow
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
         """
@@ -179,7 +184,7 @@ class StandardNode(Node):
         content = [step.llm_dict() for step in steps] if len(steps) > 1 else steps[0].llm_dict()
         return LLMOutput(role="assistant", content=json.dumps(content, indent=2, ensure_ascii=False))
 
-    def tape_to_messages(self, tape: Tape, steps_description: str) -> list[dict]:
+    def steps_to_messages(self, steps: list[Step], steps_description: str) -> list[dict]:
         """
         Converts a Tape object and steps description into a list of messages for LLM conversation.
 
@@ -201,8 +206,8 @@ class StandardNode(Node):
             messages.append({"role": "system", "content": self.system_prompt})
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
-        for i, step in enumerate(tape):
-            steps_after_current = len(tape) - i - 1
+        for i, step in enumerate(steps):
+            steps_after_current = len(steps) - i - 1
             role = "assistant" if isinstance(step, AgentStep) else "user"
             if isinstance(step, Observation) and steps_after_current >= self.trim_obs_except_last_n:
                 view = step.short_view()
@@ -217,7 +222,7 @@ class StandardNode(Node):
             messages.append({"role": "user", "content": self.guidance})
         return messages
 
-    def get_steps_description(self, tape: Tape, agent: Agent) -> str:
+    def get_steps_description(self, agent: Agent) -> str:
         """
         Get the steps description for the agent's task.
 
@@ -231,10 +236,9 @@ class StandardNode(Node):
         Returns:
             str: The steps prompt describing the sequence of actions.
         """
-        if self.use_function_calls:
-            allowed_steps = ""
-        else:
-            allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type) if self._steps_type else ""
+        allowed_steps = ""
+        if self._steps_type and not self.use_function_calls:
+            allowed_steps = agent.llms[self.llm].get_step_schema(self._steps_type)
         return self.steps_prompt.format(allowed_steps=allowed_steps, tools_description=agent.tools_description)
 
     def generate_steps(
@@ -273,7 +277,7 @@ class StandardNode(Node):
                 yield self.postprocess_step(tape, new_steps[:i], step)
                 if isinstance(step, LLMOutputParsingFailureAction):
                     yield SetNextNode(next_node=self.name)  # loop to the same node to retry
-                    break
+                    return
         if not new_steps:
             raise FatalError("No completions!")
         if (
@@ -284,10 +288,10 @@ class StandardNode(Node):
             yield SetNextNode(next_node=self.next_node)
 
     def tool_call_to_step(self, tool_call: ChatCompletionMessageToolCall) -> Step:
-        step_cls = self._name_to_cls.get(tool_call.function.name)
+        step_cls = self._tool_name_to_cls.get(tool_call.function.name)
         if step_cls is None:
             return LLMOutputParsingFailureAction(
-                error=f"Unknown tool call: {tool_call.function.name}", llm_output=tool_call
+                error=f"Unknown tool call: {tool_call.function.name}", llm_output=tool_call.model_dump_json(indent=2)
             )
         args = tool_call.function.arguments
         return step_cls.model_validate_json(args) if args else step_cls()
@@ -411,6 +415,47 @@ class StandardNode(Node):
         return tape
 
 
+class ViewNode(StandardNode):
+    system_prompt: str
+    view: Any = None
+    prompt: str
+
+    def get_steps(self, tape: Tape, agent: Agent) -> list[Step]:
+        view_cls = class_for_name(self.view)
+        kwargs = view_cls(tape).as_dict() if self.view else {}
+        content = self.prompt.format(**kwargs)
+        return [UserStep(content=content)]
+
+
+class AsStep(StandardNode):
+    format_prompt: str = """The JSON object should match the following schema:
+
+{schema}
+
+Do not reproduce the schema when producing the step, use it as a reference!
+DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JSON. It will break the system that processes the output."""
+
+    def make_prompt(self, agent: Agent, tape: Tape) -> Prompt:
+        self.prepare_step_types(agent)
+        last_reasoning_step_pos = [i for i, step in enumerate(tape.steps) if isinstance(step, ReasoningThought)][-1]
+        text = tape[last_reasoning_step_pos].reasoning
+        errors_after = [
+            step
+            for step in tape.steps[last_reasoning_step_pos + 1 :]
+            if isinstance(step, LLMOutputParsingFailureAction)
+        ]
+        schema = step_schema(self._step_classes[0])
+        response_format = self._step_classes[0] if self.structured_output else None
+        msg = f"Convert the following paragraph into a structured JSON object:\n\n{text}"
+        messages = [{"role": "user", "content": msg}]
+        if not self.structured_output:
+            messages.append({"role": "user", "content": self.format_prompt.format(schema=schema)})
+        if errors_after:
+            msg = f"Our previous attempt resulted in failure:\n\n{errors_after[-1]}"
+            messages.append({"role": "user", "content": msg})
+        return Prompt(messages=messages, response_format=response_format)
+
+
 class ControlFlowNode(Node):
     """
     A node that controls the flow of execution by selecting the next node based on tape content.
@@ -472,6 +517,14 @@ class IfLastStep(ControlFlowNode):
 
     def select_node(self, tape: Tape) -> str:
         return self.next_node if isinstance(tape[-1], self.step_class) else None
+
+
+class If(ControlFlowNode):
+    predicate: Callable[[Tape], bool]
+    next_node: str
+
+    def select_node(self, tape: Tape) -> str:
+        return self.next_node if self.predicate(tape) else None
 
 
 class ObservationControlNode(ControlFlowNode):
@@ -542,6 +595,10 @@ class FixedStepsNode(Node):
     ) -> Generator[Step | PartialStep, None, None]:
         for step in self.steps:
             yield step
+
+
+class Return(FixedStepsNode):
+    steps: list[Step] = [Respond(copy_output=True)]
 
 
 class GoTo(Node):
