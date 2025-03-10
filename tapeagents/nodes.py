@@ -430,7 +430,8 @@ class ViewNode(StandardNode):
 class AsStep(StandardNode):
     def make_prompt(self, agent: Agent, tape: Tape) -> Prompt:
         self.prepare_step_types(agent)
-        text = tape[-1].reasoning
+        last_reasoning_step = [step for step in tape if isinstance(step, ReasoningThought)][-1]
+        text = last_reasoning_step.reasoning
         schema = step_schema(self._step_classes[0])
         response_format = self._step_classes[0] if self.structured_output else None
         msg = f"Convert the following paragraph into a structured JSON object:\n\n{text}"

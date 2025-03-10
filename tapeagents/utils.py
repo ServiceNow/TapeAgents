@@ -113,6 +113,7 @@ def get_step_schemas_from_union_type(cls, simplify: bool = True) -> str:
 def step_schema(step: BaseModel, simple: bool = True) -> str:
     schema = step.model_json_schema()
     step_dict: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
+    step_dict.pop("$defs", None)
     step_dict["properties"].pop("metadata", None)
     if simple:
         step_dict.pop("title", None)
