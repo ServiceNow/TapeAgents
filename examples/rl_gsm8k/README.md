@@ -1,6 +1,6 @@
 # Training Llama 3.2 1b with GRPO on GSM8k
 
-![learning curves](<Screenshot 2025-02-14 at 9.26.34 AM.png>)
+![learning curves](<learning_curves.png>)
 
 This example demonstrates how to train [Llama 3.2 1B Instruct](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct) using [GRPO](https://arxiv.org/abs/2402.03300) to solve math problems from the [GSM8k](https://huggingface.co/datasets/openai/gsm8k) dataset.
 
@@ -35,7 +35,7 @@ By default, the script uses `conf/rl_gsm8k.yaml` as the configuration file.
 
 ## Overview of examples.rl_gsm8k.orchestrate_rl
 
-![overview](image-1.png)
+![overview](overview.png)
 
 ### Collect online RL training data
 
