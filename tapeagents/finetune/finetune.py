@@ -15,9 +15,14 @@ from transformers import get_scheduler, set_seed
 
 from tapeagents.core import TrainingText
 
-from .checkpoints import (load_model, load_tokenizer, load_training_state,
-                          remove_results, save_model_and_tokenizer,
-                          save_training_state)
+from .checkpoints import (
+    load_model,
+    load_tokenizer,
+    load_training_state,
+    remove_results,
+    save_model_and_tokenizer,
+    save_training_state,
+)
 from .context import accelerator, logger
 from .data import create_dataloader, prepare_dataloaders
 from .eval import evaluate_and_get_metrics
@@ -81,8 +86,7 @@ def run_finetuning_loop(
     samples_per_pass = num_processes * args.train_batch_size
     if (ds_plugin := accelerator.state.deepspeed_plugin) is not None:
         logger.info("Manual inform Deepspeed about micro batch size and gradient accumulation")
-        ds_plugin.deepspeed_config["gradient_accumulation_steps"] = (
-                args.gradient_accumulation_passes )
+        ds_plugin.deepspeed_config["gradient_accumulation_steps"] = args.gradient_accumulation_passes
         if args.gradient_clipping_threshold:
             ds_plugin.deepspeed_config["gradient_clipping"] = args.gradient_clipping_threshold
 
