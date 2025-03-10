@@ -447,7 +447,7 @@ DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JS
         schema = step_schema(self._step_classes[0])
         response_format = self._step_classes[0] if self.structured_output else None
         msg = f"Convert the following paragraph into a structured JSON object:\n\n{text}"
-        messages = {"role": "user", "content": msg}
+        messages = [{"role": "user", "content": msg}]
         if not self.structured_output:
             messages.append({"role": "user", "content": self.format_prompt.format(schema=schema)})
         if errors_after:
