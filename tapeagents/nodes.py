@@ -277,7 +277,7 @@ class StandardNode(Node):
                 yield self.postprocess_step(tape, new_steps[:i], step)
                 if isinstance(step, LLMOutputParsingFailureAction):
                     yield SetNextNode(next_node=self.name)  # loop to the same node to retry
-                    break
+                    return
         if not new_steps:
             raise FatalError("No completions!")
         if (
