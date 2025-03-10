@@ -430,13 +430,20 @@ class ViewNode(StandardNode):
 class AsStep(StandardNode):
     def make_prompt(self, agent: Agent, tape: Tape) -> Prompt:
         self.prepare_step_types(agent)
-        last_reasoning_step = [step for step in tape if isinstance(step, ReasoningThought)][-1]
-        text = last_reasoning_step.reasoning
+        last_reasoning_step_pos = [i for i, step in enumerate(tape.steps) if isinstance(step, ReasoningThought)][-1]
+        text = tape[last_reasoning_step_pos].reasoning
+        errors_after = [
+            step
+            for step in tape.steps[last_reasoning_step_pos + 1 :]
+            if isinstance(step, LLMOutputParsingFailureAction)
+        ]
         schema = step_schema(self._step_classes[0])
         response_format = self._step_classes[0] if self.structured_output else None
         msg = f"Convert the following paragraph into a structured JSON object:\n\n{text}"
         if not self.structured_output:
             msg += f"\n\nThe JSON object should match the following schema:\n\n{schema}"
+        if errors_after:
+            msg += f"\n\nOur previous attempt resulted in failure:\n\n{errors_after}"
         return Prompt(messages=[{"role": "user", "content": msg}], response_format=response_format)
 
 
