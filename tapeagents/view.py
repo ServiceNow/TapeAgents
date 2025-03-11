@@ -9,7 +9,7 @@ from typing import Generic, Literal
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Call, Observation, Respond, SetNextNode, StepType, Tape, Thought
+from tapeagents.core import AgentStep, Call, ControlFlow, Observation, Respond, SetNextNode, StepType, Tape, Thought
 
 
 class Broadcast(Thought):
@@ -154,7 +154,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 # - exclude Observation steps
                 # - among the remaining steps pick the last one
                 if not self.top.is_step_by_active_agent(top_step) and not isinstance(
-                    top_step, (Call, Respond, Observation)
+                    top_step, (ControlFlow, Observation)
                 ):
                     new_top.add_step(top_step)
                     new_top.outputs_by_subagent[top.agent_name] = top_step

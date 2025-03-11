@@ -139,6 +139,14 @@ class Thought(AgentStep):
     pass
 
 
+class ControlFlow(Thought):
+    """
+    Base class representing a flow control step in a tape.
+    """
+
+    pass
+
+
 class Action(AgentStep):
     """
     Base class representing an agent's action in a tape.
@@ -183,7 +191,7 @@ class FinalStep(StopStep):
     reason: str = ""
 
 
-class SetNextNode(Thought):
+class SetNextNode(ControlFlow):
     """
     Action that sets the next node to run in the current agent.
 
@@ -204,7 +212,7 @@ class Pass(Thought):
     kind: Literal["pass"] = "pass"
 
 
-class Call(Thought):
+class Call(ControlFlow):
     """
     Action that calls another agent.
 
@@ -219,7 +227,7 @@ class Call(Thought):
     agent_name: str
 
 
-class Respond(Thought):
+class Respond(ControlFlow):
     """
     Action that returns a response to the top-level agent after processing the call.
 

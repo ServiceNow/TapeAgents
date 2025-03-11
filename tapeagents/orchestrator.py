@@ -113,7 +113,6 @@ def main_loop(
         while n_loops < max_loops or max_loops == -1:
             # --- RUN THE AGENT ---
             for event in agent.run(tape):
-                yield MainLoopEvent(agent_event=event)
                 if event.step:
                     logger.info(
                         colored(
@@ -121,6 +120,7 @@ def main_loop(
                             "green",
                         )
                     )
+                yield MainLoopEvent(agent_event=event)
                 if event.final_tape:
                     break
             assert event and event.final_tape

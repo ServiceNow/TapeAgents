@@ -13,6 +13,7 @@ from pydantic import Field, TypeAdapter, ValidationError
 from tapeagents.agent import Agent, Node
 from tapeagents.core import (
     AgentStep,
+    ControlFlow,
     LLMOutputParsingFailureAction,
     Observation,
     PartialStep,
@@ -149,7 +150,7 @@ class StandardNode(Node):
             Tape: A new tape instance containing only non-control flow steps.
         """
         steps = agent.compute_view(tape).top.steps
-        steps_without_control_flow = [step for step in steps if not isinstance(step, (SetNextNode, Call, Respond))]
+        steps_without_control_flow = [step for step in steps if not isinstance(step, ControlFlow)]
         return steps_without_control_flow
 
     def make_llm_output(self, agent: Any, tape: Tape, index: int) -> LLMOutput:
