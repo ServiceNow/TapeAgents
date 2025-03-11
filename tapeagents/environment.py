@@ -170,7 +170,7 @@ class ToolCollectionEnvironment(Environment):
     def actions(self) -> tuple[type[Action], ...]:
         return tuple(self.action_map.keys())
 
-    def tools_description(self) -> list[str]:
+    def tools_description(self) -> str:
         desc_list = [tool.description() for tool in self.tools]
         return "\n".join(f"- {desc}" for desc in desc_list)
 

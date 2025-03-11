@@ -104,7 +104,10 @@ class CachedLLM(LLM):
             f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 
     def get_prompt_key(self, prompt: Prompt) -> str:
-        prompt_text = json.dumps(prompt.model_dump(exclude={"id"}), ensure_ascii=False, sort_keys=True)
+        prompt_dict = prompt.model_dump(exclude={"id"})
+        if type(prompt.response_format).__name__ == "ModelMetaclass":
+            prompt_dict["response_format"] = prompt.response_format.model_json_schema()
+        prompt_text = json.dumps(prompt_dict, ensure_ascii=False, sort_keys=True)
         return self._key(prompt_text)
 
     def _key(self, text: str) -> str:

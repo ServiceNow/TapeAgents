@@ -643,10 +643,16 @@ class Agent(BaseModel, Generic[TapeType]):
             elif len(self.llms) == 1:
                 llm = self.llm
             llm_stream = llm.generate(prompt) if prompt else LLMStream(None, prompt)
-        for step in self.generate_steps(tape, llm_stream):
-            if isinstance(step, AgentStep):
-                step.metadata.prompt_id = llm_stream.prompt.id
-            yield step
+        try:
+            for step in self.generate_steps(tape, llm_stream):
+                if isinstance(step, AgentStep):
+                    step.metadata.prompt_id = llm_stream.prompt.id
+                yield step
+        except Exception as e:
+            logger.exception(
+                f" - Agent '{self.full_name}' - Node '{self.select_node(tape).name}' - step generation error: {e}"
+            )
+            raise e
         if self.store_llm_calls and (llm_call := getattr(llm_stream, "llm_call", None)):
             step.metadata.other["llm_call"] = llm_call
 

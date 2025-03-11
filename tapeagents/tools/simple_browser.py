@@ -485,11 +485,12 @@ class SimpleBrowser(StatefulTool):
     actions: tuple[type[Action], ...] = (ReadDocumentAction, PageDownAction)
     observations: tuple[type[Observation], ...] = (PageObservation,)
     exp_path: str
-    kwargs: dict[str, Any]
+    kwargs: dict[str, Any] | None = None
     _browser: SimpleTextBrowser = None  # type: ignore
 
     def model_post_init(self, __context: Any):
-        self._browser = SimpleTextBrowser(**self.kwargs)
+        kwargs = self.kwargs or {}
+        self._browser = SimpleTextBrowser(**kwargs)
 
     def execute_action(self, action: ReadDocumentAction | PageDownAction) -> PageObservation:
         if isinstance(action, ReadDocumentAction):

@@ -28,7 +28,7 @@ from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import BranchStep, ReasoningThought
 from tapeagents.tool_calling import as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion, step_schema
+from tapeagents.utils import FatalError, class_for_name, response_format, sanitize_json_completion, step_schema_json
 from tapeagents.view import Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
@@ -129,9 +129,10 @@ class StandardNode(Node):
             messages = self.steps_to_messages(steps, steps_description)
             self.trim_obs_except_last_n = old_trim
 
-        response_format = self._step_classes[0] if self.structured_output else None
+        format = response_format(self._step_classes[0]) if self.structured_output else None
+        logger.info(f"Response format: {format}")
         tools = list(self._tools.values()) if self.use_function_calls else None
-        prompt = Prompt(messages=messages, tools=tools, response_format=response_format)
+        prompt = Prompt(messages=messages, tools=tools, response_format=format)
         return prompt
 
     def get_steps(self, tape: Tape, agent: Agent) -> list[Step]:
@@ -357,7 +358,10 @@ class StandardNode(Node):
             return
 
         try:
-            steps = [TypeAdapter(self._steps_type).validate_python(step_dict) for step_dict in step_dicts]
+            if len(self._step_classes) == 1:
+                steps = [self._step_classes[0].model_validate(step_dict) for step_dict in step_dicts]
+            else:
+                steps = [TypeAdapter(self._steps_type).validate_python(step_dict) for step_dict in step_dicts]
         except ValidationError as e:
             err_text = ""
             for err in e.errors():
@@ -444,16 +448,15 @@ DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JS
             for step in tape.steps[last_reasoning_step_pos + 1 :]
             if isinstance(step, LLMOutputParsingFailureAction)
         ]
-        schema = step_schema(self._step_classes[0])
-        response_format = self._step_classes[0] if self.structured_output else None
+        step_cls = self._step_classes[0]
         msg = f"Convert the following paragraph into a structured JSON object:\n\n{text}"
         messages = [{"role": "user", "content": msg}]
         if not self.structured_output:
-            messages.append({"role": "user", "content": self.format_prompt.format(schema=schema)})
+            messages.append({"role": "user", "content": self.format_prompt.format(schema=step_schema_json(step_cls))})
         if errors_after:
             msg = f"Our previous attempt resulted in failure:\n\n{errors_after[-1]}"
             messages.append({"role": "user", "content": msg})
-        return Prompt(messages=messages, response_format=response_format)
+        return Prompt(messages=messages, response_format=response_format(step_cls) if self.structured_output else None)
 
 
 class ControlFlowNode(Node):

@@ -95,17 +95,6 @@ class LiteLLM(CachedLLM):
                 delay = base_delay * (2 ** (retry_count - 1))
                 logger.warning(f"API Timeout, retrying in {delay:.2f} seconds (attempt {retry_count}/{max_retries})")
                 time.sleep(delay)
-            except litellm.BadRequestError as e:
-                logger.exception(e)
-                retry_count += 1
-                if retry_count > max_retries:
-                    raise e
-                delay = base_delay * (2 ** (retry_count - 1))
-                logger.warning(f"Bad request, retrying in {delay:.2f} seconds (attempt {retry_count}/{max_retries})")
-                time.sleep(delay)
-            except tuple(litellm.LITELLM_EXCEPTION_TYPES) as e:
-                logger.exception(e)
-                raise e
         if self.stream:
             buffer = []
             for part in response:
