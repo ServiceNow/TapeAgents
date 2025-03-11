@@ -529,7 +529,7 @@ class Agent(BaseModel, Generic[TapeType]):
         """
         node = self.select_node(tape)
         prompt = node.make_prompt(self, tape)
-        msg_debug = "\n\n".join([f"{m['role']}:\n{m['content']}" for m in prompt.messages])
+        msg_debug = "\n\n".join([f"{m['role']}:\n{m.get('content')}" for m in prompt.messages])
         logger.debug(colored(f"Node {self.full_name}:{node.name}", "magenta"))
         logger.debug(colored(f"Prompt messages:\n{msg_debug}", "magenta"))
         logger.debug(colored(f"Prompt tools: {prompt.tools}", "magenta"))
@@ -640,9 +640,6 @@ class Agent(BaseModel, Generic[TapeType]):
 
         Yields:
             Union[Step, PartialStep]: The generated steps or partial
-
-        Raises:
-            NotImplementedError: If the agent has multiple LLMs and no LLM stream is provided
         """
         if llm_stream is None:
             prompt = self.make_prompt(tape)
