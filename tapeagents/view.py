@@ -138,7 +138,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
             case Observation():
                 top.add_step(step)
             case _:
-                raise ValueError(f"Unsupported step type {step}")
+                raise ValueError(f"Unsupported step type {type(step)}")
 
     def pop_view_from_stack(self, step: Respond):
         top = self.stack[-1]
