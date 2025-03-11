@@ -16,7 +16,6 @@ from tapeagents.config import is_debug_mode
 from .agent import Agent
 from .core import AgentEvent, Observation, Step, StopStep, TapeType
 from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo, ToolCollectionEnvironment
-from .renderers import step_view
 from .utils import FatalError, diff_dicts
 
 logger = logging.getLogger(__name__)
@@ -116,7 +115,12 @@ def main_loop(
             for event in agent.run(tape):
                 yield MainLoopEvent(agent_event=event)
                 if event.step:
-                    logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+                    logger.info(
+                        colored(
+                            f"AGENT {event.step.metadata.agent}:{event.step.metadata.node} {event.step.llm_view()}",
+                            "green",
+                        )
+                    )
                 if event.final_tape:
                     break
             assert event and event.final_tape
@@ -137,7 +141,7 @@ def main_loop(
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:
-                logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+                logger.info(colored(f"ENV: {observation.short_view()}", "yellow"))
                 yield MainLoopEvent(observation=observation)
             yield MainLoopEvent[TapeType](env_tape=tape)
 

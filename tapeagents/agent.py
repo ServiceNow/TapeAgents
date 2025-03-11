@@ -10,6 +10,7 @@ from abc import abstractmethod
 from typing import Any, Generator, Generic
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
+from termcolor import colored
 from typing_extensions import Self
 
 from tapeagents.core import (
@@ -239,6 +240,7 @@ class Agent(BaseModel, Generic[TapeType]):
                     f"Node {node.name} references unknown LLM {node.llm}. Known LLMs: {list(self.llms.keys())}"
                 )
             node_names.add(node.name)
+        self.update_subagents()
         return super().model_post_init(__context)
 
     def update_subagents(self):
@@ -525,8 +527,14 @@ class Agent(BaseModel, Generic[TapeType]):
             - Empty prompts signal rule-based generation without LLM
             - Method may be optional for pure delegation agents
         """
-
-        return self.select_node(tape).make_prompt(self, tape)
+        node = self.select_node(tape)
+        prompt = node.make_prompt(self, tape)
+        msg_debug = "\n\n".join([f"{m['role']}:\n{m['content']}" for m in prompt.messages])
+        logger.debug(colored(f"Node {self.full_name}:{node.name}", "magenta"))
+        logger.debug(colored(f"Prompt messages:\n{msg_debug}", "magenta"))
+        logger.debug(colored(f"Prompt tools: {prompt.tools}", "magenta"))
+        logger.debug(colored(f"Prompt response_format: {prompt.response_format}", "magenta"))
+        return prompt
 
     def generate_steps(self, tape: TapeType, llm_stream: LLMStream) -> Generator[Step | PartialStep, None, None]:
         """
