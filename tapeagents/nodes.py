@@ -213,10 +213,6 @@ class StandardNode(Node):
             role = "assistant" if isinstance(step, AgentStep) else "user"
             if isinstance(step, Observation) and steps_after_current >= self.trim_obs_except_last_n:
                 view = step.short_view()
-            elif isinstance(step, UserStep):
-                view = step.content
-            elif isinstance(step, ReasoningThought):
-                view = step.reasoning
             else:
                 view = step.llm_view()
             messages.append({"role": role, "content": view})

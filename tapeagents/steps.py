@@ -101,6 +101,9 @@ class ReasoningThought(Thought):
     kind: Literal["reasoning_thought"] = "reasoning_thought"
     reasoning: str
 
+    def llm_view(self):
+        return self.reasoning
+
 
 class BranchStep(ControlFlow):
     kind: Literal["branch"] = "branch"
