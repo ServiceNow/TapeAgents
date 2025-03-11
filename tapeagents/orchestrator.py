@@ -116,7 +116,7 @@ def main_loop(
                 if event.step:
                     logger.info(
                         colored(
-                            f"AGENT {event.step.metadata.agent}:{event.step.metadata.node} {event.step.llm_view()}",
+                            f"AGENT {event.step.metadata.agent}:{event.step.metadata.node}\n{event.step.llm_view()}",
                             "green",
                         )
                     )
@@ -141,7 +141,7 @@ def main_loop(
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:
-                logger.info(colored(f"ENV: {observation.short_view()}", "yellow"))
+                logger.info(colored(f"ENV:\n{observation.short_view()}", "yellow"))
                 yield MainLoopEvent(observation=observation)
             yield MainLoopEvent[TapeType](env_tape=tape)
 
