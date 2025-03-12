@@ -155,7 +155,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     else:
         loss = -masked_sum(loss, masks_, axis=-1).mean()
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
-    
+
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),

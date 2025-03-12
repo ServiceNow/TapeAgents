@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 _accelerator = None
 
+
 def get_accelerator():
     global _accelerator
     if _accelerator is None:

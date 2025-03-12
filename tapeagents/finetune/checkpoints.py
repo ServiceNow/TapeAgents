@@ -389,7 +389,7 @@ def load_training_state(
     training_state = load_training_checkpoint(training_state_dir, model, optimizer, lr_scheduler)
     if training_state is None:
         raise ValueError(f"Could not load training state from {training_state_dir}")
-    
+
     # Update training_metrics with loaded training state (hasattr check is to avoid potential mismatches between training_metrics and training_state)
     vars(training_metrics).update({key: val for key, val in training_state.items() if hasattr(training_metrics, key)})
     return training_metrics
