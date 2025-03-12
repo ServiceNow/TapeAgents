@@ -104,6 +104,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         dim=2,
         index=batch["input_ids"][:, 1:].unsqueeze(2),
     ).squeeze(2)
+    entropy = -(torch.exp(new_log_probs) * new_log_probs).sum(dim=-1)
     assert torch.isfinite(new_log_probs).all(), f"new_log_probs is not finite: {new_log_probs}"
 
     masks_ = masks[:, 1:]
@@ -163,7 +164,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "reward": masked_mean(rewards, masks_).item(),
         "max_reward": rewards[masks_].max().item(),
         "min_reward": rewards[masks_].min().item(),
-        "mean_entropy": -masked_sum(old_logprobs * torch.log(old_logprobs + 1e-9), masks_, axis=-1).mean().item(),
+        "entropy": masked_mean(entropy, masks_).item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
         "mean_new_logprobs_positive_log_p_weights": masked_mean(
