@@ -141,12 +141,10 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
             assert approx_kl.shape == masks_.shape
             assert approx_kl.shape == surrogate_loss.shape
             loss = surrogate_loss - config.kl_coef * approx_kl
-            # loss = -masked_sum(surrogate_loss - config.kl_coef * approx_kl, masks_)
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
             loss = new_log_probs * log_p_weights - config.kl_coef * approx_kl
-            # loss = -masked_sum(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
 
@@ -154,11 +152,9 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     if config.aggregate_loss == "mean":
         loss = -masked_mean(loss, masks_, axis=-1).mean()
     else:
-        loss = -masked_sum(loss, masks_)
+        loss = -masked_sum(loss, masks_, axis=-1).mean()
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
     
-    # normalize the loss by the micro batch size
-    loss = loss / masks.shape[0]
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),
