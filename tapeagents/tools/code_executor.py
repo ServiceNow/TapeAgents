@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class PythonCodeAction(Action):
     """
     Action to execute the python code snippet. Can be used to perform calculations, simulations or data processing.
+    If you want to output the result of the code, make sure to include a print statement at the end of the code.
     """
 
     kind: Literal["python_code_action"] = "python_code_action"  # type: ignore
