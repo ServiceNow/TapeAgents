@@ -361,6 +361,7 @@ def main(cfg: DictConfig):
                             tokenizer_name=str(assistant_model_path),
                             parameters=cfg.test_llm.parameters,
                             use_cache=False,
+                            collect_logprobs=True,
                             observe_llm_calls=False,
                         )
                         for base_url in vllm_service_manager.get_base_urls()
