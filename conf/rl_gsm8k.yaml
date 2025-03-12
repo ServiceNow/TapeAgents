@@ -36,11 +36,6 @@ task_template: |-
   {task}\nPlease reason step by step, and put your final answer within \boxed{{}}.
 max_prompt_length: 1024
 
-rewards:
-  unparsable: 0
-  wrong_answer: 0
-  correct_answer: 1
-
 vllm_config:
   vllm_kwargs:
     download-dir: /mnt/llmd/base_models/ 
@@ -60,7 +55,7 @@ vllm_config:
     enable-chunked-prefill: ""
     max-num-batched-tokens: 1024
 
-output_dir: outputs/rl_gsm8k_deepspeed
+output_dir: ???
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 use_deepspeed: false
 

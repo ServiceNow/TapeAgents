@@ -14,12 +14,12 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
-import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
+import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
@@ -143,42 +143,35 @@ def extract_tape_training_samples(
 
         if prediction == answer:
             # Correct answer
-            reward, success = cfg.rewards.correct_answer, 1
+            reward, success = 1, 1
         else:
             # Incorrect answer or no answer
-            reward, success = cfg.rewards.wrong_answer, 0
+            reward, success = 0, 0
 
     training_samples: list[TrainingText] = []
     # For each LLM interaction in the tape:
     # - Create a training sample from the prompt and output
     # - Get log probabilities of the output tokens
     # - Set group ID for tracking and advantage calculation
+    overflows = []
     for step in new_tape.steps:
-        if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
-            # Skip steps without LLM calls
-            continue
+        if (llm_call := step.metadata.other.get("llm_call")) and (logprobs := getattr(llm_call, "logprobs", None)):
+            if isinstance(llm_call, dict):
+                llm_call = LLMCall(**llm_call)
 
-        llm_call = step.metadata.other["llm_call"]
+            tape_prompt_tokens += llm_call.prompt_length_tokens
+            tape_output_tokens += llm_call.output_length_tokens
 
-        if isinstance(llm_call, dict):
-            llm_call = LLMCall(**llm_call)
-
-        tape_prompt_tokens += llm_call.prompt_length_tokens
-        tape_output_tokens += llm_call.output_length_tokens
-
-        overflows = []
-        if split_name == "train":
-            # Create a training sample from the LLM call if it's the training split
             trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
 
-        input_ids = [lp.token_id for lp in llm_call.logprobs]
-        labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
-        # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
-        # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-        labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
+            input_ids = [lp.token_id for lp in logprobs]
+            labels = [lp.token_id for lp in logprobs if lp.generated]
+            # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+            # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
 
-        trace.input_ids = input_ids
-        trace.labels = labels
+            trace.input_ids = input_ids
+            trace.labels = labels
 
             # check if the last produced token is the end of sequence token
             overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True

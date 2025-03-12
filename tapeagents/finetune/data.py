@@ -242,7 +242,7 @@ def create_dataloader(
 
     if rl_data_callback is not None:
         get_accelerator().wait_for_everyone()
-        data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
+        data = rl_data_callback(dataset=data)
 
     if n_examples:
         data = data.select(range(n_examples))
