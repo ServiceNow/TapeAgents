@@ -14,17 +14,17 @@ from typing import Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
-import wandb
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
+import wandb
 from tapeagents.agent import Agent
 from tapeagents.core import StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.llms import LLMCall, TrainableLLM
+from tapeagents.llms import TrainableLLM
 
 from .cot_math_agent import CoTMathAgent, RLMathTape, Task
 from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
@@ -154,33 +154,31 @@ def extract_tape_training_samples(
     # - Get log probabilities of the output tokens
     # - Set group ID for tracking and advantage calculation
     overflows = []
+    max_num_tokens = agent.llm.parameters["max_tokens"]
     for step in new_tape.steps:
-        if (llm_call := step.metadata.other.get("llm_call")) and (logprobs := getattr(llm_call, "logprobs", None)):
-            if isinstance(llm_call, dict):
-                llm_call = LLMCall(**llm_call)
-
+        if llm_call := step.metadata.other.get("llm_call"):
             tape_prompt_tokens += llm_call.prompt_length_tokens
             tape_output_tokens += llm_call.output_length_tokens
-
-            trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-
-            input_ids = [lp.token_id for lp in logprobs]
-            labels = [lp.token_id for lp in logprobs if lp.generated]
-            # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
-            # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
-
-            trace.input_ids = input_ids
-            trace.labels = labels
-
-            # check if the last produced token is the end of sequence token
-            overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
-            reward = -1 if overflow else reward
-            trace.reward = reward
+            overflow = True if llm_call.output_length_tokens == max_num_tokens else False
             overflows.append(overflow)
-            trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
-            trace.group_id = new_tape.metadata.parent_id
-            training_samples.append(trace)
+
+            if logprobs := getattr(llm_call, "logprobs", None):
+                trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
+
+                input_ids = [lp.token_id for lp in logprobs]
+                labels = [lp.token_id for lp in logprobs if lp.generated]
+                # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+                # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+                labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
+
+                trace.input_ids = input_ids
+                trace.labels = labels
+
+                reward = -1 if overflow else reward
+                trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
+                trace.group_id = new_tape.metadata.parent_id
+                trace.reward = reward
+                training_samples.append(trace)
 
     tape_stats = {
         "reward": reward,
