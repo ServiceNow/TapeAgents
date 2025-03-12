@@ -1,0 +1,52 @@
+defaults:
+  - _self_
+  - llm: gpt4o
+
+environment:
+  _target_: tapeagents.environment.ToolCollectionEnvironment
+  tools:
+    - _target_: tapeagents.tools.document_reader.DocumentReader
+      preferred_pdf_converter:
+        _target_: hydra.utils.get_class
+        path: tapeagents.tools.converters.PdfConverter
+
+agent:
+  _target_: tapeagents.agent.Agent
+  name: document_agent
+  max_iterations: 2
+  llms:
+    default: ${llm}
+  templates:
+    system_prompt: |
+      You will help the user to extract information from files.
+      Use as many relevant tools as possible to include more details and facts in your responses.
+    allowed_tools: |
+      You have access to the following tools:
+      {tools_description}
+    thought_format: |
+      Important! Respond with the plain text, do not include any JSON or code.
+      Do not output anything besides what I asked in this message.
+    allowed_steps: |
+      You have access to the following tools:
+      {tools_description}
+      You are allowed to produce ONLY steps with the following JSON schemas:
+      {allowed_steps}
+      Do not reproduce the schema when producing steps; use it as a reference.
+    format: >
+      Output only a single JSON dict. 
+      DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JSON. 
+      It will break the system that processes the output.
+  nodes:
+    - _target_: tapeagents.nodes.StandardNode
+      name: act
+      system_prompt: ${agent.templates.system_prompt}
+      guidance: |
+        You have access to tools to read and convert files that contain useful information. Never call the same tool twice.
+        The first step should be to simply read the data in the file.
+        The second step should be to return the data to the user.
+        ${agent.templates.format}
+      steps_prompt: ${agent.templates.allowed_steps}
+      steps:
+        - tapeagents.dialog_tape.AssistantAnswer
+      use_known_actions: true
+      next_node: act

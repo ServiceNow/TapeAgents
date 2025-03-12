@@ -3,19 +3,14 @@ import logging
 import os
 
 import hydra
-from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from tapeagents.io import save_json_tape
-from tapeagents.llms import TrainableLLM
 from tapeagents.observe import retrieve_llm_calls
-from tapeagents.orchestrator import main_loop
-from tapeagents.tools.container_executor import ContainerExecutor
+from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 
-from ..agent import GaiaAgent
-from ..environment import GaiaEnvironment
-from ..eval import load_dataset
-from ..tape import GaiaMetadata, GaiaTape
+from ..eval import load_dataset, task_to_observations
+from ..steps import GaiaMetadata, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,26 +19,20 @@ logger = logging.getLogger(__name__)
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="gaia_openai",
+    config_name="agent_debug",
 )
 def main(cfg: DictConfig) -> None:
     dset = load_dataset("validation")
     tapes_dir = f"{cfg.exp_path}/tapes"
     os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
-    tape_name = f"debug_{cfg.level}_{cfg.task}"
-    tasks = dset[cfg.level]
-    task = tasks[cfg.task]
-    llm: TrainableLLM = instantiate(cfg.llm)
-    try:
-        code_sandbox = ContainerExecutor(work_dir=os.path.join(cfg.exp_path, "code"))
-    except Exception as e:
-        logger.error(f"Failed to create code sandbox: {e}")
-        code_sandbox = None
-    env = GaiaEnvironment(vision_lm=llm, code_sandbox=code_sandbox)
-    agent = GaiaAgent.create(llm, **cfg.agent)
-    tape = GaiaTape(steps=env.task_to_observations(task))
-    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": cfg.level})
+    level, task = cfg.only_tasks[0]
+    tape_name = f"debug_{level}_{task}"
+    tasks = dset[level]
+    task = tasks[task]
+    agent, env = get_agent_and_env_from_config(cfg)
+    tape = GaiaTape(steps=task_to_observations(task))
+    tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
     step_count = 0
     for event in main_loop(agent, tape, env, max_loops=50):
         if event.agent_event and event.agent_event.step:
@@ -77,9 +66,6 @@ def main(cfg: DictConfig) -> None:
 
     save_json_tape(tape, tapes_dir, tape_name)
     logger.info(f"Saved tape to {tapes_dir}/{tape_name}.json")
-
-    if code_sandbox:
-        code_sandbox.stop()
 
 
 if __name__ == "__main__":

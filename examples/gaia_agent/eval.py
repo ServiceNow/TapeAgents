@@ -1,22 +1,27 @@
 import json
 import logging
 import os
+import shutil
 import subprocess
-from typing import Any, Counter, Generator
+import time
+from typing import Any, Counter
 
 import yaml
 from huggingface_hub import snapshot_download
+from pdf2image import convert_from_path
 from termcolor import colored
 
+from tapeagents.agent import Agent
+from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.io import load_tapes, save_json_tape
 from tapeagents.orchestrator import main_loop
 from tapeagents.renderers import step_view
+from tapeagents.tools.code_executor import PythonCodeAction
+from tapeagents.tools.simple_browser import SimpleTextBrowser
+from tapeagents.tools.web_search import SearchAction
 
-from .agent import GaiaAgent
-from .environment import GaiaEnvironment
 from .scorer import question_scorer
-from .steps import GaiaAnswer, SearchAction
-from .tape import GaiaMetadata, GaiaTape
+from .steps import GaiaAnswer, GaiaMetadata, GaiaQuestion, GaiaTape, ImageObservation
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +40,10 @@ def tape_correct(tape: GaiaTape) -> bool:
     if golden == "?":  # placeholder for hidden answer in test set
         return False
     return question_scorer(predicted, golden)
+
+
+def tape_without_result(tape: GaiaTape) -> bool:
+    return tape.metadata.result in ["", "None", None]
 
 
 def calculate_accuracy(tapes: list[GaiaTape], show_intermediate=False, show_wrong=False):
@@ -97,60 +106,62 @@ def load_dataset(split: str):
 
 def solve_task(
     task: dict,
-    agent: GaiaAgent,
-    env: GaiaEnvironment,
+    agent: Agent,
+    env: ToolCollectionEnvironment,
     level: int,
-    retries: int = 3,
+    task_num: int,
+    tapes_dir: str,
     max_loops: int = 50,
-) -> Generator[GaiaTape, None, None]:
-    """Solve GAIA task.
-
-    This function is a generator that yields intermediate tapes during the solving process.
-    The last tape will contain the agent's response.
-
-    """
-    start_steps = env.task_to_observations(task)
-    solved = None
-    result = None
-    while not solved and retries:
-        tape = GaiaTape(steps=start_steps)
-        try:
-            for event in main_loop(agent, tape, env, max_loops=max_loops):
-                if partial_tape := (event.agent_tape or event.env_tape):
-                    tape = partial_tape
-                    tape.metadata = GaiaMetadata.model_validate(
-                        tape.metadata.model_dump() | {"task": task, "level": level}
-                    )
-                    yield tape
-                if n_search_repetitions(tape) >= 3:
-                    break
-        except Exception as e:
-            tape.metadata.error = str(e)
-            logger.exception(f"Failed to solve task: {e}")
-            break
-        result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None
-        result = str(result) if result is not None else ""
-        solved = result != ""
-        retries -= 1
+    max_action_repetitions: int = 3,
+) -> GaiaTape:
+    start_steps = task_to_observations(task)
+    t = time.perf_counter()
+    tape = GaiaTape(steps=start_steps)
+    loop_timout_sec = 30 * 60
+    tmp_file = os.path.join(tapes_dir, f"l{level}_task{task_num:03d}.json.tmp")
+    try:
+        start_time = time.perf_counter()
+        for event in main_loop(agent, tape, env, max_loops=max_loops):
+            if time.perf_counter() - start_time > loop_timout_sec:
+                tape.metadata.error = "Timeout, task took too long"
+                logger.warning("Timeout, task took too long")
+                break
+            if partial_tape := (event.agent_tape or event.env_tape):
+                tape = partial_tape
+                tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
+                save_json_tape(tape, tmp_file)
+            if action_repetitions(tape) >= max_action_repetitions:
+                break
+    except Exception as e:
+        tape.metadata.error = str(e)
+        logger.exception(f"Failed to solve task: {e}")
+    result = tape[-1].answer if isinstance(tape[-1], GaiaAnswer) else None  # type: ignore
+    result = str(result) if result is not None else ""
     logger.info(f"Expected: {task['Final answer']}, Agent produced: {result}")
     tape.metadata = GaiaMetadata.model_validate(
         tape.metadata.model_dump() | {"task": task, "result": result, "level": level}
     )
-    yield tape
+    tape.metadata.other["timers"] = {"solve_task": time.perf_counter() - t}
+    if os.path.exists(tmp_file):
+        os.unlink(tmp_file)
+    return tape
 
 
-def n_search_repetitions(tape: GaiaTape) -> int:
-    steps_by_query = {}
+def action_repetitions(tape: GaiaTape) -> int:
+    unique_actions = {}
     for step in tape:
-        if isinstance(step, SearchAction):
-            steps_by_query[step.query] = steps_by_query.get(step.query, 0) + 1
-    return max(steps_by_query.values(), default=0)
+        if isinstance(step, (SearchAction, PythonCodeAction)):
+            key = step.llm_view()
+            unique_actions[key] = unique_actions.get(key, 0) + 1
+    return max(unique_actions.values(), default=0)
 
 
 def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> list[GaiaTape]:
     ensemble = []
     improved = 0
     degraded = 0
+    added_result = 0
+    no_result = 0
     for i, tapes in enumerate(zip(*all_tapes)):
         tapes: list[GaiaTape] = tapes
         results = [tape.metadata.result for tape in tapes]
@@ -162,21 +173,26 @@ def ensemble_results(all_tapes: list[list[GaiaTape]], oracle: bool = False) -> l
                     break
         best_tape = tapes[most_common_idx].copy()
 
-        orig = tapes[0]
-        orig_correct = int(tape_correct(orig))
+        tape0 = tapes[0]
+        tape0_correct = int(tape_correct(tape0))
         ensemble_correct = int(tape_correct(best_tape))
         expected = tapes[0].metadata.task["Final answer"]
-        log_message = f"{i+1}: {orig_correct} -> {ensemble_correct} | choose {most_common_idx+1} ({best_tape.metadata.result}) of {results}. Expected: {expected}"
-        if orig_correct < ensemble_correct:
+        change = "switched" if best_tape.metadata.result != results[0] else "same"
+        log_message = f"{i+1}: {tape0_correct} -> {ensemble_correct} | {change} {most_common_idx+1} ({best_tape.metadata.result}) of {results}. Expected: {expected}"
+        if tape0_correct < ensemble_correct:
             logger.info("Improved")
             improved += 1
-            logger.info(log_message)
-        elif orig_correct > ensemble_correct:
+        elif tape0_correct > ensemble_correct:
             logger.info("Degraded")
             degraded += 1
-            logger.info(log_message)
+        if tape_without_result(best_tape):
+            no_result += 1
+        if tape_without_result(tape0) and not tape_without_result(best_tape):
+            added_result += 1
+            logger.info("Added result")
+        logger.info(log_message)
         ensemble.append(best_tape)
-    logger.info(f"Improved {improved}, degraded {degraded}")
+    logger.info(f"Improved {improved}, degraded {degraded}, no result {no_result}, added result {added_result}")
     return ensemble
 
 
@@ -201,3 +217,65 @@ def get_exp_config_dict(exp_path):
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
     return cfg
+
+
+def pdf_to_images(filename: str, n_pages: int = 3):
+    images = []
+    for i, image in enumerate(convert_from_path(filename)):
+        page_index = i + 1
+        page_fname = filename[:-4] + f"_{page_index}.png"
+        if os.path.exists(page_fname):
+            images.append(page_fname)
+            continue
+        image.save(page_fname)
+        images.append(page_fname)
+    return images[:n_pages], len(images)
+
+
+def task_to_observations(task: dict, max_doc_length: int = 8000) -> list[GaiaQuestion | ImageObservation]:
+    logger.info(f"Question: {task['Question']}")
+    browser = SimpleTextBrowser()
+    steps: list[GaiaQuestion | ImageObservation] = [GaiaQuestion.from_task(task)]
+    filename: str | None = steps[0].filename
+    steps[0].filename = None
+    if filename:
+        name, ext = filename.rsplit(".", maxsplit=1)
+        ext = ext.lower()
+        if ext == "zip":
+            folder_name = name
+            os.makedirs(folder_name, exist_ok=True)
+            shutil.unpack_archive(filename, folder_name)
+            document_text = "\n\nArchive contains the following files:\n"
+            for i, file in enumerate(os.listdir(folder_name)):
+                file_path = os.path.join(folder_name, file)
+                content = browser.get_whole_document(file_path)
+                file_text = f"{i+1}. {file}. Content:\n{content}\n\n"
+                if len(file_text) > max_doc_length:
+                    file_text = ""
+                file_text += f"{i+1}. Path to the '{file}': {file_path}"
+                document_text += file_text
+        elif ext in ("png", "jpg", "jpeg"):
+            steps.append(ImageObservation(image_path=filename, image_caption="Attached image"))
+            document_text = ""
+        else:
+            attach_doc_text = True
+            if ext == "pdf":
+                images, total_pages = pdf_to_images(filename)
+                if total_pages <= 3:
+                    attach_doc_text = False
+                for i, img_path in enumerate(images):
+                    steps.append(ImageObservation(image_path=img_path, image_caption=f"PDF page {i+1}"))
+            if attach_doc_text:
+                try:
+                    content = browser.get_whole_document(filename)
+                except Exception as e:
+                    logger.exception(f"Failed to read document: {e}")
+                    content = ""
+                document_text = f"\n\nAttached {ext.upper()} file content:\n{content}\n"
+                if not len(content) or len(document_text) > max_doc_length:
+                    document_text = ""
+            else:
+                document_text = "\nDocument pages attached as images below"
+            steps[0].filename = filename
+        steps[0].content += document_text  # type: ignore
+    return steps

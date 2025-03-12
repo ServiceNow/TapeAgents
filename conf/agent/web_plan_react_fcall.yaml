@@ -1,0 +1,73 @@
+_target_: tapeagents.agent.Agent
+name : web_agent
+max_iterations: 2
+llms:
+  default: ${llm}
+templates:
+  system_prompt: |
+    You are an expert AI Agent trained to assist users with complex information processing tasks.
+    Your role is to understand user queries and respond in a helpful and accurate manner.
+    Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
+    Do not express emotions or opinions about user questions.
+  allowed_tools: |
+    You have access to the following tools:
+    {tools_description}
+  thought_format: |
+    Important! Respond with the plain text, do not include any JSON or code.
+    Do not output anything besides what I asked in this message.
+
+nodes:
+  - _target_: tapeagents.nodes.StandardNode
+    name: plan
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Write a concise multi-step plan explaining which steps should be performed to find the answer for the given task.
+      Remember that you can use web search, browser, python code execution and access the youtube videos to reach your goals.
+      Be specific about how each step should be performed. Only describe the intended actions here, do not perform them yet.
+      Consider that next steps may depend on results of previous steps, so include conditional branching using "if" statements where needed.
+      Start with the title "Plan".
+      ${agent.templates.thought_format}
+    steps_prompt: ${agent.templates.allowed_tools}
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: facts_survey
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Before we begin executing the plan, please answer the following pre-survey.
+          1. List any specific facts or figures that are GIVEN in the request itself.
+          2. List any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found.
+          3. List any facts that may need to be derived (e.g., via logical deduction, simulation, or computation).
+          4. List any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
+      Do not include empty lists in your answer.
+      When answering this survey, keep in mind that "facts" will typically be specific names, dates, statistics, etc.
+      Start with the title "Facts Survey".
+      ${agent.templates.thought_format}
+    steps_prompt: ${agent.templates.allowed_tools}
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: reflect
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: |
+      Produce the reasoning with a bullet-point list of thoughts strictly following the rules:
+        1. Summarize the last observation and describe any webpage interactions/effects.
+        2. Evaluate action success, explain impact on task/plan, and describe any errors with solutions.
+        3. If the last action was not successful, ask yourself about the reasons for failure.
+        4. List next steps to accomplish current plan step and propose next immediate action.
+
+      Additional notes for web page observations:
+        - Accept cookie consents first
+        - Quote relevant observation parts verbatim
+        - Close popups before interacting
+        - If last action was not successful, check if the target element is visible, use scrolling if its not.
+      ${agent.templates.thought_format}
+    steps_prompt: ${agent.templates.allowed_tools}
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: act
+    use_function_calls: true
+    system_prompt: ${agent.templates.system_prompt}
+    guidance: Produce an function call that performs the proposed step
+    steps:
+      - examples.gaia_agent.steps.GaiaAnswer
+    use_known_actions: true
+    next_node: reflect

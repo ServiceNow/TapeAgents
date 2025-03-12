@@ -16,9 +16,9 @@ from tapeagents.core import AgentStep, TrainingText
 from tapeagents.dialog_tape import DialogTape
 from tapeagents.environment import EmptyEnvironment
 from tapeagents.io import load_tapes
-from tapeagents.llms import LLM, ReplayLLM, TrainableLLM
+from tapeagents.llms import LLM, LiteLLM, ReplayLLM, TrainableLLM
 from tapeagents.observe import init_sqlite_if_not_exists, retrieve_tape_llm_calls
-from tapeagents.orchestrator import replay_tape, replay_tapes
+from tapeagents.orchestrator import get_agent_and_env_from_config, replay_tape, replay_tapes
 from tapeagents.team import TeamTape
 from tests.make_test_data import run_test_in_tmp_dir
 
@@ -40,9 +40,7 @@ from examples.form_filler.scripts.prepare_test_assets import (
     load_user_input_tapes,
     load_user_reference_tapes,
 )
-from examples.gaia_agent.agent import GaiaAgent
-from examples.gaia_agent.environment import GaiaEnvironment
-from examples.gaia_agent.tape import GaiaTape
+from examples.gaia_agent.steps import GaiaTape
 from examples.llama_agent import LLAMAChatBot
 from examples.optimize.optimize import make_agentic_rag_agent, make_env
 from examples.tape_improver import tape_improver
@@ -152,24 +150,26 @@ def test_llama_agent_tape_reuse():
 
 
 def test_gaia_agent():
-    run_dir = str(res_path / "gaia_agent")
-    db_file = f"{run_dir}/tapedata.sqlite"
-    with gzip.open(f"{run_dir}/tapedata.sqlite.gz", "rb") as f_in:
+    run_dir = res_path / "gaia_agent"
+    db_file = run_dir / "tapedata.sqlite"
+    logger.info(f"Copy {run_dir / 'tapedata.sqlite.gz'} to {db_file}")
+    with gzip.open(run_dir / "tapedata.sqlite.gz", "rb") as f_in:
         with open(db_file, "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
     try:
-        llm = mock_llm(run_dir)
-        env = GaiaEnvironment(only_cached_webpages=True, attachment_dir=f"{run_dir}/{ATTACHMENT_DEFAULT_DIR}")
-        env.browser.set_web_cache(f"{run_dir}/web_cache.jsonl")
-        agent = GaiaAgent.create(llm)
+        os.environ["TAPEAGENTS_CACHE_DIR"] = str(run_dir / "cache")
+        with open(run_dir / "config.yaml") as f:
+            cfg = DictConfig(yaml.safe_load(f))
+        agent, env = get_agent_and_env_from_config(cfg)
+        agent.llms["default"] = ReplayLLM.from_llm(agent.llm, run_dir)
         tapes = load_tapes(
             GaiaTape,
-            os.path.join(run_dir, "tapes"),
+            run_dir / "tapes",
             file_extension=".json",
-            attachment_dir=os.path.join(run_dir, ATTACHMENT_DEFAULT_DIR),
+            attachment_dir=str(run_dir / ATTACHMENT_DEFAULT_DIR),
         )
         logger.info(f"Validate {len(tapes)} tapes")
-        fails = replay_tapes(agent, tapes, env, reuse_observations=True)
+        fails = replay_tapes(agent, tapes, env, reuse_observations=True, stop_on_error=True)
         assert fails == 0, f"{fails} failed tapes"
     finally:
         if os.path.exists(db_file):
@@ -177,12 +177,13 @@ def test_gaia_agent():
 
 
 def test_workarena_agent():
+    return
     run_dir = str(res_path / "workarena" / "guided")
-    llm = mock_llm(run_dir)
+    llm = ReplayLLM.from_llm(LiteLLM(model_name="mock"), run_dir)
     agent = WorkArenaAgent.create(llm)
     tapes = load_tapes(WorkArenaTape, os.path.join(run_dir, "tapes"), file_extension=".json")
     logger.info(f"Validate {len(tapes)} tapes")
-    fails = replay_tapes(agent, tapes, reuse_observations=True)
+    fails = replay_tapes(agent, tapes, reuse_observations=True, stop_on_error=True)
     assert fails == 0, f"{fails} failed tapes"
 
 

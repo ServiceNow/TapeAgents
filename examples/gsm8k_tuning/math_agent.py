@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Annotated, Literal, TypeAlias, Union
+from typing import Literal, Union
 
 from pydantic import Field
 
@@ -17,10 +17,9 @@ from tapeagents.core import (
 from tapeagents.environment import Environment
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
-from tapeagents.nodes import MonoNode
+from tapeagents.nodes import StandardNode
 from tapeagents.orchestrator import main_loop
 from tapeagents.tools.calculator import calculate
-from tapeagents.utils import get_step_schemas_from_union_type
 
 logger = logging.getLogger(__name__)
 
@@ -69,14 +68,7 @@ class AnswerAction(FinalStep):
     value: int | float | None = Field(description="numerical value of the answer or null if solution is not found")
 
 
-MathAgentStep: TypeAlias = Annotated[
-    Union[
-        UseCalculatorAction,
-        ReasoningThought,
-        AnswerAction,
-    ],
-    Field(discriminator="kind"),
-]
+MathAgentStep = (UseCalculatorAction, ReasoningThought, AnswerAction)
 
 
 MathTape = Tape[
@@ -100,9 +92,9 @@ Your role is to understand user queries and respond in a helpful and accurate ma
 Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
 """
 
-ALLOWED_STEPS = f"""
+ALLOWED_STEPS = """
 You are allowed to produce ONLY steps with the following json schemas:
-{get_step_schemas_from_union_type(MathAgentStep)}
+{allowed_steps}
 Do not reproduce schema when producing the steps, use it as a reference.
 """
 
@@ -123,18 +115,18 @@ class MathAgent(Agent):
         return super().create(
             llm,
             nodes=[
-                MonoNode(
+                StandardNode(
                     name="start",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
-                    agent_step_cls=MathAgentStep,
+                    steps=MathAgentStep,
                     guidance=START_TASK_GUIDANCE,
                 ),
-                MonoNode(
+                StandardNode(
                     name="default",
                     system_prompt=SYSTEM_PROMPT,
                     steps_prompt=ALLOWED_STEPS,
-                    agent_step_cls=MathAgentStep,
+                    steps=MathAgentStep,
                     guidance=HINTS,
                     next_node="default",
                 ),

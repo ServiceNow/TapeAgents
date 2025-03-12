@@ -102,20 +102,20 @@ cython_debug/
 /outputs/
 /examples/**/outputs/
 /data/
+.streamlit_config/
 
 *cache*.json
 !/tests/**/*cache*.json
 
 *.jsonl
 !/tests/**/*.jsonl
-
-*.sqlite
 !tests/**/**.sqlite
-
-*.zip
-
 *.log
+*.sqlite
+*.zip
+memory_storage.json
 
-# Weights & Biases
 /wandb/
 /temp/
+.pw-browsers
+.computer

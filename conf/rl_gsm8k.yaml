@@ -1,22 +1,19 @@
 defaults:
-  - finetune: rl_llama31_8b
+  - finetune: grpo
   - _self_
 
-dataset_name: gsm8k
 n_workers_per_gpu: 32
 get_logprobs_workers_per_gpu: 4
-max_loops: 1
-test_every_n_iterations: 5
-model_path: /mnt/llmd/base_models/deepseek-math-7b-instruct
-max_agent_forks: 1024
-attempts: 64
+test_every_n_iterations: 1
+model_path: /mnt/llmd/base_models/Llama-3.2-1B-Instruct
+max_agent_forks: 6000
+attempts: 8 
 force_restart: false
 max_iterations: 1000
-use_rejection_sampling: false
 llm:
   parameters:
     max_tokens: 3072
-    temperature: 0.7
+    temperature: 1.0
 test_llm:
   parameters: 
     max_tokens: ${...llm.parameters.max_tokens}
@@ -34,11 +31,9 @@ finetune:
   save_checkpoint_steps: 10
   seq_length: 4096
 
-system_prompt: null
-# Same prompt as https://github.com/deepseek-ai/DeepSeek-Math/blob/b8b0f8ce093d80bf8e9a641e44142f06d092c305/evaluation/run_subset_parallel.py#L26
+system_prompt: ""
 task_template: |-
   {task}\nPlease reason step by step, and put your final answer within \boxed{{}}.
-overflow_reward: 0
 max_prompt_length: 1024
 
 rewards:
@@ -48,22 +43,22 @@ rewards:
 
 vllm_config:
   vllm_kwargs:
-    --download-dir: /mnt/llmd/base_models/ 
-    --gpu-memory-utilization: 0.9
-    --num-scheduler-steps: 16
-    --disable-log-requests: ""
-    --max-num-seqs: 1024 
-    --enforce-eager: ""
-    --return-tokens-as-token-ids: ""
-    --pipeline-parallel-size: 1
-    --tensor-parallel-size: 1
+    download-dir: /mnt/llmd/base_models/ 
+    gpu-memory-utilization: 0.9
+    num-scheduler-steps: 16
+    disable-log-requests: ""
+    max-num-seqs: 1024 
+    enforce-eager: ""
+    return-tokens-as-token-ids: ""
+    pipeline-parallel-size: 1
+    tensor-parallel-size: 1
   actor_vllm_kwargs:
-    --num-scheduler-steps: 16
+    num-scheduler-steps: 16
   ref_vllm_kwargs:
-    --num-scheduler-steps: 1
+    num-scheduler-steps: 1
      # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
-    --enable-chunked-prefill: ""
-    --max-num-batched-tokens: 1024
+    enable-chunked-prefill: ""
+    max-num-batched-tokens: 1024
 
 output_dir: outputs/rl_gsm8k_deepspeed
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml

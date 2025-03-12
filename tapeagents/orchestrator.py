@@ -6,6 +6,8 @@ import enum
 import logging
 from typing import Generator, Generic
 
+from hydra.utils import instantiate
+from omegaconf import DictConfig
 from pydantic import BaseModel, Field
 from termcolor import colored
 
@@ -13,11 +15,12 @@ from tapeagents.config import is_debug_mode
 
 from .agent import Agent
 from .core import AgentEvent, Observation, Step, StopStep, TapeType
-from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo
+from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo, ToolCollectionEnvironment
 from .renderers import step_view
 from .utils import FatalError, diff_dicts
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class MainLoopStatus(enum.Enum):
@@ -74,6 +77,14 @@ class MainLoopStream(Generic[TapeType]):
         raise ValueError("No tape by either the agent or the environment")
 
 
+def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
+    environment: ToolCollectionEnvironment = instantiate(cfg.environment)
+    agent: Agent = instantiate(
+        cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
+    )
+    return agent, environment
+
+
 def main_loop(
     agent: Agent[TapeType],
     start_tape: TapeType,
@@ -105,7 +116,7 @@ def main_loop(
             for event in agent.run(tape):
                 yield MainLoopEvent(agent_event=event)
                 if event.step:
-                    logger.debug(colored(f"AGENT: {step_view(event.step)}", "green"))
+                    logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
                 if event.final_tape:
                     break
             assert event and event.final_tape
@@ -113,8 +124,8 @@ def main_loop(
             yield MainLoopEvent(agent_tape=agent_tape)
 
             # --- RUN THE ENVIRONMENT ---
-            if isinstance(agent_tape.steps[-1], StopStep):
-                logger.debug(f"Agent emitted final step {agent_tape.steps[-1]}")
+            if any([isinstance(step, StopStep) for step in agent_tape.steps]):
+                logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
                 yield MainLoopEvent(status=MainLoopStatus.FINISHED)
                 return
             try:
@@ -126,7 +137,7 @@ def main_loop(
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:
-                logger.debug(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+                logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
                 yield MainLoopEvent(observation=observation)
             yield MainLoopEvent[TapeType](env_tape=tape)
 
@@ -256,7 +267,7 @@ def replay_tapes(
     env: Environment[TapeType] | None = None,
     start_tapes: list[TapeType] | None = None,
     reuse_observations: bool = False,
-    pause_on_error: bool = False,
+    stop_on_error: bool = False,
 ) -> int:
     """
     Validate the list of tapes with the agent and environment.
@@ -278,11 +289,11 @@ def replay_tapes(
             if not matched:
                 raise FatalError("Tape mismatch")
             ok += 1
-        except FatalError as f:
-            logger.error(colored(f"Fatal error: {f}, skip tape {tape.metadata.id}", "red"))
+        except FatalError as e:
+            logger.error(colored(f"Fatal error: {e}, skip tape {i}/{len(tapes)} ({tape.metadata.id})", "red"))
             fails += 1
-            if pause_on_error:
-                input("Press Enter to continue...")
+            if stop_on_error:
+                raise e
 
         logger.debug(colored(f"Ok: {ok}, Fails: {fails}", "green"))
     return fails

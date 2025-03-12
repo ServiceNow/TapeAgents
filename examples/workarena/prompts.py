@@ -126,19 +126,3 @@ elements in the page is through bid which are specified in your observations.
 """
 
 MAC_HINT = "\nNote: you are on mac so you should use Meta instead of Control for Control+C etc.\n"
-
-
-class PromptRegistry:
-    system_prompt = SYSTEM_PROMPT
-    baseline_system_prompt = BASELINE_SYSTEM_PROMPT
-    allowed_steps = ALLOWED_STEPS
-    baseline_steps_prompt = BASELINE_STEPS_PROMPT
-    goal_instructions = GOAL_INSTRUCTIONS
-    hints = HINTS
-    be_cautious = BE_CAUTIOUS
-    concrete_example = CONCRETE_EXAMPLE
-    abstract_example = ABSTRACT_EXAMPLE
-    mac_hint = MAC_HINT
-    reflect = REFLECT
-    act = ACT
-    start = START

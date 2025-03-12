@@ -1,0 +1,39 @@
+defaults:
+  - base
+  - _self_
+
+#Use W&B experiment logging
+use_wandb: True
+# W&B id; if given, will resume this run
+wandb_id: null
+# W&B name; if not given will use run dir
+wandb_name: null
+# W&B entity name
+wandb_entity_name: null
+# W&B project name
+wandb_project_name: tapeagents
+# W&B resume policy
+wandb_resume: always
+# Whether to use only the basename or the full path as the run name
+wandb_use_basename: false
+config_name: ???
+learning_rate: 0.000002
+train_batch_size: 4
+gradient_accumulation_passes: 8
+seq_length: 4096
+load_as_bf16: True
+max_train_steps: 100000
+save_checkpoint_steps: ???
+optim: adamw_torch # adamw_torch runs OOM with accelerate
+objective: rl
+log_each_n_steps: 1
+resume_dataloader: false
+cuda_empty_cache: true
+use_safetensors: true
+weight_decay: 0.01
+gradient_clipping_threshold: 1
+rl:
+  kl_coef: 0.01
+  reward_minus_kl_coef: 0.0
+  use_advantages: true
+  algo: grpo

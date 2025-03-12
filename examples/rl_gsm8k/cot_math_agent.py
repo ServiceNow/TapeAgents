@@ -1,19 +1,12 @@
 import logging
-from typing import Annotated, Any, Generator, Literal, TypeAlias, Union
+from typing import Any, Generator, Literal, Union
 
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.core import (
-    LLMOutputParsingFailureAction,
-    Observation,
-    Prompt,
-    Step,
-    Tape,
-    Thought,
-)
+from tapeagents.core import LLMOutputParsingFailureAction, Observation, Prompt, Step, Tape, Thought
 from tapeagents.llms import LLM
-from tapeagents.nodes import MonoNode
+from tapeagents.nodes import StandardNode
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +31,6 @@ class ReasoningThought(Thought):
     reasoning: str = Field(description="chain of thoughts")
 
 
-MathAgentStep: TypeAlias = Annotated[
-    ReasoningThought,
-    Field(discriminator="kind"),
-]
-
 RLMathTape = Tape[
     None,
     Union[
@@ -53,10 +41,10 @@ RLMathTape = Tape[
 ]
 
 
-class ReasoningNode(MonoNode):
+class ReasoningNode(StandardNode):
     max_prompt_length: int = 1024
 
-    def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
+    def parse_completion(self, completion: str) -> Generator[Step, None, None]:
         try:
             step = ReasoningThought(reasoning=completion)
         except Exception as e:
@@ -71,12 +59,11 @@ class ReasoningNode(MonoNode):
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
-        
+
         # the tape is only step long and it is the task
         task = tape.steps[0]
         assert isinstance(task, Task), f"Expected a Task, got {task.__class__.__name__}"
         messages.append({"role": "user", "content": task.llm_view()})
-        #messages = self.tape_to_messages(cleaned_tape, steps_description)
         prompt_token_ids = agent.llm.tokenizer.apply_chat_template(
             messages, add_special_tokens=True, add_generation_prompt=True
         )
@@ -93,13 +80,14 @@ class CoTMathAgent(Agent):
             nodes=[
                 ReasoningNode(
                     name="cot",
-                    agent_step_cls=MathAgentStep,
-                    system_prompt=system_prompt if system_prompt else "",
+                    steps=ReasoningThought,
+                    system_prompt=system_prompt,  # if system_prompt else "",
                     max_prompt_length=max_prompt_length,
                 ),
             ],
             max_iterations=1,
         )
         agent.store_llm_calls = True
-        agent.llm.load_tokenizer()
+        if agent.llm.tokenizer is None:
+            agent.llm.load_tokenizer()
         return agent

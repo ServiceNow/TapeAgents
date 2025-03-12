@@ -64,6 +64,7 @@ class StepMetadata(BaseModel):
     prompt_id: str = ""
     node: str = ""
     agent: str = ""
+    llm: str = ""
     other: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -110,7 +111,9 @@ class Observation(Step):
     Base class representing an observation in a tape.
     """
 
-    pass
+    def short_view(self) -> str:
+        """Returns a short string representation of the observation when the tape needs to be trimmed."""
+        return self.llm_view()
 
 
 class Error(Step):
@@ -355,12 +358,6 @@ LLMOutput: TypeAlias = litellm.utils.Message
 """Type alias for the output of the language model."""
 
 
-class TokenLogprob(BaseModel):
-    logprob: float
-    token_id: int
-    generated: int
-
-
 class LLMCall(BaseModel):
     """
     LLMCall stores info about a call to a language model.
@@ -382,7 +379,13 @@ class LLMCall(BaseModel):
     cached: bool
     llm_info: dict = {}
     cost: float = 0
-    logprobs: list = Field(default_factory=list, exclude=True)
+    logprobs: list[TokenLogprob] = Field(default_factory=list, exclude=True)
+
+
+class TokenLogprob(BaseModel):
+    logprob: float
+    token_id: int
+    generated: int
 
 
 AnnotatorTape = Tape[TapeType, StepType]

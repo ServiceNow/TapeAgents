@@ -1,15 +1,14 @@
+import json
 import logging
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import Field
 
-from tapeagents.core import Action, Observation, Step
+from tapeagents.core import Action, AgentStep, Error, Observation, Step, Thought
 from tapeagents.utils import image_base64_message
 
 logger = logging.getLogger(__name__)
-
-################# Actions #################
 
 
 class WatchVideoAction(Action):
@@ -29,15 +28,12 @@ class WatchVideoAction(Action):
     )
 
 
-################### Observations ###################
-
-
 class ImageObservation(Observation):
     kind: Literal["image"] = "image"
     image_path: str
     thumbnail_path: str = ""
     image_caption: str = ""
-    error: int | None = None
+    error: int | str | None = None
 
     def llm_view(self) -> list[dict]:
         content = []
@@ -46,6 +42,10 @@ class ImageObservation(Observation):
         if self.image_path:
             content.append(image_base64_message(self.image_path))
         return content
+
+    def short_view(self):
+        view = self.llm_dict()
+        return json.dumps(view, indent=2, ensure_ascii=False)
 
 
 class VideoObservation(Observation):
@@ -75,6 +75,12 @@ class VideoObservation(Observation):
                 llm_view.append(image_base64_message(Path(self.attachment_dir) / path))
         return llm_view
 
+    def short_view(self):
+        view = self.llm_dict()
+        view["subtitle_text"] = view["subtitle_text"][:100] + "..."
+        del view["video_contact_sheet_paths"]
+        return json.dumps(view, indent=2, ensure_ascii=False)
+
 
 class UnknownStep(Step):
     content: str
@@ -85,3 +91,26 @@ class Annotation(Action):
     kind: Literal["annotation"] = "annotation"
     step: int
     text: str
+
+
+class ReasoningThought(Thought):
+    """
+    Chain of thoughts of logical reasoning to find the answer. Deductive reasoning could be used to produce a new fact. You can use the facts from the previous steps in the reasoning
+    """
+
+    kind: Literal["reasoning_thought"] = "reasoning_thought"
+    reasoning: str
+
+
+class BranchStep(AgentStep):
+    kind: Literal["branch"] = "branch"
+
+
+class ActionExecutionFailure(Observation, Error):
+    kind: Literal["action_execution_failure"] = "action_execution_failure"
+    error: str
+
+    def short_view(self):
+        view = self.llm_dict()
+        view["error"] = view["error"][:100] + "..."
+        return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)

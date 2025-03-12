@@ -16,17 +16,15 @@ def test_intro_notebook():
         with run_test_in_tmp_dir("tests/examples/res/intro_notebook") as test_data_dir:
             shutil.copytree(assets_path, Path("assets"))
             sqlite_path = Path(test_data_dir) / "tapedata.sqlite"
+            cache_dir = Path(test_data_dir) / "cache"
             tb.inject(
                 f"""
                 import os
-                os.environ["TAPEAGENTS_SQLITE_DB"] = "{sqlite_path}"
                 from tapeagents import llms
-                llms._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
-                from tapeagents.tools import simple_browser
-                simple_browser._FORCE_CACHE_PATH = "{res_dir}/intro_notebook/web_cache.jsonl"
-                from tapeagents.tools import tool_cache
-                tool_cache._CACHE_PATH = "{res_dir}/intro_notebook/tool_cache.jsonl"
-                tool_cache._FORCE_CACHE = True
+                os.environ["TAPEAGENTS_SQLITE_DB"] = "{sqlite_path}"
+                os.environ["TAPEAGENTS_CACHE_DIR"] = "{cache_dir}"
+                os.environ["TAPEAGENTS_FORCE_CACHE"] = "1"
+                llms.cached._REPLAY_SQLITE = "{res_dir}/intro_notebook/tapedata.sqlite"
                 """,
                 before=0,
             )

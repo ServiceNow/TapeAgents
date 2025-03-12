@@ -16,7 +16,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from transformers import PreTrainedTokenizer
 
 from tapeagents.config import is_debug_mode
-from tapeagents.llms import LLMOutput, Prompt
+from tapeagents.core import Prompt
+from tapeagents.llms import LLMOutput
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,9 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
     - List[str]: A list of strings, each representing the CUDA devices for a model.
     """
     cuda_device_strings = []
+    if total_gpus % gpus_per_model != 0:
+        raise ValueError(f"Requested {gpus_per_model} GPUs per model, but {total_gpus} GPUs are available")
+
     for start_gpu in range(0, total_gpus, gpus_per_model):
         end_gpu = start_gpu + gpus_per_model
         cuda_devices = ",".join(str(i) for i in range(start_gpu, end_gpu))
@@ -146,7 +150,7 @@ class VLLMServiceManager:
 
     @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
     def _start_llm(self, cuda_device, port):
-        kwargs_str = " ".join([f"{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
+        kwargs_str = " ".join([f"--{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
 
         cmd = (
             f"OUTLINES_CACHE_DIR=/tmp/.outlines_{cuda_device}_{int(time.time())} "

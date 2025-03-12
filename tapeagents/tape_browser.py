@@ -128,7 +128,7 @@ class TapeBrowser:
             label += f'<h3>Metadata</h3><div style="white-space: pre-wrap;">{yaml.dump(m, allow_unicode=True)}</div>'
         return label
 
-    def get_file_label(self, filename: str, tapes: list[Tape]) -> str:
+    def get_exp_label(self, filename: str, tapes: list[Tape]) -> str:
         tapelengths = [len(tape) for tape in tapes]
         tapelen = sum(tapelengths) / len(tapelengths)
         return f"<h3>{len(self.tape_index)} indexed tapes in {len(self.files)} files<br>{len(tapes)} tapes in the current file<br>Avg. tape length: {tapelen:.1f} steps</h3>"
@@ -140,10 +140,10 @@ class TapeBrowser:
         logger.info(f"Loading tapes from {selected_file}")
         self.tapes = self.load_tapes(selected_file)
         self.load_llm_calls()
-        file_label = self.get_file_label(selected_file, self.tapes)
+        file_label = self.get_exp_label(selected_file, self.tapes)
         tape_names = [(self.get_tape_name(i, tape), i) for i, tape in enumerate(self.tapes)]
         logger.info(f"Selected file: {selected_file}, selected tape: {self.selected_tape}")
-        files = gr.Dropdown(self.files, label="File", value=selected_file)  # type: ignore
+        files = gr.Dropdown(self.files, label="Experiment", value=selected_file)  # type: ignore
         tape_names = gr.Dropdown(tape_names, label="Tape", value=self.selected_tape)  # type: ignore
         tape_html, label = self.update_tape_view(self.selected_tape)
         return files, tape_names, file_label, tape_html, label
@@ -194,23 +194,24 @@ class TapeBrowser:
     def create_blocks(self):
         with gr.Blocks(analytics_enabled=False, title="TapeAgents Browser") as blocks:
             with gr.Row():
+                with gr.Column(scale=1):
+                    file_selector = gr.Dropdown([], label="File")
+                    reload_button = gr.Button("Reload Tapes")
+                    file_label = gr.HTML("")
                 with gr.Column(scale=4):
                     tape_view = gr.HTML("")
                 with gr.Column(scale=1):
-                    reload_button = gr.Button("Reload Tapes")
-                    file_selector = gr.Dropdown([], label="File")
-                    file_label = gr.HTML("")
                     tape_selector = gr.Dropdown([], label="Tape")
                     tape_label = gr.HTML("")
-                    reload_button.click(
-                        fn=self.reload_tapes,
-                        inputs=[file_selector],
-                        outputs=[file_selector, tape_selector, file_label, tape_view, tape_label],
-                    )
                     gr.HTML("<h2> Annotate tape </h2>")
                     step_selector = gr.Number(0, label="Step")
                     annotation_text = gr.Textbox("", label="Annotation Text", lines=5)
                     annotate_button = gr.Button("Annotate")
+            reload_button.click(
+                fn=self.reload_tapes,
+                inputs=[file_selector],
+                outputs=[file_selector, tape_selector, file_label, tape_view, tape_label],
+            )
             tape_selector.input(fn=self.update_tape_view, inputs=tape_selector, outputs=[tape_view, tape_label])
             file_selector.input(
                 fn=self.switch_file,

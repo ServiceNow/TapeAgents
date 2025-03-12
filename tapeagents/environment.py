@@ -4,19 +4,21 @@ Base classes for environments that execute actions and produce observations
 
 import json
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Callable, Generic, Literal
 
-from langchain_core.tools import BaseTool, tool
+from langchain_core.tools import BaseTool, tool as tool_wrapper
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
+from tapeagents.agent import TapeType
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
+from tapeagents.dialog_tape import AssistantStep, DialogTape, UserStep
+from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
+from tapeagents.tools.base import StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
-
-from .agent import TapeType
-from .core import Action, Observation, Tape
-from .dialog_tape import AssistantStep, DialogTape, FunctionCall, ToolCalls, ToolResult, ToolSpec
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,9 @@ class Environment(ABC, Generic[TapeType]):
     def react(self, tape: TapeType) -> TapeType:
         pass
 
+    def step(self, action: Action) -> Observation:
+        raise NotImplementedError
+
     def raise_external_observation_needed(self, action: Action):
         raise ExternalObservationNeeded(
             action,
@@ -53,6 +58,15 @@ class Environment(ABC, Generic[TapeType]):
 
     def raise_unexpected_action(self, action: Action):
         raise ValueError(f"Unexpected action type: {action}")
+
+    def actions(self) -> tuple[type[Action], ...]:
+        return tuple()
+
+    def reset(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
 
 
 class EmptyEnvironment(Environment):
@@ -68,7 +82,7 @@ class EmptyEnvironment(Environment):
 
 class ToolEnvironment(Environment):
     def __init__(self, tools: list[BaseTool | Callable]):
-        self.tools: list[BaseTool] = [t if isinstance(t, BaseTool) else tool(t) for t in tools]  # type: ignore
+        self.tools: list[BaseTool] = [t if isinstance(t, BaseTool) else tool_wrapper(t) for t in tools]  # type: ignore
         self._name2tool = {t.name: t for t in self.tools}
 
     def get_tool_schemas(self) -> list[ToolSpec]:
@@ -140,3 +154,52 @@ class CodeExecutionEnvironment(Environment):
                 return tape.append(CodeExecutionResult(result=result))
             case _:
                 return tape
+
+
+class ToolCollectionEnvironment(Environment):
+    action_map: dict[type[Action], Tool | StatefulTool]
+
+    def __init__(self, tools: list[Tool | StatefulTool]) -> None:
+        super().__init__()
+        self.tools = tools
+        self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
+        for tool in tools:
+            if isinstance(tool, StatefulTool):
+                self.action_map |= {action: tool for action in tool.actions}
+
+    def actions(self) -> tuple[type[Action], ...]:
+        return tuple(self.action_map.keys())
+
+    def tools_description(self) -> list[str]:
+        desc_list = [tool.description() for tool in self.tools]
+        return "\n".join(f"- {desc}" for desc in desc_list)
+
+    def react(self, tape: Tape) -> Tape:
+        for action in self.last_actions(tape):
+            observation = self.step(action)
+            tape = tape.append(observation)
+        return tape
+
+    def step(self, action: Action) -> Observation:
+        t = time.perf_counter()
+        action_type = type(action)
+        if isinstance(action, LLMOutputParsingFailureAction):
+            return UserStep(content="Try again")
+        if action_type not in self.action_map:
+            raise Exception(f"Unknown action: {action_type}")
+        tool = self.action_map[action_type]
+        observation = tool.run(action)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
+        return observation
+
+    def reset(self) -> None:
+        for tool in self.tools:
+            tool.reset()
+
+    def close(self) -> None:
+        for tool in self.tools:
+            tool.close()
+
+    def last_actions(self, tape: Tape) -> list[Action]:
+        return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
