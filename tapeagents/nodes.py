@@ -5,6 +5,7 @@ Nodes are the building blocks of a TapeAgent, representing atomic units of the a
 import json
 import logging
 import re
+from datetime import datetime
 from typing import Annotated, Any, Callable, Generator, Type, Union
 
 from litellm import ChatCompletionMessageToolCall
@@ -205,7 +206,8 @@ class StandardNode(Node):
         """
         messages: list[dict] = []
         if self.system_prompt:
-            messages.append({"role": "system", "content": self.system_prompt})
+            system_prompt = self.system_prompt.format(date=datetime.now().strftime("%Y-%m-%d"))
+            messages.append({"role": "system", "content": system_prompt})
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
         for i, step in enumerate(steps):
