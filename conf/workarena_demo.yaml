@@ -3,7 +3,7 @@ defaults:
   - _self_
 
 exp_name: demo1
-exp_path: ../workarena/runs/${exp_name}
+exp_path: outputs/workarena/runs/${exp_name}
 agent: baseline
 env:
   exp_path: ${exp_path}
