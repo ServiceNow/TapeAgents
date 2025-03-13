@@ -1,5 +1,5 @@
-from itertools import takewhile
 import json
+from itertools import takewhile
 from typing import Generator
 
 from tapeagents.agent import Agent

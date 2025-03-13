@@ -29,17 +29,17 @@ environment_variables:
 
 vllm_config:
   vllm_kwargs:
-    --download-dir: /mnt/llmd/base_models/ 
-    --gpu-memory-utilization: 0.9
-    --num-scheduler-steps: 16
-    --disable-log-requests: ""
-    --max-num-seqs: 1024 
-    --enforce-eager: ""
-    --return-tokens-as-token-ids: ""
-    --pipeline-parallel-size: 1
-    --tensor-parallel-size: 1
+    download-dir: /mnt/llmd/base_models/
+    gpu-memory-utilization: 0.9
+    num-scheduler-steps: 16
+    disable-log-requests: ""
+    max-num-seqs: 1024
+    enforce-eager: ""
+    return-tokens-as-token-ids: ""
+    pipeline-parallel-size: 1
+    tensor-parallel-size: 1
   actor_vllm_kwargs:
-    --num-scheduler-steps: 16
+    num-scheduler-steps: 16
 
 hydra:
   run:

@@ -1,10 +1,10 @@
 import logging
 import os
 from typing import Any, Literal
-from joblib import Parallel, delayed
 
 from browsergym.core.task import AbstractBrowserTask
 from browsergym.miniwob.base import AbstractMiniwobTask
+from joblib import Parallel, delayed
 
 from tapeagents.core import LLMOutputParsingFailureAction
 from tapeagents.environment import Environment
@@ -18,8 +18,8 @@ from .steps import (
     FinalAnswerAction,
     ReflectionThought,
     WebTape,
-    WebTask,
     WebTapeMetadata,
+    WebTask,
 )
 
 logger = logging.getLogger(__name__)
