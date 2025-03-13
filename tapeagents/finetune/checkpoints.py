@@ -16,7 +16,7 @@ from transformers import (
 )
 from transformers.models.auto.modeling_auto import _BaseAutoModelClass
 
-from .context import accelerator, logger
+from .context import get_accelerator, logger
 from .lora import has_lora_checkpoint, lora_load, lora_save, prepare_lora_model
 from .types import ModelClass, TrainingMetrics
 
@@ -56,7 +56,7 @@ def load_tokenizer(config_name):
 
 
 def load_model(args, model_class, current_dir):
-    accelerator.wait_for_everyone()
+    get_accelerator().wait_for_everyone()
 
     assert not (
         os.path.exists(current_dir / "pytorch_model.bin")
@@ -80,9 +80,9 @@ def load_model(args, model_class, current_dir):
         loading_args["use_flash_attention_2"] = args.use_flash_attention
 
     is_ds_zero_3 = False
-    if getattr(accelerator.state, "deepspeed_plugin", None):
+    if getattr(get_accelerator().state, "deepspeed_plugin", None):
         del loading_args["low_cpu_mem_usage"]  # deepspeed is not compatible with this option
-        is_ds_zero_3 = accelerator.state.deepspeed_plugin.zero_stage == 3  # type: ignore
+        is_ds_zero_3 = get_accelerator().state.deepspeed_plugin.zero_stage == 3  # type: ignore
 
     if args.load_as_bf16:
         loading_args["torch_dtype"] = torch.bfloat16
@@ -131,7 +131,7 @@ def load_model(args, model_class, current_dir):
     elif args.gradient_checkpointing:
         model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
 
-    accelerator.wait_for_everyone()
+    get_accelerator().wait_for_everyone()
     return model
 
 
@@ -183,11 +183,11 @@ def _save_training_state(
     else:  # multi_gpu mode (no deepspeed)
         # Only save training_state in main process
         logger.info("Save accelerate training state")
-        if accelerator.is_main_process:
+        if get_accelerator().is_main_process:
             training_state = dict(extra_training_state)
             training_state["optimizer_state"] = optimizer.state_dict()
             training_state["lr_scheduler_state"] = lr_scheduler.state_dict()
-            accelerator.save(training_state, training_state_dir / "training_state.pt")
+            get_accelerator().save(training_state, training_state_dir / "training_state.pt")
             logger.info(f"Saved accelerate training state to {training_state_dir}")
 
 
@@ -254,19 +254,19 @@ def get_temporary_folder_and_move(output_dir: Path):
     output_dir = output_dir.resolve()
     temporary_path = output_dir.parent / ("~" + output_dir.name)
 
-    if accelerator.is_main_process:
+    if get_accelerator().is_main_process:
         if os.path.exists(temporary_path):
             logger.info(f"Deleting temporary directory {temporary_path}")
             shutil.rmtree(temporary_path)
         logger.info(f"Creating temporary directory {temporary_path}")
         os.makedirs(temporary_path)
 
-    accelerator.wait_for_everyone()
+    get_accelerator().wait_for_everyone()
     yield temporary_path
-    accelerator.wait_for_everyone()
+    get_accelerator().wait_for_everyone()
 
     # Move to final path
-    if accelerator.is_main_process:
+    if get_accelerator().is_main_process:
         # delete output_dir if it exists
         if os.path.exists(output_dir):
             logger.info(
@@ -322,11 +322,11 @@ def save_model_only(
     The DeepSpeed version is only called on the main process because the checkpointing and conversion mechanism will gather the shards from all processes.
     """
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
-    accelerator.wait_for_everyone()
+    get_accelerator().wait_for_everyone()
 
     logger.info(f"Save model to {output_dir}")
 
-    unwrapped_model = accelerator.unwrap_model(model) if unwrap else model
+    unwrapped_model = get_accelerator().unwrap_model(model) if unwrap else model
     if lora:
         lora_save(output_dir, unwrapped_model)
         return
@@ -336,9 +336,9 @@ def save_model_only(
         logger.info("Saving model using transformers save_pretrained")
         unwrapped_model.save_pretrained(  # type: ignore
             output_dir,
-            is_main_process=accelerator.is_main_process,
-            save_function=accelerator.save,
-            state_dict=accelerator.get_state_dict(model),
+            is_main_process=get_accelerator().is_main_process,
+            save_function=get_accelerator().save,
+            state_dict=get_accelerator().get_state_dict(model),
             safe_serialization=safe_serialization,
         )
         logger.info(f"Saved model to {output_dir}")
@@ -360,7 +360,7 @@ def save_tokenizer_only(
     Can be called on *all* processes.
     """
     assert not os.path.exists(output_dir) or output_dir.is_dir(), f"output_dir {output_dir} must be a directory"
-    if accelerator.is_main_process:
+    if get_accelerator().is_main_process:
         logger.info(f"Save tokenizer to {output_dir}")
         tokenizer.save_pretrained(output_dir)
 
@@ -385,12 +385,11 @@ def load_training_state(
     lr_scheduler,
     training_metrics: TrainingMetrics,
 ):
-    accelerator.wait_for_everyone()
+    get_accelerator().wait_for_everyone()
     training_state = load_training_checkpoint(training_state_dir, model, optimizer, lr_scheduler)
     if training_state is None:
         raise ValueError(f"Could not load training state from {training_state_dir}")
-    training_metrics.passes = training_state["passes"]
-    training_metrics.completed_steps = training_state["completed_steps"]
-    training_metrics.best_eval_loss = training_state["best_eval_loss"]
-    training_metrics.best_completed_steps = training_state["best_completed_steps"]
+
+    # Update training_metrics with loaded training state (hasattr check is to avoid potential mismatches between training_metrics and training_state)
+    vars(training_metrics).update({key: val for key, val in training_state.items() if hasattr(training_metrics, key)})
     return training_metrics

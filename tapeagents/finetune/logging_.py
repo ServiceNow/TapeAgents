@@ -12,7 +12,7 @@ import wandb
 from omegaconf import DictConfig
 from wandb.sdk import wandb_run
 
-from .context import accelerator, logger
+from .context import get_accelerator, logger
 
 
 def init_wandb(
@@ -36,9 +36,11 @@ def init_wandb(
     wandb_id = cfg.finetune.wandb_id
 
     if cfg.finetune.wandb_resume == "always":
-        resume = True
+        resume = "allow"
+    elif cfg.finetune.wandb_resume == "never":
+        resume = "never"
     elif cfg.finetune.wandb_resume == "if_not_interactive":
-        resume = not cfg.finetune.force_restart
+        raise NotImplementedError()
     else:
         raise ValueError(f"Unknown value for wandb_resume: {cfg.finetune.wandb_resume}")
     if cfg.finetune.wandb_name:
@@ -49,7 +51,7 @@ def init_wandb(
     if len(wandb_name) > 128:
         logger.warning(f"wandb_name: {wandb_name} is longer than 128 characters. Truncating to 128 characters.")
 
-    logging.info(f"Initializing W&B with name: {wandb_name[:128]}, resume: {resume}")
+    logging.info(f"Initializing W&B with\nname: {wandb_name[:128]}\nid: {wandb_id}\nresume: {resume}")
     run = wandb.init(
         name=wandb_name[:128],  # wandb limits name to 128 characters
         entity=cfg.finetune.wandb_entity_name,
@@ -67,17 +69,17 @@ def init_wandb(
 def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None = None):
     log_dir = output_dir / "log/"
     log_dir.mkdir(parents=True, exist_ok=True)
-    debug_handler = logging.FileHandler(log_dir / f"info_{accelerator.process_index}.log")
+    debug_handler = logging.FileHandler(log_dir / f"info_{get_accelerator().process_index}.log")
     debug_handler.setLevel(logging.INFO)
     logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        format="%(asctime)s.%(msecs)03d - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
         handlers=[debug_handler, logging.StreamHandler()],
         force=True,  # forget previous handlers
     )
-    if accelerator.is_main_process:  # we only want to setup logging once
-        config_for_wandb = {str(k): str(v) for k, v in accelerator.state.__dict__.items()}
+    if get_accelerator().is_main_process:  # we only want to setup logging once
+        config_for_wandb = {str(k): str(v) for k, v in get_accelerator().state.__dict__.items()}
         config_for_wandb.update(flatten_dict_config(cfg.finetune))
 
         logger.setLevel(logging.INFO)
@@ -106,7 +108,7 @@ def setup_logging(cfg: DictConfig, output_dir: Path, run: wandb_run.Run | None =
 
 
 def log_metrics(logger: logging.Logger, completed_steps: int, metrics: dict[str, Any]):
-    if not accelerator.is_main_process:
+    if not get_accelerator().is_main_process:
         return
 
     # Print metrics with 3 decimals
@@ -119,9 +121,9 @@ def log_metrics(logger: logging.Logger, completed_steps: int, metrics: dict[str,
         logger.error(f"Failed to log metrics to wandb with error: {e}")
 
 
-# TODO: remove all the calls of this function after the RLHF pipeline is stabilized
-def log_time(start_time, msg):
+def log_time(start_time: float, stats_dict: dict, msg: str):
     t = time.perf_counter()
+    stats_dict[msg] = t - start_time
     return t
 
 

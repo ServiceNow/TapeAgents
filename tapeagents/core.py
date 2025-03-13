@@ -39,6 +39,7 @@ class TrainingText(BaseModel):
     input_ids: List[int] = Field(default_factory=list)
     labels: List[int] = Field(default_factory=list)
     group_id: str | None = None
+    metadata: dict = Field(default_factory=dict)
 
     @property
     def prompt_text(self) -> str:
