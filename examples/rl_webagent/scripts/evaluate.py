@@ -36,6 +36,16 @@ def main(cfg: DictConfig) -> None:
     # os.environ["SNOW_INSTANCE_UNAME"] = cfg.environment_variables.snow_instance_uname
     # os.environ["SNOW_INSTANCE_PWD"] = cfg.environment_variables.snow_instance_pwd
 
+    # DEBUG
+    miniwob_tasks_suceess = [
+        "miniwob.buy-ticket",
+        "miniwob.click-button",
+        "miniwob.click-checkboxes",
+        "miniwob.use-colorwheel",
+        "miniwob.read-table",
+        "miniwob.focus-text"
+    ]
+
     tapes_dir = os.path.join(cfg.exp_path, "tapes")
     os.makedirs(tapes_dir, exist_ok=True)
 
@@ -72,6 +82,10 @@ def main(cfg: DictConfig) -> None:
         repeated_action_cnt = 0
         for seed in cfg.seeds:
             for i, task in enumerate(ALL_MINIWOB_TASKS):
+                # DEBUG: skip tasks that are not in miniwob_tasks_suceess
+                if task.get_task_id() not in miniwob_tasks_suceess:
+                    continue
+
                 task_name = f"task{i}_seed{seed}_{task.get_task_id()}"
                 fname = f"{task_name}.json"
                 if os.path.exists(os.path.join(tapes_dir, fname)):

@@ -11,14 +11,14 @@ llm:
     top_k: 50
 
 # exp_name: gpt4o_mini_t0
-exp_name: llama3_8b_t0_2025-03-07
+exp_name: llama3_8b_t0_2025-03-13
 exp_path: outputs/webagent/runs/${exp_name}
 
 env:
   exp_path: ${exp_path}
   headless: True
-# seeds: [0]
-seeds: [0, 42, 1337, 900, 103]
+seeds: [0]
+# seeds: [0, 42, 1337, 900, 103]
 
 environment_variables:
   miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/

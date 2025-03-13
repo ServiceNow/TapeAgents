@@ -13,37 +13,37 @@ Do not reproduce schema when producing the steps, use it as a reference.
 hints = """
 HINTS:
 - You can use the BIDs of the elements or the mouse position in x, y coordinates to interact with them.
-- To select value in the dropdown or combobox, ALWAYS use select_action.
-- To click on the checkbox or radio button, ALWAYS use BID of corresponding LabelText and not the BID of the element itself.
+- To select value in a dropdown or combobox, ALWAYS use select_action.
+- To click on a checkbox or radio button, ALWAYS use BID (or coordinates) of the corresponding Text and not the BID (or coordinates) of the element itself.
 - Press enter key to submit the search query.
 - Always produce only one step at a time.
 - Step kind is always lowercase and underscore separated.
 """
 
 START = """
-Produce reasoning_thought step that describes the intended solution to the task. In the reasoning lines:
+Produce the reasoning_thought step that describes the intended solution to the task. In the reasoning lines:
 - review the instructions from the user and the content of the page.
 - outline the main task to be accomplished and the steps to be taken to achieve it.
 - produce definiton of done, that will be checked later to verify if the task was completed.
 Produce only one step!
 """
 
-REFLECT = f"""
+REFLECT = """
 Review the current state of the page and previous steps to find the best possible next action to accomplish the task.
-Produce reflection_thought.
-{hints}
+Produce the reflection_thought to describe the current page state, reflect on your last action, describe what is left to do, and what will be the immediate next action.
+Produce only one reflection_thought step!
 """
 
 ACT = f"""
 Produce the next action to be performed with the current page.
-If the task is already solved, produce final_answer_action and stop.
-You can interact with the page elements using their BIDs as arguments for actions.
-Be very cautious. Avoid submitting anything before verifying the effect of your
-actions. Take the time to explore the effect of safe actions using reasoning first. For example
-you can fill a few elements of a form, but don't click submit before verifying
-that everything was filled correctly.
+If you think that the task is solved, produce the final_answer_action.
+You can interact with the page elements using their BIDs or coordinates as arguments for actions.
 {hints}
 """
+# Be very cautious. Avoid submitting anything before verifying the effect of your
+# actions. Take the time to explore the effect of safe actions using reasoning first. For example
+# you can fill a few elements of a form, but don't click submit before verifying
+# that everything was filled correctly.
 
 ### Baseline Prompts ###
 

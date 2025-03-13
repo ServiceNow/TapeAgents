@@ -6,7 +6,7 @@ from browsergym.core.task import AbstractBrowserTask
 from browsergym.miniwob.base import AbstractMiniwobTask
 from joblib import Parallel, delayed
 
-from tapeagents.core import LLMOutputParsingFailureAction
+from tapeagents.core import Action, LLMOutputParsingFailureAction
 from tapeagents.environment import Environment
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
@@ -14,7 +14,6 @@ from tapeagents.tools.simple_browser import PageObservation
 from tapeagents.utils import FatalError
 
 from .steps import (
-    Action,
     FinalAnswerAction,
     ReflectionThought,
     WebTape,

@@ -23,6 +23,7 @@ from .steps import (
     ReasoningThought,
     ReflectionThought,
     WebAgentAction,
+    WebAgentStep,
     WebTape,
     WebTask,
 )
@@ -86,17 +87,17 @@ class WebNode(StandardNode):
                 else:
                     # adaptation from step.short_view()
                     view = step.llm_dict()
-                    del view["kind"]  # remove the kind field
+                    # del view["kind"]  # remove the kind field
                     if len(view["text"]) > self.max_chars_page_observation:
                         view["text"] = view["text"][:self.max_chars_page_observation] + "..."
                     view = json.dumps(view, indent=2, ensure_ascii=False)
-                    view = f"Page Observation: ```json\n{view}\n```"
+                    # view = f"Page Observation: ```json\n{view}\n```"
             elif isinstance(step, WebTask):
                 view = f"Task: {step.task}"
             elif isinstance(step, UserStep):
                 view = step.content
-            elif isinstance(step, ReasoningThought):
-                view = step.reasoning
+            # elif isinstance(step, ReasoningThought):
+            #     view = step.reasoning
             else:
                 view = step.llm_view()
             messages.append({"role": role, "content": view})
@@ -198,16 +199,16 @@ class WebAgent(Agent):
                     steps_prompt=PromptRegistry.allowed_steps,
                     steps=ReasoningThought,
                     trim_obs_except_last_n=3,  # keep the last 3 observations from the tape in prompt messages
-                    max_chars_page_observation=2000,  # keep up to 2000 chars in PageObservation steps
+                    max_chars_page_observation=3000,  # keep up to 3000 chars in PageObservation steps
                 ),
                 WebNode(
                     name="reflect",
                     guidance=PromptRegistry.reflect,
                     system_prompt=PromptRegistry.system_prompt,
                     steps_prompt=PromptRegistry.allowed_steps,
-                    steps=ReflectionThought,
+                    steps=WebAgentStep,
                     trim_obs_except_last_n=3,  # keep the last 3 observations from the tape in prompt messages
-                    max_chars_page_observation=2000,  # keep up to 2000 chars in PageObservation steps
+                    max_chars_page_observation=3000,  # keep up to 3000 chars in PageObservation steps
                 ),
                 WebNode(
                     name="act",
@@ -216,7 +217,7 @@ class WebAgent(Agent):
                     steps_prompt=PromptRegistry.allowed_steps,
                     steps=WebAgentAction,
                     trim_obs_except_last_n=3,  # keep the last 3 observations from the tape in prompt messages
-                    max_chars_page_observation=2000,  # keep up to 2000 chars in PageObservation steps
+                    max_chars_page_observation=3000,  # keep up to 3000 chars in PageObservation steps
                     next_node="reflect",
                 ),
             ],

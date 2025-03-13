@@ -368,12 +368,12 @@ class Browser(StatefulTool):
             if error:
                 content = ""
             elif self.observation_format == "axtree":
-                content = flatten_axtree(obs_dict["axtree_object"])
+                content = f"=== ACCESSIBILITY TREE ===\n{flatten_axtree(obs_dict['axtree_object'])}"
             elif self.observation_format == "html":
-                content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
+                content = f"=== HTML ===\n{prune_html(flatten_dom_to_str(obs_dict['dom_object']))}"
             elif self.observation_format == "markdown_html":
                 html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
-                content += self.html_to_markdown(html_content)
+                content = f"=== MARKDOWN ===\n{self.html_to_markdown(html_content)}"
             else:
                 raise ValueError(f"Unknown observation format: {self.observation_format}")
 

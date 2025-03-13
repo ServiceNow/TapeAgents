@@ -25,7 +25,6 @@ from tapeagents.tools.browser import (
     SelectOptionAction,
 )
 
-
 ################### Steps ###################
 
 
@@ -46,7 +45,7 @@ class ReasoningThought(Thought):
 class ReflectionThought(Thought):
     """
     Review the current state of the page and previous steps to find the best possible next action to accomplish the task:
-    1. Produce reasoning thougt explaining the observed state, think about which blocks could be relevant to the given task and its current state, note relevant BIDs.
+    1. Produce reasoning thougt explaining the observed state, think about which blocks could be relevant to the given task and its current state, note relevant BIDs and coordinates.
     2. Produce list of things to do to accomplish the task. Mention all the fields that need to be filled, buttons that need to be clicked, etc.
     3. Reflect if you last action succes, check if it produced the expected effect on the page.
     4. Reflect on you last actions to check if you are being stuck with repeating the same action. If you repeatedly failed to perform the same action with the page element, propose a new way of interacting.
@@ -55,7 +54,7 @@ class ReflectionThought(Thought):
 
     kind: Literal["reflection_thought"] = "reflection_thought"
     page_state: str = Field(
-        description="description of the current page state, think about which blocks could be relevant to the given task and its current state, note relevant BIDs"
+        description="description of the current page state, think about which blocks could be relevant to the given task and its current state, note relevant BIDs and coordinates"
     )
     last_action_kind: str = Field(description="describe the kind of the last action")
     last_action_achieved_effect: str = Field(
