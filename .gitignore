@@ -113,6 +113,7 @@ cython_debug/
 *.log
 *.sqlite
 *.zip
+memory_storage.json
 
 /wandb/
 /temp/

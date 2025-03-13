@@ -11,10 +11,7 @@ import torch
 from hydra import compose, initialize
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
-from transformers import (
-    get_scheduler,
-    set_seed,
-)
+from transformers import get_scheduler, set_seed
 
 from tapeagents.core import TrainingText
 
@@ -87,6 +84,13 @@ def run_finetuning_loop(
 
     args.gradient_accumulation_passes //= num_processes
     samples_per_pass = num_processes * args.train_batch_size
+    if (ds_plugin := accelerator.state.deepspeed_plugin) is not None:
+        logger.info("Manual inform Deepspeed about micro batch size and gradient accumulation")
+        ds_plugin.deepspeed_config["train_micro_batch_size_per_gpu"] = args.train_batch_size
+        ds_plugin.deepspeed_config["gradient_accumulation_steps"] = args.gradient_accumulation_passes
+        if args.gradient_clipping_threshold:
+            ds_plugin.deepspeed_config["gradient_clipping"] = args.gradient_clipping_threshold
+
     set_seed(args.seed)
 
     # using a subfolder makes "safe" overwriting possible
