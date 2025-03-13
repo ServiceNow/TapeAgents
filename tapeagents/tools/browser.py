@@ -430,7 +430,7 @@ class Browser(StatefulTool):
 
     def click_bid(self, action: ClickBIDAction) -> PageObservation:
         try:
-            self.run_browser_action(f"click('{action.bid}'")
+            self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
         except Exception as e:
             logger.warning(f"Click failed: {e}")
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change

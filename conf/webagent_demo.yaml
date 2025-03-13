@@ -17,8 +17,8 @@ exp_path: outputs/webagent/runs/${exp_name}
 env:
   exp_path: ${exp_path}
   headless: True
-seeds: [0]
-# seeds: [0, 42, 1337, 900, 103]
+# seeds: [0]
+seeds: [0, 42, 1337, 900, 103]
 
 environment_variables:
   miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/

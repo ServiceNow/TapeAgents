@@ -21,7 +21,6 @@ from tapeagents.utils import FatalError
 from .prompts import PromptRegistry
 from .steps import (
     ReasoningThought,
-    ReflectionThought,
     WebAgentAction,
     WebAgentStep,
     WebTape,
