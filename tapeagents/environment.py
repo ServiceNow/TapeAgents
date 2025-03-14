@@ -10,7 +10,7 @@ from typing import Callable, Generic, Literal
 
 from langchain_core.tools import BaseTool, tool as tool_wrapper
 from langchain_core.utils.function_calling import convert_to_openai_tool
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 
 from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
@@ -19,6 +19,7 @@ from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpe
 from tapeagents.tools.base import StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
+from tapeagents.view import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -156,38 +157,63 @@ class CodeExecutionEnvironment(Environment):
                 return tape
 
 
-class ToolCollectionEnvironment(Environment):
-    action_map: dict[type[Action], Tool | StatefulTool]
+class ToolCollectionEnvironment(BaseModel, Environment):
+    tools: list[Tool | StatefulTool]
+    loop_detection: bool = False
+    loop_warning_after_n_steps: int = 3
+    loop_warning: str = "You seems to stuck producing the same action. Consider new approach and avoid repeating previously attempted ineffective steps."
+    _action_map: dict[type[Action], Tool | StatefulTool]
 
-    def __init__(self, tools: list[Tool | StatefulTool]) -> None:
-        super().__init__()
-        self.tools = tools
-        self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
-        for tool in tools:
+    def model_post_init(self, __context):
+        self._action_map = {tool.action: tool for tool in self.tools if isinstance(tool, Tool)}
+        for tool in self.tools:
             if isinstance(tool, StatefulTool):
-                self.action_map |= {action: tool for action in tool.actions}
+                self._action_map |= {action: tool for action in tool.actions}
+        return super().model_post_init(__context)
 
     def actions(self) -> tuple[type[Action], ...]:
-        return tuple(self.action_map.keys())
+        return tuple(self._action_map.keys())
 
     def tools_description(self) -> str:
         desc_list = [tool.description() for tool in self.tools]
         return "\n".join(f"- {desc}" for desc in desc_list)
 
     def react(self, tape: Tape) -> Tape:
+        if self.loop_detection and self.loop_detected(tape):
+            logger.warning(f"Loop detected in tape: {tape}")
+            obs = UserStep(content=self.loop_warning)
+            return tape.append(obs)
         for action in self.last_actions(tape):
             observation = self.step(action)
             tape = tape.append(observation)
         return tape
+
+    def loop_detected(self, tape: Tape) -> bool:
+        last_actions = self.last_actions(tape)
+        all_actions_counter = defaultdict(int)
+        for step in tape.steps:
+            if isinstance(step, Action):
+                all_actions_counter[step.llm_view()] += 1
+        for last_action in last_actions:
+            n_args = len(last_action.llm_dict())
+            logger.info(f"Action {last_action.kind} has {n_args} args")
+            if n_args < 2:
+                # skip action without args that only has kind field
+                continue
+            cnt = all_actions_counter[last_action.llm_view()]
+            if cnt >= self.loop_warning_after_n_steps:
+                logger.warning(f"Loop, action {last_action.kind} repeated {cnt} times")
+                return True
+        return False
 
     def step(self, action: Action) -> Observation:
         t = time.perf_counter()
         action_type = type(action)
         if isinstance(action, LLMOutputParsingFailureAction):
             return UserStep(content="Try again")
-        if action_type not in self.action_map:
+        if action_type not in self._action_map:
             raise Exception(f"Unknown action: {action_type}")
-        tool = self.action_map[action_type]
+        tool = self._action_map[action_type]
         observation = tool.run(action)
         observation.metadata.other["action_execution_time"] = time.perf_counter() - t
         observation.metadata.other["action_kind"] = action.kind
