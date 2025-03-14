@@ -472,8 +472,10 @@ class PageObservation(Observation):
 
     def short_view(self):
         view = self.llm_dict()
-        view["text"] = view["text"][:100] + "..."
-        return json.dumps(view, indent=2, ensure_ascii=False)
+        view["text"] = self.text[:100] + "..."
+        short = json.dumps(view, indent=2, ensure_ascii=False)
+        logger.info(f"PageObservation long view was: {len(self.llm_view())}, short view is: {len(short)}")
+        return short
 
 
 class SimpleBrowser(StatefulTool):

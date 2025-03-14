@@ -210,16 +210,33 @@ class StandardNode(Node):
             messages.append({"role": "system", "content": system_prompt})
         if steps_description:
             messages.append({"role": "user", "content": steps_description})
+        shorts = 0
+        shorts_chars = 0
+        longs = 0
+        longs_chars = 0
+        n_observations = len([step for step in steps if isinstance(step, Observation)])
+        n_short = n_observations - self.trim_obs_except_last_n
+        obs_number = 0
         for i, step in enumerate(steps):
-            steps_after_current = len(steps) - i - 1
             role = "assistant" if isinstance(step, AgentStep) else "user"
-            if isinstance(step, Observation) and steps_after_current >= self.trim_obs_except_last_n:
-                view = step.short_view()
+            if isinstance(step, Observation):
+                if obs_number < n_short:
+                    view = step.short_view()
+                    shorts += 1
+                    shorts_chars += len(view)
+                else:
+                    view = step.llm_view()
+                    longs += 1
+                    longs_chars += len(view)
+                obs_number += 1
             else:
                 view = step.llm_view()
             messages.append({"role": role, "content": view})
         if self.guidance:
             messages.append({"role": "user", "content": self.guidance})
+        logger.info(
+            f"Rendered short observations: {shorts} ({shorts_chars} chars), long observations: {longs} ({longs_chars} chars)"
+        )
         return messages
 
     def get_steps_description(self, agent: Agent) -> str:
