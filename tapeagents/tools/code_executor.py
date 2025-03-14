@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class PythonCodeAction(Action):
     """
     Action to execute the python code snippet. Can be used to perform calculations, simulations or data processing.
+    If you want to output the result of the code, make sure to include a print statement at the end of the code.
     """
 
     kind: Literal["python_code_action"] = "python_code_action"  # type: ignore
@@ -68,17 +69,7 @@ class CodeExecutor(Tool):
         return obs
 
     def prepare_code(self, action: PythonCodeAction) -> str:
-        lines = action.code.splitlines()
-        if len(lines) == 1 and "\\n" in lines[0]:
-            lines = lines[0].split("\\n")
-        lines = [f"# {action.name}"] + lines
-        if "print(" not in lines[-1] and "break" not in lines[-1]:
-            if " = " in lines[-1]:
-                name = lines[-1].split("=")[0].strip()
-                lines.append(f"print({name})")
-            else:
-                lines[-1] = f"print({lines[-1]})"
-        return "\n".join(lines)
+        return f"# {action.name}\n{action.code}"
 
     def trim_output(self, output: str) -> str:
         if len(output) > self.max_output_length:

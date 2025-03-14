@@ -511,8 +511,10 @@ def maybe_get_code_sandbox(exp_path: str) -> ContainerExecutor | None:
     return code_sandbox
 
 
-def init_code_sandbox(exp_path: str, no_deps: bool = False) -> None:
+def init_code_sandbox(exp_path: str, no_deps: bool = False, restart_if_exists: bool = True) -> None:
     code_path = os.path.join(exp_path, "code")
     os.makedirs(code_path, exist_ok=True)
     container_name = exp_path.replace("/", "-")
-    ContainerExecutor(work_dir=code_path, container_name=container_name, restart_if_exists=True, no_deps=no_deps)
+    ContainerExecutor(
+        work_dir=code_path, container_name=container_name, restart_if_exists=restart_if_exists, no_deps=no_deps
+    )

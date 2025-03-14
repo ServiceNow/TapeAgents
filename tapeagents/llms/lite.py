@@ -5,6 +5,7 @@ from typing import Generator
 import litellm
 import requests
 from omegaconf import DictConfig, OmegaConf
+from termcolor import colored
 
 from tapeagents.core import Prompt, TrainingText
 from tapeagents.llms.base import LLMEvent, LLMOutput
@@ -70,11 +71,13 @@ class LiteLLM(CachedLLM):
                 else:
                     kwargs[k] = v
             try:
+                logger.info(colored(f"Prompt tokens: {self.count_tokens(prompt.messages)}", "light_red"))
                 response = litellm.completion(
                     model=self.model_name,
                     messages=prompt.messages,
                     tools=prompt.tools,
                     stream=self.stream,
+                    response_format=prompt.response_format,
                     **kwargs,
                 )
                 break
@@ -94,17 +97,6 @@ class LiteLLM(CachedLLM):
                 delay = base_delay * (2 ** (retry_count - 1))
                 logger.warning(f"API Timeout, retrying in {delay:.2f} seconds (attempt {retry_count}/{max_retries})")
                 time.sleep(delay)
-            except litellm.BadRequestError as e:
-                logger.exception(e)
-                retry_count += 1
-                if retry_count > max_retries:
-                    raise e
-                delay = base_delay * (2 ** (retry_count - 1))
-                logger.warning(f"Bad request, retrying in {delay:.2f} seconds (attempt {retry_count}/{max_retries})")
-                time.sleep(delay)
-            except tuple(litellm.LITELLM_EXCEPTION_TYPES) as e:
-                logger.exception(e)
-                raise e
         if self.stream:
             buffer = []
             for part in response:

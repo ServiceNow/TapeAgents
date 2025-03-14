@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Generator
 
@@ -7,8 +8,9 @@ from omegaconf import DictConfig, OmegaConf
 from tapeagents.core import Prompt
 from tapeagents.llms.base import LLMEvent, LLMOutput
 from tapeagents.llms.cached import CachedLLM
-from tapeagents.llms.litellm import logger
 from tapeagents.utils import get_step_schemas_from_union_type, resize_base64_message
+
+logger = logging.getLogger(__name__)
 
 
 class Claude(CachedLLM):

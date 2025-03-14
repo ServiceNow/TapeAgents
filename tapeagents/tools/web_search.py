@@ -9,6 +9,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import Tool
+from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.tool_cache import cached_tool
 from tapeagents.utils import FatalError
 
@@ -62,7 +63,7 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
     news = response_dict.get("news", [])
     results = organic + videos + news
     logger.info(f"Search response for query '{query}': code {response.status_code}, {len(results)} results")
-    return [{"title": r["title"], "url": r["link"], "content": r.get("snippet", "")} for r in results[:max_results]]
+    return [{"title": r["title"], "url": r["link"], "snippet": r.get("snippet", "")} for r in results[:max_results]]
 
 
 class SearchAction(Action):
@@ -82,6 +83,15 @@ class SearchResultsObservation(Observation):
     query: str
     serp: list[dict[str, str]]
     error: str | None = None
+
+    def short_view(self):
+        view = self.llm_dict()
+        for i, result in enumerate(view["serp"]):
+            if "content" in result:
+                view["serp"][i]["content"] = result["content"][:100] + "..."
+        short = json.dumps(view, indent=2, ensure_ascii=False)
+        logger.info(f"SearchResultsObservation long view was {len(self.llm_view())} chars, short view is {len(short)}")
+        return short
 
 
 class WebSearch(Tool):
@@ -108,3 +118,28 @@ class WebSearch(Tool):
             logger.exception(f"Failed to search the web: {e}")
             error = str(e)
         return SearchResultsObservation(query=action.query, serp=results, error=error)
+
+
+class SuperSearch(WebSearch):
+    """
+    Performs a search in the web or wikipedia.
+    Retrieves the whole content of each page.
+    """
+
+    enriched_results: int = 3
+    page_viewport_size: int = 32000
+
+    def model_post_init(self, __context):
+        self._browser = SimpleTextBrowser(viewport_size=self.page_viewport_size)
+        return super().model_post_init(__context)
+
+    def execute_action(self, action: SearchAction) -> SearchResultsObservation:
+        obs = super().execute_action(action)
+        for i, result in enumerate(obs.serp[: self.enriched_results]):
+            text, total_pages, error = self._browser.get_page(result["url"])
+            logger.info(f"Fetched {len(text)} chars from the search result {i}")
+            if not error:
+                obs.serp[i]["content"] = text
+            else:
+                logger.warning(f"Failed to fetch page {result['url']}: {error}")
+        return obs
