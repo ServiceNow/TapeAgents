@@ -272,6 +272,7 @@ class Browser(StatefulTool):
                 ClickCoordinatesAction: self.click_coordinates,
                 SelectOptionAction: self.select_option,
                 InputTextAction: self.input_text,
+                PressAction: self.press,
                 GoBackAction: self.go_back,
                 GoForwardAction: self.go_forward,
                 OpenUrlAction: self.goto_page,
