@@ -98,7 +98,7 @@ class WebEnvironment(Environment):
             except FatalError:
                 raise
             except Exception as e:
-                logger.exception(f"Error during action execution: {e}")
+                logger.exception(f"Error during action execution {action}: {e}", stack_info=True)
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape

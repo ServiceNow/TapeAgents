@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import hydra
-from joblib import Parallel, delayed
 import numpy as np
 import torch
 from browsergym.miniwob import ALL_MINIWOB_TASKS
 from browsergym.workarena import ALL_WORKARENA_TASKS
+from joblib import Parallel, delayed
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
@@ -27,7 +27,6 @@ from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 from tapeagents.llms.trainable import trainable_llm_make_training_text
 from tapeagents.orchestrator import main_loop
-from tapeagents.tools.simple_browser import PageObservation
 
 from ..agent import WebAgent, WebTape
 from ..environment import WebEnvironment
@@ -43,6 +42,30 @@ from ..utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def load_webtasks_debug():
+    logger.info(f"Loading {len(ALL_MINIWOB_TASKS)} MiniWoB tasks")
+
+    DEBUG_SPLIT = [
+        "miniwob.buy-ticket", "miniwob.bisect-angle", "miniwob.choose-list"
+    ]
+    train_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
+    test_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
+
+    train_samples = [
+        {"dataset": "miniwob", "task": task, "seed": 0}
+        for task in train_tasks
+    ]
+
+    test_samples = [
+        {"dataset": "miniwob", "task": task, "seed": 0}
+        for task in test_tasks
+    ]
+
+    logger.info(f"Loaded {len(train_samples)} training samples")
+    logger.info(f"Loaded {len(test_samples)} test samples")
+    return train_samples, test_samples
 
 
 def load_webtasks(train_split: float = 0.6, seeds: list[int] = [0, 1, 2, 3, 4]) -> Tuple[list[dict], list[dict]]:
@@ -89,19 +112,17 @@ def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
     Returns:
         WebTape: Completed tape
     """
+    # Initialize task in environment - this creates the initial tape with web observation and task
+    tape, metadata = env.start_task(task["task"], task["seed"])
+    # metadata is a dict with: str:name, str:goal, dict:task_info as a result of running gym_env.reset(seed=seed)
     try:
-        # Initialize task in environment - this creates the initial tape with web observation and task
-        tape, metadata = env.start_task(task["task"], task["seed"])
-        # metadata is a dict with: str:name, str:goal, dict:task_info as a result of running gym_env.reset(seed=seed)
-
         # Run agent-environment loop
-        tape = main_loop(agent, tape, env, max_loops=20).get_final_tape()
+        tape = main_loop(agent, tape, env, max_loops=task.get("max_loops", 5)).get_final_tape()
 
         # result is a dict of reward, stop, message, info
         success, result = env.validate_task(tape)
         final_reward = 1.0 if success else 0.0
         tape.metadata.result = {"success": success, **result, "final_reward": final_reward}
-
     except Exception as e:
         logger.error(f"Failed to run task: {e}")
         tape.metadata.result = {"success": False, "reward": 0.0, "final_reward": 0.0, "error": str(e)}
@@ -141,9 +162,9 @@ def extract_tape_training_samples_and_stats(
                 - 'overflows': Number of times the output overflowed token limit.
     """
     # Get final reward from tape metadata
-    success = new_tape.metadata.result["success"]
-    final_reward = new_tape.metadata.result["final_reward"]  # 0 if no sucess (reward <=0.5), 1 if success (reward > 0.5)
-    raw_reward = new_tape.metadata.result["reward"]
+    success = new_tape.metadata.result["success"]  # bool(reward > 0.5)
+    final_reward = new_tape.metadata.result["final_reward"]  # 1.0 if success else 0.0
+    raw_reward = new_tape.metadata.result["reward"]  # RAW_REWARD_GLOBAL from environment
     no_error = not isinstance(new_tape.steps[-1], LLMOutputParsingFailureAction) and new_tape.metadata.result.get("error") is None
     if not no_error:
         final_reward = -1.0
@@ -153,6 +174,7 @@ def extract_tape_training_samples_and_stats(
     # -1 if it doesn't fit the format, does not finish the reasoning, reason on an action step, ...
     # 0 if follows the format but fails to succeed
     # 1 if follows the format and succeeds
+    # TODO: update reward to penalize repeated and/or actions that do not change the state of the environment (MOVE_MOUSE, HOVER, SCROLL, ...) or filter them out?
 
     n_llm_calls = len([step for step in new_tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None])
     if n_llm_calls == 0:
@@ -271,9 +293,7 @@ def generate_data(
     env = WebEnvironment(
         exp_path=env_path,
         headless=cfg.env.headless,
-        ax_tree=cfg.env.ax_tree,
-        html=cfg.env.html,
-        markdown_html=cfg.env.markdown_html,
+        observation_format=cfg.env.observation_format,
     )
     timers["instantiated_env"] = time.perf_counter() - t
 
@@ -381,8 +401,9 @@ def batch_generate_data(
     tapes_dir = exp_path / "tapes" / split_name / str(iteration)
     os.makedirs(tapes_dir, exist_ok=True)
     start_dump = time.time()
-    with open(tapes_dir / "tapes.json", "w") as f:
-        json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
+    # TODO: debug why can't we save tapes anymore? https://github.com/pydantic/pydantic/issues/7713
+    # with open(tapes_dir / "tapes.json", "w") as f:
+    #     json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
     end_dump = time.time()
 
     ### STEP 4: compute stats ###
@@ -464,7 +485,8 @@ def main(cfg: DictConfig):
     finetune_path = exp_path / "finetune"
 
     ### Step 1: load datasets ###
-    train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
+    # train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
+    train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
 
     ### repeat until we have reached the max number of iterations ###
     ### each iteration is a forward pass (agent making predictions on tapes), a reference pass (reference model populating ref_logprobs), and a finetuning run on the generated training samples ###
@@ -490,8 +512,18 @@ def main(cfg: DictConfig):
                 **(dict(cfg.vllm_config.vllm_kwargs) | dict(cfg.vllm_config.actor_vllm_kwargs)),
             ) as vllm_service_manager:
                 ### Step 2.1: create train & test splits ###
-                sub_samples = random.sample(train_samples, min(len(train_samples), cfg.max_agent_forks // cfg.attempts))
-                logger.info(f"[it{state['iteration']}] Subsampling {len(sub_samples)} train tasks out of {len(train_samples)}. Each task will be repeated {cfg.attempts} times")
+                if cfg.max_agent_forks // cfg.attempts > len(train_samples):
+                    # over sample tasks if needed
+                    sub_samples = []
+                    while len(sub_samples) < cfg.max_agent_forks // cfg.attempts:
+                        # add tasks 1 by 1 in a random order
+                        for task in random.sample(train_samples, len(train_samples)):
+                            sub_samples.append(copy.deepcopy(task))
+                            if len(sub_samples) >= cfg.max_agent_forks // cfg.attempts:
+                                break
+                else:
+                    sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
+                logger.info(f"[it{state['iteration']}] Sampling {len(sub_samples)} train tasks out of {len(train_samples)}. Each task will be repeated {cfg.attempts} times")
                 # Repeat each task cfg.attempts times
                 train_tasks = [copy.deepcopy(task) for task in sub_samples for _ in range(cfg.attempts)]
                 n_train_tasks = len(train_tasks)
@@ -501,6 +533,7 @@ def main(cfg: DictConfig):
                 vllm_services = vllm_service_manager.get_base_urls()
                 n_services = len(vllm_services)
 
+                # alternate between services (URL) for each task
                 train_urls = [vllm_services[task_idx % n_services] for task_idx in range(n_train_tasks)]
                 splits = [("train", train_tasks, train_urls)]
 
