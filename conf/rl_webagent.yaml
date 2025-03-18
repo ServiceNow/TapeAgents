@@ -6,7 +6,7 @@ get_logprobs_workers_per_gpu: 4
 n_processes_for_data_generation: 8  # Number of concurrent processes for generating training data
 test_every_n_iterations: 1
 model_path: /mnt/llmd/base_models/Llama-3.1-8B-Instruct
-max_agent_forks: 6000  # total number of samples to generate
+max_agent_forks: 10000  # total number of samples to generate
 attempts: 8  # number of samples to generate per context
 force_restart: false
 max_iterations: 1000
@@ -30,6 +30,11 @@ finetune:
   # for the info in how many sequences are used for each weight update.
   save_checkpoint_steps: 10
   seq_length: 4096
+  train_batch_size: 2
+  gradient_accumulation_passes: 512  # use large batch size
+  learning_rate: 2e-6
+  load_as_bf16: True
+  optim: adamw_torch # adamw_torch runs OOM with accelerate / worst case use adafactor
 
 vllm_config:
   vllm_kwargs:
@@ -50,20 +55,22 @@ vllm_config:
     enable-chunked-prefill: ""
     max-num-batched-tokens: 1024
 
-output_dir: outputs/rl_gsm8k_llama32_1b
+exp_name: llama3_8b_t1_2025-03-18
+output_dir: outputs/rl_webagent/${exp_name}
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 use_deepspeed: false
 
 # config for the WebEnvironment & Browser tool in TapeAgents
 env:
   headless: True
+  observation_format: html
 # data config
 seeds: [0]
 # seeds: [0, 42, 1337, 900, 103]
 train_split: 0.6  # 0.6 of tasks for training, 0.4 for testing
 
 environment_variables:
-  miniwob_url: file:////home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
   # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
   # snow_instance_url: ???
   # snow_instance_uname: ???

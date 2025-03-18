@@ -12,7 +12,7 @@ llm:
 
 # exp_name: gpt4o_mini_t0
 exp_name: llama3_8b_t0_2025-03-13
-exp_path: outputs/webagent/runs/${exp_name}
+exp_path: outputs/evaluate_webagent/${exp_name}
 
 env:
   exp_path: ${exp_path}
