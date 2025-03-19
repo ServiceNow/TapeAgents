@@ -164,7 +164,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "reward": masked_mean(rewards, masks_).item(),
         "max_reward": rewards[masks_].max().item(),
         "min_reward": rewards[masks_].min().item(),
-        # "entropy": masked_mean(entropy, masks_).item(),
+        "entropy": masked_mean(entropy, masks_).item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
         "mean_new_logprobs_positive_log_p_weights": masked_mean(
@@ -208,6 +208,8 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     """
     df = dataset.to_pandas()
+    group_ids = list(df['group_id'])
+    assert all([g is not None for g in group_ids]), "Group ids should not be None"
 
     if config.reward_minus_kl_coef > 0:
         logger.info("Updating Reward with Implicit KL")
