@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import logging
 from abc import abstractmethod
-from typing import Any, Generator, Generic, Optional
+from typing import Any, Generator, Generic
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
