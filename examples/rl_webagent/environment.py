@@ -39,7 +39,7 @@ class WebEnvironment(Environment):
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         obs = self.browser.run_browser_action("noop()")
-        tape = WebTape(metadata=WebTapeMetadata(seed=seed), steps=[obs, WebTask(task=info["goal"])])
+        tape = WebTape(metadata=WebTapeMetadata(task_name=task_entrypoint.get_task_id(), seed=seed), steps=[obs, WebTask(task=info["goal"])])
         return tape, info
 
     def finish_task(self) -> None:
@@ -102,6 +102,8 @@ class WebEnvironment(Environment):
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape
+        # TODO: figure out why last steps of some tapes are environment observations
+        # TODO: make sure to update parent_id, author_name, etc... in the new tape.metadata just like in agent.run()
 
     def react_batch(self, tapes: list[WebTape], n_processes: int) -> list[WebTape]:
         results = Parallel(n_jobs=n_processes)(

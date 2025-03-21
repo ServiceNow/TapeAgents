@@ -27,6 +27,7 @@ from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
 from tapeagents.llms import TrainableLLM
 from tapeagents.llms.trainable import trainable_llm_make_training_text
 from tapeagents.orchestrator import main_loop
+from tapeagents.tools.simple_browser import PageObservation
 
 from ..agent import WebAgent, WebTape
 from ..environment import WebEnvironment
@@ -47,8 +48,13 @@ logger = logging.getLogger(__name__)
 def load_webtasks_debug():
     logger.info(f"Loading {len(ALL_MINIWOB_TASKS)} MiniWoB tasks")
 
+    # load tasks where we don't always have 100% or 0% success rate
     DEBUG_SPLIT = [
-        "miniwob.buy-ticket", "miniwob.bisect-angle", "miniwob.choose-list"
+        "miniwob.buy-ticket",
+        "miniwob.bisect-angle",
+        # "miniwob.choose-list",
+        # "miniwob.click-checkboxes-large",
+        # "miniwob.click-checkboxes-soft"
     ]
     train_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
     test_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
@@ -135,8 +141,21 @@ def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
         tape.metadata = WebTapeMetadata(
             **tape.metadata.model_dump(),
             seed=task["seed"],
+            task_name=task["task"].get_task_id(),
         )
     return tape
+
+
+def tape_contains_an_error(tape: WebTape) -> bool:
+    """
+    Returns true if the tape ends with an error, ie if one of the following is true:
+    - the last step is an LLMOutputParsingFailureAction
+    - the tape metadata has an error
+    - the last step is a PageObservation with an error
+    """
+    return isinstance(tape.steps[-1], LLMOutputParsingFailureAction) or \
+        tape.metadata.result.get("error") is not None or \
+        (isinstance(tape.steps[-1], PageObservation) and tape.steps[-1].error is not None)
 
 
 def extract_tape_training_samples_and_stats(
@@ -165,21 +184,17 @@ def extract_tape_training_samples_and_stats(
     success = new_tape.metadata.result["success"]  # bool(reward > 0.5)
     final_reward = new_tape.metadata.result["final_reward"]  # 1.0 if success else 0.0
     raw_reward = new_tape.metadata.result["reward"]  # RAW_REWARD_GLOBAL from environment
-    no_error = not isinstance(new_tape.steps[-1], LLMOutputParsingFailureAction) and new_tape.metadata.result.get("error") is None
-    if not no_error:
-        final_reward = -1.0
-        raw_reward = -1.0
+    no_error = not tape_contains_an_error(new_tape)
 
-    # TODO: update rewards
-    # -1 if it doesn't fit the format, does not finish the reasoning, reason on an action step, ...
-    # 0 if follows the format but fails to succeed
-    # 1 if follows the format and succeeds
-    # TODO: update reward to penalize repeated and/or actions that do not change the state of the environment (MOVE_MOUSE, HOVER, SCROLL, ...) or filter them out?
-
+    # get the number of LLM calls in the tape
     n_llm_calls = len([step for step in new_tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None])
     if n_llm_calls == 0:
         logger.warning(colored(f"tape {new_tape.metadata.id} has no LLM calls. n_steps:{len(new_tape.steps)}. final_reward:{final_reward}. raw_reward:{raw_reward}.", "red"))
 
+    # get the number of LLMOutputParsingFailureAction in the tape
+    n_step_errors = len([step for step in new_tape.steps if isinstance(step, LLMOutputParsingFailureAction)])
+
+    # get the raw reward returned by the environment for each step
     raw_step_rewards = [(i, step.metadata.other.get("info", {}).get("task_info", {}).get("RAW_REWARD_GLOBAL", None)) for i, step in enumerate(new_tape.steps)]
     raw_step_rewards = [(i, reward) for i, reward in raw_step_rewards if reward is not None]  # filter out nones
     n_positive_rewards = len([reward for _, reward in raw_step_rewards if reward > 0])  # count number of positive rewards
@@ -187,16 +202,16 @@ def extract_tape_training_samples_and_stats(
         logger.warning(colored(f"tape {new_tape.metadata.id} has {n_positive_rewards} positive rewards, but using final reward. Consider using step rewards instead.", "red"))
 
     # design the reward. a few options to explore:
-    # - use final_reward at all steps
-    # - use raw_reward at all steps
-    # - use final_reward / n_llm_calls at all steps
-    # - use raw_reward / n_llm_calls at all steps
+    # - use final_reward (0, 1, -1) --vs-- use the raw_reward (-1, 0-1) for all steps
+    # - divide by n_llm_calls for all steps
+    # - discount by number of errors for all steps
     # - use step rewards at all steps (likely 0 everywhere except the last step)
-
-    # reward_to_use = final_reward
-    reward_to_use = raw_reward
-    # reward_to_use /= n_llm_calls if no_error else -1.0
+    reward_to_use = raw_reward * 0.99 ** n_step_errors if no_error and raw_reward >= 0 else -1.0
     # reward_to_use = None  # use step rewards instead
+    # TODO: MAYBE update reward to penalize repeated and/or actions that do not change the state of the environment (MOVE_MOUSE, HOVER, SCROLL, ...) or filter them out?
+    # TODO: MAYBE update reward to penalize intermediate steps that caused an error (LLMOutputParsingFailureAction) -> -1
+    # depends on grouping: if we group by task_id, it's better to use the same reward for all steps.
+    # if we group by task_id + step number, it's better to use individual rewards for each step (and penalize step errors).
 
     training_samples: list[TrainingText] = []
     tape_prompt_tokens = 0
@@ -237,7 +252,7 @@ def extract_tape_training_samples_and_stats(
                 trace.reward = step_reward
 
             trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
-            trace.group_id = new_tape.metadata.parent_id
+            trace.group_id = f"{new_tape.metadata.task_name}_{new_tape.metadata.seed}"  # Group by task_id + seed
             training_samples.append(trace)
 
     tape_stats = {
@@ -306,15 +321,23 @@ def generate_data(
     new_tape = run_agent(agent, env, task)
     timers["generated_new_tape"] = time.perf_counter() - t
 
+    ### STEP 2: get LLM stats ###
+    llm_stats = llm.get_stats()
+    # llm_stats contains: time_send_request, time_log_output, total_prompt_tokens, total_output_tokens, time_postprocess_llm_response
+
+    # TODO: check why some tapes ends with PageObservation
+    # TODO: make sure the groups by task_id + seed works well.
+
     ### STEP 2: extract training samples from the newly generated tape ###
     t = time.perf_counter()
     llm.load_tokenizer()  # make sure llm.tokenizer is loaded
     # 1 tape -> multiple training samples because of multiple LLM calls
     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
     timers["extract_training_samples"] = time.perf_counter() - t
+    # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows
 
     new_tape.metadata.other["timers"] = timers
-    return new_tape, tape_training_samples, tape_stats
+    return new_tape, tape_training_samples, tape_stats, llm_stats
 
 
 def batch_generate_data(
@@ -375,26 +398,36 @@ def batch_generate_data(
     # results = []
     # for new_tape in all_tapes:
     #     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
-    #     results.append((new_tape, tape_training_samples, tape_stats))
+    #     results.append((new_tape, tape_training_samples, tape_stats, {}))
 
     ### STEP 2: aggregate training samples and stats ###
     final_tapes: list[WebTape] = []  # list of final tapes
     training_samples: List[TrainingText] = []  # list of training samples
-    reward_stats = defaultdict(list)  # map from parent tape id to list of rewards
-    success_stats = defaultdict(list)  # map from parent tape id to list of successes
-    no_errors_stats = defaultdict(list)  # map from parent tape id to list of no_errors
-    prompt_tokens_stats = defaultdict(list)  # map from parent tape id to list of prompt tokens length
-    output_tokens_stats = defaultdict(list)  # map from parent tape id to list of output tokens length
-    overflow_stats = defaultdict(list)  # map from parent tape id to list of overflows
-    for new_tape, samples, stats in results:
+    # tape_stats aggregators
+    reward_stats = defaultdict(list)  # map from group id to list of rewards
+    success_stats = defaultdict(list)  # map from group id to list of successes
+    no_errors_stats = defaultdict(list)  # map from group id to list of no_errors
+    prompt_tokens_stats = defaultdict(list)  # map from group id to list of prompt tokens length
+    output_tokens_stats = defaultdict(list)  # map from group id to list of output tokens length
+    overflow_stats = defaultdict(list)  # map from group id to list of overflows
+    # llm stats aggregators
+    llm_time_send_request = defaultdict(list)  # map from group id id to list of time_send_request
+    llm_time_log_output = defaultdict(list)  # map from group id id to list of time_log_output
+    llm_time_postprocess_llm_response = defaultdict(list)  # map from group id id to list of time_postprocess_llm_response
+    for new_tape, samples, tape_stats, llm_stats in results:
         final_tapes.append(new_tape)
         training_samples.extend(samples)
-        reward_stats[new_tape.metadata.parent_id].append(stats["reward"])
-        success_stats[new_tape.metadata.parent_id].append(stats["success"])
-        no_errors_stats[new_tape.metadata.parent_id].append(stats["no_error"])
-        prompt_tokens_stats[new_tape.metadata.parent_id].append(stats["prompt_tokens"])
-        output_tokens_stats[new_tape.metadata.parent_id].append(stats["output_tokens"])
-        overflow_stats[new_tape.metadata.parent_id].append(stats["overflows"])
+        group_id = samples[0].group_id
+        assert all([group_id == s.group_id for s in samples]), f"Group id mismatch in samples: {group_id}, {[s.group_id for s in samples]}"
+        reward_stats[group_id].append(tape_stats["reward"])
+        success_stats[group_id].append(tape_stats["success"])
+        no_errors_stats[group_id].append(tape_stats["no_error"])
+        prompt_tokens_stats[group_id].append(tape_stats["prompt_tokens"])
+        output_tokens_stats[group_id].append(tape_stats["output_tokens"])
+        overflow_stats[group_id].append(tape_stats["overflows"])
+        llm_time_send_request[group_id].append(llm_stats["time_send_request"])
+        llm_time_log_output[group_id].append(llm_stats["time_log_output"])
+        llm_time_postprocess_llm_response[group_id].append(llm_stats["time_postprocess_llm_response"])
 
     ### STEP 3: save the tapes ###
     exp_path = Path(cfg.output_dir)
@@ -421,6 +454,9 @@ def batch_generate_data(
             f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
             f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
             f"{split_name}_overflows": np.mean([np.mean(ov) for ov in overflow_stats.values()]),
+            f"llm/{split_name}_time_send_request": np.mean([np.mean(ts) for ts in llm_time_send_request.values()]),
+            f"llm/{split_name}_time_log_output": np.mean([np.mean(ts) for ts in llm_time_log_output.values()]),
+            f"llm/{split_name}_time_postprocess_llm_response": np.mean([np.mean(ts) for ts in llm_time_postprocess_llm_response.values()]),
         },
     }
     return final_tapes, training_samples, stats
@@ -548,30 +584,6 @@ def main(cfg: DictConfig):
                 for split_name, tasks, urls in splits:
                     assert len(tasks) == len(urls)
                     new_tapes, split_training_samples, stats = batch_generate_data(cfg, tasks, urls, split_name, state["iteration"])
-
-                    # SKIP llm stats for now because each subprocess has its own llm and we will not be able to aggregate them.
-
-                    # old way of doing it was to return the stats from the agent's llm and then do this:
-                    # llm_stats = agent_replicas_with_stats[0].llm.get_stats()
-                    # llm_stats = {f"llm/{split_name}_{k}": v for k, v in llm_stats.items()}
-                    # but returning the agent or the llm from a subprocess can be tricky as it is a complex datastructure that must be transferred to the main process
-                    # also, since each process has its own llm, it will have its own stats and we will not be able to aggregate them
-
-                    # One way to try to get some stats is to load the sqlite file and then do this (copied from gaia_agent/scripts/tape_browser.py):
-                    # sqlite_fpath = os.path.join(cfg.output_dir, "tapedata.sqlite")
-                    # llm_calls: dict[str, LLMCall] = {llm_call.prompt.id: llm_call for llm_call in retrieve_all_llm_calls(sqlite_fpath)}
-                    # for llm_call in llm_calls.values():
-                    #     prompt_tokens_num += llm_call.prompt_length_tokens
-                    #     output_tokens_num += llm_call.output_length_tokens
-                    #     total_cost += llm_call.cost
-
-                    # stats.update(llm_stats)
-                    # this would add the following to the stats:
-                    # llm/{split_name}_time_send_request
-                    # llm/{split_name}_time_log_output
-                    # llm/{split_name}_total_prompt_tokens
-                    # llm/{split_name}_total_output_tokens
-                    # llm/{split_name}_time_postprocess_llm_response
 
                     make_data_took = stats[f"execution_time/{split_name}_make_data"]
                     throughput_stats = {

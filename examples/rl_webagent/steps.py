@@ -118,6 +118,7 @@ WebStep = Union[
 
 
 class WebTapeMetadata(TapeMetadata):
+    task_name: str = Field(default_factory=str)
     seed: int = Field(default_factory=int)
     other: dict = Field(default_factory=dict)
 

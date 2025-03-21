@@ -55,7 +55,7 @@ vllm_config:
     enable-chunked-prefill: ""
     max-num-batched-tokens: 1024
 
-exp_name: llama3_8b_t1_2025-03-18
+exp_name: llama3_8b_t1_2025-03-21
 output_dir: outputs/rl_webagent/${exp_name}
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 use_deepspeed: false
