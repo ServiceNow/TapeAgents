@@ -29,7 +29,7 @@ from tapeagents.core import (
     Thought,
     TrainingText,
 )
-from tapeagents.llms import LLM, LLMCall, LLMEvent, LLMOutput, LLMStream, TrainableLLM
+from tapeagents.llms import LLM, LLMCall, LLMEvent, LLMOutput, LLMStream
 from tapeagents.observe import observe_llm_call
 from tapeagents.view import TapeViewStack
 
@@ -712,7 +712,7 @@ class Agent(BaseModel, Generic[TapeType]):
 
         return AgentStream(_run_implementation())
 
-    def run_batch(self: Agent[TapeType], tapes: list[Tape], environment: Optional["Environment"] = None) -> list[Tape]:
+    def run_batch(self: Agent[TapeType], tapes: list[Tape], environment = None) -> list[Tape]:
         """
         Run agent in parallel on tapes using batched LLM calls with optional environment integration.
         
