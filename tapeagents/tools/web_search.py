@@ -222,40 +222,7 @@ class SearchExtract(Tool):
         fetch_results = self.fetch(search_results)
         extracted_facts = self.extract(action, fetch_results)
         logger.info(f"Extracted facts for {len(extracted_facts)} pages.")
-        return ExtractedFactsObservation(task=action.main_task, page_facts=extracted_facts)
-
-    def extract(self, action: SearchAndExtract, fetch_results: list[SearchResult]) -> dict[str, list[WebPageData]]:
-        extract_tasks = []
-        for fr in fetch_results:
-            task = action.tasks[fr.task_id].text
-            facts_to_discover = action.tasks[fr.task_id].facts_to_discover
-            query = action.tasks[fr.task_id].queries[fr.query_id]
-            prefix = f"{self.extract_prefix}{task} (part of higher-level task {action.main_task})\nFacts to discover: {facts_to_discover}\nSearch query that led to the page: {query}\n\nPage content:\n\n"
-            postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf the page contains HTTP error, return only one word ERROR and nothing else."
-            msg = f"{prefix}{fr.text}{postfix}"
-            logger.info(f"Page: {fr.url}, prompt length {len(msg)} chars")
-            extract_tasks.append((task, fr.url, fr.title, Prompt(messages=[{"role": "user", "content": msg}])))
-
-        def extract_page_data(task: str, url: str, title: str, prompt: Prompt) -> tuple[str, WebPageData]:
-            page_data_content = self.llm.generate(prompt).get_text()
-            if page_data_content.startswith("ERROR"):
-                logger.warning(f"Page {url} contained error: {page_data_content}")
-                return "", None
-            logger.info(colored(f"Completed extraction for page: {url}\nFacts output: {page_data_content}", "green"))
-            return task, WebPageData(url=url, title=title, content=page_data_content)
-
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [executor.submit(extract_page_data, *et) for et in extract_tasks]
-            try:
-                data_per_task = defaultdict(list)
-                for future in as_completed(futures, timeout=self.extract_timeout):
-                    task, page_data = future.result()
-                    if task is None:
-                        continue
-                    data_per_task[task].append(page_data)
-            except Exception as e:
-                logger.error(f"Error occurred while processing extract future: {e}")
-        return data_per_task
+        return ExtractedFactsObservation(page_facts=extracted_facts)
 
     def search(self, action: SearchAndExtract) -> list[SearchResult]:
         def search_query(i: int, j: int, query: str) -> list[SearchResult]:
@@ -305,3 +272,36 @@ class SearchExtract(Tool):
         for i in range(len(search_results)):
             search_results[i].text = texts.get(search_results[i].url, "")
         return search_results
+
+    def extract(self, action: SearchAndExtract, fetch_results: list[SearchResult]) -> dict[str, list[WebPageData]]:
+        extract_tasks = []
+        for fr in fetch_results:
+            task = action.tasks[fr.task_id].text
+            facts_to_discover = action.tasks[fr.task_id].facts_to_discover
+            query = action.tasks[fr.task_id].queries[fr.query_id]
+            prefix = f"{self.extract_prefix}{task} (part of higher-level task {action.main_task})\nFacts to discover: {facts_to_discover}\nSearch query that led to the page: {query}\n\nPage content:\n\n"
+            postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf the page contains HTTP error, return only one word ERROR and nothing else."
+            msg = f"{prefix}{fr.text}{postfix}"
+            logger.info(f"Page: {fr.url}, prompt length {len(msg)} chars")
+            extract_tasks.append((task, fr.url, fr.title, Prompt(messages=[{"role": "user", "content": msg}])))
+
+        def extract_page_data(task: str, url: str, title: str, prompt: Prompt) -> tuple[str, WebPageData]:
+            page_data_content = self.llm.generate(prompt).get_text()
+            if page_data_content.startswith("ERROR"):
+                logger.warning(f"Page {url} contained error: {page_data_content}\n{prompt.messages[0]['content']}")
+                return "", None
+            logger.info(colored(f"Completed extraction for page: {url}\nFacts output: {page_data_content}", "green"))
+            return task, WebPageData(url=url, title=title, content=page_data_content)
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(extract_page_data, *et) for et in extract_tasks]
+            try:
+                data_per_task = defaultdict(list)
+                for future in as_completed(futures, timeout=self.extract_timeout):
+                    task, page_data = future.result()
+                    if not task:
+                        continue
+                    data_per_task[task].append(page_data)
+            except Exception as e:
+                logger.error(f"Error occurred while processing extract future: {e}")
+        return data_per_task
