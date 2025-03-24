@@ -106,7 +106,6 @@ finetune = [
 
 rl_gsm8k = [
     "vllm~=0.6.6.post1",
-    "peft==0.12",
 ]
 
 [build-system]
