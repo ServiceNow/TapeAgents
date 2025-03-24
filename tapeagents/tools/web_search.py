@@ -177,11 +177,11 @@ class ExtractedFactsObservation(Observation):
     def llm_view(self, indent=2):
         task_facts = []
         for task, pages in self.page_facts.items():
-            prefix = f"Facts for task '{task}:'\n\n"
+            prefix = f"Topic: {task}:\n<FACTS>"
             page_strs: list[str] = []
             for page in pages:
                 page_strs.append(f"Page [{page.title}][{page.url}]:\n{page.content}\n--------")
-            task_facts.append(prefix + "\n".join(page_strs))
+            task_facts.append(prefix + "\n\n".join(page_strs) + "\n</FACTS>")
         return "\n\n".join(task_facts)
 
 
