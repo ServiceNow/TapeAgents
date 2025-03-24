@@ -2,12 +2,16 @@ import json
 import logging
 import os
 import time
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal
 
 import requests
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
+from termcolor import colored
 
-from tapeagents.core import Action, Observation
+from tapeagents.core import Action, Observation, Prompt
+from tapeagents.llms import LLM
 from tapeagents.tools.base import Tool
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.tool_cache import cached_tool
@@ -143,3 +147,161 @@ class SuperSearch(WebSearch):
             else:
                 logger.warning(f"Failed to fetch page {result['url']}: {error}")
         return obs
+
+
+class SearchTask(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: str
+    facts_to_discover: str
+    queries: list[str]
+
+
+class SearchAndExtract(Action):
+    kind: Literal["search_and_extract"] = "search_and_extract"
+    main_task: str
+    instructions: str
+    tasks: list[SearchTask]
+
+
+class WebPageData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    url: str
+    title: str
+    content: str
+
+
+class ExtractedFactsObservation(Observation):
+    kind: Literal["extracted_facts_observation"] = "extracted_facts_observation"
+    page_facts: dict[str, list[WebPageData]]
+
+    def llm_view(self, indent=2):
+        task_facts = []
+        for task, pages in self.page_facts.items():
+            prefix = f"Facts for task '{task}:'\n\n"
+            page_strs: list[str] = []
+            for page in pages:
+                page_strs.append(f"Page [{page.title}][{page.url}]:\n{page.content}\n--------")
+            task_facts.append(prefix + "\n".join(page_strs))
+        return "\n\n".join(task_facts)
+
+
+class SearchResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    task_id: int
+    query_id: int
+    n: int
+    title: str
+    url: str
+    snippet: str
+    text: str = ""
+
+
+class SearchExtract(Tool):
+    """
+    Performs a search in the web and retrieves the whole content of each page. Then extracts the relevant information.
+    """
+
+    llm: LLM
+    action: type[Action] = SearchAndExtract
+    observation: type[Observation] = ExtractedFactsObservation
+    cached: bool = True
+    page_viewport_size: int = 64000
+    top_k: int = 3
+    max_workers: int = 20
+    search_timeout: int = 10
+    fetch_timeout: int = 30
+    extract_timeout: int = 60
+    extract_prefix: str = "Your should extract all relevant information for the given from the page.\n\nTASK: "
+
+    def model_post_init(self, __context):
+        self._search_tool = WebSearch()
+        return super().model_post_init(__context)
+
+    def execute_action(self, action: SearchAndExtract) -> ExtractedFactsObservation:
+        search_results = self.search(action)
+        fetch_results = self.fetch(search_results)
+        extracted_facts = self.extract(action, fetch_results)
+        logger.info(f"Extracted facts for {len(extracted_facts)} pages.")
+        return ExtractedFactsObservation(task=action.main_task, page_facts=extracted_facts)
+
+    def extract(self, action: SearchAndExtract, fetch_results: list[SearchResult]) -> dict[str, list[WebPageData]]:
+        extract_tasks = []
+        for fr in fetch_results:
+            task = action.tasks[fr.task_id].text
+            facts_to_discover = action.tasks[fr.task_id].facts_to_discover
+            query = action.tasks[fr.task_id].queries[fr.query_id]
+            prefix = f"{self.extract_prefix}{task} (part of higher-level task {action.main_task})\nFacts to discover: {facts_to_discover}\nSearch query that led to the page: {query}\n\nPage content:\n\n"
+            postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf the page contains HTTP error, return only one word ERROR and nothing else."
+            msg = f"{prefix}{fr.text}{postfix}"
+            logger.info(f"Page: {fr.url}, prompt length {len(msg)} chars")
+            extract_tasks.append((task, fr.url, fr.title, Prompt(messages=[{"role": "user", "content": msg}])))
+
+        def extract_page_data(task: str, url: str, title: str, prompt: Prompt) -> tuple[str, WebPageData]:
+            page_data_content = self.llm.generate(prompt).get_text()
+            if page_data_content.startswith("ERROR"):
+                logger.warning(f"Page {url} contained error: {page_data_content}")
+                return "", None
+            logger.info(colored(f"Completed extraction for page: {url}\nFacts output: {page_data_content}", "green"))
+            return task, WebPageData(url=url, title=title, content=page_data_content)
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(extract_page_data, *et) for et in extract_tasks]
+            try:
+                data_per_task = defaultdict(list)
+                for future in as_completed(futures, timeout=self.extract_timeout):
+                    task, page_data = future.result()
+                    if task is None:
+                        continue
+                    data_per_task[task].append(page_data)
+            except Exception as e:
+                logger.error(f"Error occurred while processing extract future: {e}")
+        return data_per_task
+
+    def search(self, action: SearchAndExtract) -> list[SearchResult]:
+        def search_query(i: int, j: int, query: str) -> list[SearchResult]:
+            serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
+            results = []
+            for n, r in enumerate(serp):
+                results.append(
+                    SearchResult(task_id=i, query_id=j, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
+                )
+            return results
+
+        search_tasks = [
+            (task_id, query_id, query)
+            for task_id, search_task in enumerate(action.tasks)
+            for query_id, query in enumerate(search_task.queries)
+        ]
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            futures = [executor.submit(search_query, *s) for s in search_tasks]
+            results: list[SearchResult] = []
+            try:
+                for future in as_completed(futures, timeout=self.search_timeout):
+                    results += future.result()
+            except Exception as e:
+                logger.error(f"Error occurred while processing web search future: {e}")
+        logger.info(f"Got {len(results)} search results for {len(search_tasks)} queries.")
+        return results
+
+    def fetch(self, search_results: list[SearchResult]) -> list[SearchResult]:
+        def fetch_page(url: str) -> tuple[str, str]:
+            text, _, error = SimpleTextBrowser(viewport_size=self.page_viewport_size).get_page(url)
+            if error:
+                logger.warning(f"Failed to fetch page {url}: {error}")
+                return "", ""
+            return url, text
+
+        texts = {}
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            urls = list(set([result.url for result in search_results]))
+            futures = [executor.submit(fetch_page, url) for url in urls]
+            try:
+                for future in as_completed(futures, timeout=self.fetch_timeout):
+                    url, text = future.result()
+                    texts[url] = text
+            except Exception as e:
+                logger.error(f"Error occurred while processing fetch future: {e}")
+        logger.info(f"Fetched {len(texts)} pages")
+        for i in range(len(search_results)):
+            search_results[i].text = texts.get(search_results[i].url, "")
+        return search_results
