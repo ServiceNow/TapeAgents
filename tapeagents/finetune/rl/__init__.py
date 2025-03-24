@@ -11,9 +11,14 @@ import torch.nn.functional as F
 from datasets import Dataset
 from transformers import BatchEncoding, PreTrainedModel
 
-from .utils import (StepConfig, calculate_advantage,
-                    calculate_rewards_with_implicit_kl, masked_mean,
-                    masked_sum, replace_dataset_column)
+from .utils import (
+    StepConfig,
+    calculate_advantage,
+    calculate_rewards_with_implicit_kl,
+    masked_mean,
+    masked_sum,
+    replace_dataset_column,
+)
 
 # FIXME: remove a warnings, but might be worth investigating
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -98,7 +103,7 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     probs = F.softmax(logits, dim=-1)
     entropy = -(probs * logprobs).sum(dim=-1)
     new_log_probs = torch.gather(
-       logprobs,  # the last log probs has no target
+        logprobs,  # the last log probs has no target
         dim=2,
         index=batch["input_ids"][:, 1:].unsqueeze(2),
     ).squeeze(2)
