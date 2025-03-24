@@ -98,7 +98,7 @@ finetune = [
     "datasets~=2.21",
     "deepspeed~=0.15.4",
     "numpy~=1.26",
-    "peft~=0.12",
+    "peft==0.12",
     "tokenizers~=0.20",
     "transformers~=4.45",
     "wandb~=0.19",
@@ -106,6 +106,7 @@ finetune = [
 
 rl_gsm8k = [
     "vllm~=0.6.6.post1",
+    "peft==0.12",
 ]
 
 [build-system]

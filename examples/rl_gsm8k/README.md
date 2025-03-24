@@ -27,7 +27,7 @@ python -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-3.2-1B-Ins
 The example can be run in 2 hours on a H100 (should also run on a A100):
 
 ```bash
-python -m examples.rl_gsm8k.orchestrate_rl
+python -m examples.rl_gsm8k.orchestrate_rl output_dir=outputs/my_rl_run
 ```
 
 By default, the script uses `conf/rl_gsm8k.yaml` as the configuration file. 
