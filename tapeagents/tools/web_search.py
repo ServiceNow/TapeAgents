@@ -184,6 +184,10 @@ class ExtractedFactsObservation(Observation):
             task_facts.append(prefix + "\n\n".join(page_strs) + "\n</FACTS>")
         return "\n\n".join(task_facts)
 
+    def short_view(self):
+        tasks = "\n".join(self.page_facts.keys())
+        return f"Extracted facts for tasks:\n{tasks}"
+
 
 class SearchResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -283,7 +287,8 @@ class SearchExtract(Tool):
             postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf the page contains HTTP error, return only one word ERROR and nothing else."
             msg = f"{prefix}{fr.text}{postfix}"
             logger.info(f"Page: {fr.url}, prompt length {len(msg)} chars")
-            extract_tasks.append((task, fr.url, fr.title, Prompt(messages=[{"role": "user", "content": msg}])))
+            prompt = Prompt(id=action.metadata.prompt_id, messages=[{"role": "user", "content": msg}])
+            extract_tasks.append((task, fr.url, fr.title, prompt))
 
         def extract_page_data(task: str, url: str, title: str, prompt: Prompt) -> tuple[str, WebPageData]:
             page_data_content = self.llm.generate(prompt).get_text()
