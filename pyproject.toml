@@ -72,7 +72,7 @@ dev = [
 [project.optional-dependencies]
 converters = [
   "beautifulsoup4~=4.12",
-  "docling==2.15.0",
+  "docling~=2.28.0",
   "easyocr~=1.7",
   "ffmpeg-python~=0.2",
   "lxml[html-clean]~=5.2",
@@ -99,9 +99,7 @@ finetune = [
     "deepspeed~=0.15.4",
     "numpy~=1.26",
     "peft~=0.12",
-    "tokenizers~=0.20",
-    "transformers~=4.45",
-    "vllm~=0.6.6.post1",
+    "transformers>=4.42,<4.46",
     "wandb~=0.19",
 ]
 
