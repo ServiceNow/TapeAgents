@@ -169,6 +169,7 @@ class WebPageData(BaseModel):
     url: str
     title: str
     content: str
+    prompt_id: str
 
 
 class ExtractedFactsObservation(Observation):
@@ -213,8 +214,8 @@ class SearchExtract(Tool):
     page_viewport_size: int = 64000
     top_k: int = 3
     max_workers: int = 20
-    search_timeout: int = 10
-    fetch_timeout: int = 30
+    search_timeout: int = 30
+    fetch_timeout: int = 60
     extract_timeout: int = 60
     extract_prefix: str = "Your should extract all relevant information for the given from the page.\n\nTASK: "
 
@@ -226,7 +227,7 @@ class SearchExtract(Tool):
         search_results = self.search(action)
         fetch_results = self.fetch(search_results)
         extracted_facts = self.extract(action, fetch_results)
-        logger.info(f"Extracted facts for {len(extracted_facts)} pages.")
+        logger.info(f"Extracted facts from {sum([len(p) for p in extracted_facts.values()])} pages.")
         return ExtractedFactsObservation(page_facts=extracted_facts)
 
     def search(self, action: SearchAndExtract) -> list[SearchResult]:
@@ -289,7 +290,7 @@ class SearchExtract(Tool):
             postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf the page is empty or contains only message about blocking the access, return only one word ERROR and nothing else."
             msg = f"{prefix}{fr.text}{postfix}"
             logger.info(f"Page: {fr.url}, prompt length {len(msg)} chars")
-            prompt = Prompt(id=action.metadata.prompt_id, messages=[{"role": "user", "content": msg}])
+            prompt = Prompt(messages=[{"role": "user", "content": msg}])
             extract_tasks.append((task, fr.url, fr.title, prompt))
 
         def extract_page_data(task: str, url: str, title: str, prompt: Prompt) -> tuple[str, WebPageData]:
@@ -298,12 +299,12 @@ class SearchExtract(Tool):
                 logger.warning(f"Page {url} empty or blocked")
                 return "", None
             logger.info(colored(f"Completed extraction for page: {url}\nFacts output: {page_data_content}", "green"))
-            return task, WebPageData(url=url, title=title, content=page_data_content)
+            return task, WebPageData(url=url, title=title, content=page_data_content, prompt_id=prompt.id)
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        data_per_task = defaultdict(list)
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = [executor.submit(extract_page_data, *et) for et in extract_tasks]
             try:
-                data_per_task = defaultdict(list)
                 for future in as_completed(futures, timeout=self.extract_timeout):
                     task, page_data = future.result()
                     if not task:

@@ -142,7 +142,7 @@ class CachedLLM(LLM):
         def _implementation():
             key = self.get_prompt_key(prompt)
             if self.use_cache and key in self._cache:
-                logger.debug(colored(f"LLM cache hit, {len(self._cache[key])} events", "green"))
+                logger.info(colored(f"LLM cache hit for {self.model_name}, {len(self._cache[key])} events", "green"))
                 for event_dict in self._cache[key]:
                     event = LLMEvent.model_validate(event_dict)
                     if event.output is not None:

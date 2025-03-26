@@ -673,8 +673,14 @@ def fetch_for_llm(url: str) -> str:
     If the content type is plain text, it returns the text as is.
     In all other cases, it uses the FileConverter to convert the response to text.
     """
-    content_type = requests.head(url, headers=headers).headers.get("content-type", "")
-    converter = FileConverter()
+    try:
+        content_type = requests.head(url, headers=headers).headers.get("content-type", "")
+    except Exception as e:
+        logger.exception(f"Error fetching headers for {url}, interpret as html page: {e}")
+        content_type = "text/html"
+    if url.endswith(".pdf"):
+        content_type = "application/pdf"
+    logger.info(f"Content type for {url}: {content_type}")
     if "text/html" in content_type.lower():
         try:
             html_content = asyncio.run(async_get_html(url))
@@ -687,7 +693,7 @@ def fetch_for_llm(url: str) -> str:
         return response.text
     else:
         response = requests.get(url, headers=headers)
-        result = converter.convert_response(response)
+        result = FileConverter().convert_response(response)
         return result.text_content
 
 
