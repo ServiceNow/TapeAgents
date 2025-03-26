@@ -71,7 +71,7 @@ class CachedLLM(LLM):
                         if key not in self._cache:
                             self._cache[key] = []
                         self._cache[key].append(event_dict)
-            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir}")
+            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir} for LLM {self.model_name}")
         else:
             logger.info(f"Cache dir {cache_dir} does not exist")
 

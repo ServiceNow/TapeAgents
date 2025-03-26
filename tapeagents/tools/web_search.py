@@ -13,6 +13,7 @@ from termcolor import colored
 from tapeagents.core import Action, Observation, Prompt
 from tapeagents.llms import LLM
 from tapeagents.tools.base import Tool
+from tapeagents.tools.browser import fetch_for_llm
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.tool_cache import cached_tool
 from tapeagents.utils import FatalError
@@ -256,15 +257,16 @@ class SearchExtract(Tool):
 
     def fetch(self, search_results: list[SearchResult]) -> list[SearchResult]:
         def fetch_page(url: str) -> tuple[str, str]:
-            text, _, error = SimpleTextBrowser(viewport_size=self.page_viewport_size).get_page(url)
-            if error:
-                logger.warning(f"Failed to fetch page {url}: {error}")
-                return "", ""
+            try:
+                text = fetch_for_llm(url)
+            except Exception as e:
+                logger.exception(f"Failed to fetch page {url}: {e}")
+                text = ""
             return url, text
 
         texts = {}
+        urls = list(set([result.url for result in search_results]))
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            urls = list(set([result.url for result in search_results]))
             futures = [executor.submit(fetch_page, url) for url in urls]
             try:
                 for future in as_completed(futures, timeout=self.fetch_timeout):
@@ -284,7 +286,7 @@ class SearchExtract(Tool):
             facts_to_discover = action.tasks[fr.task_id].facts_to_discover
             query = action.tasks[fr.task_id].queries[fr.query_id]
             prefix = f"{self.extract_prefix}{task} (part of higher-level task {action.main_task})\nFacts to discover: {facts_to_discover}\nSearch query that led to the page: {query}\n\nPage content:\n\n"
-            postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf the page contains HTTP error, return only one word ERROR and nothing else."
+            postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf the page is empty or contains only message about blocking the access, return only one word ERROR and nothing else."
             msg = f"{prefix}{fr.text}{postfix}"
             logger.info(f"Page: {fr.url}, prompt length {len(msg)} chars")
             prompt = Prompt(id=action.metadata.prompt_id, messages=[{"role": "user", "content": msg}])
@@ -293,7 +295,7 @@ class SearchExtract(Tool):
         def extract_page_data(task: str, url: str, title: str, prompt: Prompt) -> tuple[str, WebPageData]:
             page_data_content = self.llm.generate(prompt).get_text()
             if page_data_content.startswith("ERROR"):
-                logger.warning(f"Page {url} contained error: {page_data_content}\n{prompt.messages[0]['content']}")
+                logger.warning(f"Page {url} empty or blocked")
                 return "", None
             logger.info(colored(f"Completed extraction for page: {url}\nFacts output: {page_data_content}", "green"))
             return task, WebPageData(url=url, title=title, content=page_data_content)

@@ -344,7 +344,7 @@ class PdfConverter(DocumentConverter):
         converter = DoclingDocumentConverter(
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
         )
-        result = converter.convert(local_path, page_range=kwargs.get("page_range", (1, 10)))
+        result = converter.convert(local_path, page_range=(1, kwargs.get("max_pages", 20)))
         markdown = result.document.export_to_markdown()
         return DocumentConverterResult(
             title=None,
