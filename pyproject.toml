@@ -98,11 +98,14 @@ finetune = [
     "datasets~=2.21",
     "deepspeed~=0.15.4",
     "numpy~=1.26",
-    "peft~=0.12",
+    "peft==0.12",
     "tokenizers~=0.20",
     "transformers~=4.45",
-    "vllm~=0.6.6.post1",
     "wandb~=0.19",
+]
+
+rl_gsm8k = [
+    "vllm~=0.6.6.post1",
 ]
 
 [build-system]
@@ -112,9 +115,7 @@ build-backend = "hatchling.build"
 [tool.ruff]
 line-length = 120
 target-version = "py310"
-exclude = [
-  "examples/rl_gsm8k/deepseek_math_eval/"
-]
+
 
 [tool.ruff.lint]
 extend-select = [
