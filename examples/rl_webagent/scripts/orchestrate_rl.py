@@ -155,7 +155,7 @@ def tape_contains_an_error(tape: WebTape) -> bool:
     """
     return isinstance(tape.steps[-1], LLMOutputParsingFailureAction) or \
         tape.metadata.result.get("error") is not None or \
-        (isinstance(tape.steps[-1], PageObservation) and tape.steps[-1].error is not None)
+        (isinstance(tape.steps[-1], PageObservation) and tape.steps[-1].error)
 
 
 def extract_tape_training_samples_and_stats(
@@ -325,8 +325,7 @@ def generate_data(
     llm_stats = llm.get_stats()
     # llm_stats contains: time_send_request, time_log_output, total_prompt_tokens, total_output_tokens, time_postprocess_llm_response
 
-    # TODO: check why some tapes ends with PageObservation
-    # TODO: make sure the groups by task_id + seed works well.
+    # some tapes end with PageObservation because the agent did not yield a stop step before the end of main_loop
 
     ### STEP 2: extract training samples from the newly generated tape ###
     t = time.perf_counter()
@@ -338,6 +337,13 @@ def generate_data(
 
     new_tape.metadata.other["timers"] = timers
     return new_tape, tape_training_samples, tape_stats, llm_stats
+
+
+def _debug(tapes):
+    step_with_llm_call = [
+        step for tape in tapes for step in tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None
+    ][0]
+    step_with_llm_call.metadata.other["llm_call"].model_dump()
 
 
 def batch_generate_data(
@@ -417,8 +423,9 @@ def batch_generate_data(
     for new_tape, samples, tape_stats, llm_stats in results:
         final_tapes.append(new_tape)
         training_samples.extend(samples)
-        group_id = samples[0].group_id
-        assert all([group_id == s.group_id for s in samples]), f"Group id mismatch in samples: {group_id}, {[s.group_id for s in samples]}"
+        if samples:
+            group_id = samples[0].group_id
+            assert all([group_id == s.group_id for s in samples]), f"Group id mismatch in samples: {group_id}, {[s.group_id for s in samples]}"
         reward_stats[group_id].append(tape_stats["reward"])
         success_stats[group_id].append(tape_stats["success"])
         no_errors_stats[group_id].append(tape_stats["no_error"])
@@ -434,9 +441,9 @@ def batch_generate_data(
     tapes_dir = exp_path / "tapes" / split_name / str(iteration)
     os.makedirs(tapes_dir, exist_ok=True)
     start_dump = time.time()
-    # TODO: debug why can't we save tapes anymore? https://github.com/pydantic/pydantic/issues/7713
-    # with open(tapes_dir / "tapes.json", "w") as f:
-    #     json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
+    _debug(final_tapes)  # TODO: debug why can't we save tapes anymore? https://github.com/pydantic/pydantic/issues/7713
+    with open(tapes_dir / "tapes.json", "w") as f:
+        json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
     end_dump = time.time()
 
     ### STEP 4: compute stats ###
@@ -521,8 +528,8 @@ def main(cfg: DictConfig):
     finetune_path = exp_path / "finetune"
 
     ### Step 1: load datasets ###
-    # train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
-    train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
+    train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
+    # train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
 
     ### repeat until we have reached the max number of iterations ###
     ### each iteration is a forward pass (agent making predictions on tapes), a reference pass (reference model populating ref_logprobs), and a finetuning run on the generated training samples ###
@@ -573,12 +580,12 @@ def main(cfg: DictConfig):
                 train_urls = [vllm_services[task_idx % n_services] for task_idx in range(n_train_tasks)]
                 splits = [("train", train_tasks, train_urls)]
 
-                # Create test split if needed TODO: uncomment when ready
-                # if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                #     # Calculate how many agents to create for this service
-                #     logger.info(f"[it{state['iteration']}] Creating test split with {len(test_samples)} tasks")
-                #     test_urls = [vllm_services[task_idx % n_services] for task_idx in range(len(test_samples))]
-                #     splits.append(("test", test_samples, test_urls))
+                # Create test split if needed
+                if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
+                    # Calculate how many agents to create for this service
+                    logger.info(f"[it{state['iteration']}] Creating test split with {len(test_samples)} tasks")
+                    test_urls = [vllm_services[task_idx % n_services] for task_idx in range(len(test_samples))]
+                    splits.append(("test", test_samples, test_urls))
 
                 ### Step 2.2: generate continuations for each split ###
                 for split_name, tasks, urls in splits:
@@ -705,7 +712,6 @@ def main(cfg: DictConfig):
         # we increment the number of steps to interrupt the training because each finetuning run will continue from the last one
         checkpoint_steps = finetune_cfg.finetune.save_checkpoint_steps
         interrupt_train_steps = int((state["iteration"] + 1) * checkpoint_steps)
-
         finetune_cfg.finetune.interrupt_train_steps = interrupt_train_steps
         finetune_cfg.output_dir = str(finetune_path)
         finetune_cfg.finetune.data = {"data_parts_train": [{"path": str(rollout_dir)}]}
