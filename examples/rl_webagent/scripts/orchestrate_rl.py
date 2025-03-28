@@ -90,13 +90,13 @@ def load_webtasks(train_split: float = 0.6, seeds: list[int] = [0, 1, 2, 3, 4]) 
     test_tasks = ALL_MINIWOB_TASKS[n_train_tasks:]
 
     train_samples = [
-        {"dataset": "miniwob", "task": task, "seed": seed}
+        {"dataset": "miniwob", "task": task, "seed": seed, "max_loops": 10}
         for task in train_tasks
         for seed in seeds
     ]
 
     test_samples = [
-        {"dataset": "miniwob", "task": task, "seed": seed}
+        {"dataset": "miniwob", "task": task, "seed": seed, "max_loops": 10}
         for task in test_tasks
         for seed in seeds
     ]
