@@ -303,7 +303,7 @@ def generate_data(
         model_path = cfg.model_path
     # env_path = task_folder / "env"
     env_path = None  # do not save screenshots and playwright traces for this!
-    log_file = task_folder / f"{os.getpid()}.log"
+    log_file = exp_path / split_name / f"{os.getpid()}.log"
     tapes_path = task_folder / "tapes.json"
 
     ### Set up logging
@@ -344,9 +344,11 @@ def generate_data(
     timers["instantiated_agent"] = time.perf_counter() - t
 
     ### STEP 1: run the agent on its task ###
+    logger.info(f"[it{iteration}.{split_name}] ======== RUNNING THE AGENT ON {task['task'].get_task_id()} WITH SEED {task['seed']} ========")
     t = time.perf_counter()
     new_tape = run_agent(agent, env, task)
     timers["generated_new_tape"] = time.perf_counter() - t
+    logger.info(f"[it{iteration}.{split_name}] ======== GENERATED TAPE IN {timers['generated_new_tape']} s. NOW SAVING TAPE ========")
     # some tapes end with PageObservation because the agent did not yield a stop step before the end of main_loop
 
     ### SAVE THE TAPE ###
@@ -362,6 +364,7 @@ def generate_data(
     with open(tapes_path, "w") as f:
         json.dump(to_save, f, indent=4)
     timers["saved_new_tape"] = time.perf_counter() - t
+    logger.info(f"[it{iteration}.{split_name}] ======== SAVED TAPE IN {timers['saved_new_tape']} s. NOW EXTRACT TRAINING TRACES ========")
 
     ### STEP 2: get LLM stats ###
     llm_stats = llm.get_stats()
@@ -373,10 +376,11 @@ def generate_data(
     # 1 tape -> multiple training samples because of multiple LLM calls
     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
     timers["extract_training_samples"] = time.perf_counter() - t
+    logger.info(f"[it{iteration}.{split_name}] ======== EXTRACTED {len(tape_training_samples)} TRACES IN {timers['extract_training_samples']} s. ========")
     # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows
 
     new_tape.metadata.other["timers"] = timers
-    logger.info(f"[it{iteration}] {split_name} tape {new_tape.metadata.id} took {json.dumps(timers, indent=4)}")
+    logger.info(f"[it{iteration}.{split_name}] ======== TAPE {new_tape.metadata.id} TOOK {json.dumps(timers, indent=4)} ========")
     return new_tape, tape_training_samples, tape_stats, llm_stats
 
 
