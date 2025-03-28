@@ -303,8 +303,8 @@ def generate_data(
         model_path = cfg.model_path
     # env_path = task_folder / "env"
     env_path = None  # do not save screenshots and playwright traces for this!
-    log_file = exp_path / split_name / f"{os.getpid()}.log"
-    tapes_path = task_folder / "tapes.json"
+    log_file = exp_path / split_name / f"it{iteration}" / "logs" / f"{os.getpid()}.log"
+    tapes_path = task_folder / f"tapes_{os.getpid()}.json"
 
     ### Set up logging
     log_handler = logging.FileHandler(str(log_file))
