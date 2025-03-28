@@ -334,7 +334,7 @@ class StandardNode(Node):
             if isinstance(step_dicts, dict):
                 step_dicts = [step_dicts]
         except Exception as e:
-            logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
+            # logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
             if self.allow_code_blocks and "```" in llm_output:
                 logger.info("Parsing code blocks from LLM output")
                 for code_block in self.extract_code_blocks(llm_output):
