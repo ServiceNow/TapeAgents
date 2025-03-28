@@ -257,7 +257,7 @@ def extract_tape_training_samples_and_stats(
             training_samples.append(trace)
 
     tape_stats = {
-        "reward": final_reward,
+        "reward": reward_to_use if reward_to_use else final_reward,
         "success": success,
         "prompt_tokens": tape_prompt_tokens,
         "output_tokens": tape_output_tokens,
@@ -266,6 +266,14 @@ def extract_tape_training_samples_and_stats(
     }
 
     return training_samples, tape_stats
+
+
+def _debug(tapes):
+    steps_with_llm_call = [
+        step for tape in tapes for step in tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None
+    ]
+    if steps_with_llm_call:
+        steps_with_llm_call[0].metadata.other["llm_call"].model_dump()
 
 
 def generate_data(
@@ -284,11 +292,30 @@ def generate_data(
     It will then extract the training samples from the tape.
     Finally the new tapes and training samples will be returned.
     """
+    ### Set up paths
     exp_path = Path(cfg.output_dir)
+    task_folder = exp_path / split_name / f"it{iteration}" / f"{task['task'].get_task_id()}_{task['seed']}"
+    os.makedirs(task_folder, exist_ok=True)
+
     if os.path.exists(exp_path / "finetune/current"):
         model_path = str(exp_path / "finetune/current")
     else:
         model_path = cfg.model_path
+    # env_path = task_folder / "env"
+    env_path = None  # do not save screenshots and playwright traces for this!
+    log_file = task_folder / f"{os.getpid()}.log"
+    tapes_path = task_folder / "tapes.json"
+
+    ### Set up logging
+    log_handler = logging.FileHandler(str(log_file))
+    log_handler.setLevel(logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s - PID_%(process)d - Thread_%(threadName)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO,
+        handlers=[log_handler, logging.StreamHandler()],
+        force=True,  # forget previous handlers
+    )
 
     timers = {}
     ### STEP 0: create llm, env, agent ###
@@ -305,8 +332,6 @@ def generate_data(
     timers["instantiated_llm"] = time.perf_counter() - t
 
     t = time.perf_counter()
-    # env_path = f"{exp_path}/envs/{split_name}/it{iteration}/{task['task'].get_task_id()}_{task['seed']}"
-    env_path = None  # do not save screenshots and playwright traces for this!
     env = WebEnvironment(
         exp_path=env_path,
         headless=cfg.env.headless,
@@ -322,14 +347,27 @@ def generate_data(
     t = time.perf_counter()
     new_tape = run_agent(agent, env, task)
     timers["generated_new_tape"] = time.perf_counter() - t
+    # some tapes end with PageObservation because the agent did not yield a stop step before the end of main_loop
+
+    ### SAVE THE TAPE ###
+    t = time.perf_counter()
+    _debug([new_tape])  # TODO: debug why can't we save tapes anymore? https://github.com/pydantic/pydantic/issues/7713
+    if os.path.exists(tapes_path):
+        # load previous tapes and append the new tape
+        with open(tapes_path, "r") as f:
+            to_save = json.load(f)
+        to_save.append(new_tape.model_dump())
+    else:
+        to_save = [new_tape.model_dump()]
+    with open(tapes_path, "w") as f:
+        json.dump(to_save, f, indent=4)
+    timers["saved_new_tape"] = time.perf_counter() - t
 
     ### STEP 2: get LLM stats ###
     llm_stats = llm.get_stats()
     # llm_stats contains: time_send_request, time_log_output, total_prompt_tokens, total_output_tokens, time_postprocess_llm_response
 
-    # some tapes end with PageObservation because the agent did not yield a stop step before the end of main_loop
-
-    ### STEP 2: extract training samples from the newly generated tape ###
+    ### STEP 3: extract training samples from the newly generated tape ###
     t = time.perf_counter()
     llm.load_tokenizer()  # make sure llm.tokenizer is loaded
     # 1 tape -> multiple training samples because of multiple LLM calls
@@ -340,13 +378,6 @@ def generate_data(
     new_tape.metadata.other["timers"] = timers
     logger.info(f"[it{iteration}] {split_name} tape {new_tape.metadata.id} took {json.dumps(timers, indent=4)}")
     return new_tape, tape_training_samples, tape_stats, llm_stats
-
-
-def _debug(tapes):
-    step_with_llm_call = [
-        step for tape in tapes for step in tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None
-    ][0]
-    step_with_llm_call.metadata.other["llm_call"].model_dump()
 
 
 def batch_generate_data(
@@ -420,10 +451,9 @@ def batch_generate_data(
     prompt_tokens_stats = defaultdict(list)  # map from group id to list of prompt tokens length
     output_tokens_stats = defaultdict(list)  # map from group id to list of output tokens length
     overflow_stats = defaultdict(list)  # map from group id to list of overflows
-    # llm stats aggregators
-    llm_time_send_request = defaultdict(list)  # map from group id id to list of time_send_request
-    llm_time_log_output = defaultdict(list)  # map from group id id to list of time_log_output
-    llm_time_postprocess_llm_response = defaultdict(list)  # map from group id id to list of time_postprocess_llm_response
+
+    llm_stats = defaultdict(list)  # map from group id to list of llm stats
+    tape_timers = defaultdict(list)  # map from group id to list of timers
     for new_tape, samples, tape_stats, llm_stats in results:
         final_tapes.append(new_tape)
         training_samples.extend(samples)
@@ -436,19 +466,21 @@ def batch_generate_data(
         prompt_tokens_stats[group_id].append(tape_stats["prompt_tokens"])
         output_tokens_stats[group_id].append(tape_stats["output_tokens"])
         overflow_stats[group_id].append(tape_stats["overflows"])
-        llm_time_send_request[group_id].append(llm_stats["time_send_request"])
-        llm_time_log_output[group_id].append(llm_stats["time_log_output"])
-        llm_time_postprocess_llm_response[group_id].append(llm_stats["time_postprocess_llm_response"])
+
+        for key, value in llm_stats.items():
+            llm_stats[key].append(value)
+        for key, value in new_tape.metadata.other["timers"].items():
+            tape_timers[key].append(value)
 
     ### STEP 3: save the tapes ###
-    exp_path = Path(cfg.output_dir)
-    tapes_dir = exp_path / "tapes" / split_name / str(iteration)
-    os.makedirs(tapes_dir, exist_ok=True)
-    start_dump = time.time()
-    _debug(final_tapes)  # TODO: debug why can't we save tapes anymore? https://github.com/pydantic/pydantic/issues/7713
-    with open(tapes_dir / "tapes.json", "w") as f:
-        json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
-    end_dump = time.time()
+    # exp_path = Path(cfg.output_dir)
+    # tapes_dir = exp_path / "tapes" / split_name / str(iteration)
+    # os.makedirs(tapes_dir, exist_ok=True)
+    # start_dump = time.time()
+    # _debug(final_tapes)  # TODO: debug why can't we save tapes anymore? https://github.com/pydantic/pydantic/issues/7713
+    # with open(tapes_dir / "tapes.json", "w") as f:
+    #     json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
+    # end_dump = time.time()
 
     ### STEP 4: compute stats ###
     end_make_data = time.time()
@@ -459,16 +491,15 @@ def batch_generate_data(
         **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens_stats).items()},
         **{f"{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens_stats).items()},
         **{
-            f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
+            # f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
             f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
             f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
             f"{split_name}_overflows": np.mean([np.mean(ov) for ov in overflow_stats.values()]),
-            f"llm/{split_name}_time_send_request": np.mean([np.mean(ts) for ts in llm_time_send_request.values()]),
-            f"llm/{split_name}_time_log_output": np.mean([np.mean(ts) for ts in llm_time_log_output.values()]),
-            f"llm/{split_name}_time_postprocess_llm_response": np.mean([np.mean(ts) for ts in llm_time_postprocess_llm_response.values()]),
         },
+        **{f"llm/{split_name}_{k}": np.mean(v) for k, v in llm_stats.items()},
+        **{f"tape_timers/{split_name}_{k}": np.mean(v) for k, v in tape_timers.items()},
     }
     return final_tapes, training_samples, stats
 

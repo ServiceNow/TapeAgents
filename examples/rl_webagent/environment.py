@@ -47,7 +47,7 @@ class WebEnvironment(Environment):
         try:
             self.browser.close()
         except Exception as e:
-            logger.error(f"Failed to properly close task: {e}")
+            logger.exception(f"Failed to properly close task: {e}", stack_info=True)
 
     def validate_task(self, tape: WebTape) -> tuple[bool, dict]:
         answer = tape.steps[-1].text if isinstance(tape.steps[-1], FinalAnswerAction) else "Task finished"
