@@ -385,7 +385,8 @@ class Browser(StatefulTool):
                 error=error,
                 metadata=StepMetadata(other=dict(reward=reward, truncated=truncated, info=info)),
             )
-        observation.metadata.other["screenshot_path"] = os.path.relpath(screen_path, self._screenshots_dir)
+        if self._screenshots_dir is not None:
+            observation.metadata.other["screenshot_path"] = os.path.relpath(screen_path, self._screenshots_dir)
         observation.metadata.other["env_finished"] = terminated
         return observation
 
