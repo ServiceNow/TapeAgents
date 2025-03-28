@@ -307,6 +307,7 @@ def generate_data(
     tapes_path = task_folder / f"tapes_{os.getpid()}.json"
 
     ### Set up logging
+    os.makedirs(log_file.parent, exist_ok=True)
     log_handler = logging.FileHandler(str(log_file))
     log_handler.setLevel(logging.INFO)
     logging.basicConfig(
