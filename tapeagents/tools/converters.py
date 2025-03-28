@@ -18,7 +18,6 @@ import base64
 import copy
 import html
 import json
-import logging
 import mimetypes
 import os
 import re
@@ -32,44 +31,20 @@ from urllib.parse import parse_qs, urlparse
 
 import markdownify
 import numpy as np
+import pdfminer
+import pdfminer.high_level
 import PIL
 import pptx
 import puremagic
 import requests
 import whisper
 from bs4 import BeautifulSoup
+from docling.datamodel.base_models import InputFormat
+from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, TableStructureOptions
+from docling.document_converter import DocumentConverter as DoclingDocumentConverter, PdfFormatOption
+from pydantic import BaseModel, Field
 from readability import Document
-
-logger = logging.getLogger(__name__)
-
-# Optional PDF support
-IS_PDF_MINER_CAPABLE = False
-try:
-    import pdfminer
-    import pdfminer.high_level
-
-    IS_PDF_MINER_CAPABLE = True
-except ModuleNotFoundError as e:
-    logger.warning(f"PDF conversion support via `pdfminer` not available: {str(e)}")
-
-IS_PDF_DOCLING_CAPABLE = False
-try:
-    from docling.datamodel.base_models import InputFormat
-    from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, TableStructureOptions
-    from docling.document_converter import DocumentConverter as DoclingDocumentConverter, PdfFormatOption
-
-    IS_PDF_DOCLING_CAPABLE = True
-except ModuleNotFoundError as e:
-    logger.warning(f"PDF conversion support via `docling` not available: {str(e)}")
-
-# Optional YouTube transcription support
-IS_YOUTUBE_TRANSCRIPT_CAPABLE = False
-try:
-    from youtube_transcript_api import YouTubeTranscriptApi
-
-    IS_YOUTUBE_TRANSCRIPT_CAPABLE = True
-except ModuleNotFoundError as e:
-    logger.warning(f"YouTube transcript support via `youtube_transcript_api` not available: {str(e)}")
+from youtube_transcript_api import YouTubeTranscriptApi
 
 
 class DocumentConverterResult:
@@ -80,9 +55,22 @@ class DocumentConverterResult:
         self.text_content = text_content
 
 
-class DocumentConverter:
+class DocumentConverter(BaseModel):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         raise NotImplementedError()
+
+
+class DoclingConverter(DocumentConverter):
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        converter = DoclingDocumentConverter(
+            allowed_formats=kwargs.get("allowed_formats", None), format_options=kwargs.get("format_options", None)
+        )
+        result = converter.convert(local_path)
+        markdown = result.document.export_to_markdown()
+        return DocumentConverterResult(
+            title=None,
+            text_content=markdown,
+        )
 
 
 class PlainTextConverter(DocumentConverter):
@@ -160,6 +148,18 @@ class HtmlConverter(DocumentConverter):
         return DocumentConverterResult(
             title=None if soup.title is None else soup.title.string, text_content=webpage_text
         )
+
+
+class HtmlDoclingConverter(DoclingConverter):
+    """Anything with content type text/html"""
+
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # Bail if not html
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() not in [".html", ".htm"]:
+            return None
+
+        return super().convert(local_path, **kwargs)
 
 
 class WikipediaConverter(DocumentConverter):
@@ -274,23 +274,22 @@ class YouTubeConverter(DocumentConverter):
         if description:
             webpage_text += f"\n### Description\n{description}\n"
 
-        if IS_YOUTUBE_TRANSCRIPT_CAPABLE:
-            transcript_text = ""
-            parsed_url = urlparse(url)
-            params = parse_qs(parsed_url.query)
-            if "v" in params:
-                video_id = params["v"][0]
-                try:
-                    # Must be a single transcript.
-                    transcript = YouTubeTranscriptApi.get_transcript(video_id)
-                    transcript_text = " ".join([part["text"] for part in transcript])
-                    # Alternative formatting:
-                    # formatter = TextFormatter()
-                    # formatter.format_transcript(transcript)
-                except Exception:
-                    pass
-            if transcript_text:
-                webpage_text += f"\n### Transcript\n{transcript_text}\n"
+        transcript_text = ""
+        parsed_url = urlparse(url)
+        params = parse_qs(parsed_url.query)
+        if "v" in params:
+            video_id = params["v"][0]
+            try:
+                # Must be a single transcript.
+                transcript = YouTubeTranscriptApi.get_transcript(video_id)
+                transcript_text = " ".join([part["text"] for part in transcript])
+                # Alternative formatting:
+                # formatter = TextFormatter()
+                # formatter.format_transcript(transcript)
+            except Exception:
+                pass
+        if transcript_text:
+            webpage_text += f"\n### Transcript\n{transcript_text}\n"
 
         return DocumentConverterResult(
             title=title if title else soup.title.string,
@@ -333,7 +332,7 @@ class PdfMinerConverter(DocumentConverter):
         )
 
 
-class PdfConverter(DocumentConverter):
+class PdfDoclingConverter(DoclingConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a PDF
         extension = kwargs.get("file_extension", "")
@@ -342,15 +341,8 @@ class PdfConverter(DocumentConverter):
         pipeline_options = PdfPipelineOptions(
             do_table_structure=True, table_structure_options=TableStructureOptions(mode=TableFormerMode.ACCURATE)
         )
-        converter = DoclingDocumentConverter(
-            format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
-        )
-        result = converter.convert(local_path)
-        markdown = result.document.export_to_markdown()
-        return DocumentConverterResult(
-            title=None,
-            text_content=markdown,
-        )
+        format_options = {InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
+        return super().convert(local_path, format_options=format_options, **kwargs)
 
 
 class DocxConverter(HtmlConverter):
@@ -369,6 +361,16 @@ class DocxConverter(HtmlConverter):
             result = self._convert(html_content)
 
         return result
+
+
+class DocxDoclingConverter(DoclingConverter):
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # Bail if not a DOCX
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() != ".docx":
+            return None
+
+        return super().convert(local_path, **kwargs)
 
 
 class XlsxConverter(HtmlConverter):
@@ -390,6 +392,16 @@ class XlsxConverter(HtmlConverter):
             title=None,
             text_content=md_content.strip(),
         )
+
+
+class XlsxDoclingConverter(DoclingConverter):
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # Bail if not a XLSX
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() not in [".xlsx", ".xls"]:
+            return None
+
+        return super().convert(local_path, **kwargs)
 
 
 class PptxConverter(HtmlConverter):
@@ -477,6 +489,16 @@ class PptxConverter(HtmlConverter):
         if shape.shape_type == pptx.enum.shapes.MSO_SHAPE_TYPE.TABLE:
             return True
         return False
+
+
+class PptxDoclingConverter(DoclingConverter):
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # Bail if not a PPTX
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() != ".pptx":
+            return None
+
+        return super().convert(local_path, **kwargs)
 
 
 class WavConverter(DocumentConverter):
@@ -623,12 +645,36 @@ class ImageConverter(DocumentConverter):
             return client(messages)
 
 
+class ImageDoclingConverter(DoclingConverter):
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # Bail if not a supported image type
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() not in [".jpg", ".jpeg", ".png", ".tiff", ".bmp"]:
+            return None
+        # TODO DT StandardPdfPipeline ?
+        return super().convert(local_path, **kwargs)
+
+
 class FileConversionException(BaseException):
     pass
 
 
 class UnsupportedFormatException(BaseException):
     pass
+
+
+class FileConverterOptions(BaseModel):
+    text_converter: DocumentConverter = Field(default_factory=PlainTextConverter)
+    html_converter: DocumentConverter = Field(default_factory=HtmlConverter)
+    wikipedia_converter: DocumentConverter = Field(default_factory=WikipediaConverter)
+    youtube_converter: DocumentConverter = Field(default_factory=YouTubeConverter)
+    docx_converter: DocumentConverter = Field(default_factory=DocxConverter)
+    xlsx_converter: DocumentConverter = Field(default_factory=XlsxConverter)
+    pptx_converter: DocumentConverter = Field(default_factory=PptxConverter)
+    wav_converter: DocumentConverter = Field(default_factory=WavConverter)
+    mp3_converter: DocumentConverter = Field(default_factory=Mp3Converter)
+    image_converter: DocumentConverter = Field(default_factory=ImageConverter)
+    pdf_converter: DocumentConverter = Field(default_factory=PdfMinerConverter)
 
 
 class FileConverter:
@@ -639,7 +685,7 @@ class FileConverter:
         self,
         requests_session: Optional[requests.Session] = None,
         mlm_client: Optional[Any] = None,
-        preferred_pdf_converter: Optional[type[PdfConverter | PdfMinerConverter]] = PdfConverter,
+        file_converter_options: Optional[FileConverterOptions] = None,
     ):
         if requests_session is None:
             self._requests_session = requests.Session()
@@ -650,24 +696,23 @@ class FileConverter:
 
         self._page_converters: List[DocumentConverter] = []
 
+        if file_converter_options is None:
+            file_converter_options = FileConverterOptions()
+
         # Register converters for successful browsing operations
         # Later registrations are tried first / take higher priority than earlier registrations
         # To this end, the most specific converters should appear below the most generic converters
-        self.register_page_converter(PlainTextConverter())
-        self.register_page_converter(HtmlConverter())
-        self.register_page_converter(WikipediaConverter())
-        self.register_page_converter(YouTubeConverter())
-        self.register_page_converter(DocxConverter())
-        self.register_page_converter(XlsxConverter())
-        self.register_page_converter(PptxConverter())
-        self.register_page_converter(WavConverter())
-        self.register_page_converter(Mp3Converter())
-        self.register_page_converter(ImageConverter())
-
-        if IS_PDF_DOCLING_CAPABLE and preferred_pdf_converter == PdfConverter:
-            self.register_page_converter(PdfConverter())
-        elif IS_PDF_MINER_CAPABLE and preferred_pdf_converter == PdfMinerConverter:
-            self.register_page_converter(PdfMinerConverter())
+        self.register_page_converter(file_converter_options.text_converter)
+        self.register_page_converter(file_converter_options.html_converter)
+        self.register_page_converter(file_converter_options.wikipedia_converter)
+        self.register_page_converter(file_converter_options.youtube_converter)
+        self.register_page_converter(file_converter_options.docx_converter)
+        self.register_page_converter(file_converter_options.xlsx_converter)
+        self.register_page_converter(file_converter_options.pptx_converter)
+        self.register_page_converter(file_converter_options.wav_converter)
+        self.register_page_converter(file_converter_options.mp3_converter)
+        self.register_page_converter(file_converter_options.image_converter)
+        self.register_page_converter(file_converter_options.pdf_converter)
 
     def convert(self, source, **kwargs):
         """
