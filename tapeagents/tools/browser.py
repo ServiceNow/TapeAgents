@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import re
+import threading
 from time import sleep
 from typing import Any, Callable, Literal
 from uuid import uuid4
@@ -666,37 +667,6 @@ def download_file(url: str):
     return read_document(response)
 
 
-def fetch_for_llm(url: str) -> str:
-    """
-    Fetches the content of a URL and returns it as a string in a format suitable for LLMs.
-    If the content type is HTML, it minimizes the HTML content.
-    If the content type is plain text, it returns the text as is.
-    In all other cases, it uses the FileConverter to convert the response to text.
-    """
-    try:
-        content_type = requests.head(url, headers=headers).headers.get("content-type", "")
-    except Exception as e:
-        logger.exception(f"Error fetching headers for {url}, interpret as html page: {e}")
-        content_type = "text/html"
-    if url.endswith(".pdf"):
-        content_type = "application/pdf"
-    logger.info(f"Content type for {url}: {content_type}")
-    if "text/html" in content_type.lower():
-        try:
-            html_content = asyncio.run(async_get_html(url))
-        except RuntimeError:
-            logger.warning("Fallback to sync get_html")
-            html_content = get_html(url)
-        return minimize_html(html_content)
-    elif "text/plain" in content_type.lower():
-        response = requests.get(url, headers=headers)
-        return response.text
-    else:
-        response = requests.get(url, headers=headers)
-        result = FileConverter().convert_response(response)
-        return result.text_content
-
-
 def minimize_html(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -740,23 +710,79 @@ def minimize_html(html: str) -> str:
     return minimal_html
 
 
-def get_html(url: str, width: int = 1280, height: int = 800, sleep_time: int = 2) -> str:
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": width, "height": height})
+class Tls(threading.local):
+    sync: bool = True
+
+    def __init__(self) -> None:
+        try:
+            self.playwright = sync_playwright().start()
+            self.browser = self.playwright.chromium.launch(headless=True)
+        except:
+            self.sync = False
+            logger.warning("Playwright sync mode failed, using async mode")
+            self.playwright = asyncio.run(async_playwright().start())
+            self.browser = asyncio.run(self.playwright.chromium.launch(headless=True))
+
+
+class Fetcher:
+    tls = Tls()
+
+    def __init__(self, width: int = 1280, height: int = 800, sleep_time: int = 2):
+        self.width = width
+        self.height = height
+        self.sleep_time = sleep_time
+
+    def fetch_for_llm(self, url: str) -> tuple[str, str]:
+        try:
+            text = self._fetch_for_llm(url)
+        except Exception as e:
+            logger.exception(f"Failed to fetch page {url}: {e}")
+            text = ""
+        return url, text
+
+    def _fetch_for_llm(self, url: str) -> str:
+        """
+        Fetches the content of a URL and returns it as a string in a format suitable for LLMs.
+        If the content type is HTML, it minimizes the HTML content.
+        If the content type is plain text, it returns the text as is.
+        In all other cases, it uses the FileConverter to convert the response to text.
+        """
+        if url.endswith(".pdf"):
+            content_type = "application/pdf"
+        else:
+            try:
+                content_type = requests.head(url, headers=headers).headers.get("content-type", "")
+            except Exception as e:
+                logger.exception(f"Error fetching headers for {url}, interpret as html page: {e}")
+                content_type = "text/html"
+        logger.info(f"Content type for {url}: {content_type}")
+        if "text/html" in content_type.lower():
+            if self.tls.sync:
+                html_content = self.get_html(url)
+            else:
+                logger.warning("use async get_html")
+                html_content = asyncio.run(self.async_get_html(url))
+            return minimize_html(html_content)
+        elif "text/plain" in content_type.lower():
+            response = requests.get(url, headers=headers)
+            return response.text
+        else:
+            response = requests.get(url, headers=headers)
+            result = FileConverter().convert_response(response)
+            return result.text_content
+
+    def get_html(self, url: str) -> str:
+        page = self.tls.browser.new_page(viewport={"width": self.width, "height": self.height})
         page.goto(url)
-        sleep(sleep_time)  # Wait for page to load and render
+        sleep(self.sleep_time)  # Wait for page to load and render
         html_content = page.content()
-        browser.close()
-    return html_content
+        page.close()
+        return html_content
 
-
-async def async_get_html(url: str, width: int = 1280, height: int = 800, sleep_time: int = 2) -> str:
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page(viewport={"width": width, "height": height})
+    async def async_get_html(self, url: str) -> str:
+        page = await self.tls.browser.new_page(viewport={"width": self.width, "height": self.height})
         await page.goto(url)
-        await asyncio.sleep(sleep_time)  # Wait for page to load and render
+        await asyncio.sleep(self.sleep_time)  # Wait for page to load and render
         html_content = await page.content()
-        await browser.close()
-    return html_content
+        await page.close()
+        return html_content

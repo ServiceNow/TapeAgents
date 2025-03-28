@@ -13,7 +13,7 @@ from termcolor import colored
 from tapeagents.core import Action, Observation, Prompt
 from tapeagents.llms import LLM
 from tapeagents.tools.base import Tool
-from tapeagents.tools.browser import fetch_for_llm
+from tapeagents.tools.browser import Fetcher
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.tool_cache import cached_tool
 from tapeagents.utils import FatalError
@@ -257,22 +257,16 @@ class SearchExtract(Tool):
         return results
 
     def fetch(self, search_results: list[SearchResult]) -> list[SearchResult]:
-        def fetch_page(url: str) -> tuple[str, str]:
-            try:
-                text = fetch_for_llm(url)
-            except Exception as e:
-                logger.exception(f"Failed to fetch page {url}: {e}")
-                text = ""
-            return url, text
-
+        fetcher = Fetcher()
         texts = {}
         urls = list(set([result.url for result in search_results]))
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = [executor.submit(fetch_page, url) for url in urls]
+            futures = [executor.submit(fetcher.fetch_for_llm, url) for url in urls]
             try:
                 for future in as_completed(futures, timeout=self.fetch_timeout):
                     url, text = future.result()
                     texts[url] = text
+                    logger.info(f"Fetched {len(texts)} out of {len(urls)} pages")
             except Exception as e:
                 logger.error(f"Error occurred while processing fetch future: {e}")
         logger.info(f"Fetched {len(texts)} pages")
@@ -304,9 +298,12 @@ class SearchExtract(Tool):
         data_per_task = defaultdict(list)
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = [executor.submit(extract_page_data, *et) for et in extract_tasks]
+            extracted = 0
             try:
                 for future in as_completed(futures, timeout=self.extract_timeout):
                     task, page_data = future.result()
+                    extracted += 1
+                    logger.info(f"Extracted {extracted} out of {len(extract_tasks)} pages")
                     if not task:
                         continue
                     data_per_task[task].append(page_data)
