@@ -30,9 +30,10 @@ class WebEnvironment(Environment):
     Translates action steps into gym browser python commands in the form of a string.
     """
 
-    def __init__(self, exp_path: str, headless: bool = True, observation_format: Literal["axtree", "html", "markdown_html"] = "html") -> None:
+    def __init__(self, exp_path: str | None, headless: bool = True, observation_format: Literal["axtree", "html", "markdown_html"] = "html") -> None:
         super().__init__()
-        os.makedirs(exp_path, exist_ok=True)
+        if exp_path:
+            os.makedirs(exp_path, exist_ok=True)
         self.browser = Browser(headless=headless, exp_path=exp_path, mock=True, observation_format=observation_format)
 
     def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:

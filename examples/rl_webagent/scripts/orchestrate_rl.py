@@ -40,6 +40,7 @@ from ..utils import (
     load_state,
     save_state,
     setup_logging,
+    tqdm_joblib,
 )
 
 logger = logging.getLogger(__name__)
@@ -304,7 +305,8 @@ def generate_data(
     timers["instantiated_llm"] = time.perf_counter() - t
 
     t = time.perf_counter()
-    env_path = f"{exp_path}/envs/{split_name}/it{iteration}/{task['task'].get_task_id()}"
+    # env_path = f"{exp_path}/envs/{split_name}/it{iteration}/{task['task'].get_task_id()}_{task['seed']}"
+    env_path = None  # do not save screenshots and playwright traces for this!
     env = WebEnvironment(
         exp_path=env_path,
         headless=cfg.env.headless,
@@ -336,6 +338,7 @@ def generate_data(
     # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows
 
     new_tape.metadata.other["timers"] = timers
+    logger.info(f"[it{iteration}] {split_name} tape {new_tape.metadata.id} took {json.dumps(timers, indent=4)}")
     return new_tape, tape_training_samples, tape_stats, llm_stats
 
 
@@ -375,9 +378,10 @@ def batch_generate_data(
 
     ### STEP 1: run the agents on their tasks in parallel ###
     logger.info(f"[it{iteration}] Run the agent on {split_name} with {cfg.n_processes_for_data_generation} processes")
-    results = Parallel(n_jobs=cfg.n_processes_for_data_generation, prefer="processes")(
-        [delayed(generate_data)(cfg, task, url, split_name, iteration) for task, url in zip(tasks, urls)]
-    )  # will return a list when all tasks are finished in the same order as the tasks
+    with tqdm_joblib(tqdm(desc="generating tapes...", total=len(tasks))) as progress_bar:
+        results = Parallel(n_jobs=cfg.n_processes_for_data_generation, prefer="processes")(
+            [delayed(generate_data)(cfg, task, url, split_name, iteration) for task, url in zip(tasks, urls)]
+        )  # will return a list when all tasks are finished in the same order as the tasks
     logger.info(f"[it{iteration}] Making tapes took {time.time() - start_make_data}")
     assert len(results) == len(tasks), f"Number of results ({len(results)}) and tasks ({len(tasks)}) must match"
 
