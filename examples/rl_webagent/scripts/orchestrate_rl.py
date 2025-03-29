@@ -334,7 +334,7 @@ def generate_data(
 
     t = time.perf_counter()
     env = WebEnvironment(
-        exp_path=env_path,
+        exp_path=str(env_path),
         headless=cfg.env.headless,
         observation_format=cfg.env.observation_format,
     )
