@@ -48,16 +48,16 @@ class StandardNode(Node):
         guidance (str): Guidance text attached to the end of the prompt
         system_prompt (str): System prompt used in message construction
         steps_prompt (str): Prompt describing the steps the agent can take
-        agent_steps (Any): Class used for step (or steps) validation, excluded from model
+        steps (Any): Class used for step (or steps) validation, excluded from model
         next_node (str): Identifier for the next node in sequence
 
     Example:
         ```python
-        node = MonoNode(
+        node = StandardNode(
             guidance="Please respond with next action",
             system_prompt="You are a helpful assistant",
             steps_prompt="Available steps: think, act, finish",
-            agent_steps=AgentStep
+            steps=AgentStep
         )
         ```
     """
@@ -334,7 +334,7 @@ class StandardNode(Node):
             if isinstance(step_dicts, dict):
                 step_dicts = [step_dicts]
         except Exception as e:
-            logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
+            # logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
             if self.allow_code_blocks and "```" in llm_output:
                 logger.info("Parsing code blocks from LLM output")
                 for code_block in self.extract_code_blocks(llm_output):
