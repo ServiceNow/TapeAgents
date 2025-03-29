@@ -301,13 +301,13 @@ def generate_data(
         model_path = str(exp_path / "finetune/current")
     else:
         model_path = cfg.model_path
-    # env_path = task_folder / "env"
-    env_path = None  # do not save screenshots and playwright traces for this!
+    env_path = task_folder / "env"
+    os.makedirs(env_path, exist_ok=True)
     log_file = exp_path / split_name / f"it{iteration}" / "logs" / f"{os.getpid()}.log"
-    tapes_path = task_folder / f"tapes_{os.getpid()}.json"
+    os.makedirs(log_file.parent, exist_ok=True)
+    tapes_file = task_folder / f"tapes_{os.getpid()}.json"
 
     ### Set up logging
-    os.makedirs(log_file.parent, exist_ok=True)
     log_handler = logging.FileHandler(str(log_file))
     log_handler.setLevel(logging.INFO)
     logging.basicConfig(
@@ -355,14 +355,14 @@ def generate_data(
     ### SAVE THE TAPE ###
     t = time.perf_counter()
     _debug([new_tape])  # TODO: debug why can't we save tapes anymore? https://github.com/pydantic/pydantic/issues/7713
-    if os.path.exists(tapes_path):
+    if os.path.exists(tapes_file):
         # load previous tapes and append the new tape
-        with open(tapes_path, "r") as f:
+        with open(tapes_file, "r") as f:
             to_save = json.load(f)
         to_save.append(new_tape.model_dump())
     else:
         to_save = [new_tape.model_dump()]
-    with open(tapes_path, "w") as f:
+    with open(tapes_file, "w") as f:
         json.dump(to_save, f, indent=4)
     timers["saved_new_tape"] = time.perf_counter() - t
     logger.info(f"[it{iteration}.{split_name}] ======== SAVED TAPE IN {timers['saved_new_tape']} s. NOW EXTRACT TRAINING TRACES ========")
