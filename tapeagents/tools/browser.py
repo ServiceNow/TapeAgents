@@ -765,7 +765,6 @@ class Fetcher(Tool):
             except Exception as e:
                 logger.exception(f"Error fetching headers for {url}, interpret as html page: {e}")
                 content_type = "text/html"
-        logger.info(f"Content type for {url}: {content_type}")
         if "text/html" in content_type.lower():
             if self._tls.sync:
                 html_content = self.get_html(url)
