@@ -28,7 +28,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation, StepMetadata
 from tapeagents.steps import ImageObservation
-from tapeagents.tools.base import StatefulTool
+from tapeagents.tools.base import StatefulTool, Tool
 from tapeagents.tools.converters import FileConverter
 from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
@@ -55,7 +55,6 @@ logger = logging.getLogger(__name__)
 class OpenUrlAction(Action):
     """
     Action that opens a page with the provided URL and returns its first page content.
-    Use page_down_action to read subsequent pages.
     """
 
     kind: Literal["open_url_action"] = "open_url_action"
@@ -719,34 +718,45 @@ class Tls(threading.local):
             self.browser = self.playwright.chromium.launch(headless=True)
         except:
             self.sync = False
-            logger.warning("Playwright sync mode failed, using async mode")
+            logger.warning("Using playwright async")
             self.playwright = asyncio.run(async_playwright().start())
             self.browser = asyncio.run(self.playwright.chromium.launch(headless=True))
 
 
-class Fetcher:
-    tls = Tls()
+class Fetcher(Tool):
+    """
+    A minimal text-based web browser designed for AI agent use.
+    Can read web pages, PDFs and other document types.
+    """
 
-    def __init__(self, width: int = 1280, height: int = 800, sleep_time: int = 2):
-        self.width = width
-        self.height = height
-        self.sleep_time = sleep_time
+    action: type[Action] = OpenUrlAction
+    observation: type[Observation] = PageObservation
+    cached: bool = True
+    width: int = Field(default=1280, description="Width of the browser window")
+    height: int = Field(default=800, description="Height of the browser window")
+    sleep_time: int = Field(default=2, description="Time to wait for the page to load")
+    _tls: Tls
+
+    def model_post_init(self, __context: Any):
+        self._tls = Tls()
 
     def fetch_for_llm(self, url: str) -> tuple[str, str]:
         try:
-            text = self._fetch_for_llm(url)
+            action = OpenUrlAction(url=url)
+            text = self.run(action).text
         except Exception as e:
             logger.exception(f"Failed to fetch page {url}: {e}")
             text = ""
         return url, text
 
-    def _fetch_for_llm(self, url: str) -> str:
+    def execute_action(self, action: OpenUrlAction) -> PageObservation:
         """
         Fetches the content of a URL and returns it as a string in a format suitable for LLMs.
         If the content type is HTML, it minimizes the HTML content.
         If the content type is plain text, it returns the text as is.
         In all other cases, it uses the FileConverter to convert the response to text.
         """
+        url = action.url
         if url.endswith(".pdf"):
             content_type = "application/pdf"
         else:
@@ -757,22 +767,22 @@ class Fetcher:
                 content_type = "text/html"
         logger.info(f"Content type for {url}: {content_type}")
         if "text/html" in content_type.lower():
-            if self.tls.sync:
+            if self._tls.sync:
                 html_content = self.get_html(url)
             else:
-                logger.warning("use async get_html")
                 html_content = asyncio.run(self.async_get_html(url))
-            return minimize_html(html_content)
+            text = minimize_html(html_content)
         elif "text/plain" in content_type.lower():
             response = requests.get(url, headers=headers)
-            return response.text
+            text = response.text
         else:
             response = requests.get(url, headers=headers)
             result = FileConverter().convert_response(response)
-            return result.text_content
+            text = result.text_content
+        return PageObservation(text=text, current_page=1, total_pages=1)
 
     def get_html(self, url: str) -> str:
-        page = self.tls.browser.new_page(viewport={"width": self.width, "height": self.height})
+        page = self._tls.browser.new_page(viewport={"width": self.width, "height": self.height})
         page.goto(url)
         sleep(self.sleep_time)  # Wait for page to load and render
         html_content = page.content()
@@ -780,7 +790,7 @@ class Fetcher:
         return html_content
 
     async def async_get_html(self, url: str) -> str:
-        page = await self.tls.browser.new_page(viewport={"width": self.width, "height": self.height})
+        page = await self._tls.browser.new_page(viewport={"width": self.width, "height": self.height})
         await page.goto(url)
         await asyncio.sleep(self.sleep_time)  # Wait for page to load and render
         html_content = await page.content()
