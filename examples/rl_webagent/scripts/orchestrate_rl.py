@@ -309,11 +309,11 @@ def generate_data(
 
     ### Set up logging
     log_handler = logging.FileHandler(str(log_file))
-    log_handler.setLevel(logging.INFO)
+    log_handler.setLevel(logging.DEBUG)
     logging.basicConfig(
         format="%(asctime)s - PID_%(process)d - Thread_%(threadName)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO,
+        datefmt="%d/%m/%Y %H:%M:%S",
+        level=logging.DEBUG,
         handlers=[log_handler, logging.StreamHandler()],
         force=True,  # forget previous handlers
     )
@@ -539,6 +539,17 @@ def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[Trai
 
 @hydra.main(config_path="../../../conf/", config_name="rl_webagent", version_base="1.3.2")
 def main(cfg: DictConfig):
+    log_file = os.path.join(cfg.output_dir, "all_logs.txt")
+    log_handler = logging.FileHandler(log_file)
+    log_handler.setLevel(logging.DEBUG)
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S",
+        level=logging.DEBUG,
+        handlers=[log_handler, logging.StreamHandler()],
+        force=True,  # forget previous handlers
+    )
+
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.output_dir, "tapedata.sqlite")
     os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
     # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url
