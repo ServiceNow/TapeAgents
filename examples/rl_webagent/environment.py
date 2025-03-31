@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from typing import Any, Literal
 
 from browsergym.core.task import AbstractBrowserTask
@@ -35,21 +36,28 @@ class WebEnvironment(Environment):
         if exp_path:
             os.makedirs(exp_path, exist_ok=True)
         self.browser = Browser(headless=headless, exp_path=exp_path, mock=True, observation_format=observation_format)
+        self.timers = {}  # keep track of time taken in each method
 
     def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:
+        self.timers = {}  # reset timers
+        start_start_task = time.perf_counter()
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         obs = self.browser.run_browser_action("noop()")
         tape = WebTape(metadata=WebTapeMetadata(task_name=task_entrypoint.get_task_id(), seed=seed), steps=[obs, WebTask(task=info["goal"])])
+        self.timers["start_task"] = time.perf_counter() - start_start_task
         return tape, info
 
     def finish_task(self) -> None:
+        start_finish_task = time.perf_counter()
         try:
             self.browser.close()
         except Exception as e:
             logger.exception(f"Failed to properly close task: {e}", stack_info=True)
+        self.timers["finish_task"] = time.perf_counter() - start_finish_task
 
     def validate_task(self, tape: WebTape) -> tuple[bool, dict]:
+        start_validate_task = time.perf_counter()
         answer = tape.steps[-1].text if isinstance(tape.steps[-1], FinalAnswerAction) else "Task finished"
         self.browser._env.unwrapped.chat.add_message(role="assistant", msg=answer)
         assert self.browser._env.unwrapped.task is not None
@@ -73,9 +81,14 @@ class WebEnvironment(Environment):
             "message": message,
             "info": info,
         }
+        self.timers["validate_task"] = time.perf_counter() - start_validate_task
         return bool(reward > 0.5), result_dict
 
     def react(self, tape: WebTape) -> WebTape:
+        if "react" not in self.timers:
+            self.timers["react"] = []
+        start_react = time.perf_counter()
+
         actions = []
         for step in tape.steps[-tape.metadata.n_added_steps :]:
             if isinstance(step, Action):
@@ -97,14 +110,15 @@ class WebEnvironment(Environment):
                 assert isinstance(observation, PageObservation), f"Observation is not a PageObservation: {observation}"
                 tape = tape.append(observation)  # type: ignore
             except FatalError:
+                self.timers["react"].append(time.perf_counter() - start_react)
                 raise
             except Exception as e:
                 logger.exception(f"Error during action execution {action}: {e}", stack_info=True)
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
+        self.timers["react"].append(time.perf_counter() - start_react)
         return tape
-        # TODO: figure out why last steps of some tapes are environment observations
-        # TODO: make sure to update parent_id, author_name, etc... in the new tape.metadata just like in agent.run()
+        # TODO: MAYBE make sure to update parent_id, author_name, etc... in the new tape.metadata just like in agent.run()
 
     def react_batch(self, tapes: list[WebTape], n_processes: int) -> list[WebTape]:
         results = Parallel(n_jobs=n_processes)(

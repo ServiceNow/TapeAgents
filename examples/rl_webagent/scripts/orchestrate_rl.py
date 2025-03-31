@@ -53,9 +53,9 @@ def load_webtasks_debug():
     DEBUG_SPLIT = [
         "miniwob.buy-ticket",
         "miniwob.bisect-angle",
-        # "miniwob.choose-list",
-        # "miniwob.click-checkboxes-large",
-        # "miniwob.click-checkboxes-soft"
+        "miniwob.choose-list",
+        "miniwob.click-checkboxes-large",
+        "miniwob.click-checkboxes-soft"
     ]
     train_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
     test_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
@@ -367,9 +367,12 @@ def generate_data(
     timers["saved_new_tape"] = time.perf_counter() - t
     logger.info(f"[it{iteration}.{split_name}] ======== SAVED TAPE IN {timers['saved_new_tape']} s. NOW EXTRACT TRAINING TRACES ========")
 
-    ### STEP 2: get LLM stats ###
+    ### STEP 2: get LLM & ENV stats ###
     llm_stats = llm.get_stats()
     # llm_stats contains: time_send_request, time_log_output, total_prompt_tokens, total_output_tokens, time_postprocess_llm_response
+    # env.timers contains: start_task, finish_task, validate_task, and all the react times for each action
+    env.timers["react"] = np.mean(env.timers["react"]) if "react" in env.timers else 0.0
+    timers.update({f"env/{key}": value for key, value in env.timers.items()})
 
     ### STEP 3: extract training samples from the newly generated tape ###
     t = time.perf_counter()
@@ -457,8 +460,8 @@ def batch_generate_data(
     output_tokens_stats = defaultdict(list)  # map from group id to list of output tokens length
     overflow_stats = defaultdict(list)  # map from group id to list of overflows
 
-    llm_stats = defaultdict(list)  # map from group id to list of llm stats
-    tape_timers = defaultdict(list)  # map from group id to list of timers
+    all_llm_stats = defaultdict(list)  # map from group id to list of llm stats
+    all_tape_timers = defaultdict(list)  # map from group id to list of timers
     for new_tape, samples, tape_stats, llm_stats in results:
         final_tapes.append(new_tape)
         training_samples.extend(samples)
@@ -473,9 +476,9 @@ def batch_generate_data(
         overflow_stats[group_id].append(tape_stats["overflows"])
 
         for key, value in llm_stats.items():
-            llm_stats[key].append(value)
-        for key, value in new_tape.metadata.other["timers"].items():
-            tape_timers[key].append(value)
+            all_llm_stats[key].append(value)
+        for key, value in new_tape.metadata.other.get("timers", {}).items():
+            all_tape_timers[key].append(value)
 
     ### STEP 3: save the tapes ###
     # exp_path = Path(cfg.output_dir)
@@ -503,8 +506,8 @@ def batch_generate_data(
             f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
             f"{split_name}_overflows": np.mean([np.mean(ov) for ov in overflow_stats.values()]),
         },
-        **{f"llm/{split_name}_{k}": np.mean(v) for k, v in llm_stats.items()},
-        **{f"tape_timers/{split_name}_{k}": np.mean(v) for k, v in tape_timers.items()},
+        **{f"llm/{split_name}_{k}": np.mean(v) for k, v in all_llm_stats.items()},
+        **{f"tape_timers/{split_name}_{k}": np.mean(v) for k, v in all_tape_timers.items()},
     }
     return final_tapes, training_samples, stats
 
@@ -579,8 +582,8 @@ def main(cfg: DictConfig):
     finetune_path = exp_path / "finetune"
 
     ### Step 1: load datasets ###
-    train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
-    # train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
+    # train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
+    train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
 
     ### repeat until we have reached the max number of iterations ###
     ### each iteration is a forward pass (agent making predictions on tapes), a reference pass (reference model populating ref_logprobs), and a finetuning run on the generated training samples ###
