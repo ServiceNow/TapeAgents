@@ -540,18 +540,45 @@ def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[Trai
         assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
 
 
+def setup_custom_logger(name: str, log_file: str, level: int = logging.INFO) -> logging.Logger:
+    """
+    Set up a custom logger with the specified name and log file.
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    # Remove existing handlers to avoid duplicates
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    # File handler
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(level)
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S"
+    ))
+
+    # Stream handler
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(level)
+    stream_handler.setFormatter(logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S"
+    ))
+
+    # Add handlers to the logger
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+
+    return logger
+
+
 @hydra.main(config_path="../../../conf/", config_name="rl_webagent", version_base="1.3.2")
 def main(cfg: DictConfig):
-    log_file = os.path.join(cfg.output_dir, "all_logs.txt")
-    log_handler = logging.FileHandler(log_file)
-    log_handler.setLevel(logging.DEBUG)
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%d/%m/%Y %H:%M:%S",
-        level=logging.DEBUG,
-        handlers=[log_handler, logging.StreamHandler()],
-        force=True,  # forget previous handlers
-    )
+    # Set up the logger
+    global logger
+    logger = setup_custom_logger(__name__, os.path.join(cfg.output_dir, "all_logs.txt"), logging.DEBUG)
 
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.output_dir, "tapedata.sqlite")
     os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
