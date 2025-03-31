@@ -465,8 +465,8 @@ def batch_generate_data(
     for new_tape, samples, tape_stats, llm_stats in results:
         final_tapes.append(new_tape)
         training_samples.extend(samples)
+        group_id = f"{new_tape.metadata.task_name}_{new_tape.metadata.seed}"
         if samples:
-            group_id = samples[0].group_id
             assert all([group_id == s.group_id for s in samples]), f"Group id mismatch in samples: {group_id}, {[s.group_id for s in samples]}"
         reward_stats[group_id].append(tape_stats["reward"])
         success_stats[group_id].append(tape_stats["success"])
