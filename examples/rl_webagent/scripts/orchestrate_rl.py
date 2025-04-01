@@ -590,8 +590,8 @@ def setup_custom_logger(name: str, log_file: str, level: int = logging.INFO) -> 
 @hydra.main(config_path="../../../conf/", config_name="rl_webagent", version_base="1.3.2")
 def main(cfg: DictConfig):
     # Set up the logger
-    global logger
-    logger = setup_custom_logger(__name__, os.path.join(cfg.output_dir, "all_logs.txt"), logging.DEBUG)
+    # global logger
+    # logger = setup_custom_logger(__name__, os.path.join(cfg.output_dir, "all_logs.txt"), logging.DEBUG)
 
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.output_dir, "tapedata.sqlite")
     os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
