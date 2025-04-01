@@ -152,7 +152,7 @@ class SuperSearch(WebSearch):
 
 class SearchTask(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    text: str
+    section: str
     facts_to_discover: str
     queries: list[str]
 
@@ -217,7 +217,7 @@ class SearchExtract(Tool):
     search_timeout: int = 30
     fetch_timeout: int = 60
     extract_timeout: int = 60
-    extract_prefix: str = "Your should extract all relevant information for the given from the page.\n\nTASK: "
+    extract_prefix: str = "Your should extract all relevant information from the page.\n\nTASK: "
 
     def model_post_init(self, __context):
         self._search_tool = WebSearch()
@@ -282,7 +282,7 @@ class SearchExtract(Tool):
     def extract(self, action: SearchAndExtract, fetch_results: list[SearchResult]) -> dict[str, list[WebPageData]]:
         extract_tasks = []
         for fr in fetch_results:
-            task = action.tasks[fr.task_id].text
+            task = action.tasks[fr.task_id].section
             facts_to_discover = action.tasks[fr.task_id].facts_to_discover
             query = action.tasks[fr.task_id].queries[fr.query_id]
             prefix = f"{self.extract_prefix}{task} (part of higher-level task {action.main_task})\nFacts to discover: {facts_to_discover}\nSearch query that led to the page: {query}\n\nPage content:\n\n"
