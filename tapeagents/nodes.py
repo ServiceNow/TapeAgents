@@ -284,6 +284,8 @@ class StandardNode(Node):
         """
         new_steps = []
         for event in llm_stream:
+            if event.chunk:
+                yield PartialStep(step=ReasoningThought(reasoning=event.chunk))
             if not event.output:
                 continue
             if event.output.content:

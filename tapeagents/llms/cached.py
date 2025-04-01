@@ -71,7 +71,7 @@ class CachedLLM(LLM):
                         if key not in self._cache:
                             self._cache[key] = []
                         self._cache[key].append(event_dict)
-            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir}")
+            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir} for LLM {self.model_name}")
         else:
             logger.info(f"Cache dir {cache_dir} does not exist; creating ...")
             os.makedirs(cache_dir, exist_ok=True)
@@ -143,7 +143,7 @@ class CachedLLM(LLM):
         def _implementation():
             key = self.get_prompt_key(prompt)
             if self.use_cache and key in self._cache:
-                logger.debug(colored(f"LLM cache hit, {len(self._cache[key])} events", "green"))
+                logger.info(colored(f"LLM cache hit for {self.model_name}, {len(self._cache[key])} events", "green"))
                 for event_dict in self._cache[key]:
                     event = LLMEvent.model_validate(event_dict)
                     if event.output is not None:
