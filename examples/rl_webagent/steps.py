@@ -91,7 +91,7 @@ class FinalAnswerAction(StopStep):
     text: str = Field(description="final answer to the user")
 
 
-WebStep = Union[
+WebTapeStep = Union[
     WebTask,
     PageObservation,
     ActionExecutionFailure,
@@ -123,7 +123,7 @@ class WebTapeMetadata(TapeMetadata):
     other: dict = Field(default_factory=dict)
 
 
-class WebTape(Tape[DialogContext, WebStep]):
+class WebTape(Tape[DialogContext, WebTapeStep]):
     metadata: WebTapeMetadata = Field(default_factory=WebTapeMetadata)
     context: DialogContext = DialogContext(tools=[])
 

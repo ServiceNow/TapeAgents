@@ -194,6 +194,8 @@ def extract_tape_training_samples_and_stats(
 
     # get the number of LLMOutputParsingFailureAction in the tape
     n_step_errors = len([step for step in new_tape.steps if isinstance(step, LLMOutputParsingFailureAction)])
+    # get the number of PageObservation steps in the tape
+    n_page_observations = len([step for step in new_tape.steps if isinstance(step, PageObservation)])
 
     # get the raw reward returned by the environment for each step
     raw_step_rewards = [(i, step.metadata.other.get("info", {}).get("task_info", {}).get("RAW_REWARD_GLOBAL", None)) for i, step in enumerate(new_tape.steps)]
@@ -263,6 +265,10 @@ def extract_tape_training_samples_and_stats(
         "output_tokens": tape_output_tokens,
         "no_error": no_error,
         "overflows": sum(overflows),
+        "n_llm_calls": n_llm_calls,
+        "n_step_errors": n_step_errors,
+        "n_page_observations": n_page_observations,
+        "n_steps": len(new_tape.steps),
     }
 
     return training_samples, tape_stats
@@ -367,21 +373,53 @@ def generate_data(
     timers["saved_new_tape"] = time.perf_counter() - t
     logger.info(f"[it{iteration}.{split_name}] ======== SAVED TAPE IN {timers['saved_new_tape']} s. NOW EXTRACT TRAINING TRACES ========")
 
-    ### STEP 2: get LLM & ENV stats ###
-    llm_stats = llm.get_stats()
-    # llm_stats contains: time_send_request, time_log_output, total_prompt_tokens, total_output_tokens, time_postprocess_llm_response
+    ### STEP 2: get LLM & ENV timers ###
+    llm_stats = {
+        "mean_time_send_request": np.mean(llm._stats["time_send_request"]) if llm._stats["time_send_request"] else 0,
+        "sum_time_send_request": sum(llm._stats["time_send_request"]) if llm._stats["time_send_request"] else 0,
+        "mean_time_log_output": np.mean(llm._stats["time_log_output"]) if llm._stats["time_log_output"] else 0,
+        "sum_time_log_output": sum(llm._stats["time_log_output"]) if llm._stats["time_log_output"] else 0,
+        "mean_time_postprocess_llm_response": np.mean(llm._stats["time_postprocess_llm_response"]) if llm._stats["time_postprocess_llm_response"] else 0,
+        "sum_time_postprocess_llm_response": sum(llm._stats["time_postprocess_llm_response"]) if llm._stats["time_postprocess_llm_response"] else 0,
+    }
+    # compute total llm time
+    total_llm_time = llm_stats["sum_time_send_request"] + llm_stats["sum_time_log_output"] + llm_stats["sum_time_postprocess_llm_response"]
+    timers["llm_total_time"] = total_llm_time
+
     # env.timers contains: start_task, finish_task, validate_task, and all the react times for each action
-    env.timers["react"] = np.mean(env.timers["react"]) if "react" in env.timers else 0.0
-    timers.update({f"env/{key}": value for key, value in env.timers.items()})
+    timers["env_mean_react"] = np.mean(env.timers["react"]) if "react" in env.timers else 0.0
+    timers["env_var_react"] = np.var(env.timers["react"]) if "react" in env.timers else 0.0
+    timers["env_min_react"] = min(env.timers["react"]) if "react" in env.timers else 0.0
+    timers["env_max_react"] = max(env.timers["react"]) if "react" in env.timers else 0.0
+    timers["env_sum_react"] = sum(env.timers["react"]) if "react" in env.timers else 0.0
+    del env.timers["react"]  # remove react from timers to avoid confusion
+    # add all other env timers
+    timers.update({f"env_{key}": value for key, value in env.timers.items()})
+    # compute total env time
+    total_env_time = env.timers.get("start_task", 0) + env.timers.get("finish_task", 0) + \
+                    env.timers.get("validate_task", 0) + timers["env_sum_react"]
+    timers["env_total_time"] = total_env_time
+    # compute action execution time
+    action_execution_times = [
+        step.metadata.other.get("info", {}).get("action_exec_stop", np.inf) - step.metadata.other.get("info", {}).get("action_exec_start", 0)
+        for step in new_tape.steps if isinstance(step, PageObservation)
+    ]
+    timers["env_mean_action_execution"] = np.mean(action_execution_times) if action_execution_times else 0.0
+    timers["env_var_action_execution"] = np.var(action_execution_times) if action_execution_times else 0.0
+    timers["env_min_action_execution"] = min(action_execution_times) if action_execution_times else 0.0
+    timers["env_max_action_execution"] = max(action_execution_times) if action_execution_times else 0.0
+    timers["env_sum_action_execution"] = sum(action_execution_times) if action_execution_times else 0.0
 
     ### STEP 3: extract training samples from the newly generated tape ###
     t = time.perf_counter()
     llm.load_tokenizer()  # make sure llm.tokenizer is loaded
     # 1 tape -> multiple training samples because of multiple LLM calls
     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
-    timers["extract_training_samples"] = time.perf_counter() - t
+    timers["extracted_training_samples"] = time.perf_counter() - t
     logger.info(f"[it{iteration}.{split_name}] ======== EXTRACTED {len(tape_training_samples)} TRACES IN {timers['extract_training_samples']} s. ========")
-    # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows
+    # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows, n_llm_calls, n_step_errors, n_page_observations, n_steps
+    timers["llm_total_time_per_llm_call"] = total_llm_time / tape_stats["n_llm_calls"] if tape_stats["n_llm_calls"] > 0 else 0
+    timers["env_total_time_per_observation"] = total_env_time / tape_stats["n_page_observations"] if tape_stats["n_page_observations"] > 0 else 0
 
     new_tape.metadata.other["timers"] = timers
     logger.info(f"[it{iteration}.{split_name}] ======== TAPE {new_tape.metadata.id} TOOK {json.dumps(timers, indent=4)} ========")
@@ -424,31 +462,6 @@ def batch_generate_data(
     logger.info(f"[it{iteration}] Making tapes took {time.time() - start_make_data}")
     assert len(results) == len(tasks), f"Number of results ({len(results)}) and tasks ({len(tasks)}) must match"
 
-    ##### DEBUG: load tapes form file #####
-    # exp_path = Path(cfg.output_dir)
-    # tapes_dir = exp_path / "tapes" / split_name / str(iteration)
-    # with open(tapes_dir / "tapes.json", "r") as f:
-    #     all_tapes = [WebTape(**tape) for tape in json.load(f)]
-
-    # if os.path.exists(exp_path / "finetune/current"):
-    #     model_path = str(exp_path / "finetune/current")
-    # else:
-    #     model_path = cfg.model_path
-    # llm = TrainableLLM(
-    #     base_url=urls[0],
-    #     model_name=str(model_path),
-    #     tokenizer_name=str(model_path),
-    #     parameters=cfg.llm.parameters,
-    #     use_cache=False,
-    #     collect_logprobs=True,
-    #     observe_llm_calls=False,
-    # )
-    # llm.load_tokenizer()
-    # results = []
-    # for new_tape in all_tapes:
-    #     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
-    #     results.append((new_tape, tape_training_samples, tape_stats, {}))
-
     ### STEP 2: aggregate training samples and stats ###
     final_tapes: list[WebTape] = []  # list of final tapes
     training_samples: List[TrainingText] = []  # list of training samples
@@ -458,56 +471,56 @@ def batch_generate_data(
     no_errors_stats = defaultdict(list)  # map from group id to list of no_errors
     prompt_tokens_stats = defaultdict(list)  # map from group id to list of prompt tokens length
     output_tokens_stats = defaultdict(list)  # map from group id to list of output tokens length
-    overflow_stats = defaultdict(list)  # map from group id to list of overflows
 
     all_llm_stats = defaultdict(list)  # map from group id to list of llm stats
     all_tape_timers = defaultdict(list)  # map from group id to list of timers
+    all_tape_stats = defaultdict(list)  # map from group id to list of tape stats
     for new_tape, samples, tape_stats, llm_stats in results:
+        # timers contains instantiated_llm, instantiated_env, instantiated_agent, generated_new_tape, saved_new_tape, extracted_training_samples, llm_total_time, llm_total_time_per_llm_call, env_... timers
+        # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows, n_llm_calls, n_step_errors, n_page_observations, n_steps
+        # llm_stats contains: {mean|sum}_time_send_request, {mean|sum}_time_log_output, {mean|sum}_time_postprocess_llm_response
         final_tapes.append(new_tape)
         training_samples.extend(samples)
         group_id = f"{new_tape.metadata.task_name}_{new_tape.metadata.seed}"
         if samples:
             assert all([group_id == s.group_id for s in samples]), f"Group id mismatch in samples: {group_id}, {[s.group_id for s in samples]}"
+        # special treatment for reward, success, no_error, prompt_tokens, output_tokens: we will compute the mean of the min/max of each group
         reward_stats[group_id].append(tape_stats["reward"])
         success_stats[group_id].append(tape_stats["success"])
         no_errors_stats[group_id].append(tape_stats["no_error"])
         prompt_tokens_stats[group_id].append(tape_stats["prompt_tokens"])
         output_tokens_stats[group_id].append(tape_stats["output_tokens"])
-        overflow_stats[group_id].append(tape_stats["overflows"])
-
+        # the rest of the stats we don't need to group by group_id as we don't care about their mean of min/max
+        for key, value in tape_stats.items():
+            if key not in ["reward", "success", "no_error", "prompt_tokens", "output_tokens"]:
+                all_tape_stats[key].append(value)
         for key, value in llm_stats.items():
             all_llm_stats[key].append(value)
         for key, value in new_tape.metadata.other.get("timers", {}).items():
             all_tape_timers[key].append(value)
 
-    ### STEP 3: save the tapes ###
-    # exp_path = Path(cfg.output_dir)
-    # tapes_dir = exp_path / "tapes" / split_name / str(iteration)
-    # os.makedirs(tapes_dir, exist_ok=True)
-    # start_dump = time.time()
-    # _debug(final_tapes)  # TODO: debug why can't we save tapes anymore? https://github.com/pydantic/pydantic/issues/7713
-    # with open(tapes_dir / "tapes.json", "w") as f:
-    #     json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
-    # end_dump = time.time()
-
-    ### STEP 4: compute stats ###
+    ### STEP 3: compute stats ###
     end_make_data = time.time()
+    # keep track of all_sucess / any_success / no_success PER GROUP
     stats = {
-        **{f"{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
-        **{f"{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
-        **{f"{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
-        **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens_stats).items()},
-        **{f"{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens_stats).items()},
+        **{f"tape_stats/{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
+        **{f"tape_stats/{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
+        **{f"tape_stats/{split_name}_{k}_no_errors": v for k, v in calculate_stats(no_errors_stats).items()},
+        **{f"tape_stats/{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens_stats).items()},
+        **{f"tape_stats/{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens_stats).items()},
         **{
             # f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
-            f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
-            f"{split_name}_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
-            f"{split_name}_overflows": np.mean([np.mean(ov) for ov in overflow_stats.values()]),
+            f"tape_stats/{split_name}_sum_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
+            f"tape_stats/{split_name}_sum_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
+            f"tape_stats/{split_name}_all_success": np.mean([all(s) for s in success_stats.values()]),
+            f"tape_stats/{split_name}_any_success": np.mean([any(s) for s in success_stats.values()]),
+            f"tape_stats/{split_name}_no_success": np.mean([not any(s) for s in success_stats.values()]),
         },
-        **{f"llm/{split_name}_{k}": np.mean(v) for k, v in all_llm_stats.items()},
-        **{f"tape_timers/{split_name}_{k}": np.mean(v) for k, v in all_tape_timers.items()},
+        **{f"tape_stats/{split_name}_mean_{k}": np.mean(v) for k, v in all_tape_stats.items()},
+        **{f"llm/{split_name}_mean_{k}": np.mean(v) for k, v in all_llm_stats.items()},
+        **{f"tape_timers/{split_name}_mean_{k}": np.mean(v) for k, v in all_tape_timers.items()},
     }
     return final_tapes, training_samples, stats
 
