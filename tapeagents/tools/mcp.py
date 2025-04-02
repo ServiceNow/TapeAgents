@@ -39,9 +39,9 @@ class MCPClient:
         try:
             server_configs: dict[str, dict] = self.config["mcpServers"]
             assert isinstance(server_configs, dict), "mcpServers must be a dict"
-            assert len(server_configs) > 0, "mcpServers list cannot be empty"
+            assert len(server_configs) > 0, "mcpServers dict is empty"
         except Exception as e:
-            raise ValueError(f"Failed to get MCP servers from {config_path}: {e}")
+            raise ValueError(f"Failed to get MCP server configs from {config_path}: {e}")
 
         servers: dict[str, StdioServerParameters] = {}
         for server_name, server_config_dict in server_configs.items():
@@ -54,18 +54,21 @@ class MCPClient:
         return servers
 
     async def connect_to_server(self, name: str, server_params: StdioServerParameters) -> list[Tool]:
-        exit_stack = AsyncExitStack()
-        stdio_transport = await exit_stack.enter_async_context(stdio_client(server_params))
-        session = await exit_stack.enter_async_context(ClientSession(*stdio_transport))
-
-        await session.initialize()
+        try:
+            exit_stack = AsyncExitStack()
+            stdio_transport = await exit_stack.enter_async_context(stdio_client(server_params))
+            session = await exit_stack.enter_async_context(ClientSession(*stdio_transport))
+            await session.initialize()
+        except Exception as e:
+            logger.exception(f"Failed to start MCP server {name} with config {server_params.model_dump()}: {e}")
+            raise e
 
         # List available tools
         response = await session.list_tools()
         self.tools += response.tools
         for tool in response.tools:
             self.tool_to_server[tool.name] = name
-        logger.info(f"Connected to server '{name}' with tools: {[tool.name for tool in response.tools]}")
+        logger.info(f"Connected to MCP server '{name}' with tools: {[tool.name for tool in response.tools]}")
         self.sessions[name] = session
         self.exit_stacks[name] = exit_stack
         return self.tools
