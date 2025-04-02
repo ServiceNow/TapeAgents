@@ -2,12 +2,14 @@ import asyncio
 import json
 import logging
 import os
+import uuid
 from contextlib import AsyncExitStack
 from typing import Any, Literal
 
 import nest_asyncio
 from mcp import ClientSession, StdioServerParameters, Tool, stdio_client
 from mcp.types import CallToolResult
+from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.environment import ToolCollectionEnvironment
@@ -101,14 +103,14 @@ class MCPClient:
         pass
 
 
-class ToolCall(Action):
+class MCPToolCall(Action):
     kind: Literal["mcp_tool_call"] = "mcp_tool_call"  # type: ignore
-    id: str
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     input: dict[str, Any]
 
 
-class ToolResult(Observation):
+class MCPToolResult(Observation):
     kind: Literal["mcp_tool_result"] = "mcp_tool_result"  # type: ignore
     tool_use_id: str
     result: CallToolResult
@@ -131,9 +133,9 @@ class MCPEnvironment(ToolCollectionEnvironment):
     def tools_description(self) -> str:
         return "\n".join(f"{spec.name} - {spec.description}" for spec in self.tools.values())
 
-    def step(self, action: ToolCall) -> ToolResult:
+    def step(self, action: MCPToolCall) -> MCPToolResult:
         result = asyncio.run(self.client.call_tool(action.name, action.input))
-        return ToolResult(tool_use_id=action.id, result=result)
+        return MCPToolResult(tool_use_id=action.id, result=result)
 
     def close(self) -> None:
         self.client.close()
