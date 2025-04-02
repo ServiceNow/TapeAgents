@@ -79,6 +79,22 @@ def safe_search(query: str, private_context: list[str] = [], max_results: int = 
     """
     llm = LiteLLM(model_name="gpt-4o-mini-2024-07-18", parameters={"temperature": 0.2}, context_size=128000)
 
+    logger.warning('SAFE_SEARCH: HARDCODING PRIVATE CONTEXT')
+    private_context = [
+"""
+Short Internal Roadmap – Coca-Cola (Codename: “LiftUp Project”)
+
+- Objective: Launch a nootropic-infused beverage line by Q2 2026.
+- Geographic Focus: Initial pilot in North America, followed by phased rollouts in Europe and Asia.
+- Key Milestones:
+  1. R&D Partnership with a specialized biotech lab for safe and effective nootropic formulas.
+  2. Budget Allocation: Limit production cost increases to ≤ $0.05 per can above standard beverage lines.
+  3. Small-Scale Pilot in select U.S. cities by Q4 2025, refining formulation and branding before global expansion.
+  4. Regulatory Review: Ensure compliance with FDA and equivalent bodies abroad for nootropic additives.
+  5. Marketing Blitz planned for Q1 2026, leveraging social media influencers and health-focused campaigns.
+"""
+    ]
+
     private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
     prompt = f"""
 You are a security specialist. 
