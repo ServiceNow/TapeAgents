@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import multiprocessing
 import os
@@ -24,7 +25,7 @@ from tapeagents.agent import Agent
 from tapeagents.core import StepMetadata, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
-from tapeagents.llms import TrainableLLM
+from tapeagents.llms import LLMCall, TrainableLLM
 
 from .cot_math_agent import CoTMathAgent, RLMathTape, Task
 from .utils import VLLMServiceManager, calculate_stats, clean_up, launch_training, load_state, save_state, setup_logging
@@ -86,7 +87,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
         list[RLMathTape]: List of RLMathTape objects initialized with the math problems as Task steps.
     """
     tapes: list[RLMathTape] = []
-    for problem in problems:
+    for problem in tqdm(problems, desc="Converting problems to unique tapes", unit="problem"):
         start_step = Task(
             task=problem["task"],
             template=cfg.task_template,
@@ -102,7 +103,7 @@ def convert_problems_to_tapes(problems: list, cfg: DictConfig) -> list[RLMathTap
 
 
 def extract_tape_training_samples(
-    new_tape: RLMathTape, agent: CoTMathAgent, cfg: DictConfig
+    new_tape: RLMathTape, agent: CoTMathAgent, split_name: str, cfg: DictConfig
 ) -> Tuple[List[TrainingText], Dict[str, int]]:
     """
     Process a single tape to extract training samples and statistics.
@@ -110,8 +111,11 @@ def extract_tape_training_samples(
     Args:
         new_tape: The tape to process containing math problem steps
         agent: CoTMathAgent
+        split_name: Name of split ('train' or 'test')
         tapes_dir: Directory to save processed tapes
         cfg: Configuration
+        llm_calls: List of LLM calls
+        strict: check that every token matches between the vLLM and the HF tokenizer otherwise just compare their lengths
 
     Returns:
         Tuple[List[TrainingText], Dict[str, int]]:
@@ -136,7 +140,6 @@ def extract_tape_training_samples(
         # LLM produced a step that was unparsable. Negative reward.
         no_error, reward, success = 0, -1, 0
     else:
-        # LLM did respect the formatting
         no_error = 1
         prediction = number_match.group()
         answer = new_tape.steps[0].metadata.other["value"]
@@ -153,32 +156,41 @@ def extract_tape_training_samples(
     # - Create a training sample from the prompt and output
     # - Get log probabilities of the output tokens
     # - Set group ID for tracking and advantage calculation
-    overflows = []
-    max_num_tokens = agent.llm.parameters["max_tokens"]
     for step in new_tape.steps:
-        if llm_call := step.metadata.other.get("llm_call"):
-            tape_prompt_tokens += llm_call.prompt_length_tokens
-            tape_output_tokens += llm_call.output_length_tokens
-            overflow = True if llm_call.output_length_tokens == max_num_tokens else False
+        if "llm_call" not in step.metadata.other or step.metadata.other["llm_call"] is None:
+            # Skip steps without LLM calls
+            continue
+
+        llm_call = step.metadata.other["llm_call"]
+
+        if isinstance(llm_call, dict):
+            llm_call = LLMCall(**llm_call)
+
+        tape_prompt_tokens += llm_call.prompt_length_tokens
+        tape_output_tokens += llm_call.output_length_tokens
+
+        overflows = []
+        if split_name == "train":
+            # Create a training sample from the LLM call if it's the training split
+            trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
+
+            input_ids = [lp.token_id for lp in llm_call.logprobs]
+            labels = [lp.token_id for lp in llm_call.logprobs if lp.generated]
+            # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
+            # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+            labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
+
+            trace.input_ids = input_ids
+            trace.labels = labels
+
+            # check if the last produced token is the end of sequence token
+            overflow = False if input_ids[-1] == agent.llm.tokenizer.eos_token_id else True
+            reward = -1 if overflow else reward
+            trace.reward = reward
             overflows.append(overflow)
-
-            if logprobs := getattr(llm_call, "logprobs", None):
-                trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
-
-                input_ids = [lp.token_id for lp in logprobs]
-                labels = [lp.token_id for lp in logprobs if lp.generated]
-                # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
-                # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-                labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
-
-                trace.input_ids = input_ids
-                trace.labels = labels
-
-                reward = -1 if overflow else reward
-                trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
-                trace.group_id = new_tape.metadata.parent_id
-                trace.reward = reward
-                training_samples.append(trace)
+            trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
+            trace.group_id = new_tape.metadata.parent_id
+            training_samples.append(trace)
 
     tape_stats = {
         "reward": reward,
@@ -250,7 +262,7 @@ def generate_training_data(
     logger.info(f"Making tapes took {time.time() - start_making_tapes}")
 
     for new_tape in tqdm(final_tapes, total=len(final_tapes), desc="Extracting training data from tapes", unit="tape"):
-        tape_training_samples, tape_stats = extract_tape_training_samples(new_tape, agent_replicas[0], cfg)
+        tape_training_samples, tape_stats = extract_tape_training_samples(new_tape, agent_replicas[0], split_name, cfg)
         training_samples.extend(tape_training_samples)
         reward_stats[new_tape.metadata.parent_id].append(tape_stats["reward"])
         success_stats[new_tape.metadata.parent_id].append(tape_stats["success"])
@@ -258,6 +270,11 @@ def generate_training_data(
         prompt_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["prompt_tokens"])
         output_tokens_stats[new_tape.metadata.parent_id].append(tape_stats["output_tokens"])
         overflow_stats[new_tape.metadata.parent_id].append(tape_stats["overflows"])
+
+    start_dump = time.time()
+    with open(tapes_dir / "tapes.json", "w") as f:
+        json.dump([tape.model_dump() for tape in final_tapes], f, indent=4)
+    end_dump = time.time()
 
     end_make_data = time.time()
 
@@ -268,6 +285,7 @@ def generate_training_data(
         **{f"{split_name}_{k}_prompt_tokens": v for k, v in calculate_stats(prompt_tokens_stats).items()},
         **{f"{split_name}_{k}_output_tokens": v for k, v in calculate_stats(output_tokens_stats).items()},
         **{
+            f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
             f"{split_name}_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
@@ -280,9 +298,6 @@ def generate_training_data(
 
 @hydra.main(config_path="../../conf/", config_name="rl_gsm8k", version_base="1.3.2")
 def main(cfg: DictConfig):
-    if cfg.llm.parameters.temperature != 1.0:
-        raise ValueError("Temperature must be 1.0 for RL training")
-
     multiprocessing.set_start_method("spawn")  # necessary to use gpus in subprocesses
     random.seed(42)
     exp_path = Path(cfg.output_dir)
@@ -359,7 +374,6 @@ def main(cfg: DictConfig):
                             tokenizer_name=str(assistant_model_path),
                             parameters=cfg.test_llm.parameters,
                             use_cache=False,
-                            collect_logprobs=True,
                             observe_llm_calls=False,
                         )
                         for base_url in vllm_service_manager.get_base_urls()

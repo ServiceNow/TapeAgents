@@ -150,7 +150,7 @@ class VLLMServiceManager:
 
     @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=2, min=10))
     def _start_llm(self, cuda_device, port):
-        kwargs_str = " ".join([f"--{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
+        kwargs_str = " ".join([f"{k} {v}" for k, v in self.kwargs.items()]) if self.kwargs else ""
 
         cmd = (
             f"OUTLINES_CACHE_DIR=/tmp/.outlines_{cuda_device}_{int(time.time())} "

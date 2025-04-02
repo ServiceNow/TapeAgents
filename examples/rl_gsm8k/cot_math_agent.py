@@ -4,7 +4,14 @@ from typing import Any, Generator, Literal, Union
 from pydantic import Field
 
 from tapeagents.agent import Agent
-from tapeagents.core import LLMOutputParsingFailureAction, Observation, Prompt, Step, Tape, Thought
+from tapeagents.core import (
+    LLMOutputParsingFailureAction,
+    Observation,
+    Prompt,
+    Step,
+    Tape,
+    Thought,
+)
 from tapeagents.llms import LLM
 from tapeagents.nodes import StandardNode
 
@@ -44,7 +51,7 @@ RLMathTape = Tape[
 class ReasoningNode(StandardNode):
     max_prompt_length: int = 1024
 
-    def parse_completion(self, completion: str) -> Generator[Step, None, None]:
+    def parse_completion(self, completion: str, prompt_id: str) -> Generator[Step, None, None]:
         try:
             step = ReasoningThought(reasoning=completion)
         except Exception as e:

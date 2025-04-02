@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Literal
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -60,10 +60,6 @@ class RLConfig(StepConfig):
         default=10,
         metadata={"help": "Clamp the log ratio ref new value"},
     )
-    aggregate_loss: Literal["mean", "sum"] = field(
-        default="mean",
-        metadata={"help": "How to aggregate the loss within a batch (when batch size is 1, there is no difference)"},
-    )
 
 
 def make_rl_data_callback(args, current_dir, rl_config, model):
@@ -98,16 +94,12 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         attention_mask=batch["attention_mask"],
         labels=batch["labels"],
     )
-    logits = outputs.logits[:, :-1, :]
-    logprobs = F.log_softmax(logits, dim=-1)
-    probs = F.softmax(logits, dim=-1)
-    entropy = -(probs * logprobs).sum(dim=-1)
+
     new_log_probs = torch.gather(
-        logprobs,  # the last log probs has no target
+        F.log_softmax(outputs.logits[:, :-1, :], dim=-1),  # the last log probs has no target
         dim=2,
         index=batch["input_ids"][:, 1:].unsqueeze(2),
     ).squeeze(2)
-    assert torch.isfinite(new_log_probs).all(), f"new_log_probs is not finite: {new_log_probs}"
 
     masks_ = masks[:, 1:]
     ref_logprobs = batch["ref_logprobs"][:, 1:]
@@ -121,7 +113,6 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
     log_p_weights = torch.clamp(log_p_weights, min=0) if config.relu_log_p_weights else log_p_weights
     # Second compute the approximated KL, see https://arxiv.org/pdf/2402.03300 eq 4
     log_ratio_ref_new = ref_logprobs - new_log_probs
-    assert torch.isfinite(log_ratio_ref_new).all(), f"log_ratio_ref_new is not finite: {log_ratio_ref_new}"
     clamp_log_ratio_ref_new_indicators = torch.abs(log_ratio_ref_new) > config.clamp_log_ratio_ref_new_value
     log_ratio_ref_new_clamp = torch.clamp(
         ref_logprobs - new_log_probs,
@@ -129,7 +120,6 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         max=config.clamp_log_ratio_ref_new_value,
     )
     approx_kl = torch.exp(log_ratio_ref_new_clamp) - log_ratio_ref_new_clamp - 1  # Schulman KL approx
-    assert torch.isfinite(approx_kl).all(), f"approx_kl is not finite: {approx_kl}"
     match config.algo:
         case "grpo":
             # GRPO is based on https://arxiv.org/pdf/2402.03300
@@ -143,21 +133,17 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
 
             assert approx_kl.shape == masks_.shape
             assert approx_kl.shape == surrogate_loss.shape
-            loss = surrogate_loss - config.kl_coef * approx_kl
+            loss = -masked_sum(surrogate_loss - config.kl_coef * approx_kl, masks_)
         case "reinforce":
             surr1 = torch.zeros_like(ratio_new_old)
             surr2 = torch.zeros_like(ratio_new_old)
-            loss = new_log_probs * log_p_weights - config.kl_coef * approx_kl
+            loss = -masked_sum(new_log_probs * log_p_weights - config.kl_coef * approx_kl, masks_)
         case _:
             raise ValueError(f"Unknown algorithm {config.algo}")
 
-    num_nans = torch.isnan(loss).sum()
-    if config.aggregate_loss == "mean":
-        loss = -masked_mean(loss, masks_, axis=-1).mean()
-    else:
-        loss = -masked_sum(loss, masks_, axis=-1).mean()
     assert torch.isfinite(loss).all(), f"Loss is not finite: {loss}"
-
+    # normalize the loss by the micro batch size
+    loss = loss / masks.shape[0]
     stats = {
         "max_new_log_probs": new_log_probs[masks_].max().item(),
         "max_ratio_new_old": ratio_new_old[masks_].max().item(),
@@ -166,7 +152,6 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "reward": masked_mean(rewards, masks_).item(),
         "max_reward": rewards[masks_].max().item(),
         "min_reward": rewards[masks_].min().item(),
-        "entropy": masked_mean(entropy, masks_).item(),
         "mean_old_logprobs": masked_mean(old_logprobs, masks_).item(),
         "mean_new_logprobs": masked_mean(new_log_probs, masks_).item(),
         "mean_new_logprobs_positive_log_p_weights": masked_mean(
@@ -193,7 +178,6 @@ def rl_step(model: PreTrainedModel, batch: dict, config: RLConfig) -> tuple[torc
         "ratio_ref_new": masked_mean(torch.exp(log_ratio_ref_new), masks_).item(),
         "ratio_ref_old": masked_mean(torch.exp(ref_logprobs - old_logprobs), masks_).item(),
         "clamp_log_ratio_ref_new_indicators": masked_mean(clamp_log_ratio_ref_new_indicators, masks_).item(),
-        "num_nans": num_nans.item(),
     }
     return loss, stats
 
@@ -210,8 +194,6 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     """
     df = dataset.to_pandas()
-    group_ids = list(df['group_id'])
-    assert all([g is not None for g in group_ids]), "Group ids should not be None"
 
     if config.reward_minus_kl_coef > 0:
         logger.info("Updating Reward with Implicit KL")
@@ -239,7 +221,12 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
     return dataset
 
 
-def populate_rl_data(dataset: Dataset, config: RLConfig) -> Dataset:
+def populate_rl_data(
+    dataset: Dataset,
+    columns: list[str],
+    collate_fn: Callable,
+    config: RLConfig,
+) -> Dataset:
     """
     Populates a dataset with reinforcement learning specific data columns.
 
@@ -253,11 +240,7 @@ def populate_rl_data(dataset: Dataset, config: RLConfig) -> Dataset:
         Dataset: The dataset populated with RL-specific columns including rewards and advantages
     """
 
-    logger.debug("Populate RL Data")
-
     dataset = update_rewards_and_advantages(dataset, config)
-
-    logger.debug("Finish Populate RL Data")
     return dataset
 
 

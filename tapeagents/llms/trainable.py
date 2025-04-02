@@ -32,7 +32,7 @@ def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenize
     Returns:
         TrainingText: A dataclass containing:
 
-            - text (str): The formatted conversation text (prompt + output)
+            - text (str): The formatted conversation text
             - n_predicted (int): Length of the output text portion
 
     Note:

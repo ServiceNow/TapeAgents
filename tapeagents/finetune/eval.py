@@ -4,7 +4,7 @@ import torch
 import transformers
 from torch.utils.data.dataloader import DataLoader
 
-from .context import get_accelerator, logger
+from .context import accelerator, logger
 from .types import TrainingMetrics
 
 
@@ -19,7 +19,7 @@ def evaluate(
         for step, batch in enumerate(eval_dataloader):
             outputs = model(**batch)
             loss = outputs.loss.repeat(args.valid_batch_size)
-            losses.append(get_accelerator().gather(loss).detach())  # type: ignore
+            losses.append(accelerator.gather(loss).detach())  # type: ignore
             if args.max_eval_steps > 0 and step >= args.max_eval_steps:
                 break
     model.train()

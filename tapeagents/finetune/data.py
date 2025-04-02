@@ -15,7 +15,7 @@ from transformers import BatchEncoding
 
 from tapeagents.core import TrainingText
 
-from .context import get_accelerator, logger
+from .context import accelerator, logger
 from .rl import RL_DATA_COLUMNS, prepare_rl_fields
 from .types import DataArgs, DataPartArgs
 
@@ -216,7 +216,7 @@ def create_dataloader(
         logger.info(f"Raw data part size: {dataset_part.num_rows}")
         logger.info(f"Raw data part fingerprint: {dataset_part._fingerprint}")
 
-        num_proc = (os.cpu_count() // get_accelerator().num_processes) or 1
+        num_proc = (os.cpu_count() // accelerator.num_processes) or 1
         dataset_part = dataset_part.map(
             preprocess,
             keep_in_memory=True,
@@ -241,8 +241,8 @@ def create_dataloader(
     logger.info(f"Merged data fingerprint: {data._fingerprint}")
 
     if rl_data_callback is not None:
-        get_accelerator().wait_for_everyone()
-        data = rl_data_callback(dataset=data)
+        accelerator.wait_for_everyone()
+        data = rl_data_callback(dataset=data, columns=columns, collate_fn=collate_fn)
 
     if n_examples:
         data = data.select(range(n_examples))

@@ -89,7 +89,7 @@ class StatefulTool(BaseTool):
     observations: tuple[type[Observation], ...]
 
     def run(self, action: Action) -> Observation:
-        assert isinstance(action, self.actions), f"Action {action} is not in {self.actions}"
+        assert isinstance(action, self.actions)
         try:
             observation = self.execute_action(action)
         except FatalError:

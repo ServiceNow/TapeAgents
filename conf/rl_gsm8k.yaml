@@ -6,14 +6,14 @@ n_workers_per_gpu: 32
 get_logprobs_workers_per_gpu: 4
 test_every_n_iterations: 1
 model_path: /mnt/llmd/base_models/Llama-3.2-1B-Instruct
-max_agent_forks: 6000  # total number of samples to generate
-attempts: 8  # number of samples to generate per context
+max_agent_forks: 6000
+attempts: 8 
 force_restart: false
 max_iterations: 1000
 llm:
   parameters:
     max_tokens: 3072
-    temperature: 1.0
+    temperature: 0.7
 test_llm:
   parameters: 
     max_tokens: ${...llm.parameters.max_tokens}
@@ -38,24 +38,24 @@ max_prompt_length: 1024
 
 vllm_config:
   vllm_kwargs:
-    download-dir: /mnt/llmd/base_models/ 
-    gpu-memory-utilization: 0.9
-    num-scheduler-steps: 16
-    disable-log-requests: ""
-    max-num-seqs: 1024 
-    enforce-eager: ""
-    return-tokens-as-token-ids: ""
-    pipeline-parallel-size: 1
-    tensor-parallel-size: 1
+    --download-dir: /mnt/llmd/base_models/ 
+    --gpu-memory-utilization: 0.9
+    --num-scheduler-steps: 16
+    --disable-log-requests: ""
+    --max-num-seqs: 1024 
+    --enforce-eager: ""
+    --return-tokens-as-token-ids: ""
+    --pipeline-parallel-size: 1
+    --tensor-parallel-size: 1
   actor_vllm_kwargs:
-    num-scheduler-steps: 16
+    --num-scheduler-steps: 16
   ref_vllm_kwargs:
-    num-scheduler-steps: 1
+    --num-scheduler-steps: 1
      # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
-    enable-chunked-prefill: ""
-    max-num-batched-tokens: 1024
+    --enable-chunked-prefill: ""
+    --max-num-batched-tokens: 1024
 
-output_dir: ???
+output_dir: outputs/rl_gsm8k_deepspeed
 accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
 use_deepspeed: false
 
