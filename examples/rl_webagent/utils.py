@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import os
@@ -8,16 +9,14 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional, TextIO, Union
 
+import joblib
 import numpy as np
 import psutil
 import requests
 import torch
 from tenacity import retry, stop_after_attempt, wait_exponential
-from transformers import PreTrainedTokenizer
 
 from tapeagents.config import is_debug_mode
-from tapeagents.core import Prompt
-from tapeagents.llms import LLMOutput
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +32,11 @@ def generate_cuda_device_strings(total_gpus: int, gpus_per_model: int) -> List[s
     Returns:
     - List[str]: A list of strings, each representing the CUDA devices for a model.
     """
-    cuda_device_strings = []
-    if total_gpus % gpus_per_model != 0:
-        raise ValueError(f"Requested {gpus_per_model} GPUs per model, but {total_gpus} GPUs are available")
+    assert (
+        total_gpus % gpus_per_model == 0
+    ), f"Total GPUs ({total_gpus}) must be divisible by GPUs per model ({gpus_per_model})"
 
+    cuda_device_strings = []
     for start_gpu in range(0, total_gpus, gpus_per_model):
         end_gpu = start_gpu + gpus_per_model
         cuda_devices = ",".join(str(i) for i in range(start_gpu, end_gpu))
@@ -269,7 +269,10 @@ def setup_logging(output_dir):
     stdout_handler.setLevel(logging.INFO)
 
     # Create formatters and set them to the handlers
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S"
+    )
 
     info_handler.setFormatter(formatter)
     debug_handler.setFormatter(formatter)
@@ -336,14 +339,14 @@ def clean_up(target_path: Path, state: Dict, state_path: str | Path) -> None:
         logger.info(f"{directory} removed.")
 
 
-def calculate_stats(stats):
+def calculate_stats(stats: Dict[str, list]) -> Dict[str, float]:
     return {
-        "max": max([max(stats) for stats in stats.values() if stats]),
-        "min": min([min(stats) for stats in stats.values() if stats]),
-        "mean_max": np.mean([max(stats) for stats in stats.values() if stats]),
-        "mean_min": np.mean([min(stats) for stats in stats.values() if stats]),
-        "var": np.mean([np.var(stats) for stats in stats.values() if stats]),
-        "mean": np.mean([np.mean(stats) for stats in stats.values() if stats]),
+        "max": max([max(stats) for stats in stats.values() if stats]),  # max among the max of each group
+        "min": min([min(stats) for stats in stats.values() if stats]),  # min among the min of each group
+        "mean_max": np.mean([max(stats) for stats in stats.values() if stats]),  # mean of the max of each group
+        "mean_min": np.mean([min(stats) for stats in stats.values() if stats]),  # mean of the min of each group
+        "var": np.mean([np.var(stats) for stats in stats.values() if stats]),  # mean of the variance of each group
+        "mean": np.mean([np.mean(stats) for stats in stats.values() if stats]),  # mean of the mean of each group
     }
 
 
@@ -372,7 +375,7 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
         "--mixed_precision=bf16",
         "--config_file",
         accelerate_cfg_path,
-        "examples/rl_gsm8k/run_finetune.py",
+        "examples/rl_webagent/run_finetune.py",
         "--config-dir",
         config_dir,
         "--config-name",
@@ -414,15 +417,18 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
         raise RuntimeError(f"Unexpected error during training: {str(e)}") from e
 
 
-def get_tokens_from_hf_tokenizer(tokenizer: PreTrainedTokenizer | None, prompt: Prompt, output: LLMOutput) -> list:
-    if not tokenizer:
-        return []
-    prompt_token_ids = tokenizer.apply_chat_template(
-        conversation=prompt.messages, tokenize=True, add_generation_prompt=True
-    )
-    text_token_ids = tokenizer.apply_chat_template(
-        prompt.messages + [{"role": "assistant", "content": output.content}], tokenize=True
-    )
-    output_token_ids = text_token_ids[len(prompt_token_ids) :]
-    output_tokens = [tokenizer.decode(output_token_id) for output_token_id in output_token_ids]
-    return output_tokens
+@contextlib.contextmanager
+def tqdm_joblib(tqdm_object):
+    """Context manager to patch joblib to report into tqdm progress bar given as argument"""
+    class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
+        def __call__(self, *args, **kwargs):
+            tqdm_object.update(n=self.batch_size)
+            return super().__call__(*args, **kwargs)
+
+    old_batch_callback = joblib.parallel.BatchCompletionCallBack
+    joblib.parallel.BatchCompletionCallBack = TqdmBatchCompletionCallback
+    try:
+        yield tqdm_object
+    finally:
+        joblib.parallel.BatchCompletionCallBack = old_batch_callback
+        tqdm_object.close()
