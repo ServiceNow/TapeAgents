@@ -1,5 +1,6 @@
 from typing import Any
 
+from litellm import ChatCompletionMessageToolCall
 from mcp import Tool
 from mcp.types import CallToolResult, TextContent
 
@@ -8,7 +9,7 @@ from tapeagents.core import Tape
 from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import MockLLM
 from tapeagents.nodes import StandardNode
-from tapeagents.tools.mcp import MCPClient, MCPEnvironment, MCPToolCall
+from tapeagents.tools.mcp import MCPClient, MCPEnvironment, MCPToolCall, MCPToolResult
 
 MOCK_TOOLS = {
     "server1": [
@@ -156,3 +157,44 @@ def test_prompt_with_tool_calls():
         "properties": {"message": {"type": "string"}},
         "required": ["message"],
     }
+
+
+def test_tool_use_parsing():
+    env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
+    llm = MockLLM(
+        mock_tool_calls=[
+            ChatCompletionMessageToolCall(
+                id="test1",
+                function={
+                    "name": "calculator",
+                    "arguments": {"operation": "add", "a": 9, "b": 2},
+                },
+            )
+        ]
+    )
+    node = StandardNode(use_known_actions=True, use_function_calls=True)
+    agent = Agent.create(llms=llm, nodes=[node], known_actions=env.actions())
+    tape = Tape(steps=[UserStep(content="test")])
+    event = None
+    for event in agent.run(tape):
+        if event.final_tape:
+            break
+    assert event and event.final_tape
+    agent_tape = event.final_tape
+    assert len(agent_tape) == 3
+    call_step = agent_tape[-1]
+
+    assert isinstance(call_step, MCPToolCall)
+    assert call_step.name == "calculator"
+    assert len(call_step.input) == 3
+    assert call_step.input["operation"] == "add"
+    assert call_step.input["a"] == 9
+    assert call_step.input["b"] == 2
+
+    final_tape = env.react(agent_tape)
+    assert len(final_tape) == 4
+    obs = final_tape.steps[-1]
+    assert isinstance(obs, MCPToolResult)
+    assert obs.tool_use_id == call_step.id
+    assert isinstance(obs.result.content[0], TextContent)
+    assert obs.result.content[0].text == "11"
