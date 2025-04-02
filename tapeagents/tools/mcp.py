@@ -3,10 +3,15 @@ import json
 import logging
 import os
 from contextlib import AsyncExitStack
-from typing import Any
+from typing import Any, Literal
 
 import nest_asyncio
 from mcp import ClientSession, StdioServerParameters, Tool, stdio_client
+from mcp.types import CallToolResult
+
+from tapeagents.core import Action, Observation
+from tapeagents.environment import ToolCollectionEnvironment
+from tapeagents.tool_calling import FunctionSpec
 
 nest_asyncio.apply()
 logger = logging.getLogger(__name__)
@@ -17,7 +22,7 @@ class MCPClient:
         self.servers = self.load_config(config_path)
         self.sessions: dict[str, ClientSession] = {}
         self.exit_stacks: dict[str, AsyncExitStack] = {}
-        self.tools: list[Tool] = []
+        self.tools: dict[str, Tool] = {}
         self.tool_to_server: dict[str, str] = {}
         asyncio.run(self.start_servers())
 
@@ -53,35 +58,31 @@ class MCPClient:
         logger.info(f"Loaded {len(servers)} MCP server configs from {config_path}")
         return servers
 
-    async def connect_to_server(self, name: str, server_params: StdioServerParameters) -> list[Tool]:
+    async def connect_to_server(self, server_name: str, server_params: StdioServerParameters):
         try:
             exit_stack = AsyncExitStack()
             stdio_transport = await exit_stack.enter_async_context(stdio_client(server_params))
             session = await exit_stack.enter_async_context(ClientSession(*stdio_transport))
             await session.initialize()
         except Exception as e:
-            logger.exception(f"Failed to start MCP server {name} with config {server_params.model_dump()}: {e}")
+            logger.exception(f"Failed to start MCP server {server_name} with config {server_params.model_dump()}: {e}")
             raise e
 
         # List available tools
         response = await session.list_tools()
-        self.tools += response.tools
         for tool in response.tools:
-            self.tool_to_server[tool.name] = name
-        logger.info(f"Connected to MCP server '{name}' with tools: {[tool.name for tool in response.tools]}")
-        self.sessions[name] = session
-        self.exit_stacks[name] = exit_stack
-        return self.tools
+            if tool.name in self.tools:
+                raise Exception(
+                    f"Tools conflict! Tool {tool.name} already provided by server '{self.tool_to_server[tool.name]}'"
+                )
 
-    def tool_to_dict(self, tool: Tool) -> dict[str, Any]:
-        """Convert a tool to a dictionary
+            self.tools[tool.name] = tool
+            self.tool_to_server[tool.name] = server_name
+        logger.info(f"Connected to MCP server '{server_name}' with tools: {[tool.name for tool in response.tools]}")
+        self.sessions[server_name] = session
+        self.exit_stacks[server_name] = exit_stack
 
-        Args:
-            tool: Tool object to convert
-        """
-        return {"name": tool.name, "description": tool.description, "input_schema": tool.inputSchema}
-
-    async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> Any:
+    async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
         try:
             server_name = self.tool_to_server[tool_name]
         except KeyError:
@@ -92,5 +93,47 @@ class MCPClient:
             result = await session.call_tool(tool_name, tool_args)
         except Exception as e:
             logger.exception(f"Error calling tool {tool_name}: {e}")
-            return None
+            raise e
         return result
+
+    def close(self):
+        # TODO: close all sessions and exit stacks
+        pass
+
+
+class ToolCall(Action):
+    kind: Literal["mcp_tool_call"] = "mcp_tool_call"  # type: ignore
+    id: str
+    name: str
+    input: dict[str, Any]
+
+
+class ToolResult(Observation):
+    kind: Literal["mcp_tool_result"] = "mcp_tool_result"  # type: ignore
+    tool_use_id: str
+    result: CallToolResult
+
+
+class MCPEnvironment(ToolCollectionEnvironment):
+    client: MCPClient
+    tools: dict[str, FunctionSpec]
+
+    def __init__(self, config_path: str) -> None:
+        self.client = MCPClient(config_path)
+        self.tools = {
+            tool.name: FunctionSpec(name=tool.name, description=tool.description or "", parameters=tool.inputSchema)
+            for tool in self.client.tools.values()
+        }
+
+    def actions(self) -> tuple[type[Action] | FunctionSpec, ...]:
+        return tuple(self.tools.values())
+
+    def tools_description(self) -> str:
+        return "\n".join(f"{spec.name} - {spec.description}" for spec in self.tools.values())
+
+    def step(self, action: ToolCall) -> ToolResult:
+        result = asyncio.run(self.client.call_tool(action.name, action.input))
+        return ToolResult(tool_use_id=action.id, result=result)
+
+    def close(self) -> None:
+        self.client.close()
