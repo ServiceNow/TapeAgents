@@ -416,7 +416,7 @@ def generate_data(
     # 1 tape -> multiple training samples because of multiple LLM calls
     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
     timers["extracted_training_samples"] = time.perf_counter() - t
-    logger.info(f"[it{iteration}.{split_name}] ======== EXTRACTED {len(tape_training_samples)} TRACES IN {timers['extract_training_samples']} s. ========")
+    logger.info(f"[it{iteration}.{split_name}] ======== EXTRACTED {len(tape_training_samples)} TRACES IN {timers['extracted_training_samples']} s. ========")
     # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows, n_llm_calls, n_step_errors, n_page_observations, n_steps
     timers["llm_total_time_per_llm_call"] = total_llm_time / tape_stats["n_llm_calls"] if tape_stats["n_llm_calls"] > 0 else 0
     timers["env_total_time_per_observation"] = total_env_time / tape_stats["n_page_observations"] if tape_stats["n_page_observations"] > 0 else 0
