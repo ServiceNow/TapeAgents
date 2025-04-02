@@ -5,7 +5,6 @@ import hydra
 from omegaconf import DictConfig
 
 from tapeagents.io import save_json_tape
-from tapeagents.observe import retrieve_llm_calls
 from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 
 from ..eval import load_dataset, task_to_observations
@@ -37,8 +36,8 @@ def main(cfg: DictConfig) -> None:
         if event.agent_event and event.agent_event.step:
             step = event.agent_event.step
             step_count += 1
-            llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
             logger.info(f"{step_count} RUN {step.metadata.agent}:{step.metadata.node}")
+            # llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
             # if llm_calls:
             #     for i, m in enumerate(llm_calls[0].prompt.messages):
             #         logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
