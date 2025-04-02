@@ -8,6 +8,7 @@ from typing import Literal
 
 import requests
 from pydantic import BaseModel, ConfigDict, Field
+from tapeagents.llms.cached import CachedLLM
 from termcolor import colored
 
 from tapeagents.core import Action, Observation, Prompt
@@ -71,6 +72,34 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
     return [{"title": r["title"], "url": r["link"], "snippet": r.get("snippet", "")} for r in results[:max_results]]
 
 
+def safe_search(query: str, private_context: list[str] = [], max_results: int = 5) -> list[dict]:
+    """
+    Perform a web search with safe search enabled.
+    """
+    llm = CachedLLM(model_name="gpt-4o-mini-2024-07-18", parameters={"temperature": 0.2}, context_size=128000)
+
+    private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
+    prompt = f"""
+You are a security specialist. 
+You must rewrite the query in order not to leak any sensistive information,
+potentially by broadening it, so that the original question may still be answered.
+
+# Sensitive information
+{private_context_str}
+
+# Query to rewrite
+<original_query>{query}</original_query>
+
+Answer directly with the new query and nothing else.
+"""
+    new_query = llm.quick_response(prompt)
+    
+    logger.warning(f'Rewriting old query to new query: "{query}" -> "{new_query}"')
+    
+    results = web_search(new_query, max_results=max_results)
+    return results
+
+
 class SearchAction(Action):
     """
     Action that provides parameters for a search function call.
@@ -107,6 +136,7 @@ class WebSearch(Tool):
     action: type[Action] = SearchAction
     observation: type[Observation] = SearchResultsObservation
     cached: bool = True
+    safe_search: bool = False
 
     def execute_action(self, action: SearchAction) -> SearchResultsObservation:
         if action.source == "wiki":
@@ -118,7 +148,10 @@ class WebSearch(Tool):
         error = None
         results = []
         try:
-            results = web_search(query)
+            if self.safe_search:
+                results = safe_search(query)
+            else:
+                results = web_search(query)
         except Exception as e:
             logger.exception(f"Failed to search the web: {e}")
             error = str(e)
@@ -162,6 +195,7 @@ class SearchAndExtract(Action):
     main_task: str
     instructions: str
     tasks: list[SearchTask]
+    protected_context: list[str] = []
 
 
 class WebPageData(BaseModel):
@@ -218,9 +252,10 @@ class SearchExtract(Tool):
     fetch_timeout: int = 60
     extract_timeout: int = 60
     extract_prefix: str = "Your should extract all relevant information for the given from the page.\n\nTASK: "
+    safe_search: bool = False
 
     def model_post_init(self, __context):
-        self._search_tool = WebSearch()
+        self._search_tool = WebSearch(safe_search=self.safe_search)
         return super().model_post_init(__context)
 
     def execute_action(self, action: SearchAndExtract) -> ExtractedFactsObservation:
