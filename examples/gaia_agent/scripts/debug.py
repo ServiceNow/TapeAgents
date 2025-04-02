@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 
@@ -40,9 +39,9 @@ def main(cfg: DictConfig) -> None:
             step_count += 1
             llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
             logger.info(f"{step_count} RUN {step.metadata.agent}:{step.metadata.node}")
-            if llm_calls:
-                for i, m in enumerate(llm_calls[0].prompt.messages):
-                    logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
+            # if llm_calls:
+            #     for i, m in enumerate(llm_calls[0].prompt.messages):
+            #         logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
             logger.info(f"{step_count} STEP of {step.metadata.agent}:{step.metadata.node}")
             logger.info(step.llm_view())
             input("Press Enter to continue...")

@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - llm: gpt4o
-  - agent: gaia
+  - agent: gaia_fcalls
   - environment: web_mcp
 
 split: validation
