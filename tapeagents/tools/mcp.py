@@ -92,7 +92,6 @@ class MCPClient:
 
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
         server_name = self.check_tool_exists(tool_name)
-
         try:
             session = self.sessions[server_name]
             result = await session.call_tool(tool_name, tool_args)
