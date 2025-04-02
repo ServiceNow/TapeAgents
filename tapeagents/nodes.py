@@ -12,6 +12,7 @@ from pydantic import Field, TypeAdapter, ValidationError
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import (
+    Action,
     AgentStep,
     LLMOutputParsingFailureAction,
     Observation,
@@ -26,7 +27,7 @@ from tapeagents.dialog_tape import UserStep
 from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import BranchStep, ReasoningThought
-from tapeagents.tool_calling import as_openai_tool
+from tapeagents.tool_calling import FunctionSpec, ToolSpec, as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
@@ -72,27 +73,30 @@ class StandardNode(Node):
     use_function_calls: bool = False
     allow_code_blocks: bool = False
     _steps_type: Any = None
-    _step_classes: list[type[Step]] | None = None
+    _step_classes: list[type[Action]]
+    _tool_name_to_cls: dict[str, type[Action]]
 
     def model_post_init(self, __context: Any) -> None:
-        self.prepare_step_types()
         super().model_post_init(__context)
+        self._step_classes = []
+        self._tool_name_to_cls = {}
 
-    def prepare_step_types(self, actions: list[type[Step]] = None):
-        actions = actions or []
-        step_classes_or_str = actions + (self.steps if isinstance(self.steps, list) else [self.steps])
-        if not step_classes_or_str:
-            return
-        self._step_classes = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
+    def prepare_step_types(self, agent: Agent):
+        self._step_classes = (
+            [a for a in agent.known_actions if not isinstance(a, FunctionSpec)] if self.use_known_actions else []
+        )
+        step_classes_or_str = self.steps if isinstance(self.steps, list) else [self.steps]
+        self._step_classes += [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]  # type: ignore
+        if not self._step_classes:
+            return []
         if self.allow_code_blocks:
             # remove PythonCodeAction from the list of step classes
             self._step_classes = [c for c in self._step_classes if c != PythonCodeAction]
-        self._name_to_cls = {c.__name__: c for c in self._step_classes}
         self._steps_type = Annotated[Union[tuple(self._step_classes)], Field(discriminator="kind")]
-
-    def add_known_actions(self, actions: list[type[Step]]):
-        if self.use_known_actions:
-            self.prepare_step_types(actions)
+        if self.use_function_calls:
+            self._tool_name_to_cls = {
+                as_openai_tool(step_cls)["function"]["name"]: step_cls for step_cls in self._step_classes
+            }
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -117,6 +121,7 @@ class StandardNode(Node):
             4. Checks token count and trims if needed
             5. Reconstructs messages if trimming occurred
         """
+        self.prepare_step_types(agent)
         cleaned_tape = self.prepare_tape(tape)
         steps_description = self.get_steps_description(tape, agent)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
@@ -127,8 +132,13 @@ class StandardNode(Node):
             self.trim_obs_except_last_n = old_trim
         prompt = Prompt(messages=messages)
         if self.use_function_calls:
-            prompt.tools = [as_openai_tool(s) for s in self._step_classes]
+            prompt.tools = self.prepare_tools(agent)
         return prompt
+
+    def prepare_tools(self, agent):
+        return [as_openai_tool(s) for s in self._step_classes] + [
+            ToolSpec(function=a).model_dump() for a in agent.known_actions if isinstance(a, FunctionSpec)
+        ]
 
     def prepare_tape(self, tape: Tape) -> Tape:
         """
@@ -284,10 +294,11 @@ class StandardNode(Node):
             yield SetNextNode(next_node=self.next_node)
 
     def tool_call_to_step(self, tool_call: ChatCompletionMessageToolCall) -> Step:
-        step_cls = self._name_to_cls.get(tool_call.function.name)
+        name = tool_call.function.name or "None"
+        step_cls = self._tool_name_to_cls.get(name)
         if step_cls is None:
             return LLMOutputParsingFailureAction(
-                error=f"Unknown tool call: {tool_call.function.name}", llm_output=tool_call
+                error=f"Unknown tool call: {tool_call.function.name}", llm_output=tool_call.model_dump_json(indent=2)
             )
         args = tool_call.function.arguments
         return step_cls.model_validate_json(args) if args else step_cls()

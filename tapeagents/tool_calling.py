@@ -151,7 +151,7 @@ class ToolResult(Observation):
     kind: Literal["tool"] = "tool"
 
 
-def as_openai_tool(action: Action) -> dict:
+def as_openai_tool(action: type[Action]) -> dict:
     schema = action.model_json_schema()
     props = schema["properties"]
     props.pop("metadata", None)
