@@ -4,11 +4,14 @@ defaults:
   - agent: gaia
   - environment: web_mcp
 
-split: validation
-batch: 1
-retry_unsolved: false
+exp_name: mcp_test1
+exp_path: outputs/gaia/runs/${exp_name}
 
-only_tasks: # list of (level, task_num)
+split: validation
+batch: 4
+retry_unsolved: true
+
+only_tasks: #[] # list of (level, task_num)
 - [1, 0]
 # - [1, 1]
 # - [1, 2]
@@ -17,9 +20,6 @@ only_tasks: # list of (level, task_num)
 # - [1, 5]
 # - [1, 6]
 # - [1, 7]
-
-exp_name: mcp_debug_1
-exp_path: outputs/web_agent/runs/${exp_name}
 
 hydra:
   run:
