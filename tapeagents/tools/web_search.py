@@ -9,6 +9,7 @@ from typing import Literal
 import requests
 from pydantic import BaseModel, ConfigDict, Field
 from tapeagents.llms.cached import CachedLLM
+from tapeagents.llms.lite import LiteLLM
 from termcolor import colored
 
 from tapeagents.core import Action, Observation, Prompt
@@ -76,7 +77,7 @@ def safe_search(query: str, private_context: list[str] = [], max_results: int = 
     """
     Perform a web search with safe search enabled.
     """
-    llm = CachedLLM(model_name="gpt-4o-mini-2024-07-18", parameters={"temperature": 0.2}, context_size=128000)
+    llm = LiteLLM(model_name="gpt-4o-mini-2024-07-18", parameters={"temperature": 0.2}, context_size=128000)
 
     private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
     prompt = f"""
@@ -94,7 +95,7 @@ Answer directly with the new query and nothing else.
 """
     new_query = llm.quick_response(prompt)
     
-    logger.warning(f'Rewriting old query to new query: "{query}" -> "{new_query}"')
+    logger.warning(f'SAFE_SEARCH: Rewriting old query to new query: "{query}" -> "{new_query}"')
     
     results = web_search(new_query, max_results=max_results)
     return results
