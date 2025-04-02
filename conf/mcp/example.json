@@ -1,0 +1,41 @@
+{
+    "mcpServers": {
+        "filesystem": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "/tmp/mcp/files"
+            ]
+        },
+        "fetch": {
+            "command": "uvx",
+            "args": [
+                "mcp-server-fetch"
+            ]
+        },
+        "puppeteer": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-puppeteer"
+            ]
+        },
+        "git": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "/tmp/mcp/servers/src/git",
+                "run",
+                "mcp-server-git"
+            ]
+        },
+        "memory": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-memory"
+            ]
+        }
+    }
+}
