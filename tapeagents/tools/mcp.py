@@ -120,8 +120,8 @@ class MCPEnvironment(ToolCollectionEnvironment):
     client: MCPClient
     tools: dict[str, FunctionSpec]
 
-    def __init__(self, config_path: str) -> None:
-        self.client = MCPClient(config_path)
+    def __init__(self, config_path: str = "", client: MCPClient | None = None) -> None:
+        self.client = client or MCPClient(config_path)
         self.tools = {
             tool.name: FunctionSpec(name=tool.name, description=tool.description or "", parameters=tool.inputSchema)
             for tool in self.client.tools.values()

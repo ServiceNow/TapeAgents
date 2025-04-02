@@ -73,13 +73,11 @@ class StandardNode(Node):
     use_function_calls: bool = False
     allow_code_blocks: bool = False
     _steps_type: Any = None
-    _step_classes: list[type[Action]]
-    _tool_name_to_cls: dict[str, type[Action]]
+    _step_classes: list[type[Action]] | None = None
+    _tool_name_to_cls: dict[str, type[Action]] | None = None
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        self._step_classes = []
-        self._tool_name_to_cls = {}
 
     def prepare_step_types(self, agent: Agent):
         self._step_classes = (
@@ -136,7 +134,7 @@ class StandardNode(Node):
         return prompt
 
     def prepare_tools(self, agent):
-        return [as_openai_tool(s) for s in self._step_classes] + [
+        return [as_openai_tool(s) for s in (self._step_classes or [])] + [
             ToolSpec(function=a).model_dump() for a in agent.known_actions if isinstance(a, FunctionSpec)
         ]
 
