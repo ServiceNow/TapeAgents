@@ -501,7 +501,8 @@ def batch_generate_data(
 
     ### STEP 3: compute stats ###
     end_make_data = time.time()
-    # keep track of all_sucess / any_success / no_success PER GROUP
+    sum_prompt_tokens = sum([sum(pt) for pt in prompt_tokens_stats.values()])
+    sum_output_tokens = sum([sum(ot) for ot in output_tokens_stats.values()])
     stats = {
         **{f"tape_stats/{split_name}_{k}_reward": v for k, v in calculate_stats(reward_stats).items()},
         **{f"tape_stats/{split_name}_{k}_success": v for k, v in calculate_stats(success_stats).items()},
@@ -512,8 +513,11 @@ def batch_generate_data(
             # f"execution_time/{split_name}_dumping_tapes": end_dump - start_dump,
             f"execution_time/{split_name}_make_data": end_make_data - start_make_data,
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
-            f"tape_stats/{split_name}_sum_prompt_tokens": sum([sum(pt) for pt in prompt_tokens_stats.values()]),
-            f"tape_stats/{split_name}_sum_output_tokens": sum([sum(ot) for ot in output_tokens_stats.values()]),
+            f"execution_time/{split_name}_prompt_tokens_per_sec": sum_prompt_tokens / (end_make_data - start_make_data),
+            f"execution_time/{split_name}_output_tokens_per_sec": sum_output_tokens / (end_make_data - start_make_data),
+            f"execution_time/{split_name}_total_tokens_per_sec": (sum_prompt_tokens + sum_output_tokens) / (end_make_data - start_make_data),
+            f"tape_stats/{split_name}_sum_prompt_tokens": sum_prompt_tokens,
+            f"tape_stats/{split_name}_sum_output_tokens": sum_output_tokens,
             f"tape_stats/{split_name}_all_success": np.mean([all(s) for s in success_stats.values()]),
             f"tape_stats/{split_name}_any_success": np.mean([any(s) for s in success_stats.values()]),
             f"tape_stats/{split_name}_no_success": np.mean([not any(s) for s in success_stats.values()]),
@@ -522,6 +526,7 @@ def batch_generate_data(
         **{f"llm/{split_name}_mean_{k}": np.mean(v) for k, v in all_llm_stats.items()},
         **{f"tape_timers/{split_name}_mean_{k}": np.mean(v) for k, v in all_tape_timers.items()},
     }
+
     return final_tapes, training_samples, stats
 
 
@@ -553,46 +558,8 @@ def batch_annotate_traces_with_ref_logprobs(llm: TrainableLLM, traces: List[Trai
         assert len(trace.ref_logprobs) == len(trace.logprobs), f"{len(trace.ref_logprobs)} != {len(trace.logprobs)}"
 
 
-def setup_custom_logger(name: str, log_file: str, level: int = logging.INFO) -> logging.Logger:
-    """
-    Set up a custom logger with the specified name and log file.
-    """
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-
-    # Remove existing handlers to avoid duplicates
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    # File handler
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(level)
-    file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%d/%m/%Y %H:%M:%S"
-    ))
-
-    # Stream handler
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(level)
-    stream_handler.setFormatter(logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%d/%m/%Y %H:%M:%S"
-    ))
-
-    # Add handlers to the logger
-    logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
-
-    return logger
-
-
 @hydra.main(config_path="../../../conf/", config_name="rl_webagent", version_base="1.3.2")
 def main(cfg: DictConfig):
-    # Set up the logger
-    # global logger
-    # logger = setup_custom_logger(__name__, os.path.join(cfg.output_dir, "all_logs.txt"), logging.DEBUG)
-
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.output_dir, "tapedata.sqlite")
     os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
     # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url
@@ -676,7 +643,6 @@ def main(cfg: DictConfig):
 
                 # Create test split if needed
                 if state["iteration"] % cfg.test_every_n_iterations == 0 and cfg.test_every_n_iterations > 0:
-                    # Calculate how many agents to create for this service
                     logger.info(f"[it{state['iteration']}] Creating test split with {len(test_samples)} tasks")
                     test_urls = [vllm_services[task_idx % n_services] for task_idx in range(len(test_samples))]
                     splits.append(("test", test_samples, test_urls))
@@ -685,17 +651,6 @@ def main(cfg: DictConfig):
                 for split_name, tasks, urls in splits:
                     assert len(tasks) == len(urls)
                     new_tapes, split_training_samples, stats = batch_generate_data(cfg, tasks, urls, split_name, state["iteration"])
-
-                    make_data_took = stats[f"execution_time/{split_name}_make_data"]
-                    throughput_stats = {
-                        f"{split_name}_prompt_tokens_per_sec": stats[f"{split_name}_prompt_tokens"] / make_data_took,
-                        f"{split_name}_output_tokens_per_sec": stats[f"{split_name}_output_tokens"] / make_data_took,
-                        f"{split_name}_total_tokens_per_sec": (
-                            stats[f"{split_name}_prompt_tokens"] + stats[f"{split_name}_output_tokens"]
-                        )
-                        / make_data_took,
-                    }
-                    stats.update(throughput_stats)
 
                     all_results[split_name] = {
                         "new_tapes": new_tapes,

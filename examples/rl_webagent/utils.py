@@ -269,7 +269,10 @@ def setup_logging(output_dir):
     stdout_handler.setLevel(logging.INFO)
 
     # Create formatters and set them to the handlers
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%d/%m/%Y %H:%M:%S"
+    )
 
     info_handler.setFormatter(formatter)
     debug_handler.setFormatter(formatter)
