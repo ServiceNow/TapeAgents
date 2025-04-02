@@ -349,16 +349,11 @@ class StandardNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
-        if not self._steps_type or (self.use_function_calls and not self.allow_code_blocks):
-            # just yield the reasoning thought without parsing
-            yield ReasoningThought(reasoning=llm_output)
-            return
         try:
             step_dicts = json.loads(sanitize_json_completion(llm_output))
             if isinstance(step_dicts, dict):
                 step_dicts = [step_dicts]
         except Exception as e:
-            logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
             if self.allow_code_blocks and "```" in llm_output:
                 logger.info("Parsing code blocks from LLM output")
                 for code_block in self.extract_code_blocks(llm_output):
@@ -369,11 +364,14 @@ class StandardNode(Node):
                             error=f"Unsupported code block language: {code_block.language}", llm_output=llm_output
                         )
                     else:
-                        yield PythonCodeAction(code=code_block.code)
-            else:
+                        yield PythonCodeAction(name="code.py", code=code_block.code, input_files=[])
+            elif self._steps_type:
+                logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
                 yield LLMOutputParsingFailureAction(
                     error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output
                 )
+            else:
+                yield ReasoningThought(reasoning=llm_output)
             return
 
         try:

@@ -18,9 +18,6 @@ templates:
   allowed_steps: |
     You have access to the following tools:
     {tools_description}
-    You are allowed to produce ONLY steps with the following JSON schemas:
-    {allowed_steps}
-    Do not reproduce the schema when producing steps; use it as a reference.
   format: >
     Output only a single JSON dict.
     Do not repeat the last thought again.
@@ -58,8 +55,7 @@ nodes:
     name: act
     system_prompt: ${agent.templates.system_prompt}
     guidance: |
-      Produce single next step. If the answer is ready, produce gaia_answer_action.
-      ${agent.templates.format}
+      Produce single next step. If the answer is ready, call GaiaAnswer.
     steps_prompt: ${agent.templates.allowed_steps}
     steps:
       - tapeagents.steps.ReasoningThought
