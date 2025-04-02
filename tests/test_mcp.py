@@ -1,6 +1,5 @@
 from typing import Any
 
-import pytest
 from mcp import Tool
 from mcp.types import CallToolResult, TextContent
 
@@ -54,9 +53,7 @@ class MockMCPClient(MCPClient):
                 self.tool_to_server[tool.name] = server_name
 
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
-        if tool_name not in self.tools:
-            raise Exception(f"Tool {tool_name} not found")
-
+        self.check_tool_exists(tool_name)
         # Simulate tool behavior
         if tool_name == "calculator":
             result = (
@@ -95,8 +92,29 @@ def test_mcp_env():
 
 def test_wrong_tool():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
-    with pytest.raises(Exception):
-        env.step(MCPToolCall(name="non_existent_tool", input={}))
+    obs = env.step(MCPToolCall(name="non_existent_tool", input={}))
+    assert obs.kind == "mcp_tool_result"
+    assert obs.tool_use_id is not None
+    assert isinstance(obs.result.content[0], TextContent)
+    assert obs.result.isError
+    assert obs.result.content[0].text == "Tool non_existent_tool not found"
+
+
+def test_incorrect_tool_args():
+    env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
+    obs = env.step(MCPToolCall(name="calculator", input={"operator": "add", "a": 5, "b": 3}))
+    assert obs.kind == "mcp_tool_result"
+    assert obs.tool_use_id is not None
+    assert isinstance(obs.result.content[0], TextContent)
+    assert obs.result.isError
+    assert obs.result.content[0].text == "Error executing tool calculator: KeyError 'operation'"
+
+    obs = env.step(MCPToolCall(name="calculator", input={"operation": "add", "a": 5}))
+    assert obs.kind == "mcp_tool_result"
+    assert obs.tool_use_id is not None
+    assert isinstance(obs.result.content[0], TextContent)
+    assert obs.result.isError
+    assert obs.result.content[0].text == "Error executing tool calculator: KeyError 'b'"
 
 
 def test_prompt_with_tool_calls():
