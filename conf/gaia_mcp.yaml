@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - llm: gpt4o
+  - llm: gpt4o_mini
   - agent: gaia_fcalls
   - environment: web_mcp
 

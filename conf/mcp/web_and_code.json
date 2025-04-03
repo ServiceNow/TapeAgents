@@ -1,5 +1,10 @@
 {
     "mcpServers": {
+        "serper-search": {
+            "command": "uv",
+            "args": ["run", "tapeagents/tools/mcp_servers/web_search.py"],
+            "env": {"SERPER_API_KEY": ""}
+        },
         "filesystem": {
             "command": "npx",
             "args": [
