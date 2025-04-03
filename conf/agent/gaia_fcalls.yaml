@@ -52,20 +52,13 @@ nodes:
     steps_prompt: ${agent.templates.allowed_tools}
 
   - _target_: tapeagents.nodes.StandardNode
-    name: reflect
-    system_prompt: ${agent.templates.system_prompt}
-    guidance: Describe the next step to move forward in the task. ${agent.templates.thought_format}
-    steps_prompt: ${agent.templates.allowed_tools}
-
-  - _target_: tapeagents.nodes.StandardNode
     name: act
     system_prompt: ${agent.templates.system_prompt}
-    guidance: |
-      Produce single next step. If the answer is ready, call GaiaAnswer.
+    guidance: Then produce single function call for the next step. If the answer is ready, call GaiaAnswer.
     steps:
       - tapeagents.steps.ReasoningThought
       - examples.gaia_agent.steps.ExtractedFacts
       - examples.gaia_agent.steps.GaiaAnswer
     use_known_actions: true
     use_function_calls: true
-    next_node: reflect
+    next_node: act

@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 from tapeagents.io import save_json_tape
 from tapeagents.observe import retrieve_llm_calls
 from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
+from tapeagents.tools.container_executor import init_code_sandbox
 
 from ..eval import load_dataset, task_to_observations
 from ..steps import GaiaMetadata, GaiaTape
@@ -25,6 +26,7 @@ logging.getLogger("tapeagents.agent").setLevel(logging.DEBUG)
 )
 def main(cfg: DictConfig) -> None:
     dset = load_dataset("validation")
+    init_code_sandbox(cfg.exp_path)
     tapes_dir = f"{cfg.exp_path}/tapes"
     os.makedirs(tapes_dir, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
@@ -69,6 +71,7 @@ def main(cfg: DictConfig) -> None:
 
     save_json_tape(tape, tapes_dir, tape_name)
     logger.info(f"Saved tape to {tapes_dir}/{tape_name}.json")
+    env.close()
 
 
 if __name__ == "__main__":

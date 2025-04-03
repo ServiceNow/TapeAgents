@@ -2,18 +2,16 @@ import asyncio
 import json
 import logging
 import os
-import uuid
 from contextlib import AsyncExitStack
-from typing import Any, Literal
+from typing import Any
 
 import nest_asyncio
 from mcp import ClientSession, StdioServerParameters, Tool, stdio_client
 from mcp.types import CallToolResult, TextContent
-from pydantic import Field
 
-from tapeagents.core import Action, Observation
+from tapeagents.core import Action, LLMOutputParsingFailureAction
 from tapeagents.environment import ToolCollectionEnvironment
-from tapeagents.tool_calling import FunctionSpec, ToolSpec
+from tapeagents.tool_calling import FunctionSpec, ToolCallAction, ToolResult, ToolSpec
 
 nest_asyncio.apply()
 logger = logging.getLogger(__name__)
@@ -128,19 +126,6 @@ class MCPClient:
                     pass
 
 
-class MCPToolCall(Action):
-    kind: Literal["mcp_tool_call"] = "mcp_tool_call"  # type: ignore
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    input: dict[str, Any]
-
-
-class MCPToolResult(Observation):
-    kind: Literal["mcp_tool_result"] = "mcp_tool_result"  # type: ignore
-    tool_use_id: str
-    result: CallToolResult
-
-
 class MCPEnvironment(ToolCollectionEnvironment):
     client: MCPClient
     tools: dict[str, ToolSpec]
@@ -160,27 +145,29 @@ class MCPEnvironment(ToolCollectionEnvironment):
     def tools_description(self) -> str:
         return "\n".join(f"{spec.function.name} - {spec.function.description}" for spec in self.tools.values())
 
-    def step(self, action: MCPToolCall) -> MCPToolResult:
+    def step(self, action: ToolCallAction) -> ToolResult:
+        if isinstance(action, LLMOutputParsingFailureAction):
+            return ToolResult(tool_call_id="", content="Try again")
         try:
-            result = asyncio.run(self.client.call_tool(action.name, action.input))
+            result = asyncio.run(self.client.call_tool(action.function.name, action.function.arguments))
         except NoTool:
-            logger.exception(f"Tool {action.name} not found in MCP client")
+            logger.exception(f"Tool {action.function.name} not found in MCP client")
             result = CallToolResult(
-                content=[TextContent(type="text", text=f"Tool {action.name} not found")], isError=True
+                content=[TextContent(type="text", text=f"Tool {action.function.name} not found")], isError=True
             )
         except KeyError as e:
             logger.exception(f"KeyError when executing MCP tool call: {e}")
             result = CallToolResult(
-                content=[TextContent(type="text", text=f"Error executing tool {action.name}: KeyError {e}")],
+                content=[TextContent(type="text", text=f"Error executing tool {action.function.name}: KeyError {e}")],
                 isError=True,
             )
         except Exception as e:
             logger.exception(f"Error executing MCP tool call: {e}")
             result = CallToolResult(
-                content=[TextContent(type="text", text=f"Error executing tool {action.name}: {str(e)}")],
+                content=[TextContent(type="text", text=f"Error executing tool {action.function.name}: {str(e)}")],
                 isError=True,
             )
-        return MCPToolResult(tool_use_id=action.id, result=result)
+        return ToolResult(tool_call_id=action.id, content=result)
 
     def close(self) -> None:
         try:

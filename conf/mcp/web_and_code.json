@@ -5,25 +5,10 @@
             "args": ["run", "tapeagents/tools/mcp_servers/web_search.py"],
             "env": {"SERPER_API_KEY": ""}
         },
-        "filesystem": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@modelcontextprotocol/server-filesystem",
-                "/tmp/mcp/files"
-            ]
-        },
         "fetch": {
             "command": "uvx",
             "args": [
                 "mcp-server-fetch"
-            ]
-        },
-        "puppeteer": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@modelcontextprotocol/server-puppeteer"
             ]
         },
         "python_exec": {

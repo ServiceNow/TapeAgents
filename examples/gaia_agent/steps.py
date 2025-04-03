@@ -15,7 +15,6 @@ from tapeagents.core import (
 )
 from tapeagents.dialog_tape import DialogContext, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
-from tapeagents.mcp import MCPToolCall, MCPToolResult
 from tapeagents.steps import (
     ActionExecutionFailure,
     ImageObservation,
@@ -23,6 +22,7 @@ from tapeagents.steps import (
     VideoObservation,
     WatchVideoAction,
 )
+from tapeagents.tool_calling import ToolCallAction, ToolResult
 from tapeagents.tools.browser import (
     ClickAction,
     GoBackAction,
@@ -158,8 +158,8 @@ GaiaStep: TypeAlias = Union[
     LLMOutputParsingFailureAction,
     SetNextNode,
     UserStep,
-    MCPToolCall,
-    MCPToolResult,
+    ToolCallAction,
+    ToolResult,
 ]
 
 

@@ -9,7 +9,7 @@ import jsonref
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
-from tapeagents.core import Action, Observation
+from tapeagents.core import Action, Observation, Step
 from tapeagents.llms import LLMOutput
 
 logger = logging.getLogger(__name__)
@@ -84,6 +84,12 @@ class ToolCall(BaseModel):
     type: str = "function"
 
 
+class ToolCallAction(Action):
+    kind: Literal["tool_call"] = "tool_call"  # type: ignore
+    id: str = ""
+    function: FunctionCall
+
+
 class ToolCalls(Action):
     """Action that wraps one-or-many tool calls.
 
@@ -152,7 +158,7 @@ class ToolResult(Observation):
     kind: Literal["tool"] = "tool"
 
 
-def as_openai_tool(action: type[Action] | ToolSpec, decription_chars_limit: int = 1024) -> ToolSpec:
+def as_openai_tool(action: type[Step] | ToolSpec, decription_chars_limit: int = 1024) -> ToolSpec:
     if isinstance(action, ToolSpec):
         return action
     schema = action.model_json_schema()

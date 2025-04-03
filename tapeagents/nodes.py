@@ -26,9 +26,8 @@ from tapeagents.core import (
 from tapeagents.dialog_tape import UserStep
 from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
-from tapeagents.mcp import MCPToolCall
 from tapeagents.steps import BranchStep, ReasoningThought
-from tapeagents.tool_calling import ToolSpec, as_openai_tool
+from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolSpec, as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
@@ -74,19 +73,22 @@ class StandardNode(Node):
     use_function_calls: bool = False
     allow_code_blocks: bool = False
     _steps_type: Any = None
+    _steps: list[Type[Step] | ToolSpec] = None  # type: ignore
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
 
-    def prepare_step_types(self, agent: Agent):
+    def prepare_step_types(self, agent: Agent) -> list[Type[Step] | ToolSpec]:
         step_classes_or_str = self.steps if isinstance(self.steps, list) else [self.steps]
-        step_classes = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
+        steps = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
         if self.use_known_actions:
-            step_classes += [a for a in agent.known_actions if not isinstance(a, ToolSpec)]
+            steps += [a for a in agent.known_actions if not isinstance(a, ToolSpec)]
         if self.allow_code_blocks:
-            step_classes.remove(PythonCodeAction)
-        if step_classes:
-            self._steps_type = Annotated[Union[tuple(step_classes)], Field(discriminator="kind")]
+            steps.remove(PythonCodeAction)
+
+        if steps and not self.use_function_calls:
+            self._steps_type = Annotated[Union[tuple(steps)], Field(discriminator="kind")]
+        return steps + [a for a in agent.known_actions if isinstance(a, ToolSpec)]
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -111,8 +113,7 @@ class StandardNode(Node):
             4. Checks token count and trims if needed
             5. Reconstructs messages if trimming occurred
         """
-        if not self.use_function_calls:
-            self.prepare_step_types(agent)
+        self._steps = self.prepare_step_types(agent)
         steps_description = self.get_steps_description(tape, agent)
         cleaned_tape = self.prepare_tape(tape)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
@@ -121,7 +122,7 @@ class StandardNode(Node):
             self.trim_obs_except_last_n = 1
             messages = self.tape_to_messages(cleaned_tape, steps_description)
             self.trim_obs_except_last_n = old_trim
-        tools = [as_openai_tool(t).model_dump() for t in agent.known_actions] if self.use_function_calls else None
+        tools = [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls else None
         prompt = Prompt(messages=messages, tools=tools)
         logger.debug(colored(f"PROMPT tools:\n{prompt.tools}", "red"))
         for i, m in enumerate(prompt.messages):
@@ -288,18 +289,17 @@ class StandardNode(Node):
     def tool_call_to_step(self, agent: Agent, tool_call: ChatCompletionMessageToolCall) -> Step:
         name = tool_call.function.name or "None"
         tool_to_cls = {
-            as_openai_tool(t).function.name: (MCPToolCall if isinstance(t, ToolSpec) else t)
-            for t in agent.known_actions
+            as_openai_tool(s).function.name: (ToolCallAction if isinstance(s, ToolSpec) else s) for s in self._steps
         }
         step_cls = tool_to_cls.get(name)
         if step_cls is None:
             step = LLMOutputParsingFailureAction(
                 error=f"Unknown tool call: {name}", llm_output=tool_call.model_dump_json(indent=2)
             )
-        elif step_cls == MCPToolCall:
+        elif step_cls == ToolCallAction:
             try:
                 args = json.loads(tool_call.function.arguments)
-                step = MCPToolCall(id=tool_call.id, name=name, input=args)
+                step = ToolCallAction(id=tool_call.id, function=FunctionCall(name=name, arguments=args))
             except json.JSONDecodeError:
                 step = LLMOutputParsingFailureAction(
                     error=f"Failed to parse tool call arguments: {tool_call.function.arguments}",

@@ -8,8 +8,9 @@ from tapeagents.agent import Agent
 from tapeagents.core import Tape
 from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import MockLLM
-from tapeagents.mcp import MCPClient, MCPEnvironment, MCPToolCall, MCPToolResult
+from tapeagents.mcp import MCPClient, MCPEnvironment
 from tapeagents.nodes import StandardNode
+from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolResult
 
 MOCK_TOOLS = {
     "server1": [
@@ -72,50 +73,54 @@ class MockMCPClient(MCPClient):
 def test_mcp_env():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
 
-    obs = env.step(MCPToolCall(name="calculator", input={"operation": "add", "a": 5, "b": 3}))
-    assert obs.kind == "mcp_tool_result"
-    assert obs.tool_use_id is not None
-    assert isinstance(obs.result.content[0], TextContent)
-    assert obs.result.content[0].text == "8"
+    obs = env.step(
+        ToolCallAction(function=FunctionCall(name="calculator", arguments={"operation": "add", "a": 5, "b": 3}))
+    )
+    assert obs.kind == "tool"
+    assert obs.tool_call_id is not None
+    assert isinstance(obs.content.content[0], TextContent)
+    assert obs.content.content[0].text == "8"
 
-    obs = env.step(MCPToolCall(name="greeter", input={"name": "Alice"}))
-    assert obs.kind == "mcp_tool_result"
-    assert obs.tool_use_id is not None
-    assert isinstance(obs.result.content[0], TextContent)
-    assert obs.result.content[0].text == "Hello, Alice!"
+    obs = env.step(ToolCallAction(function=FunctionCall(name="greeter", arguments={"name": "Alice"})))
+    assert obs.kind == "tool"
+    assert obs.tool_call_id is not None
+    assert isinstance(obs.content.content[0], TextContent)
+    assert obs.content.content[0].text == "Hello, Alice!"
 
-    obs = env.step(MCPToolCall(name="echo", input={"message": "Hello, World!"}))
-    assert obs.kind == "mcp_tool_result"
-    assert obs.tool_use_id is not None
-    assert isinstance(obs.result.content[0], TextContent)
-    assert obs.result.content[0].text == "Hello, World!"
+    obs = env.step(ToolCallAction(function=FunctionCall(name="echo", arguments={"message": "Hello, World!"})))
+    assert obs.kind == "tool"
+    assert obs.tool_call_id is not None
+    assert isinstance(obs.content.content[0], TextContent)
+    assert obs.content.content[0].text == "Hello, World!"
 
 
 def test_wrong_tool():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
-    obs = env.step(MCPToolCall(name="non_existent_tool", input={}))
-    assert obs.kind == "mcp_tool_result"
-    assert obs.tool_use_id is not None
-    assert isinstance(obs.result.content[0], TextContent)
-    assert obs.result.isError
-    assert obs.result.content[0].text == "Tool non_existent_tool not found"
+    obs = env.step(ToolCallAction(function=FunctionCall(name="non_existent_tool", arguments={})))
+    assert obs.kind == "tool"
+    assert obs.tool_call_id is not None
+    assert isinstance(obs.content.content[0], TextContent)
+    assert obs.content.isError
+    assert obs.content.content[0].text == "Tool non_existent_tool not found"
 
 
 def test_incorrect_tool_args():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
-    obs = env.step(MCPToolCall(name="calculator", input={"operator": "add", "a": 5, "b": 3}))
-    assert obs.kind == "mcp_tool_result"
-    assert obs.tool_use_id is not None
-    assert isinstance(obs.result.content[0], TextContent)
-    assert obs.result.isError
-    assert obs.result.content[0].text == "Error executing tool calculator: KeyError 'operation'"
+    obs = env.step(
+        ToolCallAction(function=FunctionCall(name="calculator", arguments={"operator": "add", "a": 5, "b": 3}))
+    )
+    assert obs.kind == "tool"
+    assert obs.tool_call_id is not None
+    assert isinstance(obs.content.content[0], TextContent)
+    assert obs.content.isError
+    assert obs.content.content[0].text == "Error executing tool calculator: KeyError 'operation'"
 
-    obs = env.step(MCPToolCall(name="calculator", input={"operation": "add", "a": 5}))
-    assert obs.kind == "mcp_tool_result"
-    assert obs.tool_use_id is not None
-    assert isinstance(obs.result.content[0], TextContent)
-    assert obs.result.isError
-    assert obs.result.content[0].text == "Error executing tool calculator: KeyError 'b'"
+    obs = env.step(ToolCallAction(function=FunctionCall(name="calculator", arguments={"operation": "add", "a": 5})))
+    assert obs.kind == "tool"
+    assert obs.tool_call_id is not None
+    assert isinstance(obs.content.content[0], TextContent)
+    assert obs.content.isError
+    assert obs.content.content[0].text == "Error executing tool calculator: KeyError 'b'"
 
 
 def test_prompt_with_tool_calls():
@@ -184,17 +189,17 @@ def test_tool_use_parsing():
     assert len(agent_tape) == 3
     call_step = agent_tape[-1]
 
-    assert isinstance(call_step, MCPToolCall)
-    assert call_step.name == "calculator"
-    assert len(call_step.input) == 3
-    assert call_step.input["operation"] == "add"
-    assert call_step.input["a"] == 9
-    assert call_step.input["b"] == 2
+    assert isinstance(call_step, ToolCallAction)
+    assert call_step.function.name == "calculator"
+    assert len(call_step.function.arguments) == 3
+    assert call_step.function.arguments["operation"] == "add"
+    assert call_step.function.arguments["a"] == 9
+    assert call_step.function.arguments["b"] == 2
 
     final_tape = env.react(agent_tape)
     assert len(final_tape) == 4
     obs = final_tape.steps[-1]
-    assert isinstance(obs, MCPToolResult)
-    assert obs.tool_use_id == call_step.id
-    assert isinstance(obs.result.content[0], TextContent)
-    assert obs.result.content[0].text == "11"
+    assert isinstance(obs, ToolResult)
+    assert obs.tool_call_id == call_step.id
+    assert isinstance(obs.content.content[0], TextContent)
+    assert obs.content.content[0].text == "11"

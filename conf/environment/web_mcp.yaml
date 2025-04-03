@@ -1,2 +1,2 @@
-_target_: tapeagents.tools.mcp.MCPEnvironment
+_target_: tapeagents.mcp.MCPEnvironment
 config_path: conf/mcp/web_and_code.json
