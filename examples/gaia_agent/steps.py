@@ -105,16 +105,22 @@ class GaiaQuestion(Observation):
 
 class GaiaAnswer(StopStep):
     """
-    Action for task completion, with answer or failure description. Numbers should be plain numeric values without commas or units unless specified.
-    Strings should avoid articles/abbreviations unless specified. Lists should be comma-separated.
-    Final answer must follow any formatting instructions (units, rounding, decimal places, etc.) from original question.
-    Use empty string if unable to determine answer.
+    Action that indicates the agent has finished the plan and contains the answer or description of failure.
+    The answer should use already determined facts without additional conversion!
+    Your final answer should be a number OR as few words as possible OR a comma-separated list of numbers and/or strings.
+    ADDITIONALLY, your final answer MUST follow any formatting instructions specified in the original question (e.g., alphabetization, sequencing, units, rounding, decimal places, etc.)
+    If asked for a number, express it numerically, don't use commas, do not add anything after the number, don't include units such as $ or percent signs unless specified otherwise in the question.
+    If asked for a string, don't use articles or abbreviations (e.g. for cities), unless specified otherwise. Don't output any final sentence punctuation such as '.', '!', or '?'.
+    If asked for a comma-separated list, apply the above rules depending on whether the elements are numbers or strings.
+    If unable to determine the final answer, output an empty string.
     """
 
     kind: Literal["gaia_answer_action"] = "gaia_answer_action"
-    success: bool
-    overview: str = Field(description="Short summary of the steps taken, or failure description if unsuccessful")
-    answer_unit: str = Field(description="Unit of measurement for the answer or empty string")
+    success: bool = Field(description="True if the task was successful, False otherwise")
+    overview: str = Field(
+        description="List of steps performed to answer the question. If the task was not successful, includes the reason for failure"
+    )
+    answer_unit: str = Field(description="Unit of measurement for the answer, if applicable; otherwise an empty string")
     answer: Any = Field(description="Short final answer")
     long_answer: str = Field(description="Detailed final answer not restricted by format rules")
 

@@ -80,9 +80,8 @@ class StandardNode(Node):
 
     def prepare_step_types(self, agent: Agent) -> list[Type[Step] | ToolSpec]:
         step_classes_or_str = self.steps if isinstance(self.steps, list) else [self.steps]
-        steps = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
-        if self.use_known_actions:
-            steps += [a for a in agent.known_actions if not isinstance(a, ToolSpec)]
+        steps = [a for a in agent.known_actions if not isinstance(a, ToolSpec)] if self.use_known_actions else []
+        steps += [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
         if self.allow_code_blocks:
             steps.remove(PythonCodeAction)
 
