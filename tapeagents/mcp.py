@@ -13,7 +13,7 @@ from pydantic import Field
 
 from tapeagents.core import Action, Observation
 from tapeagents.environment import ToolCollectionEnvironment
-from tapeagents.tool_calling import FunctionSpec
+from tapeagents.tool_calling import FunctionSpec, ToolSpec
 
 nest_asyncio.apply()
 logger = logging.getLogger(__name__)
@@ -143,20 +143,22 @@ class MCPToolResult(Observation):
 
 class MCPEnvironment(ToolCollectionEnvironment):
     client: MCPClient
-    tools: dict[str, FunctionSpec]
+    tools: dict[str, ToolSpec]
 
     def __init__(self, config_path: str = "", client: MCPClient | None = None) -> None:
         self.client = client or MCPClient(config_path)
         self.tools = {
-            tool.name: FunctionSpec(name=tool.name, description=tool.description or "", parameters=tool.inputSchema)
+            tool.name: ToolSpec(
+                function=FunctionSpec(name=tool.name, description=tool.description or "", parameters=tool.inputSchema)
+            )
             for tool in self.client.tools.values()
         }
 
-    def actions(self) -> tuple[type[Action] | FunctionSpec, ...]:
+    def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
         return tuple(self.tools.values())
 
     def tools_description(self) -> str:
-        return "\n".join(f"{spec.name} - {spec.description}" for spec in self.tools.values())
+        return "\n".join(f"{spec.function.name} - {spec.function.description}" for spec in self.tools.values())
 
     def step(self, action: MCPToolCall) -> MCPToolResult:
         try:

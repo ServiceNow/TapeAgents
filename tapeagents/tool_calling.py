@@ -152,7 +152,9 @@ class ToolResult(Observation):
     kind: Literal["tool"] = "tool"
 
 
-def as_openai_tool(action: Action) -> dict:
+def as_openai_tool(action: type[Action] | ToolSpec, decription_chars_limit: int = 1024) -> ToolSpec:
+    if isinstance(action, ToolSpec):
+        return action
     schema = action.model_json_schema()
     schema: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
     schema.pop("$defs", None)
@@ -162,13 +164,13 @@ def as_openai_tool(action: Action) -> dict:
     name = schema["title"]
     description = schema.get("description", "")
     if name.lower().endswith("action"):
-        name = name[:-6]
+        name = name[:-6]  # len("action")
     elif name.lower().endswith("thought"):
         name = f"Produce{name}"
         description = f"Produce {description}"
-    if len(description) > 1024:
-        description = description[:1024]
-        logger.warning(f"Description of {name} truncated to 1024 characters: {description}")
+    if len(description) > decription_chars_limit:  # OAI limit
+        description = description[:decription_chars_limit]
+        logger.warning(f"Description of {name} truncated to {decription_chars_limit} characters: {description}")
     return ToolSpec(
         function=FunctionSpec(
             name=name,
@@ -179,7 +181,7 @@ def as_openai_tool(action: Action) -> dict:
                 "required": schema.get("required", []),
             },
         )
-    ).model_dump()
+    )
 
 
 def as_function_call(action: Action) -> str:

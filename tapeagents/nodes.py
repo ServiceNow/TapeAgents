@@ -12,7 +12,6 @@ from pydantic import Field, TypeAdapter, ValidationError
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import (
-    Action,
     AgentStep,
     LLMOutputParsingFailureAction,
     Observation,
@@ -28,7 +27,7 @@ from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.mcp import MCPToolCall
 from tapeagents.steps import BranchStep, ReasoningThought
-from tapeagents.tool_calling import FunctionSpec, ToolSpec, as_openai_tool
+from tapeagents.tool_calling import ToolSpec, as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
@@ -74,30 +73,19 @@ class StandardNode(Node):
     use_function_calls: bool = False
     allow_code_blocks: bool = False
     _steps_type: Any = None
-    _step_classes: list[type[Action]] | None = None
-    _tool_name_to_cls: dict[str, type[Action]] | None = None
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
 
     def prepare_step_types(self, agent: Agent):
-        self._step_classes = (
-            [a for a in agent.known_actions if not isinstance(a, FunctionSpec)] if self.use_known_actions else []
-        )
         step_classes_or_str = self.steps if isinstance(self.steps, list) else [self.steps]
-        self._step_classes += [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]  # type: ignore
-        if not self._step_classes:
-            self._step_classes = []
+        step_classes = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
+        if self.use_known_actions:
+            step_classes += [a for a in agent.known_actions if not isinstance(a, ToolSpec)]
         if self.allow_code_blocks:
-            # remove PythonCodeAction from the list of step classes
-            self._step_classes = [c for c in self._step_classes if c != PythonCodeAction]
-        self._steps_type = (
-            Annotated[Union[tuple(self._step_classes)], Field(discriminator="kind")] if self._step_classes else None
-        )
-        if self.use_function_calls:
-            self._tool_name_to_cls = {
-                as_openai_tool(step_cls)["function"]["name"]: step_cls for step_cls in self._step_classes
-            } | {a.name: MCPToolCall for a in agent.known_actions if isinstance(a, FunctionSpec)}
+            step_classes.remove(PythonCodeAction)
+        if step_classes:
+            self._steps_type = Annotated[Union[tuple(step_classes)], Field(discriminator="kind")]
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -122,24 +110,18 @@ class StandardNode(Node):
             4. Checks token count and trims if needed
             5. Reconstructs messages if trimming occurred
         """
-        self.prepare_step_types(agent)
-        cleaned_tape = self.prepare_tape(tape)
+        if not self.use_function_calls:
+            self.prepare_step_types(agent)
         steps_description = self.get_steps_description(tape, agent)
+        cleaned_tape = self.prepare_tape(tape)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         if agent.llms[self.llm].count_tokens(messages) > (agent.llms[self.llm].context_size - 500):
             old_trim = self.trim_obs_except_last_n
             self.trim_obs_except_last_n = 1
             messages = self.tape_to_messages(cleaned_tape, steps_description)
             self.trim_obs_except_last_n = old_trim
-        prompt = Prompt(messages=messages)
-        if self.use_function_calls:
-            prompt.tools = self.prepare_tools(agent)
-        return prompt
-
-    def prepare_tools(self, agent):
-        return [as_openai_tool(s) for s in (self._step_classes or [])] + [
-            ToolSpec(function=a).model_dump() for a in agent.known_actions if isinstance(a, FunctionSpec)
-        ]
+        tools = [as_openai_tool(t).model_dump() for t in agent.known_actions] if self.use_known_actions else None
+        return Prompt(messages=messages, tools=tools)
 
     def prepare_tape(self, tape: Tape) -> Tape:
         """
