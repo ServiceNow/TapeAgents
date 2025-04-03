@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -5,6 +6,7 @@ import hydra
 from omegaconf import DictConfig
 
 from tapeagents.io import save_json_tape
+from tapeagents.observe import retrieve_llm_calls
 from tapeagents.orchestrator import get_agent_and_env_from_config, main_loop
 
 from ..eval import load_dataset, task_to_observations
@@ -12,6 +14,8 @@ from ..steps import GaiaMetadata, GaiaTape
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.getLogger("tapeagents.nodes").setLevel(logging.DEBUG)
+logging.getLogger("tapeagents.agent").setLevel(logging.DEBUG)
 
 
 @hydra.main(
@@ -37,10 +41,11 @@ def main(cfg: DictConfig) -> None:
             step = event.agent_event.step
             step_count += 1
             logger.info(f"{step_count} RUN {step.metadata.agent}:{step.metadata.node}")
-            # llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
-            # if llm_calls:
-            #     for i, m in enumerate(llm_calls[0].prompt.messages):
-            #         logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
+            llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
+            if llm_calls:
+                for i, m in enumerate(llm_calls[0].prompt.messages):
+                    msg = f"PROMPT M{i+1}: {json.dumps(m, indent=2)}"
+                    # logger.info(msg)
             logger.info(f"{step_count} STEP of {step.metadata.agent}:{step.metadata.node}")
             logger.info(step.llm_view())
             input("Press Enter to continue...")

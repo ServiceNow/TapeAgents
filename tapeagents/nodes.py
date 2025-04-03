@@ -9,6 +9,7 @@ from typing import Annotated, Any, Generator, Type, Union
 
 from litellm import ChatCompletionMessageToolCall
 from pydantic import Field, TypeAdapter, ValidationError
+from termcolor import colored
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import (
@@ -120,8 +121,12 @@ class StandardNode(Node):
             self.trim_obs_except_last_n = 1
             messages = self.tape_to_messages(cleaned_tape, steps_description)
             self.trim_obs_except_last_n = old_trim
-        tools = [as_openai_tool(t).model_dump() for t in agent.known_actions] if self.use_known_actions else None
-        return Prompt(messages=messages, tools=tools)
+        tools = [as_openai_tool(t).model_dump() for t in agent.known_actions] if self.use_function_calls else None
+        prompt = Prompt(messages=messages, tools=tools)
+        logger.debug(colored(f"PROMPT tools:\n{prompt.tools}", "red"))
+        for i, m in enumerate(prompt.messages):
+            logger.debug(colored(f"PROMPT M{i+1}, {m['role']}:\n{m['content']}", "red"))
+        return prompt
 
     def prepare_tape(self, tape: Tape) -> Tape:
         """
@@ -259,14 +264,18 @@ class StandardNode(Node):
             if not event.output:
                 continue
             if event.output.content:
+                logger.debug(colored(f"LLM output:\n{event.output.content}", "cyan"))
                 new_steps += list(self.parse_completion(event.output.content))
-            if event.output.tool_calls and self.use_function_calls:
-                new_steps += [self.tool_call_to_step(tool_call) for tool_call in event.output.tool_calls]
+            if event.output.tool_calls:
+                logger.debug(colored(f"LLM tool calls:\n{event.output.tool_calls}", "cyan"))
+                new_steps += [self.tool_call_to_step(agent, tool_call) for tool_call in event.output.tool_calls]
             for i, step in enumerate(new_steps):
                 yield self.postprocess_step(tape, new_steps[:i], step)
                 if isinstance(step, LLMOutputParsingFailureAction):
                     yield SetNextNode(next_node=self.name)  # loop to the same node to retry
                     break
+            if not new_steps:
+                logger.warning(f"Empty llm output?\n{event.output}")
         if not new_steps:
             raise FatalError("No completions!")
         if (
@@ -276,9 +285,12 @@ class StandardNode(Node):
         ):
             yield SetNextNode(next_node=self.next_node)
 
-    def tool_call_to_step(self, tool_call: ChatCompletionMessageToolCall) -> Step:
+    def tool_call_to_step(self, agent: Agent, tool_call: ChatCompletionMessageToolCall) -> Step:
         name = tool_call.function.name or "None"
-        tool_to_cls = self._tool_name_to_cls or {}
+        tool_to_cls = {
+            as_openai_tool(t).function.name: (MCPToolCall if isinstance(t, ToolSpec) else t)
+            for t in agent.known_actions
+        }
         step_cls = tool_to_cls.get(name)
         if step_cls is None:
             step = LLMOutputParsingFailureAction(
