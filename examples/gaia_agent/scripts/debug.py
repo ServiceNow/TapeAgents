@@ -25,6 +25,7 @@ logging.getLogger("tapeagents.agent").setLevel(logging.DEBUG)
     config_name="agent_debug",
 )
 def main(cfg: DictConfig) -> None:
+    log_prompts = False
     dset = load_dataset("validation")
     init_code_sandbox(cfg.exp_path)
     tapes_dir = f"{cfg.exp_path}/tapes"
@@ -35,7 +36,7 @@ def main(cfg: DictConfig) -> None:
     tasks = dset[level]
     task = tasks[task]
     agent, env = get_agent_and_env_from_config(cfg)
-    tape = GaiaTape(steps=task_to_observations(task))
+    tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
     tape.metadata = GaiaMetadata.model_validate(tape.metadata.model_dump() | {"task": task, "level": level})
     step_count = 0
     for event in main_loop(agent, tape, env, max_loops=50):
@@ -43,11 +44,11 @@ def main(cfg: DictConfig) -> None:
             step = event.agent_event.step
             step_count += 1
             logger.info(f"{step_count} RUN {step.metadata.agent}:{step.metadata.node}")
-            llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
-            if llm_calls:
-                for i, m in enumerate(llm_calls[0].prompt.messages):
-                    msg = f"PROMPT M{i+1}: {json.dumps(m, indent=2)}"
-                    # logger.info(msg)
+            if log_prompts:
+                llm_calls = retrieve_llm_calls(step.metadata.prompt_id)
+                if llm_calls:
+                    for i, m in enumerate(llm_calls[0].prompt.messages):
+                        logger.info(f"PROMPT M{i+1}: {json.dumps(m, indent=2)}")
             logger.info(f"{step_count} STEP of {step.metadata.agent}:{step.metadata.node}")
             logger.info(step.llm_view())
             input("Press Enter to continue...")
