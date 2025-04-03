@@ -32,6 +32,7 @@ class MCPClient:
         self.exit_stacks: dict[str, AsyncExitStack] = {}
         self.tools: dict[str, Tool] = {}
         self.tool_to_server: dict[str, str] = {}
+        self._cleanup_lock: asyncio.Lock = asyncio.Lock()
         asyncio.run(self.start_servers())
 
     async def start_servers(self):
@@ -59,12 +60,21 @@ class MCPClient:
         servers: dict[str, StdioServerParameters] = {}
         for server_name, server_config_dict in server_configs.items():
             try:
+                server_config_dict = self.prepare_env_vars(server_config_dict)
                 server_params = StdioServerParameters.model_validate(server_config_dict)
             except Exception as e:
                 raise ValueError(f"Failed to parse server config {server_config_dict}: {e}")
             servers[server_name] = server_params
         logger.info(f"Loaded {len(servers)} MCP server configs from {config_path}")
         return servers
+
+    def prepare_env_vars(self, server_config_dict: dict) -> dict:
+        if server_env := server_config_dict.get("env"):
+            for env_var, env_value in server_env.items():
+                if env_var in os.environ and not env_value:  # reuse existing env var value if not set in config
+                    logger.info(f"Set mcp server env var {env_var} from current environment")
+                    server_config_dict["env"][env_var] = os.environ[env_var]
+        return server_config_dict
 
     async def connect_to_server(self, server_name: str, server_params: StdioServerParameters):
         try:
@@ -107,9 +117,15 @@ class MCPClient:
             raise NoTool(f"Tool {tool_name} not found in any of the MCP servers")
         return server_name
 
-    def close(self):
-        # TODO: close all sessions and exit stacks
-        pass
+    async def close(self) -> None:
+        """Clean up resources."""
+        async with self._cleanup_lock:
+            for server_name, exit_stack in self.exit_stacks.items():
+                try:
+                    await exit_stack.aclose()
+                    del self.sessions[server_name]
+                except Exception:
+                    pass
 
 
 class MCPToolCall(Action):
@@ -165,4 +181,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
         return MCPToolResult(tool_use_id=action.id, result=result)
 
     def close(self) -> None:
-        self.client.close()
+        try:
+            asyncio.run(self.client.close())
+        except Exception:
+            pass
