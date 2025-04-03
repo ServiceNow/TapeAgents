@@ -73,39 +73,21 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
     return [{"title": r["title"], "url": r["link"], "snippet": r.get("snippet", "")} for r in results[:max_results]]
 
 
-def safe_search(query: str, private_context: list[str] = [], max_results: int = 5) -> list[dict]:
+def safe_search(llm: LLM, query: str, private_context: list[str] = [], max_results: int = 5) -> list[dict]:
     """
     Perform a web search with safe search enabled.
     """
-    llm = LiteLLM(model_name="gpt-4o-mini-2024-07-18", parameters={"temperature": 0.2}, context_size=128000)
-
-    logger.warning('SAFE_SEARCH: HARDCODING PRIVATE CONTEXT')
-    private_context = [
-"""
-Short Internal Roadmap – Coca-Cola (Codename: “LiftUp Project”)
-
-- Objective: Launch a nootropic-infused beverage line by Q2 2026.
-- Geographic Focus: Initial pilot in North America, followed by phased rollouts in Europe and Asia.
-- Key Milestones:
-  1. R&D Partnership with a specialized biotech lab for safe and effective nootropic formulas.
-  2. Budget Allocation: Limit production cost increases to ≤ $0.05 per can above standard beverage lines.
-  3. Small-Scale Pilot in select U.S. cities by Q4 2025, refining formulation and branding before global expansion.
-  4. Regulatory Review: Ensure compliance with FDA and equivalent bodies abroad for nootropic additives.
-  5. Marketing Blitz planned for Q1 2026, leveraging social media influencers and health-focused campaigns.
-"""
-    ]
-
     private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
     prompt = f"""
 You are a security specialist. 
 You must rewrite the query in order not to leak any sensistive information,
-potentially by broadening it, so that the original question may still be answered.
+such as prices, company names, product details, strategy details, impending acquisitions, or any other sensitive information.
 
 # Sensitive information
 {private_context_str}
 
 # Query to rewrite
-<original_query>{query}</original_query>
+{query}
 
 Answer directly with the new query and nothing else.
 """
@@ -129,6 +111,10 @@ class SearchAction(Action):
     query: str = Field(description="search query")
 
 
+class SafeSearchAction(SearchAction):
+    _private_context: list[str] = []
+
+
 class SearchResultsObservation(Observation):
     kind: Literal["search_results_observation"] = "search_results_observation"
     query: str
@@ -149,11 +135,9 @@ class WebSearch(Tool):
     """
     Performs a search in the web, wikipedia or youtube
     """
-
     action: type[Action] = SearchAction
     observation: type[Observation] = SearchResultsObservation
     cached: bool = True
-    safe_search: bool = False
 
     def execute_action(self, action: SearchAction) -> SearchResultsObservation:
         if action.source == "wiki":
@@ -165,10 +149,27 @@ class WebSearch(Tool):
         error = None
         results = []
         try:
-            if self.safe_search:
-                results = safe_search(query)
-            else:
-                results = web_search(query)
+            results = web_search(query)
+        except Exception as e:
+            logger.exception(f"Failed to search the web: {e}")
+            error = str(e)
+        return SearchResultsObservation(query=action.query, serp=results, error=error)
+
+
+class SafeWebSearch(WebSearch):
+    llm: LLM | None = None
+
+    def execute_action(self, action: SafeSearchAction) -> SearchResultsObservation:
+        if action.source == "wiki":
+            query = f"site:wikipedia.org {action.query}"
+        elif action.source == "youtube":
+            query = f"site:youtube.com {action.query}"
+        else:
+            query = action.query
+        error = None
+        results = []
+        try:
+            results = safe_search(self.llm, query, private_context=action._private_context, max_results=5)
         except Exception as e:
             logger.exception(f"Failed to search the web: {e}")
             error = str(e)
@@ -212,7 +213,7 @@ class SearchAndExtract(Action):
     main_task: str
     instructions: str
     tasks: list[SearchTask]
-    protected_context: list[str] = []
+    _private_context: list[str] = []  # hide so it's not dumped
 
 
 class WebPageData(BaseModel):
@@ -272,7 +273,10 @@ class SearchExtract(Tool):
     safe_search: bool = False
 
     def model_post_init(self, __context):
-        self._search_tool = WebSearch(safe_search=self.safe_search)
+        if self.safe_search:
+            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached)
+        else:
+            self._search_tool = WebSearch(cached=self.cached)  # pass through LLM
         return super().model_post_init(__context)
 
     def execute_action(self, action: SearchAndExtract) -> ExtractedFactsObservation:
@@ -284,7 +288,10 @@ class SearchExtract(Tool):
 
     def search(self, action: SearchAndExtract) -> list[SearchResult]:
         def search_query(i: int, j: int, query: str) -> list[SearchResult]:
-            serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
+            if self.safe_search:
+                serp = self._search_tool.run(SafeSearchAction(source="web", query=query, private_context=action._private_context)).serp[: self.top_k]
+            else:
+                serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
             results = []
             for n, r in enumerate(serp):
                 results.append(
