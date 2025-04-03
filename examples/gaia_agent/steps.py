@@ -15,6 +15,7 @@ from tapeagents.core import (
 )
 from tapeagents.dialog_tape import DialogContext, UserStep
 from tapeagents.environment import CodeExecutionResult, ExecuteCode
+from tapeagents.mcp import MCPToolCall, MCPToolResult
 from tapeagents.steps import (
     ActionExecutionFailure,
     ImageObservation,
@@ -38,7 +39,6 @@ from tapeagents.tools.browser import (
 )
 from tapeagents.tools.calculator import CalculationResultObservation
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.mcp import MCPToolCall, MCPToolResult
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction, ReadDocumentAction
 from tapeagents.tools.web_search import SearchAction, SearchResultsObservation
 

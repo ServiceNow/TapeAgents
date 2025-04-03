@@ -26,10 +26,10 @@ from tapeagents.core import (
 from tapeagents.dialog_tape import UserStep
 from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
+from tapeagents.mcp import MCPToolCall
 from tapeagents.steps import BranchStep, ReasoningThought
 from tapeagents.tool_calling import FunctionSpec, ToolSpec, as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.tools.mcp import MCPToolCall
 from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
 

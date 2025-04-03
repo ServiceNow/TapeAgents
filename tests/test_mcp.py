@@ -8,8 +8,8 @@ from tapeagents.agent import Agent
 from tapeagents.core import Tape
 from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import MockLLM
+from tapeagents.mcp import MCPClient, MCPEnvironment, MCPToolCall, MCPToolResult
 from tapeagents.nodes import StandardNode
-from tapeagents.tools.mcp import MCPClient, MCPEnvironment, MCPToolCall, MCPToolResult
 
 MOCK_TOOLS = {
     "server1": [
