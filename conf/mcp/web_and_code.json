@@ -11,6 +11,13 @@
                 "mcp-server-fetch"
             ]
         },
+        "puppeteer": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-puppeteer"
+            ]
+        },
         "python_exec": {
             "command": "npx",
             "args": [

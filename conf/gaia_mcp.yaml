@@ -4,22 +4,22 @@ defaults:
   - agent: gaia_fcalls
   - environment: web_mcp
 
-exp_name: mcp_test1
+exp_name: mcp_test2
 exp_path: outputs/gaia/runs/${exp_name}
 
 split: validation
-batch: 4
+batch: 2
 retry_unsolved: true
 
 only_tasks: #[] # list of (level, task_num)
 - [1, 0]
-# - [1, 1]
-# - [1, 2]
-# - [1, 3]
-# - [1, 4]
-# - [1, 5]
-# - [1, 6]
-# - [1, 7]
+- [1, 1]
+- [1, 2]
+- [1, 3]
+- [1, 4]
+- [1, 5]
+- [1, 6]
+- [1, 7]
 
 hydra:
   run:
