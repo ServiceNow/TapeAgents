@@ -5,10 +5,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable, Literal
 
+import jsonref
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
-from tapeagents.core import Action, Observation
+from tapeagents.core import Action, Observation, Step
 from tapeagents.llms import LLMOutput
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,12 @@ class ToolCall(BaseModel):
     type: str = "function"
 
 
+class ToolCallAction(Action):
+    kind: Literal["tool_call"] = "tool_call"  # type: ignore
+    id: str = ""
+    function: FunctionCall
+
+
 class ToolCalls(Action):
     """Action that wraps one-or-many tool calls.
 
@@ -151,16 +158,25 @@ class ToolResult(Observation):
     kind: Literal["tool"] = "tool"
 
 
-def as_openai_tool(action: Action) -> dict:
+def as_openai_tool(action: type[Step] | ToolSpec, decription_chars_limit: int = 1024) -> ToolSpec:
+    if isinstance(action, ToolSpec):
+        return action
     schema = action.model_json_schema()
+    schema: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
+    schema.pop("$defs", None)
     props = schema["properties"]
     props.pop("metadata", None)
     props.pop("kind", None)
     name = schema["title"]
     description = schema.get("description", "")
-    if len(description) > 1024:
-        description = description[:1024]
-        logger.warning(f"Description of {name} truncated to 1024 characters: {description}")
+    if name.lower().endswith("action"):
+        name = name[:-6]  # len("action")
+    elif name.lower().endswith("thought"):
+        name = f"Produce{name}"
+        description = f"Produce {description}"
+    if len(description) > decription_chars_limit:  # OAI limit
+        description = description[:decription_chars_limit]
+        logger.warning(f"Description of {name} truncated to {decription_chars_limit} characters: {description}")
     return ToolSpec(
         function=FunctionSpec(
             name=name,
@@ -171,7 +187,7 @@ def as_openai_tool(action: Action) -> dict:
                 "required": schema.get("required", []),
             },
         )
-    ).model_dump()
+    )
 
 
 def as_function_call(action: Action) -> str:

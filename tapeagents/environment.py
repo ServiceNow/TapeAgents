@@ -167,10 +167,10 @@ class ToolCollectionEnvironment(Environment):
             if isinstance(tool, StatefulTool):
                 self.action_map |= {action: tool for action in tool.actions}
 
-    def actions(self) -> tuple[type[Action], ...]:
+    def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
         return tuple(self.action_map.keys())
 
-    def tools_description(self) -> list[str]:
+    def tools_description(self) -> str:
         desc_list = [tool.description() for tool in self.tools]
         return "\n".join(f"- {desc}" for desc in desc_list)
 
