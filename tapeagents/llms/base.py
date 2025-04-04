@@ -166,6 +166,14 @@ class LLM(BaseModel, ABC):
         """
         pass
 
+    def quick_response(self, text_prompt: str) -> str:
+        prompt = Prompt(messages=[{"role": "user", "content": text_prompt}])
+        outputs = []
+        for e in self.generate(prompt):
+            if e.output:
+                outputs.append(e.output.content)
+        return "".join(outputs)
+
     def get_info(self) -> dict:
         return {
             "model_name": self.model_name,

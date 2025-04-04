@@ -50,6 +50,9 @@ class UserStep(Observation):
     content: str
     kind: Literal["user"] = "user"
 
+    def llm_view(self) -> str:
+        return self.content
+
 
 class AssistantThought(Thought):
     """

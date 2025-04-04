@@ -1,10 +1,9 @@
-# TODO: define type signature for tools including JSONSchema and etc
-
 from __future__ import annotations
 
 import logging
 from typing import Any, Callable, Literal
 
+import jsonref
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import BaseModel
 
@@ -153,11 +152,18 @@ class ToolResult(Observation):
 
 def as_openai_tool(action: Action) -> dict:
     schema = action.model_json_schema()
+    schema: dict = dict(jsonref.replace_refs(schema, proxies=False))
+    schema.pop("$defs", None)
     props = schema["properties"]
     props.pop("metadata", None)
     props.pop("kind", None)
     name = schema["title"]
     description = schema.get("description", "")
+    if name.lower().endswith("action"):
+        name = name[:-6]
+    elif name.lower().endswith("thought"):
+        name = f"Produce{name}"
+        description = f"Produce {description}"
     if len(description) > 1024:
         description = description[:1024]
         logger.warning(f"Description of {name} truncated to 1024 characters: {description}")
@@ -198,7 +204,7 @@ def as_function_def(action: Action) -> str:
         ptype = type_aliases.get(param_spec["type"], param_spec["type"])
         fdef += f"{param}: {ptype}, "
     fdef = fdef[:-2] + "):"
-    fdef += f"\n    \"\"\"{tool_spec['function']['description']}\n"
+    fdef += f'\n    """{tool_spec["function"]["description"]}\n'
     for param, param_spec in tool_spec["function"]["parameters"]["properties"].items():
         fdef += f"    {param}: {param_spec['description']}\n"
     fdef += '    """\n'
