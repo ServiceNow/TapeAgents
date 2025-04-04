@@ -73,30 +73,6 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
     return [{"title": r["title"], "url": r["link"], "snippet": r.get("snippet", "")} for r in results[:max_results]]
 
 
-def safe_search(llm: LLM, query: str, private_context: list[str] = [], max_results: int = 5) -> list[dict]:
-    """
-    Perform a web search with safe search enabled.
-    """
-    private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
-    prompt = f"""
-You are a security specialist. 
-You must rewrite the query in order not to leak any sensistive information,
-such as prices, company names, product details, strategy details, impending acquisitions, or any other sensitive information.
-
-# Sensitive information
-{private_context_str}
-
-# Query to rewrite
-{query}
-
-Answer directly with the new query and nothing else.
-"""
-    new_query = llm.quick_response(prompt)
-    
-    logger.warning(f'SAFE_SEARCH: Rewriting old query to new query: "{query}" -> "{new_query}"')
-    
-    results = web_search(new_query, max_results=max_results)
-    return results
 
 
 class SearchAction(Action):
@@ -129,6 +105,40 @@ class SearchResultsObservation(Observation):
         short = json.dumps(view, indent=2, ensure_ascii=False)
         logger.info(f"SearchResultsObservation long view was {len(self.llm_view())} chars, short view is {len(short)}")
         return short
+    
+
+class SafeSearchResultsObservation(SearchResultsObservation):
+    query_rewritten: bool = False
+    old_query: str
+
+
+def safe_search(llm: LLM, query: str, private_context: list[str] = [], max_results: int = 5) -> "SafeSearchResultsObservation":
+    """
+    Perform a web search with safe search enabled.
+    """
+    private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
+    prompt = f"""
+You are a security specialist. 
+You must rewrite the query in order not to leak any sensistive information,
+such as prices, company names, product details, strategy details, impending acquisitions, or any other sensitive information.
+
+# Sensitive information
+{private_context_str}
+
+# Query to rewrite
+{query}
+
+Answer directly with the new query and nothing else.
+"""
+    new_query = llm.quick_response(prompt)
+    
+    logger.warning(f'SAFE_SEARCH: Rewriting old query to new query: "{query}" -> "{new_query}"')
+    
+    results = web_search(new_query, max_results=max_results)
+
+    result_obs = SafeSearchResultsObservation(query=new_query, query_rewritten=True, old_query=query, serp=results)
+
+    return result_obs
 
 
 class WebSearch(Tool):
@@ -167,13 +177,14 @@ class SafeWebSearch(WebSearch):
         else:
             query = action.query
         error = None
-        results = []
+        result_obs = SafeSearchResultsObservation(old_query=action.query, query='', query_rewritten=False, serp=[])
         try:
-            results = safe_search(self.llm, query, private_context=action._private_context, max_results=5)
+            result_obs = safe_search(self.llm, query, private_context=action._private_context, max_results=5)
         except Exception as e:
             logger.exception(f"Failed to search the web: {e}")
             error = str(e)
-        return SearchResultsObservation(query=action.query, serp=results, error=error)
+            result_obs.error = error
+        return result_obs
 
 
 class SuperSearch(WebSearch):
