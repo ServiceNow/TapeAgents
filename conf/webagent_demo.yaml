@@ -1,0 +1,46 @@
+defaults:
+  # - llm: gpt4o_mini
+  - _self_
+
+model_path: /mnt/llmd/base_models/Llama-3.1-8B-Instruct
+llm:
+  parameters:
+    temperature: 0.0
+    max_tokens: 3072
+    top_p: 1.0
+    top_k: 50
+
+# exp_name: gpt4o_mini_t0
+exp_name: llama3_8b_t0_2025-03-13
+exp_path: outputs/evaluate_webagent/${exp_name}
+
+env:
+  exp_path: ${exp_path}
+  headless: True
+# seeds: [0]
+seeds: [0, 42, 1337, 900, 103]
+
+environment_variables:
+  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
+  # snow_instance_url: ???
+  # snow_instance_uname: ???
+  # snow_instance_pwd: ???
+
+vllm_config:
+  vllm_kwargs:
+    download-dir: /mnt/llmd/base_models/
+    gpu-memory-utilization: 0.9
+    num-scheduler-steps: 16
+    disable-log-requests: ""
+    max-num-seqs: 1024
+    enforce-eager: ""
+    return-tokens-as-token-ids: ""
+    pipeline-parallel-size: 1
+    tensor-parallel-size: 1
+  actor_vllm_kwargs:
+    num-scheduler-steps: 16
+
+hydra:
+  run:
+    dir: ${exp_path}

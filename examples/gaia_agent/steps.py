@@ -24,12 +24,12 @@ from tapeagents.steps import (
 )
 from tapeagents.tool_calling import ToolCallAction, ToolResult
 from tapeagents.tools.browser import (
-    ClickAction,
+    ClickBIDAction,
     GoBackAction,
     GoForwardAction,
     HoverAction,
     InputTextAction,
-    MouseClickAction,
+    ClickElementAction,
     MouseHoverAction,
     OpenUrlAction,
     PageScreenshotObservation,
@@ -128,13 +128,13 @@ class GaiaAnswer(StopStep):
 THOUGHTS = (ReasoningThought, GaiaAnswer)
 GaiaStep: TypeAlias = Union[
     ExtractedFacts,
-    ClickAction,
+    ClickBIDAction,
     OpenUrlAction,
     GoBackAction,
     GoForwardAction,
     HoverAction,
     InputTextAction,
-    MouseClickAction,
+    ClickElementAction,
     MouseHoverAction,
     TypeTextAction,
     PressAction,
