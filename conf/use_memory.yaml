@@ -5,24 +5,21 @@ defaults:
 environment:
   _target_: tapeagents.environment.ToolCollectionEnvironment
   tools:
-    - _target_: tapeagents.tools.document_reader.DocumentReader
-      file_converter_options:
-        _target_: tapeagents.tools.converters.FileConverterOptions
-        pdf_converter:
-          _target_: tapeagents.tools.converters.PdfDoclingConverter
-        docx_converter:
-          _target_: tapeagents.tools.converters.DocxDoclingConverter
+    - _target_: tapeagents.tools.calculator.Calculator
+    - _target_: tapeagents.tools.memory.MemoryTool
 
 agent:
   _target_: tapeagents.agent.Agent
-  name: document_agent
+  name: calculator_agent
   max_iterations: 2
   llms:
     default: ${llm}
   templates:
     system_prompt: |
-      You will help the user to extract information from files.
-      Use as many relevant tools as possible to include more details and facts in your responses.
+      You will help the user perform calculations.
+      When you perform a calculation, store the results in memory.
+      Before performing any calculation, check if the result is already in memory.
+      If you encounter the same calculation request, you can use the result from memory instead of performing the calculation.
     allowed_tools: |
       You have access to the following tools:
       {tools_description}
@@ -44,9 +41,7 @@ agent:
       name: act
       system_prompt: ${agent.templates.system_prompt}
       guidance: |
-        You have access to tools to read and convert files that contain useful information. Never call the same tool twice.
-        The first step should be to simply read the data in the file.
-        The second step should be to return the data to the user.
+        You have access to tools to perform calculations. You have access to memory where you can store calculations and retrieve calculation results.
         ${agent.templates.format}
       steps_prompt: ${agent.templates.allowed_steps}
       steps:

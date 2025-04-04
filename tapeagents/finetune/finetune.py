@@ -11,10 +11,7 @@ import torch
 from hydra import compose, initialize
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf, open_dict
-from transformers import (
-    get_scheduler,
-    set_seed,
-)
+from transformers import get_scheduler, set_seed
 
 from tapeagents.core import TrainingText
 
@@ -26,7 +23,7 @@ from .checkpoints import (
     save_model_and_tokenizer,
     save_training_state,
 )
-from .context import accelerator, logger
+from .context import get_accelerator, logger
 from .data import create_dataloader, prepare_dataloaders
 from .eval import evaluate_and_get_metrics
 from .logging_ import log_metrics, log_time, setup_logging
@@ -49,8 +46,9 @@ def run_finetuning_loop(
     interrupt_train_steps: int = -1,
     wandb_run=None,
 ):
+    time_stats = {}
     dt = time.perf_counter()
-    num_processes = accelerator.state.num_processes  # type: ignore
+    num_processes = get_accelerator().state.num_processes  # type: ignore
     args = cfg.finetune if "finetune" in cfg else cfg
     eval_fn = instantiate(args.eval_callback)
     if training_samples:
@@ -87,6 +85,13 @@ def run_finetuning_loop(
 
     args.gradient_accumulation_passes //= num_processes
     samples_per_pass = num_processes * args.train_batch_size
+    if (ds_plugin := get_accelerator().state.deepspeed_plugin) is not None:
+        logger.info("Manual inform Deepspeed about micro batch size and gradient accumulation")
+        ds_plugin.deepspeed_config["train_micro_batch_size_per_gpu"] = args.train_batch_size
+        ds_plugin.deepspeed_config["gradient_accumulation_steps"] = args.gradient_accumulation_passes
+        if args.gradient_clipping_threshold:
+            ds_plugin.deepspeed_config["gradient_clipping"] = args.gradient_clipping_threshold
+
     set_seed(args.seed)
 
     # using a subfolder makes "safe" overwriting possible
@@ -95,19 +100,19 @@ def run_finetuning_loop(
     training_state_dir = output_dir / "training_state"
     log_dir = output_dir / "logs"
 
-    if args.force_restart and accelerator.is_main_process:
+    if args.force_restart and get_accelerator().is_main_process:
         remove_results(current_dir, intermediate_root_dir, training_state_dir, log_dir)
 
     # Logging
     setup_logging(cfg, output_dir, run=wandb_run)
-    logger.info(accelerator.state)
+    logger.info(get_accelerator().state)
     logger.info(f"Saving experiment to {output_dir}")
-    dt = log_time(dt, "finetune/startup")
+    dt = log_time(dt, time_stats, "finetune/startup")
 
     tokenizer = load_tokenizer(args.config_name)
     model = load_model(args, model_class, current_dir)
 
-    dt = log_time(dt, "finetune/model_load")
+    dt = log_time(dt, time_stats, "finetune/model_load")
 
     forward = lambda model, batch: (model(**batch).loss, {})  # noqa: E731
     rl_data_callback = None
@@ -138,8 +143,8 @@ def run_finetuning_loop(
             is_rl=is_rl,
         )
 
-    accelerator.wait_for_everyone()
-    dt = log_time(dt, "finetune/data_load")
+    get_accelerator().wait_for_everyone()
+    dt = log_time(dt, time_stats, "finetune/data_load")
 
     optimizer = get_optimizer(args.optim, model, args.learning_rate, args.weight_decay)
     lr_scheduler = get_scheduler(args.lr_scheduler_type, optimizer, args.num_warmup_steps, args.max_train_steps)
@@ -152,7 +157,7 @@ def run_finetuning_loop(
         eval_dataloader,
         dev_dataloader,
         lr_scheduler,
-    ) = accelerator.prepare(model, optimizer, train_dataloader, eval_dataloader, dev_dataloader, lr_scheduler)
+    ) = get_accelerator().prepare(model, optimizer, train_dataloader, eval_dataloader, dev_dataloader, lr_scheduler)
 
     training_metrics = TrainingMetrics()
     rl_metrics = defaultdict(list)
@@ -161,7 +166,7 @@ def run_finetuning_loop(
         training_metrics = load_training_state(training_state_dir, model, optimizer, lr_scheduler, training_metrics)
         training_metrics.lr = optimizer.param_groups[0]["lr"]
         logger.info("LR after loading training state: %.2E" % training_metrics.lr)
-        dt = log_time(dt, "finetune/training_state_load")
+        dt = log_time(dt, time_stats, "finetune/training_state_load")
 
     @contextlib.contextmanager
     def toggle_sync(sync: bool):
@@ -169,7 +174,7 @@ def run_finetuning_loop(
         if sync:
             yield  # do not enforce no_sync mode
         else:
-            with accelerator.no_sync(model):
+            with get_accelerator().no_sync(model):
                 yield
 
     final_train_steps = calculate_train_steps(args, interrupt_train_steps)
@@ -179,7 +184,7 @@ def run_finetuning_loop(
 
     logger.info("Start training")
     model.train()
-    dt = log_time(dt, "finetune/prepare_training")
+    dt = log_time(dt, time_stats, "finetune/prepare_training")
     last_dataloader_position = training_metrics.passes % len(train_dataloader)
     while training_metrics.completed_steps < final_train_steps:
         training_metrics.epoch = training_metrics.passes // len(train_dataloader)
@@ -211,7 +216,7 @@ def run_finetuning_loop(
                 training_metrics.lr = optimizer.param_groups[0]["lr"]
                 training_metrics.max_batch_len = max(batch["input_ids"].shape[1], training_metrics.max_batch_len)
                 training_metrics.min_batch_len = min(batch["input_ids"].shape[1], training_metrics.min_batch_len)
-                accelerator.backward(loss / args.gradient_accumulation_passes)
+                get_accelerator().backward(loss / args.gradient_accumulation_passes)
 
             if not do_optimizer_step:
                 continue
@@ -219,7 +224,7 @@ def run_finetuning_loop(
             # All gradients have been accumulated, we can now do an optimizer step
             training_metrics.completed_steps += 1
             if args.gradient_clipping_threshold:
-                grad_norm = accelerator.clip_grad_norm_(model.parameters(), args.gradient_clipping_threshold)
+                grad_norm = get_accelerator().clip_grad_norm_(model.parameters(), args.gradient_clipping_threshold)
                 # grad_norm is None when using DeepSpeed
                 training_metrics.grad_norm = grad_norm.item() if grad_norm else -1.0
             optimizer.step()
@@ -236,7 +241,7 @@ def run_finetuning_loop(
             )
             time_to_save = time_to_save and not time_to_stop
             if time_to_log or time_to_save:
-                dt = log_time(dt, "finetune/interim_eval")
+                dt = log_time(dt, time_stats, "finetune/interim_eval")
                 metrics_dict.update(
                     {
                         "stats/lr": training_metrics.lr,
@@ -301,20 +306,20 @@ def run_finetuning_loop(
                         args.lora.enabled,
                         safe_serialization=args.use_safetensors,
                     )
-                    dt = log_time(dt, "finetune/interim_save")
+                    dt = log_time(dt, time_stats, "finetune/interim_save")
                     try:
                         # run external evaluation callback on a saved checkpoint
-                        if accelerator.is_main_process:
+                        if get_accelerator().is_main_process:
                             external_metrics = eval_fn(str(intermediate_dir))
                             metrics_dict.update({f"eval/{k}": v for k, v in external_metrics.items()})
                     except Exception as e:
                         logger.error(f"Failed to run eval on checkpoint {intermediate_dir}: {e}")
-                    dt = log_time(dt, "finetune/external_eval")
+                    dt = log_time(dt, time_stats, "finetune/external_eval")
 
                 if args.cuda_empty_cache:
                     torch.cuda.empty_cache()
 
-            accelerator.wait_for_everyone()  # wait for the main process that saves the model and runs eval
+            get_accelerator().wait_for_everyone()  # wait for the main process that saves the model and runs eval
             if len(metrics_dict):
                 log_metrics(logger, training_metrics.completed_steps, metrics_dict)
 
@@ -323,12 +328,12 @@ def run_finetuning_loop(
                 break
 
         logger.info(f"epoch {training_metrics.epoch} ended")
-    dt = log_time(dt, "finetune/train_loop")
+    dt = log_time(dt, time_stats, "finetune/train_loop")
 
     # save the last checkpoint
     logger.info("Final model evaluation")
     training_metrics = evaluate_and_get_metrics(args, model, eval_dataloader, dev_dataloader, training_metrics)
-    dt = log_time(dt, "finetune/final_eval")
+    dt = log_time(dt, time_stats, "finetune/final_eval")
 
     logger.info("Final model saving")
     save_model_and_tokenizer(
@@ -338,12 +343,12 @@ def run_finetuning_loop(
         args.lora.enabled,
         safe_serialization=args.use_safetensors,
     )
-    dt = log_time(dt, "finetune/final_save")
+    dt = log_time(dt, time_stats, "finetune/final_save")
     if args.save_final_training_state:
         save_training_state(training_state_dir, model, optimizer, lr_scheduler, asdict(training_metrics))
-        dt = log_time(dt, "finetune/final_training_state_save")
+        dt = log_time(dt, time_stats, "finetune/final_training_state_save")
 
-    if accelerator.is_main_process:
+    if get_accelerator().is_main_process:
         with open(output_dir / "summary.json", "w") as wf:
             json.dump(asdict(training_metrics), wf, indent=4, sort_keys=True)
         if is_rl:
