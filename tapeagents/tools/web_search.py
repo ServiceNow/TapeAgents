@@ -184,7 +184,8 @@ class ExtractedFactsObservation(Observation):
             for page in pages:
                 page_strs.append(f"Page [{page.title}][{page.url}]:\n{page.content}\n--------")
             task_facts.append(prefix + "\n\n".join(page_strs) + "\n</FACTS>")
-        return "\n\n".join(task_facts)
+        facts = "\n\n".join(task_facts)
+        return f"<FACTS_COLLECTION>Extracted facts:\n{facts}\n</FACTS_COLLECTION>"
 
     def short_view(self):
         tasks = "\n".join(self.page_facts.keys())
