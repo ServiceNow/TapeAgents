@@ -31,6 +31,7 @@ from tapeagents.core import (
 )
 from tapeagents.llms import LLM, LLMCall, LLMEvent, LLMOutput, LLMStream
 from tapeagents.observe import observe_llm_call
+from tapeagents.tool_calling import ToolSpec
 from tapeagents.view import TapeViewStack
 
 DEFAULT = "default"
@@ -201,7 +202,7 @@ class Agent(BaseModel, Generic[TapeType]):
         default_factory=lambda: [],
         description="List of nodes in the agent, order of the list used to determine the priority during activation. Nodes must have unique names.",
     )
-    known_actions: list[type[Action]] = Field(default_factory=list)
+    known_actions: list[type[Action] | ToolSpec] = Field(default_factory=list)
     tools_description: str = ""
     max_iterations: int = 100
     store_llm_calls: bool = False
@@ -238,10 +239,15 @@ class Agent(BaseModel, Generic[TapeType]):
                 raise ValueError(
                     f"Node {node.name} references unknown LLM {node.llm}. Known LLMs: {list(self.llms.keys())}"
                 )
-            if hasattr(node, "add_known_actions"):
-                node.add_known_actions(self.known_actions)
             node_names.add(node.name)
+        self.update_subagents()
         return super().model_post_init(__context)
+
+    def update_subagents(self):
+        for subagent in self.subagents:
+            subagent.tools_description = self.tools_description
+            subagent.known_actions = self.known_actions
+            subagent.update_subagents()
 
     @property
     def manager(self):

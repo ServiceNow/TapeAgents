@@ -9,6 +9,7 @@ from typing import Annotated, Any, Generator, Type, Union
 
 from litellm import ChatCompletionMessageToolCall
 from pydantic import Field, TypeAdapter, ValidationError
+from termcolor import colored
 
 from tapeagents.agent import Agent, Node
 from tapeagents.core import (
@@ -26,7 +27,7 @@ from tapeagents.dialog_tape import UserStep
 from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import BranchStep, ReasoningThought
-from tapeagents.tool_calling import as_openai_tool
+from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolSpec, as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.utils import FatalError, class_for_name, sanitize_json_completion
 from tapeagents.view import Call, Respond, TapeViewStack
@@ -72,27 +73,21 @@ class StandardNode(Node):
     use_function_calls: bool = False
     allow_code_blocks: bool = False
     _steps_type: Any = None
-    _step_classes: list[type[Step]] | None = None
+    _steps: list[Type[Step] | ToolSpec] = None  # type: ignore
 
     def model_post_init(self, __context: Any) -> None:
-        self.prepare_step_types()
         super().model_post_init(__context)
 
-    def prepare_step_types(self, actions: list[type[Step]] = None):
-        actions = actions or []
-        step_classes_or_str = actions + (self.steps if isinstance(self.steps, list) else [self.steps])
-        if not step_classes_or_str:
-            return
-        self._step_classes = [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
+    def prepare_step_types(self, agent: Agent) -> list[Type[Step] | ToolSpec]:
+        step_classes_or_str = self.steps if isinstance(self.steps, list) else [self.steps]
+        steps = [a for a in agent.known_actions if not isinstance(a, ToolSpec)] if self.use_known_actions else []
+        steps += [class_for_name(step) if isinstance(step, str) else step for step in step_classes_or_str]
         if self.allow_code_blocks:
-            # remove PythonCodeAction from the list of step classes
-            self._step_classes = [c for c in self._step_classes if c != PythonCodeAction]
-        self._name_to_cls = {c.__name__: c for c in self._step_classes}
-        self._steps_type = Annotated[Union[tuple(self._step_classes)], Field(discriminator="kind")]
+            steps.remove(PythonCodeAction)
 
-    def add_known_actions(self, actions: list[type[Step]]):
-        if self.use_known_actions:
-            self.prepare_step_types(actions)
+        if steps and not self.use_function_calls:
+            self._steps_type = Annotated[Union[tuple(steps)], Field(discriminator="kind")]
+        return steps + [a for a in agent.known_actions if isinstance(a, ToolSpec)]
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -117,17 +112,20 @@ class StandardNode(Node):
             4. Checks token count and trims if needed
             5. Reconstructs messages if trimming occurred
         """
-        cleaned_tape = self.prepare_tape(tape)
+        self._steps = self.prepare_step_types(agent)
         steps_description = self.get_steps_description(tape, agent)
+        cleaned_tape = self.prepare_tape(tape)
         messages = self.tape_to_messages(cleaned_tape, steps_description)
         if agent.llms[self.llm].count_tokens(messages) > (agent.llms[self.llm].context_size - 500):
             old_trim = self.trim_obs_except_last_n
             self.trim_obs_except_last_n = 1
             messages = self.tape_to_messages(cleaned_tape, steps_description)
             self.trim_obs_except_last_n = old_trim
-        prompt = Prompt(messages=messages)
-        if self.use_function_calls:
-            prompt.tools = [as_openai_tool(s) for s in self._step_classes]
+        tools = [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls else None
+        prompt = Prompt(messages=messages, tools=tools)
+        logger.debug(colored(f"PROMPT tools:\n{prompt.tools}", "red"))
+        for i, m in enumerate(prompt.messages):
+            logger.debug(colored(f"PROMPT M{i+1}, {m['role']}:\n{m['content']}", "red"))
         return prompt
 
     def prepare_tape(self, tape: Tape) -> Tape:
@@ -266,14 +264,18 @@ class StandardNode(Node):
             if not event.output:
                 continue
             if event.output.content:
+                logger.debug(colored(f"LLM output:\n{event.output.content}", "cyan"))
                 new_steps += list(self.parse_completion(event.output.content))
-            if event.output.tool_calls and self.use_function_calls:
-                new_steps += [self.tool_call_to_step(tool_call) for tool_call in event.output.tool_calls]
+            if event.output.tool_calls:
+                logger.debug(colored(f"LLM tool calls:\n{event.output.tool_calls}", "cyan"))
+                new_steps += [self.tool_call_to_step(agent, tool_call) for tool_call in event.output.tool_calls]
             for i, step in enumerate(new_steps):
                 yield self.postprocess_step(tape, new_steps[:i], step)
                 if isinstance(step, LLMOutputParsingFailureAction):
                     yield SetNextNode(next_node=self.name)  # loop to the same node to retry
                     break
+            if not new_steps:
+                logger.warning(f"Empty llm output?\n{event.output}")
         if not new_steps:
             raise FatalError("No completions!")
         if (
@@ -283,14 +285,29 @@ class StandardNode(Node):
         ):
             yield SetNextNode(next_node=self.next_node)
 
-    def tool_call_to_step(self, tool_call: ChatCompletionMessageToolCall) -> Step:
-        step_cls = self._name_to_cls.get(tool_call.function.name)
+    def tool_call_to_step(self, agent: Agent, tool_call: ChatCompletionMessageToolCall) -> Step:
+        name = tool_call.function.name or "None"
+        tool_to_cls = {
+            as_openai_tool(s).function.name: (ToolCallAction if isinstance(s, ToolSpec) else s) for s in self._steps
+        }
+        step_cls = tool_to_cls.get(name)
         if step_cls is None:
-            return LLMOutputParsingFailureAction(
-                error=f"Unknown tool call: {tool_call.function.name}", llm_output=tool_call
+            step = LLMOutputParsingFailureAction(
+                error=f"Unknown tool call: {name}", llm_output=tool_call.model_dump_json(indent=2)
             )
-        args = tool_call.function.arguments
-        return step_cls.model_validate_json(args) if args else step_cls()
+        elif step_cls == ToolCallAction:
+            try:
+                args = json.loads(tool_call.function.arguments)
+                step = ToolCallAction(id=tool_call.id, function=FunctionCall(name=name, arguments=args))
+            except json.JSONDecodeError:
+                step = LLMOutputParsingFailureAction(
+                    error=f"Failed to parse tool call arguments: {tool_call.function.arguments}",
+                    llm_output=tool_call.model_dump_json(indent=2),
+                )
+        else:
+            args = tool_call.function.arguments
+            step = step_cls.model_validate_json(args) if args else step_cls()
+        return step
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
         """
@@ -325,16 +342,11 @@ class StandardNode(Node):
             All parsing errors are handled internally and yielded as
             LLMOutputParsingFailureAction objects.
         """
-        if not self._steps_type or (self.use_function_calls and not self.allow_code_blocks):
-            # just yield the reasoning thought without parsing
-            yield ReasoningThought(reasoning=llm_output)
-            return
         try:
             step_dicts = json.loads(sanitize_json_completion(llm_output))
             if isinstance(step_dicts, dict):
                 step_dicts = [step_dicts]
         except Exception as e:
-            logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
             if self.allow_code_blocks and "```" in llm_output:
                 logger.info("Parsing code blocks from LLM output")
                 for code_block in self.extract_code_blocks(llm_output):
@@ -345,11 +357,14 @@ class StandardNode(Node):
                             error=f"Unsupported code block language: {code_block.language}", llm_output=llm_output
                         )
                     else:
-                        yield PythonCodeAction(code=code_block.code)
-            else:
+                        yield PythonCodeAction(name="code.py", code=code_block.code, input_files=[])
+            elif self._steps_type:
+                logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
                 yield LLMOutputParsingFailureAction(
                     error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output
                 )
+            else:
+                yield ReasoningThought(reasoning=llm_output)
             return
 
         try:
