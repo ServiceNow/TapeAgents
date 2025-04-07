@@ -108,8 +108,8 @@ class SearchResultsObservation(Observation):
     
 
 class SafeSearchResultsObservation(SearchResultsObservation):
-    query_rewritten: bool = False
-    old_query: str
+    safe_search: bool = False
+    safe_query: str = ""
 
 
 def safe_search(llm: LLM, query: str, private_context: list[str] = [], max_results: int = 5) -> "SafeSearchResultsObservation":
@@ -130,13 +130,13 @@ such as prices, company names, product details, strategy details, impending acqu
 
 Answer directly with the new query and nothing else.
 """
-    new_query = llm.quick_response(prompt)
+    safe_query = llm.quick_response(prompt)
     
-    logger.warning(f'SAFE_SEARCH: Rewriting old query to new query: "{query}" -> "{new_query}"')
+    logger.warning(f'SAFE_SEARCH: Rewriting old query to new query: "{query}" -> "{safe_query}"')
     
-    results = web_search(new_query, max_results=max_results)
+    results = web_search(safe_query, max_results=max_results)
 
-    result_obs = SafeSearchResultsObservation(query=new_query, query_rewritten=True, old_query=query, serp=results)
+    result_obs = SafeSearchResultsObservation(safe_query=safe_query, query_rewritten=True, query=query, serp=results)
 
     return result_obs
 
@@ -177,7 +177,7 @@ class SafeWebSearch(WebSearch):
         else:
             query = action.query
         error = None
-        result_obs = SafeSearchResultsObservation(old_query=action.query, query='', query_rewritten=False, serp=[])
+        result_obs = SafeSearchResultsObservation(query=action.query, safe_query="", safe_search=True, serp=[])
         try:
             result_obs = safe_search(self.llm, query, private_context=action._private_context, max_results=5)
         except Exception as e:
@@ -264,6 +264,11 @@ class SearchResult(BaseModel):
     snippet: str
     text: str = ""
 
+    # Additional fields for safe search
+    query: str = ""
+    safe_query: str = ""
+    safe_search: bool = False
+
 
 class SearchExtract(Tool):
     """
@@ -299,15 +304,20 @@ class SearchExtract(Tool):
 
     def search(self, action: SearchAndExtract) -> list[SearchResult]:
         def search_query(i: int, j: int, query: str) -> list[SearchResult]:
+            results = []
             if self.safe_search:
-                serp = self._search_tool.run(SafeSearchAction(source="web", query=query, private_context=action._private_context)).serp[: self.top_k]
+                results_obs = self._search_tool.run(SafeSearchAction(source="web", query=query, private_context=action._private_context))
+                serp = results_obs.serp[: self.top_k]
+                for n, r in enumerate(serp):
+                    results.append(
+                        SearchResult(task_id=i, query_id=j, query=query, safe_query=results_obs.safe_query, safe_search=True, original_query=query, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
+                    )
             else:
                 serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
-            results = []
-            for n, r in enumerate(serp):
-                results.append(
-                    SearchResult(task_id=i, query_id=j, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
-                )
+                for n, r in enumerate(serp):
+                    results.append(
+                        SearchResult(task_id=i, query_id=j, query=query, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
+                    )
             return results
 
         search_tasks = [
