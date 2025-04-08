@@ -35,13 +35,13 @@ from termcolor import colored
 from tapeagents.config import common_cache_dir, force_cache
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import StatefulTool
-from tapeagents.utils import FatalError, diff_strings
-
-from .converters import (
+from tapeagents.tools.converters import (
     FileConversionException,
     FileConverter,
+    FileConverterOptions,
     UnsupportedFormatException,
 )
+from tapeagents.utils import FatalError, diff_strings
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -62,6 +62,7 @@ class SimpleTextBrowser:
         use_web_cache: bool = True,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
         converter_kwargs: Optional[Dict[str, Any]] = None,
+        file_converter_options: Optional[FileConverterOptions] = None,
     ):
         self.start_page: str = start_page if start_page else "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
@@ -75,7 +76,7 @@ class SimpleTextBrowser:
         self.request_kwargs = request_kwargs or {"headers": {"User-Agent": self.user_agent}}
         self.request_kwargs["headers"] = self.request_kwargs.get("headers", {})
 
-        self._mdconvert = FileConverter()
+        self._mdconvert = FileConverter(file_converter_options=file_converter_options)
 
         self._page_content: str = ""
         self._page_error: int = 0
