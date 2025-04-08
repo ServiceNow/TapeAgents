@@ -171,7 +171,7 @@ class ToolCollectionEnvironment(BaseModel, Environment):
                 self._action_map |= {action: tool for action in tool.actions}
         return super().model_post_init(__context)
 
-    def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
+    def actions(self) -> tuple[type[Action], ...]:
         return tuple(self._action_map.keys())
 
     def tools_description(self) -> str:

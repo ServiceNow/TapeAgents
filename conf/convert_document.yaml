@@ -6,12 +6,9 @@ environment:
   _target_: tapeagents.environment.ToolCollectionEnvironment
   tools:
     - _target_: tapeagents.tools.document_reader.DocumentReader
-      file_converter_options:
-        _target_: tapeagents.tools.converters.FileConverterOptions
-        pdf_converter:
-          _target_: tapeagents.tools.converters.PdfDoclingConverter
-        docx_converter:
-          _target_: tapeagents.tools.converters.DocxDoclingConverter
+      preferred_pdf_converter:
+        _target_: hydra.utils.get_class
+        path: tapeagents.tools.converters.PdfConverter
 
 agent:
   _target_: tapeagents.agent.Agent

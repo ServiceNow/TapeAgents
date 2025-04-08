@@ -32,7 +32,6 @@ from tapeagents.core import (
 )
 from tapeagents.llms import LLM, LLMCall, LLMEvent, LLMOutput, LLMStream, TrainableLLM
 from tapeagents.observe import observe_llm_call
-from tapeagents.tool_calling import ToolSpec
 from tapeagents.view import TapeViewStack
 
 DEFAULT = "default"
@@ -203,7 +202,7 @@ class Agent(BaseModel, Generic[TapeType]):
         default_factory=lambda: [],
         description="List of nodes in the agent, order of the list used to determine the priority during activation. Nodes must have unique names.",
     )
-    known_actions: list[type[Action] | ToolSpec] = Field(default_factory=list)
+    known_actions: list[type[Action]] = Field(default_factory=list)
     tools_description: str = ""
     max_iterations: int = 100
     store_llm_calls: bool = False

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(
     version_base=None,
     config_path="../../../conf",
-    config_name="gaia_mcp",
+    config_name="gaia_agent",
 )
 def main(cfg: DictConfig) -> None:
     tasks = load_dataset(cfg.split)

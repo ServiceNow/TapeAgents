@@ -4,7 +4,7 @@ import os
 import re
 import threading
 from time import sleep
-from typing import Any, Callable, ClassVar, Literal
+from typing import Any, Callable, Literal
 from uuid import uuid4
 
 import gymnasium as gym
@@ -735,8 +735,10 @@ class Fetcher(Tool):
     width: int = Field(default=1280, description="Width of the browser window")
     height: int = Field(default=800, description="Height of the browser window")
     sleep_time: int = Field(default=2, description="Time to wait for the page to load")
-    timeout: int = Field(default=60, description="Timeout for the request in seconds")
-    tls: ClassVar = Tls()
+    _tls: Tls
+
+    def model_post_init(self, __context: Any):
+        self._tls = Tls()
 
     def fetch_for_llm(self, url: str) -> tuple[str, str]:
         try:
@@ -764,7 +766,7 @@ class Fetcher(Tool):
                 logger.exception(f"Error fetching headers for {url}, interpret as html page: {e}")
                 content_type = "text/html"
         if "text/html" in content_type.lower():
-            if self.tls.sync:
+            if self._tls.sync:
                 html_content = self.get_html(url)
             else:
                 html_content = asyncio.run(self.async_get_html(url))
@@ -779,16 +781,16 @@ class Fetcher(Tool):
         return PageObservation(text=text, current_page=1, total_pages=1)
 
     def get_html(self, url: str) -> str:
-        page = self.tls.browser.new_page(viewport={"width": self.width, "height": self.height})
-        page.goto(url, timeout=self.timeout * 1000)
+        page = self._tls.browser.new_page(viewport={"width": self.width, "height": self.height})
+        page.goto(url)
         sleep(self.sleep_time)  # Wait for page to load and render
         html_content = page.content()
         page.close()
         return html_content
 
     async def async_get_html(self, url: str) -> str:
-        page = await self.tls.browser.new_page(viewport={"width": self.width, "height": self.height})
-        await page.goto(url, timeout=self.timeout * 1000)
+        page = await self._tls.browser.new_page(viewport={"width": self.width, "height": self.height})
+        await page.goto(url)
         await asyncio.sleep(self.sleep_time)  # Wait for page to load and render
         html_content = await page.content()
         await page.close()
