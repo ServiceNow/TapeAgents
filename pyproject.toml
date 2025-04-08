@@ -96,18 +96,13 @@ converters = [
   "yt-dlp>=2024.12.13",
 ]
 finetune = [
-    "accelerate~=1.2.0",
-    "datasets~=2.21",
-    "deepspeed~=0.15.4",
-    "numpy~=1.26",
-    "peft==0.12",
-    "tokenizers~=0.20",
-    "transformers~=4.45",
-    "wandb~=0.19",
-]
-
-rl_gsm8k = [
-    "vllm~=0.6.6.post1",
+  "accelerate~=1.2.0",
+  "datasets~=2.21",
+  "deepspeed~=0.15.4",
+  "numpy~=1.26",
+  "peft==0.12",
+  "transformers>=4.42,<4.46",
+  "wandb~=0.19",
 ]
 
 [build-system]
@@ -121,7 +116,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 extend-select = [
-  "I",  # isort rules
+  "I", # isort rules
 ]
 
 [tool.ruff.lint.isort]
@@ -142,9 +137,7 @@ skip_missing_interpreters = false
 
 [tool.tox.env_run_base]
 description = "Run test under {base_python}"
-deps = [
-  "pytest>=8"
-]
+deps = ["pytest>=8"]
 commands = [
   [
     "pytest",
