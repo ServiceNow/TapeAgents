@@ -73,7 +73,8 @@ class CachedLLM(LLM):
                         self._cache[key].append(event_dict)
             logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir} for LLM {self.model_name}")
         else:
-            logger.info(f"Cache dir {cache_dir} does not exist")
+            logger.info(f"Cache dir {cache_dir} does not exist; creating ...")
+            os.makedirs(cache_dir, exist_ok=True)
 
     def reindex_log(self):
         """

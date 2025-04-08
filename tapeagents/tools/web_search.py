@@ -83,6 +83,10 @@ class SearchAction(Action):
     query: str = Field(description="search query")
 
 
+class SafeSearchAction(SearchAction):
+    _private_context: list[str] = []
+
+
 class SearchResultsObservation(Observation):
     kind: Literal["search_results_observation"] = "search_results_observation"
     query: str
@@ -97,13 +101,46 @@ class SearchResultsObservation(Observation):
         short = json.dumps(view, indent=2, ensure_ascii=False)
         logger.info(f"SearchResultsObservation long view was {len(self.llm_view())} chars, short view is {len(short)}")
         return short
+    
+
+class SafeSearchResultsObservation(SearchResultsObservation):
+    safe_search: bool = False
+    safe_query: str = ""
+
+
+def safe_search(llm: LLM, query: str, private_context: list[str] = [], max_results: int = 5) -> "SafeSearchResultsObservation":
+    """
+    Perform a web search with safe search enabled.
+    """
+    private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
+    prompt = f"""
+You are a security specialist. 
+You must rewrite the query in order not to leak any sensistive information,
+such as prices, company names, product details, strategy details, impending acquisitions, or any other sensitive information.
+
+# Sensitive information
+{private_context_str}
+
+# Query to rewrite
+{query}
+
+Answer directly with the new query and nothing else.
+"""
+    safe_query = llm.quick_response(prompt)
+    
+    logger.warning(f'SAFE_SEARCH: Rewriting old query to new query: "{query}" -> "{safe_query}"')
+    
+    results = web_search(safe_query, max_results=max_results)
+
+    result_obs = SafeSearchResultsObservation(safe_query=safe_query, query_rewritten=True, query=query, serp=results)
+
+    return result_obs
 
 
 class WebSearch(Tool):
     """
     Performs a search in the web, wikipedia or youtube
     """
-
     action: type[Action] = SearchAction
     observation: type[Observation] = SearchResultsObservation
     cached: bool = True
@@ -123,6 +160,27 @@ class WebSearch(Tool):
             logger.exception(f"Failed to search the web: {e}")
             error = str(e)
         return SearchResultsObservation(query=action.query, serp=results, error=error)
+
+
+class SafeWebSearch(WebSearch):
+    llm: LLM | None = None
+
+    def execute_action(self, action: SafeSearchAction) -> SearchResultsObservation:
+        if action.source == "wiki":
+            query = f"site:wikipedia.org {action.query}"
+        elif action.source == "youtube":
+            query = f"site:youtube.com {action.query}"
+        else:
+            query = action.query
+        error = None
+        result_obs = SafeSearchResultsObservation(query=action.query, safe_query="", safe_search=True, serp=[])
+        try:
+            result_obs = safe_search(self.llm, query, private_context=action._private_context, max_results=5)
+        except Exception as e:
+            logger.exception(f"Failed to search the web: {e}")
+            error = str(e)
+            result_obs.error = error
+        return result_obs
 
 
 class SuperSearch(WebSearch):
@@ -162,6 +220,7 @@ class SearchAndExtract(Action):
     main_task: str
     instructions: str
     tasks: list[SearchTask]
+    _private_context: list[str] = []  # hide so it's not dumped
 
 
 class WebPageData(BaseModel):
@@ -202,6 +261,11 @@ class SearchResult(BaseModel):
     snippet: str
     text: str = ""
 
+    # Additional fields for safe search
+    query: str = ""
+    safe_query: str = ""
+    safe_search: bool = False
+
 
 class SearchExtract(Tool):
     """
@@ -218,9 +282,13 @@ class SearchExtract(Tool):
     fetch_timeout: int = 60
     extract_timeout: int = 60
     extract_prefix: str = "Your should extract all relevant information from the page.\n\nTASK: "
+    safe_search: bool = False
 
     def model_post_init(self, __context):
-        self._search_tool = WebSearch()
+        if self.safe_search:
+            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached)
+        else:
+            self._search_tool = WebSearch(cached=self.cached)  # pass through LLM
         return super().model_post_init(__context)
 
     def execute_action(self, action: SearchAndExtract) -> ExtractedFactsObservation:
@@ -232,12 +300,20 @@ class SearchExtract(Tool):
 
     def search(self, action: SearchAndExtract) -> list[SearchResult]:
         def search_query(i: int, j: int, query: str) -> list[SearchResult]:
-            serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
             results = []
-            for n, r in enumerate(serp):
-                results.append(
-                    SearchResult(task_id=i, query_id=j, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
-                )
+            if self.safe_search:
+                results_obs = self._search_tool.run(SafeSearchAction(source="web", query=query, private_context=action._private_context))
+                serp = results_obs.serp[: self.top_k]
+                for n, r in enumerate(serp):
+                    results.append(
+                        SearchResult(task_id=i, query_id=j, query=query, safe_query=results_obs.safe_query, safe_search=True, original_query=query, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
+                    )
+            else:
+                serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
+                for n, r in enumerate(serp):
+                    results.append(
+                        SearchResult(task_id=i, query_id=j, query=query, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
+                    )
             return results
 
         search_tasks = [
