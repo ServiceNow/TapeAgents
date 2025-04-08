@@ -1,8 +1,8 @@
 defaults:
   - _self_
-  - llm: sonnet
-  - agent: web_plan_react_fcall
-  - environment: web_simple_browser
+  - llm: gpt4o
+  - agent: gaia_fcalls
+  - environment: web_mcp
 
 split: validation
 batch: 1
@@ -18,7 +18,7 @@ only_tasks: # list of (level, task_num)
 # - [1, 6]
 # - [1, 7]
 
-exp_name: fcall_debug_sonnet
+exp_name: mcp_debug_1
 exp_path: outputs/web_agent/runs/${exp_name}
 
 hydra:
