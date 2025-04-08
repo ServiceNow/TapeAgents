@@ -3,6 +3,7 @@ import os
 import sys
 from collections import defaultdict
 
+import uvicorn
 from pydantic import TypeAdapter
 
 from tapeagents.core import Action
@@ -274,6 +275,13 @@ def main(dirname: str):
     browser = GaiaTapeBrowser(dirname, CameraReadyRenderer())
     browser.launch(port=7861)
 
+
+uvicorn.config.LOOP_SETUPS = {  # type: ignore
+    "none": None,
+    "auto": "uvicorn.loops.asyncio:asyncio_setup",
+    "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
+    "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
+}
 
 if __name__ == "__main__":
     assert len(sys.argv) == 2, "Usage: python -m scripts.tape_browser <dirname>"

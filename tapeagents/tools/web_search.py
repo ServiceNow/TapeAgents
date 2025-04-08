@@ -214,7 +214,7 @@ class SuperSearch(WebSearch):
 
 class SearchTask(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    text: str
+    section: str
     facts_to_discover: str
     queries: list[str]
 
@@ -247,7 +247,8 @@ class ExtractedFactsObservation(Observation):
             for page in pages:
                 page_strs.append(f"Page [{page.title}][{page.url}]:\n{page.content}\n--------")
             task_facts.append(prefix + "\n\n".join(page_strs) + "\n</FACTS>")
-        return "\n\n".join(task_facts)
+        facts = "\n\n".join(task_facts)
+        return f"<FACTS_COLLECTION>Extracted facts:\n{facts}\n</FACTS_COLLECTION>"
 
     def short_view(self):
         tasks = "\n".join(self.page_facts.keys())
@@ -279,14 +280,12 @@ class SearchExtract(Tool):
     action: type[Action] = SearchAndExtract
     observation: type[Observation] = ExtractedFactsObservation
     cached: bool = True
-    page_viewport_size: int = 64000
     top_k: int = 3
     max_workers: int = 20
     search_timeout: int = 30
     fetch_timeout: int = 60
     extract_timeout: int = 60
-    extract_prefix: str = "Your should extract all relevant information for the given from the page.\n\nTASK: "
-    safe_search: bool = False
+    extract_prefix: str = "Your should extract all relevant information from the page.\n\nTASK: "
 
     def model_post_init(self, __context):
         if self.safe_search:
@@ -341,7 +340,6 @@ class SearchExtract(Tool):
         texts = {}
         urls = list(set([result.url for result in search_results]))
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            start_t = time.perf_counter()
             futures = [executor.submit(fetcher.fetch_for_llm, url) for url in urls]
             try:
                 for future in as_completed(futures, timeout=self.fetch_timeout):
@@ -350,10 +348,6 @@ class SearchExtract(Tool):
                     logger.info(f"Fetched {len(texts)} out of {len(urls)} pages")
             except Exception as e:
                 logger.error(f"Error occurred while processing fetch future: {e}")
-                dt = time.perf_counter() - start_t
-                if dt >= self.fetch_timeout:
-                    logger.warning("Stopping all remained futures")
-                    executor.shutdown(wait=False, cancel_futures=True)
         logger.info(f"Fetched {len(texts)} pages")
         for i in range(len(search_results)):
             search_results[i].text = texts.get(search_results[i].url, "")
@@ -362,7 +356,7 @@ class SearchExtract(Tool):
     def extract(self, action: SearchAndExtract, fetch_results: list[SearchResult]) -> dict[str, list[WebPageData]]:
         extract_tasks = []
         for fr in fetch_results:
-            task = action.tasks[fr.task_id].text
+            task = action.tasks[fr.task_id].section
             facts_to_discover = action.tasks[fr.task_id].facts_to_discover
             query = action.tasks[fr.task_id].queries[fr.query_id]
             prefix = f"{self.extract_prefix}{task} (part of higher-level task {action.main_task})\nFacts to discover: {facts_to_discover}\nSearch query that led to the page: {query}\n\nPage content:\n\n"
