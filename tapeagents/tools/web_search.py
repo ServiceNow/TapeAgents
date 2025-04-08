@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import textwrap
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -101,46 +102,18 @@ class SearchResultsObservation(Observation):
         short = json.dumps(view, indent=2, ensure_ascii=False)
         logger.info(f"SearchResultsObservation long view was {len(self.llm_view())} chars, short view is {len(short)}")
         return short
-    
+
 
 class SafeSearchResultsObservation(SearchResultsObservation):
     safe_search: bool = False
     safe_query: str = ""
 
 
-def safe_search(llm: LLM, query: str, private_context: list[str] = [], max_results: int = 5) -> "SafeSearchResultsObservation":
-    """
-    Perform a web search with safe search enabled.
-    """
-    private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
-    prompt = f"""
-You are a security specialist. 
-You must rewrite the query in order not to leak any sensistive information,
-such as prices, company names, product details, strategy details, impending acquisitions, or any other sensitive information.
-
-# Sensitive information
-{private_context_str}
-
-# Query to rewrite
-{query}
-
-Answer directly with the new query and nothing else.
-"""
-    safe_query = llm.quick_response(prompt)
-    
-    logger.warning(f'SAFE_SEARCH: Rewriting old query to new query: "{query}" -> "{safe_query}"')
-    
-    results = web_search(safe_query, max_results=max_results)
-
-    result_obs = SafeSearchResultsObservation(safe_query=safe_query, query_rewritten=True, query=query, serp=results)
-
-    return result_obs
-
-
 class WebSearch(Tool):
     """
     Performs a search in the web, wikipedia or youtube
     """
+
     action: type[Action] = SearchAction
     observation: type[Observation] = SearchResultsObservation
     cached: bool = True
@@ -165,21 +138,53 @@ class WebSearch(Tool):
 class SafeWebSearch(WebSearch):
     llm: LLM | None = None
 
-    def execute_action(self, action: SafeSearchAction) -> SearchResultsObservation:
+    def generate_safe_query(
+        self, query: str, private_context: list[str] = [], max_results: int = 5
+    ) -> SafeSearchResultsObservation:
+        """
+        Perform a web search with safe search enabled.
+        """
+        private_context_str = "\n".join("<private_context>" + str(i) + "</private_context>" for i in private_context)
+        prompt = textwrap.dedent(f"""You are a security specialist. 
+            You must rewrite the query in order not to leak any sensistive information,
+            such as prices, company names, product details, strategy details, impending acquisitions, or any other sensitive information.
+
+            # Sensitive information
+            {private_context_str}
+
+            # Query to rewrite
+            {query}
+
+            Answer directly with the new query and nothing else.
+        """)
+
+        safe_query = self.llm.quick_response(prompt)
+
+        logger.warning(f'SAFE_SEARCH: Rewriting old query to new query: "{query}" -> "{safe_query}"')
+
+        results = web_search(safe_query, max_results=max_results)
+
+        result_obs = SafeSearchResultsObservation(query=query, safe_search=True, safe_query=safe_query, serp=results)
+
+        return result_obs
+
+    def execute_action(self, action: SafeSearchAction) -> SafeSearchResultsObservation:
         if action.source == "wiki":
             query = f"site:wikipedia.org {action.query}"
         elif action.source == "youtube":
             query = f"site:youtube.com {action.query}"
         else:
             query = action.query
+
         error = None
-        result_obs = SafeSearchResultsObservation(query=action.query, safe_query="", safe_search=True, serp=[])
+        result_obs = SafeSearchResultsObservation(query=query, safe_search=True, safe_query="", serp=[])
         try:
-            result_obs = safe_search(self.llm, query, private_context=action._private_context, max_results=5)
+            result_obs = self.generate_safe_query(query=query, private_context=action._private_context, max_results=5)
         except Exception as e:
             logger.exception(f"Failed to search the web: {e}")
             error = str(e)
             result_obs.error = error
+
         return result_obs
 
 
@@ -302,17 +307,38 @@ class SearchExtract(Tool):
         def search_query(i: int, j: int, query: str) -> list[SearchResult]:
             results = []
             if self.safe_search:
-                results_obs = self._search_tool.run(SafeSearchAction(source="web", query=query, private_context=action._private_context))
+                results_obs = self._search_tool.run(
+                    SafeSearchAction(source="web", query=query, private_context=action._private_context)
+                )
+                results_obs = SafeSearchResultsObservation.model_validate(results_obs)
                 serp = results_obs.serp[: self.top_k]
                 for n, r in enumerate(serp):
                     results.append(
-                        SearchResult(task_id=i, query_id=j, query=query, safe_query=results_obs.safe_query, safe_search=True, original_query=query, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
+                        SearchResult(
+                            task_id=i,
+                            query_id=j,
+                            query=query,
+                            safe_query=results_obs.safe_query,
+                            safe_search=True,
+                            n=n,
+                            title=r["title"],
+                            url=r["url"],
+                            snippet=r["snippet"],
+                        )
                     )
             else:
                 serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
                 for n, r in enumerate(serp):
                     results.append(
-                        SearchResult(task_id=i, query_id=j, query=query, n=n, title=r["title"], url=r["url"], snippet=r["snippet"])
+                        SearchResult(
+                            task_id=i,
+                            query_id=j,
+                            query=query,
+                            n=n,
+                            title=r["title"],
+                            url=r["url"],
+                            snippet=r["snippet"],
+                        )
                     )
             return results
 
