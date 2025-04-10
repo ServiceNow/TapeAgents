@@ -425,12 +425,13 @@ def generate_data(
     timers["llm_total_time"] = total_llm_time
 
     # env.timers contains: start_task, finish_task, validate_task, and all the react times for each action
-    timers["env_mean_react"] = np.mean(env.timers["react"]) if "react" in env.timers else 0.0
-    timers["env_var_react"] = np.var(env.timers["react"]) if "react" in env.timers else 0.0
-    timers["env_min_react"] = min(env.timers["react"]) if "react" in env.timers else 0.0
-    timers["env_max_react"] = max(env.timers["react"]) if "react" in env.timers else 0.0
-    timers["env_sum_react"] = sum(env.timers["react"]) if "react" in env.timers else 0.0
-    del env.timers["react"]  # remove react from timers to avoid confusion
+    if "react" in env.timers:
+        timers["env_mean_react"] = np.mean(env.timers["react"])
+        timers["env_var_react"] = np.var(env.timers["react"])
+        timers["env_min_react"] = min(env.timers["react"])
+        timers["env_max_react"] = max(env.timers["react"])
+        timers["env_sum_react"] = sum(env.timers["react"])
+        del env.timers["react"]  # remove react from timers to avoid confusion
     # add all other env timers
     timers.update({f"env_{key}": value for key, value in env.timers.items()})
     # compute total env time
