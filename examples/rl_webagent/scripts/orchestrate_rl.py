@@ -88,7 +88,7 @@ def load_webtasks_debug():
     train_samples = [
         # {"dataset": "miniwob", "task": task, "seed": 0}
         # massimo setup:
-        {"dataset": "miniwob", "task": task, "seed": np.randint(0, 1000)}
+        {"dataset": "miniwob", "task": task, "seed": np.random.randint(0, 1000)}
         for task in train_tasks
         for _ in range(2)
     ]
