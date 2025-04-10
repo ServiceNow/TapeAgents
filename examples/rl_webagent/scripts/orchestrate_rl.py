@@ -51,23 +51,54 @@ def load_webtasks_debug():
 
     # load tasks where we don't always have 100% or 0% success rate
     DEBUG_SPLIT = [
+        # "miniwob.buy-ticket",
+        # "miniwob.bisect-angle",
+        # "miniwob.choose-list",
+        # "miniwob.click-checkboxes-large",
+        # "miniwob.click-checkboxes-soft"
+        # Massimo Easy Split
+        "miniwob.click-color",
+        "miniwob.click-test-2",
+        "miniwob.click-test-transfer",
+        "miniwob.enter-password",
+        "miniwob.focus-text-2",
+        "miniwob.identify-shape",
+        "miniwob.navigate-tree",
+        "miniwob.phone-book",
+        "miniwob.read-table",
+        "miniwob.use-autocomplete",
+        "miniwob.use-autocomplete",
         "miniwob.buy-ticket",
-        "miniwob.bisect-angle",
-        "miniwob.choose-list",
-        "miniwob.click-checkboxes-large",
-        "miniwob.click-checkboxes-soft"
+        "miniwob.click-checkboxes-soft",
+        "miniwob.click-collapsible-2",
+        "miniwob.click-collapsible-2-nodelay",
+        "miniwob.click-collapsible-nodelay",
+        "miniwob.click-dialog-2",
+        "miniwob.click-tab-2",
+        "miniwob.click-tab-2-medium",
+        "miniwob.form-sequence-3",
+        "miniwob.hot-cold",
+        "miniwob.multi-orderings",
+        "miniwob.tic-tac-toe",
+        "miniwob.use-autocomplete-nodelay"
     ]
     train_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
     test_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
 
     train_samples = [
-        {"dataset": "miniwob", "task": task, "seed": 0}
+        # {"dataset": "miniwob", "task": task, "seed": 0}
+        # massimo setup:
+        {"dataset": "miniwob", "task": task, "seed": np.randint(0, 1000)}
         for task in train_tasks
+        for _ in range(2)
     ]
 
     test_samples = [
-        {"dataset": "miniwob", "task": task, "seed": 0}
+        # {"dataset": "miniwob", "task": task, "seed": 0}
+        # massimo setup:
+        {"dataset": "miniwob", "task": task, "seed": s}
         for task in test_tasks
+        for s in range(12)
     ]
 
     logger.info(f"Loaded {len(train_samples)} training samples")
@@ -182,9 +213,9 @@ def extract_tape_training_samples_and_stats(
                 - 'overflows': Number of times the output overflowed token limit.
     """
     # Get final reward from tape metadata
-    success = new_tape.metadata.result["success"]  # bool(reward > 0.5)
-    final_reward = new_tape.metadata.result["final_reward"]  # 1.0 if success else 0.0
-    raw_reward = new_tape.metadata.result["reward"]  # RAW_REWARD_GLOBAL from environment
+    success: bool = new_tape.metadata.result["success"]  # bool(reward > 0.5)
+    final_reward: float = new_tape.metadata.result["final_reward"]  # 1.0 if success else 0.0
+    raw_reward: float = new_tape.metadata.result["reward"]  # RAW_REWARD_GLOBAL from environment
     no_error = not tape_contains_an_error(new_tape)
 
     # get the number of LLM calls in the tape
@@ -209,12 +240,19 @@ def extract_tape_training_samples_and_stats(
     # - divide by n_llm_calls for all steps
     # - discount by number of errors for all steps
     # - use step rewards at all steps (likely 0 everywhere except the last step)
-    reward_to_use = raw_reward * 0.99 ** n_step_errors if no_error and raw_reward >= 0 else -1.0
+    # reward_to_use = raw_reward * 0.99 ** n_step_errors if no_error and raw_reward >= 0 else -1.0
     # reward_to_use = None  # use step rewards instead
-    # TODO: MAYBE update reward to penalize repeated and/or actions that do not change the state of the environment (MOVE_MOUSE, HOVER, SCROLL, ...) or filter them out?
-    # TODO: MAYBE update reward to penalize intermediate steps that caused an error (LLMOutputParsingFailureAction) -> -1
+    # MAYBE update reward to penalize repeated and/or actions that do not change the state of the environment (MOVE_MOUSE, HOVER, SCROLL, ...) or filter them out?
+    # MAYBE update reward to penalize intermediate steps that caused an error (LLMOutputParsingFailureAction) -> -1
     # depends on grouping: if we group by task_id, it's better to use the same reward for all steps.
     # if we group by task_id + step number, it's better to use individual rewards for each step (and penalize step errors).
+    # TODO: reward_to_use = success or 0.5 or -1
+    # config.use_advantage (set to False to use reward instead)
+    # config.relu_log_weight (set to True to do SFT and use REINFORCE)
+    # MASSIMO setup: success_rate(1 | -1) * 0.95 ** n_steps
+    reward_to_use = 1 if success else -1
+    reward_to_use *= 0.95 ** len(new_tape.steps)  # discount by number of steps
+
 
     training_samples: list[TrainingText] = []
     tape_prompt_tokens = 0
@@ -283,7 +321,7 @@ def _debug(tapes):
 
 
 def generate_data(
-    cfg: DictConfig,
+    cfg: DictConfig,  # ExpArgs in AgentLab
     task: dict,
     url: str,
     split_name: str,
@@ -420,6 +458,10 @@ def generate_data(
     # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows, n_llm_calls, n_step_errors, n_page_observations, n_steps
     timers["llm_total_time_per_llm_call"] = total_llm_time / tape_stats["n_llm_calls"] if tape_stats["n_llm_calls"] > 0 else 0
     timers["env_total_time_per_observation"] = total_env_time / tape_stats["n_page_observations"] if tape_stats["n_page_observations"] > 0 else 0
+    # compute average prompt and output tokens per LLM call
+    if tape_stats["n_llm_calls"] > 0:
+        tape_stats["prompt_tokens_per_llm_call"] = tape_stats["prompt_tokens"] / tape_stats["n_llm_calls"]
+        tape_stats["output_tokens_per_llm_call"] = tape_stats["output_tokens"] / tape_stats["n_llm_calls"]
 
     new_tape.metadata.other["timers"] = timers
     logger.info(f"[it{iteration}.{split_name}] ======== TAPE {new_tape.metadata.id} TOOK {json.dumps(timers, indent=4)} ========")
@@ -590,11 +632,14 @@ def main(cfg: DictConfig):
 
     ### Step 1: load datasets ###
     # train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
-    train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
+    # train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
 
     ### repeat until we have reached the max number of iterations ###
     ### each iteration is a forward pass (agent making predictions on tapes), a reference pass (reference model populating ref_logprobs), and a finetuning run on the generated training samples ###
     while state["iteration"] < cfg.max_iterations:
+        # sample new tasks for each iterations.
+        train_samples, test_samples = load_webtasks_debug()  # TODO: move sampling to outer loop
+
         logger.info(f"Starting iteration {state['iteration']}")
         start_iteration = time.time()
         if os.path.exists(finetune_path / "current"):
