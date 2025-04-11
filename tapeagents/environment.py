@@ -157,6 +157,55 @@ class CodeExecutionEnvironment(Environment):
                 return tape
 
 
+class MCPToolCollectionEnvironment(Environment):
+    action_map: dict[type[Action], Tool | StatefulTool]
+
+    def __init__(self, tools: list[Tool | StatefulTool]) -> None:
+        super().__init__()
+        self.tools = tools
+        self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
+        for tool in tools:
+            if isinstance(tool, StatefulTool):
+                self.action_map |= {action: tool for action in tool.actions}
+
+    def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
+        return tuple(self.action_map.keys())
+
+    def tools_description(self) -> str:
+        desc_list = [tool.description() for tool in self.tools]
+        return "\n".join(f"- {desc}" for desc in desc_list)
+
+    def react(self, tape: Tape) -> Tape:
+        for action in self.last_actions(tape):
+            observation = self.step(action)
+            tape = tape.append(observation)
+        return tape
+
+    def step(self, action: Action) -> Observation:
+        t = time.perf_counter()
+        action_type = type(action)
+        if isinstance(action, LLMOutputParsingFailureAction):
+            return UserStep(content="Try again")
+        if action_type not in self.action_map:
+            raise Exception(f"Unknown action: {action_type}")
+        tool = self.action_map[action_type]
+        observation = tool.run(action)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
+        return observation
+
+    def reset(self) -> None:
+        for tool in self.tools:
+            tool.reset()
+
+    def close(self) -> None:
+        for tool in self.tools:
+            tool.close()
+
+    def last_actions(self, tape: Tape) -> list[Action]:
+        return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
+
+
 class ToolCollectionEnvironment(BaseModel, Environment):
     tools: list[Tool | StatefulTool]
     loop_detection: bool = False
