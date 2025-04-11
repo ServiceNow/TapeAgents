@@ -129,7 +129,7 @@ def load_model(args, model_class, current_dir):
         if has_lora_checkpoint(current_dir):
             lora_load(current_dir, model)
     elif args.gradient_checkpointing:
-        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": True})
 
     get_accelerator().wait_for_everyone()
     return model
