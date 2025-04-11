@@ -1,0 +1,33 @@
+defaults:
+  - _self_
+  - llm: sonnet_anthropic
+  - agent: gaia
+  - environment: web_browser
+
+exp_name: sonnet37_test3_missed_imgs
+exp_path: outputs/gaia/runs/${exp_name}
+
+split: test
+batch: 4
+retry_unsolved: true
+
+only_tasks: [] # list of (level, task_num)
+# - [1, 0]
+# - [1, 1]
+# - [1, 2]
+# - [1, 3]
+# - [1, 4]
+# - [1, 5]
+# - [1, 6]
+# - [1, 7]
+
+task_ids:
+  - d89733a3-7d86-4ed8-b5a3-bf4831b06e3c
+  - 98efafc6-c376-4b53-be91-a130e1d90e02
+  - 7245af7c-404e-4d60-9ef4-94ed301e5315
+  - e14448e9-5243-4b07-86e1-22e657f96bcf
+  - 91f2bf12-5280-4efc-b9a7-26e67ca850b4
+
+hydra:
+  run:
+    dir: ${exp_path}

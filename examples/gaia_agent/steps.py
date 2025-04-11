@@ -22,6 +22,7 @@ from tapeagents.steps import (
     VideoObservation,
     WatchVideoAction,
 )
+from tapeagents.tool_calling import ToolCallAction, ToolResult
 from tapeagents.tools.browser import (
     ClickBIDAction,
     GoBackAction,
@@ -163,6 +164,8 @@ GaiaStep: TypeAlias = Union[
     LLMOutputParsingFailureAction,
     SetNextNode,
     UserStep,
+    ToolCallAction,
+    ToolResult,
 ]
 
 

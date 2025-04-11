@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
@@ -2782,6 +2781,25 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/99/5b/a36a337438a14116b16480db471ad061c36c3694df7c2084a0da7ba538b7/matplotlib_inline-0.1.7.tar.gz", hash = "sha256:8423b23ec666be3d16e16b60bdd8ac4e86e840ebd1dd11a30b9f117f2fa0ab90", size = 8159 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/8e/9ad090d3553c280a8060fbf6e24dc1c0c29704ee7d1c372f0c174aa59285/matplotlib_inline-0.1.7-py3-none-any.whl", hash = "sha256:df192d39a4ff8f21b1895d72e6a13f5fcc5099f00fa84384e0ea28c2cc0653ca", size = 9899 },
+]
+
+[[package]]
+name = "mcp"
+version = "1.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "sse-starlette" },
+    { name = "starlette" },
+    { name = "uvicorn" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/d2/f587cb965a56e992634bebc8611c5b579af912b74e04eb9164bd49527d21/mcp-1.6.0.tar.gz", hash = "sha256:d9324876de2c5637369f43161cd71eebfd803df5a95e46225cab8d280e366723", size = 200031 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/30/20a7f33b0b884a9d14dd3aa94ff1ac9da1479fe2ad66dd9e2736075d2506/mcp-1.6.0-py3-none-any.whl", hash = "sha256:7bd24c6ea042dbec44c754f100984d186620d8b841ec30f1b19eda9b93a634d0", size = 76077 },
 ]
 
 [[package]]
@@ -5814,6 +5832,19 @@ wheels = [
 ]
 
 [[package]]
+name = "sse-starlette"
+version = "2.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/71/a4/80d2a11af59fe75b48230846989e93979c892d3a20016b42bb44edb9e398/sse_starlette-2.2.1.tar.gz", hash = "sha256:54470d5f19274aeed6b2d473430b08b4b379ea851d953b11d7f1c4a2c118b419", size = 17376 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/e0/5b8bd393f27f4a62461c5cf2479c75a2cc2ffa330976f9f00f5f6e4f50eb/sse_starlette-2.2.1-py3-none-any.whl", hash = "sha256:6410a3d3ba0c89e7675d4c273a301d64649c03a5ef1ca101f10b47f895fd0e99", size = 10120 },
+]
+
+[[package]]
 name = "stack-data"
 version = "0.6.3"
 source = { registry = "https://pypi.org/simple" }
@@ -5892,7 +5923,7 @@ wheels = [
 
 [[package]]
 name = "tapeagents"
-version = "0.1.5"
+version = "0.1.7"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
@@ -5906,6 +5937,8 @@ dependencies = [
     { name = "langchain-core" },
     { name = "levenshtein" },
     { name = "litellm" },
+    { name = "mcp" },
+    { name = "nest-asyncio" },
     { name = "openai" },
     { name = "pathvalidate" },
     { name = "playwright" },
@@ -5953,8 +5986,10 @@ finetune = [
     { name = "peft" },
     { name = "tokenizers" },
     { name = "transformers" },
-    { name = "vllm" },
     { name = "wandb" },
+]
+rl-gsm8k = [
+    { name = "vllm" },
 ]
 
 [package.dev-dependencies]
@@ -6000,6 +6035,8 @@ requires-dist = [
     { name = "lxml", extras = ["html-clean"], marker = "extra == 'converters'", specifier = "~=5.2" },
     { name = "mammoth", marker = "extra == 'converters'", specifier = "~=1.8" },
     { name = "markdownify", marker = "extra == 'converters'", specifier = "~=0.13" },
+    { name = "mcp", specifier = ">=1.6.0" },
+    { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "numpy", marker = "extra == 'finetune'", specifier = "~=1.26" },
     { name = "openai", specifier = "~=1.55" },
     { name = "openai-whisper", marker = "extra == 'converters'", specifier = ">=20240930" },
@@ -6008,7 +6045,7 @@ requires-dist = [
     { name = "pathvalidate", specifier = "~=3.2" },
     { name = "pdf2image", marker = "extra == 'converters'", specifier = "~=1.17" },
     { name = "pdfminer-six", marker = "extra == 'converters'", specifier = ">=20240706" },
-    { name = "peft", marker = "extra == 'finetune'", specifier = "~=0.12" },
+    { name = "peft", marker = "extra == 'finetune'", specifier = "==0.12" },
     { name = "playwright", specifier = "~=1.42" },
     { name = "podman", specifier = "~=5.0" },
     { name = "puremagic", marker = "extra == 'converters'", specifier = "~=1.26" },
@@ -6027,14 +6064,13 @@ requires-dist = [
     { name = "tokenizers", marker = "extra == 'finetune'", specifier = "~=0.20" },
     { name = "tqdm", specifier = "~=4.66" },
     { name = "transformers", marker = "extra == 'finetune'", specifier = "~=4.45" },
-    { name = "vllm", marker = "extra == 'finetune'", specifier = "~=0.6.6.post1" },
+    { name = "vllm", marker = "extra == 'rl-gsm8k'", specifier = "~=0.6.6.post1" },
     { name = "wandb", marker = "extra == 'finetune'", specifier = "~=0.19" },
     { name = "webvtt-py", marker = "extra == 'converters'", specifier = "~=0.5" },
     { name = "xlrd", marker = "extra == 'converters'", specifier = "~=2.0" },
     { name = "youtube-transcript-api", marker = "extra == 'converters'", specifier = "~=0.6" },
     { name = "yt-dlp", marker = "extra == 'converters'", specifier = ">=2024.12.13" },
 ]
-provides-extras = ["converters", "finetune"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -7013,13 +7049,13 @@ name = "xgrammar"
 version = "0.1.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pybind11", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
-    { name = "pydantic", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
-    { name = "pytest", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
-    { name = "sentencepiece", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
-    { name = "tiktoken", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
-    { name = "torch", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
-    { name = "transformers", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "pybind11", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "pydantic", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "pytest", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "sentencepiece", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "tiktoken", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "torch", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "transformers", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/aa/33/ffd0c34f31e3971e5f51b0a12236688f93399aab84b80e0a0e7a7f7d25b8/xgrammar-0.1.10-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:9fc4ee9d5518b7c2a602a881b99dd4cc115cb5ab1bfb06ffddd160830eb4484d", size = 297210 },
