@@ -132,6 +132,7 @@ class SafeSearchResultsObservation(SearchResultsObservation):
     safe_search: bool = False
     safe_query: str = ""
     risk_level: int | None = None
+    query_rewritten: bool = False
     details: str = ""
 
 
@@ -272,6 +273,7 @@ class SafeWebSearch(WebSearch):
 
             results = web_search(new_query)
             result_obs = SafeSearchResultsObservation(
+                safe_search=True,
                 safe_query=new_query,
                 query_rewritten=query_rewritten,
                 query=query,
@@ -374,6 +376,9 @@ class SearchResult(BaseModel):
     query: str = ""
     safe_query: str = ""
     safe_search: bool = False
+    query_rewritten: bool = False
+    risk_level: int | None = None
+    details: str = ""
 
 
 class SearchExtract(Tool):
@@ -394,10 +399,11 @@ class SearchExtract(Tool):
         "Your should extract all relevant information from the page.\n\nTASK: "
     )
     safe_search: bool = False
+    safe_web_search_rewrite_prompt: Prompt = DEFAULT_SAFE_WEB_SEARCH_PROMPT
 
     def model_post_init(self, __context):
         if self.safe_search:
-            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached)
+            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached, rewrite_prompt=self.safe_web_search_rewrite_prompt)
         else:
             self._search_tool = WebSearch(cached=self.cached)  # pass through LLM
         return super().model_post_init(__context)
