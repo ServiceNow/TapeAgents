@@ -25,11 +25,11 @@ from tapeagents.steps import (
 from tapeagents.tool_calling import ToolCallAction, ToolResult
 from tapeagents.tools.browser import (
     ClickBIDAction,
+    ClickElementAction,
     GoBackAction,
     GoForwardAction,
     HoverAction,
     InputTextAction,
-    ClickElementAction,
     MouseHoverAction,
     OpenUrlAction,
     PageScreenshotObservation,
