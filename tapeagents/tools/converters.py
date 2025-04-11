@@ -17,6 +17,7 @@ import base64
 import copy
 import html
 import json
+import logging
 import mimetypes
 import os
 import re
@@ -45,6 +46,7 @@ from pydantic import BaseModel, Field
 from readability import Document
 from youtube_transcript_api import YouTubeTranscriptApi
 
+logger = logging.getLogger(__name__)
 
 class DocumentConverterResult:
     """The result of converting a document to text."""
