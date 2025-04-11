@@ -381,7 +381,7 @@ class LLMCall(BaseModel):
     cached: bool
     llm_info: dict = {}
     cost: float = 0
-    logprobs: list[TokenLogprob] = Field(default_factory=list, exclude=False)  # TODO revert exclude=True
+    logprobs: list[TokenLogprob] = Field(default_factory=list, exclude=True)
 
 
 class TokenLogprob(BaseModel):
