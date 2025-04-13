@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+from typing import cast
 
 from tapeagents.agent import Agent
 from tapeagents.core import PartialStep, Prompt, Tape, TapeMetadata, TrainingText
@@ -19,16 +20,29 @@ class LLAMAChatBot(Agent[DialogTape]):
 
     def generate_steps(self, tape: Tape, llm_stream: LLMStream):
         buffer = []
-        for event in llm_stream:
-            if event.chunk:
-                buffer.append(event.chunk)
-                yield PartialStep(step=AssistantStep(content="".join(buffer)))
-            elif (m := event.output) and isinstance(m, LLMOutput):
-                yield AssistantStep(content=m.content or "")
-                return
-            else:
-                raise ValueError(f"Uknown event type from LLM: {event}")
-        raise ValueError("LLM didn't return completion")
+        try:
+            for event in llm_stream:
+                if event.chunk:
+                    buffer.append(event.chunk)
+                    yield PartialStep(step=AssistantStep(content="".join(buffer)))
+                elif event.output:
+                    output = cast(LLMOutput, event.output)
+                    yield AssistantStep(content=output.content or "")
+                    return
+                else:
+                    raise ValueError(f"Unknown event type from LLM: {event}")
+        except Exception as e:
+            # Handle potential errors from the LLM
+            error_message = f"Error during generation: {str(e)}"
+            print(error_message)
+            yield AssistantStep(content="I apologize, but I encountered an error while generating a response.")
+            return
+        
+        # If we exit the loop without returning, yield what we have
+        if buffer:
+            yield AssistantStep(content="".join(buffer))
+        else:
+            yield AssistantStep(content="I apologize, but I couldn't generate a complete response.")
 
     def make_llm_output(self, tape: DialogTape, index: int) -> LLMOutput:
         if not isinstance(step := tape.steps[index], AssistantStep):
@@ -55,22 +69,26 @@ def try_llama_chatbot(llm: LLM):
         json.dump(tape.model_dump(), f, indent=2)
     tape_db: dict = {tape.metadata.id: tape}
     for message in user_messages:
-        tape_with_user_message = tape.append(UserStep(content=message))
-        tape_with_user_message.metadata = TapeMetadata(parent_id=tape.metadata.id)
-        tape_db[tape_with_user_message.metadata.id] = tape_with_user_message
-        print("  User:", message)
-        print("  Agent: ", end="")
-        n_printed = 0
-        for event in agent.run(tape_with_user_message):
-            if event.partial_step:
-                assert isinstance(step := event.partial_step.step, AssistantStep)
-                print(step.content[n_printed:], end="", flush=True)
-                n_printed = len(step.content)
-            if event.final_tape:
-                tape = event.final_tape
-                tape_db[tape.metadata.id] = tape
-                print()
-                print(f"Received new tape of length {len(tape)}")
+        try:
+            tape_with_user_message = tape.append(UserStep(content=message))
+            tape_with_user_message.metadata = TapeMetadata(parent_id=tape.metadata.id)
+            tape_db[tape_with_user_message.metadata.id] = tape_with_user_message
+            print("  User:", message)
+            print("  Agent: ", end="")
+            n_printed = 0
+            for event in agent.run(tape_with_user_message):
+                if event.partial_step:
+                    assert isinstance(step := event.partial_step.step, AssistantStep)
+                    print(step.content[n_printed:], end="", flush=True)
+                    n_printed = len(step.content)
+                if event.final_tape:
+                    tape = event.final_tape
+                    tape_db[tape.metadata.id] = tape
+                    print()
+                    print(f"Received new tape of length {len(tape)}")
+        except Exception as e:
+            print(f"\nError processing message: {str(e)}")
+            # Continue with next message rather than crashing
 
     print("--- CHECK TRACES ---")
     traces: list[TrainingText] = []
