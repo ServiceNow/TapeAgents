@@ -4,7 +4,7 @@ import os
 import re
 import threading
 from time import sleep
-from typing import Any, Callable, ClassVar, Literal
+from typing import Any, Callable, Literal
 from uuid import uuid4
 
 import gymnasium as gym
@@ -721,7 +721,19 @@ class Fetcher(Tool):
     height: int = Field(default=800, description="Height of the browser window")
     sleep_time: int = Field(default=2, description="Time to wait for the page to load")
     timeout: int = Field(default=60, description="Timeout for the request in seconds")
-    tls: ClassVar = Tls()
+
+    _tls: Tls | None = None  # Use a private instance variable
+
+    def model_post_init(self, __context: Any):
+        # Initialize tls instance here
+        self._tls = Tls()
+
+    @property
+    def tls(self) -> Tls:
+        if self._tls is None:
+            # defensive, should be initialized in model_post_init
+            self._tls = Tls()
+        return self._tls
 
     def fetch_for_llm(self, url: str) -> tuple[str, str]:
         try:
