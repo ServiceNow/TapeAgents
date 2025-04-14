@@ -214,6 +214,7 @@ def render_chat_template(
 class SafeWebSearch(WebSearch):
     llm: LLM | None = None
     rewrite_prompt: Prompt = DEFAULT_SAFE_WEB_SEARCH_PROMPT
+    max_private_context_len: int = 300000 # characters
 
     def execute_action(self, action: SafeSearchAction) -> SearchResultsObservation:
         assert isinstance(action.private_context, list)
@@ -231,10 +232,18 @@ class SafeWebSearch(WebSearch):
         )
         try:
             # Render the prompt
+            private_context_str = "\n".join(action.private_context)
+
+            if len(private_context_str) > self.max_private_context_len:
+                logger.warning(
+                    f"Private context is too long ({len(private_context_str)} chars), truncating to {self.max_private_context_len} chars"
+                )
+                private_context_str = private_context_str[: self.max_private_context_len]
+                
             rendered_prompt = render_chat_template(
                 self.rewrite_prompt,
                 context={
-                    "private_context_str": "\n".join(action.private_context),
+                    "private_context_str": private_context_str,
                     "query": query,
                 },
             )
