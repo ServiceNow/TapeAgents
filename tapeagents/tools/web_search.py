@@ -108,6 +108,7 @@ class SearchAction(Action):
 
 
 class SafeSearchAction(SearchAction):
+    kind: Literal["safe_search_action"] = "safe_search_action"
     private_context: list[str] = Field(default_factory=list, exclude=True)
 
 
@@ -130,6 +131,7 @@ class SearchResultsObservation(Observation):
 
 
 class SafeSearchResultsObservation(SearchResultsObservation):
+    kind: Literal["safe_search_results_observation"] = "safe_search_results_observation"
     safe_search: bool = False
     safe_query: str = ""
     risk_level: int | None = None
