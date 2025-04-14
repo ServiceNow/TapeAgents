@@ -85,6 +85,7 @@ class SearchAction(Action):
 
 
 class SafeSearchAction(SearchAction):
+    kind: Literal["safe_search_action"] = "safe_search_action"
     _private_context: list[str] = []
 
 
@@ -105,6 +106,7 @@ class SearchResultsObservation(Observation):
 
 
 class SafeSearchResultsObservation(SearchResultsObservation):
+    kind: Literal["safe_search_results_observation"] = "safe_search_results_observation"
     safe_search: bool = False
     safe_query: str = ""
 
