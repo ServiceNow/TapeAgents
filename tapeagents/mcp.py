@@ -11,7 +11,7 @@ from mcp import ClientSession, StdioServerParameters, Tool, stdio_client
 from mcp.types import CallToolResult, TextContent
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction
-from tapeagents.environment import MCPToolCollectionEnvironment
+from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tool_calling import FunctionSpec, ToolCallAction, ToolResult, ToolSpec
 
 nest_asyncio.apply()
@@ -129,7 +129,7 @@ class MCPClient:
                     pass
 
 
-class MCPEnvironment(MCPToolCollectionEnvironment):
+class MCPEnvironment(ToolCollectionEnvironment):
     client: MCPClient
     tools: dict[str, ToolSpec]
 

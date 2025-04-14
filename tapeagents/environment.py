@@ -10,7 +10,7 @@ from typing import Callable, Generic, Literal
 
 from langchain_core.tools import BaseTool, tool as tool_wrapper
 from langchain_core.utils.function_calling import convert_to_openai_tool
-from pydantic import BaseModel, TypeAdapter
+from pydantic import TypeAdapter
 
 from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
@@ -157,7 +157,11 @@ class CodeExecutionEnvironment(Environment):
                 return tape
 
 
-class MCPToolCollectionEnvironment(Environment):
+class ToolCollectionEnvironment(Environment):
+    tools: list[Tool | StatefulTool]
+    loop_detection: bool = False
+    loop_warning_after_n_steps: int = 3
+    loop_warning: str = "You seem to be stuck producing the same action. Consider a new approach and avoid repeating previously attempted ineffective steps."
     action_map: dict[type[Action], Tool | StatefulTool]
 
     def __init__(self, tools: list[Tool | StatefulTool]) -> None:
@@ -170,58 +174,6 @@ class MCPToolCollectionEnvironment(Environment):
 
     def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
         return tuple(self.action_map.keys())
-
-    def tools_description(self) -> str:
-        desc_list = [tool.description() for tool in self.tools]
-        return "\n".join(f"- {desc}" for desc in desc_list)
-
-    def react(self, tape: Tape) -> Tape:
-        for action in self.last_actions(tape):
-            observation = self.step(action)
-            tape = tape.append(observation)
-        return tape
-
-    def step(self, action: Action) -> Observation:
-        t = time.perf_counter()
-        action_type = type(action)
-        if isinstance(action, LLMOutputParsingFailureAction):
-            return UserStep(content="Try again")
-        if action_type not in self.action_map:
-            raise Exception(f"Unknown action: {action_type}")
-        tool = self.action_map[action_type]
-        observation = tool.run(action)
-        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
-        observation.metadata.other["action_kind"] = action.kind
-        return observation
-
-    def reset(self) -> None:
-        for tool in self.tools:
-            tool.reset()
-
-    def close(self) -> None:
-        for tool in self.tools:
-            tool.close()
-
-    def last_actions(self, tape: Tape) -> list[Action]:
-        return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
-
-
-class ToolCollectionEnvironment(BaseModel, Environment):
-    tools: list[Tool | StatefulTool]
-    loop_detection: bool = False
-    loop_warning_after_n_steps: int = 3
-    loop_warning: str = "You seems to stuck producing the same action. Consider new approach and avoid repeating previously attempted ineffective steps."
-    _action_map: dict[type[Action], Tool | StatefulTool]
-
-    def model_post_init(self, __context):
-        self._action_map = {tool.action: tool for tool in self.tools if isinstance(tool, Tool)}
-        for tool in self.tools:
-            if isinstance(tool, StatefulTool):
-                self._action_map |= {action: tool for action in tool.actions}
-        return super().model_post_init(__context)
-
-    def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
-        return tuple(self._action_map.keys())
 
     def tools_description(self) -> str:
         desc_list = [tool.description() for tool in self.tools]
@@ -260,9 +212,9 @@ class ToolCollectionEnvironment(BaseModel, Environment):
         action_type = type(action)
         if isinstance(action, LLMOutputParsingFailureAction):
             return UserStep(content="Try again")
-        if action_type not in self._action_map:
+        if action_type not in self.action_map:
             raise Exception(f"Unknown action: {action_type}")
-        tool = self._action_map[action_type]
+        tool = self.action_map[action_type]
         observation = tool.run(action)
         observation.metadata.other["action_execution_time"] = time.perf_counter() - t
         observation.metadata.other["action_kind"] = action.kind
