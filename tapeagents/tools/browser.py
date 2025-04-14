@@ -419,14 +419,6 @@ class Browser(StatefulTool):
             )
         self._non_browser_doc = False
         obs = self.run_browser_action(f"goto('{action.url}')")
-        if obs.error:
-            text, error = download_file(action.url)
-            obs = PageObservation(
-                text=self.get_viewport(text),
-                current_page=self._current_viewport,
-                total_pages=self._n_viewports,
-                error=error,
-            )
         return obs
 
     def click(self, action: ClickAction) -> PageObservation:
@@ -659,13 +651,6 @@ headers = {
 }
 
 
-def download_file(url: str):
-    user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return read_document(response)
-
-
 def minimize_html(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -716,7 +701,7 @@ class Tls(threading.local):
         try:
             self.playwright = sync_playwright().start()
             self.browser = self.playwright.chromium.launch(headless=True)
-        except:
+        except Exception:
             self.sync = False
             logger.warning("Using playwright async")
             self.playwright = asyncio.run(async_playwright().start())
