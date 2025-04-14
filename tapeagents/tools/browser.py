@@ -4,7 +4,7 @@ import os
 import re
 import threading
 from time import sleep
-from typing import Any, Callable, ClassVar, Literal
+from typing import Any, Callable, Literal
 from uuid import uuid4
 
 import gymnasium as gym
@@ -419,14 +419,6 @@ class Browser(StatefulTool):
             )
         self._non_browser_doc = False
         obs = self.run_browser_action(f"goto('{action.url}')")
-        if obs.error:
-            text, error = download_file(action.url)
-            obs = PageObservation(
-                text=self.get_viewport(text),
-                current_page=self._current_viewport,
-                total_pages=self._n_viewports,
-                error=error,
-            )
         return obs
 
     def click(self, action: ClickAction) -> PageObservation:
@@ -659,13 +651,6 @@ headers = {
 }
 
 
-def download_file(url: str):
-    user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return read_document(response)
-
-
 def minimize_html(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -716,7 +701,7 @@ class Tls(threading.local):
         try:
             self.playwright = sync_playwright().start()
             self.browser = self.playwright.chromium.launch(headless=True)
-        except:
+        except Exception:
             self.sync = False
             logger.warning("Using playwright async")
             self.playwright = asyncio.run(async_playwright().start())
@@ -736,7 +721,19 @@ class Fetcher(Tool):
     height: int = Field(default=800, description="Height of the browser window")
     sleep_time: int = Field(default=2, description="Time to wait for the page to load")
     timeout: int = Field(default=60, description="Timeout for the request in seconds")
-    tls: ClassVar = Tls()
+
+    _tls: Tls | None = None  # Use a private instance variable
+
+    def model_post_init(self, __context: Any):
+        # Initialize tls instance here
+        self._tls = Tls()
+
+    @property
+    def tls(self) -> Tls:
+        if self._tls is None:
+            # defensive, should be initialized in model_post_init
+            self._tls = Tls()
+        return self._tls
 
     def fetch_for_llm(self, url: str) -> tuple[str, str]:
         try:

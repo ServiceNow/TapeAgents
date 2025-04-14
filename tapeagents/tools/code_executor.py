@@ -55,6 +55,8 @@ class CodeExecutor(Tool):
         container_name = (
             os.environ["COMPUTER_CONTAINER_NAME"] if self.reuse_computer_container else self.exp_path.replace("/", "-")
         )
+        if container_name.startswith("-"):
+            container_name = container_name[1:]
         logger.info(f"Executing code in container {container_name}")
         result = execute_code_in_container(
             [CodeBlock(code=code, language="python")],
@@ -93,9 +95,10 @@ class CodeExecutorWithApproval(CodeExecutor):
     _chat = None
 
     def execute_action(self, action: PythonCodeAction) -> CodeExecutionResult:
+        assert self._chat is not None, "Chat object is not set. Please set it before executing the action."
         code = self.prepare_code(action)
         code_dir = os.path.join(self.exp_path, "code")
-        fname = _get_file_name_from_content(code, Path(code_dir))
+        fname = _get_file_name_from_content(code, Path(code_dir)) or "code.py"
         fpath = os.path.join(code_dir, fname)
         self._chat.add_message(role="assistant", msg=f"Requesting permission to run the code(Y/n):\n\n{code}")
         self._chat.wait_for_user_message()

@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import textwrap
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -223,6 +224,7 @@ class SafeWebSearch(WebSearch):
             query = f"site:youtube.com {action.query}"
         else:
             query = action.query
+
         error = None
         result_obs = SafeSearchResultsObservation(
             query=action.query, safe_query="", safe_search=True, serp=[]
@@ -287,6 +289,7 @@ class SafeWebSearch(WebSearch):
             logger.exception(f"Failed to search the web: {e}")
             error = str(e)
             result_obs.error = error
+
         return result_obs
 
 

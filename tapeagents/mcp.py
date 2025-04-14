@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from contextlib import AsyncExitStack
+from datetime import timedelta
 from typing import Any
 
 import nest_asyncio
@@ -78,7 +79,9 @@ class MCPClient:
         try:
             exit_stack = AsyncExitStack()
             stdio_transport = await exit_stack.enter_async_context(stdio_client(server_params))
-            session = await exit_stack.enter_async_context(ClientSession(*stdio_transport))
+            session = await exit_stack.enter_async_context(
+                ClientSession(*stdio_transport, read_timeout_seconds=timedelta(seconds=3))
+            )
             await session.initialize()
         except Exception as e:
             logger.exception(f"Failed to start MCP server {server_name} with config {server_params.model_dump()}: {e}")

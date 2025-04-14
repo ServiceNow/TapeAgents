@@ -2,6 +2,7 @@
 
 setup:
 	@uv sync --all-extras
+	@uv run playwright install
 
 lint:
 	@uv run ruff format .
