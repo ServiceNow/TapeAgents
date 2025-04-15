@@ -80,7 +80,7 @@ class MCPClient:
             exit_stack = AsyncExitStack()
             stdio_transport = await exit_stack.enter_async_context(stdio_client(server_params))
             session = await exit_stack.enter_async_context(
-                ClientSession(*stdio_transport, read_timeout_seconds=timedelta(seconds=3))
+                ClientSession(*stdio_transport, read_timeout_seconds=timedelta(seconds=8))
             )
             await session.initialize()
         except Exception as e:
