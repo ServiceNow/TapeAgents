@@ -2,13 +2,11 @@ import json
 import logging
 import os
 import re
-import textwrap
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Literal
 
-from pydantic import PrivateAttr
 import requests
 from pydantic import BaseModel, ConfigDict, Field
 from termcolor import colored
@@ -24,33 +22,23 @@ from tapeagents.utils import FatalError
 logger = logging.getLogger(__name__)
 
 
-def web_search_tool(
-    query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3
-) -> list[dict]:
+def web_search_tool(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
     """
     Search the web for a given query, return a list of search result dictionaries.
     """
-    return _web_search(
-        query, max_results=max_results, retry_pause=retry_pause, attempts=attempts
-    )
+    return _web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
 
 
 @cached_tool
-def _web_search(
-    query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3
-) -> list[dict]:
+def _web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts: int = 3) -> list[dict]:
     try:
-        results = web_search(
-            query, max_results=max_results, retry_pause=retry_pause, attempts=attempts
-        )
+        results = web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
     except Exception as e:
         logger.warning(f"Failed to fetch search results: {e}")
     return results
 
 
-def web_search(
-    query: str, max_results: int = 5, retry_pause: int = 2, attempts: int = 3
-) -> list[dict]:
+def web_search(query: str, max_results: int = 5, retry_pause: int = 2, attempts: int = 3) -> list[dict]:
     results = []
     while not results and attempts > 0:
         attempts -= 1
@@ -59,9 +47,7 @@ def web_search(
             logger.warning(f"Empty search results, retrying in {retry_pause} seconds")
             time.sleep(retry_pause)
     if not results:
-        raise Exception(
-            "Failed to get search results, try to use browser to access the search engine instead"
-        )
+        raise Exception("Failed to get search results, try to use browser to access the search engine instead")
     return results
 
 
@@ -73,9 +59,7 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
     payload = json.dumps({"q": query, "location": "United States", "num": max_results})
     headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
     try:
-        response = requests.request(
-            "POST", f"https://google.serper.dev/{topic}", headers=headers, data=payload
-        )
+        response = requests.request("POST", f"https://google.serper.dev/{topic}", headers=headers, data=payload)
         response_dict = response.json()
     except Exception as e:
         logger.exception(f"Serper API error: {e}")
@@ -84,13 +68,8 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
     videos = response_dict.get("videos", [])
     news = response_dict.get("news", [])
     results = organic + videos + news
-    logger.info(
-        f"Search response for query '{query}': code {response.status_code}, {len(results)} results"
-    )
-    return [
-        {"title": r["title"], "url": r["link"], "snippet": r.get("snippet", "")}
-        for r in results[:max_results]
-    ]
+    logger.info(f"Search response for query '{query}': code {response.status_code}, {len(results)} results")
+    return [{"title": r["title"], "url": r["link"], "snippet": r.get("snippet", "")} for r in results[:max_results]]
 
 
 class SearchAction(Action):
@@ -101,9 +80,7 @@ class SearchAction(Action):
     """
 
     kind: Literal["search_action"] = "search_action"
-    source: str = Field(
-        description="source to search in, could be web, wiki or youtube"
-    )
+    source: str = Field(description="source to search in, could be web, wiki or youtube")
     query: str = Field(description="search query")
 
 
@@ -124,9 +101,7 @@ class SearchResultsObservation(Observation):
             if "content" in result:
                 view["serp"][i]["content"] = result["content"][:100] + "..."
         short = json.dumps(view, indent=2, ensure_ascii=False)
-        logger.info(
-            f"SearchResultsObservation long view was {len(self.llm_view())} chars, short view is {len(short)}"
-        )
+        logger.info(f"SearchResultsObservation long view was {len(self.llm_view())} chars, short view is {len(short)}")
         return short
 
 
@@ -198,9 +173,7 @@ Return **only** this JSON (no extra text):
 )
 
 
-def render_chat_template(
-    prompt: Prompt, context: dict[str, Any]
-) -> list[dict[str, Any]]:
+def render_chat_template(prompt: Prompt, context: dict[str, Any]) -> list[dict[str, Any]]:
     new_messages = []
     for message in prompt.messages:
         formatted_content = message["content"].format(**context)
@@ -216,7 +189,7 @@ def render_chat_template(
 class SafeWebSearch(WebSearch):
     llm: LLM | None = None
     rewrite_prompt: Prompt = DEFAULT_SAFE_WEB_SEARCH_PROMPT
-    max_private_context_len: int = 300000 # characters
+    max_private_context_len: int = 300000  # characters
 
     def execute_action(self, action: SafeSearchAction) -> SearchResultsObservation:
         assert isinstance(action.private_context, list)
@@ -229,9 +202,7 @@ class SafeWebSearch(WebSearch):
             query = action.query
 
         error = None
-        result_obs = SafeSearchResultsObservation(
-            query=action.query, safe_query="", safe_search=True, serp=[]
-        )
+        result_obs = SafeSearchResultsObservation(query=action.query, safe_query="", safe_search=True, serp=[])
         try:
             # Render the prompt
             private_context_str = "\n".join(action.private_context)
@@ -241,7 +212,7 @@ class SafeWebSearch(WebSearch):
                     f"Private context is too long ({len(private_context_str)} chars), truncating to {self.max_private_context_len} chars"
                 )
                 private_context_str = private_context_str[: self.max_private_context_len]
-                
+
             rendered_prompt = render_chat_template(
                 self.rewrite_prompt,
                 context={
@@ -280,9 +251,7 @@ class SafeWebSearch(WebSearch):
                 # If no new query is provided, keep the original query
                 query_rewritten = False
                 new_query = query
-                logger.warning(
-                    f'\nSAFE_SEARCH: Risk Level {level} Keeping original query "{query}"'
-                )
+                logger.warning(f'\nSAFE_SEARCH: Risk Level {level} Keeping original query "{query}"')
 
             results = web_search(new_query)
             result_obs = SafeSearchResultsObservation(
@@ -341,9 +310,7 @@ class SearchAndExtract(Action):
     main_task: str
     instructions: str
     tasks: list[SearchTask]
-    private_context: list[str] = Field(
-        default_factory=list, exclude=True
-    )  # hide so it's not dumped
+    private_context: list[str] = Field(default_factory=list, exclude=True)  # hide so it's not dumped
 
 
 class WebPageData(BaseModel):
@@ -364,9 +331,7 @@ class ExtractedFactsObservation(Observation):
             prefix = f"Topic: {task}:\n<FACTS>"
             page_strs: list[str] = []
             for page in pages:
-                page_strs.append(
-                    f"Page [{page.title}][{page.url}]:\n{page.content}\n--------"
-                )
+                page_strs.append(f"Page [{page.title}][{page.url}]:\n{page.content}\n--------")
             task_facts.append(prefix + "\n\n".join(page_strs) + "\n</FACTS>")
         facts = "\n\n".join(task_facts)
         return f"<FACTS_COLLECTION>Extracted facts:\n{facts}\n</FACTS_COLLECTION>"
@@ -409,15 +374,15 @@ class SearchExtract(Tool):
     search_timeout: int = 30
     fetch_timeout: int = 60
     extract_timeout: int = 60
-    extract_prefix: str = (
-        "Your should extract all relevant information from the page.\n\nTASK: "
-    )
+    extract_prefix: str = "Your should extract all relevant information from the page.\n\nTASK: "
     safe_search: bool = False
     safe_web_search_rewrite_prompt: Prompt = DEFAULT_SAFE_WEB_SEARCH_PROMPT
 
     def model_post_init(self, __context):
         if self.safe_search:
-            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached, rewrite_prompt=self.safe_web_search_rewrite_prompt)
+            self._search_tool = SafeWebSearch(
+                llm=self.llm, cached=self.cached, rewrite_prompt=self.safe_web_search_rewrite_prompt
+            )
         else:
             self._search_tool = WebSearch(cached=self.cached)  # pass through LLM
         return super().model_post_init(__context)
@@ -426,9 +391,7 @@ class SearchExtract(Tool):
         search_results = self.search(action)
         fetch_results = self.fetch(search_results)
         extracted_facts = self.extract(action, fetch_results)
-        logger.info(
-            f"Extracted facts from {sum([len(p) for p in extracted_facts.values()])} pages."
-        )
+        logger.info(f"Extracted facts from {sum([len(p) for p in extracted_facts.values()])} pages.")
         return ExtractedFactsObservation(page_facts=extracted_facts)
 
     def search(self, action: SearchAndExtract) -> list[SearchResult]:
@@ -459,9 +422,7 @@ class SearchExtract(Tool):
                         )
                     )
             else:
-                serp = self._search_tool.run(
-                    SearchAction(source="web", query=query)
-                ).serp[: self.top_k]
+                serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
                 for n, r in enumerate(serp):
                     results.append(
                         SearchResult(
@@ -489,9 +450,7 @@ class SearchExtract(Tool):
                     results += future.result()
             except Exception as e:
                 logger.error(f"Error occurred while processing web search future: {e}")
-        logger.info(
-            f"Got {len(results)} search results for {len(search_tasks)} queries."
-        )
+        logger.info(f"Got {len(results)} search results for {len(search_tasks)} queries.")
         return results
 
     def fetch(self, search_results: list[SearchResult]) -> list[SearchResult]:
@@ -512,9 +471,7 @@ class SearchExtract(Tool):
             search_results[i].text = texts.get(search_results[i].url, "")
         return search_results
 
-    def extract(
-        self, action: SearchAndExtract, fetch_results: list[SearchResult]
-    ) -> dict[str, list[WebPageData]]:
+    def extract(self, action: SearchAndExtract, fetch_results: list[SearchResult]) -> dict[str, list[WebPageData]]:
         extract_tasks = []
         for fr in fetch_results:
             task = action.tasks[fr.task_id].section
@@ -527,9 +484,7 @@ class SearchExtract(Tool):
             prompt = Prompt(messages=[{"role": "user", "content": msg}])
             extract_tasks.append((task, fr.url, fr.title, prompt))
 
-        def extract_page_data(
-            task: str, url: str, title: str, prompt: Prompt
-        ) -> tuple[str, WebPageData]:
+        def extract_page_data(task: str, url: str, title: str, prompt: Prompt) -> tuple[str, WebPageData]:
             page_data_content = self.llm.generate(prompt).get_text()
             if page_data_content.startswith("ERROR"):
                 logger.warning(f"Page {url} empty or blocked")
@@ -540,9 +495,7 @@ class SearchExtract(Tool):
                     "green",
                 )
             )
-            return task, WebPageData(
-                url=url, title=title, content=page_data_content, prompt_id=prompt.id
-            )
+            return task, WebPageData(url=url, title=title, content=page_data_content, prompt_id=prompt.id)
 
         data_per_task = defaultdict(list)
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -552,9 +505,7 @@ class SearchExtract(Tool):
                 for future in as_completed(futures, timeout=self.extract_timeout):
                     task, page_data = future.result()
                     extracted += 1
-                    logger.info(
-                        f"Extracted {extracted} out of {len(extract_tasks)} pages"
-                    )
+                    logger.info(f"Extracted {extracted} out of {len(extract_tasks)} pages")
                     if not task:
                         continue
                     data_per_task[task].append(page_data)
