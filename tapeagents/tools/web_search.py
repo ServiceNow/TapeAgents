@@ -69,6 +69,8 @@ def serper_search(query: str, max_results: int = 5) -> list[dict]:
     news = response_dict.get("news", [])
     results = organic + videos + news
     logger.info(f"Search response for query '{query}': code {response.status_code}, {len(results)} results")
+    if response.status_code != 200 and len(results) == 0:
+        logger.error(f"Search response: {response_dict}")
     return [{"title": r["title"], "url": r["link"], "snippet": r.get("snippet", "")} for r in results[:max_results]]
 
 
