@@ -87,7 +87,9 @@ class StandardNode(Node):
 
         if steps and not self.use_function_calls:
             self._steps_type = Annotated[Union[tuple(steps)], Field(discriminator="kind")]
-        return steps + [a for a in agent.known_actions if isinstance(a, ToolSpec)]
+        if self.use_known_actions:
+            steps += [a for a in agent.known_actions if isinstance(a, ToolSpec)]
+        return steps
 
     def make_prompt(self, agent: Any, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
