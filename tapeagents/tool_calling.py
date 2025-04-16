@@ -44,9 +44,6 @@ class ToolSpec(BaseTool):
     def description(self) -> str:
         return f"{self.function.name} - {self.function.description}"
 
-    def run(self, action: Action) -> Observation:
-        raise NotImplementedError("ToolSpec is not meant to be run directly.")
-
     @classmethod
     def from_function(cls, function: Callable):
         """
