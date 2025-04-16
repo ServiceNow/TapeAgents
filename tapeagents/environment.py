@@ -8,7 +8,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Callable, Generic, Literal
 
-from langchain_core.tools import BaseTool, tool as tool_wrapper
+from langchain_core.tools import BaseTool as LangchainBaseTool, tool as tool_wrapper
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
@@ -16,7 +16,7 @@ from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
 from tapeagents.dialog_tape import AssistantStep, DialogTape, UserStep
 from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
-from tapeagents.tools.base import StatefulTool, Tool
+from tapeagents.tools.base import BaseTool, StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 from tapeagents.view import defaultdict
@@ -82,8 +82,8 @@ class EmptyEnvironment(Environment):
 
 
 class ToolEnvironment(Environment):
-    def __init__(self, tools: list[BaseTool | Callable]):
-        self.tools: list[BaseTool] = [t if isinstance(t, BaseTool) else tool_wrapper(t) for t in tools]  # type: ignore
+    def __init__(self, tools: list[LangchainBaseTool | Callable]):
+        self.tools: list[LangchainBaseTool] = [t if isinstance(t, LangchainBaseTool) else tool_wrapper(t) for t in tools]  # type: ignore
         self._name2tool = {t.name: t for t in self.tools}
 
     def get_tool_schemas(self) -> list[ToolSpec]:
@@ -158,13 +158,13 @@ class CodeExecutionEnvironment(Environment):
 
 
 class ToolCollectionEnvironment(Environment):
-    tools: list[Tool | StatefulTool]
+    tools: list[BaseTool]
     loop_detection: bool = False
     loop_warning_after_n_steps: int = 3
     loop_warning: str = "You seem to be stuck producing the same action. Consider a new approach and avoid repeating previously attempted ineffective steps."
-    action_map: dict[type[Action], Tool | StatefulTool]
+    action_map: dict[type[Action], BaseTool]
 
-    def __init__(self, tools: list[Tool | StatefulTool]) -> None:
+    def __init__(self, tools: list[BaseTool]) -> None:
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
