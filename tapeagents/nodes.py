@@ -93,7 +93,9 @@ class StandardNode(Node):
 
         if steps and not self.use_function_calls:
             self._steps_type = Annotated[Union[tuple(steps)], Field(discriminator="kind")]
-        return steps + [a for a in agent.known_actions if isinstance(a, ToolSpec)]
+        if self.use_known_actions:
+            steps += [a for a in agent.known_actions if isinstance(a, ToolSpec)]
+        return steps
 
     def make_prompt(self, agent: Agent, tape: Tape) -> Prompt:
         """Create a prompt from tape interactions.
@@ -131,7 +133,7 @@ class StandardNode(Node):
             self.trim_obs_except_last_n = old_trim
         format = response_format(self._steps[0]) if self.structured_output else None
         logger.info(f"Response format: {format}")
-        tools = [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls else None
+        tools = [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls and not format else None
         prompt = Prompt(messages=messages, tools=tools, response_format=format)
         logger.debug(colored(f"PROMPT tools:\n{prompt.tools}", "red"))
         for i, m in enumerate(prompt.messages):
