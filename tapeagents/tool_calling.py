@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from tapeagents.core import Action, Observation, Step
 from tapeagents.llms import LLMOutput
+from tapeagents.tools.base import BaseTool
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class FunctionSpec(BaseModel):
     parameters: dict
 
 
-class ToolSpec(BaseModel):
+class ToolSpec(BaseTool):
     """
     ToolSpec is a model that represents a tool specification with a type and a function.
 
@@ -39,6 +40,12 @@ class ToolSpec(BaseModel):
 
     type: Literal["function"] = "function"
     function: FunctionSpec
+
+    def description(self) -> str:
+        return f"{self.function.name} - {self.function.description}"
+
+    def run(self, action: Action) -> Observation:
+        raise NotImplementedError("ToolSpec is not meant to be run directly.")
 
     @classmethod
     def from_function(cls, function: Callable):

@@ -16,7 +16,7 @@ from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
 from tapeagents.dialog_tape import AssistantStep, DialogTape, UserStep
 from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
-from tapeagents.tools.base import StatefulTool, Tool
+from tapeagents.tools.base import BaseTool as TapeAgentsBaseTool, StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 from tapeagents.view import defaultdict
@@ -158,13 +158,13 @@ class CodeExecutionEnvironment(Environment):
 
 
 class ToolCollectionEnvironment(Environment):
-    tools: list[Tool | StatefulTool]
+    tools: list[TapeAgentsBaseTool]
     loop_detection: bool = False
     loop_warning_after_n_steps: int = 3
     loop_warning: str = "You seem to be stuck producing the same action. Consider a new approach and avoid repeating previously attempted ineffective steps."
-    action_map: dict[type[Action], Tool | StatefulTool]
+    action_map: dict[type[Action], TapeAgentsBaseTool]
 
-    def __init__(self, tools: list[Tool | StatefulTool]) -> None:
+    def __init__(self, tools: list[TapeAgentsBaseTool]) -> None:
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}

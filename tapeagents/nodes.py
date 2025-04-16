@@ -76,8 +76,6 @@ class StandardNode(Node):
     allow_code_blocks: bool = False
     structured_output: bool = False
     _steps_type: Any = None
-    _tools: dict[str, dict] | None = None
-    _tool_name_to_cls: dict[str, type[Step]] | None = None
     _steps: list[Type[Step] | ToolSpec] = None  # type: ignore
 
     def model_post_init(self, __context: Any) -> None:
@@ -95,10 +93,6 @@ class StandardNode(Node):
 
         if steps and not self.use_function_calls:
             self._steps_type = Annotated[Union[tuple(steps)], Field(discriminator="kind")]
-        # TODO DT
-        # if self.use_function_calls:
-        #     self._tools = {step_cls: as_openai_tool(step_cls) for step_cls in steps}
-        #     self._tool_name_to_cls = {tool["function"]["name"]: step_cls for step_cls, tool in self._tools.items()}
         return steps + [a for a in agent.known_actions if isinstance(a, ToolSpec)]
 
     def make_prompt(self, agent: Agent, tape: Tape) -> Prompt:
@@ -138,8 +132,6 @@ class StandardNode(Node):
         format = response_format(self._steps[0]) if self.structured_output else None
         logger.info(f"Response format: {format}")
         tools = [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls else None
-        # TODO DT
-        # tools = list(self._tools.values()) if self.use_function_calls else None
         prompt = Prompt(messages=messages, tools=tools, response_format=format)
         logger.debug(colored(f"PROMPT tools:\n{prompt.tools}", "red"))
         for i, m in enumerate(prompt.messages):
@@ -320,7 +312,6 @@ class StandardNode(Node):
             yield SetNextNode(next_node=self.next_node)
 
     def tool_call_to_step(self, agent: Agent, tool_call: ChatCompletionMessageToolCall) -> Step:
-        # TODO DT
         name = tool_call.function.name or "None"
         tool_to_cls = {
             as_openai_tool(s).function.name: (ToolCallAction if isinstance(s, ToolSpec) else s) for s in self._steps
