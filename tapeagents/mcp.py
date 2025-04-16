@@ -42,8 +42,7 @@ class MCPClient:
         logger.info(f"Started {len(self.servers)} MCP servers")
 
     def load_config(self, config_path) -> dict[str, StdioServerParameters]:
-        if not os.path.exists(config_path):
-            return {}
+        assert os.path.exists(config_path), f"Config path {config_path} does not exist"
         self.config_path = config_path
 
         try:

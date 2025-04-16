@@ -10,7 +10,8 @@ from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import MockLLM
 from tapeagents.mcp import MCPClient, MCPEnvironment
 from tapeagents.nodes import StandardNode
-from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolResult
+from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolResult, ToolSpec
+from tapeagents.tools.calculator import Calculator, UseCalculatorAction
 
 MOCK_TOOLS = {
     "server1": [
@@ -68,6 +69,17 @@ class MockMCPClient(MCPClient):
             return CallToolResult(content=[TextContent(type="text", text=tool_args["message"])])
         else:
             raise Exception(f"Tool {tool_name} not implemented")
+
+def test_mcp_env_init():
+    env = MCPEnvironment(tools=[Calculator()], client=MockMCPClient("dummy_config.json"))
+
+    assert(len(env.tools) == 4)
+    assert sum(1 for tool in env.tools if isinstance(tool, Calculator)) == 1
+    assert sum(1 for tool in env.tools if isinstance(tool, ToolSpec)) == 3
+    actions = env.actions()
+    assert(len(actions) == 4)
+    assert sum(1 for action in actions if isinstance(action, ToolSpec)) == 3
+    assert sum(1 for action in actions if action == UseCalculatorAction) == 1
 
 
 def test_mcp_env():
