@@ -8,10 +8,18 @@ environment:
     - _target_: tapeagents.tools.document_reader.DocumentReader
       file_converter_options:
         _target_: tapeagents.tools.converters.FileConverterOptions
+        html_converter:
+          _target_: tapeagents.tools.converters.HtmlDoclingConverter
         pdf_converter:
           _target_: tapeagents.tools.converters.PdfDoclingConverter
         docx_converter:
           _target_: tapeagents.tools.converters.DocxDoclingConverter
+        xlsx_converter:
+          _target_: tapeagents.tools.converters.XlsxDoclingConverter
+        pptx_converter:
+          _target_: tapeagents.tools.converters.PptxDoclingConverter
+        image_converter:
+          _target_: tapeagents.tools.converters.ImageDoclingConverter
 
 agent:
   _target_: tapeagents.agent.Agent

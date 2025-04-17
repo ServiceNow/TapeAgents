@@ -71,9 +71,10 @@ class CachedLLM(LLM):
                         if key not in self._cache:
                             self._cache[key] = []
                         self._cache[key].append(event_dict)
-            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir}")
+            logger.info(f"Loaded {len(self._cache)} llm calls from cache {cache_dir} for LLM {self.model_name}")
         else:
-            logger.info(f"Cache dir {cache_dir} does not exist")
+            logger.info(f"Cache dir {cache_dir} does not exist; creating ...")
+            os.makedirs(cache_dir, exist_ok=True)
 
     def reindex_log(self):
         """
@@ -104,7 +105,10 @@ class CachedLLM(LLM):
             f.write(json.dumps((key, event_dict), ensure_ascii=False) + "\n")
 
     def get_prompt_key(self, prompt: Prompt) -> str:
-        prompt_text = json.dumps(prompt.model_dump(exclude={"id"}), ensure_ascii=False, sort_keys=True)
+        prompt_dict = prompt.model_dump(exclude={"id"})
+        if type(prompt.response_format).__name__ == "ModelMetaclass":
+            prompt_dict["response_format"] = prompt.response_format.model_json_schema()
+        prompt_text = json.dumps(prompt_dict, ensure_ascii=False, sort_keys=True)
         return self._key(prompt_text)
 
     def _key(self, text: str) -> str:
@@ -139,7 +143,7 @@ class CachedLLM(LLM):
         def _implementation():
             key = self.get_prompt_key(prompt)
             if self.use_cache and key in self._cache:
-                logger.debug(colored(f"LLM cache hit, {len(self._cache[key])} events", "green"))
+                logger.info(colored(f"LLM cache hit for {self.model_name}, {len(self._cache[key])} events", "green"))
                 for event_dict in self._cache[key]:
                     event = LLMEvent.model_validate(event_dict)
                     if event.output is not None:
