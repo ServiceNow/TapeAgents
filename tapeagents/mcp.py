@@ -131,23 +131,27 @@ class MCPClient:
 
 
 class MCPEnvironment(ToolCollectionEnvironment):
-    client: MCPClient
+    client: MCPClient | None
+    tools: list[BaseTool]
 
     def __init__(
         self, tools: Optional[list[BaseTool]] = None, config_path: str = "", client: MCPClient | None = None
     ) -> None:
         super().__init__(tools=tools or [])
-        self.client = client or MCPClient(config_path)
-        self.tools.extend(
-            [
-                ToolSpec(
-                    function=FunctionSpec(
-                        name=tool.name, description=tool.description or "", parameters=tool.inputSchema
+        self.client = client or MCPClient(config_path) if config_path else None
+        if self.client and not self.tools:
+            raise ValueError("Tools or config_path must be provided")
+        if self.client:
+            self.tools.extend(
+                [
+                    ToolSpec(
+                        function=FunctionSpec(
+                            name=tool.name, description=tool.description or "", parameters=tool.inputSchema
+                        )
                     )
-                )
-                for tool in self.client.tools.values()
-            ]
-        )
+                    for tool in self.client.tools.values()
+                ]
+            )
 
     def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
         actions = super().actions()
@@ -160,6 +164,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
         if isinstance(action, LLMOutputParsingFailureAction):
             return ToolResult(tool_call_id="", content="Try again")
         try:
+            assert self.client is not None, "MCPClient is not initialized"
             result = asyncio.run(self.client.call_tool(action.function.name, action.function.arguments))
         except NoTool:
             logger.exception(f"Tool {action.function.name} not found in MCP client")
@@ -181,7 +186,8 @@ class MCPEnvironment(ToolCollectionEnvironment):
         return ToolResult(tool_call_id=action.id, content=result)
 
     def close(self) -> None:
-        try:
-            asyncio.run(self.client.close())
-        except Exception:
-            pass
+        if self.client is not None:
+            try:
+                asyncio.run(self.client.close())
+            except Exception:
+                pass
