@@ -355,7 +355,7 @@ class SearchExtract(Tool):
     extract_timeout: int = 60
     extract_prefix: str = "Your should extract all relevant information from the page.\n\nTASK: "
     safe_search: bool = False
-    safe_search_prompt: str
+    safe_search_prompt: str = DEFAULT_SAFE_SEARCH_PROMPT
 
     def model_post_init(self, __context):
         if self.safe_search:
