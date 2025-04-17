@@ -276,6 +276,7 @@ class SearchAndExtract(Action):
     instructions: str
     tasks: list[SearchTask]
     time_interval: str
+    skip_urls: list[str]
     private_context: list[str] = Field(default_factory=list, exclude=True)  # hide so it's not dumped
 
 
@@ -403,6 +404,9 @@ class SearchExtract(Tool):
                     SearchAction(source="web", query=query, time_interval=action.time_interval)
                 ).serp[: self.top_k]  # type: ignore
                 for n, r in enumerate(serp):
+                    if r["url"] in action.skip_urls:
+                        logger.info(f"Skipping URL {r['url']}")
+                        continue
                     results.append(
                         SearchResult(
                             task_id=i,
