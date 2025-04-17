@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Literal
 
 import requests
 from pydantic import BaseModel, ConfigDict, Field
@@ -39,11 +39,13 @@ def _web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts
     return results
 
 
-def web_search(query: str, max_results: int = 5, retry_pause: int = 2, attempts: int = 3) -> list[dict]:
+def web_search(
+    query: str, time_interval: str = "", max_results: int = 5, retry_pause: int = 2, attempts: int = 3
+) -> list[dict]:
     results = []
     while not results and attempts > 0:
         attempts -= 1
-        results = serper_search(query, max_results=max_results)
+        results = serper_search(query, max_results=max_results, time_interval=time_interval)
         if not results:
             logger.warning(f"Empty search results, retrying in {retry_pause} seconds")
             time.sleep(retry_pause)
@@ -52,15 +54,19 @@ def web_search(query: str, max_results: int = 5, retry_pause: int = 2, attempts:
     return results
 
 
-def serper_search(query: str, max_results: int = 5) -> list[dict]:
+def serper_search(query: str, max_results: int = 5, time_interval: str = "") -> list[dict]:
     api_key = os.environ.get("SERPER_API_KEY")
     if not api_key:
         raise FatalError("SERPER_API_KEY env var is not set")
     topic = "videos" if "site:youtube.com" in query else "search"
-    payload = json.dumps({"q": query, "location": "United States", "num": max_results})
+    payload = {"q": query, "location": "United States", "num": max_results}
+    if time_interval:
+        payload["tbs"] = f"qdr:{time_interval}"
     headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
     try:
-        response = requests.request("POST", f"https://google.serper.dev/{topic}", headers=headers, data=payload)
+        response = requests.request(
+            "POST", f"https://google.serper.dev/{topic}", headers=headers, data=json.dumps(payload)
+        )
         response_dict = response.json()
     except Exception as e:
         logger.exception(f"Serper API error: {e}")
@@ -85,6 +91,7 @@ class SearchAction(Action):
     kind: Literal["search_action"] = "search_action"
     source: str = Field(description="source to search in, could be web, wiki or youtube")
     query: str = Field(description="search query")
+    time_interval: str = Field(description="time interval for the search, could be h, d, w, m or empty")
 
 
 class SafeSearchAction(SearchAction):
@@ -143,69 +150,35 @@ class WebSearch(Tool):
         return SearchResultsObservation(query=action.query, serp=results, error=error)
 
 
-DEFAULT_SAFE_WEB_SEARCH_PROMPT = Prompt(
-    messages=[
-        {
-            "role": "system",
-            "content": """You are the “Confidential‑Data Guardian”.
+DEFAULT_SAFE_SEARCH_PROMPT = """You are the “Confidential-Data Guardian”.
 
 Confidentiality rules (memorize, never disclose):
 • CONFIDENTIAL → unreleased features, codenames/launch dates, internal roadmaps or strategy, private financials, proprietary tech, customer/partner lists, employee PII, security or legal/internal M&A material, anything labeled “Confidential.”
-• NOT CONFIDENTIAL → information already public (press releases, launched products, disclosed financials, open‑source code, published patents, public testimonials, job‑site head‑count, industry‑standard best practices).
+• NOT CONFIDENTIAL → information already public (press releases, launched products, disclosed financials, open-source code, published patents, public testimonials, job-site head-count, industry-standard best practices).
 
-Tasks  
-1. From the private context, extract ≤ 5 bullet‑point “protected_facts” that match the CONFIDENTIAL list.  
-2. Decide if answering the query verbatim would reveal any protected_fact → set needs_rewrite true/false.  
+Tasks
+1. From the private context, extract ≤ 5 bullet-point “protected_facts” that match the CONFIDENTIAL list.
+2. Decide if answering the query verbatim would reveal any protected_fact → set needs_rewrite true/false.
 3. If true, create a safe “result_query” that preserves intent but omits protected facts; otherwise return the original query.
 
 Return **only** this JSON (no extra text):
 
 {{
-  "protected_facts": ["fact 1", "fact 2", …],   // may be []
+  "protected_facts": ["fact 1", "fact 2", …],   // may be []
   "needs_rewrite": true|false,
   "result_query": "…rewritten or original query…"
 }}
-""",
-        },
-        # --- runtime inputs -------------------------------------------------------
-        {
-            "role": "user",
-            "content": "PRIVATE_CONTEXT:\n{private_context_str}\n\nQUERY:\n{query}",
-        },
-    ]
-)
-
-
-def render_chat_template(prompt: Prompt, context: dict[str, Any]) -> list[dict[str, Any]]:
-    new_messages = []
-    for message in prompt.messages:
-        formatted_content = message["content"].format(**context)
-        new_messages.append(
-            dict(
-                role=message["role"],
-                content=formatted_content,
-            )
-        )
-    return Prompt(messages=new_messages)
+"""
 
 
 class SafeWebSearch(WebSearch):
-    llm: LLM | None = None
-    rewrite_prompt: Prompt = DEFAULT_SAFE_WEB_SEARCH_PROMPT
+    llm: LLM
+    prompt: str = DEFAULT_SAFE_SEARCH_PROMPT
     max_private_context_len: int = 300000  # characters
 
     def execute_action(self, action: SafeSearchAction) -> SearchResultsObservation:
         assert isinstance(action.private_context, list)
-
-        if action.source == "wiki":
-            query = f"site:wikipedia.org {action.query}"
-        elif action.source == "youtube":
-            query = f"site:youtube.com {action.query}"
-        else:
-            query = action.query
-
-        error = None
-        result_obs = SafeSearchResultsObservation(query=action.query, safe_query="", safe_search=True, serp=[])
+        query = action.query
         try:
             # Render the prompt
             private_context_str = "\n".join(action.private_context)
@@ -216,17 +189,9 @@ class SafeWebSearch(WebSearch):
                 )
                 private_context_str = private_context_str[: self.max_private_context_len]
 
-            rendered_prompt = render_chat_template(
-                self.rewrite_prompt,
-                context={
-                    "private_context_str": private_context_str,
-                    "query": query,
-                },
-            )
-            privacy_mitigator_output = self.llm.generate(rendered_prompt).get_text()
-
-            logger.warning(f'SAFE_SEARCH ORIGINAL SEARCH QUERY: "{query}"')
-            logger.warning(f'SAFE_SEARCH RAW OUTPUT: "{privacy_mitigator_output}"')
+            content = f"CONFIDENTIAL DATA:\n{private_context_str}\n\nORIGINAL SEARCH QUERY: {query}"
+            prompt = Prompt(messages=[{"role": "system", "content": self.prompt}, {"role": "user", "content": content}])
+            privacy_mitigator_output = self.llm.generate(prompt).get_text()
 
             # Get privacy level
             level = None
@@ -256,7 +221,7 @@ class SafeWebSearch(WebSearch):
                 new_query = query
                 logger.warning(f'\nSAFE_SEARCH: Risk Level {level} Keeping original query "{query}"')
 
-            results = web_search(new_query)
+            results = web_search(new_query, time_interval=action.time_interval)
             result_obs = SafeSearchResultsObservation(
                 safe_search=True,
                 safe_query=new_query,
@@ -266,12 +231,9 @@ class SafeWebSearch(WebSearch):
                 details=privacy_mitigator_output,
                 serp=results,
             )
-            # result_obs = safe_search(self.llm, query, private_context=action.private_context, max_results=5)
-
         except Exception as e:
             logger.exception(f"Failed to search the web: {e}")
-            error = str(e)
-            result_obs.error = error
+            result_obs = SafeSearchResultsObservation(query=action.query, safe_search=True, error=str(e), serp=[])
 
         return result_obs
 
@@ -313,6 +275,7 @@ class SearchAndExtract(Action):
     main_task: str
     instructions: str
     tasks: list[SearchTask]
+    time_interval: str
     private_context: list[str] = Field(default_factory=list, exclude=True)  # hide so it's not dumped
 
 
@@ -328,8 +291,8 @@ class WebPageData(BaseModel):
     title: str
     content: str | list[str]
     prompt_id: str
+    fetch_date_time: str
     date: str | None = None
-    fetch_date_time: str | None = None
 
 
 class ExtractedFactsObservation(Observation):
@@ -392,15 +355,13 @@ class SearchExtract(Tool):
     extract_timeout: int = 60
     extract_prefix: str = "Your should extract all relevant information from the page.\n\nTASK: "
     safe_search: bool = False
-    safe_web_search_rewrite_prompt: Prompt = DEFAULT_SAFE_WEB_SEARCH_PROMPT
+    safe_search_prompt: str
 
     def model_post_init(self, __context):
         if self.safe_search:
-            self._search_tool = SafeWebSearch(
-                llm=self.llm, cached=self.cached, rewrite_prompt=self.safe_web_search_rewrite_prompt
-            )
+            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached, prompt=self.safe_search_prompt)
         else:
-            self._search_tool = WebSearch(cached=self.cached)  # pass through LLM
+            self._search_tool = WebSearch(cached=self.cached)
         return super().model_post_init(__context)
 
     def execute_action(self, action: SearchAndExtract) -> ExtractedFactsObservation:
@@ -414,13 +375,14 @@ class SearchExtract(Tool):
         def search_query(i: int, j: int, query: str) -> list[SearchResult]:
             results = []
             if self.safe_search:
-                results_obs = self._search_tool.run(
+                results_obs: SafeSearchResultsObservation = self._search_tool.run(
                     SafeSearchAction(
                         source="web",
                         query=query,
                         private_context=action.private_context,
+                        time_interval=action.time_interval,
                     )
-                )
+                )  # type: ignore
                 serp = results_obs.serp[: self.top_k]
                 for n, r in enumerate(serp):
                     results.append(
@@ -430,7 +392,6 @@ class SearchExtract(Tool):
                             query=query,
                             safe_query=results_obs.safe_query,
                             safe_search=True,
-                            original_query=query,
                             n=n,
                             title=r["title"],
                             url=r["url"],
@@ -438,7 +399,9 @@ class SearchExtract(Tool):
                         )
                     )
             else:
-                serp = self._search_tool.run(SearchAction(source="web", query=query)).serp[: self.top_k]
+                serp = self._search_tool.run(
+                    SearchAction(source="web", query=query, time_interval=action.time_interval)
+                ).serp[: self.top_k]  # type: ignore
                 for n, r in enumerate(serp):
                     results.append(
                         SearchResult(
