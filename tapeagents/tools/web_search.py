@@ -5,6 +5,7 @@ import re
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 import requests
@@ -17,7 +18,7 @@ from tapeagents.tools.base import Tool
 from tapeagents.tools.browser import Fetcher
 from tapeagents.tools.simple_browser import SimpleTextBrowser
 from tapeagents.tools.tool_cache import cached_tool
-from tapeagents.utils import FatalError
+from tapeagents.utils import FatalError, response_format
 
 logger = logging.getLogger(__name__)
 
@@ -315,12 +316,20 @@ class SearchAndExtract(Action):
     private_context: list[str] = Field(default_factory=list, exclude=True)  # hide so it's not dumped
 
 
+class PageFacts(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    publication_date: str = Field(description="Date in YYYY-MM-DD format, empty string if not available")
+    facts: list[str]
+
+
 class WebPageData(BaseModel):
     model_config = ConfigDict(extra="forbid")
     url: str
     title: str
-    content: str
+    content: str | list[str]
     prompt_id: str
+    date: str | None = None
+    fetch_date_time: str | None = None
 
 
 class ExtractedFactsObservation(Observation):
@@ -333,7 +342,12 @@ class ExtractedFactsObservation(Observation):
             prefix = f"Topic: {task}:\n<FACTS>"
             page_strs: list[str] = []
             for page in pages:
-                page_strs.append(f"Page [{page.title}][{page.url}]:\n{page.content}\n--------")
+                page_facts = (
+                    "\n".join([f"- {f}" for f in page.content]) if isinstance(page.content, list) else page.content
+                )
+                page_strs.append(
+                    f"Page [{page.title}][{page.url}]:\nPublication date: {page.date or 'Unknown'}. Extraction date: {page.fetch_date_time}. Facts:\n{page_facts}\n----"
+                )
             task_facts.append(prefix + "\n\n".join(page_strs) + "\n</FACTS>")
         facts = "\n\n".join(task_facts)
         return f"<FACTS_COLLECTION>Extracted facts:\n{facts}\n</FACTS_COLLECTION>"
@@ -480,7 +494,7 @@ class SearchExtract(Tool):
             facts_to_discover = action.tasks[fr.task_id].facts_to_discover
             query = action.tasks[fr.task_id].queries[fr.query_id]
             prefix = f"{self.extract_prefix}{task} (part of higher-level task {action.main_task})\nFacts to discover: {facts_to_discover}\nSearch query that led to the page: {query}\n\nPage content:\n\n"
-            postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf the page is empty or contains only message about blocking the access, return only one word ERROR and nothing else."
+            postfix = f"\n\nData extraction instructions:\n{action.instructions}\nIf you found the creation date of the document, put it in the first line. If the page is empty or contains only message about blocking the access, return only one word ERROR and nothing else."
             msg = f"{prefix}{fr.text}{postfix}"
             logger.info(f"Page: {fr.url}, prompt length {len(msg)} chars")
             prompt = Prompt(messages=[{"role": "user", "content": msg}])
@@ -491,13 +505,30 @@ class SearchExtract(Tool):
             if page_data_content.startswith("ERROR"):
                 logger.warning(f"Page {url} empty or blocked")
                 return "", None
+
+            msg = f"Convert the following text into a structured JSON object:\n\n{page_data_content}\n\nIf there is no date in the first line of the text, leave date field empty. Do not split the tables into multiple facts, put every table into single fact string."
+            page_data_json = self.llm.generate(
+                Prompt(messages=[{"role": "user", "content": msg}], response_format=response_format(PageFacts))
+            ).get_text()
+            try:
+                page_facts = PageFacts.model_validate_json(page_data_json)
+            except Exception as e:
+                logger.exception(f"Failed to produce structured list of facts: {e}")
+                return None, None  # type: ignore
             logger.info(
                 colored(
-                    f"Completed extraction for page: {url}\nFacts output: {page_data_content}",
+                    f"Completed extraction for page: {url}\nDate {page_facts.publication_date}, facts: {page_facts.facts}",
                     "green",
                 )
             )
-            return task, WebPageData(url=url, title=title, content=page_data_content, prompt_id=prompt.id)
+            return task, WebPageData(
+                url=url,
+                title=title,
+                content=page_facts.facts,
+                prompt_id=prompt.id,
+                date=page_facts.publication_date,
+                fetch_date_time=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
+            )
 
         data_per_task = defaultdict(list)
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
