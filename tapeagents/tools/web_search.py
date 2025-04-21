@@ -270,6 +270,16 @@ class SearchTask(BaseModel):
     queries: list[str]
 
 
+class SearchExtractAction(Action, SearchTask):
+    """
+    Action that provides parameters for a search function call.
+    Could search in the web, wikipedia or youtube.
+    Search results will be ordered by relevance from top to bottom.
+    """
+
+    kind: Literal["search_extract_action"] = "search_extract_action"  # type: ignore
+
+
 class SearchAndExtract(Action):
     kind: Literal["search_and_extract"] = "search_and_extract"
     main_task: str
@@ -340,7 +350,7 @@ class SearchResult(BaseModel):
     details: str = ""
 
 
-class SearchExtract(Tool):
+class MultiSearchExtract(Tool):
     """
     Performs a search in the web and retrieves the whole content of each page. Then extracts the relevant information.
     """
@@ -512,3 +522,38 @@ class SearchExtract(Tool):
             except Exception as e:
                 logger.error(f"Error occurred while processing extract future: {e}")
         return data_per_task
+
+
+EXTRACT_INSTRUCTIONS = """
+Create markdown document with all the facts and claims from the provided document.
+First try to find the creation date of the document in its content. If it is not available, skip it and not mention.
+Then collect all facts, claims events and definitions mentioned in the document and produce a complete list.
+Things that are relevant to the current task should come first.
+If there are any tables, use markdown to represent them.
+Fact is any numerical or categorical information about a person, place, event, product, object or a company.
+Claim is any statement made by a person that is cited in the web page. Claims should be attributed to the person who made them and represented as verbatim quotes.
+When providing quotes, ensure that the quote includes enough context to be understood.
+Do not append the word "Fact" or "Claim" to the beginning of sentences.
+Important! Respond with the plain text, do not include any JSON or code.
+Do not output anything besides what I asked in this message.
+"""
+
+
+class SearchExtract(MultiSearchExtract):
+    action: type[Action] = SearchAndExtract
+    observation: type[Observation] = ExtractedFactsObservation
+
+    def execute_action(self, action: SearchExtractAction) -> ExtractedFactsObservation:
+        multi_action = SearchAndExtract(
+            main_task="perform web search and extract facts",
+            instructions=EXTRACT_INSTRUCTIONS,
+            tasks=[action],
+            time_interval="",
+            skip_urls=[],
+            private_context=[],
+        )
+        search_results = self.search(multi_action)
+        fetch_results = self.fetch(search_results)
+        extracted_facts = self.extract(multi_action, fetch_results)
+        logger.info(f"Extracted facts from {sum([len(p) for p in extracted_facts.values()])} pages.")
+        return ExtractedFactsObservation(page_facts=extracted_facts)
