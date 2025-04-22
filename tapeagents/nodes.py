@@ -133,7 +133,9 @@ class StandardNode(Node):
             self.trim_obs_except_last_n = old_trim
         format = response_format(self._steps[0]) if self.structured_output else None
         logger.info(f"Response format: {format}")
-        tools = [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls and not format else None
+        tools = (
+            [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls and not format else None
+        )
         prompt = Prompt(messages=messages, tools=tools, response_format=format)
         logger.debug(colored(f"PROMPT tools:\n{prompt.tools}", "red"))
         for i, m in enumerate(prompt.messages):
@@ -476,18 +478,19 @@ class AsStep(StandardNode):
 
 Do not reproduce the schema when producing the step, use it as a reference!
 DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JSON. It will break the system that processes the output."""
+    guidance: str = "Convert the following paragraph into a structured JSON object:"
 
     def make_prompt(self, agent: Agent, tape: Tape) -> Prompt:
         self._steps = self.prepare_step_types(agent)
         last_reasoning_step_pos = [i for i, step in enumerate(tape.steps) if isinstance(step, ReasoningThought)][-1]
-        text = tape[last_reasoning_step_pos].reasoning
+        text = tape[last_reasoning_step_pos].reasoning  # type: ignore
         errors_after = [
             step
             for step in tape.steps[last_reasoning_step_pos + 1 :]
             if isinstance(step, LLMOutputParsingFailureAction)
         ]
         step_cls = self._steps[0]
-        msg = f"Convert the following paragraph into a structured JSON object:\n\n{text}"
+        msg = f"{self.guidance}\n\n{text}"
         messages = [{"role": "user", "content": msg}]
         if not self.structured_output:
             messages.append({"role": "user", "content": self.format_prompt.format(schema=step_schema_json(step_cls))})
