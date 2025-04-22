@@ -540,6 +540,11 @@ Do not output anything besides what I asked in this message.
 
 
 class SearchExtract(MultiSearchExtract):
+    """
+    Performs a search in the web for multiple queries and retrieves the whole content of each page.
+    Then extracts the relevant information.
+    """
+
     action: type[Action] = SearchExtractAction
     observation: type[Observation] = ExtractedFactsObservation
 
