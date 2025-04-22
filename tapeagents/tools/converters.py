@@ -48,6 +48,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 logger = logging.getLogger(__name__)
 
+
 class DocumentConverterResult:
     """The result of converting a document to text."""
 
@@ -653,7 +654,6 @@ class ImageDoclingConverter(DoclingConverter):
         extension = kwargs.get("file_extension", "")
         if extension.lower() not in [".jpg", ".jpeg", ".png", ".tiff", ".bmp"]:
             return None
-        # TODO DT StandardPdfPipeline ?
         return super().convert(local_path, **kwargs)
 
 
