@@ -540,7 +540,7 @@ Do not output anything besides what I asked in this message.
 
 
 class SearchExtract(MultiSearchExtract):
-    action: type[Action] = SearchAndExtract
+    action: type[Action] = SearchExtractAction
     observation: type[Observation] = ExtractedFactsObservation
 
     def execute_action(self, action: SearchExtractAction) -> ExtractedFactsObservation:
