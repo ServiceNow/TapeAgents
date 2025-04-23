@@ -136,6 +136,7 @@ class StandardNode(Node):
         tools = (
             [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls and not format else None
         )
+        logger.info(f"Tools: {[t['function']['name'] for t in (tools or [])]}")
         prompt = Prompt(messages=messages, tools=tools, response_format=format)
         logger.debug(colored(f"PROMPT tools:\n{prompt.tools}", "red"))
         for i, m in enumerate(prompt.messages):
