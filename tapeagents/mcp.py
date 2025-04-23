@@ -29,7 +29,7 @@ class NoTool(Exception):
 
 
 class MCPClient:
-    def __init__(self, config_path: str, use_cache: bool = False) -> None:
+    def __init__(self, config_path: str, use_cache: bool = False, read_timeout_seconds: int = 10) -> None:
         self.servers = self.load_config(config_path)
         self.sessions: dict[str, ClientSession] = {}
         self.exit_stacks: dict[str, AsyncExitStack] = {}
@@ -37,6 +37,7 @@ class MCPClient:
         self.tool_to_server: dict[str, str] = {}
         self._cleanup_lock: asyncio.Lock = asyncio.Lock()
         self.use_cache = use_cache
+        self.read_timeout_seconds = read_timeout_seconds
         asyncio.run(self.start_servers())
 
     async def start_servers(self):
@@ -85,7 +86,7 @@ class MCPClient:
             exit_stack = AsyncExitStack()
             stdio_transport = await exit_stack.enter_async_context(stdio_client(server_params))
             session = await exit_stack.enter_async_context(
-                ClientSession(*stdio_transport, read_timeout_seconds=timedelta(seconds=8))
+                ClientSession(*stdio_transport, read_timeout_seconds=timedelta(seconds=self.read_timeout_seconds))
             )
             await session.initialize()
         except Exception as e:
@@ -160,10 +161,15 @@ class MCPEnvironment(ToolCollectionEnvironment):
         tools: Optional[list[BaseTool]] = None,
         config_path: str = "",
         use_cache: bool = False,
+        read_timeout_seconds: int = 10,
         client: MCPClient | None = None,
     ) -> None:
         super().__init__(tools=tools or [])
-        self.client = client or (MCPClient(config_path=config_path, use_cache=use_cache) if config_path else None)
+        self.client = client or (
+            MCPClient(config_path=config_path, use_cache=use_cache, read_timeout_seconds=read_timeout_seconds)
+            if config_path
+            else None
+        )
         if not self.client and not self.tools:
             raise ValueError("Tools or MCP client config_path must be provided")
         if self.client:
