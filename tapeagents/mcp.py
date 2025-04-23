@@ -10,10 +10,13 @@ import nest_asyncio
 from mcp import ClientSession, StdioServerParameters, Tool as MCPTool, stdio_client
 from mcp.types import CallToolResult, TextContent
 
+from tapeagents.config import force_cache
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tool_calling import FunctionSpec, ToolCallAction, ToolResult, ToolSpec
 from tapeagents.tools.base import BaseTool
+from tapeagents.tools.tool_cache import add_to_cache, get_from_cache
+from tapeagents.utils import FatalError
 
 nest_asyncio.apply()
 logger = logging.getLogger(__name__)
@@ -26,13 +29,14 @@ class NoTool(Exception):
 
 
 class MCPClient:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, use_cache: bool = False) -> None:
         self.servers = self.load_config(config_path)
         self.sessions: dict[str, ClientSession] = {}
         self.exit_stacks: dict[str, AsyncExitStack] = {}
         self.tools: dict[str, MCPTool] = {}
         self.tool_to_server: dict[str, str] = {}
         self._cleanup_lock: asyncio.Lock = asyncio.Lock()
+        self.use_cache = use_cache
         asyncio.run(self.start_servers())
 
     async def start_servers(self):
@@ -104,6 +108,23 @@ class MCPClient:
 
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
         server_name = self.check_tool_exists(tool_name)
+        # Current implementation of cache assumes tool calls are deterministic and do not alter state
+        if self.use_cache:
+            tool_name_key = f"mcp.{server_name}.{tool_name}"
+            result = get_from_cache(tool_name_key, args=(), kwargs=tool_args)
+            if not result and force_cache():
+                raise FatalError(f"Cache is forced but no cache entry found for {tool_name_key}({tool_args})")
+            if not result:
+                result = await self._call_tool(server_name, tool_name, tool_args)
+                add_to_cache(tool_name_key, args=(), kwargs=tool_args, result=result.model_dump(exclude_none=True))
+            else:
+                result = CallToolResult(**result)
+        else:
+            result = await self._call_tool(server_name, tool_name, tool_args)
+
+        return result
+
+    async def _call_tool(self, server_name: str, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
         try:
             session = self.sessions[server_name]
             result = await session.call_tool(tool_name, tool_args)
@@ -135,13 +156,18 @@ class MCPEnvironment(ToolCollectionEnvironment):
     tools: list[BaseTool]
 
     def __init__(
-        self, tools: Optional[list[BaseTool]] = None, config_path: str = "", client: MCPClient | None = None
+        self,
+        tools: Optional[list[BaseTool]] = None,
+        config_path: str = "",
+        use_cache: bool = False,
+        client: MCPClient | None = None,
     ) -> None:
         super().__init__(tools=tools or [])
-        self.client = client or MCPClient(config_path) if config_path else None
-        if self.client and not self.tools:
-            raise ValueError("Tools or config_path must be provided")
+        self.client = client or (MCPClient(config_path=config_path, use_cache=use_cache) if config_path else None)
+        if not self.client and not self.tools:
+            raise ValueError("Tools or MCP client config_path must be provided")
         if self.client:
+            self.client.use_cache = use_cache
             self.tools.extend(
                 [
                     ToolSpec(
