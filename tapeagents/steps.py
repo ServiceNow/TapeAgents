@@ -11,6 +11,15 @@ from tapeagents.utils import image_base64_message
 logger = logging.getLogger(__name__)
 
 
+REASON_TO_USE_KEY = "reason_to_use"
+
+
+class ExplainableAction(Action):
+    reason_to_use: str = Field(
+        description="A summary of the reason we are using this tool written in the imperative form.", default=""
+    )
+
+
 class WatchVideoAction(Action):
     """
     Action that loads the video from the provided url and returns the video content.
