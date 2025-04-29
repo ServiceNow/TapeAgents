@@ -112,5 +112,7 @@ class ListDocuments(Tool):
         os.makedirs(self.workspace_directory, exist_ok=True)
         for root, _, files in os.walk(self.workspace_directory):
             for file in files:
-                documents.append(os.path.join(root, file))
+                abs_path = os.path.join(root, file)
+                rel_path = os.path.relpath(abs_path, self.workspace_directory)
+                documents.append(rel_path)
         return documents
