@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from tapeagents.core import Action, Observation, Step
 from tapeagents.llms import LLMOutput
+from tapeagents.steps import ExplainableAction
 from tapeagents.tools.base import BaseTool
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class ToolCall(BaseModel):
     type: str = "function"
 
 
-class ToolCallAction(Action):
+class ToolCallAction(ExplainableAction):
     kind: Literal["tool_call"] = "tool_call"  # type: ignore
     id: str = ""
     function: FunctionCall
