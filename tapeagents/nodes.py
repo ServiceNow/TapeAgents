@@ -28,7 +28,7 @@ from tapeagents.core import (
 from tapeagents.dialog_tape import UserStep
 from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
-from tapeagents.steps import BranchStep, ReasoningThought
+from tapeagents.steps import REASON_TO_USE_KEY, BranchStep, ReasoningThought
 from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolSpec, as_openai_tool
 from tapeagents.tools.code_executor import PythonCodeAction
 from tapeagents.utils import FatalError, class_for_name, response_format, sanitize_json_completion, step_schema_json
@@ -329,7 +329,11 @@ class StandardNode(Node):
         elif step_cls == ToolCallAction:
             try:
                 args = json.loads(tool_call.function.arguments)
-                step = ToolCallAction(id=tool_call.id, function=FunctionCall(name=name, arguments=args))
+                step = ToolCallAction(
+                    id=tool_call.id,
+                    function=FunctionCall(name=name, arguments=args),
+                    reason_to_use=args[REASON_TO_USE_KEY] if REASON_TO_USE_KEY in args else "",
+                )
             except json.JSONDecodeError:
                 step = LLMOutputParsingFailureAction(
                     error=f"Failed to parse tool call arguments: {tool_call.function.arguments}",

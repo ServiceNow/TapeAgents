@@ -14,6 +14,7 @@ from termcolor import colored
 
 from tapeagents.core import Action, Observation, Prompt
 from tapeagents.llms import LLM
+from tapeagents.steps import ExplainableAction
 from tapeagents.tools.base import Tool
 from tapeagents.tools.browser import Fetcher
 from tapeagents.tools.simple_browser import SimpleTextBrowser
@@ -270,7 +271,10 @@ class SearchTask(BaseModel):
     queries: list[str]
 
 
-class SearchExtractAction(Action, SearchTask):
+class SearchExtractAction(
+    ExplainableAction,
+    SearchTask,
+):
     """
     Action that provides parameters for a search function call.
     Could search in the web, wikipedia or youtube.
