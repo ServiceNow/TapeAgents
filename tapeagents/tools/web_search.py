@@ -435,14 +435,15 @@ class MultiSearchExtract(Tool):
             for task_id, search_task in enumerate(action.tasks)
             for query_id, query in enumerate(search_task.queries)
         ]
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = [executor.submit(search_query, *s) for s in search_tasks]
-            results: list[SearchResult] = []
-            try:
-                for future in as_completed(futures, timeout=self.search_timeout):
-                    results += future.result()
-            except Exception as e:
-                logger.error(f"Error occurred while processing web search future: {e}")
+        executor = ThreadPoolExecutor(max_workers=self.max_workers)
+        futures = [executor.submit(search_query, *s) for s in search_tasks]
+        results: list[SearchResult] = []
+        try:
+            for future in as_completed(futures, timeout=self.search_timeout):
+                results += future.result()
+        except Exception as e:
+            logger.error(f"Error occurred while processing web search future: {e}")
+        executor.shutdown(wait=False)
         logger.info(f"Got {len(results)} search results for {len(search_tasks)} queries.")
         return results
 
@@ -450,15 +451,16 @@ class MultiSearchExtract(Tool):
         fetcher = Fetcher()
         texts = {}
         urls = list(set([result.url for result in search_results]))
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = [executor.submit(fetcher.fetch_for_llm, url) for url in urls]
-            try:
-                for future in as_completed(futures, timeout=self.fetch_timeout):
-                    url, text = future.result()
-                    texts[url] = text
-                    logger.info(f"Fetched {len(texts)} out of {len(urls)} pages")
-            except Exception as e:
-                logger.error(f"Error occurred while processing fetch future: {e}")
+        executor = ThreadPoolExecutor(max_workers=self.max_workers)
+        futures = [executor.submit(fetcher.fetch_for_llm, url) for url in urls]
+        try:
+            for future in as_completed(futures, timeout=self.fetch_timeout):
+                url, text = future.result()
+                texts[url] = text
+                logger.info(f"Fetched {len(texts)} out of {len(urls)} pages")
+        except Exception as e:
+            logger.error(f"Error occurred while processing fetch future: {e}")
+        executor.shutdown(wait=False)
         logger.info(f"Fetched {len(texts)} pages")
         for i in range(len(search_results)):
             search_results[i].text = texts.get(search_results[i].url, "")
@@ -508,19 +510,20 @@ class MultiSearchExtract(Tool):
             )
 
         data_per_task = defaultdict(list)
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = [executor.submit(extract_page_data, *et) for et in extract_tasks]
-            extracted = 0
-            try:
-                for future in as_completed(futures, timeout=self.extract_timeout):
-                    task, page_data = future.result()
-                    extracted += 1
-                    logger.info(f"Extracted {extracted} out of {len(extract_tasks)} pages")
-                    if not task:
-                        continue
-                    data_per_task[task].append(page_data)
-            except Exception as e:
-                logger.error(f"Error occurred while processing extract future: {e}")
+        executor = ThreadPoolExecutor(max_workers=self.max_workers)
+        futures = [executor.submit(extract_page_data, *et) for et in extract_tasks]
+        extracted = 0
+        try:
+            for future in as_completed(futures, timeout=self.extract_timeout):
+                task, page_data = future.result()
+                extracted += 1
+                logger.info(f"Extracted {extracted} out of {len(extract_tasks)} pages")
+                if not task:
+                    continue
+                data_per_task[task].append(page_data)
+        except Exception as e:
+            logger.error(f"Error occurred while processing extract future: {e}")
+        executor.shutdown(wait=False)
         return data_per_task
 
 

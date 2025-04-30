@@ -27,7 +27,7 @@ from playwright.sync_api import sync_playwright
 from pydantic import Field
 
 from tapeagents.core import Action, Observation, StepMetadata
-from tapeagents.steps import ImageObservation
+from tapeagents.steps import ActionExecutionFailure, ImageObservation
 from tapeagents.tools.base import StatefulTool, Tool
 from tapeagents.tools.converters import FileConverter
 from tapeagents.tools.document_reader import read_document
@@ -720,7 +720,7 @@ class Fetcher(Tool):
     width: int = Field(default=1280, description="Width of the browser window")
     height: int = Field(default=800, description="Height of the browser window")
     sleep_time: int = Field(default=2, description="Time to wait for the page to load")
-    timeout: int = Field(default=60, description="Timeout for the request in seconds")
+    timeout: int = Field(default=20, description="Timeout for the request in seconds")
 
     _tls: Tls | None = None  # Use a private instance variable
 
@@ -738,7 +738,10 @@ class Fetcher(Tool):
     def fetch_for_llm(self, url: str) -> tuple[str, str]:
         try:
             action = OpenUrlAction(url=url)
-            text = self.run(action).text
+            obs = self.run(action)
+            if isinstance(obs, ActionExecutionFailure):
+                raise Exception(ActionExecutionFailure.error)
+            text = obs.text if isinstance(obs, PageObservation) else ""
         except Exception as e:
             logger.exception(f"Failed to fetch page {url}: {e}")
             text = ""
