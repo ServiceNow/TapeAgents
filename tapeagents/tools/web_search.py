@@ -365,9 +365,9 @@ class MultiSearchExtract(Tool):
     cached: bool = True
     top_k: int = 3
     max_workers: int = 20
-    search_timeout: int = 20
-    fetch_timeout: int = 20
-    extract_timeout: int = 20
+    search_timeout: int = 10
+    fetch_timeout: int = 30
+    extract_timeout: int = 30
     extract_prefix: str = "Your should extract all relevant information from the page.\n\nTASK: "
     safe_search: bool = False
     safe_search_prompt: str = DEFAULT_SAFE_SEARCH_PROMPT
