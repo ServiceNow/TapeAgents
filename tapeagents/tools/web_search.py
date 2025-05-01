@@ -173,11 +173,12 @@ Return **only** this JSON (no extra text):
 
 
 class SafeWebSearch(WebSearch):
+    observation: type[Observation] = SafeSearchResultsObservation
     llm: LLM
     prompt: str = DEFAULT_SAFE_SEARCH_PROMPT
     max_private_context_len: int = 300000  # characters
 
-    def execute_action(self, action: SafeSearchAction) -> SearchResultsObservation:
+    def execute_action(self, action: SafeSearchAction) -> SafeSearchResultsObservation:
         assert isinstance(action.private_context, list)
         query = action.query
         try:
