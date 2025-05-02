@@ -71,76 +71,68 @@ class Task(BaseModel):
         return UITape(steps=[UserStep(content=self.text)])
 
 
-class UIAgent(BaseModel):
-    config: UIAgentConfig
-    _env: MCPEnvironment = None  # type: ignore
+def main(config: UIAgentConfig, task_text: str):
+    task = Task(text=task_text)
+    env = MCPEnvironment(config_path=config.mcp_config_path, tools=[StopTool()])
 
-    def model_post_init(self, __context) -> None:
-        self._env = MCPEnvironment(config_path=self.config.mcp_config_path, tools=[StopTool()])
-
-    def run(self, task: Task):
-        self._env.reset()
-        tape: UITape = task.get_starting_tape()
-
-        tape += self.make_plan(tape)
-        while not self.task_complete(tape) and not self.steps_limit(tape):
-            tape += self.select_action(tape)
-            action = self.act(tape)
-            tape += action
-            tool_results = self._env.run_tools_from_message(action.message)
-            tape += tool_results
-            tape += self.reflect(tape)
-
-        self._env.reset()
-
-    def make_plan(self, tape: UITape) -> MessageStep:
-        prompt = self.config.plan_prompt.format(tools=self._env.tools_description())
-        step = self._llm(tape, prompt)
+    def make_plan(tape: UITape) -> MessageStep:
+        prompt = config.plan_prompt.format(tools=env.tools_description())
+        step = _llm(tape, prompt)
         return step
 
-    def select_action(self, tape: UITape) -> MessageStep:
-        prompt = self.config.select_action_prompt.format(tools=self._env.tools_description())
-        step = self._llm(tape, prompt)
+    def select_action(tape: UITape) -> MessageStep:
+        prompt = config.select_action_prompt.format(tools=env.tools_description())
+        step = _llm(tape, prompt)
         return step
 
-    def act(self, tape: UITape) -> MessageStep:
-        step = self._llm(tape, self.config.act_prompt, with_tools=True)
+    def act(tape: UITape) -> MessageStep:
+        step = _llm(tape, config.act_prompt, with_tools=True)
         return step
 
-    def reflect(self, tape: UITape):
-        step = self._llm(tape, self.config.reflection_prompt)
+    def reflect(tape: UITape):
+        step = _llm(tape, config.reflection_prompt)
         return step
 
-    def task_complete(self, tape: UITape):
+    def task_complete(tape: UITape):
         return any(isinstance(step, FinalStep) for step in tape)
 
-    def steps_limit(self, tape: UITape):
-        return len(tape) >= self.config.steps_limit
+    def steps_limit(tape: UITape):
+        return len(tape) >= config.steps_limit
 
-    def _llm(self, tape: UITape, prompt: str, with_tools: bool = False) -> MessageStep:
-        messages = [{"role": "system", "content": self.config.system_prompt}]
+    def _llm(tape: UITape, prompt: str, with_tools: bool = False) -> MessageStep:
+        messages = [{"role": "system", "content": config.system_prompt}]
         messages += tape.to_llm_messages()
         messages.append({"role": "user", "content": prompt})
         logger.debug(f"LLM input: {json.dumps(messages, indent=2)}")
         response = completion(
-            model=self.config.llm,
+            model=config.llm,
             caching=True,
             messages=messages,
-            tools=self._env.tool_specs() if with_tools else None,
+            tools=env.tool_specs() if with_tools else None,
         )
         message = response.choices[0].message  # type: ignore
         assert message is not None
         logger.debug(f"LLM output: {message}")
         step = MessageStep(message=message)
-        step.metadata.agent = self.config.agent_name
-        step.metadata.llm = self.config.llm
+        step.metadata.agent = config.agent_name
+        step.metadata.llm = config.llm
         return step
 
+    # Main loop
 
-def main(config: UIAgentConfig, task_text: str):
-    task = Task(text=task_text)
-    agent = UIAgent(config=config)
-    agent.run(task)
+    env.reset()
+    tape = task.get_starting_tape()
+
+    tape += make_plan(tape)
+    while not task_complete(tape) and not steps_limit(tape):
+        tape += select_action(tape)
+        action = act(tape)
+        tape += action
+        tool_results = env.run_tools_from_message(action)
+        tape += tool_results
+        tape += reflect(tape)
+
+    env.reset()
 
 
 if __name__ == "__main__":

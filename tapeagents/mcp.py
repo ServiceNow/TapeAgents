@@ -8,12 +8,12 @@ from datetime import timedelta
 from typing import Any, Optional
 
 import nest_asyncio
-from litellm import Message
 from mcp import ClientSession, StdioServerParameters, Tool as MCPTool, stdio_client
 from mcp.types import CallToolResult, ImageContent, TextContent
 
 from tapeagents.config import force_cache
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
+from tapeagents.dialog_tape import MessageStep
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tool_calling import FunctionCall, FunctionSpec, ToolCallAction, ToolResult, ToolSpec, as_openai_tool
 from tapeagents.tools.base import BaseTool
@@ -222,8 +222,9 @@ class MCPEnvironment(ToolCollectionEnvironment):
             )
         return ToolResult(tool_call_id=action.id, content=result)
 
-    def run_tools_from_message(self, message: Message) -> list[ToolResult]:
+    def run_tools_from_message(self, message_step: MessageStep) -> list[ToolResult]:
         tool_calls: list[ToolCallAction] = []
+        message = message_step.message
         if message.function_call and message.function_call.name:
             arguments = message.function_call.arguments
             if isinstance(arguments, str):
