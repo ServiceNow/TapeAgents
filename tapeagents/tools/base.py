@@ -4,7 +4,7 @@ import re
 from pydantic import BaseModel
 
 from tapeagents.config import force_cache
-from tapeagents.core import Action, Observation
+from tapeagents.core import Action, FinalStep, Observation
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.tool_cache import add_to_cache, get_from_cache
 from tapeagents.utils import FatalError
@@ -99,3 +99,16 @@ class StatefulTool(BaseTool):
             observation = ActionExecutionFailure(error=str(e))
         assert isinstance(observation, self.observations + (ActionExecutionFailure,))
         return observation
+
+
+class StopTool(BaseTool):
+    """
+    Tool that stops the execution of the agent.
+    """
+
+    action: type[Action] = FinalStep
+    observation: type[Observation] = Observation
+
+    def run(self, action: Action) -> Observation:
+        assert isinstance(action, self.action)
+        return self.observation()

@@ -2,16 +2,18 @@ import asyncio
 import json
 import logging
 import os
+import uuid
 from contextlib import AsyncExitStack
 from typing import Any
 
 import nest_asyncio
+from litellm import Message
 from mcp import ClientSession, StdioServerParameters, Tool, stdio_client
 from mcp.types import CallToolResult, TextContent
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction
 from tapeagents.environment import ToolCollectionEnvironment
-from tapeagents.tool_calling import FunctionSpec, ToolCallAction, ToolResult, ToolSpec
+from tapeagents.tool_calling import FunctionCall, FunctionSpec, ToolCallAction, ToolResult, ToolSpec
 
 nest_asyncio.apply()
 logger = logging.getLogger(__name__)
@@ -168,6 +170,41 @@ class MCPEnvironment(ToolCollectionEnvironment):
                 isError=True,
             )
         return ToolResult(tool_call_id=action.id, content=result)
+
+    def run_tools_from_message(self, message: Message) -> list[ToolResult]:
+        tool_calls: list[ToolCallAction] = []
+        if message.function_call and message.function_call.name:
+            arguments = message.function_call.arguments
+            if isinstance(arguments, str):
+                arguments = json.loads(arguments)
+            assert isinstance(arguments, dict), f"Function call arguments must be a dict but got {type(arguments)}"
+            tool_call = ToolCallAction(
+                function=FunctionCall(
+                    name=message.function_call.name,
+                    arguments=arguments,
+                ),
+                id=uuid.uuid4().hex,
+            )
+            tool_calls.append(tool_call)
+        if message.tool_calls:
+            for tool_call in message.tool_calls:
+                if tool_call.function.name:
+                    arguments = tool_call.function.arguments
+                    if isinstance(arguments, str):
+                        arguments = json.loads(arguments)
+                    assert isinstance(
+                        arguments, dict
+                    ), f"Function call arguments must be a dict but got {type(arguments)}"
+                    tool_call_action = ToolCallAction(
+                        function=FunctionCall(
+                            name=tool_call.function.name,
+                            arguments=arguments,
+                        ),
+                        id=tool_call.id,
+                    )
+                    tool_calls.append(tool_call_action)
+        observations = [self.step(tc) for tc in tool_calls]
+        return observations  # type: ignore
 
     def close(self) -> None:
         try:
