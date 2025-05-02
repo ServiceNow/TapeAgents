@@ -1,5 +1,3 @@
-# TODO: define type signature for tools including JSONSchema and etc
-
 from __future__ import annotations
 
 import logging
@@ -11,6 +9,7 @@ from pydantic import BaseModel
 
 from tapeagents.core import Action, Observation, Step
 from tapeagents.llms import LLMOutput
+from tapeagents.tools.base import BaseTool
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class FunctionSpec(BaseModel):
     parameters: dict
 
 
-class ToolSpec(BaseModel):
+class ToolSpec(BaseTool):
     """
     ToolSpec is a model that represents a tool specification with a type and a function.
 
@@ -41,6 +40,9 @@ class ToolSpec(BaseModel):
 
     type: Literal["function"] = "function"
     function: FunctionSpec
+
+    def description(self) -> str:
+        return f"{self.function.name} - {self.function.description}"
 
     @classmethod
     def from_function(cls, function: Callable):
@@ -214,7 +216,7 @@ def as_function_def(action: Action) -> str:
         ptype = type_aliases.get(param_spec["type"], param_spec["type"])
         fdef += f"{param}: {ptype}, "
     fdef = fdef[:-2] + "):"
-    fdef += f"\n    \"\"\"{tool_spec['function']['description']}\n"
+    fdef += f'\n    """{tool_spec["function"]["description"]}\n'
     for param, param_spec in tool_spec["function"]["parameters"]["properties"].items():
         fdef += f"    {param}: {param_spec['description']}\n"
     fdef += '    """\n'

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypeAlias
 
+from litellm import Message
 from pydantic import BaseModel
 
 from tapeagents.agent import Annotator
@@ -179,3 +180,8 @@ class DialogAnnotator(Annotator[DialogTape, DialogAnnotatorTape]):
             DialogAnnotatorTape: A new instance of DialogAnnotatorTape with the provided context.
         """
         return DialogAnnotatorTape(context=tape)
+
+
+class MessageStep(Action):
+    kind: Literal["message"] = "message"  # type: ignore
+    message: Message
