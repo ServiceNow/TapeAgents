@@ -9,7 +9,7 @@ from typing import Any
 import nest_asyncio
 from litellm import Message
 from mcp import ClientSession, StdioServerParameters, Tool, stdio_client
-from mcp.types import CallToolResult, TextContent
+from mcp.types import CallToolResult, ImageContent, TextContent
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction
 from tapeagents.environment import ToolCollectionEnvironment
@@ -211,3 +211,23 @@ class MCPEnvironment(ToolCollectionEnvironment):
             asyncio.run(self.client.close())
         except Exception:
             pass
+
+
+def mcp_result_to_content(tool_result: ToolResult) -> list[dict]:
+    messages = []
+    user_messages = []
+    mcp_result: CallToolResult = tool_result.content
+    has_images = any(isinstance(c, ImageContent) for c in mcp_result.content)
+    for content in mcp_result.content:
+        if isinstance(content, TextContent):
+            messages.append({"type": "text", "text": content.text})
+        elif isinstance(content, ImageContent):
+            # hack because Openai API cannot accept image data in the tool call results
+            image_data = f"data:{content.mimeType};base64,{content.data}"
+            user_messages.append({"type": "image_url", "image_url": {"url": image_data}})
+        else:
+            logger.warning(f"Unknown content type in the tool result: {type(content)}")
+    result = [{"role": "tool", "tool_call_id": tool_result.tool_call_id, "content": messages}]
+    if has_images:
+        result.append({"role": "user", "content": user_messages})
+    return result
