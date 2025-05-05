@@ -1,2 +1,9 @@
 _target_: tapeagents.mcp.MCPEnvironment
 config_path: conf/mcp/web_and_code.json
+tools:
+  - _target_: tapeagents.tools.media_reader.VideoReader
+    exp_path: ${exp_path}
+  - _target_: tapeagents.tools.simple_browser.SimpleBrowser
+    exp_path: ${exp_path}
+    kwargs:
+      use_web_cache: true
