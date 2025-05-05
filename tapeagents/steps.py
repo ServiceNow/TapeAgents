@@ -16,7 +16,7 @@ REASON_TO_USE_KEY = "reason_to_use"
 
 class ExplainableAction(Action):
     reason_to_use: str = Field(
-        description="A summary of the reason we are using this tool written in the imperative form.", default=""
+        description="A summary of the reason you want to use this tool written in the form of 'I want to'", default=""
     )
 
 
