@@ -8,8 +8,9 @@ from typing import Any
 
 import datasets
 import transformers
-import wandb
 from omegaconf import DictConfig
+
+import wandb
 from wandb.sdk import wandb_run
 
 from .context import get_accelerator, logger
