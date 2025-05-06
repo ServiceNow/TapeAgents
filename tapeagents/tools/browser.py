@@ -159,12 +159,12 @@ class SelectOptionAction(Action):
     option: str = Field(description="option to select")
 
 
-class ClickAction(Action):
+class ClickBIDAction(Action):
     """
     Action that clicks the element on the page with the provided BID
     """
 
-    kind: Literal["click_action"] = "click_action"
+    kind: Literal["click_bid_action"] = "click_bid_action"
     bid: str = Field(description="BID of the element to click")
     button: Literal["left", "middle", "right"] = Field(description="button to click", default="left")
     modifiers: list[Literal["Alt", "Control", "Meta", "Shift"]] = Field(
@@ -172,7 +172,7 @@ class ClickAction(Action):
     )
 
 
-class MouseClickAction(Action):
+class ClickElementAction(Action):
     """
     Action that clicks an element on the screen.
     When mentioning a date in the element description, use the format commonly spoken or written by humans,
@@ -181,8 +181,19 @@ class MouseClickAction(Action):
     Only describe one specific element that is currently visible on the screen!
     """
 
-    kind: Literal["mouse_click_action"] = "mouse_click_action"
+    kind: Literal["click_element_action"] = "click_element_action"
     element_description: str = Field(description="brief description of the element to click")
+
+
+class ClickCoordinatesAction(Action):
+    """
+    Action that moves the mouse to a (x, y) coordinate location and click a mouse button.
+    """
+
+    kind: Literal["click_coordinates_action"] = "click_coordinates_action"
+    x: float = Field(description="x coordinate of the click")
+    y: float = Field(description="y coordinate of the click")
+    button: Literal["left", "middle", "right"] = Field(description="button to click", default="left")
 
 
 class PageScreenshotObservation(ImageObservation):
@@ -194,21 +205,10 @@ class Browser(StatefulTool):
     Browser tool that can load web pages and interact with their content.
     """
 
-    actions: tuple[type[Action], ...] = (
-        ClickAction,
-        OpenUrlAction,
-        GoBackAction,
-        GoForwardAction,
-        HoverAction,
-        InputTextAction,
-        PressAction,
-        PageDownAction,
-        PageUpAction,
-        SelectOptionAction,
-    )
+    actions: tuple[type[Action], ...] = ()  # will get assigned in model_post_init
     observations: tuple[type[Observation], ...] = (PageObservation, PageScreenshotObservation)
     tab_actions: list[type[Action]] = [CloseTabAction, NewTabAction, TabFocusAction]
-    axtree: bool = True
+    observation_format: Literal["axtree", "html", "markdown_html"] = "axtree"
     use_grounding: bool = False
     navigation_only: bool = False
     viewport_chars: int = 32000
@@ -244,7 +244,7 @@ class Browser(StatefulTool):
             self._grounding = GroundingModel()
             logger.info("Using grounding model")
             self._action_map = {
-                MouseClickAction: self.click_grounded,
+                ClickElementAction: self.click_grounded,
                 CloseTabAction: self.close_tab,
                 TypeTextAction: self.input_text_grounded,
                 GoBackAction: self.go_back,
@@ -259,7 +259,7 @@ class Browser(StatefulTool):
         elif self.navigation_only:
             logger.info("Navigation only mode")
             self._action_map = {
-                ClickAction: self.click,
+                ClickBIDAction: self.click_bid,
                 GoBackAction: self.go_back,
                 GoForwardAction: self.go_forward,
                 OpenUrlAction: self.goto_page,
@@ -268,9 +268,11 @@ class Browser(StatefulTool):
             }
         else:
             self._action_map = {
-                ClickAction: self.click,
+                ClickBIDAction: self.click_bid,
+                ClickCoordinatesAction: self.click_coordinates,
                 SelectOptionAction: self.select_option,
                 InputTextAction: self.input_text,
+                PressAction: self.press,
                 GoBackAction: self.go_back,
                 GoForwardAction: self.go_forward,
                 OpenUrlAction: self.goto_page,
@@ -319,27 +321,29 @@ class Browser(StatefulTool):
             task_id,
             headless=self.headless,
             record_video_dir=self._record_video_dir if self.save_video else None,
-            action_mapping=HighLevelActionSet(demo_mode="default").to_python_code,
+            action_mapping=HighLevelActionSet(demo_mode="default", subsets=["coord", "workarena++"]).to_python_code,
             timeout=self.timeout_ms,
             **kwargs,
         )  # type: ignore
         start_obs, info = self._env.reset(seed=seed)
-        self._env.context.tracing.start(screenshots=True, snapshots=True)
-        self._env.chat.add_message(role="assistant", msg="Running TapeAgent...")
-        assert self._env.task is not None
+        self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
+        self._env.unwrapped.chat.add_message(role="assistant", msg="Running TapeAgent...")
+        assert self._env.unwrapped.task is not None
         info = {
-            "name": self._env.task.get_task_id(),
+            "name": self._env.unwrapped.task.get_task_id(),
             "goal": start_obs["goal"],
             "task_info": info["task_info"],
-            "video": os.path.basename(self._env.page.video.path()) if self._env.page.video else "",
-            "chat_video": os.path.basename(self._env.chat.page.video.path()) if self._env.chat.page.video else "",
+            "video": os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
+            "chat_video": os.path.basename(self._env.unwrapped.chat.page.video.path())
+            if self._env.unwrapped.chat.page.video
+            else "",
         }
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
     def close(self):
         assert self._traces_dir is not None
-        self._env.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
+        self._env.unwrapped.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
         self._env.close()
 
     def _save_last_screenshot(self, image) -> str:
@@ -366,11 +370,15 @@ class Browser(StatefulTool):
         else:
             if error:
                 content = ""
-            elif self.axtree:
-                content = flatten_axtree(obs_dict["axtree_object"])
-            else:
+            elif self.observation_format == "axtree":
+                content = f"=== ACCESSIBILITY TREE ===\n{flatten_axtree(obs_dict['axtree_object'])}"
+            elif self.observation_format == "html":
+                content = f"=== HTML ===\n{prune_html(flatten_dom_to_str(obs_dict['dom_object']))}"
+            elif self.observation_format == "markdown_html":
                 html_content = prune_html(flatten_dom_to_str(obs_dict["dom_object"]))
-                content = self.html_to_markdown(html_content)
+                content = f"=== MARKDOWN ===\n{self.html_to_markdown(html_content)}"
+            else:
+                raise ValueError(f"Unknown observation format: {self.observation_format}")
 
             observation = PageObservation(
                 text=self.get_viewport(content),
@@ -379,7 +387,8 @@ class Browser(StatefulTool):
                 error=error,
                 metadata=StepMetadata(other=dict(reward=reward, truncated=truncated, info=info)),
             )
-        observation.metadata.other["screenshot_path"] = os.path.relpath(screen_path, self._screenshots_dir)
+        if self._screenshots_dir is not None:
+            observation.metadata.other["screenshot_path"] = os.path.relpath(screen_path, self._screenshots_dir)
         observation.metadata.other["env_finished"] = terminated
         return observation
 
@@ -423,15 +432,20 @@ class Browser(StatefulTool):
             )
         return obs
 
-    def click(self, action: ClickAction) -> PageObservation:
+    def click_bid(self, action: ClickBIDAction) -> PageObservation:
         try:
-            self.run_browser_action(f"click('{action.bid}'")
+            self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
         except Exception as e:
             logger.warning(f"Click failed: {e}")
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 
-    def click_grounded(self, action: MouseClickAction) -> PageObservation:
+    def click_coordinates(self, action: ClickCoordinatesAction) -> PageObservation:
+        self.run_browser_action(f"mouse_click({action.x}, {action.y}, button='{action.button}')")
+        sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
+        return self.run_browser_action("noop()")
+
+    def click_grounded(self, action: ClickElementAction) -> PageObservation:
         x, y = self._grounding.get_coords(self._last_image, f"click at {action.element_description}")
         logger.info(f"Click at {action.element_description}: {x}, {y}")
         return self.run_browser_action(f"mouse_click({x}, {y})")

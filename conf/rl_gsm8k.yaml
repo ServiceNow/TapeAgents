@@ -6,8 +6,8 @@ n_workers_per_gpu: 32
 get_logprobs_workers_per_gpu: 4
 test_every_n_iterations: 1
 model_path: /mnt/llmd/base_models/Llama-3.2-1B-Instruct
-max_agent_forks: 6000
-attempts: 8 
+max_agent_forks: 6000  # total number of samples to generate
+attempts: 8  # number of samples to generate per context
 force_restart: false
 max_iterations: 1000
 llm:

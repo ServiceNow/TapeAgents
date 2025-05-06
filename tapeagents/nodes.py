@@ -49,16 +49,16 @@ class StandardNode(Node):
         guidance (str): Guidance text attached to the end of the prompt
         system_prompt (str): System prompt used in message construction
         steps_prompt (str): Prompt describing the steps the agent can take
-        agent_steps (Any): Class used for step (or steps) validation, excluded from model
+        steps (Any): Class used for step (or steps) validation, excluded from model
         next_node (str): Identifier for the next node in sequence
 
     Example:
         ```python
-        node = MonoNode(
+        node = StandardNode(
             guidance="Please respond with next action",
             system_prompt="You are a helpful assistant",
             steps_prompt="Available steps: think, act, finish",
-            agent_steps=AgentStep
+            steps=AgentStep
         )
         ```
     """
