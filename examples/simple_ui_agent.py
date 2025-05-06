@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from tapeagents.core import FinalStep, Tape
 from tapeagents.dialog_tape import MessageStep
 from tapeagents.mcp import MCPEnvironment, MCPToolResult
+from tapeagents.nodes import node
 from tapeagents.tools.base import StopTool
 
 litellm.cache = Cache()
@@ -31,7 +32,7 @@ def _log_steps(steps: list[UIStep], length_limit: int = 500) -> None:
 
 class UITape(Tape[None, UIStep]):
     def to_llm_messages(self) -> list[dict]:
-        return [m.to_llm_message() for m in self.steps]
+        return [step.to_llm_message() for step in self.steps]
 
     def __add__(self, steps: UIStep | list):
         if isinstance(steps, UIStep):
@@ -68,21 +69,25 @@ def run_agent(config: UIExpConfig) -> None:
     # action space is defined by mcp server plus StopTool to stop the agent
     env = MCPEnvironment(config_path=config.mcp_config_path, tools=[StopTool()])
 
+    @node
     def make_plan(tape: UITape) -> MessageStep:
         prompt = config.plan_prompt.format(tools=env.tools_description())
         step = _llm(tape, prompt)
         return step
 
+    @node
     def select_action(tape: UITape) -> MessageStep:
         prompt = config.select_action_prompt.format(tools=env.tools_description())
         step = _llm(tape, prompt)
         return step
 
+    @node
     def act(tape: UITape) -> MessageStep:
         step = _llm(tape, config.act_prompt, with_tools=True)
         return step
 
-    def reflect(tape: UITape):
+    @node
+    def reflect(tape: UITape) -> MessageStep:
         step = _llm(tape, config.reflection_prompt)
         return step
 
@@ -113,19 +118,17 @@ def run_agent(config: UIExpConfig) -> None:
         return step
 
     # Main loop
-
     env.reset()
-    tape = task.get_starting_tape()
+    tape: UITape = task.get_starting_tape()
 
     tape += make_plan(tape)
     while not task_complete(tape) and not steps_limit(tape):
         tape += select_action(tape)
-        action = act(tape)
-        tape += action
-        tool_results = env.run_tools_from_message(action)
-        tape += tool_results
+        tool_calls = act(tape)
+        tape += tool_calls
+        tool_results = env.step(tool_calls)
+        tape += tool_results  # type: ignore
         tape += reflect(tape)
-
     env.reset()
 
 

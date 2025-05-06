@@ -200,8 +200,10 @@ class MCPEnvironment(ToolCollectionEnvironment):
     def tool_specs(self) -> list[dict[str, Any]]:
         return [as_openai_tool(s).model_dump() for s in self.actions()]
 
-    def step(self, action: Action) -> Observation:
-        if not isinstance(action, ToolCallAction):
+    def step(self, action: Action) -> Observation | list[MCPToolResult]:
+        if isinstance(action, MessageStep):
+            return self._run_tools_from_message(action)
+        elif not isinstance(action, ToolCallAction):
             return super().step(action)
         if isinstance(action, LLMOutputParsingFailureAction):
             return MCPToolResult(tool_call_id="", content="Try again")
@@ -227,7 +229,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
             )
         return MCPToolResult(tool_call_id=action.id, content=result)
 
-    def run_tools_from_message(self, message_step: MessageStep) -> list[MCPToolResult]:
+    def _run_tools_from_message(self, message_step: MessageStep) -> list[MCPToolResult]:
         tool_calls: list[ToolCallAction] = []
         message = message_step.message
         if message.function_call and message.function_call.name:
