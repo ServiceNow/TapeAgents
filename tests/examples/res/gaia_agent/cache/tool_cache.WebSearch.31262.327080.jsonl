@@ -1,0 +1,1 @@
+{"fn_name": "WebSearch", "args": [], "kwargs": {"kind": "search_action", "source": "web", "query": "optimal choice in random ejection game mechanics"}, "result": {"kind": "search_results_observation", "query": "optimal choice in random ejection game mechanics", "serp": [], "error": "SERPER_API_KEY env var is not set"}}

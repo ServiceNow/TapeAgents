@@ -1,12 +1,12 @@
 {
     "metadata": {
-        "id": "bf1d8f9b-dde4-4237-857b-9d5810dcc39f",
-        "parent_id": "231b9a08-72d4-4774-8e0b-2d6e70a71648",
+        "id": "7cb84167-d055-4352-81f1-55c1d59532f2",
+        "parent_id": "f9255a37-23b8-4d28-8f7d-4b9ada5348b3",
         "author": "web_agent",
         "author_tape_id": null,
-        "n_added_steps": 1,
+        "n_added_steps": 2,
         "error": null,
-        "result": "THE CASTLE",
+        "result": "",
         "task": {
             "task_id": "4b6bb5f7-f634-410e-815d-e673ab7f8632",
             "Question": "In Series 9, Episode 11 of Doctor Who, the Doctor is trapped inside an ever-shifting maze. What is this location called in the official script for the episode? Give the setting exactly as it appears in the first scene heading.",
@@ -26,11 +26,11 @@
         "level": 1,
         "other": {
             "timers": {
-                "solve_task": 20.505307792001986,
-                "load_task": 0.001179875005618669,
-                "instantiate_llm": 0.0019671250047395006,
-                "create_agent_env": 6.19931287500367,
-                "close_env": 0.33840899998904206
+                "solve_task": 44.4632359999996,
+                "load_task": 0.0018958330001623835,
+                "instantiate_llm": 0.002223833000243758,
+                "create_agent_env": 6.883089332999589,
+                "close_env": 0.0819969169988326
             }
         }
     },
@@ -40,7 +40,7 @@
     "steps": [
         {
             "metadata": {
-                "id": "456588d9-8c72-49d1-bb73-45b2597dd89e",
+                "id": "a859e40c-6163-4f48-bdf2-8c397dc03960",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -53,32 +53,32 @@
         },
         {
             "metadata": {
-                "id": "5728e662-b487-44bb-84d4-6670837edb9e",
-                "prompt_id": "e01b72f9-3bee-4804-8682-ffb5de8e6999",
+                "id": "40148720-f641-40f6-ae65-c0b10b845772",
+                "prompt_id": "3296549c-dd5b-445f-ae70-4aece78070ac",
                 "node": "plan",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
             "kind": "reasoning_thought",
-            "reasoning": "1. Perform a web search for \"Doctor Who Series 9 Episode 11 script\" to locate the official script or a reliable source that contains the script.\n   \n2. If the script is found, search for the first scene heading in the script to identify the location where the Doctor is trapped.\n\n3. If the first scene heading is located, extract the exact wording of the location as it appears in the script.\n\n4. If the script is not found, perform a web search for a summary or detailed analysis of Series 9, Episode 11 to find references to the location.\n\n5. If references to the location are found in the summary or analysis, note the name of the location as it is described."
+            "reasoning": "1. Perform a web search for \"Doctor Who Series 9 Episode 11 script\" to locate the official script for the episode.\n2. If the script is found, download or access the text of the script.\n3. Search within the script for the first scene heading to identify the location where the Doctor is trapped.\n4. Extract the exact wording of the location as it appears in the first scene heading.\n5. If the script is not found, perform a web search for a reliable summary or analysis of the episode that may include the location name."
         },
         {
             "metadata": {
-                "id": "ddb09a69-df10-4128-8167-4fbe8a59357b",
-                "prompt_id": "41dd1ecc-fe6f-42d6-9ef1-53018ea4cfbb",
+                "id": "73d930f7-e14c-4b82-a86d-7cc589b128fb",
+                "prompt_id": "2adb51c9-2b4b-4163-89ab-c58e87001d71",
                 "node": "facts_survey",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
             "kind": "reasoning_thought",
-            "reasoning": "1. Specific facts or figures given in the request: \n   - Series 9, Episode 11 of Doctor Who\n   - The Doctor is trapped inside an ever-shifting maze.\n\n2. Facts that may need to be looked up: \n   - The exact name of the location where the Doctor is trapped, as it appears in the first scene heading of the official script for the episode. This can be found in the official script or a reliable source that contains it.\n\n3. Facts that may need to be derived: \n   - None.\n\n4. Facts that are recalled from memory, hunches, well-reasoned guesses, etc.: \n   - None."
+            "reasoning": "1. The specific facts given in the request are: \n   - Series 9, Episode 11 of Doctor Who\n   - The Doctor is trapped inside an ever-shifting maze.\n\n2. Facts that may need to be looked up:\n   - The exact name of the location as it appears in the first scene heading of the official script for Doctor Who Series 9, Episode 11. This can be found in the episode's official script or a reliable script database.\n\n3. Facts that may need to be derived:\n   - None.\n\n4. Facts that are recalled from memory, hunches, well-reasoned guesses:\n   - None."
         },
         {
             "metadata": {
-                "id": "00d669f1-0c14-4488-abd6-108125d8501b",
-                "prompt_id": "0453511c-fd5e-48c6-a7ea-b7454ef4f7fe",
+                "id": "59b2ad8d-4700-41fc-a2ef-5e481e2fa4a6",
+                "prompt_id": "5d6059dd-184d-449d-af61-5dd05810b839",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -90,8 +90,8 @@
         },
         {
             "metadata": {
-                "id": "137ac916-fa98-4ae4-bd8c-5a6abb5e1e37",
-                "prompt_id": "0453511c-fd5e-48c6-a7ea-b7454ef4f7fe",
+                "id": "2e0ddb34-fcc2-4144-9b3f-b390e1e4a8ad",
+                "prompt_id": "5d6059dd-184d-449d-af61-5dd05810b839",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -102,58 +102,38 @@
         },
         {
             "metadata": {
-                "id": "514d7bb2-5341-410a-825a-f793a345c552",
+                "id": "1884fe58-d155-4b7c-bc6e-7bc859a9d22b",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "llm": "",
                 "other": {
-                    "action_execution_time": 0.7600862499966752,
+                    "action_execution_time": 0.001818791999539826,
                     "action_kind": "search_action"
                 }
             },
             "kind": "search_results_observation",
             "query": "Doctor Who Series 9 Episode 11 script",
-            "serp": [
-                {
-                    "title": "[PDF] DW9 - EP 11 Heaven Sent BLUE 240815.fdx - BBC",
-                    "url": "https://www.bbc.co.uk/writers/documents/doctor-who-s9-ep11-heaven-sent-steven-moffat.pdf",
-                    "content": "On the Doctor. He's round the other side of the circular corridor - the central hub, containing the teleport chamber, separates and conceals him ..."
-                },
-                {
-                    "title": "Doctor Who Script - 9.11 | PDF - Scribd",
-                    "url": "https://www.scribd.com/document/722109152/doctor-who-script-9-11",
-                    "content": "The document describes the Doctor arriving in an ancient castle via teleportation after the death of Clara. He emerges determined to find whoever was ..."
-                },
-                {
-                    "title": "The Doctor Who Transcripts",
-                    "url": "http://www.chakoteya.net/DoctorWho/",
-                    "content": "for actual scripts, visit the BBC Writers Room - Whoniverse section. First Doctor · Second Doctor · Third Doctor · Fourth Doctor · First Doctor episodes ..."
-                },
-                {
-                    "title": "s09e11 - Heaven Sent - Doctor Who Transcripts - TvT",
-                    "url": "https://tvshowtranscripts.ourboard.org/viewtopic.php?f=53&t=24027",
-                    "content": "I am the Doctor. I'm coming to find you, and I will never, ever stop. Doctor Who Season 9 Episode 11. Heaven Sent"
-                }
-            ],
-            "error": null
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
         },
         {
             "metadata": {
-                "id": "56b92680-7953-4b8e-8677-e8aeb51fbc87",
-                "prompt_id": "1babe2ce-6daf-49b2-bbd5-6750b8694f6a",
+                "id": "2b9fc25b-1fc7-41c9-8d08-f29eb6a561e8",
+                "prompt_id": "d70434d1-c615-4422-a8af-8f98ee43292c",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
-            "kind": "open_url_action",
-            "url": "https://www.bbc.co.uk/writers/documents/doctor-who-s9-ep11-heaven-sent-steven-moffat.pdf"
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 location name first scene heading"
         },
         {
             "metadata": {
-                "id": "b6ae90ad-b513-4abd-9502-d98e2ec5c5f2",
-                "prompt_id": "1babe2ce-6daf-49b2-bbd5-6750b8694f6a",
+                "id": "7eabee03-66c5-4922-a83e-173fc56a43de",
+                "prompt_id": "d70434d1-c615-4422-a8af-8f98ee43292c",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -164,37 +144,1347 @@
         },
         {
             "metadata": {
-                "id": "b9577eec-e8f2-4230-b8c2-2fa8d81283c2",
+                "id": "5a8dcb19-4305-4cb4-848f-afa2a53bf9d3",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "llm": "",
                 "other": {
-                    "action_execution_time": 3.3344786660018144,
-                    "action_kind": "open_url_action"
+                    "action_execution_time": 0.00031341700014309026,
+                    "action_kind": "search_action"
                 }
             },
-            "kind": "page_observation",
-            "text": "DOCTOR WHO\n\nSERIES 9\n\nEPISODE 11\n\n\"Heaven Sent\"\n\nby\n\nSTEVEN MOFFAT\n\n BLUE AMENDMENTS\n\n24/08/2015\n\n(SHOOTING BLOCK 6)\n\n(c) BBC Wales 2015\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n1\n\nINT. THE CASTLE - DAY\n\n1\n\nSpires and towers, an ancient sprawling castle.\n\nNow a familiar voice:\n\nTHE DOCTOR\n\n(V.O.)\n\nAs you come into this world,\nsomething else is also born.\n\nPulling back -\n\nWe are looking at the sunrise through a row of windows in an\nancient, stone wall.\n\nTHE DOCTOR (cont’d)\n\n(V.O.)\n\nYou begin your life and it begins a\njourney - towards you.\n\nTime lapse photography: as the sun moves in the sky, the\nsunbeams sweep round the room like searchlights...\n\nTHE DOCTOR (cont’d)\n\n(V.O.)\n\nIt moves slowly, but it never\nstops.\n\nNow: cutting round various different locations in this\nsprawling castle world... Colonnades, and chambers, and\nfountains, and libraries ... All in dusty ancient stone.\n\nMoving closer over details: in every room, mounted somewhere\non the wall is a Cog Unit - a mechanical fixture that looks\nlike it could move the whole wall.\n\nTHE DOCTOR (cont’d)\n\n(V.O.)\n\nWherever you go, whatever path you\ntake, it will follow; never faster,\nnever slower, always coming.\n\nNow, tracking along a floor. Sprinkles of blood, streaks of\nit, like someone, terribly injured has been hauling\nthemselves along.\n\nTHE DOCTOR (cont’d)\n\n(V.O.)\n\nYou will run - it will walk. You\nwill rest - it will not.\n\nNow travelling along those corridors, picking out details.\n\nEvery now and then, incongruously, there is a television\nmonitor wired into the wall. Each of these is currently\nsnowed with interference.\n\nTHE DOCTOR (cont’d)\n\n(V.O.)\n\nOne day you will linger in the same\nplace too long.\n(MORE)\n\n(CONTINUED)\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             1\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n1\n\nCONTINUED:\n\n1\n\nTHE DOCTOR (cont’d)\n\nYou will sit too still or sleep too\ndeep - and when, too late, you rise\nto go, you will notice a second\nshadow next to yours. Your life\nwill then be over.\n\nNow on close on a section of wall. On closer inspection, a\ndoor.\n\nA crunching, grinding sound - and the wall section slides\naway revealing -\n\nCUT TO:\n\n2\n\nINT. TELEPORT CHAMBER/CASTLE - DAY\n\n2\n\nA circular chamber of ancient, but active, technology. Brass\nand glass. Intricate mechanisms, spinning and ticking and\nglittering everywhere. Again, dotted around the walls and\nequipment, cogs, this time in gleaming brass.\n\nCloser on:\n\nThe ceiling spirals down in towards the centre of the room,\nlike a funnel. Beneath the base of the funnel, a circular\nglass cabinet, just big enough for a man to stand in. It\nlooks like what it is: a teleporter.\n\nOn the teleporter controls.\n\nThe hunched shadow falls over it -\n\n- a trembling, bloodied hand reaches for a lever -\n\nThe room shakes, shudders!\n\nOn the wall - the brass cogs start glowing.\n\nThe bloodied hand slams the lever and the hunched figure\nfalls, crashing to the floor.\n\nIn the glass cabinet, a glow is starting up - exactly like\nthe glow we saw as the Doctor dematerialised at the end of\nTrap Street.\n\nOn the walls - the cogs turning.\n\nThe floor - the bloodied hand, shaking with effort, is\nwriting letters in the dust.\n\nB\n\nNow cutting round various walls of the castle -\n\n- the cogs turning and turning -\n\n- faster and faster -\n\nBack to the bloodied hand, writing in the dust -\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             2\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n2\n\nCONTINUED:\n\n2\n\nBIR\n\nThe glow in the cabinet, stronger and stronger. Starting to\ntake familiar shape -\n\nThe cogs - faster and faster.\n\nOn the bloodied hand still writing - we see curves and lines\nbut not the finished word.\n\nThe hand starts to glow. Spasms in pain - steaming now. In a\nmoment the hand crumbles to the barest outline of ash.\n\nOn the brass cogs. They all slam to a halt.\n\nCutting to the stone cogs on all the walls - also slamming to\na halt.\n\nNow on the glass cabinet at the centre of the chamber.\n\nThe golden glow is resolving, refining -\n\n- now clearly, this is the Doctor.\n\nHe is frozen for a moment -\n\n- then convulses into life. Choking, spluttering. Slams\nagainst the glass of the cabinet, starts to register where he\nis.\n\nA moment to recover.\n\nNow he’s opening the door of the cabinet, stepping into the\ngleaming brass and glass room. Looking around.\n\nA haunted look crosses his face. A memory impacting,\nsickeningly.\n\nFLASHBACK: Clara’s death from Trap Street.\n\nThe Doctor: she’s dead, she’s gone. Nothing he can do.\n\nSo. To business.\n\nHe glances round. A studied show of indifference to his\nsurroundings.\n\nStraightens his coat. Composes himself. If anyone is\nobserving, he’s telling them he means business and he is not\nafraid.\n\nFinally, he speaks.\n\nTHE DOCTOR\n\nIf you think, because she’s dead, I\nam weak, you understand very\nlittle. If you were any part of\nkilling her, and you are not\nafraid, you understand nothing at\nall. So for your own sake,\nunderstand this. I’m the Doctor.\n\n(MORE)\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             3\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n2\n\nCONTINUED:\n\n2\n\nTHE DOCTOR (cont'd)\n\nI am coming to find you. And I will\nnever, ever stop.\n\nHe moves to the door - stops. What’s he walking in? He\nkneels. The floor seems covered in some strange ashy\nsubstance - almost as if the floor itself were made of a\ncompacted version of it. It clearly piles up in the corners.\nHe runs the dust through his fingers. What is that? Doesn’t\nmatter. He dusts it from his hands, steps to the door. It\ngrinds open.\n\nHe steps out into:\n\n3\n\nINT. CIRCULAR CORRIDOR - DAY\n\nCUT TO:\n\n3\n\nA corridor encircles the circular chamber. Four corridors, at\nregular intervals, give off radially from this circle. They\nare labeled North, South, East and West. There are windows\ntoo. He’s clearly in a tower.\n\nThe Doctor steps to one of the windows.\n\nA very high tower - and encircled by another, much larger\nbuilding. Fifty feet away, a rearing gray cliff face of\nwindows. There are walkways connecting this tower to the\nsurrounding castle - these are the corridors we already saw.\n\nHe looks down. This building is huge, falls away into mist.\n\nHe looks up. The sky above is coppery - like a sunset.\n\nTHE DOCTOR\nThe equipment in that room is\nconsistent with an augmented, ultra\nlong range teleport. So I am not\nmore than a single light year from\nwhere I was and I am in the same\ntime zone.\n\n(Looks out the window)\n\nWhen the sun sets I’ll be able to\nestablish an exact position by the\nstars. Then you’ll have a choice.\nCome out and show yourself. Or keep\nhiding. Clara said I shouldn’t take\nrevenge. You should know, I don’t\nalways listen.\n\nHe notices something. Propped against the wall, a perfectly\nordinary garden spade. On the blade of it, there are traces\nof fresh soil. He rubs the soil between his fingers.\n\nTHE DOCTOR (cont’d)\n\nOh, are you gardeners? Never liked\ngardening. What sort of person has\na power complex about flowers -\nit’s dictatorship for inadequates.\nOr to put it another way - it’s\ndictatorship.\n\n(MORE)\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             4\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n3\n\nCONTINUED:\n\n3\n\nTHE DOCTOR (cont’d)\n(Tosses the spade, looks\n\naround)\n\nWell come on! Chop, chop!\n(MORE)\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             4A\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n3\n\nCONTINUED:\n\n3\n\nTHE DOCTOR (cont’d)\n\nThe Doctor will see you now! Show\nme what you’ve got! I just watched\nmy best friend die in agony - my\nday can’t get any worse. Let’s see\nwhat we can do about yours.\n\nNothing silence.\n\nTHE DOCTOR (cont’d)\n\nOh, don’t try to be mysterious, not\nwith me. I don’t even have a name,\nI’m automatically ahead.\n\nAs he turns, he notices something.\n\nWords inscribed on the wall behind him. Almost filling it,\nlike a page of writing.\n\nThe Doctor’s POV.\n\nPanning along the words, the first line reads:\n\nAs you come into this world\n\nOn the Doctor, reading those words, frowning. Behind him we\nsee one of the TV monitors flare into life.\n\nThe picture resolves into a POV shot of a corridor similar to\nthe one we are in.\n\nNow panning down the next line of words.\n\nsomething else is also born.\n\nOn the screen: the POV changing. As if standing up from a\nchair, now moving along the corridor ...\n\nPanning down the next line of words.\n\nYou begin your life and it begins a journey.\n\nOn the screen: the POV has moved towards one of the windows,\nnow looking out of it. Through the window we can see another\nwing of the same building, more windows.\n\nPanning down the next line:\n\nTowards you.\n\nOn the screen: a sudden, shaky zoom in on one of the windows.\nAnd we see the Doctor as he is right now! He’s caught in\nprofile, reading the words on the wall.\n\nSome instinct makes the Doctor turn -\n\n- and he sees his own image on the screen.\n\nWhat??\n\nHe quickly calculates which window he’s being filmed through,\nsteps towards it.\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             5\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n3\n\nCONTINUED:\n\n3\n\nWe hold on the screen as the Doctor now appears fully at the\nwindow, staring right at the camera.\n\nThe Doctor’s POV.\n\nAt a window, directly opposite him, a slim, motionless white\nfigure is staring back at him. At this distance, no details.\nBut it seems slightly ghostly, flowing. As if veiled. (This\nfigure we will come to know as Veil.)\n\nThe Doctor glances between the screen and Veil - clearly the\nmonitor is showing the creature’s POV.\n\n- and now that POV shifts.\n\nThe Doctor looks back to the creature. It is gone from the\nwindow -\n\n- but then is visibly walking slowly past the next window -\n\n- the walk is odd. One lurching pace, a pause. Another pace,\nanother pause. Like one foot strides out, and the other\ndrags.\n\n- now walking past the next window -\n\nWhere’s it going?\n\nThe Doctor looks back to the words on the wall.\n\nPanning down them:\n\nWherever you go\n\nVeil passing another window.\n\nWhatever path you take\n\nAnother window, another lurch and pause ...\n\nIt will follow\n\nOn the Doctor’s face, looking back to Veil. It passes out of\nsight -\n\n- and now starts along one of the walkway corridors leading\nto the circular chamber he is standing in.\n\nThe Doctor moves to the mouth of that corridor, looks along\nit -\n\n- we let him go, panning to the monitor on the wall.\n\nThe screen still shows Veil’s POV, now lurching and stopping\ndown the long corridor leading to the circular chamber. At\nthe end of the corridor we now see the Doctor come into view,\na distant, staring figure.\n\nWe close on the screen - low res on the Doctor’s face, slowly\ngrowing in size as the lurching thing approaches.\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             6\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n3\n\nCONTINUED:\n\nNow, a fly crawling across the screen. Then another. Then\nanother.\n\nCUT TO:\n\nOPENING TITLES\n\n4\n\nINT. CIRCULAR CORRIDOR - DAY\n\nPanning down the carved letter on the wall -\n\n- reaching, at the foot:\n\n3\n\n4\n\nyou will notice a second shadow next to yours. Your life will\nthen be over.\n\nAn approaching shadow now extends up over those words. The\nfamiliar lurch/pause (we still don’t see the creature.) As it\napproaches we hear a droning hum, as if of millions of\ninsects.\n\nThe shadow stops for a moment - as if uncertain what to do.\n\nOn the Doctor. He’s round the other side of the circular\ncorridor - the central hub, containing the teleport chamber,\nseparates and conceals him from his pursuer.\n\nHis eyes are on:\n\nThe Doctor’s POV. A monitor on the wall -\n\n- Veil’s POV, looking one way and the other. And now moving,\nround the hub, towards the Doctor.\n\nLurch-pause. Lurch-pause.\n\nThe Doctor, moving too. Keeping Veil on the opposite side of\nthe hub.\n\nLurch-pause. Lurch-pause. The insect drone moving closer. The\nshadow coming visible.\n\nThe Doctor eyes it, just a shade nervous -\n\n- and he deliberately comes to a halt!\n\nOkay ... let’s get a look at you!\n\nTHE DOCTOR\n\nHis eyes flick to the nearest monitor. The POV: he can see\nhis own shoulder and arm coming into view.\n\nHe swallows hard, visibly nervous. More nervous than he\nexpected to be!\n\nA few flies buzz about now. The Doctor swats at them,\nabstractedly.\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             7\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n4\n\nCONTINUED:\n\n4\n\nWe still can’t see the creature, but it’s coming into view -\n\n- and the Doctor’s nerve just goes! He starts backing away,\nkeeping the creature out of view -\n\n- matching pace, keeping the opposite side of the hub.\n\nThe Doctor moves more quickly now, circling round the hub,\nalmost catching up with Veil - a quarter section still\nseparates them. He comes to a halt there.\n\nThe Doctor eyes another of the monitors.\n\nThe creature has paused -\n\n- and now swings round, starts moving the other way round the\nhub, towards the Doctor.\n\nThe Doctor now backing away, again keeping pace with the\ncreature.\n\nHe touches the palms of his own hands. Bemused. He’s scared,\nhe’s sweating. What’s the matter with him??\n\nLurch-pause. Lurch-pause.\n\nThe flies, approaching shadow.\n\nOn the Doctor’s face. It’s really getting to him, we haven’t\nseen him like this. It’s like he doesn’t even want to see the\ncreature ...\n\nThe Doctor glances round - behind him the mouth of one of the\ncorridors (not the one Veil came along.) It stretches away\nand there is a door at the far end.\n\nThe Doctor goes striding along the corridor, racing down it -\n\n- glancing out the corridor windows as he runs -\n\n- this whole weird structure, what is it, what is it??\n\nNow at the door, yanking at the handle -\n\nWon’t budge. Jammed? Locked?\n\nWhips out his sonic glasses, tries them.\n\nI hate wood!\n\nTHE DOCTOR (cont’d)\n\nTries again the door. Damn it, won’t move!\n\nNew thought! He’s trapped, he needs to get back out of here!!\n\nTurns, starts to run back to the chamber -\n\n- and there, moving into place at the end of the corridor:\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             8\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n4\n\nCONTINUED:\n\n4\n\nFirst proper view of the creature. Strange misshapen thing.\nWhite, veiled. Something unseen beneath the cowl. We see\nflies buzz in and out.\n\nThe sight of it impacts the Doctor. Seem to knock him back a\nstep, transfixes him.\n\n... I know you.\n\nTHE DOCTOR (cont’d)\n\nLurch-pause. Lurch-pause. Coming down the corridor.\n\nThe Doctor just staring. For a moment, a rabbit in\nheadlights.\n\nTHE DOCTOR (cont’d)\nWhat are you?? I’ve seen you\nbefore!\n\nBack to business, looking for a way out!\n\nThe corridor is narrow. Too narrow for him to get past the\ncreature.\n\nLurch-pause.\n\nThe windows!\n\nNo! Even if they opened - they don’t seem to - he’s hundreds\nof feet up.\n\nLurch-pause.\n\nThe door! Only choice!\n\nYanks at the handle. Locked! Damn it, damn it!\n\nLurch-pause. Closer!\n\nLocked, still locked, damn it!!\n\nKneeling at the door, pressing his fingers against the\nsurface. Over his shoulder, Veil - lurch-pause - closer,\ncloser.\n\nTHE DOCTOR (cont’d)\n\nUsed to know a trick. Back when I\nwas young and telepathic.\n\nLurch-pause. The Doctor closes his eyes, focuses...\n\nTHE DOCTOR (cont’d)\nNow clearly you can’t form an\nactual psychic link with a door,\nfor one very obvious reason -\nthey’re notoriously cross.\n\nLurch-pause.\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             9\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n4\n\nCONTINUED:\n\n4\n\nTHE DOCTOR (cont’d)\n\nI mean imagine life as a door -\npeople keep pushing you out of the\nway.\n\nLurch-pause.\n\nTHE DOCTOR (cont’d)\n\nEverybody knocks, but it’s never\nfor you.\n\nLurch-pause.\n\nTHE DOCTOR (cont’d)\n\nLocked up every night.\n\n(Frowns, concentrates)\n\nSo if you’re just a little bit nice\n...\n\nA clicking from the door - starts to release.\n\nYou see, Clara, still (got it!)\n\nTHE DOCTOR (cont’d)\n\nHe breaks off. Clara’s not there. Clara’s not listening. He\nsuppresses the pain in a moment -\n\nYanks open the door -\n\n- to reveal a blank wall. Just stone-work.\n\nStares at it.\n\nNo way out. Trapped here.\n\nOh!\n\nA shuffling from behind ...\n\n... Veil stepping closer.\n\nTHE DOCTOR (cont’d)\n\nOkay. Can’t actually see a way out\nof this...\n\nLurch-pause.\n\nMore detail visible now. There is constant movement beneath\nshifting layers of veil, that dreadful insect drone.\n\nHe looks again at the blank stone wall, blocking him off.\n\nTHE DOCTOR (cont’d)\nFinally ran out of corridor -\nthere’s a life summed up.\n\nLurch-pause.\n\nOn the Doctor’s face: a revelation - but not a good one.\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             10\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n4\n\nCONTINUED:\n\n4\n\nTHE DOCTOR (cont’d)\n\nNow this is new. I’m scared. Never\nrealised that - I’m actually scared\nof dying.\n\nAnd then -\n\nClunk!\n\nVeil judders to a halt. A silence - the droning has stopped.\n\nThe Doctor staring. What? Now looking around.\n\nWeird. Impossible. The flies - a moment ago, buzzing around\nhim - have all frozen in mid-air.\n\nSomething I said? What did I say?\n\nTHE DOCTOR (cont’d)\n\nHe looks at one of the flies, inches from his face. He flicks\nit with his finger. It simply drops to the floor.\n\nLooks back to Veil.\n\nWhy did you stop?\n\nTHE DOCTOR (cont’d)\n\nThe room shudders - there’s a grinding of stone on stone.\n\nOn the walls - all the cogs are now turning. Grinding round\nand round.\n\nThe Doctor steps to a window, stares out at the castle.\n\nImpossible. The whole building is moving! Different floors\nrotating at different speeds.\n\nWhat? What??\n\nAn unexpected draft. He spins to look.\n\nAs the building moves, so the stone wall blocking his way is\nsliding away, a gap opening, a whole doorway!\n\nThe Doctor glances suspiciously at Veil -\n\n- what’s this? -\n\n- then slips through the gap.\n\nInto:\n\nCUT TO:\n\n5\n\nINT. THE DOCTOR’S BEDROOM - DAY\n\n5\n\nA plain, bare bedroom. A bed. A writing desk. The inevitable\nTV monitor mounted on the wall - currently snowing. There’s a\nvase of fresh cut flowers on the bedside table.\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             11\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n5\n\nCONTINUED:\n\n5\n\nHe steps to the vase, pulls out one of the flowers, sniffs\nit, then he sees something else!\n\n- the Doctor stares.\n\nOver the fireplace an oil painting of Clara.\n\nHe steps closer, examining it. How the hell did that get\nthere?\n\nTouches the frame. Worn, flaked. Like this painting is very\nold.\n\nThe grinding noise stops. Behind him, through the window, we\nsee all the other windows stop moving, as the rotating\nsections of building come to a halt.\n\nThe Doctor barely notices, absorbed in the painting. He’s\npatting his pockets, looking for something -\n\n- then notices something on the mantelpiece. A jeweller’s\neyeglass, just what he needs. He picks it up, screws it into\nhis eye socket. As he does so, a single fly buzzes behind his\nhead.\n\nHe now leans forward, examining the surface of the oil\npainting. As he bends forward to look at it, he clears frame -\n\n- and we can see the wall-mounted monitor behind him. The\nsnow has cleared. On the monitor, we can see a distant image\nof the Doctor as he is now, peering at the painting. The POV\nlurches forward - Veil is approaching again.\n\nThe Doctor’s POV - through the lens. The surface of the\npainting - the glaze is a maze of tiny cracks.\n\nThe Doctor steps back from the painting - again, obscuring\nour view of the monitor. Eye glass, still in his eye.\n\nTHE DOCTOR\n\nOld. Very old. Possibly very, very\nold.\n\nThe Doctor’s POV of Clara’s face -\n\n- as a fly lands on it.\n\nThe Doctor: galvanized! Spins.\n\nFeet from him - lurch-pause.\n\nTHE DOCTOR (cont’d)\n\nWhen I was very little, there was\nan old lady who died. They covered\nher in veils, but it was a hot day,\nand the flies came. Gave me\nnightmares for years. So who’s been\nstealing my nightmares?\n\nLurch pause.\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             12\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n5\n\nCONTINUED:\n\n5\n\nTHE DOCTOR (cont’d)\n\nWhat is this place?? What am I here\nfor??\n\nLurch-pause.\n\nThe Doctor stares thoughtfully at Veil, eyeglass still in\nplace.\n\nTHE DOCTOR (cont’d)\n\n(Points to the painting)\n\nYou’ve been expecting me for a very\nlong time. Right?\n\nLurch-pause.\n\nThe Doctor casually pulls a petal from the flower (still in\nhis hand) tosses it to the floor. (This action, apparently\ncasual, has later significance.)\n\nTHE DOCTOR (cont’d)\n\nSo this is a trap? No, worse. A\nprison. No, no! A torture chamber.\nAm I right?\n\nLurch-pause.\n\nTHE DOCTOR (cont’d)\n\nOh, somebody should know better.\nAnyone who could set this all up,\nand steal my bad dreams, should\nknow a lot better.\n\nLurch-pause.\n\nThe Doctor - with a raise of an eyebrow, causes his eye glass\nto pop out, fall to the floor with a clatter.\n\nTHE DOCTOR (cont’d)\n\nThe secrets I have - no chance. Not\ntelling, not me.\n\nLurch-pause.\n\nThe Doctor grabs up a stool.\n\nTHE DOCTOR (cont’d)\n\nTold you I was scared of dying.\nWasn’t lying either. Advantage: me!\n\nHe hurls the stool at the window - it smashes through in an\nexplosion of glass.\n\nBecause you won’t see this coming.\n\nTHE DOCTOR (cont’d)\n\nAnd he turns and runs to the window!\n\nAnd dives through it!\n\nCUT TO:\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             13\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n6\n\nEXT. CASTLE - DAY\n\n6\n\nThe Doctor in a perfect swallow dive out of the window -\n\n- arcing down and down.\n\nThe plunge is giddy - the tower and the encircling building\nreach down and down, disappearing into mist.\n\nThe tiny figure of the Doctor streaking down and down ...\n\nCUT TO:\n\n7\n\nINT. TARDIS - DAY\n\nClose on the TARDIS doors as they slam open and the Doctor\nstrides through.\n\nTHE DOCTOR\n\nSorry, I’m late. Jumped out of a\nwindow.\n\n8\n\n9\n\nEXT. CASTLE - DAY\n\nThe Doctor falling, faster and faster -\n\nINT. TARDIS - DAY\n\nCUT TO:\n\nCUT TO:\n\n7\n\n8\n\n9\n\nThe Doctor, bounding to the console. (He’s talking\nconversationally, to someone already in the TARDIS - but we\ndon’t yet see who.)\n\nTHE DOCTOR\n\nCertain death. No way out. Bet you\nwant to know how I survived! Go on -\nask!\n\n10\n\nEXT. CASTLE - DAY\n\nThe Doctor diving -\n\n- the castles streaking past, faster and faster -\n\n11\n\nINT. TARDIS - DAY\n\nCUT TO:\n\nCUT TO:\n\n10\n\n11\n\nThe Doctor striding round the console, slamming levers. He’s\nstill talking - but who to? Himself? Someone in the TARDIS?\nHe’s replying to someone, faintly irritated -\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             14\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n11\n\nCONTINUED:\n\n11\n\nTHE DOCTOR\n\nNo, of course I had to jump! Rule\none of being interrogated - you’re\nthe only irreplaceable person in\nthe torture chamber. The room is\nyours. So work it. If they’re\nthreatening you with death, show\nthem who’s boss - die faster!\n\nHe looks across the room at someone.\n\nTHE DOCTOR (cont’d)\n\nBut then, you’ve seen me do that\nmore often than most - isn’t that,\nright?\n\nNo answer.\n\nIsn’t that right, Clara?\n\nTHE DOCTOR (cont’d)\n\nThe Doctor’s POV.\n\nAnd there she is, her back to us, her face unseen -\n\n- exactly as he last saw her, before the raven took her!\n\nShe’s standing at one of the blackboards, as if studying it\nintently. But weirdly still...\n\n12\n\nEXT. CASTLE - DAY\n\nThe Doctor, falling, falling...\n\n13\n\nINT. TARDIS - DAY\n\nCUT TO:\n\nCUT TO:\n\n12\n\n13\n\nNow, on the console monitor. A schematic of the castle - a\ndotted line indicating the Doctor’s fall.\n\nRule one of dying - don’t.\n\nTHE DOCTOR\n\nHe studies the schematic.\n\nRule two - slow down.\n\nTHE DOCTOR (cont’d)\n\n14\n\nEXT. CASTLE - DAY\n\nThe Doctor falling -\n\n- slowing -\n\nCUT TO:\n\n14\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             15\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n14\n\nCONTINUED:\n\n14\n\n- now moving into ultra-slow motion.\n\nTHE DOCTOR\n\n(V.O.)\n\nYou’ve got the rest of your life.\nThe faster you think, the slower it\nwill pass.\n\nCloser on the falling Doctor’s eyes, staring at the ground\nfar below.\n\nTHE DOCTOR (cont’d)\n\n(V.O.)\n\nConcentrate! Focus! Assume you’re\ngoing to survive. Always assume\nthat.\n\nThe Doctor’s eyes: a slow motion blink.\n\nTHE DOCTOR (cont’d)\n\n(V.O.)\n\nImagine you’ve already survived.\n\nAs the Doctor’s eyes close -\n\n15\n\nINT. TARDIS - DAY\n\nCUT TO:\n\n15\n\nThe Doctor, eyes opening from the same blink, but now in the\nTARDIS again.\n\nTHE DOCTOR\n\nThere’s a storm room in your mind -\nlock the door and think!\n\n16\n\nINT. TARDIS - DAY\n\nCUT TO:\n\n16\n\nThe Doctor, studying the schematic on the screen. He now\nlooks over at the eerily motionless Clara, still standing\nfacing the blackboard.\n\nTHE DOCTOR\nI always imagine I’m back in my\nTARDIS. Showing off.\n\n(Approaching Clara, who\nremains eerily still)\n\nTelling you how I escaped. Making\nyou laugh.\n\nClara doesn’t move or turn. Silence, stillness.\n\nTHE DOCTOR (cont’d)\n\nThat’s what I’m doing right now.\nI’m falling, Clara. I’m dying.\n\nCUT TO:\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             16\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n17\n\nEXT. CASTLE - DAY\n\nThe Doctor, falling, aching slow motion...\n\n18\n\nINT. TARDIS - DAY\n\nClara, still not turning.\n\nTHE DOCTOR\n\nAnd I’m going to explain to you how\nI survived - and I can’t wait to\nhear what I say.\n\nHe turns from Clara, walking back to the console.\n\nI’m nothing without an audience.\n\nTHE DOCTOR (cont’d)\n\nThe briefest of glances at the camera -\n\nCUT TO:\n\nCUT TO:\n\n19\n\nEXT. CASTLE - DAY\n\nThe Doctor, still diving down and down -\n\n- the slow motion easing up, the Doctor getting faster,\nfaster -\n\nCUT TO:\n\n20\n\nINT. TARDIS - DAY\n\n17\n\n18\n\n19\n\n20\n\nAs if responding to the acceleration, the Doctor is now\nracing round the console and the whole room is juddering and\nshaking -\n\nOne hope! Salt!\n\nTHE DOCTOR\n\nFLASHBACK: the stool smashing through the window.\n\nThe Doctor, tapping away at his keyboard -\n\n- the schematic of the castle, alters as he works.\n\nTHE DOCTOR (cont’d)\n\nThought I smelled it earlier, but\nwhen I broke the window, I was\nsure. Salty air. This castle is\nstanding in the sea.\n\nOn the schematic -\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             17\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n20\n\nCONTINUED:\n\n- now there’s water indicated at the base.\n\n21\n\nEXT. CASTLE - DAY\n\nThe Doctor, diving. Faster, faster.\n\n22\n\nINT. TARDIS - DAY\n\n20\n\nCUT TO:\n\nCUT TO:\n\n21\n\n22\n\nThe Doctor tapping away, faster, faster. The room buffets and\nvibrates, like the TARDIS is falling in sympathy.\n\nTHE DOCTOR\nDiving into water from a great\nheight is not a guarantee of\nsurvival. I need to know exactly\nhow far I’m going to fall, and how\nfast.\n\n(Shoots a look at Clara,\n\nsmiles)\n\nWhy do you think I threw the stool?\n\nFLASHBACK: The shattered window - distantly we hear a splash.\nA super-fast zoom-out and turn to a close-up of the Doctor’s\near.\n\nThe Doctor, tapping away at inhuman speed.\n\nTHE DOCTOR (cont’d)\n\nOkay, the wind resistance of the\nstool -\n\nFLASHBACK: Tiniest beat of the Doctor grabbing the stool,\nfreeze-framing on the move -\n\nA schematic of the exact same stool, now revolving on the\nDoctor’s screen.\n\n- the atmospheric density -\n\nTHE DOCTOR (cont’d)\n\nFLASHBACK: tiniest beat of the Doctor tossing the petal,\nfreeze-framing on the action -\n\nTHE DOCTOR (cont’d)\n\n- the strength of the local gravity\n-\n\nFLASHBACK: the tiniest beat of the eyeglass clunking to the\nfloor, freeze-framing on the bounce -\n\nTHE DOCTOR (cont’d)\n(Glances across at Clara)\nAm I spoiling the magic? I work at\nthis stuff, you know.\n\n(MORE)\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             18\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n22\n\nCONTINUED:\n\nTHE DOCTOR (cont’d)\n\n(Back to the monitor)\n\n- I should hit the water in about -\n\n23\n\nEXT. CASTLE - DAY\n\n22\n\nCUT TO:\n\n23\n\nThe Doctor, twisting round, getting in position for a perfect\ndive.\n\nCUT TO:\n\n24\n\nINT. TARDIS - DAY\n\nThe Doctor, typing frantically, calculations now flowing\nacross the schematic.\n\n- point 02 seconds.\n\nTHE DOCTOR\n\nCUT TO:\n\n25\n\nEXT. CASTLE - DAY\n\nThe Doctor’s POV as he falls -\n\n24\n\n25\n\n- and the water-filled area between the tower and encircling\ncastle, rushing up to meet him.\n\nCUT TO:\n\n26\n\nINT. TARDIS - DAY\n\nThe Doctor, clinging to the console, as if bracing for\nimpact.\n\nTHE DOCTOR\n\nThe chances of remaining conscious\nare -\n\n27\n\nEXT. CASTLE - DAY\n\nThe water, racing up, sickeningly fast.\n\n28\n\nEXT. TOWER MOAT - DAY\n\nCUT TO:\n\nCUT TO:\n\n26\n\n27\n\n28\n\nThe slim, plunging figure flashes down through the frame. A\nmighty splash explodes upwards.\n\nThe screen cuts to black.\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             19\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n28\n\nCONTINUED:\n\nWe hold on the black.\n\n29\n\nEXT. UNDER THE WATER - DAY\n\nMurky, filthy water.\n\n28\n\nCUT TO:\n\n29\n\nSuspended upside down in it, the Doctor - slowly turning,\nclearly stunned into unconsciousness.\n\nCloser on his face as it revolves past us, through the murk.\n\n30\n\nINT. TARDIS - DAY\n\nDark and still, the lights are all out.\n\nThen, flickering, one roundel illuminates.\n\nThen another.\n\nThen another.\n\nCUT TO:\n\n30\n\nThe Doctor, motionless at the console, eyes closed. He is\nillumined faintly by the flickering roundels. A little\nbrighter as each one flickers on...\n\n31\n\nEXT. UNDER THE WATER - DAY\n\nThe Doctor drifts down, down, down ...\n\n32\n\nINT. TARDIS - DAY\n\nOn the Doctor’s face -\n\nCUT TO:\n\nCUT TO:\n\n31\n\n32\n\n- more lights flicker on, but he remains impassive -\n\n- then -\n\n- a pattering sound, like a chalk on a board.\n\nThe Doctor stirs, frowns. His eyes slit open. He looks round.\n\nThe blackboard where Clara stood - she’s gone now, but there\nare words chalked on the board.\n\nQuestion 1\n\nWhat is this place?\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             20\n\n(CONTINUED)\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n32\n\nCONTINUED:\n\nThe Doctor sighs.\n\nCan’t I just sleep?\n\nTHE DOCTOR\n\n32\n\nCUT TO:\n\n33\n\nEXT. UNDER THE WATER - DAY\n\nThe Doctor drifts down and down through the murk ...\n\n- now the pattering of chalk on a board again.\n\nCUT TO:\n\n34\n\nINT. TARDIS - DAY\n\nOn one of the blackboards on the upper walkway -\n\n33\n\n34\n\nQuestion 2\n\nWhat did you say\nthat made the\ncreature stop?\n\nTHE DOCTOR\nDo I have to know everything??\n\nPatter, patter -\n\nThe Doctor looks round -\n\n- another blackboard! This time we see a figure (Clara)\nflitting away in front of it, and only the first few words of\nwhat’s written\n\nQuestion 3\n\nHow are you\ngoing to\n\nClara, I don’t always have to -\n\nTHE DOCTOR (cont’d)\n\nPanning down to the last word, underlined several times:\n\nWIN??\n\nThe Doctor staring at that word. Damn it. Damn it!!\n\nThe call to arms.\n\nHe lets his eyes flicker shut --\n\nCUT TO:\n\nBBC 2015 PRIVATE AND CONFIDENTIAL                             21\n\n\fDW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n\n35\n\nEXT. UNDER THE WATER - DAY\n\n35\n\n-- The Doctor’s eyes flicker open.\n\nHe starts to twist round, to swim up through the murky water -\n\n- but then looks down again, peering at something through the\nfilthy water -\n\nNow, panning down from the Doctor, suspended in the swirling,\nfilthy water -\n\n- to the sea bed, a few yards below.\n\nThe sea bed is covered in human skulls!\n\nAs far as he can see in the filthy, sickly gloom, skulls.\nDark, empty sockets are staring up at him. Skull, after\nskull, after skull...\n\nThe Doctor stares a moment -\n\n- then twists, and kicks, and starts swimming away from us,\nto the surface.\n\n36\n\nEXT. CASTLE - DAY\n\nCUT TO:\n\n36\n\nThe Doctor standing in an open doorway, soaking wet.\n\nWider. He’s standing by a wide ring of water, encircling the\ntower, and itself encircled by the larger building.\n\nHe now stands in an open doorway belonging to the larger\nbuilding, which forms a “wheel” round the tower.\n\nWhat the hell is this place?\n\nHe turns and heads into",
-            "current_page": 1,
-            "total_pages": 3,
-            "error": null
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 location name first scene heading",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
         },
         {
             "metadata": {
-                "id": "fb4ebf67-c223-4738-892b-aa2b6cf0383f",
-                "prompt_id": "68f2ccb8-c598-4a68-9234-e10f2acc7aa1",
+                "id": "cb7db77f-c5d8-4316-a7ed-319b7cd07058",
+                "prompt_id": "f70e1da9-f5b9-4595-a8c2-5a66b64b1c2b",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
-            "kind": "gaia_answer_action",
-            "success": true,
-            "overview": "Extracted the first scene heading from the script of Doctor Who Series 9, Episode 11.",
-            "answer_unit": "",
-            "answer": "THE CASTLE",
-            "long_answer": "The location where the Doctor is trapped, as it appears in the first scene heading of the official script for Series 9, Episode 11 of Doctor Who, is 'THE CASTLE'."
+            "kind": "search_action",
+            "source": "wiki",
+            "query": "Doctor Who Series 9 Episode 11 summary"
+        },
+        {
+            "metadata": {
+                "id": "c291c4f8-92b3-4ab1-a2e8-a8da67b05915",
+                "prompt_id": "f70e1da9-f5b9-4595-a8c2-5a66b64b1c2b",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "6fafa2da-1650-4930-89a8-8a9f1e48cbb7",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0010616670006129425,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 summary",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "a850d788-6bb5-44ae-a0be-8344dfcf39b4",
+                "prompt_id": "d65e1abd-c222-4ee0-b286-0722bab47402",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze location name"
+        },
+        {
+            "metadata": {
+                "id": "6c186cd7-492e-40a0-805a-1a965bf2fc29",
+                "prompt_id": "d65e1abd-c222-4ee0-b286-0722bab47402",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "eaa8cd16-47ed-4ff1-82a6-3446b4b8a9c5",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00044800000068789814,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze location name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "a1bfb442-5dee-4c5a-9f81-fa32beed6f5f",
+                "prompt_id": "fde56ef6-0f39-4193-9faa-82e5778c953c",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 script location name"
+        },
+        {
+            "metadata": {
+                "id": "938f7dd5-cbcc-45f4-ab8d-3e2482578f49",
+                "prompt_id": "fde56ef6-0f39-4193-9faa-82e5778c953c",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "2f76d5e2-0d52-4301-b51b-61755094600c",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0003315419999125879,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 script location name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "88df355b-1bf5-4f0e-8dbe-538afde7b14e",
+                "prompt_id": "49c4c97d-8ee0-4582-af55-2e7dd72a2406",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 transcript"
+        },
+        {
+            "metadata": {
+                "id": "0b7ce48a-e660-4c5d-a3ee-364186b47f0a",
+                "prompt_id": "49c4c97d-8ee0-4582-af55-2e7dd72a2406",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "42d5c230-b023-47a8-a294-0edb6ee2a7fa",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00043725000068661757,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 transcript",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "65332fb2-c08a-4be5-a662-e655fc3b7e94",
+                "prompt_id": "339461b9-df25-4f0a-b5ef-fb33a3279456",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 setting name"
+        },
+        {
+            "metadata": {
+                "id": "7e2840bd-7be9-49d9-94f2-07304296d590",
+                "prompt_id": "339461b9-df25-4f0a-b5ef-fb33a3279456",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "ca611fab-6e2a-402b-b25c-daa4c5c2c7f9",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00028520900013973005,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 setting name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "4e36731a-dbcc-4437-a595-23f9c0b4a71a",
+                "prompt_id": "5899b239-7ea8-43cf-8f7a-31219e163e74",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "wiki",
+            "query": "Doctor Who Series 9 Episode 11"
+        },
+        {
+            "metadata": {
+                "id": "1df037d9-8122-458a-90d0-cbc43d56e0a1",
+                "prompt_id": "5899b239-7ea8-43cf-8f7a-31219e163e74",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "77853498-8902-4ae1-9953-fc47d057890e",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0002923339998233132,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "1c7d37a5-1603-4028-afde-77fd121bc355",
+                "prompt_id": "e7187ee8-a19f-4824-8cd5-cbf47c8eaa58",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze location"
+        },
+        {
+            "metadata": {
+                "id": "7777b1b5-3f51-4962-86b5-239e6ced2f0d",
+                "prompt_id": "e7187ee8-a19f-4824-8cd5-cbf47c8eaa58",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "b8fc5c24-6bdb-465a-93bc-c4451d36bba1",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0004694170002039755,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze location",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "cb981c9b-d4d8-4811-aaf9-075c5dcde9da",
+                "prompt_id": "fdad9452-e7fe-4cfc-8590-fb6810c521a8",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading"
+        },
+        {
+            "metadata": {
+                "id": "d36c4e5c-8f0d-4b6c-95df-b1e649f5b14d",
+                "prompt_id": "fdad9452-e7fe-4cfc-8590-fb6810c521a8",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "7c670961-887d-4dcc-9b08-f69b05bf855e",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0003650420003395993,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "5e523173-dd97-4446-94bc-c39d263e077d",
+                "prompt_id": "faa4001f-7062-4b2e-97ae-e61d6915edf2",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 script or transcript"
+        },
+        {
+            "metadata": {
+                "id": "2297c933-06f4-426e-9a16-ad1b7e4bcd71",
+                "prompt_id": "faa4001f-7062-4b2e-97ae-e61d6915edf2",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "fdbbe004-a13e-49e6-a198-bc3b20b6671f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0007844589999876916,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 script or transcript",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "782856ec-1669-49c2-8abb-9b5f0af175d7",
+                "prompt_id": "56fe2dfb-3f1b-4660-9a9d-2faedd293864",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 detailed summary"
+        },
+        {
+            "metadata": {
+                "id": "3778875b-352b-441c-b00f-93966f552a55",
+                "prompt_id": "56fe2dfb-3f1b-4660-9a9d-2faedd293864",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "4d285c6a-c200-4096-bec4-b3b7bd750984",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0003254160001233686,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 detailed summary",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "836b1dfb-82a1-4b4e-9c16-35f800536522",
+                "prompt_id": "c0633db0-fdbc-42a8-964e-c253c5ceafb4",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 plot details"
+        },
+        {
+            "metadata": {
+                "id": "a1729960-3810-4093-a92a-48fdb5ff411a",
+                "prompt_id": "c0633db0-fdbc-42a8-964e-c253c5ceafb4",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "7add35ad-98f2-4a54-9a30-3e6a3d02ef8f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0005077500009065261,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 plot details",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "a2d07cec-14b0-4076-9cdd-948c30e62218",
+                "prompt_id": "99e21220-1401-4990-b1bf-ed5f3f419cc2",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze setting name"
+        },
+        {
+            "metadata": {
+                "id": "f08b3614-5854-4121-bf73-60b1bc058bf6",
+                "prompt_id": "99e21220-1401-4990-b1bf-ed5f3f419cc2",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "b523daa3-5d17-4785-b08c-f067f3daf8e0",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.000366541000403231,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze setting name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "ed120591-7f7d-494d-8a7e-897a80223be3",
+                "prompt_id": "badb97d1-76bf-44b8-9f1b-be6f4798d15a",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 setting name maze"
+        },
+        {
+            "metadata": {
+                "id": "aa494891-f091-4f32-a4c1-480d54633d69",
+                "prompt_id": "badb97d1-76bf-44b8-9f1b-be6f4798d15a",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "2437d62f-4ec3-4dfd-b511-1b0aae92c57f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0005605829992418876,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 setting name maze",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "8a1dc6c9-5e48-4ea3-ba45-a7779b5b562d",
+                "prompt_id": "0367be2e-df11-4091-aeec-ce18958803f9",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading location"
+        },
+        {
+            "metadata": {
+                "id": "9dc42970-d7e3-4940-95d8-4440dac5cda7",
+                "prompt_id": "0367be2e-df11-4091-aeec-ce18958803f9",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "e2fdb626-42c0-4947-9f0d-5b19ac8a4097",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0003832080001302529,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading location",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "2176ea59-3b31-40d6-bf15-430d87868cd1",
+                "prompt_id": "5584ff6e-736b-46ce-8001-437222e4965e",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze location script"
+        },
+        {
+            "metadata": {
+                "id": "b5890032-5868-4213-8e26-795b39644cb0",
+                "prompt_id": "5584ff6e-736b-46ce-8001-437222e4965e",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "9a06cfa4-c83d-44cd-9245-78b7b6e2aba8",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0003170420004607877,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze location script",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "d534d50d-eddc-4782-9eb1-70a7fbf44981",
+                "prompt_id": "a8c9993a-ce95-44b5-8c37-fe1dba2a1422",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 location name"
+        },
+        {
+            "metadata": {
+                "id": "601d8adb-9dee-4424-bd42-79aae4be5183",
+                "prompt_id": "a8c9993a-ce95-44b5-8c37-fe1dba2a1422",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "6d3c7c1d-b387-4d33-a860-39baa7d21e5a",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0008031249999476131,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 location name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "a9829911-2dff-436b-9234-262482951ce9",
+                "prompt_id": "c55291ee-ef94-43a0-8ccc-8d358f7e7d9a",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze setting"
+        },
+        {
+            "metadata": {
+                "id": "5e2be098-d740-4cee-8b7d-1c773da13244",
+                "prompt_id": "c55291ee-ef94-43a0-8ccc-8d358f7e7d9a",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "c704adfc-486c-4fa8-a9bf-14427d5a1105",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0007677080011490034,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze setting",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "74090bac-348b-48a4-9cb0-cfe9381f52a2",
+                "prompt_id": "61255954-b496-4ad1-9e6e-25ec22f2d4a3",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze location details"
+        },
+        {
+            "metadata": {
+                "id": "9c1e5139-fa5b-431e-b84d-857d475aaa02",
+                "prompt_id": "61255954-b496-4ad1-9e6e-25ec22f2d4a3",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "31fa3643-4319-46e1-8cc3-83dadcfc031f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0006018340009177336,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze location details",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "6edc7244-8a5b-4cb6-87dc-b23273f19bf2",
+                "prompt_id": "db7e06e3-0eff-4354-9ce1-d1cedabf55cd",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading"
+        },
+        {
+            "metadata": {
+                "id": "3e5cc05d-c3e0-40c5-82e5-b8ef9dac996c",
+                "prompt_id": "db7e06e3-0eff-4354-9ce1-d1cedabf55cd",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "0123a03c-d841-4374-9045-aef6b6deef28",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00006104099884396419,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "1d5631ff-7faf-4c0c-926d-158e4d8e65be",
+                "prompt_id": "b1211ded-aafb-4a5b-aa65-ca3f135efbb8",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 script location"
+        },
+        {
+            "metadata": {
+                "id": "54ae94bb-e28b-4738-bfbb-75e55af89c23",
+                "prompt_id": "b1211ded-aafb-4a5b-aa65-ca3f135efbb8",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "c2881232-65a6-4048-bdbd-97c1b7ac561f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0006231659990589833,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 script location",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "c3e1fe92-9b37-4d5f-8b4d-bae8fda20a38",
+                "prompt_id": "b1998e9e-b6f0-4724-8e99-27887f297bcd",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze setting name in script"
+        },
+        {
+            "metadata": {
+                "id": "c8530d67-81be-4cfe-b47c-af5d9be656cc",
+                "prompt_id": "b1998e9e-b6f0-4724-8e99-27887f297bcd",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "60ffbc74-634f-4a18-b5f5-0f43a1e8241e",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0010931670003628824,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze setting name in script",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "3b5c1ca2-f6a9-4787-a643-8dfa2553d73f",
+                "prompt_id": "ef8dc6a3-feb8-4f45-945c-adb4285ce5f7",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze location name"
+        },
+        {
+            "metadata": {
+                "id": "75481036-b0af-4d9d-bb91-19ad0ad7ab91",
+                "prompt_id": "ef8dc6a3-feb8-4f45-945c-adb4285ce5f7",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "e35d5148-035f-4ca5-aded-0357496364b4",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00009374999899591785,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze location name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "fd0cb4d8-f880-4066-ba02-2cda17da54c2",
+                "prompt_id": "5c2f92de-a5eb-47c6-9839-2a459a0374a0",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 script location name"
+        },
+        {
+            "metadata": {
+                "id": "44ad06e5-3c42-4a47-b5a1-265c3507dfa2",
+                "prompt_id": "5c2f92de-a5eb-47c6-9839-2a459a0374a0",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "245ab440-2b40-46df-94d1-2e7b179192e4",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00006529100028274115,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 script location name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "c909d4c5-3ed6-4361-97a8-ac74475e875e",
+                "prompt_id": "867e4f26-2348-4eb2-aafd-305b77d6767a",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze setting first scene heading"
+        },
+        {
+            "metadata": {
+                "id": "1c28a4aa-d912-494a-bbc6-250233c92f98",
+                "prompt_id": "867e4f26-2348-4eb2-aafd-305b77d6767a",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "f7f4823b-c4dc-4635-9528-1c86f3d3530f",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00043279199962853454,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze setting first scene heading",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "7cb1bd43-3ccc-404c-9ff6-77b18749ad4c",
+                "prompt_id": "b0b49a8d-cf6c-4895-8538-4703285eb8b0",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze location details"
+        },
+        {
+            "metadata": {
+                "id": "4757d0c6-0d9d-4141-ad56-f3f06942c4dc",
+                "prompt_id": "b0b49a8d-cf6c-4895-8538-4703285eb8b0",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "b0119158-7656-4f3e-b915-06c3e8de33db",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00007987500066519715,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze location details",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "547fbf14-a4a3-4593-a59d-5ad0be99a4ac",
+                "prompt_id": "9c859f2d-cbe8-46a9-bccc-67eeaf9ae8b2",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 setting name"
+        },
+        {
+            "metadata": {
+                "id": "676ba648-58d7-453f-abee-0a390a313eca",
+                "prompt_id": "9c859f2d-cbe8-46a9-bccc-67eeaf9ae8b2",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "1c047df4-e44f-4785-8c0a-f28295248777",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00013395899986790027,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 setting name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "3b198f8a-6be0-4269-ac5c-f126f4cbd4f4",
+                "prompt_id": "82937357-cf18-4549-b5de-2d4701f47fe2",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze location"
+        },
+        {
+            "metadata": {
+                "id": "203d98cf-7810-4fc4-91f7-3aaad7b7d1cd",
+                "prompt_id": "82937357-cf18-4549-b5de-2d4701f47fe2",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "54bea37c-2086-4f14-9fdf-cd3cc07f41ac",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0001114999995479593,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze location",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "2b652e06-51a9-4ea9-ae70-f3d50743d5d8",
+                "prompt_id": "2d8eb3d6-85cc-42cf-aa5f-207c03d9be2f",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading location"
+        },
+        {
+            "metadata": {
+                "id": "901961b7-faf2-4528-8e74-a922b2e8bb03",
+                "prompt_id": "2d8eb3d6-85cc-42cf-aa5f-207c03d9be2f",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "1272e13d-c99d-40a6-a6a2-3cc7d1fffa33",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00012262500058568548,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading location",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "1d648f2d-229c-48d3-bb9a-5c7b573a7db0",
+                "prompt_id": "924fe62b-8b33-4f4d-b9d1-c917d3568933",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze setting name"
+        },
+        {
+            "metadata": {
+                "id": "5eeb71ff-9384-4857-a5dd-96b85a72da37",
+                "prompt_id": "924fe62b-8b33-4f4d-b9d1-c917d3568933",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "c7d467c2-62e3-4cec-8b0a-2210432fe915",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.00016745799985073972,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze setting name",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "2852eb43-380c-4346-9e1e-1af5bfc428b7",
+                "prompt_id": "fb8758da-5cf3-4cb6-b70e-572449ab8cee",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 script or transcript"
+        },
+        {
+            "metadata": {
+                "id": "829ebd22-968d-4544-a28e-96e1cccf66a1",
+                "prompt_id": "fb8758da-5cf3-4cb6-b70e-572449ab8cee",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "ec1f8188-cf1c-4fb3-8abd-d42e0a2d9ba3",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.0001073340008588275,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 script or transcript",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "35a7fd57-ef8b-43eb-9962-165111551642",
+                "prompt_id": "3aba3668-ad1c-4a6e-8db5-96df23e340d4",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 maze location in script"
+        },
+        {
+            "metadata": {
+                "id": "466549ab-a0dd-45a7-9909-13f2f1ae5294",
+                "prompt_id": "3aba3668-ad1c-4a6e-8db5-96df23e340d4",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
+        },
+        {
+            "metadata": {
+                "id": "eb1d4745-8370-46a6-b614-d4c1ec33a700",
+                "prompt_id": "",
+                "node": "",
+                "agent": "",
+                "llm": "",
+                "other": {
+                    "action_execution_time": 0.000774666999859619,
+                    "action_kind": "search_action"
+                }
+            },
+            "kind": "search_results_observation",
+            "query": "Doctor Who Series 9 Episode 11 maze location in script",
+            "serp": [],
+            "error": "SERPER_API_KEY env var is not set"
+        },
+        {
+            "metadata": {
+                "id": "fddc49cf-bf4a-4316-9635-38a62931ebed",
+                "prompt_id": "3c684af3-8b2a-46e0-a95a-e5ffa1ef0006",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "search_action",
+            "source": "web",
+            "query": "Doctor Who Series 9 Episode 11 first scene heading"
+        },
+        {
+            "metadata": {
+                "id": "7c247ed5-9162-49ad-8d2f-01af01861be9",
+                "prompt_id": "3c684af3-8b2a-46e0-a95a-e5ffa1ef0006",
+                "node": "act",
+                "agent": "web_agent",
+                "llm": "default",
+                "other": {}
+            },
+            "kind": "set_next_node",
+            "next_node": "act"
         }
     ]
 }
