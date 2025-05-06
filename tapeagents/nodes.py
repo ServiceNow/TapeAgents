@@ -5,7 +5,8 @@ Nodes are the building blocks of a TapeAgent, representing atomic units of the a
 import json
 import logging
 import re
-from typing import Annotated, Any, Generator, Type, Union
+from functools import wraps
+from typing import Annotated, Any, Callable, Generator, List, Type, TypeVar, Union
 
 from litellm import ChatCompletionMessageToolCall
 from pydantic import Field, TypeAdapter, ValidationError
@@ -597,3 +598,69 @@ class RespondIfNotRootNode(Node):
         if len(view.stack) > 1:
             yield Respond(copy_output=True)
         return
+
+
+class NodeRegistry:
+    _nodes: List[str] = []
+    _calls: List[str] = []
+
+    @classmethod
+    def register(cls, name: str) -> None:
+        cls._nodes.append(name)
+
+    @classmethod
+    def get_next_node(cls, current_node: str) -> str | None:
+        try:
+            current_idx = cls._nodes.index(current_node)
+            if current_idx + 1 < len(cls._nodes):
+                return cls._nodes[current_idx + 1]
+        except ValueError:
+            pass
+        return None
+
+    @classmethod
+    def register_call(cls, name: str) -> None:
+        cls._calls.append(name)
+
+    @classmethod
+    def get_calls(cls) -> List[str]:
+        return cls._calls
+
+
+T = TypeVar("T")
+
+
+def node(func: Callable[..., T]) -> Callable[..., T]:
+    NodeRegistry.register(func.__name__)
+
+    @wraps(func)
+    def wrapper(tape: Tape, *args, **kwargs) -> T:
+        # First check if there's a SetNextNode step
+        next_node = None
+        for step in reversed(tape.steps):
+            if isinstance(step, SetNextNode):
+                next_node = step.next_node
+                logger.info(f"Next node from step in tape: {next_node}")
+                break
+        if not next_node:
+            last_node = tape.steps[-1].metadata.node
+            next_node = NodeRegistry.get_next_node(last_node)
+            logger.info(f"Next node from registry: {next_node}, after {last_node} in tape")
+
+        # If this isn't the node we should run, return empty list
+        if next_node and next_node != func.__name__:
+            logger.info(f"Skipping node {func.__name__} as next node is {next_node}")
+            return []
+
+        # Run the node function and add metadata
+        result = func(tape, *args, **kwargs)
+        if isinstance(result, (list, tuple)):
+            for step in result:
+                step.metadata.node = func.__name__
+        else:
+            result.metadata.node = func.__name__
+        logger.info(f"Node {func.__name__} executed successfully.")
+        NodeRegistry.register_call(func.__name__)
+        return result
+
+    return wrapper
