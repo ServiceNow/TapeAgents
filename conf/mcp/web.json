@@ -1,8 +1,10 @@
 {
-    "mcpServers": {
-        "puppeteer": {
-          "command": "npx",
-          "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
-        }
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
     }
+  }
 }

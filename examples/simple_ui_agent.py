@@ -24,11 +24,19 @@ logger = logging.getLogger(__name__)
 UIStep: TypeAlias = UserStep | MessageStep | ToolResult | FinalStep
 
 
+def _log_steps(steps: list[UIStep], length_limit: int = 500) -> None:
+    for step in steps:
+        step_str = step.model_dump_json(indent=2, exclude={"metadata"})
+        if len(step_str) > length_limit:
+            step_str = step_str[:length_limit] + f"...(truncated {len(step_str) - length_limit} chars)"
+        logger.info(f"\x1b[3{2 if isinstance(step, ToolResult) else 5};20m{step_str}\x1b[0m")
+
+
 class UITape(Tape[None, UIStep]):
     def to_llm_messages(self) -> list[dict]:
-        return [message for step in self.steps for message in self._message(step)]
+        return [m for step in self.steps for m in self._step_to_messages(step)]
 
-    def _message(self, step: UIStep) -> list[dict[str, Any]]:
+    def _step_to_messages(self, step: UIStep) -> list[dict[str, Any]]:
         if isinstance(step, ToolResult):
             return mcp_result_to_content(step)
         elif isinstance(step, MessageStep):
@@ -41,20 +49,14 @@ class UITape(Tape[None, UIStep]):
     def __add__(self, steps: UIStep | list):
         if isinstance(steps, UIStep):
             steps = [steps]
-        for step in steps:
-            self.log_step(step)
+        _log_steps(steps)
         return super().__add__(steps)  # type: ignore
 
-    def log_step(self, step: UIStep) -> None:
-        step_str = step.model_dump_json(indent=2, exclude={"metadata"})
-        if len(step_str) > 500:
-            step_str = step_str[:500] + "..."
-        logger.info(f"\x1b[3{2 if isinstance(step, ToolResult) else 5};20m{step_str}\x1b[0m")
 
-
-class UIAgentConfig(BaseModel):
+class UIExpConfig(BaseModel):
     agent_name: str
     mcp_config_path: str
+    task: str
     llm: str
     system_prompt: str
     plan_prompt: str
@@ -71,8 +73,12 @@ class Task(BaseModel):
         return UITape(steps=[UserStep(content=self.text)])
 
 
-def main(config: UIAgentConfig, task_text: str):
-    task = Task(text=task_text)
+def run_agent(config: UIExpConfig) -> None:
+    """
+    Run the agent with the given config.
+    """
+    task = Task(text=config.task)
+    # action space is defined by mcp server plus StopTool to stop the agent
     env = MCPEnvironment(config_path=config.mcp_config_path, tools=[StopTool()])
 
     def make_plan(tape: UITape) -> MessageStep:
@@ -100,7 +106,8 @@ def main(config: UIAgentConfig, task_text: str):
         return len(tape) >= config.steps_limit
 
     def _llm(tape: UITape, prompt: str, with_tools: bool = False) -> MessageStep:
-        messages = [{"role": "system", "content": config.system_prompt}]
+        today = datetime.now().strftime("%Y-%m-%d")
+        messages = [{"role": "system", "content": config.system_prompt.format(today=today)}]
         messages += tape.to_llm_messages()
         messages.append({"role": "user", "content": prompt})
         logger.debug(f"LLM input: {json.dumps(messages, indent=2)}")
@@ -139,14 +146,14 @@ if __name__ == "__main__":
     config_dict = {
         "agent_name": "web_agent",
         "mcp_config_path": "conf/mcp/web.json",
+        "task": "Find cheapest flight from Montreal to Miami for this Saturday",
         "llm": "gpt-4.1-2025-04-14",
-        "system_prompt": f"You are a web agent. Today is {datetime.now().strftime('%Y-%m-%d')}.",
+        "steps_limit": 50,
+        "system_prompt": "You are a web agent. Today is {today}.",
         "plan_prompt": "Make a plan of how to accomplish the task. Available tools: {tools}. Use google search if needed.",
         "select_action_prompt": "Describe which action to use next to move forward with the task. Available tools: {tools}.",
-        "act_prompt": "Call two tools: the selected tool and the tool to make screenshot after that.",
+        "act_prompt": "Call the selected tool",
         "reflection_prompt": "Reflect on last tool results and a screenshot and how it affects the task.",
-        "steps_limit": 50,
     }
-    config = UIAgentConfig(**config_dict)
-    task_text = "Find cheapest flight from Montreal to Miami for this Saturday"
-    main(config, task_text)
+    config = UIExpConfig(**config_dict)
+    run_agent(config)
