@@ -185,3 +185,6 @@ class DialogAnnotator(Annotator[DialogTape, DialogAnnotatorTape]):
 class MessageStep(Action):
     kind: Literal["message"] = "message"  # type: ignore
     message: Message
+
+    def to_llm_message(self) -> dict[str, Any]:
+        return self.message.model_dump()

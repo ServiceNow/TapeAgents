@@ -154,6 +154,11 @@ class MCPClient:
                     pass
 
 
+class MCPToolResult(ToolResult):
+    def to_llm_message(self) -> dict[str, Any]:
+        return mcp_result_to_content(self)
+
+
 class MCPEnvironment(ToolCollectionEnvironment):
     client: MCPClient | None
     tools: list[BaseTool]
@@ -199,7 +204,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
         if not isinstance(action, ToolCallAction):
             return super().step(action)
         if isinstance(action, LLMOutputParsingFailureAction):
-            return ToolResult(tool_call_id="", content="Try again")
+            return MCPToolResult(tool_call_id="", content="Try again")
         try:
             assert self.client is not None, "MCPClient is not initialized"
             result = asyncio.run(self.client.call_tool(action.function.name, action.function.arguments))
@@ -220,9 +225,9 @@ class MCPEnvironment(ToolCollectionEnvironment):
                 content=[TextContent(type="text", text=f"Error executing tool {action.function.name}: {str(e)}")],
                 isError=True,
             )
-        return ToolResult(tool_call_id=action.id, content=result)
+        return MCPToolResult(tool_call_id=action.id, content=result)
 
-    def run_tools_from_message(self, message_step: MessageStep) -> list[ToolResult]:
+    def run_tools_from_message(self, message_step: MessageStep) -> list[MCPToolResult]:
         tool_calls: list[ToolCallAction] = []
         message = message_step.message
         if message.function_call and message.function_call.name:
@@ -266,21 +271,22 @@ class MCPEnvironment(ToolCollectionEnvironment):
                 pass
 
 
-def mcp_result_to_content(tool_result: ToolResult) -> list[dict]:
+def mcp_result_to_content(tool_result: ToolResult) -> dict:
     messages = []
-    user_messages = []
     mcp_result: CallToolResult = tool_result.content
-    has_images = any(isinstance(c, ImageContent) for c in mcp_result.content)
     for content in mcp_result.content:
         if isinstance(content, TextContent):
             messages.append({"type": "text", "text": content.text})
         elif isinstance(content, ImageContent):
-            # hack because Openai API cannot accept image data in the tool call results
             image_data = f"data:{content.mimeType};base64,{content.data}"
-            user_messages.append({"type": "image_url", "image_url": {"url": image_data}})
+            messages.append({"type": "image_url", "image_url": {"url": image_data}})
         else:
             logger.warning(f"Unknown content type in the tool result: {type(content)}")
-    result = [{"role": "tool", "tool_call_id": tool_result.tool_call_id, "content": messages}]
+    has_images = any(isinstance(c, ImageContent) for c in mcp_result.content)
     if has_images:
-        result.append({"role": "user", "content": user_messages})
+        # hack because Openai API cannot accept image data in the tool call results
+        result = {"role": "user", "content": messages}
+    else:
+        result = {"role": "tool", "tool_call_id": tool_result.tool_call_id, "content": messages}
+
     return result
