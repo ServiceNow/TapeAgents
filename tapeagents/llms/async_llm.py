@@ -94,7 +94,7 @@ class AsyncLLM(LLM):
                 add_generation_prompt = False if messages[-1]["role"] == "assistant" else True
                 return len(self.tokenizer.apply_chat_template(messages, add_generation_prompt=add_generation_prompt))
         except Exception:
-            logger.exception("Failed to count tokens with tokenizer, fallback to litellm counter")
+            logger.warning("Failed to count tokens with tokenizer, fallback to litellm counter")
             if isinstance(messages, str):
                 return litellm.token_counter(model=self.model_name, text=messages)  # type: ignore
             else:
