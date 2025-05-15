@@ -2,6 +2,7 @@ import logging
 import os
 
 import aiohttp
+import litellm
 import transformers
 
 from tapeagents.core import LLMOutput, Prompt, TokenLogprob, TrainingText
@@ -85,12 +86,19 @@ class AsyncLLM(LLM):
         return LLMStream(generator=_gen(), prompt=prompt)
 
     def count_tokens(self, messages: list[dict] | str) -> int:
-        self.load_tokenizer()
-        if isinstance(messages, str):
-            return len(self.tokenizer(messages).input_ids)
-        else:
-            add_generation_prompt = False if messages[-1]["role"] == "assistant" else True
-            return len(self.tokenizer.apply_chat_template(messages, add_generation_prompt=add_generation_prompt))
+        try:
+            self.load_tokenizer()
+            if isinstance(messages, str):
+                return len(self.tokenizer(messages).input_ids)
+            else:
+                add_generation_prompt = False if messages[-1]["role"] == "assistant" else True
+                return len(self.tokenizer.apply_chat_template(messages, add_generation_prompt=add_generation_prompt))
+        except Exception:
+            logger.exception("Failed to count tokens with tokenizer, fallback to litellm counter")
+            if isinstance(messages, str):
+                return litellm.token_counter(model=self.model_name, text=messages)  # type: ignore
+            else:
+                return litellm.token_counter(model=self.model_name, messages=messages)  # type: ignore
 
     def make_llm_call_logprobs(
         self, prompt_token_ids: list[int], completion_logprobs: list[dict]
