@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from tapeagents.config import force_cache
 from tapeagents.core import Action, Observation
 from tapeagents.steps import ActionExecutionFailure
-from tapeagents.tools.tool_cache import add_to_cache, get_from_cache
+from tapeagents.tools.tool_cache import add_to_cache, add_to_cache_async, get_from_cache
 from tapeagents.utils import FatalError
 
 logger = logging.getLogger(__name__)
@@ -79,6 +79,48 @@ class Tool(BaseTool):
         return observation
 
 
+class AsyncTool(BaseTool):
+    """
+    Tool that can be run asynchronously.
+    """
+
+    action: type[Action]
+    observation: type[Observation]
+    cached: bool = False
+
+    async def arun(self, action: Action) -> Observation:
+        assert isinstance(action, self.action)
+        tool_name = self.__class__.__name__
+        if self.cached:
+            obs_dict = get_from_cache(tool_name, args=(), kwargs=action.llm_dict())
+            if obs_dict is not None:
+                try:
+                    return self.observation.model_validate(obs_dict)
+                except Exception as e:
+                    logger.error(f"Cache validation error: {e}, rerun tool")
+            elif force_cache():
+                raise FatalError(f"Cache is forced but no cache entry found for {tool_name}({action.llm_dict()})")
+        try:
+            observation = await self._async_execute_action(action)
+            if self.cached:
+                await add_to_cache_async(tool_name, args=(), kwargs=action.llm_dict(), result=observation.llm_dict())
+        except FatalError:
+            raise
+        except Exception as e:
+            logger.exception(f"Action failure: {e}")
+            short_error = str(e)[:1000]
+            observation = ActionExecutionFailure(error=short_error)
+        assert isinstance(observation, (self.observation, ActionExecutionFailure))
+        return observation
+
+    async def _async_execute_action(self, action: Action) -> Observation:
+        """
+        Execute the action asynchronously.
+        This method should be overridden by subclasses to provide the actual implementation.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+
 class StatefulTool(BaseTool):
     """
     Class that provides a set of functions performing
@@ -99,3 +141,27 @@ class StatefulTool(BaseTool):
             observation = ActionExecutionFailure(error=str(e))
         assert isinstance(observation, self.observations + (ActionExecutionFailure,))
         return observation
+
+
+class AsyncStatefulTool(StatefulTool):
+    actions: tuple[type[Action], ...]
+    observations: tuple[type[Observation], ...]
+
+    async def arun(self, action: Action) -> Observation:
+        assert isinstance(action, self.actions), f"Action {action} is not in {self.actions}"
+        try:
+            observation = await self._async_execute_action(action)
+        except FatalError:
+            raise
+        except Exception as e:
+            logger.exception(f"Action failure: {e}")
+            observation = ActionExecutionFailure(error=str(e))
+        assert isinstance(observation, self.observations + (ActionExecutionFailure,))
+        return observation
+
+    async def _async_execute_action(self, action: Action) -> Observation:
+        """
+        Execute the action asynchronously.
+        This method should be overridden by subclasses to provide the actual implementation.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
