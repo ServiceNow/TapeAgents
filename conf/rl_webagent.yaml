@@ -1,0 +1,92 @@
+defaults:
+  - finetune: grpo
+  - _self_
+
+get_logprobs_workers_per_gpu: 4
+n_processes_for_data_generation: 8  # Number of concurrent processes for generating training data
+test_every_n_iterations: 1
+model_path: /mnt/llmd/base_models/Llama-3.1-8B-Instruct
+max_agent_forks: 10000  # total number of samples to generate
+attempts: 8  # number of samples to generate per context
+force_restart: false
+max_iterations: 1000
+llm:
+  parameters:
+    max_tokens: 3072
+    temperature: 1.0
+test_llm:
+  parameters:
+    max_tokens: ${...llm.parameters.max_tokens}
+    temperature: 0.
+    top_p: 1.0
+    top_k: 50
+
+finetune:
+  config_name: ${..model_path}
+  output_dir: ${..output_dir}/finetune
+  # Each finetuning iteration will be stopped after 10 steps,
+  # after which we generate new tapes and start a new iteration.
+  # One step is one weight update. See the finetuning configuration
+  # for the info in how many sequences are used for each weight update.
+  save_checkpoint_steps: 10
+  seq_length: 4096  # TODO: try 16k context size
+  train_batch_size: 2
+  gradient_accumulation_passes: 512  # use large batch size
+  learning_rate: 2e-6
+  load_as_bf16: True
+  optim: adamw_torch # adamw_torch runs OOM with accelerate / worst case use adafactor
+
+vllm_config:
+  vllm_kwargs:
+    download-dir: /mnt/llmd/base_models/
+    gpu-memory-utilization: 0.9
+    num-scheduler-steps: 16
+    disable-log-requests: ""
+    max-num-seqs: 1024
+    enforce-eager: ""
+    return-tokens-as-token-ids: ""
+    pipeline-parallel-size: 1
+    tensor-parallel-size: 1
+  actor_vllm_kwargs:
+    num-scheduler-steps: 16
+  ref_vllm_kwargs:
+    num-scheduler-steps: 1
+    # VLLM get log probs OOM https://github.com/vllm-project/vllm/issues/5907
+    enable-chunked-prefill: ""
+    max-num-batched-tokens: 1024
+
+exp_name: ???
+output_dir: outputs/rl_webagent/${exp_name}
+accelerate_cfg_path: conf/accelerate/accelerate_base.yaml
+use_deepspeed: false
+
+# config for the WebEnvironment & Browser tool in TapeAgents
+env:
+  headless: True
+  observation_format: html
+# data config
+# seeds: [0]
+seeds: [0, 42, 1337, 900, 103]
+train_split: 0.6  # 0.6 of tasks for training, 0.4 for testing
+
+environment_variables:
+  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
+  # snow_instance_url: ???
+  # snow_instance_uname: ???
+  # snow_instance_pwd: ???
+
+hydra:
+  run:
+    dir: ${output_dir}
+  job_logging:
+    root:
+      level: INFO
+    handlers:
+      node_errors:
+        class: logging.FileHandler
+        filename: ${output_dir}/node_errors.log    
+    loggers:
+      tapeagents.nodes:
+        handlers: [node_errors]
+        propagate: no      
