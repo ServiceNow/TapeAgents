@@ -220,9 +220,11 @@ class ToolCollectionEnvironment(Environment):
         if action_type not in self.action_map:
             raise Exception(f"Unknown action: {action_type}")
         tool = self.action_map[action_type]
-        if not isinstance(tool, AsyncBaseTool):
-            raise Exception(f"Tool {tool} is not async")
-        observation = await tool.arun(action)
+        if isinstance(tool, AsyncBaseTool):
+            observation = await tool.arun(action)
+        else:
+            logger.warning(f"Tool {tool} is not async and could slowdown the rollouts!")
+            observation = tool.run(action)
         observation.metadata.other["action_execution_time"] = time.perf_counter() - t
         observation.metadata.other["action_kind"] = action.kind
         return observation
