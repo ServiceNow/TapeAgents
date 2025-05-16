@@ -210,7 +210,7 @@ def update_rewards_and_advantages(dataset: Dataset, config: RLConfig) -> Dataset
 
     """
     df = dataset.to_pandas()
-    group_ids = list(df['group_id'])
+    group_ids = list(df["group_id"])
     assert all([g is not None for g in group_ids]), "Group ids should not be None"
 
     if config.reward_minus_kl_coef > 0:

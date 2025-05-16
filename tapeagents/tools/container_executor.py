@@ -515,4 +515,7 @@ def init_code_sandbox(exp_path: str, no_deps: bool = False) -> None:
     code_path = os.path.join(exp_path, "code")
     os.makedirs(code_path, exist_ok=True)
     container_name = exp_path.replace("/", "-")
+    # remove - if the name starts with -
+    if container_name.startswith("-"):
+        container_name = container_name[1:]
     ContainerExecutor(work_dir=code_path, container_name=container_name, restart_if_exists=True, no_deps=no_deps)
