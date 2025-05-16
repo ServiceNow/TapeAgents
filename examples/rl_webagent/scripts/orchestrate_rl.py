@@ -51,52 +51,52 @@ def load_webtasks_debug():
 
     # load tasks where we don't always have 100% or 0% success rate
     DEBUG_SPLIT = [
-        # "miniwob.buy-ticket",
-        # "miniwob.bisect-angle",
-        # "miniwob.choose-list",
-        # "miniwob.click-checkboxes-large",
-        # "miniwob.click-checkboxes-soft"
-        # Massimo Easy Split
-        "miniwob.click-color",
-        "miniwob.click-test-2",
-        "miniwob.click-test-transfer",
-        "miniwob.enter-password",
-        "miniwob.focus-text-2",
-        "miniwob.identify-shape",
-        "miniwob.navigate-tree",
-        "miniwob.phone-book",
-        "miniwob.read-table",
-        "miniwob.use-autocomplete",
-        "miniwob.use-autocomplete",
         "miniwob.buy-ticket",
-        "miniwob.click-checkboxes-soft",
-        "miniwob.click-collapsible-2",
-        "miniwob.click-collapsible-2-nodelay",
-        "miniwob.click-collapsible-nodelay",
-        "miniwob.click-dialog-2",
-        "miniwob.click-tab-2",
-        "miniwob.click-tab-2-medium",
-        "miniwob.form-sequence-3",
-        "miniwob.hot-cold",
-        "miniwob.multi-orderings",
-        "miniwob.tic-tac-toe",
-        "miniwob.use-autocomplete-nodelay"
+        "miniwob.bisect-angle",
+        "miniwob.choose-list",
+        "miniwob.click-checkboxes-large",
+        "miniwob.click-checkboxes-soft"
+        ### Massimo Easy Split ###
+        # "miniwob.click-color",
+        # "miniwob.click-test-2",
+        # "miniwob.click-test-transfer",
+        # "miniwob.enter-password",
+        # "miniwob.focus-text-2",
+        # "miniwob.identify-shape",
+        # "miniwob.navigate-tree",
+        # "miniwob.phone-book",
+        # "miniwob.read-table",
+        # "miniwob.use-autocomplete",
+        # "miniwob.use-autocomplete",
+        # "miniwob.buy-ticket",
+        # "miniwob.click-checkboxes-soft",
+        # "miniwob.click-collapsible-2",
+        # "miniwob.click-collapsible-2-nodelay",
+        # "miniwob.click-collapsible-nodelay",
+        # "miniwob.click-dialog-2",
+        # "miniwob.click-tab-2",
+        # "miniwob.click-tab-2-medium",
+        # "miniwob.form-sequence-3",
+        # "miniwob.hot-cold",
+        # "miniwob.multi-orderings",
+        # "miniwob.tic-tac-toe",
+        # "miniwob.use-autocomplete-nodelay"
     ]
     train_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
     test_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
 
     train_samples = [
-        # {"dataset": "miniwob", "task": task, "seed": 0}
-        # massimo setup:
-        {"dataset": "miniwob", "task": task, "seed": np.random.randint(0, 1000)}
+        {"dataset": "miniwob", "task": task, "seed": 0}
+        ### massimo setup ###
+        # {"dataset": "miniwob", "task": task, "seed": np.random.randint(0, 1000)}
         for task in train_tasks
         for _ in range(2)
     ]
 
     test_samples = [
-        # {"dataset": "miniwob", "task": task, "seed": 0}
-        # massimo setup:
-        {"dataset": "miniwob", "task": task, "seed": s}
+        {"dataset": "miniwob", "task": task, "seed": 0}
+        ### massimo setup ###
+        # {"dataset": "miniwob", "task": task, "seed": s}
         for task in test_tasks
         for s in range(12)
     ]
@@ -240,18 +240,20 @@ def extract_tape_training_samples_and_stats(
     # - divide by n_llm_calls for all steps
     # - discount by number of errors for all steps
     # - use step rewards at all steps (likely 0 everywhere except the last step)
-    # reward_to_use = raw_reward * 0.99 ** n_step_errors if no_error and raw_reward >= 0 else -1.0
+    reward_to_use = raw_reward * 0.99 ** n_step_errors if no_error and raw_reward >= 0 else -1.0
     # reward_to_use = None  # use step rewards instead
+
     # MAYBE update reward to penalize repeated and/or actions that do not change the state of the environment (MOVE_MOUSE, HOVER, SCROLL, ...) or filter them out?
     # MAYBE update reward to penalize intermediate steps that caused an error (LLMOutputParsingFailureAction) -> -1
     # depends on grouping: if we group by task_id, it's better to use the same reward for all steps.
     # if we group by task_id + step number, it's better to use individual rewards for each step (and penalize step errors).
-    # TODO: reward_to_use = success or 0.5 or -1
-    # config.use_advantage (set to False to use reward instead)
-    # config.relu_log_weight (set to True to do SFT and use REINFORCE)
-    # MASSIMO setup: success_rate(1 | -1) * 0.95 ** n_steps
-    reward_to_use = 1 if success else -1
-    reward_to_use *= 0.95 ** len(new_tape.steps)  # discount by number of steps
+    # TODO: reward_to_use = success or 0.1 or 0
+    # config.finetune.rl.use_advantages (set to False to use reward instead)
+    # config.finetune.rl.relu_log_p_weights (set to True to do SFT and use REINFORCE)
+
+    ### MASSIMO setup: success_rate(1 | -1) * 0.95 ** n_steps ###
+    # reward_to_use = 1 if success else -1
+    # reward_to_use *= 0.95 ** len(new_tape.steps)  # discount by number of steps
 
 
     training_samples: list[TrainingText] = []
@@ -515,9 +517,9 @@ def batch_generate_data(
     prompt_tokens_stats = defaultdict(list)  # map from group id to list of prompt tokens length
     output_tokens_stats = defaultdict(list)  # map from group id to list of output tokens length
 
-    all_llm_stats = defaultdict(list)  # map from group id to list of llm stats
-    all_tape_timers = defaultdict(list)  # map from group id to list of timers
-    all_tape_stats = defaultdict(list)  # map from group id to list of tape stats
+    all_llm_stats = defaultdict(list)  # map from stat name to list of llm stats
+    all_tape_timers = defaultdict(list)  # map from stat name to list of timers stats
+    all_tape_stats = defaultdict(list)  # map from stat name to list of tape stats
     for new_tape, samples, tape_stats, llm_stats in results:
         # timers contains instantiated_llm, instantiated_env, instantiated_agent, generated_new_tape, saved_new_tape, extracted_training_samples, llm_total_time, llm_total_time_per_llm_call, env_... timers
         # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows, n_llm_calls, n_step_errors, n_page_observations, n_steps
@@ -633,13 +635,13 @@ def main(cfg: DictConfig):
 
     ### Step 1: load datasets ###
     # train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
-    # train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
+    train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
 
     ### repeat until we have reached the max number of iterations ###
     ### each iteration is a forward pass (agent making predictions on tapes), a reference pass (reference model populating ref_logprobs), and a finetuning run on the generated training samples ###
     while state["iteration"] < cfg.max_iterations:
-        # sample new tasks for each iterations.
-        train_samples, test_samples = load_webtasks_debug()  # TODO: move sampling to outer loop
+        ### Massimo's setup: sample new tasks for each iterations ###
+        # train_samples, test_samples = load_webtasks_debug()
 
         logger.info(f"Starting iteration {state['iteration']}")
         start_iteration = time.time()
