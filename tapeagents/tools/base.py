@@ -32,9 +32,33 @@ class BaseTool(BaseModel):
         """
         Return a description of the tool.
         """
-        doc = self.__doc__.replace("\n", " ").strip()
+        doc = (self.__doc__ or "").replace("\n", " ").strip()
         doc = re.sub(r"\s+", " ", doc)
         return f"{self.__class__.__name__} - {doc}"
+
+
+class AsyncBaseTool(BaseTool):
+    """
+    Base class for tools that can be run asynchronously.
+    """
+
+    async def arun(self, action: Action) -> Observation:
+        raise NotImplementedError
+
+    async def _async_execute_action(self, action: Action) -> Observation:
+        raise NotImplementedError
+
+    async def areset(self) -> None:
+        """
+        Reset the tool's state.
+        """
+        pass
+
+    async def aclose(self) -> None:
+        """
+        Perform any necessary cleanup actions asynchronously.
+        """
+        pass
 
 
 class Tool(BaseTool):
@@ -79,14 +103,10 @@ class Tool(BaseTool):
         return observation
 
 
-class AsyncTool(BaseTool):
+class AsyncTool(Tool, AsyncBaseTool):
     """
     Tool that can be run asynchronously.
     """
-
-    action: type[Action]
-    observation: type[Observation]
-    cached: bool = False
 
     async def arun(self, action: Action) -> Observation:
         assert isinstance(action, self.action)
@@ -113,13 +133,6 @@ class AsyncTool(BaseTool):
         assert isinstance(observation, (self.observation, ActionExecutionFailure))
         return observation
 
-    async def _async_execute_action(self, action: Action) -> Observation:
-        """
-        Execute the action asynchronously.
-        This method should be overridden by subclasses to provide the actual implementation.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
-
 
 class StatefulTool(BaseTool):
     """
@@ -143,10 +156,7 @@ class StatefulTool(BaseTool):
         return observation
 
 
-class AsyncStatefulTool(StatefulTool):
-    actions: tuple[type[Action], ...]
-    observations: tuple[type[Observation], ...]
-
+class AsyncStatefulTool(StatefulTool, AsyncBaseTool):
     async def arun(self, action: Action) -> Observation:
         assert isinstance(action, self.actions), f"Action {action} is not in {self.actions}"
         try:
@@ -158,10 +168,3 @@ class AsyncStatefulTool(StatefulTool):
             observation = ActionExecutionFailure(error=str(e))
         assert isinstance(observation, self.observations + (ActionExecutionFailure,))
         return observation
-
-    async def _async_execute_action(self, action: Action) -> Observation:
-        """
-        Execute the action asynchronously.
-        This method should be overridden by subclasses to provide the actual implementation.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
