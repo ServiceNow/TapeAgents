@@ -30,7 +30,7 @@ from tapeagents.core import (
     Thought,
     TrainingText,
 )
-from tapeagents.llms import LLM, AsyncLLM, LLMCall, LLMEvent, LLMOutput, LLMStream, TrainableLLM
+from tapeagents.llms import LLM, LLMCall, LLMEvent, LLMOutput, LLMStream, TrainableLLM
 from tapeagents.observe import observe_llm_call
 from tapeagents.tool_calling import ToolSpec
 from tapeagents.view import TapeViewStack
@@ -915,9 +915,8 @@ class Agent(BaseModel, Generic[TapeType]):
             llm = self.llms[self.select_node(tape).llm]
         else:
             llm = self.llm
-        assert isinstance(llm, AsyncLLM), "LLM must be AsyncLLM to use async agent run"
         prompt = self.make_prompt(tape)
-        llm_stream = await llm.generate(prompt, session) if prompt else LLMStream(None, prompt)
+        llm_stream = await llm.agenerate(prompt, session) if prompt else LLMStream(None, prompt)
         step = None
         for step in self.generate_steps(tape, llm_stream):
             if isinstance(step, AgentStep):

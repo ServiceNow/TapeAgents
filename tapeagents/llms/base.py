@@ -166,6 +166,9 @@ class LLM(BaseModel, ABC):
         """
         pass
 
+    async def agenerate(self, prompt: Prompt, session: Any, **kwargs):
+        raise NotImplementedError(f"asynchronous generation is not implemented in {self.__class__}")
+
     def get_info(self) -> dict:
         return {
             "model_name": self.model_name,
@@ -189,7 +192,7 @@ class LLM(BaseModel, ABC):
         count_tokens: bool = True,
         prompt_length_tokens: int = -1,
         output_length_tokens: int = -1,
-    ) -> None | LLMCall:
+    ) -> LLMCall:
         """
         Logs the output of an LLM (Language Model) call along with its metadata.
 
@@ -199,6 +202,9 @@ class LLM(BaseModel, ABC):
             cached (bool, optional): Indicates whether the output was retrieved from cache. Defaults to False.
             prompt_length_tokens (int, optional): The length of the prompt in tokens. Defaults to -1.
             output_length_tokens (int, optional): The length of the output in tokens. Defaults to -1.
+
+        Returns:
+            LLMCall: An object containing the metadata of the LLM call, including prompt, output, and token costs.
         """
 
         start_log_output = time.perf_counter()

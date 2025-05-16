@@ -8,15 +8,15 @@ import pytest
 from tapeagents.agent import Agent
 from tapeagents.core import Prompt
 from tapeagents.dialog_tape import DialogTape, UserStep
-from tapeagents.llms import AsyncLLM, LLMEvent, LLMOutput, LLMStream
+from tapeagents.llms import LLMEvent, LLMOutput, LLMStream, TrainableLLM
 from tapeagents.nodes import StandardNode
 from tapeagents.steps import ReasoningThought
 
 
-class MockAsyncLLM(AsyncLLM):
-    """Mock AsyncLLM with 1 second delay in responses"""
+class MockAsyncLLM(TrainableLLM):
+    """Mock Async LLM interface with 1 second delay in responses"""
 
-    async def generate(self, prompt: Prompt, session: aiohttp.ClientSession, **kwargs) -> LLMStream:
+    async def agenerate(self, prompt: Prompt, session: aiohttp.ClientSession, **kwargs) -> LLMStream:
         """Simulate LLM response with 1 second delay"""
         await asyncio.sleep(1)  # Simulate 1 second delay
 

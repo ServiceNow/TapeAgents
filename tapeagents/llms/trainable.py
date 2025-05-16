@@ -4,13 +4,15 @@ import os
 import time
 from typing import Any, Generator
 
+import aiohttp
+import litellm
 import requests
 import transformers
 from pydantic import Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from tapeagents.core import LLMCall, LLMOutput, Prompt, TokenLogprob, TrainingText
-from tapeagents.llms.base import LLMEvent
+from tapeagents.llms.base import LLMEvent, LLMStream
 from tapeagents.llms.cached import CachedLLM
 from tapeagents.utils import get_step_schemas_from_union_type
 
@@ -60,7 +62,7 @@ class TrainableLLM(CachedLLM):
 
     This class implements functionality for both inference and training-related operations with
     language models served via Text Generation Inference (TGI) or vLLM endpoints that expose
-    an OpenAI-compatible API interface. It supports both streaming and non-streaming modes,
+    an OpenAI-compatible API interface. It supports streaming non-streaming and async modes
     and includes methods for token counting and log probability calculations.
 
     Attributes:
@@ -71,13 +73,14 @@ class TrainableLLM(CachedLLM):
     # TODO: use OpenAI Python client when the certificate issue is resolved.
     # TODO: consider using litellm
 
-    base_url: str
+    base_url: str = "https://api.openai.com"
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
+    use_litellm_tokenizer_fallback: bool = False
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
-        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "")
+        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "") or os.getenv("OPENAI_API_KEY", "")
 
     def get_base_url(self) -> str:
         """
@@ -148,6 +151,7 @@ class TrainableLLM(CachedLLM):
         if not r.ok:
             logger.error(f"Failed to get completion: {r.text}")
             r.raise_for_status()
+        logprobs = []
         if self.stream:
             response_buffer = []
             for byte_payload in r.iter_lines():
@@ -171,7 +175,6 @@ class TrainableLLM(CachedLLM):
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
-                logprobs = None
                 if self.collect_logprobs:
                     prompt_token_ids = self.tokenizer.apply_chat_template(
                         prompt.messages, add_special_tokens=True, add_generation_prompt=True
@@ -188,7 +191,7 @@ class TrainableLLM(CachedLLM):
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
-        output = LLMOutput(content=content)
+            output = LLMOutput(content=content)
         llm_call = self.log_output(prompt, output)
         llm_call.logprobs = logprobs
         yield LLMEvent(output=output, llm_call=llm_call)
@@ -244,7 +247,8 @@ class TrainableLLM(CachedLLM):
                 if not content:
                     logger.warning(f"Empty completion {data}")
 
-                logprobs = None
+                logprobs = []
+                chat_completion_logprobs = []
                 if self.collect_logprobs:
                     completion_logprobs = data["choices"][i]["logprobs"]
                     # /v1/completions returns logprobs in a format different to /v1/chat/completions
@@ -305,7 +309,11 @@ class TrainableLLM(CachedLLM):
             if transformers is None:
                 import transformers
             name = _MOCK_TOKENIZER if _MOCK_TOKENIZER else (self.tokenizer_name or self.model_name)
-            self.tokenizer = transformers.AutoTokenizer.from_pretrained(name)
+            try:
+                self.tokenizer = transformers.AutoTokenizer.from_pretrained(name)
+            except Exception as e:
+                if not self.use_litellm_tokenizer_fallback:
+                    raise e
 
     def make_training_text(self, prompt: Prompt, output: LLMOutput) -> TrainingText:
         """
@@ -598,9 +606,87 @@ class TrainableLLM(CachedLLM):
         Returns:
             int: The number of tokens in the provided messages.
         """
-        self.load_tokenizer()
-        if isinstance(messages, str):
-            return len(self.tokenizer(messages).input_ids)
-        else:
-            add_generation_prompt = False if messages[-1]["role"] == "assistant" else True
-            return len(self.tokenizer.apply_chat_template(messages, add_generation_prompt=add_generation_prompt))
+        try:
+            self.load_tokenizer()
+            if isinstance(messages, str):
+                return len(self.tokenizer(messages).input_ids)
+            else:
+                add_generation_prompt = False if messages[-1]["role"] == "assistant" else True
+                return len(self.tokenizer.apply_chat_template(messages, add_generation_prompt=add_generation_prompt))
+        except Exception as e:
+            if self.use_litellm_tokenizer_fallback:
+                logger.warning("Failed to count tokens with tokenizer, fallback to litellm counter")
+                if isinstance(messages, str):
+                    return litellm.token_counter(model=self.model_name, text=messages)  # type: ignore
+                else:
+                    return litellm.token_counter(model=self.model_name, messages=messages)  # type: ignore
+            else:
+                raise e
+
+    async def agenerate(self, prompt: Prompt, session: aiohttp.ClientSession, **kwargs) -> LLMStream:
+        headers = {"Content-Type": "application/json"}
+        if self.api_token:
+            headers |= {"Authorization": f"Bearer {self.api_token}"}
+        params = {"model": self.model_name, "messages": prompt.messages} | self.parameters | kwargs
+        if self.collect_logprobs:
+            params.update(
+                {
+                    "logprobs": 1,
+                    "include_stop_str_in_output": True,
+                    "skip_special_tokens": False,
+                }
+            )
+
+        logger.debug(f"POST request to {self.base_url}/v1/chat/completions with params: {params}")
+
+        async with session.post(
+            url=f"{self.base_url}/v1/chat/completions", json=params, headers=headers, ssl=False
+        ) as response:
+            if not response.ok:
+                error_text = await response.text()
+                logger.error(f"Failed to get completion: {error_text}")
+                response.raise_for_status()
+            data = await response.json()
+
+        try:
+            content = data["choices"][0]["message"]["content"]
+            if not content:
+                logger.warning(f"Empty completion {data}")
+
+            logprobs = []
+            if self.collect_logprobs:
+                self.load_tokenizer()
+                prompt_token_ids = self.tokenizer.apply_chat_template(
+                    prompt.messages, add_special_tokens=True, add_generation_prompt=True
+                )
+                completion_logprobs = data["choices"][0]["logprobs"]["content"]
+                logprobs = self.make_llm_call_logprobs(prompt_token_ids, completion_logprobs)
+                # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
+                for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
+                    if content.endswith(eos_str):
+                        # the eos was added in the case where self.collect_logprobs is True
+                        # TapeAgents is not expecting the eos token in the completion
+                        content = content[: -len(eos_str)]
+        except Exception as e:
+            logger.exception(f"Failed to parse llm response: {data}")
+            raise e
+
+        prompt_tokens = data["usage"]["prompt_tokens"]
+        completion_tokens = data["usage"]["completion_tokens"]
+
+        output = LLMOutput(content=content or "")
+        logger.info(f"LLM content: {content}")
+        llm_call = self.log_output(
+            prompt,
+            output,
+            prompt_length_tokens=prompt_tokens,
+            output_length_tokens=completion_tokens,
+            count_tokens=False,
+        )
+        assert llm_call is not None, "llm_call is None"
+        llm_call.logprobs = logprobs
+
+        def _gen():
+            yield LLMEvent(llm_call=llm_call, output=output)
+
+        return LLMStream(generator=_gen(), prompt=prompt)

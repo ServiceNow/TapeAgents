@@ -1,6 +1,5 @@
 from tapeagents.core import LLMCall, LLMOutput
 
-from .async_llm import AsyncLLM
 from .base import LLM, LLMEvent, LLMStream
 from .claude import Claude
 from .litellm import LiteLLM
@@ -19,5 +18,4 @@ __all__ = [
     "TrainableLLM",
     "MockLLM",
     "Claude",
-    "AsyncLLM",
 ]
