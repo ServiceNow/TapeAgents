@@ -104,6 +104,7 @@ finetune = [
   "transformers>=4.42,<4.46",
   "wandb~=0.19",
 ]
+rl-gsm8k = ["vllm>=0.5.3,<=0.6.6.post1"]
 
 [build-system]
 requires = ["hatchling"]
