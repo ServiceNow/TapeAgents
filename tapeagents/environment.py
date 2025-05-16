@@ -8,7 +8,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Callable, Generic, Literal
 
-from langchain_core.tools import BaseTool, tool as tool_wrapper
+from langchain_core.tools import BaseTool as LangchainBaseTool, tool as tool_wrapper
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
@@ -16,7 +16,7 @@ from tapeagents.agent import TapeType
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
 from tapeagents.dialog_tape import AssistantStep, DialogTape, UserStep
 from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
-from tapeagents.tools.base import StatefulTool, Tool
+from tapeagents.tools.base import AsyncBaseTool, BaseTool, StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
 
@@ -81,8 +81,10 @@ class EmptyEnvironment(Environment):
 
 
 class ToolEnvironment(Environment):
-    def __init__(self, tools: list[BaseTool | Callable]):
-        self.tools: list[BaseTool] = [t if isinstance(t, BaseTool) else tool_wrapper(t) for t in tools]  # type: ignore
+    def __init__(self, tools: list[LangchainBaseTool | Callable]):
+        self.tools: list[LangchainBaseTool] = [
+            t if isinstance(t, LangchainBaseTool) else tool_wrapper(t) for t in tools
+        ]  # type: ignore
         self._name2tool = {t.name: t for t in self.tools}
 
     def get_tool_schemas(self) -> list[ToolSpec]:
@@ -125,7 +127,7 @@ class ToolEnvironment(Environment):
 
 
 class ExecuteCode(Action):
-    kind: Literal["execute_code"] = "execute_code"
+    kind: Literal["execute_code"] = "execute_code"  # type: ignore
     code: list[CodeBlock]
 
     def llm_view(self, indent: int | None = 2) -> str | list[dict]:
@@ -134,7 +136,7 @@ class ExecuteCode(Action):
 
 
 class CodeExecutionResult(Observation):
-    kind: Literal["code_execution_result"] = "code_execution_result"
+    kind: Literal["code_execution_result"] = "code_execution_result"  # type: ignore
     result: CommandLineCodeResult
 
 
@@ -157,9 +159,9 @@ class CodeExecutionEnvironment(Environment):
 
 
 class ToolCollectionEnvironment(Environment):
-    action_map: dict[type[Action], Tool | StatefulTool]
+    action_map: dict[type[Action], BaseTool]
 
-    def __init__(self, tools: list[Tool | StatefulTool]) -> None:
+    def __init__(self, tools: list[BaseTool]) -> None:
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
@@ -203,3 +205,36 @@ class ToolCollectionEnvironment(Environment):
 
     def last_actions(self, tape: Tape) -> list[Action]:
         return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
+
+    async def areact(self, tape: Tape) -> Tape:
+        for action in self.last_actions(tape):
+            observation = await self.astep(action)
+            tape = tape.append(observation)
+        return tape
+
+    async def astep(self, action: Action) -> Observation:
+        t = time.perf_counter()
+        action_type = type(action)
+        if isinstance(action, LLMOutputParsingFailureAction):
+            return UserStep(content="Try again")
+        if action_type not in self.action_map:
+            raise Exception(f"Unknown action: {action_type}")
+        tool = self.action_map[action_type]
+        if not isinstance(tool, AsyncBaseTool):
+            raise Exception(f"Tool {tool} is not async")
+        observation = await tool.arun(action)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
+        return observation
+
+    async def areset(self) -> None:
+        for tool in self.tools:
+            if not isinstance(tool, AsyncBaseTool):
+                raise Exception(f"Tool {tool} is not async")
+            await tool.areset()
+
+    async def aclose(self) -> None:
+        for tool in self.tools:
+            if not isinstance(tool, AsyncBaseTool):
+                raise Exception(f"Tool {tool} is not async")
+            await tool.aclose()

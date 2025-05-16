@@ -4,6 +4,7 @@ import os
 import threading
 from typing import Any, Callable
 
+import aiofiles
 from termcolor import colored
 
 from tapeagents.config import common_cache_dir, force_cache
@@ -73,3 +74,17 @@ def add_to_cache(fn_name: str, args: tuple, kwargs: dict, result: Any):
     )
     with open(fname, "a") as f:
         f.write(json.dumps({"fn_name": fn_name, "args": args, "kwargs": kwargs, "result": result}) + "\n")
+
+
+async def add_to_cache_async(fn_name: str, args: tuple, kwargs: dict, result: Any):
+    global _cache
+    logger.info(f"Adding {fn_name} with args {args} and kwargs {kwargs} to cache")
+    tool_cache = _cache.get(fn_name, {})
+    key = json.dumps((args, kwargs), sort_keys=True)
+    tool_cache[key] = result
+    _cache[fn_name] = tool_cache
+    fname = os.path.join(
+        common_cache_dir(), f"{_CACHE_PREFIX}.{fn_name}.{os.getpid()}.{threading.get_native_id()}.jsonl"
+    )
+    async with aiofiles.open(fname, "a") as f:
+        await f.write(json.dumps({"fn_name": fn_name, "args": args, "kwargs": kwargs, "result": result}) + "\n")
