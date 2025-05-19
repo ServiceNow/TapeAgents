@@ -1,4 +1,4 @@
-"""
+    """
 Module contains the main loops of the agent-environment interaction and replay functions.
 """
 
@@ -146,6 +146,50 @@ def main_loop(
 
     return MainLoopStream(_implementation())
 
+
+async def async_main_loop(
+    agent: Agent[TapeType],
+    start_tape: TapeType,
+    environment: AsyncEnvironment,
+    max_loops: int = -1,
+):
+    if is_debug_mode():
+        logger.setLevel(logging.DEBUG)
+    n_loops = 0
+    tape = start_tape
+    event = None
+    while n_loops < max_loops or max_loops == -1:
+        # --- RUN THE AGENT ---
+        await for event in agent.arun(tape):
+            yield MainLoopEvent(agent_event=event)
+            if event.step:
+                logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+            if event.final_tape:
+                break
+        assert event and event.final_tape
+        agent_tape = event.final_tape
+        yield MainLoopEvent(agent_tape=agent_tape)
+
+        # --- RUN THE ENVIRONMENT ---
+        if any([isinstance(step, StopStep) for step in agent_tape.steps]):
+            logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
+            yield MainLoopEvent(status=MainLoopStatus.FINISHED)
+            return
+        try:
+            tape = await environment.areact(agent_tape)
+        except NoActionsToReactTo:
+            yield MainLoopEvent(status=MainLoopStatus.NO_ACTIONS)
+            return
+        except ExternalObservationNeeded:
+            yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
+            return
+        for observation in tape[len(agent_tape) :]:
+            logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+            yield MainLoopEvent(observation=observation)
+        yield MainLoopEvent[TapeType](env_tape=tape)
+
+        # --- REPEAT ---
+        n_loops += 1
 
 def replay_tape(
     agent: Agent[TapeType],
