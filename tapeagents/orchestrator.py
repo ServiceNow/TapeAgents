@@ -1,4 +1,4 @@
-    """
+"""
 Module contains the main loops of the agent-environment interaction and replay functions.
 """
 
@@ -6,18 +6,24 @@ import enum
 import logging
 from typing import Generator, Generic
 
+import aiohttp
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from pydantic import BaseModel, Field
 from termcolor import colored
 
+from tapeagents.agent import Agent
 from tapeagents.config import is_debug_mode
-
-from .agent import Agent
-from .core import AgentEvent, Observation, Step, StopStep, TapeType
-from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo, ToolCollectionEnvironment
-from .renderers import step_view
-from .utils import FatalError, diff_dicts
+from tapeagents.core import AgentEvent, Observation, Step, StopStep, TapeType
+from tapeagents.environment import (
+    AsyncEnvironment,
+    Environment,
+    ExternalObservationNeeded,
+    NoActionsToReactTo,
+    ToolCollectionEnvironment,
+)
+from tapeagents.renderers import step_view
+from tapeagents.utils import FatalError, diff_dicts
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -151,6 +157,7 @@ async def async_main_loop(
     agent: Agent[TapeType],
     start_tape: TapeType,
     environment: AsyncEnvironment,
+    session: aiohttp.ClientSession,
     max_loops: int = -1,
 ):
     if is_debug_mode():
@@ -160,7 +167,7 @@ async def async_main_loop(
     event = None
     while n_loops < max_loops or max_loops == -1:
         # --- RUN THE AGENT ---
-        await for event in agent.arun(tape):
+        async for event in agent.arun(tape, session):
             yield MainLoopEvent(agent_event=event)
             if event.step:
                 logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
@@ -190,6 +197,7 @@ async def async_main_loop(
 
         # --- REPEAT ---
         n_loops += 1
+
 
 def replay_tape(
     agent: Agent[TapeType],

@@ -68,8 +68,9 @@ class Environment(ABC, Generic[TapeType]):
     def close(self) -> None:
         pass
 
+
 class AsyncEnvironment(Environment):
-    async def areact(self, tape: Tape) -> Tape:
+    async def areact(self, tape: TapeType) -> TapeType:
         raise NotImplementedError
 
 
