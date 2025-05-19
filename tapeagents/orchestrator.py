@@ -199,6 +199,23 @@ async def async_main_loop(
         n_loops += 1
 
 
+async def execute_agent(
+    agent: Agent[TapeType],
+    start_tape: TapeType,
+    environment: AsyncEnvironment,
+    session: aiohttp.ClientSession,
+    max_loops: int = 50,
+):
+    final_tape = start_tape
+    async for event in async_main_loop(agent, start_tape, environment, session, max_loops):
+        if event.agent_event and event.agent_event.final_tape:
+            final_tape = event.agent_event.final_tape
+        elif event.env_tape:
+            final_tape = event.env_tape
+    final_tape.metadata = start_tape.metadata
+    return final_tape
+
+
 def replay_tape(
     agent: Agent[TapeType],
     tape: TapeType,
