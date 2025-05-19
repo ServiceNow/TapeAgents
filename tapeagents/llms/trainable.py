@@ -627,7 +627,9 @@ class TrainableLLM(CachedLLM):
         headers = {"Content-Type": "application/json"}
         if self.api_token:
             headers |= {"Authorization": f"Bearer {self.api_token}"}
-        params = {"model": self.model_name, "messages": prompt.messages} | self.parameters | kwargs
+        params = (
+            {"model": self.model_name, "messages": prompt.messages, "tools": prompt.tools} | self.parameters | kwargs
+        )
         if self.collect_logprobs:
             params.update(
                 {
@@ -650,6 +652,7 @@ class TrainableLLM(CachedLLM):
 
         try:
             content = data["choices"][0]["message"]["content"]
+            tool_calls = data["choices"][0]["message"].get("tool_calls", [])
             if not content:
                 logger.warning(f"Empty completion {data}")
 
@@ -675,7 +678,8 @@ class TrainableLLM(CachedLLM):
         completion_tokens = data["usage"]["completion_tokens"]
 
         output = LLMOutput(content=content or "")
-        logger.info(f"LLM content: {content}")
+        if tool_calls:
+            output.tool_calls = [litellm.ChatCompletionMessageToolCall(**tc) for tc in tool_calls]
         llm_call = self.log_output(
             prompt,
             output,
