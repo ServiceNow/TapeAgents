@@ -1,14 +1,25 @@
 defaults:
   - _self_
-  - llm: gpt4o_mini
   - agent: gaia_fcalls
-  - environment: web_mcp
 
-exp_name: mcp_test2
+exp_name: mcp_test_async_2
 exp_path: outputs/gaia/runs/${exp_name}
 
+llm:
+  _target_: tapeagents.llms.TrainableLLM
+  model_name: gpt-4o-mini-2024-07-18
+  use_litellm_tokenizer_fallback: true
+  use_cache: false
+  context_size: 128000
+  parameters:
+    temperature: 0.2
+
+environment:
+  _target_: tapeagents.mcp.MCPEnvironment
+  config_path: conf/mcp/web_and_code.json
+
 split: validation
-batch: 2
+batch: 1
 retry_unsolved: true
 
 only_tasks: #[] # list of (level, task_num)
