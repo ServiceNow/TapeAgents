@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from tapeagents.core import Action, Observation, Step
 from tapeagents.llms import LLMOutput
+from tapeagents.tools.base import AsyncBaseTool
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class FunctionSpec(BaseModel):
     parameters: dict
 
 
-class ToolSpec(BaseModel):
+class ToolSpec(AsyncBaseTool):
     """
     ToolSpec is a model that represents a tool specification with a type and a function.
 
@@ -54,6 +55,15 @@ class ToolSpec(BaseModel):
             (ToolSpec): An instance of the class with the validated model.
         """
         return cls.model_validate(convert_to_openai_tool(function))
+
+    def description(self) -> str:
+        """
+        Returns the description of the function.
+
+        Returns:
+            str: The description of the function.
+        """
+        return self.function.description
 
 
 class FunctionCall(BaseModel):
