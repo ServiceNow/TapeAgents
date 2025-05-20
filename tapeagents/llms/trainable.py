@@ -8,6 +8,7 @@ import aiohttp
 import litellm
 import requests
 import transformers
+from omegaconf import DictConfig, OmegaConf
 from pydantic import Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -627,9 +628,9 @@ class TrainableLLM(CachedLLM):
         headers = {"Content-Type": "application/json"}
         if self.api_token:
             headers |= {"Authorization": f"Bearer {self.api_token}"}
-        params = (
-            {"model": self.model_name, "messages": prompt.messages, "tools": prompt.tools} | self.parameters | kwargs
-        )
+        params = {"model": self.model_name, "messages": prompt.messages, "tools": prompt.tools} | kwargs
+        for k, v in self.parameters.items():
+            params[k] = OmegaConf.to_container(v) if isinstance(v, DictConfig) else v
         if self.collect_logprobs:
             params.update(
                 {
@@ -653,7 +654,7 @@ class TrainableLLM(CachedLLM):
         try:
             content = data["choices"][0]["message"]["content"]
             tool_calls = data["choices"][0]["message"].get("tool_calls", [])
-            if not content:
+            if not content and not tool_calls:
                 logger.warning(f"Empty completion {data}")
 
             logprobs = []

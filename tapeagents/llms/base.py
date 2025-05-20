@@ -7,6 +7,7 @@ from typing import Any, Generator
 
 import numpy as np
 from Levenshtein import ratio
+from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel
 
 from tapeagents.core import LLMCall, LLMOutput, Prompt, TrainingText
@@ -170,9 +171,12 @@ class LLM(BaseModel, ABC):
         raise NotImplementedError(f"asynchronous generation is not implemented in {self.__class__}")
 
     def get_info(self) -> dict:
+        parameters = {
+            k: (OmegaConf.to_container(v) if isinstance(v, DictConfig) else v) for k, v in self.parameters.items()
+        }
         return {
             "model_name": self.model_name,
-            "parameters": self.parameters,
+            "parameters": parameters,
             "context_size": self.context_size,
         }
 
