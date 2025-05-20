@@ -237,7 +237,7 @@ async def execute_isolated(
     Execute task with the separate environment.
     """
     final_tape = start_tape
-    agent, env = get_agent_and_env_from_config(cfg)
+    agent, env = await async_get_agent_and_env_from_config(cfg)
     try:
         final_tape = await execute_agent(agent, start_tape, env, session, max_loops=max_loops)
     except aiohttp.ClientError as e:
