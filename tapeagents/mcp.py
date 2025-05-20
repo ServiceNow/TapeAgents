@@ -150,14 +150,11 @@ class MCPClient:
                 try:
                     await exit_stack.aclose()
                     del self.sessions[server_name]
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to close MCP client properly: {e}")
 
 
 class MCPEnvironment(ToolCollectionEnvironment):
-    client: MCPClient | None
-    tools: list[BaseTool | ToolSpec]
-
     def __init__(
         self,
         config_path: str = "",
@@ -167,6 +164,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
         client: MCPClient | None = None,
     ) -> None:
         super().__init__(tools=other_tools or [])
+        logger.info(f"Initializing MCPEnvironment with config_path: {config_path}")
         self.client = client or (
             MCPClient(config_path=config_path, use_cache=use_cache, read_timeout_seconds=read_timeout_seconds)
             if config_path

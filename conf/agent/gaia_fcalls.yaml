@@ -41,7 +41,7 @@ nodes:
     name: select
     system_prompt: ${agent.templates.system_prompt}
     guidance: |
-      Select the next step to do to move forward with the current plan. Describe the expected effect of the proposed action.
+      Select the next step to do to move forward with the plan. Describe the expected effect of the proposed action.
       ${agent.templates.thought_format}
     steps_prompt: ${agent.templates.allowed_tools}
 
@@ -59,7 +59,7 @@ nodes:
     system_prompt: ${agent.templates.system_prompt}
     guidance: |
       Summarize last observation. If its an image, thoroughly describe it with all details.
-      Describe the results of the last action and observed changes. Discuss its impact on the task and our plan.
+      Describe the results of the last action and observed changes
       Do not hallucinate or make up any information, only describe what you see in the observation.
       Do not guess or assume action effects, describe only visible changes.
       ${agent.templates.thought_format}
@@ -68,9 +68,9 @@ nodes:
     name: reflect
     system_prompt: ${agent.templates.system_prompt}
     guidance: |
-      1. Evaluate the action's success, explain its impact on the task and our plan,
+      1. Evaluate the action's success, explain its effect on current step, overall plan and task solution.
       2. If the last action was not successful, describe errors and the possible reasons for failure.
       3. Check if the current plan step is finished. 
-      4. If the step is finished, update the following steps of the plan with new information.
+      4. If the step is finished, update the following steps of the plan with new information and choose the next step.
       ${agent.templates.thought_format}
     next_node: select

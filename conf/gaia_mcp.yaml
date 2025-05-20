@@ -2,17 +2,22 @@ defaults:
   - _self_
   - agent: gaia_fcalls
 
-exp_name: mcp_test_async_2
+exp_name: mcp_test_qwen_toolcalls_1
 exp_path: outputs/gaia/runs/${exp_name}
 
 llm:
   _target_: tapeagents.llms.TrainableLLM
-  model_name: gpt-4o-mini-2024-07-18
+  model_name: Qwen/Qwen3-8B
+  base_url: https://snow-research-tapes-oleh_shliazhko_interactive-8080.job.toolkit-sp.yul201.service-now.com
   use_litellm_tokenizer_fallback: true
   use_cache: false
   context_size: 128000
   parameters:
-    temperature: 0.2
+    temperature: 0.7
+    top_p: 0.8 # from https://huggingface.co/Qwen/Qwen3-8B for non-thinking mode. For thinking mode use t=0.6 p=0.95
+    top_k: 20
+    chat_template_kwargs:
+      enable_thinking: false
 
 environment:
   _target_: tapeagents.mcp.MCPEnvironment

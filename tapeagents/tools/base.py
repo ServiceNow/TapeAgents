@@ -32,7 +32,8 @@ class BaseTool(BaseModel):
         """
         Return a description of the tool.
         """
-        doc = (self.__doc__ or "").replace("\n", " ").strip()
+        assert self.__doc__ is not None, f"{self.__class__.__name__} has no docstring, cannot generate tool description"
+        doc = self.__doc__.replace("\n", " ").strip()
         doc = re.sub(r"\s+", " ", doc)
         return f"{self.__class__.__name__} - {doc}"
 
