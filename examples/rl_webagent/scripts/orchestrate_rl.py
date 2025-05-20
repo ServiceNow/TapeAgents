@@ -355,11 +355,11 @@ def generate_data(
 
     ### Set up logging
     log_handler = logging.FileHandler(str(log_file))
-    log_handler.setLevel(logging.DEBUG)
+    log_handler.setLevel(logging.INFO)
     logging.basicConfig(
         format="%(asctime)s - PID_%(process)d - Thread_%(threadName)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%d/%m/%Y %H:%M:%S",
-        level=logging.DEBUG,
+        level=logging.INFO,
         handlers=[log_handler, logging.StreamHandler()],
         force=True,  # forget previous handlers
     )
