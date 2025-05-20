@@ -70,6 +70,9 @@ class Environment(ABC, Generic[TapeType]):
 
 
 class AsyncEnvironment(Environment):
+    async def initialize(self):
+        pass
+
     async def areact(self, tape: TapeType) -> TapeType:
         raise NotImplementedError
 

@@ -92,6 +92,16 @@ def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectio
     return agent, environment
 
 
+async def async_get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
+    environment: ToolCollectionEnvironment = instantiate(cfg.environment)
+    await environment.initialize()
+    logger.info(f"Environment tools: {environment.tools_description()}")
+    agent: Agent = instantiate(
+        cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
+    )
+    return agent, environment
+
+
 def main_loop(
     agent: Agent[TapeType],
     start_tape: TapeType,
