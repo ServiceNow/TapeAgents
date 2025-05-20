@@ -35,7 +35,6 @@ class MCPClient:
         self.exit_stacks: dict[str, AsyncExitStack] = {}
         self.tools: dict[str, MCPTool] = {}
         self.tool_to_server: dict[str, str] = {}
-        self._cleanup_lock: asyncio.Lock = asyncio.Lock()
         self.use_cache = use_cache
         self.read_timeout_seconds = read_timeout_seconds
         asyncio.run(self.start_servers())
@@ -144,14 +143,12 @@ class MCPClient:
         return server_name
 
     async def close(self) -> None:
-        """Clean up resources."""
-        async with self._cleanup_lock:
-            for server_name, exit_stack in self.exit_stacks.items():
-                try:
-                    await exit_stack.aclose()
-                    del self.sessions[server_name]
-                except Exception as e:
-                    logger.warning(f"Failed to close MCP client properly: {e}")
+        for server_name, exit_stack in self.exit_stacks.items():
+            try:
+                await exit_stack.aclose()
+            except Exception:
+                pass
+        logger.info("Closed all MCP servers")
 
 
 class MCPEnvironment(ToolCollectionEnvironment):
