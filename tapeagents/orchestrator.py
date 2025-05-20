@@ -85,6 +85,7 @@ class MainLoopStream(Generic[TapeType]):
 
 def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
     environment: ToolCollectionEnvironment = instantiate(cfg.environment)
+    logger.info(f"Environment tools: {environment.tools_description()}")
     agent: Agent = instantiate(
         cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
     )
@@ -219,18 +220,16 @@ async def execute_agent(
 async def execute_isolated(
     cfg: DictConfig,
     start_tape: TapeType,
+    session: aiohttp.ClientSession,
     max_loops: int = 50,
 ) -> TapeType:
     """
-    Execute task with the separate environment and tcp session.
+    Execute task with the separate environment.
     """
     final_tape = start_tape
     agent, env = get_agent_and_env_from_config(cfg)
     try:
-        connector = aiohttp.TCPConnector(limit=50000, limit_per_host=50000, keepalive_timeout=1.0)
-        timeout = aiohttp.ClientTimeout(total=3600.0, connect=3600.0, sock_read=3600.0)
-        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-            final_tape = await execute_agent(agent, start_tape, env, session, max_loops=max_loops)
+        final_tape = await execute_agent(agent, start_tape, env, session, max_loops=max_loops)
     except aiohttp.ClientError as e:
         logger.error(f"TCP Client error: {e}")
         raise e
@@ -239,6 +238,7 @@ async def execute_isolated(
         raise e
     finally:
         await env.aclose()
+        logger.info("Environment closed")
     return final_tape
 
 
