@@ -205,7 +205,7 @@ async def execute_agent(
     environment: AsyncEnvironment,
     session: aiohttp.ClientSession,
     max_loops: int = 50,
-):
+) -> TapeType:
     final_tape = start_tape
     async for event in async_main_loop(agent, start_tape, environment, session, max_loops):
         if event.agent_event and event.agent_event.final_tape:
@@ -213,6 +213,32 @@ async def execute_agent(
         elif event.env_tape:
             final_tape = event.env_tape
     final_tape.metadata = start_tape.metadata
+    return final_tape
+
+
+async def execute_isolated(
+    cfg: DictConfig,
+    start_tape: TapeType,
+    max_loops: int = 50,
+) -> TapeType:
+    """
+    Execute task with the separate environment and tcp session.
+    """
+    final_tape = start_tape
+    agent, env = get_agent_and_env_from_config(cfg)
+    try:
+        connector = aiohttp.TCPConnector(limit=50000, limit_per_host=50000, keepalive_timeout=1.0)
+        timeout = aiohttp.ClientTimeout(total=3600.0, connect=3600.0, sock_read=3600.0)
+        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+            final_tape = await execute_agent(agent, start_tape, env, session, max_loops=max_loops)
+    except aiohttp.ClientError as e:
+        logger.error(f"TCP Client error: {e}")
+        raise e
+    except Exception as e:
+        logger.error(f"Agent loop error: {e}")
+        raise e
+    finally:
+        await env.aclose()
     return final_tape
 
 
