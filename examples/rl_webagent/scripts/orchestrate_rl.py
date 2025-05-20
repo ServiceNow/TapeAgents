@@ -86,19 +86,19 @@ def load_webtasks_debug():
     test_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
 
     train_samples = [
-        {"dataset": "miniwob", "task": task, "seed": 0}
+        {"dataset": "miniwob", "task": task, "seed": 0} for task in train_tasks
         ### massimo setup ###
         # {"dataset": "miniwob", "task": task, "seed": np.random.randint(0, 1000)}
-        for task in train_tasks
-        for _ in range(2)
+        # for task in train_tasks
+        # for _ in range(2)
     ]
 
     test_samples = [
-        {"dataset": "miniwob", "task": task, "seed": 0}
+        {"dataset": "miniwob", "task": task, "seed": 0} for task in test_tasks
         ### massimo setup ###
         # {"dataset": "miniwob", "task": task, "seed": s}
-        for task in test_tasks
-        for s in range(12)
+        # for task in test_tasks
+        # for s in range(12)
     ]
 
     logger.info(f"Loaded {len(train_samples)} training samples")
