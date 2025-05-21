@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from contextlib import AsyncExitStack
+from datetime import timedelta
 from typing import Any, Optional
 
 import nest_asyncio
@@ -37,7 +38,9 @@ class MCPClient:
         for server_name, server_params in self.servers.items():
             stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
             stdio, write = stdio_transport
-            session = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
+            session = await self.exit_stack.enter_async_context(
+                ClientSession(stdio, write, read_timeout_seconds=timedelta(seconds=self.read_timeout_seconds))
+            )
             await session.initialize()
             self.sessions[server_name] = session
             response = await session.list_tools()
