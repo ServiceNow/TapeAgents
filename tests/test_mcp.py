@@ -48,6 +48,7 @@ class MockMCPClient(MCPClient):
         self.tools = {}
         self.tool_to_server = {}
 
+    async def start_servers(self):
         # Register mock tools
         for server_name, tools in MOCK_TOOLS.items():
             for tool in tools:
