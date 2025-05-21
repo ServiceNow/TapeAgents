@@ -5,7 +5,7 @@ Module contains the main loops of the agent-environment interaction and replay f
 import asyncio
 import enum
 import logging
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Generator, Generic
 
 import aiohttp
@@ -238,17 +238,18 @@ class EnvironmentManager:
         self.cfg = cfg
         self.semaphore = asyncio.Semaphore(n_envs)
         self.envs: list[ToolCollectionEnvironment] = [instantiate(cfg) for _ in range(n_envs)]
+        self.exit_stack = AsyncExitStack()
         logger.info(f"Created {len(self.envs)} environments")
 
     async def __aenter__(self):
         for env in self.envs:
             await env.initialize()
+            self.exit_stack.push_async_callback(env.aclose)
         logger.info(f"Initialized {len(self.envs)} environments")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        for env in self.envs:
-            await env.aclose()
+        await self.exit_stack.aclose()
 
     @asynccontextmanager
     async def get_env(self):
