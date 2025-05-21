@@ -48,6 +48,7 @@ class MockMCPClient(MCPClient):
         self.tools = {}
         self.tool_to_server = {}
 
+    async def start_servers(self):
         # Register mock tools
         for server_name, tools in MOCK_TOOLS.items():
             for tool in tools:
@@ -72,7 +73,7 @@ class MockMCPClient(MCPClient):
 
 def test_mcp_env():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
-
+    env.initialize()
     obs = env.step(
         ToolCallAction(function=FunctionCall(name="calculator", arguments={"operation": "add", "a": 5, "b": 3}))
     )
@@ -96,6 +97,7 @@ def test_mcp_env():
 
 def test_wrong_tool():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
+    env.initialize()
     obs = env.step(ToolCallAction(function=FunctionCall(name="non_existent_tool", arguments={})))
     assert obs.kind == "tool"
     assert obs.tool_call_id is not None
@@ -106,6 +108,7 @@ def test_wrong_tool():
 
 def test_incorrect_tool_args():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
+    env.initialize()
     obs = env.step(
         ToolCallAction(function=FunctionCall(name="calculator", arguments={"operator": "add", "a": 5, "b": 3}))
     )
@@ -125,6 +128,7 @@ def test_incorrect_tool_args():
 
 def test_prompt_with_tool_calls():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
+    env.initialize()
     llm = MockLLM()
     node = StandardNode(use_known_actions=True, use_function_calls=True)
     agent = Agent.create(llms=llm, nodes=[node], known_actions=env.actions())
@@ -166,6 +170,7 @@ def test_prompt_with_tool_calls():
 
 def test_tool_use_parsing():
     env = MCPEnvironment(client=MockMCPClient("dummy_config.json"))
+    env.initialize()
     llm = MockLLM(
         mock_tool_calls=[
             ChatCompletionMessageToolCall(

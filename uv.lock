@@ -1436,6 +1436,12 @@ wheels = [
 ]
 
 [[package]]
+name = "flameprof"
+version = "0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/e7/114f6710d31854b694598f577f9eac49d7f38b7fb8a55e86e2d3f848fd1c/flameprof-0.4.tar.gz", hash = "sha256:dbc86d4190cbbba624f1e0a40f44d9db96138e27534d83c8ef42d420857875a3", size = 7865 }
+
+[[package]]
 name = "flask"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2785,7 +2791,7 @@ wheels = [
 
 [[package]]
 name = "mcp"
-version = "1.6.0"
+version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -2793,13 +2799,14 @@ dependencies = [
     { name = "httpx-sse" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "python-multipart" },
     { name = "sse-starlette" },
     { name = "starlette" },
-    { name = "uvicorn" },
+    { name = "uvicorn", marker = "sys_platform != 'emscripten'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/95/d2/f587cb965a56e992634bebc8611c5b579af912b74e04eb9164bd49527d21/mcp-1.6.0.tar.gz", hash = "sha256:d9324876de2c5637369f43161cd71eebfd803df5a95e46225cab8d280e366723", size = 200031 }
+sdist = { url = "https://files.pythonhosted.org/packages/bc/8d/0f4468582e9e97b0a24604b585c651dfd2144300ecffd1c06a680f5c8861/mcp-1.9.0.tar.gz", hash = "sha256:905d8d208baf7e3e71d70c82803b89112e321581bcd2530f9de0fe4103d28749", size = 281432 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/30/20a7f33b0b884a9d14dd3aa94ff1ac9da1479fe2ad66dd9e2736075d2506/mcp-1.6.0-py3-none-any.whl", hash = "sha256:7bd24c6ea042dbec44c754f100984d186620d8b841ec30f1b19eda9b93a634d0", size = 76077 },
+    { url = "https://files.pythonhosted.org/packages/a5/d5/22e36c95c83c80eb47c83f231095419cf57cf5cca5416f1c960032074c78/mcp-1.9.0-py3-none-any.whl", hash = "sha256:9dfb89c8c56f742da10a5910a1f64b0d2ac2c3ed2bd572ddb1cfab7f35957178", size = 125082 },
 ]
 
 [[package]]
@@ -4753,6 +4760,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-asyncio"
+version = "0.26.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8e/c4/453c52c659521066969523e87d85d54139bbd17b78f09532fb8eb8cdb58e/pytest_asyncio-0.26.0.tar.gz", hash = "sha256:c4df2a697648241ff39e7f0e4a73050b03f123f760673956cf0d72a4990e312f", size = 54156 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/7f/338843f449ace853647ace35870874f69a764d251872ed1b4de9f234822c/pytest_asyncio-0.26.0-py3-none-any.whl", hash = "sha256:7b51ed894f4fbea1340262bdae5135797ebbe21d8638978e35d31c6d19f72fb0", size = 19694 },
+]
+
+[[package]]
 name = "pytest-cov"
 version = "6.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -5923,13 +5942,15 @@ wheels = [
 
 [[package]]
 name = "tapeagents"
-version = "0.1.7"
+version = "0.1.10"
 source = { editable = "." }
 dependencies = [
+    { name = "aiofiles" },
     { name = "anthropic" },
     { name = "browsergym" },
     { name = "coverage" },
     { name = "fastapi" },
+    { name = "flameprof" },
     { name = "gradio" },
     { name = "hydra-core" },
     { name = "jsonref" },
@@ -5945,6 +5966,7 @@ dependencies = [
     { name = "podman" },
     { name = "pyautogui" },
     { name = "pydantic" },
+    { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-xdist" },
     { name = "pyyaml" },
@@ -6015,6 +6037,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "accelerate", marker = "extra == 'finetune'", specifier = "~=1.2.0" },
+    { name = "aiofiles", specifier = ">=23.2.1" },
     { name = "anthropic", specifier = ">=0.49.0" },
     { name = "beautifulsoup4", marker = "extra == 'converters'", specifier = "~=4.12" },
     { name = "browsergym", specifier = "~=0.13" },
@@ -6025,6 +6048,7 @@ requires-dist = [
     { name = "easyocr", marker = "extra == 'converters'", specifier = "~=1.7" },
     { name = "fastapi", specifier = "~=0.115" },
     { name = "ffmpeg-python", marker = "extra == 'converters'", specifier = "~=0.2" },
+    { name = "flameprof", specifier = ">=0.4" },
     { name = "gradio", specifier = "~=5.11" },
     { name = "hydra-core", specifier = "~=1.3" },
     { name = "jsonref", specifier = "~=1.1" },
@@ -6035,7 +6059,7 @@ requires-dist = [
     { name = "lxml", extras = ["html-clean"], marker = "extra == 'converters'", specifier = "~=5.2" },
     { name = "mammoth", marker = "extra == 'converters'", specifier = "~=1.8" },
     { name = "markdownify", marker = "extra == 'converters'", specifier = "~=0.13" },
-    { name = "mcp", specifier = ">=1.6.0" },
+    { name = "mcp", specifier = ">=1.9.0" },
     { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "numpy", marker = "extra == 'finetune'", specifier = "~=1.26" },
     { name = "openai", specifier = "~=1.55" },
@@ -6053,6 +6077,7 @@ requires-dist = [
     { name = "pydantic", specifier = "~=2.9" },
     { name = "pydub", marker = "extra == 'converters'", specifier = "~=0.25" },
     { name = "pyparsing", marker = "extra == 'converters'", specifier = "~=3.1" },
+    { name = "pytest-asyncio", specifier = ">=0.26.0" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "pytest-xdist", specifier = ">=3.6.1" },
     { name = "python-pptx", marker = "extra == 'converters'", specifier = "~=1.0.2" },
