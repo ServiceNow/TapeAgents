@@ -108,7 +108,6 @@ class MCPClient:
 
     async def close(self) -> None:
         await self.exit_stack.aclose()
-        logger.info("Closed all MCP servers")
 
 
 class MCPEnvironment(ToolCollectionEnvironment):
@@ -229,5 +228,4 @@ class MCPEnvironment(ToolCollectionEnvironment):
 
     async def aclose(self) -> None:
         await super().aclose()
-        logger.info("Closing MCP environment")
         await self.client.close()
