@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from abc import abstractmethod
 from typing import Any, Generator, Generic
 
@@ -916,11 +917,14 @@ class Agent(BaseModel, Generic[TapeType]):
         else:
             llm = self.llm
         prompt = self.make_prompt(tape)
+        dt = time.perf_counter()
         llm_stream = await llm.agenerate(prompt, session) if prompt else LLMStream(None, prompt)
+        dt = time.perf_counter() - dt
         step = None
         for step in self.generate_steps(tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.prompt_id = llm_stream.prompt.id
+                step.metadata.other["llm_call_time"] = dt
             yield step
         if (
             step
