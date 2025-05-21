@@ -21,7 +21,6 @@ llm:
 
 environment:
   _target_: tapeagents.mcp.MCPEnvironment
-  async_mode: true
   config_path: conf/mcp/web_and_code.json
 
 split: validation

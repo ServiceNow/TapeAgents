@@ -87,6 +87,7 @@ class MainLoopStream(Generic[TapeType]):
 
 def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
     environment: ToolCollectionEnvironment = instantiate(cfg.environment)
+    environment.initialize()
     logger.info(f"Environment tools: {environment.tools_description()}")
     agent: Agent = instantiate(
         cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
@@ -96,7 +97,7 @@ def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectio
 
 async def async_get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
     environment: ToolCollectionEnvironment = instantiate(cfg.environment)
-    await environment.initialize()
+    await environment.ainitialize()
     logger.info(f"Environment tools: {environment.tools_description()}")
     agent: Agent = instantiate(
         cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
@@ -229,7 +230,7 @@ async def execute_agent(
     except Exception as e:
         final_tape.metadata.error = f"Agent loop exception: {e}"
         logger.error(colored(f"Agent loop exception: {e}, stopping", "red"))
-
+    final_tape.metadata.parent_id = start_tape.metadata.id
     return final_tape
 
 
@@ -243,7 +244,7 @@ class EnvironmentManager:
 
     async def __aenter__(self):
         for env in self.envs:
-            await env.initialize()
+            await env.ainitialize()
             self.exit_stack.push_async_callback(env.aclose)
         logger.info(f"Initialized {len(self.envs)} environments")
         return self

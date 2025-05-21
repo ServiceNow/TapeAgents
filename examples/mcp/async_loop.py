@@ -38,7 +38,7 @@ async def amain(cfg: DictConfig) -> None:
                 logging.info(f"Schedule task {level=}, {task_num=}")
                 task = tasks[level][task_num]
                 start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
-                start_tape.metadata.parent_id = f"l{level}_task{task_num:03d}"
+                start_tape.metadata.id = f"l{level}_task{task_num:03d}"
                 coroutines.append(execute_with_env(env_manager, cfg.agent, start_tape, session))
             logger.info(f"Solving {len(coroutines)} tasks")
             results = await asyncio.gather(*coroutines)

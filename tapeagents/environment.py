@@ -42,6 +42,9 @@ class NoActionsToReactTo(Exception):
 
 
 class Environment(ABC, Generic[TapeType]):
+    def initialize(self):
+        pass
+
     @abstractmethod
     def react(self, tape: TapeType) -> TapeType:
         pass
@@ -70,7 +73,7 @@ class Environment(ABC, Generic[TapeType]):
 
 
 class AsyncEnvironment(Environment):
-    async def initialize(self):
+    async def ainitialize(self):
         pass
 
     async def areact(self, tape: TapeType) -> TapeType:

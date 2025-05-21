@@ -119,7 +119,6 @@ class MCPEnvironment(ToolCollectionEnvironment):
         use_cache: bool = False,
         read_timeout_seconds: int = 10,
         client: MCPClient | None = None,
-        async_mode: bool = False,
     ) -> None:
         super().__init__(tools=other_tools or [])
         logger.info(f"Initializing MCPEnvironment with config_path: {config_path}")
@@ -129,24 +128,24 @@ class MCPEnvironment(ToolCollectionEnvironment):
 
         if not self.client and not self.tools:
             raise ValueError("Tools or MCP client config_path must be provided")
-        self.async_mode = async_mode
         self.client.use_cache = use_cache
         self.loop = asyncio.get_event_loop()
-        if not async_mode:
-            nest_asyncio.apply()
-            self.loop.run_until_complete(self.client.start_servers())
-            self.tools.extend(
-                [
-                    ToolSpec(
-                        function=FunctionSpec(
-                            name=tool.name, description=tool.description or "", parameters=tool.inputSchema
-                        )
-                    )
-                    for tool in self.client.tools.values()
-                ]
-            )
 
-    async def initialize(self) -> None:
+    def initialize(self):
+        nest_asyncio.apply()
+        self.loop.run_until_complete(self.client.start_servers())
+        self.tools.extend(
+            [
+                ToolSpec(
+                    function=FunctionSpec(
+                        name=tool.name, description=tool.description or "", parameters=tool.inputSchema
+                    )
+                )
+                for tool in self.client.tools.values()
+            ]
+        )
+
+    async def ainitialize(self) -> None:
         await self.client.start_servers()
         self.tools.extend(
             [
