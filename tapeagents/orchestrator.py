@@ -227,28 +227,20 @@ async def execute_agent(
     return final_tape
 
 
-async def execute_isolated(
+async def execute_with_config(
     cfg: DictConfig,
     start_tape: TapeType,
     session: aiohttp.ClientSession,
     max_loops: int = 50,
 ) -> TapeType:
-    """
-    Execute task with the separate environment.
-    """
-    final_tape = start_tape
     agent, env = await async_get_agent_and_env_from_config(cfg)
     try:
         final_tape = await execute_agent(agent, start_tape, env, session, max_loops=max_loops)
-    except aiohttp.ClientError as e:
-        logger.error(f"TCP Client error: {e}")
-        raise e
     except Exception as e:
-        logger.error(f"Agent loop error: {e}")
-        raise e
-    finally:
+        logger.error(colored(f"Error while executing isolated agent: {e}", "red"))
         await env.aclose()
-        logger.info("Environment closed")
+        raise e
+    await env.aclose()
     return final_tape
 
 

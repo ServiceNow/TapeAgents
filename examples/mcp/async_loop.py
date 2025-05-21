@@ -10,8 +10,7 @@ from omegaconf import DictConfig
 from examples.gaia_agent.eval import load_dataset, task_to_observations
 from examples.gaia_agent.steps import GaiaTape
 from tapeagents.io import save_json_tape
-from tapeagents.mcp import MCPEnvironment
-from tapeagents.orchestrator import async_get_agent_and_env_from_config, execute_agent
+from tapeagents.orchestrator import execute_with_config
 
 logger = logging.getLogger(__name__)
 
@@ -32,24 +31,17 @@ async def amain(cfg: DictConfig) -> None:
     dt = time.perf_counter()
     connector = aiohttp.TCPConnector(limit=50000, limit_per_host=50000, keepalive_timeout=1.0)
     timeout = aiohttp.ClientTimeout(total=3600.0, connect=3600.0, sock_read=3600.0)
-    envs: list[MCPEnvironment] = []
     coroutines = []
-    envs = []
     async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
         for level, task_num in cfg.only_tasks:
             logging.info(f"Schedule task {level=}, {task_num=}")
-            agent, env = await async_get_agent_and_env_from_config(cfg)
-            envs.append(env)  # type: ignore
             task = tasks[level][task_num]
             start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
             start_tape.metadata.parent_id = f"l{level}_task{task_num:03d}"
-            coro = execute_agent(agent, start_tape, env, session)
-            coroutines.append(coro)
+            coroutines.append(execute_with_config(cfg, start_tape, session))
         logger.info(f"Solving {len(coroutines)} tasks")
         results = await asyncio.gather(*coroutines)
 
-    for env in envs:
-        await env.aclose()
     for tape in results:
         save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
         print(tape.metadata.parent_id, tape[-1])
