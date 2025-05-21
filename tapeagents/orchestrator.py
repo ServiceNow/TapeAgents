@@ -2,8 +2,10 @@
 Module contains the main loops of the agent-environment interaction and replay functions.
 """
 
+import asyncio
 import enum
 import logging
+from contextlib import asynccontextmanager
 from typing import Generator, Generic
 
 import aiohttp
@@ -218,29 +220,61 @@ async def execute_agent(
     max_loops: int = 50,
 ) -> TapeType:
     final_tape = start_tape
-    async for event in async_main_loop(agent, start_tape, environment, session, max_loops):
-        if event.agent_event and event.agent_event.final_tape:
-            final_tape = event.agent_event.final_tape
-        elif event.env_tape:
-            final_tape = event.env_tape
-    final_tape.metadata = start_tape.metadata
+    try:
+        async for event in async_main_loop(agent, start_tape, environment, session, max_loops):
+            if event.agent_event and event.agent_event.final_tape:
+                final_tape = event.agent_event.final_tape
+            elif event.env_tape:
+                final_tape = event.env_tape
+    except Exception as e:
+        final_tape.metadata.error = f"Agent loop exception: {e}"
+        logger.error(colored(f"Agent loop exception: {e}, stopping", "red"))
+
     return final_tape
 
 
-async def execute_with_config(
-    cfg: DictConfig,
+class EnvironmentManager:
+    def __init__(self, cfg: DictConfig, n_envs: int = 1):
+        self.cfg = cfg
+        self.semaphore = asyncio.Semaphore(n_envs)
+        self.envs: list[ToolCollectionEnvironment] = [instantiate(cfg) for _ in range(n_envs)]
+        logger.info(f"Created {len(self.envs)} environments")
+
+    async def __aenter__(self):
+        for env in self.envs:
+            await env.initialize()
+        logger.info(f"Initialized {len(self.envs)} environments")
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        for env in self.envs:
+            await env.aclose()
+
+    @asynccontextmanager
+    async def get_env(self):
+        logger.info("waiting for env")
+        async with self.semaphore:
+            env = self.envs.pop(0)
+            logger.info(f"pop env, {len(self.envs)} environments left")
+            try:
+                yield env
+            finally:
+                await env.areset()
+                self.envs.append(env)
+                logger.info(f"push env back, {len(self.envs)} environments available")
+
+
+async def execute_with_env(
+    env_manager: EnvironmentManager,
+    agent_cfg: DictConfig,
     start_tape: TapeType,
     session: aiohttp.ClientSession,
     max_loops: int = 50,
 ) -> TapeType:
-    agent, env = await async_get_agent_and_env_from_config(cfg)
-    try:
+    async with env_manager.get_env() as env:
+        agent = instantiate(agent_cfg, known_actions=env.actions(), tools_description=env.tools_description())
         final_tape = await execute_agent(agent, start_tape, env, session, max_loops=max_loops)
-    except Exception as e:
-        logger.error(colored(f"Error while executing isolated agent: {e}", "red"))
-        await env.aclose()
-        raise e
-    await env.aclose()
+
     return final_tape
 
 

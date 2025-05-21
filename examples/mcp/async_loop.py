@@ -10,7 +10,7 @@ from omegaconf import DictConfig
 from examples.gaia_agent.eval import load_dataset, task_to_observations
 from examples.gaia_agent.steps import GaiaTape
 from tapeagents.io import save_json_tape
-from tapeagents.orchestrator import execute_with_config
+from tapeagents.orchestrator import EnvironmentManager, execute_with_env
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +32,19 @@ async def amain(cfg: DictConfig) -> None:
     connector = aiohttp.TCPConnector(limit=50000, limit_per_host=50000, keepalive_timeout=1.0)
     timeout = aiohttp.ClientTimeout(total=3600.0, connect=3600.0, sock_read=3600.0)
     coroutines = []
-    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-        for level, task_num in cfg.only_tasks:
-            logging.info(f"Schedule task {level=}, {task_num=}")
-            task = tasks[level][task_num]
-            start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
-            start_tape.metadata.parent_id = f"l{level}_task{task_num:03d}"
-            coroutines.append(execute_with_config(cfg, start_tape, session))
-        logger.info(f"Solving {len(coroutines)} tasks")
-        results = await asyncio.gather(*coroutines)
+    async with EnvironmentManager(cfg.environment, n_envs=4) as env_manager:
+        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+            for level, task_num in cfg.only_tasks:
+                logging.info(f"Schedule task {level=}, {task_num=}")
+                task = tasks[level][task_num]
+                start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
+                start_tape.metadata.parent_id = f"l{level}_task{task_num:03d}"
+                coroutines.append(execute_with_env(env_manager, cfg.agent, start_tape, session))
+            logger.info(f"Solving {len(coroutines)} tasks")
+            results = await asyncio.gather(*coroutines)
 
     for tape in results:
         save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
-        print(tape.metadata.parent_id, tape[-1])
     logger.info(f"Execution time: {time.perf_counter() - dt:.2f} seconds")
 
 

@@ -76,6 +76,15 @@ class AsyncEnvironment(Environment):
     async def areact(self, tape: TapeType) -> TapeType:
         raise NotImplementedError
 
+    async def astep(self, action: Action) -> Observation:
+        raise NotImplementedError
+
+    async def areset(self) -> None:
+        pass
+
+    async def aclose(self) -> None:
+        pass
+
 
 class EmptyEnvironment(Environment):
     def react(self, tape: Tape) -> list[Observation]:
@@ -167,8 +176,6 @@ class CodeExecutionEnvironment(Environment):
 
 
 class ToolCollectionEnvironment(AsyncEnvironment):
-    action_map: dict[type[Action], BaseTool]
-
     def __init__(self, tools: list[BaseTool]) -> None:
         super().__init__()
         self.tools = tools
