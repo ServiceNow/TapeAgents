@@ -2,19 +2,17 @@ import asyncio
 import json
 import logging
 import os
+from contextlib import AsyncExitStack
 from typing import Any, Optional
 
 import nest_asyncio
-from mcp import ClientSessionGroup, StdioServerParameters, Tool as MCPTool
+from mcp import ClientSession, StdioServerParameters, Tool as MCPTool, stdio_client
 from mcp.types import CallToolResult, TextContent
 
-from tapeagents.config import force_cache
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tool_calling import FunctionSpec, ToolCallAction, ToolResult, ToolSpec
 from tapeagents.tools.base import BaseTool
-from tapeagents.tools.tool_cache import add_to_cache_async, get_from_cache
-from tapeagents.utils import FatalError
 
 logger = logging.getLogger(__name__)
 
@@ -27,18 +25,30 @@ class NoTool(Exception):
 
 class MCPClient:
     def __init__(self, config_path: str, use_cache: bool = False, read_timeout_seconds: int = 10) -> None:
-        self.config_name = os.path.basename(config_path)
         self.servers = self.load_config(config_path)
+        self.sessions: dict[str, ClientSession] = {}
         self.tools: dict[str, MCPTool] = {}
+        self.tool_to_server: dict[str, str] = {}
         self.use_cache = use_cache
         self.read_timeout_seconds = read_timeout_seconds
+        self.exit_stack = AsyncExitStack()
 
     async def start_servers(self):
-        self.client_session_group = await ClientSessionGroup().__aenter__()
-        for name, server_params in self.servers.items():
-            logger.info(f"Starting MCP server '{name}'")
-            await self.client_session_group.connect_to_server(server_params)
-        self.tools = self.client_session_group.tools
+        for server_name, server_params in self.servers.items():
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+            stdio, write = stdio_transport
+            session = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
+            await session.initialize()
+            self.sessions[server_name] = session
+            response = await session.list_tools()
+            for tool in response.tools:
+                if tool.name in self.tools:
+                    raise Exception(
+                        f"Tools conflict! Tool {tool.name} already provided by server '{self.tool_to_server[tool.name]}'"
+                    )
+                self.tools[tool.name] = tool
+                self.tool_to_server[tool.name] = server_name
+            logger.info(f"Connected to MCP server '{server_name}' with tools: {[tool.name for tool in response.tools]}")
         logger.info(f"Started {len(self.servers)} MCP servers")
 
     def load_config(self, config_path) -> dict[str, StdioServerParameters]:
@@ -77,30 +87,24 @@ class MCPClient:
         return server_config_dict
 
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
-        self.client_session_group._tool_to_session[tool_name]
-        # Current implementation of cache assumes tool calls are deterministic and do not alter state
-        if self.use_cache:
-            tool_name_key = f"mcp.{self.config_name}.{tool_name}"
-            result = get_from_cache(tool_name_key, args=(), kwargs=tool_args)
-            if not result and force_cache():
-                raise FatalError(f"Cache is forced but no cache entry found for {tool_name_key}({tool_args})")
-            if not result:
-                result = await self.client_session_group.call_tool(tool_name, tool_args)
-                await add_to_cache_async(
-                    tool_name_key, args=(), kwargs=tool_args, result=result.model_dump(exclude_none=True)
-                )
-            else:
-                result = CallToolResult(**result)
-        else:
-            result = await self.client_session_group.call_tool(tool_name, tool_args)
-
+        server_name = self.check_tool_exists(tool_name)
+        try:
+            session = self.sessions[server_name]
+            result = await session.call_tool(tool_name, tool_args)
+        except Exception as e:
+            logger.exception(f"Error calling tool {tool_name}: {e}")
+            raise e
         return result
 
-    async def close(self) -> None:
+    def check_tool_exists(self, tool_name):
         try:
-            await self.client_session_group.__aexit__(None, None, None)
-        except Exception:
-            pass
+            server_name = self.tool_to_server[tool_name]
+        except KeyError:
+            raise NoTool(f"Tool {tool_name} not found in any of the MCP servers")
+        return server_name
+
+    async def close(self) -> None:
+        await self.exit_stack.aclose()
         logger.info("Closed all MCP servers")
 
 
@@ -223,4 +227,5 @@ class MCPEnvironment(ToolCollectionEnvironment):
 
     async def aclose(self) -> None:
         await super().aclose()
+        logger.info("Closing MCP environment")
         await self.client.close()
