@@ -84,12 +84,7 @@ class WebNode(StandardNode):
                     # skip old page observations
                     continue
                 else:
-                    # adaptation from step.short_view()
-                    view = step.llm_dict()
-                    # del view["kind"]  # remove the kind field
-                    if len(view["text"]) > self.max_chars_page_observation:
-                        view["text"] = view["text"][:self.max_chars_page_observation] + "..."
-                    view = json.dumps(view, indent=2, ensure_ascii=False)
+                    view = step.short_view(max_chars=max_chars_page_observation)
                     # view = f"Page Observation: ```json\n{view}\n```"
             elif isinstance(step, WebTask):
                 view = f"Task: {step.task}"
