@@ -230,6 +230,9 @@ async def execute_agent(
     except Exception as e:
         final_tape.metadata.error = f"Agent loop exception: {e}"
         logger.error(colored(f"Agent loop exception: {e}, stopping", "red"))
+    tape_id = final_tape.metadata.id
+    final_tape.metadata = start_tape.metadata
+    final_tape.metadata.id = tape_id
     final_tape.metadata.parent_id = start_tape.metadata.id
     return final_tape
 
@@ -245,6 +248,7 @@ class EnvironmentManager:
     async def __aenter__(self):
         for env in self.envs:
             await env.ainitialize()
+            logger.info(f"Environment tools: {env.tools_description()}")
             self.exit_stack.push_async_callback(env.aclose)
         logger.info(f"Initialized {len(self.envs)} environments")
         return self

@@ -114,6 +114,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
     def __init__(
         self,
         config_path: str = "",
+        tools_whitelist: Optional[list[str]] = None,
         other_tools: Optional[list[BaseTool]] = None,
         use_cache: bool = False,
         read_timeout_seconds: int = 10,
@@ -124,6 +125,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
         self.client = client or MCPClient(
             config_path=config_path, use_cache=use_cache, read_timeout_seconds=read_timeout_seconds
         )
+        self.tools_whitelist = tools_whitelist or []
 
         if not self.client and not self.tools:
             raise ValueError("Tools or MCP client config_path must be provided")
@@ -141,6 +143,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
                     )
                 )
                 for tool in self.client.tools.values()
+                if tool.name in self.tools_whitelist or not self.tools_whitelist
             ]
         )
 
@@ -154,6 +157,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
                     )
                 )
                 for tool in self.client.tools.values()
+                if tool.name in self.tools_whitelist or not self.tools_whitelist
             ]
         )
 
