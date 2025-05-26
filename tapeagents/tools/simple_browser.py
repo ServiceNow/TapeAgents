@@ -470,9 +470,10 @@ class PageObservation(Observation):
     total_pages: int
     error: int | str | None = None
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
-        view["text"] = view["text"][:100] + "..."
+        if len(view["text"]) > max_chars:
+            view["text"] = view["text"][:max_chars] + "..."
         return json.dumps(view, indent=2, ensure_ascii=False)
 
 

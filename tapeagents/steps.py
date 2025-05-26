@@ -43,7 +43,7 @@ class ImageObservation(Observation):
             content.append(image_base64_message(self.image_path))
         return content
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
         return json.dumps(view, indent=2, ensure_ascii=False)
 
@@ -75,9 +75,10 @@ class VideoObservation(Observation):
                 llm_view.append(image_base64_message(Path(self.attachment_dir) / path))
         return llm_view
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
-        view["subtitle_text"] = view["subtitle_text"][:100] + "..."
+        if len(view["subtitle_text"]) > max_chars:
+            view["subtitle_text"] = view["subtitle_text"][:max_chars] + "..."
         del view["video_contact_sheet_paths"]
         return json.dumps(view, indent=2, ensure_ascii=False)
 
@@ -110,7 +111,8 @@ class ActionExecutionFailure(Observation, Error):
     kind: Literal["action_execution_failure"] = "action_execution_failure"
     error: str
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
-        view["error"] = view["error"][:100] + "..."
+        if len(view["error"]) > max_chars:
+            view["error"] = view["error"][:max_chars] + "..."
         return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)
