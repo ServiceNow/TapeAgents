@@ -34,17 +34,26 @@ async def amain(cfg: DictConfig) -> None:
     timeout = aiohttp.ClientTimeout(total=3600.0, connect=3600.0, sock_read=3600.0)
     coroutines = []
     results = []
-    async with EnvironmentManager(cfg.environment, n_envs=cfg.n_envs) as env_manager:
-        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-            for level, task_num in cfg.only_tasks:
-                logging.info(f"Schedule task {level=}, {task_num=}")
-                task = tasks[level][task_num]
-                start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
-                start_tape.metadata.id = f"l{level}_task{task_num:03d}"
-                start_tape.metadata.task = task
-                coroutines.append(execute_with_env(env_manager, cfg.agent, start_tape, session))
-            logger.info(f"Solving {len(coroutines)} tasks")
-            results = await asyncio.gather(*coroutines)
+    if cfg.only_tasks:
+        selected_tasks = [(level, task_num) for level, task_num in cfg.only_tasks]
+    else:
+        selected_tasks = [
+            (level, task_num) for level, level_tasks in tasks.items() for task_num, task in enumerate(level_tasks)
+        ]
+    try:
+        async with EnvironmentManager(cfg.environment, n_envs=cfg.n_envs) as env_manager:
+            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                for level, task_num in selected_tasks:
+                    logging.info(f"Schedule task {level=}, {task_num=}")
+                    task = tasks[level][task_num]
+                    start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
+                    start_tape.metadata.id = f"l{level}_task{task_num:03d}"
+                    start_tape.metadata.task = task
+                    coroutines.append(execute_with_env(env_manager, cfg.agent, start_tape, session))
+                logger.info(f"Solving {len(coroutines)} tasks")
+                results = await asyncio.gather(*coroutines)
+    except Exception as e:
+        logger.error(f"Error during execution: {e}")
 
     total_steps = 0
     tapes_with_errors = 0
