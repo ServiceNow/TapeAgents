@@ -29,11 +29,12 @@ from .steps import (
 
 
 class WebNode(StandardNode):
-    max_retries: int = 3  # max number of times to retry the current node if the last step is an LLMOutputParsingFailureAction
+    max_retries: int = (
+        3  # max number of times to retry the current node if the last step is an LLMOutputParsingFailureAction
+    )
     current_retries: int = 0  # current number of retries for the current node
     max_same_action: int = 4  # max number of times to repeat the same action
     max_chars_page_observation: int = 2000  # max number of characters to keep in PageObservation["text"]
-
 
     def tape_to_messages(self, tape: WebTape, steps_description: str) -> list[dict]:
         """
@@ -80,7 +81,7 @@ class WebNode(StandardNode):
         for i, step in enumerate(cleaned_steps):
             role = "assistant" if isinstance(step, AgentStep) else "user"
             if isinstance(step, PageObservation):
-                if i not in page_observation_idx[-self.trim_obs_except_last_n:]:
+                if i not in page_observation_idx[-self.trim_obs_except_last_n :]:
                     # skip old page observations
                     continue
                 else:
@@ -88,7 +89,7 @@ class WebNode(StandardNode):
                     view = step.llm_dict()
                     # del view["kind"]  # remove the kind field
                     if len(view["text"]) > self.max_chars_page_observation:
-                        view["text"] = view["text"][:self.max_chars_page_observation] + "..."
+                        view["text"] = view["text"][: self.max_chars_page_observation] + "..."
                     view = json.dumps(view, indent=2, ensure_ascii=False)
                     # view = f"Page Observation: ```json\n{view}\n```"
             elif isinstance(step, WebTask):
@@ -106,7 +107,12 @@ class WebNode(StandardNode):
         # add the last n parsing error steps and the new guidance message that asks to retry
         for step in last_parsing_error_steps:
             messages.append({"role": "assistant", "content": step.llm_view()})
-            messages.append({"role": "user", "content": "You made a mistake. Look at your generation (in 'llm_output') and the error message (in 'error') and please try again."})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "You made a mistake. Look at your generation (in 'llm_output') and the error message (in 'error') and please try again.",
+                }
+            )
         return messages
 
     def generate_steps(
@@ -185,6 +191,7 @@ class WebNode(StandardNode):
         ):
             yield SetNextNode(next_node=self.next_node)
 
+
 class WebAgent(Agent):
     @classmethod
     def create(cls, llm: LLM, max_iterations: int = 4):
@@ -223,4 +230,3 @@ class WebAgent(Agent):
             max_iterations=max_iterations,
             store_llm_calls=True,
         )
-

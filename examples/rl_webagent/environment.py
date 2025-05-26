@@ -31,7 +31,12 @@ class WebEnvironment(Environment):
     Translates action steps into gym browser python commands in the form of a string.
     """
 
-    def __init__(self, exp_path: str | None, headless: bool = True, observation_format: Literal["axtree", "html", "markdown_html"] = "html") -> None:
+    def __init__(
+        self,
+        exp_path: str | None,
+        headless: bool = True,
+        observation_format: Literal["axtree", "html", "markdown_html"] = "html",
+    ) -> None:
         super().__init__()
         if exp_path:
             os.makedirs(exp_path, exist_ok=True)
@@ -44,7 +49,10 @@ class WebEnvironment(Environment):
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         obs = self.browser.run_browser_action("noop()")
-        tape = WebTape(metadata=WebTapeMetadata(task_name=task_entrypoint.get_task_id(), seed=seed), steps=[obs, WebTask(task=info["goal"])])
+        tape = WebTape(
+            metadata=WebTapeMetadata(task_name=task_entrypoint.get_task_id(), seed=seed),
+            steps=[obs, WebTask(task=info["goal"])],
+        )
         self.timers["start_task"] = time.perf_counter() - start_start_task
         return tape, info
 
@@ -121,8 +129,5 @@ class WebEnvironment(Environment):
         # TODO: MAYBE make sure to update parent_id, author_name, etc... in the new tape.metadata just like in agent.run()
 
     def react_batch(self, tapes: list[WebTape], n_processes: int) -> list[WebTape]:
-        results = Parallel(n_jobs=n_processes)(
-            [delayed(self.react)(tape) for tape in tapes]
-        )
+        results = Parallel(n_jobs=n_processes)([delayed(self.react)(tape) for tape in tapes])
         return results
-

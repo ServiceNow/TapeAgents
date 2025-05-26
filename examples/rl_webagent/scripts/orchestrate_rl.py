@@ -14,7 +14,6 @@ import hydra
 import numpy as np
 import torch
 from browsergym.miniwob import ALL_MINIWOB_TASKS
-from browsergym.workarena import ALL_WORKARENA_TASKS
 from joblib import Parallel, delayed
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
@@ -55,7 +54,7 @@ def load_webtasks_debug():
         "miniwob.bisect-angle",
         "miniwob.choose-list",
         "miniwob.click-checkboxes-large",
-        "miniwob.click-checkboxes-soft"
+        "miniwob.click-checkboxes-soft",
         ### Massimo Easy Split ###
         # "miniwob.click-color",
         # "miniwob.click-test-2",
@@ -86,7 +85,8 @@ def load_webtasks_debug():
     test_tasks = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() in DEBUG_SPLIT]
 
     train_samples = [
-        {"dataset": "miniwob", "task": task, "seed": 0} for task in train_tasks
+        {"dataset": "miniwob", "task": task, "seed": 0}
+        for task in train_tasks
         ### massimo setup ###
         # {"dataset": "miniwob", "task": task, "seed": np.random.randint(0, 1000)}
         # for task in train_tasks
@@ -94,7 +94,8 @@ def load_webtasks_debug():
     ]
 
     test_samples = [
-        {"dataset": "miniwob", "task": task, "seed": 0} for task in test_tasks
+        {"dataset": "miniwob", "task": task, "seed": 0}
+        for task in test_tasks
         ### massimo setup ###
         # {"dataset": "miniwob", "task": task, "seed": s}
         # for task in test_tasks
@@ -122,15 +123,11 @@ def load_webtasks(train_split: float = 0.6, seeds: list[int] = [0, 1, 2, 3, 4]) 
     test_tasks = ALL_MINIWOB_TASKS[n_train_tasks:]
 
     train_samples = [
-        {"dataset": "miniwob", "task": task, "seed": seed, "max_loops": 10}
-        for task in train_tasks
-        for seed in seeds
+        {"dataset": "miniwob", "task": task, "seed": seed, "max_loops": 10} for task in train_tasks for seed in seeds
     ]
 
     test_samples = [
-        {"dataset": "miniwob", "task": task, "seed": seed, "max_loops": 10}
-        for task in test_tasks
-        for seed in seeds
+        {"dataset": "miniwob", "task": task, "seed": seed, "max_loops": 10} for task in test_tasks for seed in seeds
     ]
 
     logger.info(f"Loaded {len(train_samples)} training samples")
@@ -185,9 +182,11 @@ def tape_contains_an_error(tape: WebTape) -> bool:
     - the tape metadata has an error
     - the last step is a PageObservation with an error
     """
-    return isinstance(tape.steps[-1], LLMOutputParsingFailureAction) or \
-        tape.metadata.result.get("error") is not None or \
-        (isinstance(tape.steps[-1], PageObservation) and tape.steps[-1].error)
+    return (
+        isinstance(tape.steps[-1], LLMOutputParsingFailureAction)
+        or tape.metadata.result.get("error") is not None
+        or (isinstance(tape.steps[-1], PageObservation) and tape.steps[-1].error)
+    )
 
 
 def extract_tape_training_samples_and_stats(
@@ -219,9 +218,20 @@ def extract_tape_training_samples_and_stats(
     no_error = not tape_contains_an_error(new_tape)
 
     # get the number of LLM calls in the tape
-    n_llm_calls = len([step for step in new_tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None])
+    n_llm_calls = len(
+        [
+            step
+            for step in new_tape.steps
+            if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None
+        ]
+    )
     if n_llm_calls == 0:
-        logger.warning(colored(f"tape {new_tape.metadata.id} has no LLM calls. n_steps:{len(new_tape.steps)}. final_reward:{final_reward}. raw_reward:{raw_reward}.", "red"))
+        logger.warning(
+            colored(
+                f"tape {new_tape.metadata.id} has no LLM calls. n_steps:{len(new_tape.steps)}. final_reward:{final_reward}. raw_reward:{raw_reward}.",
+                "red",
+            )
+        )
 
     # get the number of LLMOutputParsingFailureAction in the tape
     n_step_errors = len([step for step in new_tape.steps if isinstance(step, LLMOutputParsingFailureAction)])
@@ -229,18 +239,28 @@ def extract_tape_training_samples_and_stats(
     n_page_observations = len([step for step in new_tape.steps if isinstance(step, PageObservation)])
 
     # get the raw reward returned by the environment for each step
-    raw_step_rewards = [(i, step.metadata.other.get("info", {}).get("task_info", {}).get("RAW_REWARD_GLOBAL", None)) for i, step in enumerate(new_tape.steps)]
+    raw_step_rewards = [
+        (i, step.metadata.other.get("info", {}).get("task_info", {}).get("RAW_REWARD_GLOBAL", None))
+        for i, step in enumerate(new_tape.steps)
+    ]
     raw_step_rewards = [(i, reward) for i, reward in raw_step_rewards if reward is not None]  # filter out nones
-    n_positive_rewards = len([reward for _, reward in raw_step_rewards if reward > 0])  # count number of positive rewards
+    n_positive_rewards = len(
+        [reward for _, reward in raw_step_rewards if reward > 0]
+    )  # count number of positive rewards
     if n_positive_rewards > 1:
-        logger.warning(colored(f"tape {new_tape.metadata.id} has {n_positive_rewards} positive rewards, but using final reward. Consider using step rewards instead.", "red"))
+        logger.warning(
+            colored(
+                f"tape {new_tape.metadata.id} has {n_positive_rewards} positive rewards, but using final reward. Consider using step rewards instead.",
+                "red",
+            )
+        )
 
     # design the reward. a few options to explore:
     # - use final_reward (0, 1, -1) --vs-- use the raw_reward (-1, 0-1) for all steps
     # - divide by n_llm_calls for all steps
     # - discount by number of errors for all steps
     # - use step rewards at all steps (likely 0 everywhere except the last step)
-    reward_to_use = raw_reward * 0.99 ** n_step_errors if no_error and raw_reward >= 0 else -1.0
+    reward_to_use = raw_reward * 0.99**n_step_errors if no_error and raw_reward >= 0 else -1.0
     # reward_to_use = None  # use step rewards instead
 
     # MAYBE update reward to penalize repeated and/or actions that do not change the state of the environment (MOVE_MOUSE, HOVER, SCROLL, ...) or filter them out?
@@ -254,7 +274,6 @@ def extract_tape_training_samples_and_stats(
     ### MASSIMO setup: success_rate(1 | -1) * 0.95 ** n_steps ###
     # reward_to_use = 1 if success else -1
     # reward_to_use *= 0.95 ** len(new_tape.steps)  # discount by number of steps
-
 
     training_samples: list[TrainingText] = []
     tape_prompt_tokens = 0
@@ -316,7 +335,10 @@ def extract_tape_training_samples_and_stats(
 
 def _debug(tapes):
     steps_with_llm_call = [
-        step for tape in tapes for step in tape.steps if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None
+        step
+        for tape in tapes
+        for step in tape.steps
+        if "llm_call" in step.metadata.other and step.metadata.other["llm_call"] is not None
     ]
     if steps_with_llm_call:
         steps_with_llm_call[0].metadata.other["llm_call"].model_dump()
@@ -391,11 +413,15 @@ def generate_data(
     timers["instantiated_agent"] = time.perf_counter() - t
 
     ### STEP 1: run the agent on its task ###
-    logger.info(f"[it{iteration}.{split_name}] ======== RUNNING THE AGENT ON {task['task'].get_task_id()} WITH SEED {task['seed']} ========")
+    logger.info(
+        f"[it{iteration}.{split_name}] ======== RUNNING THE AGENT ON {task['task'].get_task_id()} WITH SEED {task['seed']} ========"
+    )
     t = time.perf_counter()
     new_tape = run_agent(agent, env, task)
     timers["generated_new_tape"] = time.perf_counter() - t
-    logger.info(f"[it{iteration}.{split_name}] ======== GENERATED TAPE IN {timers['generated_new_tape']} s. NOW SAVING TAPE ========")
+    logger.info(
+        f"[it{iteration}.{split_name}] ======== GENERATED TAPE IN {timers['generated_new_tape']} s. NOW SAVING TAPE ========"
+    )
     # some tapes end with PageObservation because the agent did not yield a stop step before the end of main_loop
 
     ### SAVE THE TAPE ###
@@ -411,7 +437,9 @@ def generate_data(
     with open(tapes_file, "w") as f:
         json.dump(to_save, f, indent=4)
     timers["saved_new_tape"] = time.perf_counter() - t
-    logger.info(f"[it{iteration}.{split_name}] ======== SAVED TAPE IN {timers['saved_new_tape']} s. NOW EXTRACT TRAINING TRACES ========")
+    logger.info(
+        f"[it{iteration}.{split_name}] ======== SAVED TAPE IN {timers['saved_new_tape']} s. NOW EXTRACT TRAINING TRACES ========"
+    )
 
     ### STEP 2: get LLM & ENV timers ###
     llm_stats = {
@@ -419,11 +447,19 @@ def generate_data(
         "sum_time_send_request": sum(llm._stats["time_send_request"]) if llm._stats["time_send_request"] else 0,
         "mean_time_log_output": np.mean(llm._stats["time_log_output"]) if llm._stats["time_log_output"] else 0,
         "sum_time_log_output": sum(llm._stats["time_log_output"]) if llm._stats["time_log_output"] else 0,
-        "mean_time_postprocess_llm_response": np.mean(llm._stats["time_postprocess_llm_response"]) if llm._stats["time_postprocess_llm_response"] else 0,
-        "sum_time_postprocess_llm_response": sum(llm._stats["time_postprocess_llm_response"]) if llm._stats["time_postprocess_llm_response"] else 0,
+        "mean_time_postprocess_llm_response": np.mean(llm._stats["time_postprocess_llm_response"])
+        if llm._stats["time_postprocess_llm_response"]
+        else 0,
+        "sum_time_postprocess_llm_response": sum(llm._stats["time_postprocess_llm_response"])
+        if llm._stats["time_postprocess_llm_response"]
+        else 0,
     }
     # compute total llm time
-    total_llm_time = llm_stats["sum_time_send_request"] + llm_stats["sum_time_log_output"] + llm_stats["sum_time_postprocess_llm_response"]
+    total_llm_time = (
+        llm_stats["sum_time_send_request"]
+        + llm_stats["sum_time_log_output"]
+        + llm_stats["sum_time_postprocess_llm_response"]
+    )
     timers["llm_total_time"] = total_llm_time
 
     # env.timers contains: start_task, finish_task, validate_task, and all the react times for each action
@@ -437,13 +473,19 @@ def generate_data(
     # add all other env timers
     timers.update({f"env_{key}": value for key, value in env.timers.items()})
     # compute total env time
-    total_env_time = env.timers.get("start_task", 0) + env.timers.get("finish_task", 0) + \
-                    env.timers.get("validate_task", 0) + timers["env_sum_react"]
+    total_env_time = (
+        env.timers.get("start_task", 0)
+        + env.timers.get("finish_task", 0)
+        + env.timers.get("validate_task", 0)
+        + timers["env_sum_react"]
+    )
     timers["env_total_time"] = total_env_time
     # compute action execution time
     action_execution_times = [
-        step.metadata.other.get("info", {}).get("action_exec_stop", np.inf) - step.metadata.other.get("info", {}).get("action_exec_start", 0)
-        for step in new_tape.steps if isinstance(step, PageObservation)
+        step.metadata.other.get("info", {}).get("action_exec_stop", np.inf)
+        - step.metadata.other.get("info", {}).get("action_exec_start", 0)
+        for step in new_tape.steps
+        if isinstance(step, PageObservation)
     ]
     timers["env_mean_action_execution"] = np.mean(action_execution_times) if action_execution_times else 0.0
     timers["env_var_action_execution"] = np.var(action_execution_times) if action_execution_times else 0.0
@@ -457,17 +499,25 @@ def generate_data(
     # 1 tape -> multiple training samples because of multiple LLM calls
     tape_training_samples, tape_stats = extract_tape_training_samples_and_stats(new_tape, split_name, llm.tokenizer)
     timers["extracted_training_samples"] = time.perf_counter() - t
-    logger.info(f"[it{iteration}.{split_name}] ======== EXTRACTED {len(tape_training_samples)} TRACES IN {timers['extracted_training_samples']} s. ========")
+    logger.info(
+        f"[it{iteration}.{split_name}] ======== EXTRACTED {len(tape_training_samples)} TRACES IN {timers['extracted_training_samples']} s. ========"
+    )
     # tape_stats contains: reward, success, no_error, prompt_tokens, output_tokens, overflows, n_llm_calls, n_step_errors, n_page_observations, n_steps
-    timers["llm_total_time_per_llm_call"] = total_llm_time / tape_stats["n_llm_calls"] if tape_stats["n_llm_calls"] > 0 else 0
-    timers["env_total_time_per_observation"] = total_env_time / tape_stats["n_page_observations"] if tape_stats["n_page_observations"] > 0 else 0
+    timers["llm_total_time_per_llm_call"] = (
+        total_llm_time / tape_stats["n_llm_calls"] if tape_stats["n_llm_calls"] > 0 else 0
+    )
+    timers["env_total_time_per_observation"] = (
+        total_env_time / tape_stats["n_page_observations"] if tape_stats["n_page_observations"] > 0 else 0
+    )
     # compute average prompt and output tokens per LLM call
     if tape_stats["n_llm_calls"] > 0:
         tape_stats["prompt_tokens_per_llm_call"] = tape_stats["prompt_tokens"] / tape_stats["n_llm_calls"]
         tape_stats["output_tokens_per_llm_call"] = tape_stats["output_tokens"] / tape_stats["n_llm_calls"]
 
     new_tape.metadata.other["timers"] = timers
-    logger.info(f"[it{iteration}.{split_name}] ======== TAPE {new_tape.metadata.id} TOOK {json.dumps(timers, indent=4)} ========")
+    logger.info(
+        f"[it{iteration}.{split_name}] ======== TAPE {new_tape.metadata.id} TOOK {json.dumps(timers, indent=4)} ========"
+    )
     return new_tape, tape_training_samples, tape_stats, llm_stats
 
 
@@ -493,14 +543,12 @@ def batch_generate_data(
         - List of training samples with rewards and logprobs
         - Dictionary of performance statistics and execution times
     """
-    assert len(urls) == len(tasks), (
-        f"Number of urls ({len(urls)}), and tasks ({len(tasks)}) must match"
-    )
+    assert len(urls) == len(tasks), f"Number of urls ({len(urls)}), and tasks ({len(tasks)}) must match"
     start_make_data = time.time()
 
     ### STEP 1: run the agents on their tasks in parallel ###
     logger.info(f"[it{iteration}] Run the agent on {split_name} with {cfg.n_processes_for_data_generation} processes")
-    with tqdm_joblib(tqdm(desc="generating tapes...", total=len(tasks))) as progress_bar:
+    with tqdm_joblib(tqdm(desc="generating tapes...", total=len(tasks))) as _:
         results = Parallel(n_jobs=cfg.n_processes_for_data_generation, prefer="processes")(
             [delayed(generate_data)(cfg, task, url, split_name, iteration) for task, url in zip(tasks, urls)]
         )  # will return a list when all tasks are finished in the same order as the tasks
@@ -528,7 +576,9 @@ def batch_generate_data(
         training_samples.extend(samples)
         group_id = f"{new_tape.metadata.task_name}_{new_tape.metadata.seed}"
         if samples:
-            assert all([group_id == s.group_id for s in samples]), f"Group id mismatch in samples: {group_id}, {[s.group_id for s in samples]}"
+            assert all(
+                [group_id == s.group_id for s in samples]
+            ), f"Group id mismatch in samples: {group_id}, {[s.group_id for s in samples]}"
         # special treatment for reward, success, no_error, prompt_tokens, output_tokens: we will compute the mean of the min/max of each group
         reward_stats[group_id].append(tape_stats["reward"])
         success_stats[group_id].append(tape_stats["success"])
@@ -560,7 +610,8 @@ def batch_generate_data(
             f"execution_time/{split_name}_tapes_made_per_second": len(final_tapes) / (end_make_data - start_make_data),
             f"execution_time/{split_name}_prompt_tokens_per_sec": sum_prompt_tokens / (end_make_data - start_make_data),
             f"execution_time/{split_name}_output_tokens_per_sec": sum_output_tokens / (end_make_data - start_make_data),
-            f"execution_time/{split_name}_total_tokens_per_sec": (sum_prompt_tokens + sum_output_tokens) / (end_make_data - start_make_data),
+            f"execution_time/{split_name}_total_tokens_per_sec": (sum_prompt_tokens + sum_output_tokens)
+            / (end_make_data - start_make_data),
             f"tape_stats/{split_name}_sum_prompt_tokens": sum_prompt_tokens,
             f"tape_stats/{split_name}_sum_output_tokens": sum_output_tokens,
             f"tape_stats/{split_name}_all_success": np.mean([all(s) for s in success_stats.values()]),
@@ -675,11 +726,15 @@ def main(cfg: DictConfig):
                                 break
                 else:
                     sub_samples = random.sample(train_samples, cfg.max_agent_forks // cfg.attempts)
-                logger.info(f"[it{state['iteration']}] Sampling {len(sub_samples)} train tasks out of {len(train_samples)}. Each task will be repeated {cfg.attempts} times")
+                logger.info(
+                    f"[it{state['iteration']}] Sampling {len(sub_samples)} train tasks out of {len(train_samples)}. Each task will be repeated {cfg.attempts} times"
+                )
                 # Repeat each task cfg.attempts times
                 train_tasks = [copy.deepcopy(task) for task in sub_samples for _ in range(cfg.attempts)]
                 n_train_tasks = len(train_tasks)
-                logger.info(f"[it{state['iteration']}] Total number of train tasks: {n_train_tasks} (max target was {cfg.max_agent_forks})")
+                logger.info(
+                    f"[it{state['iteration']}] Total number of train tasks: {n_train_tasks} (max target was {cfg.max_agent_forks})"
+                )
 
                 # Get number of VLLM services available
                 vllm_services = vllm_service_manager.get_base_urls()
@@ -698,7 +753,9 @@ def main(cfg: DictConfig):
                 ### Step 2.2: generate continuations for each split ###
                 for split_name, tasks, urls in splits:
                     assert len(tasks) == len(urls)
-                    new_tapes, split_training_samples, stats = batch_generate_data(cfg, tasks, urls, split_name, state["iteration"])
+                    new_tapes, split_training_samples, stats = batch_generate_data(
+                        cfg, tasks, urls, split_name, state["iteration"]
+                    )
 
                     all_results[split_name] = {
                         "new_tapes": new_tapes,

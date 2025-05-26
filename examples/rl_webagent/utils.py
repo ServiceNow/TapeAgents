@@ -269,10 +269,7 @@ def setup_logging(output_dir):
     stdout_handler.setLevel(logging.INFO)
 
     # Create formatters and set them to the handlers
-    formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%d/%m/%Y %H:%M:%S"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%d/%m/%Y %H:%M:%S")
 
     info_handler.setFormatter(formatter)
     debug_handler.setFormatter(formatter)
@@ -420,6 +417,7 @@ def launch_training(config_dir: str, config_name: str, accelerate_cfg_path: str,
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
     """Context manager to patch joblib to report into tqdm progress bar given as argument"""
+
     class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
         def __call__(self, *args, **kwargs):
             tqdm_object.update(n=self.batch_size)
