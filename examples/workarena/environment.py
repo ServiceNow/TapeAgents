@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any
 
 from browsergym.workarena.tasks.base import AbstractServiceNowTask
@@ -9,13 +10,7 @@ from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
 from tapeagents.utils import FatalError
 
-from .steps import (
-    Action,
-    FinalAnswerAction,
-    ReflectionThought,
-    WorkArenaTape,
-    WorkArenaTask,
-)
+from .steps import Action, FinalAnswerAction, ReflectionThought, WorkArenaTape, WorkArenaTask
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +23,8 @@ class WorkArenaEnvironment(Environment):
 
     def __init__(self, exp_path: str, headless: bool = True) -> None:
         super().__init__()
-        self.browser = Browser(headless=headless, log_path=exp_path, axtree=True)
+        os.makedirs(exp_path, exist_ok=True)
+        self.browser = Browser(headless=headless, exp_path=exp_path)
 
     def start_task(
         self, task_entrypoint: type[AbstractServiceNowTask], seed: int = 42
@@ -39,9 +35,12 @@ class WorkArenaEnvironment(Environment):
         tape = WorkArenaTape(steps=[obs, WorkArenaTask(task=info["goal"])])
         return tape, info
 
+    def actions(self) -> tuple[type[Action], ...]:
+        return self.browser.actions
+
     def finish_task(self, task_name: str) -> None:
         try:
-            self.browser.close(task_name)
+            self.browser.close()
         except Exception as e:
             logger.error(f"Failed to properly close task: {e}")
 
@@ -72,8 +71,7 @@ class WorkArenaEnvironment(Environment):
                 )
         for action in actions:
             try:
-                action_type = type(action)
-                if action_type == LLMOutputParsingFailureAction:
+                if isinstance(action, LLMOutputParsingFailureAction):
                     continue
                 observation = self.step(action)
                 tape = tape.append(observation)  # type: ignore

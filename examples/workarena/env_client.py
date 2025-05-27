@@ -15,6 +15,8 @@ def main(cfg: DictConfig):
     env: RemoteEnvironment = instantiate(cfg.environment)
     env.reset()
     logger.info("Environment reset complete")
+    actions = env.actions()
+    logger.info(f"Available actions: {actions}")
     action = OpenUrlAction(url="https://servicenow.com")
     obs = env.step(action)
     logger.info(f"Observation after step: {type(obs)}: {obs}")

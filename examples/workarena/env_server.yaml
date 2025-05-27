@@ -6,7 +6,3 @@ environment_server:
     headless: false
   host: localhost
   port: 8000
-  action_types: 
-    - tapeagents.tools.browser.OpenUrlAction
-    - tapeagents.tools.browser.ClickBIDAction
-    - tapeagents.tools.browser.InputTextAction

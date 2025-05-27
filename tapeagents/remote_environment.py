@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 from tapeagents.agent import TapeType
 from tapeagents.core import Action, Tape
 from tapeagents.environment import Environment
-from tapeagents.utils import class_for_name
+from tapeagents.utils import class_for_name, full_classname
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,11 @@ class EnvironmentServer(ABC):
     The server will provide endpoints for executing actions and resetting the environment.
     """
 
-    def __init__(
-        self, environment: Environment, host: str = "localhost", port: int = 8000, action_types: tuple[str, ...] = ()
-    ):
+    def __init__(self, environment: Environment, host: str = "localhost", port: int = 8000):
         self.environment = environment
         self.host = host
         self.port = port
-        action_types = tuple(class_for_name(step) for step in action_types)
+        action_types = environment.actions()
         self._action_type = Annotated[Union[action_types], Field(discriminator="kind")]
 
     def create_app(self):
@@ -49,9 +47,21 @@ class EnvironmentServer(ABC):
                 action = TypeAdapter(self._action_type).validate_python(request.action_data)
                 logger.info(f"Run step {type(action).__name__} in environment {self.environment.__class__.__name__}")
                 observation = self.environment.step(action)
-                return {"observation": observation.model_dump()}
+                return {
+                    "observation": observation.model_dump(),
+                    "classname": full_classname(type(observation)),
+                }
             except Exception as e:
                 logger.exception(f"Failed to execute step: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @app.get("/actions")
+        async def actions_endpoint():
+            try:
+                actions = self.environment.actions()
+                return {"actions": [full_classname(action) for action in actions]}
+            except Exception as e:
+                logger.exception(f"Failed to retrieve actions: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
         @app.post("/reset")
@@ -93,15 +103,20 @@ class RemoteEnvironment(Environment):
     Environment that proxies actions to a remote environment server.
     """
 
-    def __init__(self, server_url: str, observation_types: tuple[str, ...]):
+    def __init__(self, server_url: str):
         self.server_url = server_url
-        obs_types = tuple(class_for_name(step) for step in observation_types)
-        self._observation_type = Annotated[Union[obs_types], Field(discriminator="kind")]
 
     def start_task(self, task_data: dict) -> dict:
         response = requests.post(f"{self.server_url}/start_task", json={"task_data": task_data})
         response.raise_for_status()
         return response.json()
+
+    def actions(self) -> tuple[type[Action], ...]:
+        response = requests.get(f"{self.server_url}/actions")
+        response.raise_for_status()
+        action_names = response.json().get("actions", [])
+        actions = tuple(class_for_name(action) for action in action_names)
+        return actions
 
     def react(self, tape: TapeType) -> TapeType:
         for action in self.last_actions(tape):
@@ -115,8 +130,10 @@ class RemoteEnvironment(Environment):
     def step(self, action: Action) -> BaseModel:
         response = requests.post(f"{self.server_url}/step", json={"action_data": action.model_dump()})
         response.raise_for_status()
-        obs_dict = response.json()["observation"]
-        observation = TypeAdapter(self._observation_type).validate_python(obs_dict)
+        response_dict = response.json()
+        obs_dict = response_dict["observation"]
+        cls: type[BaseModel] = class_for_name(response_dict["classname"])
+        observation = cls.model_validate(obs_dict)
         return observation
 
     def reset(self) -> None:
