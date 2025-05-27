@@ -3,7 +3,7 @@ from typing import Any
 
 from browsergym.workarena.tasks.base import AbstractServiceNowTask
 
-from tapeagents.core import LLMOutputParsingFailureAction
+from tapeagents.core import LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import Environment
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
@@ -75,7 +75,7 @@ class WorkArenaEnvironment(Environment):
                 action_type = type(action)
                 if action_type == LLMOutputParsingFailureAction:
                     continue
-                observation = self.browser.run(action)
+                observation = self.step(action)
                 tape = tape.append(observation)  # type: ignore
             except FatalError:
                 raise
@@ -84,3 +84,9 @@ class WorkArenaEnvironment(Environment):
                 tape = tape.append(ActionExecutionFailure(error=str(e)))
                 break
         return tape
+
+    def step(self, action: Action) -> Observation:
+        return self.browser.run(action)
+
+    def reset(self):
+        self.browser.reset()

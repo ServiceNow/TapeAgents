@@ -45,6 +45,13 @@ class Environment(ABC, Generic[TapeType]):
     def initialize(self):
         pass
 
+    def start_task(self, task: dict) -> dict:
+        """
+        Start a new task in the environment.
+        This method should be overridden by subclasses to implement task-specific initialization.
+        """
+        return {}
+
     @abstractmethod
     def react(self, tape: TapeType) -> TapeType:
         pass

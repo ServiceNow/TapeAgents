@@ -1,0 +1,6 @@
+environment:
+  _target_: tapeagents.remote_environment.RemoteEnvironment
+  server_url: http://localhost:8000
+  observation_types: 
+    - tapeagents.tools.browser.PageObservation
+    - tapeagents.steps.ActionExecutionFailure
