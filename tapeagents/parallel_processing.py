@@ -85,14 +85,17 @@ def process_pool_processor(
             initializer=initializer,
             initargs=initargs,
         ) as executor:
-            futures: Iterable[Future[OutputType]] = [executor.submit(worker_func, a) for a in stream]
-            if not keep_order:
-                futures = as_completed(futures)
-            for future in futures:
-                try:
-                    yield future.result()
-                except Exception as e:
-                    yield e
+            try:
+                futures: Iterable[Future[OutputType]] = [executor.submit(worker_func, a) for a in stream]
+                if not keep_order:
+                    futures = as_completed(futures)
+                for future in futures:
+                    try:
+                        yield future.result()
+                    except Exception as e:
+                        yield e
+            except KeyboardInterrupt:
+                executor.shutdown(wait=True, cancel_futures=True)
 
 
 def lazy_thread_pool_processor(

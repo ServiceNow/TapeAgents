@@ -6,9 +6,11 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from abc import abstractmethod
 from typing import Any, Generator, Generic
 
+import aiohttp
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
 from typing_extensions import Self
 
@@ -875,6 +877,64 @@ class Agent(BaseModel, Generic[TapeType]):
         """
         _, llm_calls = self.reuse(tape)
         return [self.make_training_text(llm_call) for llm_call in llm_calls]
+
+    async def arun(self, tape: TapeType, session: aiohttp.ClientSession, max_iterations: int | None = None):
+        if max_iterations is None:
+            max_iterations = self.max_iterations
+
+        n_iterations = 0
+        input_tape_length = len(tape)
+        input_tape_id = tape.metadata.id
+        stop = False
+        original_metadata = tape.metadata
+        while n_iterations < max_iterations and not stop:
+            current_subagent = self.delegate(tape)
+            async for step in current_subagent.arun_iteration(tape, session):
+                if isinstance(step, PartialStep):
+                    yield AgentEvent(partial_step=step)
+                elif isinstance(step, AgentStep):
+                    step.metadata.agent = current_subagent.full_name
+                    tape = tape.append(step)
+                    yield AgentEvent(step=step, partial_tape=tape)
+                    if self.should_stop(tape):
+                        stop = True
+                else:
+                    raise ValueError("Agent can only generate steps or partial steps")
+            n_iterations += 1
+        updated_metadata = original_metadata.model_validate(
+            dict(
+                parent_id=input_tape_id,
+                author=self.name,
+                n_added_steps=len(tape) - input_tape_length,
+            )
+        )
+        final_tape = tape.model_copy(update=dict(metadata=updated_metadata))
+        yield AgentEvent(final_tape=final_tape)
+
+    async def arun_iteration(self, tape: TapeType, session: aiohttp.ClientSession):
+        if len(self.llms) > 1:
+            llm = self.llms[self.select_node(tape).llm]
+        else:
+            llm = self.llm
+        prompt = self.make_prompt(tape)
+        dt = time.perf_counter()
+        llm_stream = await llm.agenerate(prompt, session) if prompt else LLMStream(None, prompt)
+        dt = time.perf_counter() - dt
+        step = None
+        for step in self.generate_steps(tape, llm_stream):
+            if isinstance(step, AgentStep):
+                step.metadata.prompt_id = llm_stream.prompt.id
+                step.metadata.other["llm_call_time"] = dt
+            yield step
+        if (
+            step
+            and not isinstance(step, PartialStep)
+            and self.store_llm_calls
+            and (llm_call := getattr(llm_stream, "llm_call", None))
+        ):
+            step.metadata.other["llm_call"] = llm_call
+        if step is None:
+            raise ValueError("No step was generated during the iteration.")
 
 
 class TapeReuseFailure(ValueError):
