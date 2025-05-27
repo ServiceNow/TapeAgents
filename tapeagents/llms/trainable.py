@@ -130,6 +130,7 @@ class TrainableLLM(CachedLLM):
             "model": self.model_name,
             "messages": prompt.messages,
             "stream": self.stream,
+            "tools": prompt.tools,
         }
         if self.collect_logprobs:
             data.update(
@@ -141,9 +142,11 @@ class TrainableLLM(CachedLLM):
             )
         logger.debug(f"POST request to {self.base_url}/v1/chat/completions")
         start_send_request = time.time()
+        for k, v in self.parameters.items():
+            data[k] = OmegaConf.to_container(v) if isinstance(v, DictConfig) else v
         r = requests.post(
             url=f"{self.base_url}/v1/chat/completions",
-            json=data | self.parameters,
+            json=data,
             headers=headers,
             stream=self.stream,
             verify=False,
@@ -174,7 +177,8 @@ class TrainableLLM(CachedLLM):
             data = r.json()
             try:
                 content = data["choices"][0]["message"]["content"]
-                if not content:
+                tool_calls = data["choices"][0]["message"].get("tool_calls", [])
+                if not content and not tool_calls:
                     logger.warning(f"Empty completion {data}")
 
                 if self.collect_logprobs:
@@ -194,6 +198,8 @@ class TrainableLLM(CachedLLM):
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
             output = LLMOutput(content=content)
+            if tool_calls:
+                output.tool_calls = [litellm.ChatCompletionMessageToolCall(**tc) for tc in tool_calls]
         llm_call = self.log_output(prompt, output)
         llm_call.logprobs = logprobs
         yield LLMEvent(output=output, llm_call=llm_call)

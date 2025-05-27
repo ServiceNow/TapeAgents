@@ -213,7 +213,7 @@ async def async_main_loop(
         n_loops += 1
 
 
-async def execute_agent(
+async def async_execute_agent(
     agent: Agent[TapeType],
     start_tape: TapeType,
     environment: AsyncEnvironment,
@@ -230,11 +230,14 @@ async def execute_agent(
     except Exception as e:
         final_tape.metadata.error = f"Agent loop exception: {e}"
         logger.error(colored(f"Agent loop exception: {e}, stopping", "red"))
+    tape_id = final_tape.metadata.id
+    final_tape.metadata = start_tape.metadata
+    final_tape.metadata.id = tape_id
     final_tape.metadata.parent_id = start_tape.metadata.id
     return final_tape
 
 
-class EnvironmentManager:
+class EnvironmentGroup:
     def __init__(self, cfg: DictConfig, n_envs: int = 1):
         self.cfg = cfg
         self.semaphore = asyncio.Semaphore(n_envs)
@@ -245,6 +248,7 @@ class EnvironmentManager:
     async def __aenter__(self):
         for env in self.envs:
             await env.ainitialize()
+            logger.info(f"Environment tools: {env.tools_description()}")
             self.exit_stack.push_async_callback(env.aclose)
         logger.info(f"Initialized {len(self.envs)} environments")
         return self
@@ -266,16 +270,16 @@ class EnvironmentManager:
                 logger.info(f"push env back, {len(self.envs)} environments available")
 
 
-async def execute_with_env(
-    env_manager: EnvironmentManager,
+async def async_execute_with_env(
+    env_group: EnvironmentGroup,
     agent_cfg: DictConfig,
     start_tape: TapeType,
     session: aiohttp.ClientSession,
     max_loops: int = 50,
 ) -> TapeType:
-    async with env_manager.get_env() as env:
+    async with env_group.get_env() as env:
         agent = instantiate(agent_cfg, known_actions=env.actions(), tools_description=env.tools_description())
-        final_tape = await execute_agent(agent, start_tape, env, session, max_loops=max_loops)
+        final_tape = await async_execute_agent(agent, start_tape, env, session, max_loops=max_loops)
 
     return final_tape
 

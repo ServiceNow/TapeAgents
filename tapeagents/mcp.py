@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from contextlib import AsyncExitStack
 from datetime import timedelta
 from typing import Any, Optional
@@ -114,6 +115,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
     def __init__(
         self,
         config_path: str = "",
+        tools_whitelist: Optional[list[str]] = None,
         other_tools: Optional[list[BaseTool]] = None,
         use_cache: bool = False,
         read_timeout_seconds: int = 10,
@@ -124,6 +126,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
         self.client = client or MCPClient(
             config_path=config_path, use_cache=use_cache, read_timeout_seconds=read_timeout_seconds
         )
+        self.tools_whitelist = tools_whitelist or []
 
         if not self.client and not self.tools:
             raise ValueError("Tools or MCP client config_path must be provided")
@@ -141,6 +144,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
                     )
                 )
                 for tool in self.client.tools.values()
+                if tool.name in self.tools_whitelist or not self.tools_whitelist
             ]
         )
 
@@ -154,6 +158,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
                     )
                 )
                 for tool in self.client.tools.values()
+                if tool.name in self.tools_whitelist or not self.tools_whitelist
             ]
         )
 
@@ -204,6 +209,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
             return await super().astep(action)
         if isinstance(action, LLMOutputParsingFailureAction):
             return ToolResult(tool_call_id="", content="Try again")
+        t = time.perf_counter()
         try:
             assert self.client is not None, "MCPClient is not initialized"
             result = await self.client.call_tool(action.function.name, action.function.arguments)
@@ -224,7 +230,10 @@ class MCPEnvironment(ToolCollectionEnvironment):
                 content=[TextContent(type="text", text=f"Error executing tool {action.function.name}: {str(e)}")],
                 isError=True,
             )
-        return ToolResult(tool_call_id=action.id, content=result)
+        observation = ToolResult(tool_call_id=action.id, content=result)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
+        return observation
 
     async def aclose(self) -> None:
         await super().aclose()

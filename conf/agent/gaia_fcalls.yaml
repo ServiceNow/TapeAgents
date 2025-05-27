@@ -40,6 +40,7 @@ nodes:
   - _target_: tapeagents.nodes.StandardNode
     name: select
     system_prompt: ${agent.templates.system_prompt}
+    trim_obs_except_last_n: 1
     guidance: |
       Select the next step to do to move forward with the plan. Describe the expected effect of the proposed action.
       ${agent.templates.thought_format}
@@ -48,6 +49,7 @@ nodes:
   - _target_: tapeagents.nodes.StandardNode
     name: act
     system_prompt: ${agent.templates.system_prompt}
+    trim_obs_except_last_n: 1
     guidance: Then produce single function call for the next step. If the answer is ready, call GaiaAnswer.
     steps:
       - examples.gaia_agent.steps.GaiaAnswer
@@ -57,6 +59,7 @@ nodes:
   - _target_: tapeagents.nodes.StandardNode
     name: summarize
     system_prompt: ${agent.templates.system_prompt}
+    trim_obs_except_last_n: 1
     guidance: |
       Summarize last observation. If its an image, thoroughly describe it with all details.
       Describe the results of the last action and observed changes
@@ -67,6 +70,7 @@ nodes:
   - _target_: tapeagents.nodes.StandardNode
     name: reflect
     system_prompt: ${agent.templates.system_prompt}
+    trim_obs_except_last_n: 1
     guidance: |
       1. Evaluate the action's success, explain its effect on current step, overall plan and task solution.
       2. If the last action was not successful, describe errors and the possible reasons for failure.

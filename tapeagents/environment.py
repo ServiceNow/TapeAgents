@@ -226,14 +226,12 @@ class ToolCollectionEnvironment(AsyncEnvironment):
 
     async def areact(self, tape: Tape) -> Tape:
         for action in self.last_actions(tape):
-            t = time.perf_counter()
             observation = await self.astep(action)
-            observation.metadata.other["action_execution_time"] = time.perf_counter() - t
-            observation.metadata.other["action_kind"] = action.kind
             tape = tape.append(observation)
         return tape
 
     async def astep(self, action: Action) -> Observation:
+        t = time.perf_counter()
         action_type = type(action)
         if isinstance(action, LLMOutputParsingFailureAction):
             return UserStep(content="Try again")
@@ -245,16 +243,22 @@ class ToolCollectionEnvironment(AsyncEnvironment):
         else:
             logger.warning(f"Tool {tool} is not async and could slowdown the rollouts!")
             observation = tool.run(action)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
         return observation
 
     async def areset(self) -> None:
         for tool in self.tools:
             if not isinstance(tool, AsyncBaseTool):
-                raise Exception(f"Tool {tool} is not async")
-            await tool.areset()
+                logger.warning(f"Tool {tool} is not async and could slowdown the rollouts!")
+                tool.reset()
+            else:
+                await tool.areset()
 
     async def aclose(self) -> None:
         for tool in self.tools:
             if not isinstance(tool, AsyncBaseTool):
-                raise Exception(f"Tool {tool} is not async")
-            await tool.aclose()
+                logger.warning(f"Tool {tool} is not async and could slowdown the rollouts!")
+                tool.close()
+            else:
+                await tool.aclose()
