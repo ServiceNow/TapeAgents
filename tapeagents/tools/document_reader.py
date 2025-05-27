@@ -1,9 +1,9 @@
+from pathlib import Path
 from typing import Literal, Optional
 
 from pydantic import Field
 
 from tapeagents.core import Action, Observation
-from tapeagents.steps import Path
 from tapeagents.tools.base import Tool
 from tapeagents.tools.converters import (
     FileConversionException,
@@ -58,7 +58,7 @@ class DocumentReader(Tool):
             # make a path relative to the workspace directory
             path = Path(action.path)
             if path.is_absolute():
-                path = Path(f".{action.path}")
+                path = path.relative_to(self.workspace_directory)
             workspace_path = Path(self.workspace_directory) / path
         else:
             workspace_path = Path(action.path)
