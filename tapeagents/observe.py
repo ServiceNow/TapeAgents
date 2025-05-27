@@ -9,6 +9,7 @@ import queue
 import sqlite3
 import threading
 import time
+from pathlib import Path
 from typing import Callable, Optional, Type
 
 from pydantic import BaseModel
@@ -39,10 +40,11 @@ def init_sqlite_if_not_exists(only_once: bool = True):
         return
 
     path = sqlite_db_path()
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     logger.info(f"use SQLite db at {path}")
     conn = sqlite3.connect(path)
     cursor = conn.cursor()
-    cursor.execute("""               
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS LLMCalls (
         prompt_id TEXT PRIMARY KEY,
         timestamp TEXT,
