@@ -55,11 +55,15 @@ class DocumentReader(Tool):
 
     def execute_action(self, action: ReadLocalDocumentAction) -> DocumentObservation:
         if self.workspace_directory is not None:
-            # make a path relative to the workspace directory
+            # Resolve the path safely within the workspace directory
+            workspace_dir = Path(self.workspace_directory).resolve()
             path = Path(action.path)
-            if path.is_absolute():
-                path = path.relative_to(self.workspace_directory)
-            workspace_path = Path(self.workspace_directory) / path
+            abs_path = (workspace_dir / path).resolve() if not path.is_absolute() else path.resolve()
+            try:
+                abs_path.relative_to(workspace_dir)
+            except ValueError:
+                return DocumentObservation(text="", error="Access to files outside the workspace directory is not allowed")
+            workspace_path = abs_path
         else:
             workspace_path = Path(action.path)
         if not workspace_path.exists():
