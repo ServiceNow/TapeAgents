@@ -57,15 +57,13 @@ def execute_single_task(args):
         handlers=[logging.StreamHandler()],
         force=True,  # forget previous handlers
     )
-    logger.info(f"Processing task {level}_{task_num:03d}")
+    logger.info(f"Processing task L{level}:{task_num:03d}")
 
     # Create separate agent and environment for this task
     global agent, env
 
     # Create start tape
     start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
-    start_tape.metadata.id = f"l{level}_task{task_num:03d}"
-    start_tape.metadata.task = task
 
     # Execute the main loop
     final_tape = start_tape
@@ -81,10 +79,8 @@ def execute_single_task(args):
         logger.exception(f"Error processing task {level}_{task_num}: {e}")
         final_tape.metadata.error = str(e)
 
-    tape_id = final_tape.metadata.id
-    final_tape.metadata = start_tape.metadata
-    final_tape.metadata.id = tape_id
-    final_tape.metadata.parent_id = start_tape.metadata.id
+    final_tape.metadata.task = task
+    final_tape.metadata.parent_id = f"l{level}_task{task_num:03d}"
     stop_steps = [step for step in final_tape if isinstance(step, StopStep)]
     final_tape.metadata.result = "" if not stop_steps else stop_steps[-1].model_dump().get("answer", "")
     return final_tape
@@ -97,10 +93,8 @@ def execute_single_task(args):
 )
 def main(cfg: DictConfig) -> None:
     cfg.llm.base_url = os.environ["BASE_URL"]
-    # Load dataset
     tasks = load_dataset(cfg.split)
 
-    # Select tasks to run
     if cfg.only_tasks:
         selected_tasks = [(level, task_num) for level, task_num in cfg.only_tasks]
     else:
@@ -109,18 +103,15 @@ def main(cfg: DictConfig) -> None:
         ]
 
     cfg_dict = OmegaConf.to_container(cfg, resolve=True)
-    # Prepare arguments for multiprocessing
     task_args = []
     for level, task_num in selected_tasks:
         task = tasks[level][task_num]
-        # Convert DictConfig to dict for pickling
         task_args.append((level, task_num, task))
 
     logger.info(f"Processing {len(task_args)} tasks with {cfg.n_envs} workers")
 
     dt = time.perf_counter()
 
-    # Use process pool with N workers
     results = []
     for result in process_pool_processor(
         stream=task_args,
@@ -132,14 +123,12 @@ def main(cfg: DictConfig) -> None:
     ):
         if isinstance(result, Exception):
             logger.error(f"Task failed with exception: {result}")
-            # Create a dummy error tape
             error_tape = GaiaTape(steps=[])
             error_tape.metadata.error = str(result)
             results.append(error_tape)
         else:
             results.append(result)
 
-    # Calculate and log statistics
     total_steps = 0
     tapes_with_errors = 0
     solved = 0
@@ -153,7 +142,6 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"Tapes with error: {(tapes_with_errors / len(results)):.2f} ({tapes_with_errors} of {len(results)})")
     logger.info(f"Accuracy: {(solved / len(results)):.2f} ({solved} of {len(results)})")
 
-    # Save results
     os.makedirs(os.path.join(cfg.exp_path, "tapes"), exist_ok=True)
     for tape in results:
         save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)

@@ -11,7 +11,7 @@ from examples.gaia_agent.eval import load_dataset, tape_correct, task_to_observa
 from examples.gaia_agent.steps import GaiaTape
 from tapeagents.core import StopStep
 from tapeagents.io import save_json_tape
-from tapeagents.orchestrator import EnvironmentManager, execute_with_env
+from tapeagents.orchestrator import EnvironmentGroup, async_execute_with_env
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ async def amain(cfg: DictConfig) -> None:
             (level, task_num) for level, level_tasks in tasks.items() for task_num, task in enumerate(level_tasks)
         ]
     try:
-        async with EnvironmentManager(cfg.environment, n_envs=cfg.n_envs) as env_manager:
+        async with EnvironmentGroup(cfg.environment, n_envs=cfg.n_envs) as env_manager:
             async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
                 for level, task_num in selected_tasks:
                     logging.info(f"Schedule task {level=}, {task_num=}")
@@ -49,7 +49,7 @@ async def amain(cfg: DictConfig) -> None:
                     start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
                     start_tape.metadata.id = f"l{level}_task{task_num:03d}"
                     start_tape.metadata.task = task
-                    coroutines.append(execute_with_env(env_manager, cfg.agent, start_tape, session))
+                    coroutines.append(async_execute_with_env(env_manager, cfg.agent, start_tape, session))
                 logger.info(f"Solving {len(coroutines)} tasks")
                 results = await asyncio.gather(*coroutines)
     except Exception as e:
