@@ -2,18 +2,20 @@ import asyncio
 import json
 import logging
 import os
+import time
 from contextlib import AsyncExitStack
-from typing import Any
+from datetime import timedelta
+from typing import Any, Optional
 
 import nest_asyncio
-from mcp import ClientSession, StdioServerParameters, Tool, stdio_client
+from mcp import ClientSession, StdioServerParameters, Tool as MCPTool, stdio_client
 from mcp.types import CallToolResult, TextContent
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tool_calling import FunctionSpec, ToolCallAction, ToolResult, ToolSpec
+from tapeagents.tools.base import BaseTool
 
-nest_asyncio.apply()
 logger = logging.getLogger(__name__)
 
 
@@ -24,19 +26,33 @@ class NoTool(Exception):
 
 
 class MCPClient:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, use_cache: bool = False, read_timeout_seconds: int = 10) -> None:
         self.servers = self.load_config(config_path)
         self.sessions: dict[str, ClientSession] = {}
-        self.exit_stacks: dict[str, AsyncExitStack] = {}
-        self.tools: dict[str, Tool] = {}
+        self.tools: dict[str, MCPTool] = {}
         self.tool_to_server: dict[str, str] = {}
-        self._cleanup_lock: asyncio.Lock = asyncio.Lock()
-        asyncio.run(self.start_servers())
+        self.use_cache = use_cache
+        self.read_timeout_seconds = read_timeout_seconds
+        self.exit_stack = AsyncExitStack()
 
     async def start_servers(self):
-        for name, server_params in self.servers.items():
-            logger.info(f"Starting MCP server '{name}'")
-            await self.connect_to_server(name, server_params)
+        for server_name, server_params in self.servers.items():
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+            stdio, write = stdio_transport
+            session = await self.exit_stack.enter_async_context(
+                ClientSession(stdio, write, read_timeout_seconds=timedelta(seconds=self.read_timeout_seconds))
+            )
+            await session.initialize()
+            self.sessions[server_name] = session
+            response = await session.list_tools()
+            for tool in response.tools:
+                if tool.name in self.tools:
+                    raise Exception(
+                        f"Tools conflict! Tool {tool.name} already provided by server '{self.tool_to_server[tool.name]}'"
+                    )
+                self.tools[tool.name] = tool
+                self.tool_to_server[tool.name] = server_name
+            logger.info(f"Connected to MCP server '{server_name}' with tools: {[tool.name for tool in response.tools]}")
         logger.info(f"Started {len(self.servers)} MCP servers")
 
     def load_config(self, config_path) -> dict[str, StdioServerParameters]:
@@ -74,30 +90,6 @@ class MCPClient:
                     server_config_dict["env"][env_var] = os.environ[env_var]
         return server_config_dict
 
-    async def connect_to_server(self, server_name: str, server_params: StdioServerParameters):
-        try:
-            exit_stack = AsyncExitStack()
-            stdio_transport = await exit_stack.enter_async_context(stdio_client(server_params))
-            session = await exit_stack.enter_async_context(ClientSession(*stdio_transport))
-            await session.initialize()
-        except Exception as e:
-            logger.exception(f"Failed to start MCP server {server_name} with config {server_params.model_dump()}: {e}")
-            raise e
-
-        # List available tools
-        response = await session.list_tools()
-        for tool in response.tools:
-            if tool.name in self.tools:
-                raise Exception(
-                    f"Tools conflict! Tool {tool.name} already provided by server '{self.tool_to_server[tool.name]}'"
-                )
-
-            self.tools[tool.name] = tool
-            self.tool_to_server[tool.name] = server_name
-        logger.info(f"Connected to MCP server '{server_name}' with tools: {[tool.name for tool in response.tools]}")
-        self.sessions[server_name] = session
-        self.exit_stacks[server_name] = exit_stack
-
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
         server_name = self.check_tool_exists(tool_name)
         try:
@@ -116,40 +108,75 @@ class MCPClient:
         return server_name
 
     async def close(self) -> None:
-        """Clean up resources."""
-        async with self._cleanup_lock:
-            for server_name, exit_stack in self.exit_stacks.items():
-                try:
-                    await exit_stack.aclose()
-                    del self.sessions[server_name]
-                except Exception:
-                    pass
+        await self.exit_stack.aclose()
 
 
 class MCPEnvironment(ToolCollectionEnvironment):
-    client: MCPClient
-    tools: dict[str, ToolSpec]
+    def __init__(
+        self,
+        config_path: str = "",
+        tools_whitelist: Optional[list[str]] = None,
+        other_tools: Optional[list[BaseTool]] = None,
+        use_cache: bool = False,
+        read_timeout_seconds: int = 10,
+        client: MCPClient | None = None,
+    ) -> None:
+        super().__init__(tools=other_tools or [])
+        logger.info(f"Initializing MCPEnvironment with config_path: {config_path}")
+        self.client = client or MCPClient(
+            config_path=config_path, use_cache=use_cache, read_timeout_seconds=read_timeout_seconds
+        )
+        self.tools_whitelist = tools_whitelist or []
 
-    def __init__(self, config_path: str = "", client: MCPClient | None = None) -> None:
-        self.client = client or MCPClient(config_path)
-        self.tools = {
-            tool.name: ToolSpec(
-                function=FunctionSpec(name=tool.name, description=tool.description or "", parameters=tool.inputSchema)
-            )
-            for tool in self.client.tools.values()
-        }
+        if not self.client and not self.tools:
+            raise ValueError("Tools or MCP client config_path must be provided")
+        self.client.use_cache = use_cache
+        self.loop = asyncio.get_event_loop()
+
+    def initialize(self):
+        nest_asyncio.apply()
+        self.loop.run_until_complete(self.client.start_servers())
+        self.tools.extend(
+            [
+                ToolSpec(
+                    function=FunctionSpec(
+                        name=tool.name, description=tool.description or "", parameters=tool.inputSchema
+                    )
+                )
+                for tool in self.client.tools.values()
+                if tool.name in self.tools_whitelist or not self.tools_whitelist
+            ]
+        )
+
+    async def ainitialize(self) -> None:
+        await self.client.start_servers()
+        self.tools.extend(
+            [
+                ToolSpec(
+                    function=FunctionSpec(
+                        name=tool.name, description=tool.description or "", parameters=tool.inputSchema
+                    )
+                )
+                for tool in self.client.tools.values()
+                if tool.name in self.tools_whitelist or not self.tools_whitelist
+            ]
+        )
 
     def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
-        return tuple(self.tools.values())
+        actions = super().actions()
+        tool_specs = [t for t in self.tools if isinstance(t, ToolSpec)]
+        return actions + tuple(tool_specs)
 
-    def tools_description(self) -> str:
-        return "\n".join(f"{spec.function.name} - {spec.function.description}" for spec in self.tools.values())
-
-    def step(self, action: ToolCallAction) -> ToolResult:
+    def step(self, action: Action) -> Observation:
+        if not isinstance(action, ToolCallAction):
+            return super().step(action)
         if isinstance(action, LLMOutputParsingFailureAction):
             return ToolResult(tool_call_id="", content="Try again")
         try:
-            result = asyncio.run(self.client.call_tool(action.function.name, action.function.arguments))
+            assert self.client is not None, "MCPClient is not initialized"
+            result = self.loop.run_until_complete(
+                self.client.call_tool(action.function.name, action.function.arguments)
+            )
         except NoTool:
             logger.exception(f"Tool {action.function.name} not found in MCP client")
             result = CallToolResult(
@@ -170,7 +197,44 @@ class MCPEnvironment(ToolCollectionEnvironment):
         return ToolResult(tool_call_id=action.id, content=result)
 
     def close(self) -> None:
+        super().close()
+        if self.client is not None:
+            try:
+                self.loop.run_until_complete(self.client.close())
+            except Exception as e:
+                logger.warning(f"Failed to close MCP client properly: {e}")
+
+    async def astep(self, action: Action) -> Observation:
+        if not isinstance(action, ToolCallAction):
+            return await super().astep(action)
+        if isinstance(action, LLMOutputParsingFailureAction):
+            return ToolResult(tool_call_id="", content="Try again")
+        t = time.perf_counter()
         try:
-            asyncio.run(self.client.close())
-        except Exception:
-            pass
+            assert self.client is not None, "MCPClient is not initialized"
+            result = await self.client.call_tool(action.function.name, action.function.arguments)
+        except NoTool:
+            logger.exception(f"Tool {action.function.name} not found in MCP client")
+            result = CallToolResult(
+                content=[TextContent(type="text", text=f"Tool {action.function.name} not found")], isError=True
+            )
+        except KeyError as e:
+            logger.exception(f"KeyError when executing MCP tool call: {e}")
+            result = CallToolResult(
+                content=[TextContent(type="text", text=f"Error executing tool {action.function.name}: KeyError {e}")],
+                isError=True,
+            )
+        except Exception as e:
+            logger.exception(f"Error executing MCP tool call: {e}")
+            result = CallToolResult(
+                content=[TextContent(type="text", text=f"Error executing tool {action.function.name}: {str(e)}")],
+                isError=True,
+            )
+        observation = ToolResult(tool_call_id=action.id, content=result)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
+        return observation
+
+    async def aclose(self) -> None:
+        await super().aclose()
+        await self.client.close()
