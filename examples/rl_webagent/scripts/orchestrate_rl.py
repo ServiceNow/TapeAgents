@@ -688,6 +688,37 @@ def main(cfg: DictConfig):
     # train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
     train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
 
+    ############## PROFILE ENVIRONMENT CREATION AND TASK INIT ##############
+    # start_tape_creation_times = []
+    # for _ in range(10):
+    #     for task in train_samples:
+    #         env_path = exp_path / "train" / "it1" / f"{task['task'].get_task_id()}_{task['seed']}" / "env"
+    #         _zero = time.perf_counter()
+    #         env = WebEnvironment(
+    #             exp_path=str(env_path),
+    #             headless=cfg.env.headless,
+    #             observation_format=cfg.env.observation_format,
+    #         )
+    #         zero = time.perf_counter() - _zero
+    #         logger.info(f"WebEnvironment class instance created in {zero:.2f} seconds")
+    #         # init the tape
+    #         _one = time.perf_counter()
+    #         _ = env.start_task(task["task"], task["seed"])
+    #         one = time.perf_counter() - _one
+    #         logger.info(f"Start_task done in {one:.2f} seconds.")
+    #         _two = time.perf_counter()
+    #         env.finish_task()
+    #         two = time.perf_counter() - _two
+    #         logger.info(f"Finish_task done in {two:.2f} seconds.")
+    #         start_tape_creation_times.append((zero, one, two))
+    # logger.info("============= PROFILE SUMMARY ============")
+    # logger.info(start_tape_creation_times)
+    # logger.info(
+    #     f"Average time to create an env, start, and terminate a task: {np.sum(start_tape_creation_times) / len(start_tape_creation_times):.2f} over {len(start_tape_creation_times)} tasks"
+    # )
+    # return
+    ############## END PROFILE ##############
+
     ### repeat until we have reached the max number of iterations ###
     ### each iteration is a forward pass (agent making predictions on tapes), a reference pass (reference model populating ref_logprobs), and a finetuning run on the generated training samples ###
     while state["iteration"] < cfg.max_iterations:
