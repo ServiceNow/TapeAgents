@@ -4,5 +4,6 @@ environment_server:
     _target_: examples.workarena.environment.WorkArenaEnvironment
     exp_path: output/workarena/env_server_test
     headless: false
+  n_envs: 2
   host: localhost
   port: 8000

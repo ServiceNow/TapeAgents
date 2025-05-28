@@ -24,7 +24,11 @@ class WorkArenaEnvironment(Environment):
     def __init__(self, exp_path: str, headless: bool = True) -> None:
         super().__init__()
         os.makedirs(exp_path, exist_ok=True)
-        self.browser = Browser(headless=headless, exp_path=exp_path)
+        self.exp_path = exp_path
+        self.headless = headless
+
+    def initialize(self):
+        self.browser = Browser(headless=self.headless, exp_path=self.exp_path)
 
     def start_task(
         self, task_entrypoint: type[AbstractServiceNowTask], seed: int = 42

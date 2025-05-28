@@ -12,14 +12,14 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(version_base=None, config_path=".", config_name="env_client")
 def main(cfg: DictConfig):
-    env: RemoteEnvironment = instantiate(cfg.environment)
-    env.reset()
-    logger.info("Environment reset complete")
-    actions = env.actions()
-    logger.info(f"Available actions: {actions}")
-    action = OpenUrlAction(url="https://servicenow.com")
-    obs = env.step(action)
-    logger.info(f"Observation after step: {type(obs)}: {obs}")
+    environment: RemoteEnvironment = instantiate(cfg.environment)
+    with environment.context() as env:
+        logger.info("Environment ready.")
+        actions = env.actions()
+        logger.info(f"Available actions: {actions}")
+        action = OpenUrlAction(url="https://servicenow.com")
+        obs = env.step(action)
+        logger.info(f"Observation after step: {type(obs)}: {obs}")
 
 
 if __name__ == "__main__":
