@@ -1,8 +1,10 @@
+import asyncio
 import atexit
 import contextlib
 import copy
 import logging
 import os
+import time
 import traceback
 import uuid
 from multiprocessing import Pipe, Process, connection as mp_connection  # type: ignore
@@ -13,6 +15,7 @@ import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, TypeAdapter
+from termcolor import colored
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction, TapeType, last_actions
 from tapeagents.environment import AsyncEnvironment, Environment, UserStep
@@ -193,8 +196,9 @@ class EnvironmentServer:
                     session_id = str(uuid.uuid4())
                     self.sessions[session_id] = i
                     logger.info(f"Environment {i} acquired with session ID: {session_id}")
+                    logger.info(f"Remaining free environments: {self.n_envs - len(self.sessions)}")
                     return {"session_id": session_id}
-            raise HTTPException(status_code=429, detail="No environments available at the moment.")
+            raise HTTPException(status_code=503, detail="No environments available at the moment.")
 
         @app.post("/release")
         async def release_environment(request: ApiRequest):
@@ -214,6 +218,7 @@ class EnvironmentServer:
             finally:
                 del self.sessions[session_id]
                 logger.info(f"Environment {env_idx} released from session {session_id} and reset.")
+                logger.info(f"Remaining free environments: {self.n_envs - len(self.sessions)}")
 
             return {"status": "released", "env_idx": env_idx}
 
@@ -299,13 +304,9 @@ class RemoteEnvironment(Environment):
     def initialize(self) -> None:
         response = requests.post(f"{self.server_url}/acquire")
         if response.status_code != 200:
-            logger.error(f"Failed to acquire environment: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=response.text)
         response_data = response.json()
         self.session_id = response_data.get("session_id")
-        if not self.session_id:
-            logger.error("Failed to acquire environment: session_id not returned.")
-            raise HTTPException(status_code=500, detail="Failed to acquire environment: session_id not returned.")
         logger.info(f"Acquired environment with session ID: {self.session_id}")
 
     def start_task(self, task_data: dict) -> dict:
@@ -387,14 +388,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         self.tcp_session = session
         async with self.tcp_session.post(f"{self.server_url}/acquire") as response:
             if response.status != 200:
-                text = await response.text()
-                logger.error(f"Failed to acquire environment: {text}")
-                raise HTTPException(status_code=response.status, detail=text)
+                raise HTTPException(status_code=response.status, detail=await response.text())
             response_data = await response.json()
         self.session_id = response_data.get("session_id")
-        if not self.session_id:
-            logger.error("Failed to acquire environment: session_id not returned.")
-            raise HTTPException(status_code=500, detail="Failed to acquire environment: session_id not returned.")
         logger.info(f"Acquired environment with session ID: {self.session_id}")
         await super().ainitialize()  # In case parent class has async initialization logic
 
@@ -458,20 +454,21 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
 
     async def aclose(self) -> None:
         if self.session_id and self.tcp_session:
-            async with self.tcp_session.post(
-                f"{self.server_url}/release", json={"session_id": self.session_id}
-            ) as response:
-                if response.status != 200:
-                    text = await response.text()
-                    logger.error(f"Failed to release environment: {text}")
-                    # Potentially raise an error, but for close, logging might be sufficient
-                    # raise HTTPException(status_code=response.status, detail=text)
+            try:
+                async with self.tcp_session.post(
+                    f"{self.server_url}/release", json={"session_id": self.session_id}
+                ) as response:
+                    if response.status != 200:
+                        text = await response.text()
+                        logger.error(colored(f"Failed to release environment: {text}", "red"))
+                logger.info(f"Async environment with session id {self.session_id} closed.")
+            except aiohttp.ClientError as e:
+                logger.error(colored(f"Failed to release environment: {e}", "red"))
             self.session_id = None
         elif not self.tcp_session:
             logger.warning("No TCP session available to release environment.")
         else:
             logger.warning("No session ID to release.")
-        # self.tcp_session should not be closed here as it's managed externally
 
     def react(self, tape: TapeType) -> TapeType:
         raise NotImplementedError("Use areact for asynchronous environments.")
@@ -483,14 +480,43 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         return tape
 
     @contextlib.asynccontextmanager
-    async def acontext(self, session: aiohttp.ClientSession):
+    async def acontext(
+        self,
+        session: aiohttp.ClientSession,
+        wait_for_env: bool = True,
+        initialization_timeout_sec: int = 3600,
+    ):
         """
         Asynchronous context manager to automatically acquire and release the environment.
         The aiohttp.ClientSession is passed in and managed externally.
         """
-        await self.ainitialize(session)
+        await self.wait_initialize(session, wait_for_env, initialization_timeout_sec)
         try:
             yield self
+        except Exception as e:
+            logger.exception(f"Error caught in asyc context manager of the env: {e}")
+            raise e
+        except KeyboardInterrupt:
+            logger.warning("KeyboardInterrupt received, shutting down async environment.")
+            raise
         finally:
             await self.aclose()
-            logger.info("Async environment session closed.")
+
+    async def wait_initialize(self, session, wait_for_env, initialization_timeout_sec):
+        t = time.perf_counter()
+        while True:
+            try:
+                await self.ainitialize(session)
+                return
+            except HTTPException as e:
+                if e.status_code == 503 and wait_for_env:
+                    if time.perf_counter() - t > initialization_timeout_sec:
+                        logger.error(
+                            f"Failed to initialize environment after {initialization_timeout_sec} seconds: {e.detail}"
+                        )
+                        raise e
+                    logger.info("Waiting for environment to become available...")
+                    await asyncio.sleep(5)
+                else:
+                    logger.error(f"Failed to initialize environment: {e.status_code}, {e.detail}")
+                    raise e

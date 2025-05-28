@@ -24,6 +24,7 @@ from tapeagents.environment import (
     NoActionsToReactTo,
     ToolCollectionEnvironment,
 )
+from tapeagents.remote_environment import AsyncRemoteEnvironment
 from tapeagents.renderers import step_view
 from tapeagents.utils import FatalError, diff_dicts
 
@@ -95,17 +96,14 @@ def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectio
     return agent, environment
 
 
-async def run_agent_with_async_env(cfg: DictConfig, tape, session):
+async def run_agent_with_remote_env(cfg: DictConfig, tape: TapeType, session: aiohttp.ClientSession) -> TapeType:
     environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
-    async with environment.acontext(session) as env:
+    async with environment.acontext(session, wait_for_env=True) as env:
         actions = await environment.a_actions()
-        logger.info(f"Environment actions: {actions}")
-        agent: Agent = instantiate(
-            cfg.agent,
-            known_actions=actions,
-            tools_description=await environment.a_tools_description(),
-        )
-        return await async_execute_agent(agent, tape, env, session)
+        tools_description = await environment.a_tools_description()
+        agent: Agent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
+        tape = await async_execute_agent(agent, tape, env, session)
+        return tape
 
 
 def main_loop(

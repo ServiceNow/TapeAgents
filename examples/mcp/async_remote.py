@@ -11,7 +11,7 @@ from examples.gaia_agent.eval import load_dataset, tape_correct, task_to_observa
 from examples.gaia_agent.steps import GaiaTape
 from tapeagents.core import StopStep
 from tapeagents.io import save_json_tape
-from tapeagents.orchestrator import run_agent_with_async_env
+from tapeagents.orchestrator import run_agent_with_remote_env
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +30,9 @@ async def amain(cfg: DictConfig) -> None:
     tasks = load_dataset(cfg.split)
 
     dt = time.perf_counter()
-    connector = aiohttp.TCPConnector(limit=50000, limit_per_host=50000, keepalive_timeout=1.0)
-    timeout = aiohttp.ClientTimeout(total=3600.0, connect=3600.0, sock_read=3600.0)
+    timeout = 3600.0
+    connector = aiohttp.TCPConnector(limit=1000, limit_per_host=1000, force_close=True)
+    timeout = aiohttp.ClientTimeout(total=timeout, connect=timeout, sock_read=timeout)
     coroutines = []
     results = []
     if cfg.only_tasks:
@@ -48,7 +49,7 @@ async def amain(cfg: DictConfig) -> None:
             start_tape = GaiaTape(steps=task_to_observations(task))  # type: ignore
             start_tape.metadata.id = f"l{level}_task{task_num:03d}"
             start_tape.metadata.task = task
-            coroutines.append(run_agent_with_async_env(cfg, start_tape, session))
+            coroutines.append(run_agent_with_remote_env(cfg, start_tape, session))
         logger.info(f"Solving {len(coroutines)} tasks")
         results = await asyncio.gather(*coroutines)
 
