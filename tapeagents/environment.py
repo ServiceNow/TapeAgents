@@ -13,7 +13,7 @@ from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
 from tapeagents.agent import TapeType
-from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape, last_actions
 from tapeagents.dialog_tape import AssistantStep, DialogTape, UserStep
 from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
 from tapeagents.tools.base import AsyncBaseTool, BaseTool, StatefulTool, Tool
@@ -206,7 +206,7 @@ class ToolCollectionEnvironment(AsyncEnvironment):
         return "\n".join(f"- {desc}" for desc in desc_list)
 
     def react(self, tape: Tape) -> Tape:
-        for action in self.last_actions(tape):
+        for action in last_actions(tape):
             observation = self.step(action)
             tape = tape.append(observation)
         return tape
@@ -232,11 +232,8 @@ class ToolCollectionEnvironment(AsyncEnvironment):
         for tool in self.tools:
             tool.close()
 
-    def last_actions(self, tape: Tape) -> list[Action]:
-        return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
-
     async def areact(self, tape: Tape) -> Tape:
-        for action in self.last_actions(tape):
+        for action in last_actions(tape):
             observation = await self.astep(action)
             tape = tape.append(observation)
         return tape

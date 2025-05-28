@@ -453,3 +453,7 @@ class MakeObservation(Action, Generic[StepType]):
         obj = self.model_dump(exclude_none=True, exclude={"metadata"})
         del obj["new_observation"]["metadata"]
         return obj
+
+
+def last_actions(tape: Tape) -> list[Action]:
+    return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]

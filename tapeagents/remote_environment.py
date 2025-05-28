@@ -8,13 +8,14 @@ import uuid
 from multiprocessing import Pipe, Process, connection as mp_connection  # type: ignore
 from typing import Annotated, Union
 
+import aiohttp
 import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, TypeAdapter
 
-from tapeagents.core import Action, Tape, TapeType
-from tapeagents.environment import Environment
+from tapeagents.core import Action, LLMOutputParsingFailureAction, TapeType, last_actions
+from tapeagents.environment import AsyncEnvironment, Environment, UserStep
 from tapeagents.utils import class_for_name, full_classname
 
 logger = logging.getLogger(__name__)
@@ -279,7 +280,7 @@ class EnvironmentServer:
                 process.join()
         logger.info("All environment processes cleaned up.")
 
-    def run(self):
+    def launch(self):
         app = self.create_app()
 
         logger.info(f"Starting Environment Server at http://{self.host}:{self.port} with {self.n_envs} environments.")
@@ -326,13 +327,10 @@ class RemoteEnvironment(Environment):
         return actions
 
     def react(self, tape: TapeType) -> TapeType:
-        for action in self.last_actions(tape):
+        for action in last_actions(tape):
             observation = self.step(action)
             tape = tape.append(observation)
         return tape
-
-    def last_actions(self, tape: Tape) -> list[Action]:
-        return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
 
     def step(self, action: Action) -> BaseModel:
         response = requests.post(
@@ -373,3 +371,126 @@ class RemoteEnvironment(Environment):
         finally:
             self.close()
             logger.info("Environment session closed.")
+
+
+class AsyncRemoteEnvironment(AsyncEnvironment):
+    """
+    Asynchronous environment that proxies actions to a remote environment server using aiohttp.
+    """
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self.session_id: str | None = None
+        self.tcp_session: aiohttp.ClientSession | None = None
+
+    async def ainitialize(self, session: aiohttp.ClientSession) -> None:
+        self.tcp_session = session
+        async with self.tcp_session.post(f"{self.server_url}/acquire") as response:
+            if response.status != 200:
+                text = await response.text()
+                logger.error(f"Failed to acquire environment: {text}")
+                raise HTTPException(status_code=response.status, detail=text)
+            response_data = await response.json()
+        self.session_id = response_data.get("session_id")
+        if not self.session_id:
+            logger.error("Failed to acquire environment: session_id not returned.")
+            raise HTTPException(status_code=500, detail="Failed to acquire environment: session_id not returned.")
+        logger.info(f"Acquired environment with session ID: {self.session_id}")
+        await super().ainitialize()  # In case parent class has async initialization logic
+
+    async def start_task(self, task_data: dict) -> dict:
+        if not self.tcp_session or not self.session_id:
+            raise RuntimeError("Environment not initialized. Call ainitialize first.")
+        async with self.tcp_session.post(
+            f"{self.server_url}/start_task", json={"task_data": task_data, "session_id": self.session_id}
+        ) as response:
+            if response.status != 200:
+                text = await response.text()
+                logger.error(f"Failed to start task in environment: {text}")
+                raise HTTPException(status_code=response.status, detail=text)
+            return await response.json()
+
+    async def a_actions(self) -> tuple[type[Action], ...]:
+        if not self.tcp_session or not self.session_id:
+            raise RuntimeError("Environment not initialized. Call ainitialize first.")
+        async with self.tcp_session.post(
+            f"{self.server_url}/actions", json={"session_id": self.session_id}
+        ) as response:
+            if response.status != 200:
+                text = await response.text()
+                logger.error(f"Failed to fetch actions from environment: {text}")
+                raise HTTPException(status_code=response.status, detail=text)
+            response_data = await response.json()
+        action_names = response_data.get("actions", [])
+        actions_tuple = tuple(class_for_name(action) for action in action_names)
+        return actions_tuple
+
+    async def a_tools_description(self) -> str:
+        desc_list = [f"{a.__class__.__name__} - {a.__doc__ or '[no description]'}" for a in await self.a_actions()]
+        return "\n".join(f"- {desc}" for desc in desc_list)
+
+    async def astep(self, action: Action) -> BaseModel:
+        if isinstance(action, LLMOutputParsingFailureAction):
+            return UserStep(content="Try again")
+        if not self.tcp_session or not self.session_id:
+            raise RuntimeError("Environment not initialized. Call ainitialize first.")
+        async with self.tcp_session.post(
+            f"{self.server_url}/step", json={"action_data": action.model_dump(), "session_id": self.session_id}
+        ) as response:
+            if response.status != 200:
+                text = await response.text()
+                logger.error(f"Failed to step in environment: {text}")
+                raise HTTPException(status_code=response.status, detail=text)
+            response_dict = await response.json()
+        obs_dict = response_dict["observation"]
+        cls: type[BaseModel] = class_for_name(response_dict["classname"])
+        observation = cls.model_validate(obs_dict)
+        return observation
+
+    async def areset(self) -> None:
+        if not self.tcp_session or not self.session_id:
+            raise RuntimeError("Environment not initialized. Call ainitialize first.")
+        async with self.tcp_session.post(f"{self.server_url}/reset", json={"session_id": self.session_id}) as response:
+            if response.status != 200:
+                text = await response.text()
+                logger.error(f"Failed to reset environment: {text}")
+                raise HTTPException(status_code=response.status, detail=text)
+
+    async def aclose(self) -> None:
+        if self.session_id and self.tcp_session:
+            async with self.tcp_session.post(
+                f"{self.server_url}/release", json={"session_id": self.session_id}
+            ) as response:
+                if response.status != 200:
+                    text = await response.text()
+                    logger.error(f"Failed to release environment: {text}")
+                    # Potentially raise an error, but for close, logging might be sufficient
+                    # raise HTTPException(status_code=response.status, detail=text)
+            self.session_id = None
+        elif not self.tcp_session:
+            logger.warning("No TCP session available to release environment.")
+        else:
+            logger.warning("No session ID to release.")
+        # self.tcp_session should not be closed here as it's managed externally
+
+    def react(self, tape: TapeType) -> TapeType:
+        raise NotImplementedError("Use areact for asynchronous environments.")
+
+    async def areact(self, tape: TapeType) -> TapeType:
+        for action in last_actions(tape):
+            observation = await self.astep(action)
+            tape = tape.append(observation)
+        return tape
+
+    @contextlib.asynccontextmanager
+    async def acontext(self, session: aiohttp.ClientSession):
+        """
+        Asynchronous context manager to automatically acquire and release the environment.
+        The aiohttp.ClientSession is passed in and managed externally.
+        """
+        await self.ainitialize(session)
+        try:
+            yield self
+        finally:
+            await self.aclose()
+            logger.info("Async environment session closed.")
