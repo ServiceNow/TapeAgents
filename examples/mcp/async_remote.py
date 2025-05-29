@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @hydra.main(
     version_base=None,
-    config_path="../../conf",
+    config_path=".",
     config_name="async_remote",
 )
 def main(cfg: DictConfig) -> None:
