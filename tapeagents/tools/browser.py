@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import gymnasium as gym
 import markdownify
+import nest_asyncio
 import numpy as np
 import requests
 from browsergym.core.action.highlevel import HighLevelActionSet
@@ -29,6 +30,7 @@ from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
 
+nest_asyncio.apply()
 NODES_WITH_BID = [
     "button",
     "link",
@@ -378,6 +380,9 @@ class Browser(StatefulTool):
         img_path = os.path.join(self._screenshots_dir, f"{pic_uid}.png")
         image.save(img_path)
         return img_path
+
+    def reset(self):
+        self._env.step("goto('about:blank')")
 
     def run_browser_action(self, action_text: str) -> PageObservation:
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
