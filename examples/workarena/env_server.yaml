@@ -5,14 +5,6 @@ environment_server:
   port: 8000
 
 environment:
-  _target_: tapeagents.mcp.MCPEnvironment
-  config_path: conf/mcp/web_and_code.json
-  tools_whitelist:
-    - web_search_tool
-    - browser_navigate
-    - browser_click
-    - browser_type
-    - browser_hover
-    - browser_select_option
-    - browser_take_screenshot
-    - run_python_code
+  _target_: examples.workarena.environment.WorkArenaEnvironment
+  exp_path: output/workarena/env_server_test
+  headless: true
