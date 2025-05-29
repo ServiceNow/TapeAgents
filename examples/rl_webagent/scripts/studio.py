@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
     config_name="webagent_demo",
 )
 def main(cfg: DictConfig) -> None:
+    os.makedirs(cfg.exp_path, exist_ok=True)
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
     # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url

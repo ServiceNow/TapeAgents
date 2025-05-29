@@ -45,6 +45,8 @@ class ImageObservation(Observation):
 
     def short_view(self, max_chars=100):
         view = self.llm_dict()
+        if self.image_caption and len(self.image_caption) > max_chars:
+            view["image_caption"] = view["image_caption"][:max_chars] + "..."
         return json.dumps(view, indent=2, ensure_ascii=False)
 
 
@@ -77,7 +79,7 @@ class VideoObservation(Observation):
 
     def short_view(self, max_chars=100):
         view = self.llm_dict()
-        if len(view["subtitle_text"]) > max_chars:
+        if self.subtitle_text and len(self.subtitle_text) > max_chars:
             view["subtitle_text"] = view["subtitle_text"][:max_chars] + "..."
         del view["video_contact_sheet_paths"]
         return json.dumps(view, indent=2, ensure_ascii=False)
@@ -113,6 +115,6 @@ class ActionExecutionFailure(Observation, Error):
 
     def short_view(self, max_chars=100):
         view = self.llm_dict()
-        if len(view["error"]) > max_chars:
+        if self.error and len(self.error) > max_chars:
             view["error"] = view["error"][:max_chars] + "..."
         return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)
