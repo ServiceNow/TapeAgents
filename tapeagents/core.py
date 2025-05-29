@@ -113,7 +113,7 @@ class Observation(Step):
     Base class representing an observation in a tape.
     """
 
-    def short_view(self) -> str:
+    def short_view(self, max_chars=100) -> str:
         """Returns a short string representation of the observation when the tape needs to be trimmed."""
         return self.llm_view()
 

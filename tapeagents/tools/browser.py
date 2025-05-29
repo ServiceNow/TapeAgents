@@ -335,11 +335,10 @@ class Browser(StatefulTool):
             "name": self._env.unwrapped.task.get_task_id(),
             "goal": start_obs["goal"],
             "task_info": info["task_info"],
-            "video": os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
-            "chat_video": os.path.basename(self._env.unwrapped.chat.page.video.path())
-            if self._env.unwrapped.chat.page.video
-            else "",
+            "video": "",
+            "chat_video": "",
         }
+
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
