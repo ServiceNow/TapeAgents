@@ -319,8 +319,6 @@ class Browser(StatefulTool):
 
     def start_task(self, task_id: str, seed: int = 1, **kwargs) -> dict:
         self._task_id = task_id
-        # logger.info(f"Browser.start_task {task_id} start making gym environment...")
-        # _zero = time.perf_counter()
         self._env = gym.make(
             task_id,
             headless=self.headless,
@@ -329,7 +327,6 @@ class Browser(StatefulTool):
             timeout=self.timeout_ms,
             **kwargs,
         )  # type: ignore
-
         start_obs, info = self._env.reset(seed=seed)
         self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
         self._env.unwrapped.chat.add_message(role="assistant", msg="Running TapeAgent...")
@@ -338,9 +335,10 @@ class Browser(StatefulTool):
             "name": self._env.unwrapped.task.get_task_id(),
             "goal": start_obs["goal"],
             "task_info": info["task_info"],
-            "video": "",  # os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
-            "chat_video": "",  # os.path.basename(self._env.unwrapped.chat.page.video.path()) if self._env.unwrapped.chat.page.video else "",
+            "video": "",
+            "chat_video": "",
         }
+
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
