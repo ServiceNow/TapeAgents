@@ -75,7 +75,9 @@ def main(cfg: DictConfig) -> None:
             if isinstance(step, Action):
                 step_view = step.llm_view()
                 if reapeated_action_monitor.should_stop(step_view):
-                    logger.error(f"Repeated action '{step_view}' detected {reapeated_action_monitor.repeat_count} times")
+                    logger.error(
+                        f"Repeated action '{step_view}' detected {reapeated_action_monitor.repeat_count} times"
+                    )
                     break
             # print step and prompt messages
             llm_calls = retrieve_llm_calls(step.metadata.prompt_id)

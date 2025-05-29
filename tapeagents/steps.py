@@ -79,7 +79,7 @@ class VideoObservation(Observation):
 
     def short_view(self, max_chars=100):
         view = self.llm_dict()
-        if self. subtitle_text and len(self.subtitle_text) > max_chars:
+        if self.subtitle_text and len(self.subtitle_text) > max_chars:
             view["subtitle_text"] = view["subtitle_text"][:max_chars] + "..."
         del view["video_contact_sheet_paths"]
         return json.dumps(view, indent=2, ensure_ascii=False)
