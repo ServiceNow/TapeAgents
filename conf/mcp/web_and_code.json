@@ -2,20 +2,23 @@
     "mcpServers": {
         "serper-search": {
             "command": "uv",
-            "args": ["run", "tapeagents/tools/mcp_servers/web_search.py"],
-            "env": {"SERPER_API_KEY": ""}
-        },
-        "fetch": {
-            "command": "uvx",
             "args": [
-                "mcp-server-fetch"
-            ]
+                "run",
+                "tapeagents/tools/mcp_servers/web_search.py"
+            ],
+            "env": {
+                "SERPER_API_KEY": ""
+            }
         },
-        "puppeteer": {
+        "playwright": {
             "command": "npx",
             "args": [
-                "-y",
-                "@modelcontextprotocol/server-puppeteer"
+                "@playwright/mcp@latest",
+                "--headless",
+                "--isolated",
+                "--ignore-https-errors",
+                "--user-agent",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
             ]
         },
         "python_exec": {

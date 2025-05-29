@@ -1,0 +1,3 @@
+environment:
+  _target_: tapeagents.remote_environment.AsyncRemoteEnvironment
+  server_url: http://localhost:8000

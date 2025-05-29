@@ -31,34 +31,50 @@ nodes:
     system_prompt: ${agent.templates.system_prompt}
     guidance: |
       Write a concise multi-step plan explaining which steps should be performed to find the answer for the given task.
-      Remember that you can use web search, browser, python code execution and access the youtube videos to reach your goals.
       Be specific about how each step should be performed. Only describe the intended actions here, do not perform them yet.
       Consider that next steps may depend on results of previous steps, so include conditional branching using "if" statements where needed.
+      Start with the title "Plan". Every step should have short name and description.
       ${agent.templates.thought_format}
     steps_prompt: ${agent.templates.allowed_tools}
 
   - _target_: tapeagents.nodes.StandardNode
-    name: facts_survey
+    name: select
     system_prompt: ${agent.templates.system_prompt}
+    trim_obs_except_last_n: 1
     guidance: |
-      Before we begin executing the plan, please answer the following pre-survey.
-      Here is the pre-survey:
-          1. Please list any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.
-          2. Please list any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
-          3. Please list any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
-          4. Please list any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
-      When answering this survey, keep in mind that "facts" will typically be specific names, dates, statistics, etc.
+      Select the next step to do to move forward with the plan. Describe the expected effect of the proposed action.
       ${agent.templates.thought_format}
     steps_prompt: ${agent.templates.allowed_tools}
 
   - _target_: tapeagents.nodes.StandardNode
     name: act
     system_prompt: ${agent.templates.system_prompt}
+    trim_obs_except_last_n: 1
     guidance: Then produce single function call for the next step. If the answer is ready, call GaiaAnswer.
     steps:
-      - tapeagents.steps.ReasoningThought
-      - examples.gaia_agent.steps.ExtractedFacts
       - examples.gaia_agent.steps.GaiaAnswer
     use_known_actions: true
     use_function_calls: true
-    next_node: act
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: summarize
+    system_prompt: ${agent.templates.system_prompt}
+    trim_obs_except_last_n: 1
+    guidance: |
+      Summarize last observation. If its an image, thoroughly describe it with all details.
+      Describe the results of the last action and observed changes
+      Do not hallucinate or make up any information, only describe what you see in the observation.
+      Do not guess or assume action effects, describe only visible changes.
+      ${agent.templates.thought_format}
+
+  - _target_: tapeagents.nodes.StandardNode
+    name: reflect
+    system_prompt: ${agent.templates.system_prompt}
+    trim_obs_except_last_n: 1
+    guidance: |
+      1. Evaluate the action's success, explain its effect on current step, overall plan and task solution.
+      2. If the last action was not successful, describe errors and the possible reasons for failure.
+      3. Check if the current plan step is finished. 
+      4. If the step is finished, update the following steps of the plan with new information and choose the next step.
+      ${agent.templates.thought_format}
+    next_node: select

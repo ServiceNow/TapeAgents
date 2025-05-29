@@ -147,7 +147,9 @@ class Action(AgentStep):
     Base class representing an agent's action in a tape.
     """
 
-    pass
+    @classmethod
+    def description(cls) -> str:
+        return f"{cls.__name__} - {cls.__doc__ or '[no description]'}"
 
 
 class LLMOutputParsingFailureAction(Action, Error):
@@ -453,3 +455,7 @@ class MakeObservation(Action, Generic[StepType]):
         obj = self.model_dump(exclude_none=True, exclude={"metadata"})
         del obj["new_observation"]["metadata"]
         return obj
+
+
+def last_actions(tape: Tape) -> list[Action]:
+    return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
