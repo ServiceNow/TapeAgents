@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
@@ -6096,6 +6097,7 @@ requires-dist = [
     { name = "youtube-transcript-api", marker = "extra == 'converters'", specifier = "~=0.6" },
     { name = "yt-dlp", marker = "extra == 'converters'", specifier = ">=2024.12.13" },
 ]
+provides-extras = ["converters", "finetune", "rl-gsm8k"]
 
 [package.metadata.requires-dev]
 dev = [
