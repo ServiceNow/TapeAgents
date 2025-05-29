@@ -81,7 +81,8 @@ class TrainableLLM(CachedLLM):
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
-        self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "") or os.getenv("OPENAI_API_KEY", "")
+        if not self.api_token:
+            self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "") or os.getenv("OPENAI_API_KEY", "")
 
     def get_base_url(self) -> str:
         """
