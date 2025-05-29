@@ -66,7 +66,7 @@ class EnvironmentServer:
             action = ToolCallAction.model_validate(data)
         else:
             actions = [a for a in environment.actions() if not isinstance(a, ToolSpec)]
-            type_adapter = TypeAdapter(Annotated[Union[actions], Field(discriminator="kind")])
+            type_adapter = TypeAdapter(Annotated[Union[tuple(actions)], Field(discriminator="kind")])
             action: Action = type_adapter.validate_python(data)
 
         observation = environment.step(action)
@@ -99,6 +99,12 @@ class EnvironmentServer:
 
     @staticmethod
     def _environment_worker(env_config: DictConfig, conn: mp_connection.Connection):
+        logging.basicConfig(
+            format="[%(asctime)s][%(name)s][%(levelname)s][%(process)d] - %(message)s",
+            datefmt="%m/%d/%Y %H:%M:%S",
+            level=logging.INFO,
+            handlers=[logging.StreamHandler()],
+        )
         handlers = {
             "step": EnvironmentServer._handle_step,
             "actions": EnvironmentServer._handle_actions,
