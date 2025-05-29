@@ -1,9 +1,18 @@
 environment_server:
   _target_: tapeagents.remote_environment.EnvironmentServer
-  environment:
-    _target_: examples.workarena.environment.WorkArenaEnvironment
-    exp_path: output/workarena/env_server_test
-    headless: true
-  n_envs: 16
+  n_envs: 8
   host: localhost
   port: 8000
+
+environment:
+  _target_: tapeagents.mcp.MCPEnvironment
+  config_path: conf/mcp/web_and_code.json
+  tools_whitelist:
+    - web_search_tool
+    - browser_navigate
+    - browser_click
+    - browser_type
+    - browser_hover
+    - browser_select_option
+    - browser_take_screenshot
+    - run_python_code

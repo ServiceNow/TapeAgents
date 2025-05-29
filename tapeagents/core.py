@@ -147,7 +147,9 @@ class Action(AgentStep):
     Base class representing an agent's action in a tape.
     """
 
-    pass
+    @classmethod
+    def description(cls) -> str:
+        return f"{cls.__name__} - {cls.__doc__ or '[no description]'}"
 
 
 class LLMOutputParsingFailureAction(Action, Error):

@@ -1,7 +1,6 @@
 import asyncio
 import atexit
 import contextlib
-import copy
 import logging
 import os
 import time
@@ -14,11 +13,14 @@ import aiohttp
 import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from hydra.utils import instantiate
+from omegaconf import DictConfig
 from pydantic import BaseModel, Field, TypeAdapter
 from termcolor import colored
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction, TapeType, last_actions
 from tapeagents.environment import AsyncEnvironment, Environment, UserStep
+from tapeagents.tool_calling import ToolCallAction, ToolSpec
 from tapeagents.utils import class_for_name, full_classname
 
 logger = logging.getLogger(__name__)
@@ -31,10 +33,9 @@ class EnvironmentServer:
     environment, operate on it using a session ID, and then release it.
     """
 
-    def __init__(self, environment: Environment, n_envs: int, host: str = "localhost", port: int = 8000):
+    def __init__(self, n_envs: int, host: str = "localhost", port: int = 8000):
         if n_envs <= 0:
             raise ValueError("Number of instances must be positive.")
-        self.environment_template = environment
         self.n_envs = n_envs
 
         self.host = host
@@ -44,18 +45,13 @@ class EnvironmentServer:
         self.env_processes: dict[int, Process] = {}
         self.sessions: dict[str, int] = {}  # session_id -> env_idx
 
-        self.start_envs()
-
-        atexit.register(self.shutdown)
-
-    def start_envs(self):
+    def start_envs(self, env_config: DictConfig):
         for i in range(self.n_envs):
-            env_instance_copy = copy.deepcopy(self.environment_template)
             parent_conn, child_conn = Pipe()
 
             process = Process(
                 target=EnvironmentServer._environment_worker,
-                args=(env_instance_copy, child_conn),
+                args=(env_config, child_conn),
                 daemon=True,  # Daemonize workers so they exit if main process crashes
             )
             process.start()
@@ -65,15 +61,26 @@ class EnvironmentServer:
 
     @staticmethod
     def _handle_step(environment: Environment, data: dict) -> dict:
-        type_adapter = TypeAdapter(Annotated[Union[environment.actions()], Field(discriminator="kind")])
-        action = type_adapter.validate_python(data)
+        logger.info(f"Handling step: {data}")
+        if data.get("kind") == "tool_call":
+            action = ToolCallAction.model_validate(data)
+        else:
+            actions = [a for a in environment.actions() if not isinstance(a, ToolSpec)]
+            type_adapter = TypeAdapter(Annotated[Union[actions], Field(discriminator="kind")])
+            action: Action = type_adapter.validate_python(data)
+
         observation = environment.step(action)
         return {"observation": observation.model_dump(), "classname": full_classname(type(observation))}
 
     @staticmethod
     def _handle_actions(environment: Environment, data: dict) -> dict:
         actions = environment.actions()
-        return {"actions": [full_classname(action) for action in actions]}
+        return {
+            "actions": [
+                f"ToolSpec:{action.model_dump_json()}" if isinstance(action, ToolSpec) else full_classname(action)
+                for action in actions
+            ]
+        }
 
     @staticmethod
     def _handle_reset(environment: Environment, data: dict) -> dict:
@@ -91,7 +98,7 @@ class EnvironmentServer:
         exit(0)
 
     @staticmethod
-    def _environment_worker(environment: Environment, conn: mp_connection.Connection):
+    def _environment_worker(env_config: DictConfig, conn: mp_connection.Connection):
         handlers = {
             "step": EnvironmentServer._handle_step,
             "actions": EnvironmentServer._handle_actions,
@@ -99,7 +106,7 @@ class EnvironmentServer:
             "start_task": EnvironmentServer._handle_start_task,
             "shutdown": EnvironmentServer._handle_shutdown,
         }
-
+        environment: Environment = instantiate(env_config)
         logger.info(f"Worker started for env: {environment.__class__.__name__} (PID: {os.getpid()})")
         try:
             logger.info(f"Worker {os.getpid()} initializing environment...")
@@ -285,8 +292,10 @@ class EnvironmentServer:
                 process.join()
         logger.info("All environment processes cleaned up.")
 
-    def launch(self):
+    def launch(self, env_config: DictConfig):
         app = self.create_app()
+        self.start_envs(env_config)
+        atexit.register(self.shutdown)
 
         logger.info(f"Starting Environment Server at http://{self.host}:{self.port} with {self.n_envs} environments.")
         uvicorn.run(app, host=self.host, port=self.port)
@@ -324,8 +333,15 @@ class RemoteEnvironment(Environment):
             logger.error(f"Failed to fetch actions from environment: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=response.text)
         action_names = response.json().get("actions", [])
-        actions = tuple(class_for_name(action) for action in action_names)
-        return actions
+        actions = []
+        for action in action_names:
+            if action.startswith("ToolSpec:"):
+                action = action[len("ToolSpec:") :]
+                action_obj = ToolSpec.model_validate_json(action)
+            else:
+                action_obj = class_for_name(action)
+            actions.append(action_obj)
+        return tuple(actions)
 
     def react(self, tape: TapeType) -> TapeType:
         for action in last_actions(tape):
@@ -418,11 +434,18 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 raise HTTPException(status_code=response.status, detail=text)
             response_data = await response.json()
         action_names = response_data.get("actions", [])
-        actions_tuple = tuple(class_for_name(action) for action in action_names)
-        return actions_tuple
+        actions = []
+        for action in action_names:
+            if action.startswith("ToolSpec:"):
+                action = action[len("ToolSpec:") :]
+                action_obj = ToolSpec.model_validate_json(action)
+            else:
+                action_obj = class_for_name(action)
+            actions.append(action_obj)
+        return tuple(actions)
 
     async def a_tools_description(self) -> str:
-        desc_list = [f"{a.__class__.__name__} - {a.__doc__ or '[no description]'}" for a in await self.a_actions()]
+        desc_list = [a.description() for a in await self.a_actions()]
         return "\n".join(f"- {desc}" for desc in desc_list)
 
     async def astep(self, action: Action) -> BaseModel:
