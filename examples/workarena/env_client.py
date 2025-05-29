@@ -31,4 +31,5 @@ async def amain(cfg: DictConfig):
 
 
 if __name__ == "__main__":
+    print("Make sure that you run environment server first using `uv run examples/workarena/env_server.py`")
     main()
