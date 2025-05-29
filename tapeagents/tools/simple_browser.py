@@ -472,7 +472,7 @@ class PageObservation(Observation):
 
     def short_view(self, max_chars=100):
         view = self.llm_dict()
-        if len(view["text"]) > max_chars:
+        if self.text and len(self.text) > max_chars:
             view["text"] = view["text"][:max_chars] + "..."
         return json.dumps(view, indent=2, ensure_ascii=False)
 
