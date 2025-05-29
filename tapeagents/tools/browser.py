@@ -2,7 +2,6 @@ import logging
 import os
 import re
 from time import sleep
-import time
 from typing import Any, Callable, Literal
 from uuid import uuid4
 
@@ -350,8 +349,8 @@ class Browser(StatefulTool):
             "name": self._env.unwrapped.task.get_task_id(),
             "goal": start_obs["goal"],
             "task_info": info["task_info"],
-            "video": "", # os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
-            "chat_video": "", # os.path.basename(self._env.unwrapped.chat.page.video.path()) if self._env.unwrapped.chat.page.video else "",
+            "video": "",  # os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
+            "chat_video": "",  # os.path.basename(self._env.unwrapped.chat.page.video.path()) if self._env.unwrapped.chat.page.video else "",
         }
         # four = time.perf_counter() - _four
         # logger.info(f"Browser.start_task {task_id} task info collection took {four:.2f}s")
