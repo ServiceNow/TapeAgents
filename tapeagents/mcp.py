@@ -131,10 +131,10 @@ class MCPEnvironment(ToolCollectionEnvironment):
         if not self.client and not self.tools:
             raise ValueError("Tools or MCP client config_path must be provided")
         self.client.use_cache = use_cache
-        self.loop = asyncio.get_event_loop()
 
     def initialize(self):
         nest_asyncio.apply()
+        self.loop = asyncio.get_event_loop()
         self.loop.run_until_complete(self.client.start_servers())
         self.tools.extend(
             [

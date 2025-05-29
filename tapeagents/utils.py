@@ -159,6 +159,14 @@ def class_for_name(full_name: str) -> Any:
     return c
 
 
+def full_classname(cls: type) -> str:
+    module = cls.__module__
+    name = cls.__qualname__
+    if module is not None and module != "__builtin__":
+        name = module + "." + name
+    return name
+
+
 class Lock:
     def __init__(self, name: str):
         self.name = f"./.{name}.lock"
