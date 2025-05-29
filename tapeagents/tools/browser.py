@@ -329,22 +329,11 @@ class Browser(StatefulTool):
             timeout=self.timeout_ms,
             **kwargs,
         )  # type: ignore
-        # zero = time.perf_counter() - _zero
-        # logger.info(f"Browser.start_task {task_id} gym.make took {zero:.2f}s")
-        # _one = time.perf_counter()
+
         start_obs, info = self._env.reset(seed=seed)
-        # one = time.perf_counter() - _one
-        # logger.info(f"Browser.start_task {task_id} _env.reset took {one:.2f}s")
-        # _two = time.perf_counter()
         self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
-        # two = time.perf_counter() - _two
-        # logger.info(f"Browser.start_task {task_id} _env.unwrapped.context.tracing.start took {two:.2f}s")
-        # _three = time.perf_counter()
         self._env.unwrapped.chat.add_message(role="assistant", msg="Running TapeAgent...")
-        # three = time.perf_counter() - _three
-        # logger.info(f"Browser.start_task {task_id} _env.unwrapped.chat.add_message took {three:.2f}s")
         assert self._env.unwrapped.task is not None
-        # _four = time.perf_counter()
         info = {
             "name": self._env.unwrapped.task.get_task_id(),
             "goal": start_obs["goal"],
@@ -352,12 +341,7 @@ class Browser(StatefulTool):
             "video": "",  # os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
             "chat_video": "",  # os.path.basename(self._env.unwrapped.chat.page.video.path()) if self._env.unwrapped.chat.page.video else "",
         }
-        # four = time.perf_counter() - _four
-        # logger.info(f"Browser.start_task {task_id} task info collection took {four:.2f}s")
-        # _five = time.perf_counter()
         sleep(self.page_load_time_sec)  # wait for the page to load
-        # five = time.perf_counter() - _five
-        # logger.info(f"Browser.start_task {task_id} sleep took {five:.2f}s")
         return info
 
     def close(self):

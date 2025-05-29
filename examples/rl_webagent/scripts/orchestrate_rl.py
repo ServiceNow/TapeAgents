@@ -13,13 +13,13 @@ from typing import Any, Dict, List, Tuple
 import hydra
 import numpy as np
 import torch
+import wandb
 from browsergym.miniwob import ALL_MINIWOB_TASKS
 from joblib import Parallel, delayed
 from omegaconf import DictConfig, OmegaConf
 from termcolor import colored
 from tqdm import tqdm
 
-import wandb
 from tapeagents.core import LLMCall, LLMOutputParsingFailureAction, TrainingText
 from tapeagents.finetune.data import MASKED_TOKEN_ID
 from tapeagents.finetune.logging_ import flatten_dict_config, init_wandb
