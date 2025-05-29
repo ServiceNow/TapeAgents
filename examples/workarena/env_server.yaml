@@ -6,5 +6,5 @@ environment_server:
 
 environment:
   _target_: examples.workarena.environment.WorkArenaEnvironment
-  exp_path: output/workarena/env_server_test
+  exp_path: outputs/workarena/env_server_test
   headless: true
