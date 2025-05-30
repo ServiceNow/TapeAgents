@@ -494,6 +494,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             except aiohttp.ClientError as e:
                 logger.error(colored(f"Failed to release environment: {e}", "red"))
             self.session_id = None
+            self.tcp_session = None
         elif not self.tcp_session:
             logger.warning("No TCP session available to release environment.")
         else:

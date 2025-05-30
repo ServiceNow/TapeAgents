@@ -7,7 +7,7 @@ from browsergym.core.task import AbstractBrowserTask
 from browsergym.miniwob.base import AbstractMiniwobTask
 from joblib import Parallel, delayed
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import Environment
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
@@ -40,8 +40,14 @@ class WebEnvironment(Environment):
         super().__init__()
         if exp_path:
             os.makedirs(exp_path, exist_ok=True)
-        self.browser = Browser(headless=headless, exp_path=exp_path, mock=True, observation_format=observation_format)
-        self.timers = {}  # keep track of time taken in each method
+        self.exp_path = exp_path
+        self.headless = headless
+        self.observation_format = observation_format
+        self.initialize()
+
+    def initialize(self):
+        self.timers = {}  # reset timers
+        self.browser = Browser(headless=self.headless, exp_path=self.exp_path, mock=True, observation_format=self.observation_format)
 
     def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:
         self.timers = {}  # reset timers
@@ -107,7 +113,7 @@ class WebEnvironment(Environment):
             self.timers["react"] = []
         start_react = time.perf_counter()
 
-        actions = []
+        actions: list[Action] = []
         for step in tape.steps[-tape.metadata.n_added_steps :]:
             if isinstance(step, Action):
                 actions.append(step)
@@ -120,7 +126,7 @@ class WebEnvironment(Environment):
             try:
                 if isinstance(action, LLMOutputParsingFailureAction):
                     continue
-                observation = self.browser.run(action)
+                observation = self.step(action)
                 if isinstance(observation, ActionExecutionFailure):
                     logger.exception(f"Error during action execution: {observation.error}")
                     tape = tape.append(observation)
@@ -141,3 +147,9 @@ class WebEnvironment(Environment):
     def react_batch(self, tapes: list[WebTape], n_processes: int) -> list[WebTape]:
         results = Parallel(n_jobs=n_processes)([delayed(self.react)(tape) for tape in tapes])
         return results
+
+    def step(self, action: Action) -> Observation:
+        return self.browser.run(action)
+
+    def reset(self):
+        self.browser.reset()
