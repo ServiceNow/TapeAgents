@@ -97,6 +97,52 @@ def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectio
 
 
 async def run_agent_with_remote_env(cfg: DictConfig, tape: TapeType, session: aiohttp.ClientSession) -> TapeType:
+    """
+    Run the agent with a remote environment, using the provided tape as the starting point.
+    For each tape, the following happens:
+
+    1. Environment Acquisition: `async with environment.acontext(session, wait_for_env=True) as env:`
+
+        An AsyncRemoteEnvironment instance is created.
+        It acquires a session from the server via HTTP POST to /acquire.
+        The server assigns an environment process to this session.
+
+    2. Task Execution Loop: `await async_execute_agent(agent, tape, env, session)`
+
+        The agent decides on actions based on observations.
+        Actions are sent to the remote environment via HTTP POST to /step.
+        Environment processes the action and returns observations.
+        This continues until the agent produces a StopStep.
+
+    3. Environment Release: end of the `async with ...` context manager
+
+        When finished, the environment is released via HTTP POST to /release.
+        The server resets the environment and makes it available for other tasks.
+        Async Communication Workflow.
+
+    Here's the communication flow between components:
+
+    Client (orcherstrator.py)                   Environment Server (remote_environment.py)
+      |                                           |
+      |----- POST /acquire ---------------->      | (1. Acquire environment)
+      |<---- session_id -------------------|      |
+      |                                           |
+      |----- POST /actions ---------------->      | (2. Get available actions)
+      |<---- [action types] ---------------|      |
+      |                                           |
+      |----- POST /step ------------------->      | (3. Execute action)
+      |<---- observation ------------------|      |
+      |                                           |
+      |      ... (repeat steps 3) ...             |
+      |                                           |
+      |----- POST /release ---------------->      | (4. Release environment)
+      |<---- ok ---------------------------|      |
+
+    :param cfg: Configuration for the agent and environment
+    :param tape: Initial tape to start the agent with
+    :param session: aiohttp session to use for the remote environment
+    :return: Final tape after running the agent
+    """
     environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
     async with environment.acontext(session, wait_for_env=True) as env:
         actions = await environment.a_actions()
