@@ -58,7 +58,7 @@ def main(cfg: DictConfig) -> None:
     env = WebEnvironment(**cfg.env)
     agent = WebAgent.create(llm)
 
-    tape, metadata = env.start_task({"task_entrypoint": task, "seed": seed})
+    tape, metadata = env.start_task({"task": task, "seed": seed})
     metadata["seed"] = seed
     tape.metadata.result = metadata
 

@@ -4,7 +4,7 @@ import time
 from typing import Any, Literal
 
 from browsergym.core.task import AbstractBrowserTask
-from browsergym.miniwob.base import AbstractMiniwobTask
+from browsergym.miniwob import ALL_MINIWOB_TASKS
 from joblib import Parallel, delayed
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
@@ -52,28 +52,38 @@ class WebEnvironment(Environment):
         )
 
     def start_task(self, task_data: dict) -> tuple[WebTape, dict[str, Any]]:
-        task_entrypoint: type[AbstractBrowserTask] = task_data["task_entrypoint"]
+        # if task_data["task"] is a string, it is the task_id of a registered task
+        if isinstance(task_data["task"], str):
+            # reconstruct the task entrypoint from the dataset and task_id
+            assert "dataset" in task_data, "Task data must contain 'dataset' key."
+            if task_data["dataset"] == "miniwob":
+                task_entrypoint = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() == task_data["task"]][0]
+            else:
+                raise ValueError(f"Unknown dataset {task_data['dataset']} for task {task_data['task']}.")
+        else:
+            task_entrypoint: AbstractBrowserTask = task_data["task"]
+        assert issubclass(task_entrypoint, AbstractBrowserTask)
         seed: int = task_data.get("seed", 42)
 
         self.timers = {}  # reset timers
         start_start_task = time.perf_counter()
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
         # logger.info(f"WebEnv.start_task {task_id} starting task...")
-        # _zero = time.perf_counter()
+        _zero = time.perf_counter()
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
-        # zero = time.perf_counter() - _zero
-        # logger.info(f"WebEnv.start_task {task_id} browser.start_task took {zero:.2f}s")
-        # _one = time.perf_counter()
+        zero = time.perf_counter() - _zero
+        logger.info(f"WebEnv.start_task {task_id} browser.start_task took {zero:.2f}s")
+        _one = time.perf_counter()
         obs = self.browser.run_browser_action("noop()")
-        # one = time.perf_counter() - _one
-        # logger.info(f"WebEnv.start_task {task_id} browser.run_browser_action took {one:.2f}s")
-        # _two = time.perf_counter()
+        one = time.perf_counter() - _one
+        logger.info(f"WebEnv.start_task {task_id} browser.run_browser_action took {one:.2f}s")
+        _two = time.perf_counter()
         tape = WebTape(
             metadata=WebTapeMetadata(task_name=task_entrypoint.get_task_id(), seed=seed),
             steps=[obs, WebTask(task=info["goal"])],
         )
-        # two = time.perf_counter() - _two
-        # logger.info(f"WebEnv.start_task {task_id} WebTape creation took {two:.2f}s")
+        two = time.perf_counter() - _two
+        logger.info(f"WebEnv.start_task {task_id} WebTape creation took {two:.2f}s")
         self.timers["start_task"] = time.perf_counter() - start_start_task
         return tape, info
 

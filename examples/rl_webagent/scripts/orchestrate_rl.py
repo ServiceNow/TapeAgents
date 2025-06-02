@@ -148,7 +148,7 @@ def run_agent(agent: WebAgent, env: WebEnvironment, task: dict) -> WebTape:
         WebTape: Completed tape
     """
     # Initialize task in environment - this creates the initial tape with web observation and task
-    tape, metadata = env.start_task({"task_entrypoint": task["task"], "seed": task["seed"]})
+    tape, metadata = env.start_task(task)
     # metadata is a dict with: str:name, str:goal, dict:task_info as a result of running gym_env.reset(seed=seed)
     try:
         # Run agent-environment loop
@@ -703,7 +703,7 @@ def main(cfg: DictConfig):
     #         logger.info(f"WebEnvironment class instance created in {zero:.2f} seconds")
     #         # init the tape
     #         _one = time.perf_counter()
-    #         _ = env.start_task({"task_entrypoint": task["task"], "seed": task["seed"]})
+    #         _ = env.start_task(task)
     #         one = time.perf_counter() - _one
     #         logger.info(f"Start_task done in {one:.2f} seconds.")
     #         _two = time.perf_counter()
