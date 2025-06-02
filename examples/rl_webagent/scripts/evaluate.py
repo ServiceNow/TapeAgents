@@ -78,7 +78,7 @@ def main(cfg: DictConfig) -> None:
                     logger.info(f"Skipping task {i+1}, already solved")
                     continue
                 tmp_fpath = os.path.join(tapes_dir, f"{fname}.tmp")
-                tape, metadata = env.start_task(task, seed)
+                tape, metadata = env.start_task({"task_entrypoint": task, "seed": seed})
                 metadata["seed"] = seed
                 metadata["number"] = i
                 logger.info(colored(f"Start task {i+1} seed {seed}: {metadata['goal']}", "cyan"))

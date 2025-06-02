@@ -49,7 +49,10 @@ class WebEnvironment(Environment):
         self.timers = {}  # reset timers
         self.browser = Browser(headless=self.headless, exp_path=self.exp_path, mock=True, observation_format=self.observation_format)
 
-    def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:
+    def start_task(self, task_data: dict) -> tuple[WebTape, dict[str, Any]]:
+        task_entrypoint: type[AbstractBrowserTask] = task_data["task_entrypoint"]
+        seed: int = task_data.get("seed", 42)
+
         self.timers = {}  # reset timers
         start_start_task = time.perf_counter()
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"

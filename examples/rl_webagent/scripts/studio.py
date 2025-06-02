@@ -44,8 +44,7 @@ def main(cfg: DictConfig) -> None:
     llm: LLM = hydra.utils.instantiate(cfg.llm)
     env = WebEnvironment(**cfg.env)
     agent = WebAgent.create(llm)
-    # tape, _ = env.start_task(ALL_WORKARENA_TASKS[0], seed=cfg.seeds[0])
-    tape, _ = env.start_task(ALL_MINIWOB_TASKS[0], seed=cfg.seeds[0])
+    tape, _ = env.start_task({"task_entrypoint": ALL_MINIWOB_TASKS[0], "seed": cfg.seeds[0]})
     blocks = Studio(agent, tape, WebRender(exp_dir=""), env).blocks
     logger.info(f"Starting FastAPI server with static dir {cfg.exp_path}")
     app = FastAPI()
