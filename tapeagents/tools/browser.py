@@ -29,7 +29,13 @@ from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
 
-nest_asyncio.apply()
+try:
+    nest_asyncio.apply()
+except ValueError:
+    # Cannot patch uvloop, this is probably running in a FastAPI server
+    # with multiple processes or in a context where nesting loops is not needed
+    pass
+
 NODES_WITH_BID = [
     "button",
     "link",
@@ -338,7 +344,6 @@ class Browser(StatefulTool):
             "video": "",
             "chat_video": "",
         }
-
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
