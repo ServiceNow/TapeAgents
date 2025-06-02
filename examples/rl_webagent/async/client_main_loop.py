@@ -1,8 +1,5 @@
 import asyncio
 import logging
-
-import asyncio
-import logging
 import os
 import time
 
@@ -11,18 +8,14 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from tapeagents.remote_environment import AsyncRemoteEnvironment
-
-from examples.gaia_agent.eval import load_dataset, tape_correct, task_to_observations
-from examples.gaia_agent.steps import GaiaTape
-
+from examples.gaia_agent.eval import tape_correct
 from examples.rl_webagent.agent import WebAgent
-from examples.rl_webagent.scripts.orchestrate_rl import load_webtasks, load_webtasks_debug
-
+from examples.rl_webagent.scripts.orchestrate_rl import load_webtasks_debug
 from examples.rl_webagent.steps import WebTape
 from tapeagents.core import StopStep
 from tapeagents.io import save_json_tape
 from tapeagents.orchestrator import async_execute_agent
+from tapeagents.remote_environment import AsyncRemoteEnvironment
 
 logger = logging.getLogger(__name__)
 
