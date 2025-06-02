@@ -7,7 +7,7 @@ import time
 import traceback
 import uuid
 from multiprocessing import Pipe, Process, connection as mp_connection  # type: ignore
-from typing import Annotated, Union
+from typing import Annotated, Any, Union
 
 import aiohttp
 import requests
@@ -179,15 +179,15 @@ class EnvironmentServer:
         class TaskRequest(ApiRequest):
             task_data: dict = {}
 
-        def _handle_worker_response(response: dict, operation_name: str):
-            if response.get("status") == "error":
+        def _handle_worker_response(response: Any, operation_name: str):
+            if isinstance(response, dict) and response.get("status") == "error":
                 logger.error(
                     f"Worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}"
                 )
                 raise HTTPException(
                     status_code=500, detail=f"Worker error during {operation_name}: {response.get('error')}"
                 )
-            if response.get("status") == "critical_error":
+            elif isinstance(response, dict) and response.get("status") == "critical_error":
                 logger.error(
                     f"Critical worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}"
                 )
