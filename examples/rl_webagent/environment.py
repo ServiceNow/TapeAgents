@@ -47,7 +47,9 @@ class WebEnvironment(Environment):
 
     def initialize(self):
         self.timers = {}  # reset timers
-        self.browser = Browser(headless=self.headless, exp_path=self.exp_path, mock=True, observation_format=self.observation_format)
+        self.browser = Browser(
+            headless=self.headless, exp_path=self.exp_path, mock=True, observation_format=self.observation_format
+        )
 
     def start_task(self, task_data: dict) -> tuple[WebTape, dict[str, Any]]:
         task_entrypoint: type[AbstractBrowserTask] = task_data["task_entrypoint"]
