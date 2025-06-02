@@ -11,7 +11,7 @@ from tapeagents.core import (
     TapeMetadata,
     Thought,
 )
-from tapeagents.dialog_tape import DialogContext
+from tapeagents.dialog_tape import DialogContext, UserStep
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import (
     ClickBIDAction,
@@ -92,6 +92,7 @@ class FinalAnswerAction(StopStep):
 
 
 WebTapeStep = Union[
+    UserStep,
     WebTask,
     PageObservation,
     ActionExecutionFailure,
