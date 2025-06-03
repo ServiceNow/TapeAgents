@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import pprint
 import time
 from typing import Any, Generator
 
@@ -646,7 +647,9 @@ class TrainableLLM(CachedLLM):
                 }
             )
 
-        logger.debug(f"POST request to {self.base_url}/v1/chat/completions with params: {params}")
+        logger.debug(
+            f"POST request to {self.base_url}/v1/chat/completions with params: {pprint.pformat(params, width=120)}"
+        )
 
         async with session.post(
             url=f"{self.base_url}/v1/chat/completions", json=params, headers=headers, ssl=False

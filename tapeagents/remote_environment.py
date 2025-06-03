@@ -524,12 +524,13 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         try:
             yield self
         except Exception as e:
-            logger.exception(f"Error caught in asyc context manager of the env: {e}")
+            logger.exception(f"Exception caught in async context manager of the remote env: {e}")
             raise e
         except KeyboardInterrupt:
             logger.warning("KeyboardInterrupt received, shutting down async environment.")
             raise
         finally:
+            logger.info("Closing environment session.")
             await self.aclose()
 
     async def wait_initialize(self, session, wait_for_env, initialization_timeout_sec):
