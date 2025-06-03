@@ -1,4 +1,4 @@
-exp_name: test_remote_async_webagent
+exp_name: remote_webagent_qwen3_8b
 exp_path: outputs/rl_webagent/${exp_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 train_split: 0.6  # 0.6 of tasks for training, 0.4 for testing
@@ -14,14 +14,17 @@ environment_variables:
 
 llm:
   _target_: tapeagents.llms.TrainableLLM
-  base_url: https://api.openai.com
-  model_name: gpt-4.1-nano-2025-04-14
+  base_url: "http://localhost:8000"
+  model_name: Qwen/Qwen3-8B
   use_litellm_tokenizer_fallback: true
   use_cache: false
   context_size: 32000
   parameters:
-    max_tokens: 2048
     temperature: 0.7
+    top_p: 0.8 # from https://huggingface.co/Qwen/Qwen3-8B for non-thinking mode. For thinking mode use t=0.6 p=0.95
+    top_k: 20
+    chat_template_kwargs:
+      enable_thinking: false
 
 environment:
   _target_: tapeagents.remote_environment.AsyncRemoteEnvironment
@@ -76,18 +79,15 @@ agent:
     - _target_: examples.rl_webagent.agent.WebNode
       name: act
       system_prompt: ${agent.templates.system_prompt}
-      steps_prompt: ${agent.templates.allowed_tools}
       guidance: |
-        Produce the next action to be performed with the current page.
-        If you think that the task is solved, produce the final_answer_action.
+        Produce the single next tool call to be performed with the current page.
+        If you think that the task is solved, call the FinalAnswer.
         You can interact with the page elements using their BIDs or coordinates as arguments for actions.
         HINTS:
         - You can use the BIDs of the elements or the mouse position in x, y coordinates to interact with them.
-        - To select value in a dropdown or combobox, ALWAYS use select_action.
+        - To select value in a dropdown or combobox, ALWAYS use SelectOption tool.
         - To click on a checkbox or radio button, ALWAYS use BID (or coordinates) of the corresponding Text and not the BID (or coordinates) of the element itself.
         - Press enter key to submit the search query.
-        - Always produce only one step at a time.
-        - Step kind is always lowercase and underscore separated.
       use_known_actions: true
       use_function_calls: true
       steps:

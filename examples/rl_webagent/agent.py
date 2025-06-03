@@ -90,8 +90,8 @@ class WebNode(StandardNode):
                 view = f"Task: {step.task}"
             elif isinstance(step, UserStep):
                 view = step.content
-            # elif isinstance(step, ReasoningThought):
-            #     view = step.reasoning
+            elif isinstance(step, ReasoningThought):
+                view = step.reasoning
             else:
                 view = step.llm_view()
             messages.append({"role": role, "content": view})
