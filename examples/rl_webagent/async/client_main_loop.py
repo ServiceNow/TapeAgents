@@ -34,7 +34,7 @@ async def run_agent_with_remote_env(cfg: DictConfig, task: dict, session: aiohtt
         tools_description = await env.a_tools_description()
         logger.info(f"Available tools: {tools_description}")
         agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
-        tape = await async_execute_agent(agent, tape, env, session)
+        tape = await async_execute_agent(agent, tape, env, session, max_loops=10)
         return tape
 
 
