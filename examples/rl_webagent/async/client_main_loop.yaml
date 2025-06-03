@@ -40,37 +40,42 @@ agent:
       Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
       You will be provided with the content of the current page and a task from the user.
       Do not express your emotions or opinions about the user question.
-    allowed_steps: |
-      You are allowed to produce ONLY steps with the following json schemas:
-      {allowed_steps}
-      Do not reproduce schema when producing the steps, use it as a reference.
+    allowed_tools: |
+      You have access to the following tools:
+      {tools_description}
+    thought_format: |
+      Important! Respond with the plain text, do not include any JSON or code.
+      Do not output anything besides what I asked in this message.
   nodes:
     - _target_: examples.rl_webagent.agent.WebNode
       name: set_goal
+      system_prompt: ${agent.templates.system_prompt}
       guidance: |
-        Produce the reasoning_thought step that describes the intended solution to the task. In the reasoning lines:
+        Produce the thought that describes the intended solution to the task. In the reasoning lines:
         - review the instructions from the user and the content of the page.
         - outline the main task to be accomplished and the steps to be taken to achieve it.
         - produce definiton of done, that will be checked later to verify if the task was completed.
-        Produce only one step!
-      system_prompt: ${agent.templates.system_prompt}
-      steps_prompt: ${agent.templates.allowed_steps}
-      steps: examples.rl_webagent.steps.ReasoningThought
+        ${agent.templates.thought_format}
+      steps_prompt: ${agent.templates.allowed_tools}
       trim_obs_except_last_n: 3  # keep the last 3 observations from the tape in prompt messages
       max_chars_page_observation: 3000  # keep up to 3000 chars in PageObservation steps
+
     - _target_: examples.rl_webagent.agent.WebNode
       name: reflect
+      system_prompt: ${agent.templates.system_prompt}
       guidance: |
         Review the current state of the page and previous steps to find the best possible next action to accomplish the task.
         Produce the reflection_thought to describe the current page state, reflect on your last action, describe what is left to do, and what will be the immediate next action.
         Produce only one reflection_thought step!
-      system_prompt: ${agent.templates.system_prompt}
-      steps_prompt: ${agent.templates.allowed_steps}
-      steps: examples.rl_webagent.steps.WebAgentStep
+        ${agent.templates.thought_format}
+      steps_prompt: ${agent.templates.allowed_tools}
       trim_obs_except_last_n: 3  # keep the last 3 observations from the tape in prompt messages
       max_chars_page_observation: 3000  # keep up to 3000 chars in PageObservation steps
+
     - _target_: examples.rl_webagent.agent.WebNode
       name: act
+      system_prompt: ${agent.templates.system_prompt}
+      steps_prompt: ${agent.templates.allowed_tools}
       guidance: |
         Produce the next action to be performed with the current page.
         If you think that the task is solved, produce the final_answer_action.
@@ -82,9 +87,8 @@ agent:
         - Press enter key to submit the search query.
         - Always produce only one step at a time.
         - Step kind is always lowercase and underscore separated.
-      system_prompt: ${agent.templates.system_prompt}
-      steps_prompt: ${agent.templates.allowed_steps}
-      steps: examples.rl_webagent.steps.WebAgentAction
+      use_known_actions: true
+      use_function_calls: true
       trim_obs_except_last_n: 3  # keep the last 3 observations from the tape in prompt messages
       max_chars_page_observation: 3000  # keep up to 3000 chars in PageObservation steps
       next_node: reflect
