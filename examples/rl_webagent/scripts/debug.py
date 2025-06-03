@@ -8,6 +8,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from termcolor import colored
 
+from examples.rl_webagent.utils import StepRepeatMonitor
 from tapeagents.core import Action
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
@@ -19,21 +20,6 @@ from ..environment import WebEnvironment
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class ActionMonitor:
-    def __init__(self, max_repeats=4):
-        self.last_action = None
-        self.repeat_count = 0
-        self.max_repeats = max_repeats
-
-    def should_stop(self, action):
-        if action == self.last_action:
-            self.repeat_count += 1
-            return self.repeat_count > self.max_repeats
-        self.repeat_count = 0
-        self.last_action = action
-        return False
 
 
 @hydra.main(
@@ -66,7 +52,7 @@ def main(cfg: DictConfig) -> None:
 
     logger.info(colored(f"Start task {task.get_task_id()} seed {seed}: {metadata['goal']}", "cyan"))
     step_count = 0
-    reapeated_action_monitor = ActionMonitor(max_repeats=4)
+    reapeated_action_monitor = StepRepeatMonitor(max_repeats=4)
     for event in main_loop(agent, tape, env, max_loops=50):
         if event.agent_event and event.agent_event.step:
             step = event.agent_event.step
