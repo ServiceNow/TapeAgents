@@ -150,7 +150,7 @@ class WebNode(StandardNode):
             if event.output.content:
                 new_steps += list(self.parse_completion(event.output.content))
             if event.output.tool_calls and self.use_function_calls:
-                new_steps += [self.tool_call_to_step(tool_call) for tool_call in event.output.tool_calls]
+                new_steps += [self.tool_call_to_step(agent, tool_call) for tool_call in event.output.tool_calls]
 
             for i, step in enumerate(new_steps):
                 step = self.postprocess_step(tape, new_steps[:i], step)
