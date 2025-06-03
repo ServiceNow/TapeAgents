@@ -26,21 +26,23 @@ def abt_to_json(tasks: list[dict]) -> list[dict]:
     return [{"dataset": task["dataset"], "task": task["task"].get_task_id(), "seed": task["seed"]} for task in tasks]
 
 
-async def run_agent_with_remote_env(cfg: DictConfig, task: dict, session: aiohttp.ClientSession) -> WebTape:
+async def run_agent_with_remote_env(
+    cfg: DictConfig, task: dict, session: aiohttp.ClientSession, max_loops: int
+) -> WebTape:
     environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
     async with environment.acontext(session, wait_for_env=True) as env:
-        tape, metadata = await env.start_task(task)
-        tape: WebTape = WebTape(**tape)  # convert http response dict to WebTape object
+        tape_dict, metadata = await env.start_task(task)
+        tape: WebTape = WebTape(**tape_dict)  # convert http response dict to WebTape object
         actions = await env.a_actions()
         tools_description = await env.a_tools_description()
         logger.info(f"Available tools: {tools_description}")
         agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
-        tape = await async_execute_agent(agent, tape, env, session, max_loops=10)
+        tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
         return tape
 
 
 async def amain(cfg: DictConfig) -> None:
-    # cfg.llm.base_url = os.environ["BASE_URL"]
+    cfg.llm.base_url = os.environ["BASE_URL"]
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
     # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url
@@ -62,9 +64,9 @@ async def amain(cfg: DictConfig) -> None:
     results = []
 
     async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-        for task in train_samples:
+        for task in test_samples:
             logging.info(f"Schedule task {task['task']} with seed {task['seed']}")
-            coroutines.append(run_agent_with_remote_env(cfg, task, session))
+            coroutines.append(run_agent_with_remote_env(cfg, task, session, max_loops=cfg.max_loops))
         logger.info(f"Solving {len(coroutines)} tasks")
         results: list[WebTape] = await asyncio.gather(*coroutines)
 
