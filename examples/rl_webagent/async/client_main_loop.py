@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 import time
@@ -9,11 +8,9 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from examples.gaia_agent.eval import tape_correct
 from examples.rl_webagent.agent import WebAgent
 from examples.rl_webagent.scripts.orchestrate_rl import load_webtasks_debug
-from examples.rl_webagent.steps import WebTape, WebTapeMetadata
-from tapeagents.core import StopStep
+from examples.rl_webagent.steps import WebTape
 from tapeagents.io import save_json_tape
 from tapeagents.orchestrator import async_execute_agent
 from tapeagents.remote_environment import AsyncRemoteEnvironment
@@ -25,14 +22,7 @@ def abt_to_json(tasks: list[dict]) -> list[dict]:
     """
     Convert AbstractBrowserTask tasks to dicts that are JSON serializable by only giving the dataset, task_id, and seed.
     """
-    return [
-        {
-            "dataset": task["dataset"],
-            "task": task["task"].get_task_id(),
-            "seed": task["seed"]
-        }
-        for task in tasks
-    ]
+    return [{"dataset": task["dataset"], "task": task["task"].get_task_id(), "seed": task["seed"]} for task in tasks]
 
 
 async def run_agent_with_remote_env(cfg: DictConfig, task: dict, session: aiohttp.ClientSession) -> WebTape:

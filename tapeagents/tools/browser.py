@@ -29,13 +29,6 @@ from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
 
-try:
-    nest_asyncio.apply()
-except ValueError:
-    # Cannot patch uvloop, this is probably running in a FastAPI server
-    # with multiple processes or in a context where nesting loops is not needed
-    pass
-
 NODES_WITH_BID = [
     "button",
     "link",
@@ -51,6 +44,10 @@ NODES_WITH_BID = [
     "tab",
 ]
 logger = logging.getLogger(__name__)
+try:
+    nest_asyncio.apply()
+except Exception as e:
+    logger.warning("Cannot apply nest_asyncio, continuing without it: %s", e)
 
 
 class OpenUrlAction(Action):
