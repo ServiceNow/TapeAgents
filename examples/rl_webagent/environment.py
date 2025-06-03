@@ -5,6 +5,7 @@ from typing import Any, Literal
 
 from browsergym.core.task import AbstractBrowserTask
 from browsergym.miniwob import ALL_MINIWOB_TASKS
+from browsergym.miniwob.base import AbstractMiniwobTask
 from joblib import Parallel, delayed
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
