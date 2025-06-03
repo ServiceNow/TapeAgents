@@ -11,6 +11,7 @@ from omegaconf import DictConfig
 from examples.rl_webagent.agent import WebAgent
 from examples.rl_webagent.scripts.orchestrate_rl import load_webtasks_debug
 from examples.rl_webagent.steps import WebTape
+from tapeagents.core import Observation
 from tapeagents.io import save_json_tape
 from tapeagents.orchestrator import async_execute_agent
 from tapeagents.remote_environment import AsyncRemoteEnvironment
@@ -74,11 +75,16 @@ async def amain(cfg: DictConfig) -> None:
 
     ### Print some statistics ### TODO: continue to copy things from orchestrate_rl.py
     total_steps = 0
+    acc = []
     for tape in results:
         total_steps += len(tape.steps)
+        last_obs = [step for step in tape if isinstance(step, Observation)][-1]
+        success = last_obs.metadata.other.get("reward", 0.0) > 0.5
+        acc.append(success)
     logger.info(f"Average tape length: {(total_steps / len(results)):.2f}")
     logger.info(f"Total execution time: {time.perf_counter() - dt:.2f} seconds")
     logger.info(f"Average time per tape: {(time.perf_counter() - dt) / len(results):.2f} seconds")
+    logger.info(f"Accuracy: {sum(acc) / len(acc) if acc else 0:.2f}")
 
 
 @hydra.main(
