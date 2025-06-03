@@ -167,5 +167,8 @@ class WebEnvironment(Environment):
     def step(self, action: Action) -> Observation:
         return self.browser.run(action)
 
+    def actions(self) -> tuple[type[Action], ...]:
+        return self.browser.actions
+
     def reset(self):
         self.browser.reset()
