@@ -207,6 +207,11 @@ def main_loop(
             for observation in tape[len(agent_tape) :]:
                 logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
                 yield MainLoopEvent(observation=observation)
+                if isinstance(observation, StopStep):
+                    logger.info(f"Environment emitted final step {observation}")
+                    yield MainLoopEvent[TapeType](env_tape=tape)
+                    yield MainLoopEvent(status=MainLoopStatus.FINISHED)
+                    return
             yield MainLoopEvent[TapeType](env_tape=tape)
 
             # --- REPEAT ---
@@ -255,6 +260,11 @@ async def async_main_loop(
         for observation in tape[len(agent_tape) :]:
             logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
             yield MainLoopEvent(observation=observation)
+            if isinstance(observation, StopStep):
+                logger.info(f"Environment emitted final step {observation}")
+                yield MainLoopEvent[TapeType](env_tape=tape)
+                yield MainLoopEvent(status=MainLoopStatus.FINISHED)
+                return
         yield MainLoopEvent[TapeType](env_tape=tape)
 
         # --- REPEAT ---
