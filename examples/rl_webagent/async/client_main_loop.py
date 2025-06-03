@@ -9,7 +9,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from examples.rl_webagent.agent import WebAgent
-from examples.rl_webagent.scripts.orchestrate_rl import load_webtasks_debug
+from examples.rl_webagent.scripts.orchestrate_rl import load_webtasks
 from examples.rl_webagent.steps import WebTape
 from tapeagents.core import Observation
 from tapeagents.io import save_json_tape
@@ -50,8 +50,8 @@ async def amain(cfg: DictConfig) -> None:
     # os.environ["SNOW_INSTANCE_PWD"] = cfg.environment_variables.snow_instance_pwd
 
     ### Step 1: load datasets ###
-    # train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
-    train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
+    train_samples, test_samples = load_webtasks(train_split=cfg.train_split, seeds=cfg.seeds)
+    # train_samples, test_samples = load_webtasks_debug()  # TODO: load all tasks when ready
     # Convert AbstractBrowserTask to json parsable dicts
     train_samples = abt_to_json(train_samples)
     test_samples = abt_to_json(test_samples)
