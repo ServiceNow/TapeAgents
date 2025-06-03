@@ -198,6 +198,15 @@ class EnvironmentServer:
                 )
             return response
 
+        async def _send_recv_async(conn, command, data):
+            loop = asyncio.get_running_loop()
+
+            def send_recv():
+                conn.send((command, data))
+                return conn.recv()
+
+            return await loop.run_in_executor(None, send_recv)
+
         @app.post("/acquire")
         async def acquire_environment():
             for i in range(self.n_envs):
@@ -219,8 +228,7 @@ class EnvironmentServer:
             parent_conn, env_idx = self._get_env_details(session_id)
 
             try:
-                parent_conn.send(("reset", None))
-                response = parent_conn.recv()
+                response = await _send_recv_async(parent_conn, "reset", None)
                 _handle_worker_response(response, f"release (reset for env {env_idx})")
             except (EOFError, BrokenPipeError) as pipe_err:
                 logger.error(
@@ -239,16 +247,14 @@ class EnvironmentServer:
         async def step_endpoint(request: ActionRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
             logger.info(f"Session {request.session_id} (Env {env_idx}): Run step {request.action_data['kind']}")
-            parent_conn.send(("step", request.action_data))
-            response = parent_conn.recv()
+            response = await _send_recv_async(parent_conn, "step", request.action_data)
             return _handle_worker_response(response, f"step for env {env_idx}")
 
         @app.post("/actions")
         async def actions_endpoint(request: ApiRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
             logger.info(f"Session {request.session_id} (Env {env_idx}): Get actions")
-            parent_conn.send(("actions", None))
-            response = parent_conn.recv()
+            response = await _send_recv_async(parent_conn, "actions", None)
             return _handle_worker_response(response, f"actions for env {env_idx}")
 
         @app.post("/reset")
@@ -256,8 +262,7 @@ class EnvironmentServer:
             logger.info(f"Resetting environment for session {request.session_id}")
             parent_conn, env_idx = self._get_env_details(request.session_id)
             logger.info(f"Session {request.session_id} (Env {env_idx}): Explicit reset")
-            parent_conn.send(("reset", None))
-            response = parent_conn.recv()
+            response = await _send_recv_async(parent_conn, "reset", None)
             return _handle_worker_response(response, f"reset for env {env_idx}")
 
         @app.get("/health")
@@ -272,8 +277,7 @@ class EnvironmentServer:
         async def start_task_endpoint(request: TaskRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
             logger.info(f"Session {request.session_id} (Env {env_idx}): Start task")
-            parent_conn.send(("start_task", request.task_data))
-            response = parent_conn.recv()
+            response = await _send_recv_async(parent_conn, "start_task", request.task_data)
             return _handle_worker_response(response, f"start_task for env {env_idx}")
 
         return app
