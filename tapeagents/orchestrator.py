@@ -277,7 +277,7 @@ async def async_execute_agent(
                 final_tape = event.env_tape
     except Exception as e:
         final_tape.metadata.error = f"Agent loop exception: {e}"
-        logger.error(colored(f"Agent loop exception: {e}, stopping", "red"))
+        logger.exception(colored(f"Agent loop exception: {e}, stopping", "red"))
     tape_id = final_tape.metadata.id
     final_tape.metadata = start_tape.metadata
     final_tape.metadata.id = tape_id
