@@ -184,7 +184,7 @@ def main_loop(
             for event in agent.run(tape):
                 yield MainLoopEvent(agent_event=event)
                 if event.step:
-                    logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+                    logger.info(colored(f"{n_loops}:AGENT: {step_view(event.step)}", "green"))
                 if event.final_tape:
                     break
             assert event and event.final_tape
@@ -205,7 +205,7 @@ def main_loop(
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:
-                logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+                logger.info(colored(f"{n_loops}:ENV: {step_view(observation, trim=True)}", "yellow"))
                 yield MainLoopEvent(observation=observation)
                 if isinstance(observation, StopStep):
                     logger.info(f"Environment emitted final step {observation}")
@@ -237,7 +237,7 @@ async def async_main_loop(
         async for event in agent.arun(tape, session):
             yield MainLoopEvent(agent_event=event)
             if event.step:
-                logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+                logger.info(colored(f"{n_loops}:AGENT: {step_view(event.step)}", "green"))
             if event.final_tape:
                 break
         assert event and event.final_tape
@@ -258,7 +258,7 @@ async def async_main_loop(
             yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
             return
         for observation in tape[len(agent_tape) :]:
-            logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+            logger.info(colored(f"{n_loops}:ENV: {step_view(observation, trim=True)}", "yellow"))
             yield MainLoopEvent(observation=observation)
             if isinstance(observation, StopStep):
                 logger.info(f"Environment emitted final step {observation}")
