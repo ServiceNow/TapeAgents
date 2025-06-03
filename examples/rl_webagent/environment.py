@@ -164,8 +164,11 @@ class WebEnvironment(Environment):
         results = Parallel(n_jobs=n_processes)([delayed(self.react)(tape) for tape in tapes])
         return results
 
-    def step(self, action: Action) -> Observation:
-        return self.browser.run(action)
+    def step(self, action: Action) -> Observation | FinalAnswerAction:
+        obs = self.browser.run(action)
+        if obs.metadata.other.get("env_finished", False):
+            obs = FinalAnswerAction(text="Task finished")
+        return obs
 
     def actions(self) -> tuple[type[Action], ...]:
         return self.browser.actions
