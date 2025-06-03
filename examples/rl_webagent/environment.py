@@ -8,7 +8,7 @@ from browsergym.miniwob import ALL_MINIWOB_TASKS
 from browsergym.miniwob.base import AbstractMiniwobTask
 from joblib import Parallel, delayed
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
+from tapeagents.core import Action, FinalObservation, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import Environment
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
@@ -164,10 +164,10 @@ class WebEnvironment(Environment):
         results = Parallel(n_jobs=n_processes)([delayed(self.react)(tape) for tape in tapes])
         return results
 
-    def step(self, action: Action) -> Observation | FinalAnswerAction:
+    def step(self, action: Action) -> Observation:
         obs = self.browser.run(action)
         if obs.metadata.other.get("env_finished", False):
-            obs = FinalAnswerAction(text="Task finished")
+            obs = FinalObservation(metadata=obs.metadata)
         return obs
 
     def actions(self) -> tuple[type[Action], ...]:

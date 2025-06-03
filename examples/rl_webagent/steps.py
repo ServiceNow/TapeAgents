@@ -12,7 +12,7 @@ from tapeagents.core import (
     Thought,
 )
 from tapeagents.dialog_tape import DialogContext, UserStep
-from tapeagents.steps import ActionExecutionFailure
+from tapeagents.steps import ActionExecutionFailure, ReasoningThought
 from tapeagents.tools.browser import (
     ClickBIDAction,
     ClickCoordinatesAction,
@@ -31,15 +31,6 @@ from tapeagents.tools.browser import (
 class WebTask(Observation):
     kind: Literal["task"] = "task"
     task: str
-
-
-class ReasoningThought(Thought):
-    """
-    Thoughts produced by the agent during the reasoning process.
-    """
-
-    kind: Literal["reasoning_thought"] = "reasoning_thought"
-    reasoning: str = Field(description="chain of thoughts")
 
 
 class ReflectionThought(Thought):
