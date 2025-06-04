@@ -31,6 +31,7 @@ def read_document(path: str, file_converter_options: Optional[FileConverterOptio
 class DocumentObservation(Observation):
     kind: Literal["document_observation"] = "document_observation"
     text: str
+    source: str
     error: str | None = None
 
 
@@ -62,14 +63,14 @@ class DocumentReader(Tool):
             try:
                 abs_path.relative_to(workspace_dir)
             except ValueError:
-                return DocumentObservation(text="", error="Access to files outside the workspace directory is not allowed")
+                return DocumentObservation(text="", source="", error="Access to files outside the workspace directory is not allowed")
             workspace_path = abs_path
         else:
             workspace_path = Path(action.path)
         if not workspace_path.exists():
-            return DocumentObservation(text="", error=f"File {action.path} not found in the workspace")
+            return DocumentObservation(text="", source="", error=f"File {action.path} not found in the workspace")
         text, error = read_document(str(workspace_path), self.file_converter_options)
-        return DocumentObservation(text=text, error=error)
+        return DocumentObservation(text=text, source=str(action.path), error=error)
 
 
 class ListLocalDocumentsAction(Action):
