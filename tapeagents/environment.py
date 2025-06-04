@@ -173,6 +173,9 @@ class ToolCollectionEnvironment(Environment):
         loop_warning_after_n_steps: int = 3,
         loop_warning: str = "You seem to be stuck producing the same action. Consider a new approach and avoid repeating previously attempted ineffective steps."
     ) -> None:
+        if loop_warning_after_n_steps <= 0:
+            raise ValueError("loop_warning_after_n_steps must be positive")
+
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
