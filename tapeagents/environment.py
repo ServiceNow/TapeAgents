@@ -83,7 +83,9 @@ class EmptyEnvironment(Environment):
 
 class ToolEnvironment(Environment):
     def __init__(self, tools: list[LangchainBaseTool | Callable]):
-        self.tools: list[LangchainBaseTool] = [t if isinstance(t, LangchainBaseTool) else tool_wrapper(t) for t in tools]  # type: ignore
+        self.tools: list[LangchainBaseTool] = [
+            t if isinstance(t, LangchainBaseTool) else tool_wrapper(t) for t in tools
+        ]  # type: ignore
         self._name2tool = {t.name: t for t in self.tools}
 
     def get_tool_schemas(self) -> list[ToolSpec]:
@@ -159,18 +161,27 @@ class CodeExecutionEnvironment(Environment):
 
 class ToolCollectionEnvironment(Environment):
     tools: list[BaseTool]
-    loop_detection: bool = False
-    loop_warning_after_n_steps: int = 3
-    loop_warning: str = "You seem to be stuck producing the same action. Consider a new approach and avoid repeating previously attempted ineffective steps."
     action_map: dict[type[Action], BaseTool]
 
-    def __init__(self, tools: list[BaseTool]) -> None:
+    def __init__(
+        self,
+        tools: list[BaseTool],
+        loop_detection: bool = False,
+        loop_warning_after_n_steps: int = 3,
+        loop_warning: str = "You seem to be stuck producing the same action. Consider a new approach and avoid repeating previously attempted ineffective steps.",
+    ) -> None:
+        if loop_warning_after_n_steps <= 0:
+            raise ValueError("loop_warning_after_n_steps must be positive")
+
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
         for tool in tools:
             if isinstance(tool, StatefulTool):
                 self.action_map |= {action: tool for action in tool.actions}
+        self.loop_detection = loop_detection
+        self.loop_warning_after_n_steps = loop_warning_after_n_steps
+        self.loop_warning = loop_warning
 
     def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
         return tuple(self.action_map.keys())
