@@ -72,12 +72,12 @@ class DocumentReader(Tool):
         return DocumentObservation(text=text, error=error)
 
 
-class ListDocumentsAction(Action):
+class ListLocalDocumentsAction(Action):
     """
     Action that lists all documents in the workspace directory.
     """
 
-    kind: Literal["list_documents_action"] = "list_documents_action"  # type: ignore
+    kind: Literal["list_local_documents_action"] = "list_local_documents_action"  # type: ignore
 
 
 class ListDocumentsObservation(Observation):
@@ -90,16 +90,16 @@ class ListDocumentsObservation(Observation):
     error: str | None = None
 
 
-class ListDocuments(Tool):
+class ListLocalDocuments(Tool):
     """
     Tool to list all documents in the workspace directory.
     """
 
-    action: type[Action] = ListDocumentsAction
+    action: type[Action] = ListLocalDocumentsAction
     observation: type[Observation] = ListDocumentsObservation
     workspace_directory: str
 
-    def execute_action(self, action: ListDocumentsAction) -> ListDocumentsObservation:
+    def execute_action(self, action: ListLocalDocumentsAction) -> ListDocumentsObservation:
         try:
             documents = self.list_documents()
             return ListDocumentsObservation(documents=documents)
