@@ -91,7 +91,7 @@ class ListDocumentsObservation(Observation):
     error: str | None = None
 
 
-class ListLocalDocuments(Tool):
+class ListDocuments(Tool):
     """
     Tool to list all documents in the workspace directory.
     """
