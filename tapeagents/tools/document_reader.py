@@ -31,7 +31,7 @@ def read_document(path: str, file_converter_options: Optional[FileConverterOptio
 class DocumentObservation(Observation):
     kind: Literal["document_observation"] = "document_observation"
     text: str
-    source: str
+    source: str | None = None # optional for tape backwards compatibility
     error: str | None = None
 
 
@@ -73,12 +73,12 @@ class DocumentReader(Tool):
         return DocumentObservation(text=text, source=str(action.path), error=error)
 
 
-class ListLocalDocumentsAction(Action):
+class ListDocumentsAction(Action):
     """
     Action that lists all documents in the workspace directory.
     """
 
-    kind: Literal["list_local_documents_action"] = "list_local_documents_action"  # type: ignore
+    kind: Literal["list_documents_action"] = "list_documents_action"  # type: ignore
 
 
 class ListDocumentsObservation(Observation):
@@ -96,11 +96,11 @@ class ListLocalDocuments(Tool):
     Tool to list all documents in the workspace directory.
     """
 
-    action: type[Action] = ListLocalDocumentsAction
+    action: type[Action] = ListDocumentsAction
     observation: type[Observation] = ListDocumentsObservation
     workspace_directory: str
 
-    def execute_action(self, action: ListLocalDocumentsAction) -> ListDocumentsObservation:
+    def execute_action(self, action: ListDocumentsAction) -> ListDocumentsObservation:
         try:
             documents = self.list_documents()
             return ListDocumentsObservation(documents=documents)
