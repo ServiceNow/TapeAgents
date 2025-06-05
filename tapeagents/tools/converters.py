@@ -657,6 +657,30 @@ class ImageDoclingConverter(DoclingConverter):
         return super().convert(local_path, **kwargs)
 
 
+class MarkdownConverter(DocumentConverter):
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # Bail if not a Markdown file
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() not in [".md", ".markdown"]:
+            return None
+
+        text_content = ""
+        with open(local_path, "rt") as fh:
+            text_content = fh.read()
+
+        # Try to extract title from the first heading
+        title = None
+        # Look for the first markdown heading (# Title)
+        heading_match = re.search(r'^#\s+(.+?)$', text_content, re.MULTILINE)
+        if heading_match:
+            title = heading_match.group(1).strip()
+
+        return DocumentConverterResult(
+            title=title,
+            text_content=text_content,
+        )
+
+
 class FileConversionException(BaseException):
     pass
 
@@ -667,6 +691,7 @@ class UnsupportedFormatException(BaseException):
 
 class FileConverterOptions(BaseModel):
     text_converter: DocumentConverter = Field(default_factory=PlainTextConverter)
+    markdown_converter: DocumentConverter = Field(default_factory=MarkdownConverter)
     html_converter: DocumentConverter = Field(default_factory=HtmlConverter)
     wikipedia_converter: DocumentConverter = Field(default_factory=WikipediaConverter)
     youtube_converter: DocumentConverter = Field(default_factory=YouTubeConverter)
@@ -705,6 +730,7 @@ class FileConverter:
         # Later registrations are tried first / take higher priority than earlier registrations
         # To this end, the most specific converters should appear below the most generic converters
         self.register_page_converter(file_converter_options.text_converter)
+        self.register_page_converter(file_converter_options.markdown_converter)
         self.register_page_converter(file_converter_options.html_converter)
         self.register_page_converter(file_converter_options.wikipedia_converter)
         self.register_page_converter(file_converter_options.youtube_converter)
