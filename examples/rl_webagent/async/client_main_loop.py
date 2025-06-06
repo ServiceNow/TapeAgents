@@ -38,6 +38,8 @@ async def run_agent_with_remote_env(
         logger.info(f"Available tools: {tools_description}")
         agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
         tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
+        # save the tape as we go
+        save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
         return tape
 
 
@@ -64,29 +66,35 @@ async def amain(cfg: DictConfig) -> None:
     results = []
 
     async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-        for task in test_samples:
+        for task in train_samples + test_samples:
             logging.info(f"Schedule task {task['task']} with seed {task['seed']}")
             coroutines.append(run_agent_with_remote_env(cfg, task, session, max_loops=cfg.max_loops))
         logger.info(f"Solving {len(coroutines)} tasks")
         results: list[WebTape] = await asyncio.gather(*coroutines)
 
-    # save tapes
-    for tape in results:
-        save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
     logger.info(f"Saved {len(results)} tapes to {os.path.join(cfg.exp_path, 'tapes')}")
 
-    ### Print some statistics ### TODO: continue to copy things from orchestrate_rl.py
+    ### Print some statistics
     total_steps = 0
     acc = []
+    rewards = []
     for tape in results:
         total_steps += len(tape.steps)
         last_obs = [step for step in tape if isinstance(step, Observation)][-1]
         success = last_obs.metadata.other.get("reward", 0.0) > 0.5
         acc.append(success)
+        if "info" in last_obs.metadata.other and "task_info" in last_obs.metadata.other["info"] and "REWARD_GLOBAL" in last_obs.metadata.other["info"]["task_info"]:
+            rewards.append(last_obs.metadata.other["info"]["task_info"]["REWARD_GLOBAL"])
+        else:
+            logger.warning(f"No reward found in last observation of tape {tape.metadata.id}")
+
     logger.info(f"Average tape length: {(total_steps / len(results)):.2f}")
     logger.info(f"Total execution time: {time.perf_counter() - dt:.2f} seconds")
     logger.info(f"Average time per tape: {(time.perf_counter() - dt) / len(results):.2f} seconds")
     logger.info(f"Accuracy: {sum(acc) / len(acc) if acc else 0:.2f}")
+    logger.info(f"Average reward: {sum(rewards) / len(rewards) if rewards else 0:.2f}")
+
+    ### TODO: continue to copy things from orchestrate_rl.py / switch to pipelinerl
 
 
 @hydra.main(
