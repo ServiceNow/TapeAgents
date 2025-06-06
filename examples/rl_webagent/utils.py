@@ -430,3 +430,18 @@ def tqdm_joblib(tqdm_object):
     finally:
         joblib.parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_object.close()
+
+
+class StepRepeatMonitor:
+    def __init__(self, last_step=None, repeat_count=0, max_repeats=4):
+        self.last_step = last_step
+        self.repeat_count = repeat_count
+        self.max_repeats = max_repeats
+
+    def should_stop(self, step) -> bool:
+        if step == self.last_step:
+            self.repeat_count += 1
+            return self.repeat_count > self.max_repeats
+        self.repeat_count = 0
+        self.last_step = step
+        return False

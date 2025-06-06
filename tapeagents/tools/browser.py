@@ -29,7 +29,6 @@ from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
 
-nest_asyncio.apply()
 NODES_WITH_BID = [
     "button",
     "link",
@@ -45,6 +44,10 @@ NODES_WITH_BID = [
     "tab",
 ]
 logger = logging.getLogger(__name__)
+try:
+    nest_asyncio.apply()
+except Exception as e:
+    logger.warning("Cannot apply nest_asyncio, continuing without it: %s", e)
 
 
 class OpenUrlAction(Action):
@@ -338,7 +341,6 @@ class Browser(StatefulTool):
             "video": "",
             "chat_video": "",
         }
-
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 

@@ -3,6 +3,7 @@ from typing import Literal, Union
 from pydantic import Field
 
 from tapeagents.core import (
+    FinalObservation,
     LLMOutputParsingFailureAction,
     Observation,
     SetNextNode,
@@ -11,8 +12,8 @@ from tapeagents.core import (
     TapeMetadata,
     Thought,
 )
-from tapeagents.dialog_tape import DialogContext
-from tapeagents.steps import ActionExecutionFailure
+from tapeagents.dialog_tape import DialogContext, UserStep
+from tapeagents.steps import ActionExecutionFailure, ReasoningThought
 from tapeagents.tools.browser import (
     ClickBIDAction,
     ClickCoordinatesAction,
@@ -31,15 +32,6 @@ from tapeagents.tools.browser import (
 class WebTask(Observation):
     kind: Literal["task"] = "task"
     task: str
-
-
-class ReasoningThought(Thought):
-    """
-    Thoughts produced by the agent during the reasoning process.
-    """
-
-    kind: Literal["reasoning_thought"] = "reasoning_thought"
-    reasoning: str = Field(description="chain of thoughts")
 
 
 class ReflectionThought(Thought):
@@ -92,8 +84,10 @@ class FinalAnswerAction(StopStep):
 
 
 WebTapeStep = Union[
+    UserStep,
     WebTask,
     PageObservation,
+    FinalObservation,
     ActionExecutionFailure,
     LLMOutputParsingFailureAction,
     # thoughts

@@ -97,6 +97,52 @@ def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectio
 
 
 async def run_agent_with_remote_env(cfg: DictConfig, tape: TapeType, session: aiohttp.ClientSession) -> TapeType:
+    """
+    Run the agent with a remote environment, using the provided tape as the starting point.
+    For each tape, the following happens:
+
+    1. Environment Acquisition: `async with environment.acontext(session, wait_for_env=True) as env:`
+
+        An AsyncRemoteEnvironment instance is created.
+        It acquires a session from the server via HTTP POST to /acquire.
+        The server assigns an environment process to this session.
+
+    2. Task Execution Loop: `await async_execute_agent(agent, tape, env, session)`
+
+        The agent decides on actions based on observations.
+        Actions are sent to the remote environment via HTTP POST to /step.
+        Environment processes the action and returns observations.
+        This continues until the agent produces a StopStep.
+
+    3. Environment Release: end of the `async with ...` context manager
+
+        When finished, the environment is released via HTTP POST to /release.
+        The server resets the environment and makes it available for other tasks.
+        Async Communication Workflow.
+
+    Here's the communication flow between components:
+
+    Client (orcherstrator.py)                   Environment Server (remote_environment.py)
+      |                                           |
+      |----- POST /acquire ---------------->      | (1. Acquire environment)
+      |<---- session_id -------------------|      |
+      |                                           |
+      |----- POST /actions ---------------->      | (2. Get available actions)
+      |<---- [action types] ---------------|      |
+      |                                           |
+      |----- POST /step ------------------->      | (3. Execute action)
+      |<---- observation ------------------|      |
+      |                                           |
+      |      ... (repeat steps 3) ...             |
+      |                                           |
+      |----- POST /release ---------------->      | (4. Release environment)
+      |<---- ok ---------------------------|      |
+
+    :param cfg: Configuration for the agent and environment
+    :param tape: Initial tape to start the agent with
+    :param session: aiohttp session to use for the remote environment
+    :return: Final tape after running the agent
+    """
     environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
     async with environment.acontext(session, wait_for_env=True) as env:
         actions = await environment.a_actions()
@@ -138,7 +184,7 @@ def main_loop(
             for event in agent.run(tape):
                 yield MainLoopEvent(agent_event=event)
                 if event.step:
-                    logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+                    logger.info(colored(f"{n_loops}:AGENT: {step_view(event.step)}", "green"))
                 if event.final_tape:
                     break
             assert event and event.final_tape
@@ -159,8 +205,13 @@ def main_loop(
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:
-                logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+                logger.info(colored(f"{n_loops}:ENV: {step_view(observation, trim=True)}", "yellow"))
                 yield MainLoopEvent(observation=observation)
+                if isinstance(observation, StopStep):
+                    logger.info(f"Environment emitted final step {observation}")
+                    yield MainLoopEvent[TapeType](env_tape=tape)
+                    yield MainLoopEvent(status=MainLoopStatus.FINISHED)
+                    return
             yield MainLoopEvent[TapeType](env_tape=tape)
 
             # --- REPEAT ---
@@ -186,7 +237,7 @@ async def async_main_loop(
         async for event in agent.arun(tape, session):
             yield MainLoopEvent(agent_event=event)
             if event.step:
-                logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+                logger.info(colored(f"{n_loops}:AGENT: {step_view(event.step)}", "green"))
             if event.final_tape:
                 break
         assert event and event.final_tape
@@ -207,8 +258,13 @@ async def async_main_loop(
             yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
             return
         for observation in tape[len(agent_tape) :]:
-            logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+            logger.info(colored(f"{n_loops}:ENV: {step_view(observation, trim=True)}", "yellow"))
             yield MainLoopEvent(observation=observation)
+            if isinstance(observation, StopStep):
+                logger.info(f"Environment emitted final step {observation}")
+                yield MainLoopEvent[TapeType](env_tape=tape)
+                yield MainLoopEvent(status=MainLoopStatus.FINISHED)
+                return
         yield MainLoopEvent[TapeType](env_tape=tape)
 
         # --- REPEAT ---
@@ -231,7 +287,7 @@ async def async_execute_agent(
                 final_tape = event.env_tape
     except Exception as e:
         final_tape.metadata.error = f"Agent loop exception: {e}"
-        logger.error(colored(f"Agent loop exception: {e}, stopping", "red"))
+        logger.exception(colored(f"Agent loop exception: {e}, stopping", "red"))
     tape_id = final_tape.metadata.id
     final_tape.metadata = start_tape.metadata
     final_tape.metadata.id = tape_id

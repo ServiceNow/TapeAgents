@@ -188,6 +188,10 @@ class FinalStep(StopStep):
     reason: str = ""
 
 
+class FinalObservation(Observation, StopStep):
+    kind: Literal["final_observation"] = "final_observation"
+
+
 class SetNextNode(Thought):
     """
     Action that sets the next node to run in the current agent.

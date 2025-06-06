@@ -7,7 +7,7 @@ import time
 import traceback
 import uuid
 from multiprocessing import Pipe, Process, connection as mp_connection  # type: ignore
-from typing import Annotated, Union
+from typing import Annotated, Any, Union
 
 import aiohttp
 import requests
@@ -179,15 +179,15 @@ class EnvironmentServer:
         class TaskRequest(ApiRequest):
             task_data: dict = {}
 
-        def _handle_worker_response(response: dict, operation_name: str):
-            if response.get("status") == "error":
+        def _handle_worker_response(response: Any, operation_name: str):
+            if isinstance(response, dict) and response.get("status") == "error":
                 logger.error(
                     f"Worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}"
                 )
                 raise HTTPException(
                     status_code=500, detail=f"Worker error during {operation_name}: {response.get('error')}"
                 )
-            if response.get("status") == "critical_error":
+            elif isinstance(response, dict) and response.get("status") == "critical_error":
                 logger.error(
                     f"Critical worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}"
                 )
@@ -197,6 +197,15 @@ class EnvironmentServer:
                     detail=f"Critical worker error: {response.get('error')}. Environment may be unstable.",
                 )
             return response
+
+        async def _send_recv_async(conn, command, data):
+            loop = asyncio.get_running_loop()
+
+            def send_recv():
+                conn.send((command, data))
+                return conn.recv()
+
+            return await loop.run_in_executor(None, send_recv)
 
         @app.post("/acquire")
         async def acquire_environment():
@@ -219,8 +228,7 @@ class EnvironmentServer:
             parent_conn, env_idx = self._get_env_details(session_id)
 
             try:
-                parent_conn.send(("reset", None))
-                response = parent_conn.recv()
+                response = await _send_recv_async(parent_conn, "reset", None)
                 _handle_worker_response(response, f"release (reset for env {env_idx})")
             except (EOFError, BrokenPipeError) as pipe_err:
                 logger.error(
@@ -239,16 +247,14 @@ class EnvironmentServer:
         async def step_endpoint(request: ActionRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
             logger.info(f"Session {request.session_id} (Env {env_idx}): Run step {request.action_data['kind']}")
-            parent_conn.send(("step", request.action_data))
-            response = parent_conn.recv()
+            response = await _send_recv_async(parent_conn, "step", request.action_data)
             return _handle_worker_response(response, f"step for env {env_idx}")
 
         @app.post("/actions")
         async def actions_endpoint(request: ApiRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
             logger.info(f"Session {request.session_id} (Env {env_idx}): Get actions")
-            parent_conn.send(("actions", None))
-            response = parent_conn.recv()
+            response = await _send_recv_async(parent_conn, "actions", None)
             return _handle_worker_response(response, f"actions for env {env_idx}")
 
         @app.post("/reset")
@@ -256,8 +262,7 @@ class EnvironmentServer:
             logger.info(f"Resetting environment for session {request.session_id}")
             parent_conn, env_idx = self._get_env_details(request.session_id)
             logger.info(f"Session {request.session_id} (Env {env_idx}): Explicit reset")
-            parent_conn.send(("reset", None))
-            response = parent_conn.recv()
+            response = await _send_recv_async(parent_conn, "reset", None)
             return _handle_worker_response(response, f"reset for env {env_idx}")
 
         @app.get("/health")
@@ -272,8 +277,7 @@ class EnvironmentServer:
         async def start_task_endpoint(request: TaskRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
             logger.info(f"Session {request.session_id} (Env {env_idx}): Start task")
-            parent_conn.send(("start_task", request.task_data))
-            response = parent_conn.recv()
+            response = await _send_recv_async(parent_conn, "start_task", request.task_data)
             return _handle_worker_response(response, f"start_task for env {env_idx}")
 
         return app
@@ -494,6 +498,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             except aiohttp.ClientError as e:
                 logger.error(colored(f"Failed to release environment: {e}", "red"))
             self.session_id = None
+            self.tcp_session = None
         elif not self.tcp_session:
             logger.warning("No TCP session available to release environment.")
         else:
@@ -523,12 +528,13 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         try:
             yield self
         except Exception as e:
-            logger.exception(f"Error caught in asyc context manager of the env: {e}")
+            logger.exception(f"Exception caught in async context manager of the remote env: {e}")
             raise e
         except KeyboardInterrupt:
             logger.warning("KeyboardInterrupt received, shutting down async environment.")
             raise
         finally:
+            logger.info("Closing environment session.")
             await self.aclose()
 
     async def wait_initialize(self, session, wait_for_env, initialization_timeout_sec):
