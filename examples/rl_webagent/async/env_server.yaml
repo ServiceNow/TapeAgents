@@ -6,7 +6,7 @@ environment_server:
 
 environment:
   _target_: examples.rl_webagent.environment.WebEnvironment 
-  exp_path: outputs/rl_webagent/env_server_test # or something like this: /mnt/llmd/results/exps/gontiern/llama3_8b_i_miniwob_yyyy_mm_dd__hh_mm_ss/env
+  exp_path: outputs/rl_webagent/env_server_test/${now:%Y-%m-%d}/${now:%H-%M-%S} # or something like this: /mnt/llmd/results/exps/gontiern/llama3_8b_i_miniwob_yyyy_mm_dd__hh_mm_ss/env
   headless: true
   observation_format: html
 
