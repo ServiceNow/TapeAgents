@@ -57,7 +57,7 @@ class WebEnvironment(Environment):
         if isinstance(task_data["task"], str):
             # reconstruct the task entrypoint from the dataset and task_id
             assert "dataset" in task_data, "Task data must contain 'dataset' key."
-            if task_data["dataset"] == "miniwob":
+            if "miniwob" in task_data["dataset"]:
                 task_entrypoint = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() == task_data["task"]][0]
             else:
                 raise ValueError(f"Unknown dataset {task_data['dataset']} for task {task_data['task']}.")
