@@ -207,7 +207,12 @@ class EnvironmentServer:
                 conn.send((command, data))
                 return conn.recv()
 
-            return await loop.run_in_executor(None, send_recv)
+            try:
+                result = await loop.run_in_executor(None, send_recv)
+            except Exception as e:
+                logger.error(f"Error during async send/recv for command {command}: {e}")
+                result = {"status": "critical_error", "error": str(e), "details": traceback.format_exc()}
+            return result
 
         @app.post("/acquire")
         async def acquire_environment():
@@ -326,7 +331,7 @@ class EnvironmentServer:
         atexit.register(self.shutdown)
 
         logger.info(f"Starting Environment Server at http://{self.host}:{self.port} with {self.n_envs} environments.")
-        uvicorn.run(app, host=self.host, port=self.port)
+        uvicorn.run(app, host=self.host, port=self.port, timeout_keep_alive=3600, log_level="info")
 
 
 class RemoteEnvironment(Environment):
