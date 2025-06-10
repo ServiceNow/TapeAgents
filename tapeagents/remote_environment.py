@@ -3,6 +3,7 @@ import atexit
 import contextlib
 import logging
 import os
+import random
 import time
 import traceback
 import uuid
@@ -568,7 +569,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                         )
                         raise e
                     logger.info("Waiting for environment to become available...")
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(random.uniform(5, 10))
                 else:
                     logger.error(f"Failed to initialize environment: {e.status_code}, {e.detail}")
                     raise e
