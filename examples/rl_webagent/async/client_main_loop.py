@@ -31,14 +31,14 @@ async def run_agent_with_remote_env(
 ) -> WebTape:
     environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
     async with environment.acontext(session, wait_for_env=True) as env:
-        tape_dict, metadata = await env.start_task(task)
+        tape_dict, _ = await env.start_task(task)
         tape: WebTape = WebTape(**tape_dict)  # convert http response dict to WebTape object
-        actions = await env.a_actions()
-        tools_description = await env.a_tools_description()
-        logger.info(f"Available tools: {tools_description}")
-        agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
         t = time.perf_counter()
         try:
+            actions = await env.a_actions()
+            tools_description = await env.a_tools_description()
+            logger.info(f"Available tools: {tools_description}")
+            agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
             tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
         except Exception as e:
             logger.error(f"Error occurred while running agent: {e}")
