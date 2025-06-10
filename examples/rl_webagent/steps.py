@@ -23,6 +23,7 @@ from tapeagents.tools.browser import (
     InputTextAction,
     PageDownAction,
     PageObservation,
+    PageUpAction,
     PressAction,
     SelectOptionAction,
 )
@@ -102,6 +103,7 @@ WebTapeStep = Union[
     InputTextAction,
     PressAction,
     PageDownAction,
+    PageUpAction,
     # TabFocusAction,
     # NewTabAction,
     # CloseTabAction,

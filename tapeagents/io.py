@@ -188,13 +188,17 @@ def load_tapes(
     data = load_tape_dicts(path, file_extension)
     attachment_dir_resolved = get_attachment_dir(path, attachment_dir)
     for tape_dict in data:
-        tape = tape_class.model_validate(tape_dict)
-        if attachment_dir_resolved:
-            # Update attachment_dir for steps that needs it
-            for step in tape:
-                if isinstance(step, (VideoObservation)):
-                    step.attachment_dir = attachment_dir_resolved
-        tapes.append(tape)
+        try:
+            tape = tape_class.model_validate(tape_dict)
+            if attachment_dir_resolved:
+                # Update attachment_dir for steps that needs it
+                for step in tape:
+                    if isinstance(step, (VideoObservation)):
+                        step.attachment_dir = attachment_dir_resolved
+            tapes.append(tape)
+        except Exception as e:
+            logger.warning(f"Failed to load tape {tape_dict['metadata']}: {e}")
+            raise e
     return tapes
 
 
