@@ -37,10 +37,12 @@ async def run_agent_with_remote_env(
         tools_description = await env.a_tools_description()
         logger.info(f"Available tools: {tools_description}")
         agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
+        t = time.perf_counter()
         try:
             tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
         except Exception as e:
             logger.error(f"Error occurred while running agent: {e}")
+        tape.metadata.result = {"execution_time": time.perf_counter() - t}
     # save the tape as we go
     save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
     return tape
