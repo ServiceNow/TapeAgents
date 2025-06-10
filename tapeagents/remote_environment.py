@@ -193,10 +193,9 @@ class EnvironmentServer:
                 logger.error(
                     f"Critical worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}"
                 )
-                # This session is likely dead. The _get_env_details might catch this on next call if process died.
                 raise HTTPException(
                     status_code=503,
-                    detail=f"Critical worker error: {response.get('error')}. Environment may be unstable.",
+                    detail=f"Critical worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}",
                 )
             return response
 
