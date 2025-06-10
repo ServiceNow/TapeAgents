@@ -64,7 +64,7 @@ async def amain(cfg: DictConfig) -> None:
     dt = time.perf_counter()
     timeout = 3600.0
     connector = aiohttp.TCPConnector(limit=1000, limit_per_host=1000)
-    timeout = aiohttp.ClientTimeout(total=timeout, connect=timeout, sock_read=10)
+    timeout = aiohttp.ClientTimeout(total=timeout, connect=timeout, sock_read=timeout)
     coroutines = []
     results = []
 
