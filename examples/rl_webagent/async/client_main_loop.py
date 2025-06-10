@@ -37,10 +37,13 @@ async def run_agent_with_remote_env(
         tools_description = await env.a_tools_description()
         logger.info(f"Available tools: {tools_description}")
         agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
-        tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
-        # save the tape as we go
-        save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
-        return tape
+        try:
+            tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
+        except Exception as e:
+            logger.error(f"Error occurred while running agent: {e}")
+    # save the tape as we go
+    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
+    return tape
 
 
 async def amain(cfg: DictConfig) -> None:
@@ -57,16 +60,16 @@ async def amain(cfg: DictConfig) -> None:
     # Convert AbstractBrowserTask to json parsable dicts
     train_samples = abt_to_json(train_samples)
     test_samples = abt_to_json(test_samples)
-
+    samples = test_samples
     dt = time.perf_counter()
     timeout = 3600.0
-    connector = aiohttp.TCPConnector(limit=1000, limit_per_host=1000, force_close=True)
-    timeout = aiohttp.ClientTimeout(total=timeout, connect=timeout, sock_read=timeout)
+    connector = aiohttp.TCPConnector(limit=1000, limit_per_host=1000)
+    timeout = aiohttp.ClientTimeout(total=timeout, connect=timeout, sock_read=10)
     coroutines = []
     results = []
 
     async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-        for task in train_samples + test_samples:
+        for task in samples:
             logging.info(f"Schedule task {task['task']} with seed {task['seed']}")
             coroutines.append(run_agent_with_remote_env(cfg, task, session, max_loops=cfg.max_loops))
         logger.info(f"Solving {len(coroutines)} tasks")
@@ -83,7 +86,11 @@ async def amain(cfg: DictConfig) -> None:
         last_obs = [step for step in tape if isinstance(step, Observation)][-1]
         success = last_obs.metadata.other.get("reward", 0.0) > 0.5
         acc.append(success)
-        if "info" in last_obs.metadata.other and "task_info" in last_obs.metadata.other["info"] and "REWARD_GLOBAL" in last_obs.metadata.other["info"]["task_info"]:
+        if (
+            "info" in last_obs.metadata.other
+            and "task_info" in last_obs.metadata.other["info"]
+            and "REWARD_GLOBAL" in last_obs.metadata.other["info"]["task_info"]
+        ):
             rewards.append(last_obs.metadata.other["info"]["task_info"]["REWARD_GLOBAL"])
         else:
             logger.warning(f"No reward found in last observation of tape {tape.metadata.id}")
