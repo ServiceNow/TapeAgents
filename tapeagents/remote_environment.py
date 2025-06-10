@@ -14,7 +14,7 @@ import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel, Field, TypeAdapter
 from termcolor import colored
 
@@ -44,14 +44,15 @@ class EnvironmentServer:
         self.env_pipes: dict[int, mp_connection.Connection] = {}
         self.env_processes: dict[int, Process] = {}
         self.sessions: dict[str, int] = {}  # session_id -> env_idx
+        self.requests_in_progress: int = 0
 
     def start_envs(self, env_config: DictConfig):
         for i in range(self.n_envs):
             parent_conn, child_conn = Pipe()
-
+            env_config_dict = OmegaConf.to_container(env_config, resolve=True)
             process = Process(
                 target=EnvironmentServer._environment_worker,
-                args=(env_config, child_conn),
+                args=(env_config_dict, child_conn),
                 daemon=True,  # Daemonize workers so they exit if main process crashes
             )
             process.start()
@@ -98,7 +99,7 @@ class EnvironmentServer:
         exit(0)
 
     @staticmethod
-    def _environment_worker(env_config: DictConfig, conn: mp_connection.Connection):
+    def _environment_worker(env_config: dict, conn: mp_connection.Connection):
         logging.basicConfig(
             format="[%(asctime)s][%(name)s][%(levelname)s][%(process)d] - %(message)s",
             datefmt="%m/%d/%Y %H:%M:%S",
@@ -112,7 +113,7 @@ class EnvironmentServer:
             "start_task": EnvironmentServer._handle_start_task,
             "shutdown": EnvironmentServer._handle_shutdown,
         }
-        environment: Environment = instantiate(env_config)
+        environment: Environment = instantiate(OmegaConf.create(env_config))
         logger.info(f"Worker started for env: {environment.__class__.__name__} (PID: {os.getpid()})")
         try:
             logger.info(f"Worker {os.getpid()} initializing environment...")
@@ -246,23 +247,35 @@ class EnvironmentServer:
         @app.post("/step")
         async def step_endpoint(request: ActionRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
-            logger.info(f"Session {request.session_id} (Env {env_idx}): Run step {request.action_data['kind']}")
+            logger.info(
+                f"Session {request.session_id} (Env {env_idx}): Run step {request.action_data['kind']}. Requests in progress: {self.requests_in_progress}"
+            )
+            self.requests_in_progress += 1
             response = await _send_recv_async(parent_conn, "step", request.action_data)
+            self.requests_in_progress -= 1
             return _handle_worker_response(response, f"step for env {env_idx}")
 
         @app.post("/actions")
         async def actions_endpoint(request: ApiRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
-            logger.info(f"Session {request.session_id} (Env {env_idx}): Get actions")
+            logger.info(
+                f"Session {request.session_id} (Env {env_idx}): Get actions. Requests in progress: {self.requests_in_progress}"
+            )
+            self.requests_in_progress += 1
             response = await _send_recv_async(parent_conn, "actions", None)
+            self.requests_in_progress -= 1
             return _handle_worker_response(response, f"actions for env {env_idx}")
 
         @app.post("/reset")
         async def reset_endpoint(request: ApiRequest):
             logger.info(f"Resetting environment for session {request.session_id}")
             parent_conn, env_idx = self._get_env_details(request.session_id)
-            logger.info(f"Session {request.session_id} (Env {env_idx}): Explicit reset")
+            logger.info(
+                f"Session {request.session_id} (Env {env_idx}): Explicit reset. Requests in progress: {self.requests_in_progress}"
+            )
+            self.requests_in_progress += 1
             response = await _send_recv_async(parent_conn, "reset", None)
+            self.requests_in_progress -= 1
             return _handle_worker_response(response, f"reset for env {env_idx}")
 
         @app.get("/health")
@@ -276,8 +289,12 @@ class EnvironmentServer:
         @app.post("/start_task")
         async def start_task_endpoint(request: TaskRequest):
             parent_conn, env_idx = self._get_env_details(request.session_id)
-            logger.info(f"Session {request.session_id} (Env {env_idx}): Start task")
+            logger.info(
+                f"Session {request.session_id} (Env {env_idx}): Start task. Requests in progress: {self.requests_in_progress}"
+            )
+            self.requests_in_progress += 1
             response = await _send_recv_async(parent_conn, "start_task", request.task_data)
+            self.requests_in_progress -= 1
             return _handle_worker_response(response, f"start_task for env {env_idx}")
 
         return app
