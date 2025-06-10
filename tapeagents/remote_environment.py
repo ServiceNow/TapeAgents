@@ -568,7 +568,6 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                             f"Failed to initialize environment after {initialization_timeout_sec} seconds: {e.detail}"
                         )
                         raise e
-                    logger.info("Waiting for environment to become available...")
                     await asyncio.sleep(random.uniform(5, 10))
                 else:
                     logger.error(f"Failed to initialize environment: {e.status_code}, {e.detail}")
