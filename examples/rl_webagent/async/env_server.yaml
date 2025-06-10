@@ -1,6 +1,6 @@
 environment_server:
   _target_: tapeagents.remote_environment.EnvironmentServer
-  n_envs: 8
+  n_envs: 64
   host: localhost
   port: 8000
 

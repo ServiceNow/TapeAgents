@@ -49,7 +49,6 @@ async def run_agent_with_remote_env(
 
 
 async def amain(cfg: DictConfig) -> None:
-    cfg.llm.base_url = os.environ["BASE_URL"]
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
     # os.environ["SNOW_INSTANCE_URL"] = cfg.environment_variables.snow_instance_url
@@ -81,6 +80,7 @@ async def amain(cfg: DictConfig) -> None:
 
     ### Print some statistics
     total_steps = 0
+    errs = 0
     acc = []
     rewards = []
     for tape in results:
@@ -95,6 +95,7 @@ async def amain(cfg: DictConfig) -> None:
         ):
             rewards.append(last_obs.metadata.other["info"]["task_info"]["REWARD_GLOBAL"])
         else:
+            errs += 1
             logger.warning(f"No reward found in last observation of tape {tape.metadata.id}")
 
     logger.info(f"Average tape length: {(total_steps / len(results)):.2f}")
@@ -102,6 +103,7 @@ async def amain(cfg: DictConfig) -> None:
     logger.info(f"Average time per tape: {(time.perf_counter() - dt) / len(results):.2f} seconds")
     logger.info(f"Accuracy: {sum(acc) / len(acc) if acc else 0:.2f}")
     logger.info(f"Average reward: {sum(rewards) / len(rewards) if rewards else 0:.2f}")
+    logger.info(f"Failed tapes: {errs}")
 
     ### TODO: continue to copy things from orchestrate_rl.py / switch to pipelinerl
 

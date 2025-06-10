@@ -14,7 +14,7 @@ environment_variables:
 
 llm:
   _target_: tapeagents.llms.TrainableLLM
-  base_url: "http://localhost:8000"
+  base_url: http://localhost:8080
   model_name: Qwen/Qwen3-8B
   use_litellm_tokenizer_fallback: true
   use_cache: false
