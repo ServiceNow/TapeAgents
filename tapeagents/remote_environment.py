@@ -19,7 +19,7 @@ from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel, Field, TypeAdapter
 from termcolor import colored
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction, TapeType, last_actions
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, TapeType, last_actions
 from tapeagents.environment import AsyncEnvironment, Environment, UserStep
 from tapeagents.tool_calling import ToolCallAction, ToolSpec
 from tapeagents.utils import class_for_name, full_classname
@@ -481,7 +481,8 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         desc_list = [a.description() for a in await self.a_actions()]
         return "\n".join(f"- {desc}" for desc in desc_list)
 
-    async def astep(self, action: Action) -> BaseModel:
+    async def astep(self, action: Action) -> Observation:
+        t = time.perf_counter()
         if isinstance(action, LLMOutputParsingFailureAction):
             return UserStep(content="Try again")
         if not self.tcp_session or not self.session_id:
@@ -495,8 +496,10 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 raise HTTPException(status_code=response.status, detail=text)
             response_dict = await response.json()
         obs_dict = response_dict["observation"]
-        cls: type[BaseModel] = class_for_name(response_dict["classname"])
-        observation = cls.model_validate(obs_dict)
+        obs_type: type[Observation] = class_for_name(response_dict["classname"])
+        observation: Observation = obs_type.model_validate(obs_dict)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
         return observation
 
     async def areset(self) -> None:
