@@ -19,3 +19,16 @@ __all__ = [
     "MockLLM",
     "Claude",
 ]
+
+
+class OpenrouterLLM(TrainableLLM):
+    base_url: str = "https://openrouter.ai/api"
+
+    def model_post_init(self, __context):
+        pass
+
+    def count_tokens(self, messages: list[dict] | str) -> int:
+        return 0
+
+    def load_tokenizer(self):
+        pass

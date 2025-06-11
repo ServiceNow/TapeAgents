@@ -198,7 +198,11 @@ class TrainableLLM(CachedLLM):
                 raise e
             output = LLMOutput(content=content)
             if tool_calls:
-                output.tool_calls = [litellm.ChatCompletionMessageToolCall(**tc) for tc in tool_calls]
+                output.tool_calls = []
+                for tc in tool_calls:
+                    if "arguments" not in tc:
+                        tc["arguments"] = {}
+                    output.tool_calls.append(litellm.ChatCompletionMessageToolCall(**tc))
         llm_call = self.log_output(prompt, output)
         llm_call.logprobs = logprobs
         yield LLMEvent(output=output, llm_call=llm_call)
