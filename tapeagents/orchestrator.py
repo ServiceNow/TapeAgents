@@ -276,6 +276,38 @@ async def async_main_loop(
         n_loops += 1
 
 
+def execute_agent(
+    agent: Agent[TapeType], start_tape: TapeType, environment: Environment, max_loops: int = 50
+) -> TapeType:
+    """
+    Execute the agent on the tape, then the environment reacts to the agent's tape, then the agent is run on the
+    environment's tape, and so on. The loop stops when the agent emits a final step or the environment emits a final
+    step, or the maximum number of loops is reached.
+
+    :param agent: Agent object
+    :param start_tape: initial tape
+    :param environment: Environment object
+    :param max_loops: maximum number of loops, 50 by default
+
+    :return: final tape after running the agent
+    """
+    final_tape = start_tape
+    try:
+        for event in main_loop(agent, start_tape, environment, max_loops=max_loops):
+            if event.agent_event and event.agent_event.final_tape:
+                final_tape = event.agent_event.final_tape
+            elif event.env_tape:
+                final_tape = event.env_tape
+    except Exception as e:
+        final_tape.metadata.error = f"Agent loop exception: {e}"
+        logger.exception(colored(f"Agent loop exception: {e}, stopping", "red"))
+    tape_id = final_tape.metadata.id
+    final_tape.metadata = start_tape.metadata
+    final_tape.metadata.id = tape_id
+    final_tape.metadata.parent_id = start_tape.metadata.id
+    return final_tape
+
+
 async def async_execute_agent(
     agent: Agent[TapeType],
     start_tape: TapeType,
