@@ -146,18 +146,18 @@ class UseCalculatorAction(Action):
     Action to use calculator to find the new fact. This python math expression uses only the fact names from the previous steps and constants. The expression should be a single line. You can use exp, cos, sin, tan, abs, trunc, sgn, round
     """
 
-    kind: Literal["use_calculator_action"] = "use_calculator_action"
+    kind: Literal["use_calculator_action"] = "use_calculator_action"  # type: ignore
     expression: str = Field(description="math expression using previously known fact names and constants")
-    fact_name: str = Field(
-        description="fact name to save calculations result, should be unique, lowercase, snake_case, without spaces and special characters"
-    )
-    fact_unit: str = Field(description="expected unit of the fact value, if applicable, otherwise empty string")
-    facts: dict | None = None
+    # fact_name: str = Field(
+    #     description="fact name to save calculations result, should be unique, lowercase, snake_case, without spaces and special characters"
+    # )
+    # fact_unit: str = Field(description="expected unit of the fact value, if applicable, otherwise empty string")
+    # facts: dict | None = None
 
 
 class CalculationResultObservation(Observation):
-    kind: Literal["calculation_result_observation"] = "calculation_result_observation"
-    name: str
+    kind: Literal["calculation_result_observation"] = "calculation_result_observation"  # type: ignore
+    # name: str
     result: str
 
 
@@ -170,5 +170,5 @@ class Calculator(Tool):
     observation: type[Observation] = CalculationResultObservation
 
     def execute_action(self, action: UseCalculatorAction) -> CalculationResultObservation:
-        result = calculate(action.expression, action.facts or {})
-        return CalculationResultObservation(name=action.fact_name, result=result)
+        result = calculate(action.expression, {})
+        return CalculationResultObservation(result=result)
