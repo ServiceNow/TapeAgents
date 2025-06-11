@@ -141,7 +141,6 @@ GaiaStep: TypeAlias = Union[
     PageDownAction,
     PageUpAction,
     SelectOptionAction,
-    SearchAction,
     PageDownAction,
     ReadDocumentAction,
     PythonCodeAction,

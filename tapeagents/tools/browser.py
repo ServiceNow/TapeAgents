@@ -1,12 +1,15 @@
+import asyncio
 import logging
 import os
 import re
+import threading
 from time import sleep
 from typing import Any, Callable, Literal
 from uuid import uuid4
 
 import gymnasium as gym
 import markdownify
+import nest_asyncio
 import numpy as np
 import requests
 from browsergym.core.action.highlevel import HighLevelActionSet
@@ -17,17 +20,21 @@ from browsergym.utils.obs import (
     flatten_dom_to_str,
     prune_html,
 )
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from PIL import Image
+from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from pydantic import Field
 
 from tapeagents.core import Action, Observation, StepMetadata
-from tapeagents.steps import ImageObservation
-from tapeagents.tools.base import StatefulTool
+from tapeagents.steps import ActionExecutionFailure, ImageObservation
+from tapeagents.tools.base import StatefulTool, Tool
+from tapeagents.tools.converters import FileConverter
 from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
 
+nest_asyncio.apply()
 NODES_WITH_BID = [
     "button",
     "link",
@@ -48,7 +55,6 @@ logger = logging.getLogger(__name__)
 class OpenUrlAction(Action):
     """
     Action that opens a page with the provided URL and returns its first page content.
-    Use page_down_action to read subsequent pages.
     """
 
     kind: Literal["open_url_action"] = "open_url_action"
@@ -333,11 +339,10 @@ class Browser(StatefulTool):
             "name": self._env.unwrapped.task.get_task_id(),
             "goal": start_obs["goal"],
             "task_info": info["task_info"],
-            "video": os.path.basename(self._env.unwrapped.page.video.path()) if self._env.unwrapped.page.video else "",
-            "chat_video": os.path.basename(self._env.unwrapped.chat.page.video.path())
-            if self._env.unwrapped.chat.page.video
-            else "",
+            "video": "",
+            "chat_video": "",
         }
+
         sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
@@ -360,6 +365,9 @@ class Browser(StatefulTool):
         img_path = os.path.join(self._screenshots_dir, f"{pic_uid}.png")
         image.save(img_path)
         return img_path
+
+    def reset(self):
+        self._env.step("goto('about:blank')")
 
     def run_browser_action(self, action_text: str) -> PageObservation:
         obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
@@ -422,14 +430,6 @@ class Browser(StatefulTool):
             )
         self._non_browser_doc = False
         obs = self.run_browser_action(f"goto('{action.url}')")
-        if obs.error:
-            text, error = download_file(action.url)
-            obs = PageObservation(
-                text=self.get_viewport(text),
-                current_page=self._current_viewport,
-                total_pages=self._n_viewports,
-                error=error,
-            )
         return obs
 
     def click_bid(self, action: ClickBIDAction) -> PageObservation:
@@ -637,7 +637,7 @@ def flatten_axtree(
                         node_str = f"BID:{bid} " + node_str
 
                 if node_value is not None:
-                    node_str += f' value={repr(node["value"]["value"])}'
+                    node_str += f" value={repr(node['value']['value'])}"
 
                 if attributes:
                     node_str += ", ".join([""] + attributes)
@@ -662,8 +662,150 @@ def flatten_axtree(
     return dfs(0, 0, False)
 
 
-def download_file(url: str):
-    user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-    response = requests.get(url, headers={"User-Agent": user_agent})
-    response.raise_for_status()
-    return read_document(response)
+headers = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+}
+
+
+def minimize_html(html: str) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Remove script and style tags
+    for tag in soup.find_all(["script", "style", "noscript"]):
+        tag.decompose()
+
+    # Remove HTML comments
+    for comment in soup.find_all(text=lambda text: isinstance(text, Comment)):
+        comment.extract()
+
+    # Strip attributes from all tags except href and src
+    for tag in soup.find_all(True):  # Find all tags
+        attrs = tag.attrs
+        # Save href and src if they exist
+        href = attrs.get("href", None)
+        src = attrs.get("src", None)
+        alt = attrs.get("alt", None)
+        # Clear all attributes
+        tag.attrs = {}
+        # Restore href and src if they existed
+        if href:
+            tag["href"] = href
+        if src:
+            tag["src"] = src
+        if alt:
+            tag["alt"] = alt
+        # Remove tag if it has no content and its not an image
+        if not tag.string and not tag.contents and tag.name != "img":
+            tag.decompose()
+
+    for tag in soup.find_all(True):
+        if not tag.string and not tag.contents and tag.name != "img":
+            tag.decompose()
+
+    minimal_html = str(soup)
+    # Remove extra whitespace
+    minimal_html = re.sub(r"\s+", " ", minimal_html)
+    # Remove empty lines
+    minimal_html = re.sub(r"\n\s*\n", "\n", minimal_html)
+    return minimal_html
+
+
+class Tls(threading.local):
+    sync: bool = True
+
+    def __init__(self) -> None:
+        try:
+            self.playwright = sync_playwright().start()
+            self.browser = self.playwright.chromium.launch(headless=True)
+        except Exception:
+            self.sync = False
+            logger.warning("Using playwright async")
+            self.playwright = asyncio.run(async_playwright().start())
+            self.browser = asyncio.run(self.playwright.chromium.launch(headless=True))
+
+
+class Fetcher(Tool):
+    """
+    A minimal text-based web browser designed for AI agent use.
+    Can read web pages, PDFs and other document types.
+    """
+
+    action: type[Action] = OpenUrlAction
+    observation: type[Observation] = PageObservation
+    cached: bool = True
+    width: int = Field(default=1280, description="Width of the browser window")
+    height: int = Field(default=800, description="Height of the browser window")
+    sleep_time: int = Field(default=2, description="Time to wait for the page to load")
+    timeout: int = Field(default=20, description="Timeout for the request in seconds")
+
+    _tls: Tls | None = None  # Use a private instance variable
+
+    def model_post_init(self, __context: Any):
+        # Initialize tls instance here
+        self._tls = Tls()
+
+    @property
+    def tls(self) -> Tls:
+        if self._tls is None:
+            # defensive, should be initialized in model_post_init
+            self._tls = Tls()
+        return self._tls
+
+    def fetch_for_llm(self, url: str) -> tuple[str, str]:
+        try:
+            action = OpenUrlAction(url=url)
+            obs = self.run(action)
+            if isinstance(obs, ActionExecutionFailure):
+                raise Exception(ActionExecutionFailure.error)
+            text = obs.text if isinstance(obs, PageObservation) else ""
+        except Exception as e:
+            logger.exception(f"Failed to fetch page {url}: {e}")
+            text = ""
+        return url, text
+
+    def execute_action(self, action: OpenUrlAction) -> PageObservation:
+        """
+        Fetches the content of a URL and returns it as a string in a format suitable for LLMs.
+        If the content type is HTML, it minimizes the HTML content.
+        If the content type is plain text, it returns the text as is.
+        In all other cases, it uses the FileConverter to convert the response to text.
+        """
+        url = action.url
+        if url.endswith(".pdf"):
+            content_type = "application/pdf"
+        else:
+            try:
+                content_type = requests.head(url, headers=headers).headers.get("content-type", "")
+            except Exception as e:
+                logger.exception(f"Error fetching headers for {url}, interpret as html page: {e}")
+                content_type = "text/html"
+        if "text/html" in content_type.lower():
+            if self.tls.sync:
+                html_content = self.get_html(url)
+            else:
+                html_content = asyncio.run(self.async_get_html(url))
+            text = minimize_html(html_content)
+        elif "text/plain" in content_type.lower():
+            response = requests.get(url, headers=headers)
+            text = response.text
+        else:
+            response = requests.get(url, headers=headers)
+            result = FileConverter().convert_response(response)
+            text = result.text_content
+        return PageObservation(text=text, current_page=1, total_pages=1)
+
+    def get_html(self, url: str) -> str:
+        page = self.tls.browser.new_page(viewport={"width": self.width, "height": self.height})
+        page.goto(url, timeout=self.timeout * 1000)
+        sleep(self.sleep_time)  # Wait for page to load and render
+        html_content = page.content()
+        page.close()
+        return html_content
+
+    async def async_get_html(self, url: str) -> str:
+        page = await self.tls.browser.new_page(viewport={"width": self.width, "height": self.height})
+        await page.goto(url, timeout=self.timeout * 1000)
+        await asyncio.sleep(self.sleep_time)  # Wait for page to load and render
+        html_content = await page.content()
+        await page.close()
+        return html_content

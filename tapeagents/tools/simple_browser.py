@@ -35,13 +35,13 @@ from termcolor import colored
 from tapeagents.config import common_cache_dir, force_cache
 from tapeagents.core import Action, Observation
 from tapeagents.tools.base import StatefulTool
-from tapeagents.utils import FatalError, diff_strings
-
-from .converters import (
+from tapeagents.tools.converters import (
     FileConversionException,
     FileConverter,
+    FileConverterOptions,
     UnsupportedFormatException,
 )
+from tapeagents.utils import FatalError, diff_strings
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -62,6 +62,7 @@ class SimpleTextBrowser:
         use_web_cache: bool = True,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
         converter_kwargs: Optional[Dict[str, Any]] = None,
+        file_converter_options: Optional[FileConverterOptions] = None,
     ):
         self.start_page: str = start_page if start_page else "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
@@ -75,7 +76,7 @@ class SimpleTextBrowser:
         self.request_kwargs = request_kwargs or {"headers": {"User-Agent": self.user_agent}}
         self.request_kwargs["headers"] = self.request_kwargs.get("headers", {})
 
-        self._mdconvert = FileConverter()
+        self._mdconvert = FileConverter(file_converter_options=file_converter_options)
 
         self._page_content: str = ""
         self._page_error: int = 0
@@ -470,10 +471,15 @@ class PageObservation(Observation):
     total_pages: int
     error: int | str | None = None
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
-        view["text"] = view["text"][:100] + "..."
-        return json.dumps(view, indent=2, ensure_ascii=False)
+        view_json = json.dumps(view, indent=2, ensure_ascii=False)
+        if len(view["text"]) > max_chars:
+            view["text"] = view["text"][:max_chars] + "..."
+            short = json.dumps(view, indent=2, ensure_ascii=False)
+            logger.info(f"PageObservation long view was: {len(self.llm_view())}, short view is: {len(short)}")
+            view_json = short
+        return view_json
 
 
 class SimpleBrowser(StatefulTool):
@@ -485,11 +491,12 @@ class SimpleBrowser(StatefulTool):
     actions: tuple[type[Action], ...] = (ReadDocumentAction, PageDownAction)
     observations: tuple[type[Observation], ...] = (PageObservation,)
     exp_path: str
-    kwargs: dict[str, Any]
+    kwargs: dict[str, Any] | None = None
     _browser: SimpleTextBrowser = None  # type: ignore
 
     def model_post_init(self, __context: Any):
-        self._browser = SimpleTextBrowser(**self.kwargs)
+        kwargs = self.kwargs or {}
+        self._browser = SimpleTextBrowser(**kwargs)
 
     def execute_action(self, action: ReadDocumentAction | PageDownAction) -> PageObservation:
         if isinstance(action, ReadDocumentAction):

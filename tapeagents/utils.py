@@ -16,7 +16,7 @@ from typing import Any
 
 import jsonref
 from PIL import Image
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 from termcolor import colored
 
 
@@ -110,6 +110,30 @@ def get_step_schemas_from_union_type(cls, simplify: bool = True) -> str:
     return json.dumps(clean_schema, ensure_ascii=False)
 
 
+def step_schema(step: BaseModel, simple: bool = True) -> dict:
+    schema = step.model_json_schema()
+    step_dict: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
+    step_dict.pop("$defs", None)
+    step_dict["properties"].pop("metadata", None)
+    if simple:
+        step_dict.pop("title", None)
+        for prop in step_dict["properties"]:
+            step_dict["properties"][prop].pop("title", None)
+        step_dict["properties"]["kind"] = {"const": step_dict["properties"]["kind"]["const"]}
+    return step_dict
+
+
+def step_schema_json(step: BaseModel, simple: bool = True) -> str:
+    step_dict = step_schema(step, simple)
+    return json.dumps(step_dict, ensure_ascii=False, indent=2)
+
+
+def response_format(step_cls: type[BaseModel]) -> dict:
+    schema = step_schema(step_cls, simple=False)
+    schema["properties"].pop("kind", None)
+    return {"type": "json_schema", "json_schema": {"strict": True, "schema": schema, "name": step_cls.__name__}}
+
+
 def image_base64_message(image_path: str) -> dict:
     image_extension = os.path.splitext(image_path)[1][1:]
     content_type = f"image/{image_extension}"
@@ -157,6 +181,14 @@ def class_for_name(full_name: str) -> Any:
     # get the class, will raise AttributeError if class cannot be found
     c = getattr(m, class_name)
     return c
+
+
+def full_classname(cls: type) -> str:
+    module = cls.__module__
+    name = cls.__qualname__
+    if module is not None and module != "__builtin__":
+        name = module + "." + name
+    return name
 
 
 class Lock:

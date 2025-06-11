@@ -5,10 +5,19 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from tapeagents.core import Action, AgentStep, Error, Observation, Step, Thought
+from tapeagents.core import Action, ControlFlow, Error, Observation, Step, Thought
 from tapeagents.utils import image_base64_message
 
 logger = logging.getLogger(__name__)
+
+
+REASON_TO_USE_KEY = "reason_to_use"
+
+
+class ExplainableAction(Action):
+    reason_to_use: str = Field(
+        description="A summary of the reason you want to use this tool written in the form of 'I want to'", default=""
+    )
 
 
 class WatchVideoAction(Action):
@@ -43,8 +52,10 @@ class ImageObservation(Observation):
             content.append(image_base64_message(self.image_path))
         return content
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
+        if self.image_caption and len(self.image_caption) > max_chars:
+            view["image_caption"] = view["image_caption"][:max_chars] + "..."
         return json.dumps(view, indent=2, ensure_ascii=False)
 
 
@@ -75,9 +86,10 @@ class VideoObservation(Observation):
                 llm_view.append(image_base64_message(Path(self.attachment_dir) / path))
         return llm_view
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
-        view["subtitle_text"] = view["subtitle_text"][:100] + "..."
+        if self.subtitle_text and len(self.subtitle_text) > max_chars:
+            view["subtitle_text"] = view["subtitle_text"][:max_chars] + "..."
         del view["video_contact_sheet_paths"]
         return json.dumps(view, indent=2, ensure_ascii=False)
 
@@ -101,8 +113,11 @@ class ReasoningThought(Thought):
     kind: Literal["reasoning_thought"] = "reasoning_thought"
     reasoning: str
 
+    def llm_view(self):
+        return self.reasoning
 
-class BranchStep(AgentStep):
+
+class BranchStep(ControlFlow):
     kind: Literal["branch"] = "branch"
 
 
@@ -110,7 +125,8 @@ class ActionExecutionFailure(Observation, Error):
     kind: Literal["action_execution_failure"] = "action_execution_failure"
     error: str
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
-        view["error"] = view["error"][:100] + "..."
+        if self.error and len(self.error) > max_chars:
+            view["error"] = view["error"][:max_chars] + "..."
         return json.dumps(self.llm_dict(), indent=2, ensure_ascii=False)

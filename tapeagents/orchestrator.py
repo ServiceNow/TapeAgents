@@ -24,6 +24,7 @@ from tapeagents.environment import (
     NoActionsToReactTo,
     ToolCollectionEnvironment,
 )
+from tapeagents.remote_environment import AsyncRemoteEnvironment
 from tapeagents.renderers import step_view
 from tapeagents.utils import FatalError, diff_dicts
 
@@ -95,14 +96,15 @@ def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectio
     return agent, environment
 
 
-async def async_get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
-    environment: ToolCollectionEnvironment = instantiate(cfg.environment)
-    await environment.ainitialize()
-    logger.info(f"Environment tools: {environment.tools_description()}")
-    agent: Agent = instantiate(
-        cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
-    )
-    return agent, environment
+async def run_agent_with_remote_env(cfg: DictConfig, tape: TapeType, session: aiohttp.ClientSession) -> TapeType:
+    environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
+    async with environment.acontext(session, wait_for_env=True) as env:
+        actions = await environment.a_actions()
+        tools_description = await environment.a_tools_description()
+        logger.info(f"Available tools: {tools_description}")
+        agent: Agent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
+        tape = await async_execute_agent(agent, tape, env, session)
+        return tape
 
 
 def main_loop(
@@ -134,9 +136,14 @@ def main_loop(
         while n_loops < max_loops or max_loops == -1:
             # --- RUN THE AGENT ---
             for event in agent.run(tape):
-                yield MainLoopEvent(agent_event=event)
                 if event.step:
-                    logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+                    logger.info(
+                        colored(
+                            f"AGENT {event.step.metadata.agent}:{event.step.metadata.node}\n{event.step.llm_view()}",
+                            "green",
+                        )
+                    )
+                yield MainLoopEvent(agent_event=event)
                 if event.final_tape:
                     break
             assert event and event.final_tape
@@ -157,7 +164,7 @@ def main_loop(
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:
-                logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+                logger.info(colored(f"ENV:\n{observation.short_view()}", "yellow"))
                 yield MainLoopEvent(observation=observation)
             yield MainLoopEvent[TapeType](env_tape=tape)
 

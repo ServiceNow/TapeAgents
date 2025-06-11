@@ -13,12 +13,13 @@ from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import TypeAdapter
 
 from tapeagents.agent import TapeType
-from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape
+from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, Tape, last_actions
 from tapeagents.dialog_tape import AssistantStep, DialogTape, UserStep
 from tapeagents.tool_calling import FunctionCall, ToolCalls, ToolResult, ToolSpec
 from tapeagents.tools.base import AsyncBaseTool, BaseTool, StatefulTool, Tool
 from tapeagents.tools.container_executor import CodeBlock, CommandLineCodeResult, ContainerExecutor
 from tapeagents.utils import FatalError
+from tapeagents.view import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,13 @@ class Environment(ABC, Generic[TapeType]):
     def initialize(self):
         pass
 
+    def start_task(self, task: dict) -> dict:
+        """
+        Start a new task in the environment.
+        This method should be overridden by subclasses to implement task-specific initialization.
+        """
+        return {}
+
     @abstractmethod
     def react(self, tape: TapeType) -> TapeType:
         pass
@@ -64,6 +72,10 @@ class Environment(ABC, Generic[TapeType]):
 
     def actions(self) -> tuple[type[Action], ...]:
         return tuple()
+
+    def tools_description(self) -> str:
+        desc_list = [f"{a.__class__.__name__} - {a.__doc__ or '[no description]'}" for a in self.actions()]
+        return "\n".join(f"- {desc}" for desc in desc_list)
 
     def reset(self) -> None:
         pass
@@ -179,13 +191,25 @@ class CodeExecutionEnvironment(Environment):
 
 
 class ToolCollectionEnvironment(AsyncEnvironment):
-    def __init__(self, tools: list[BaseTool]) -> None:
+    def __init__(
+        self,
+        tools: list[BaseTool],
+        loop_detection: bool = False,
+        loop_warning_after_n_steps: int = 3,
+        loop_warning: str = "You seem to be stuck producing the same action. Consider a new approach and avoid repeating previously attempted ineffective steps.",
+    ) -> None:
+        if loop_warning_after_n_steps <= 0:
+            raise ValueError("loop_warning_after_n_steps must be positive")
+
         super().__init__()
         self.tools = tools
         self.action_map = {tool.action: tool for tool in tools if isinstance(tool, Tool)}
         for tool in tools:
             if isinstance(tool, StatefulTool):
                 self.action_map |= {action: tool for action in tool.actions}
+        self.loop_detection = loop_detection
+        self.loop_warning_after_n_steps = loop_warning_after_n_steps
+        self.loop_warning = loop_warning
 
     def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
         return tuple(self.action_map.keys())
@@ -195,10 +219,32 @@ class ToolCollectionEnvironment(AsyncEnvironment):
         return "\n".join(f"- {desc}" for desc in desc_list)
 
     def react(self, tape: Tape) -> Tape:
-        for action in self.last_actions(tape):
+        if self.loop_detection and self.loop_detected(tape):
+            logger.warning(f"Loop detected in tape: {tape}")
+            obs = UserStep(content=self.loop_warning)
+            return tape.append(obs)
+        for action in last_actions(tape):
             observation = self.step(action)
             tape = tape.append(observation)
         return tape
+
+    def loop_detected(self, tape: Tape) -> bool:
+        actions = last_actions(tape)
+        all_actions_counter = defaultdict(int)
+        for step in tape.steps:
+            if isinstance(step, Action):
+                all_actions_counter[step.llm_view()] += 1
+        for last_action in actions:
+            n_args = len(last_action.llm_dict())
+            logger.info(f"Action {last_action.kind} has {n_args} args")
+            if n_args < 2:
+                # skip action without args that only has kind field
+                continue
+            cnt = all_actions_counter[last_action.llm_view()]
+            if cnt >= self.loop_warning_after_n_steps:
+                logger.warning(f"Loop, action {last_action.kind} repeated {cnt} times")
+                return True
+        return False
 
     def step(self, action: Action) -> Observation:
         t = time.perf_counter()
@@ -221,11 +267,8 @@ class ToolCollectionEnvironment(AsyncEnvironment):
         for tool in self.tools:
             tool.close()
 
-    def last_actions(self, tape: Tape) -> list[Action]:
-        return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
-
     async def areact(self, tape: Tape) -> Tape:
-        for action in self.last_actions(tape):
+        for action in last_actions(tape):
             observation = await self.astep(action)
             tape = tape.append(observation)
         return tape

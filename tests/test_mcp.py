@@ -1,5 +1,9 @@
+import asyncio
+import tempfile
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
+import pytest
 from litellm import ChatCompletionMessageToolCall
 from mcp import Tool
 from mcp.types import CallToolResult, TextContent
@@ -10,7 +14,8 @@ from tapeagents.dialog_tape import UserStep
 from tapeagents.llms import MockLLM
 from tapeagents.mcp import MCPClient, MCPEnvironment
 from tapeagents.nodes import StandardNode
-from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolResult
+from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolResult, ToolSpec
+from tapeagents.tools.calculator import Calculator, UseCalculatorAction
 
 MOCK_TOOLS = {
     "server1": [
@@ -44,9 +49,10 @@ MOCK_TOOLS = {
 
 
 class MockMCPClient(MCPClient):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, use_cache: bool = False) -> None:
         self.tools = {}
         self.tool_to_server = {}
+        self.use_cache = use_cache
 
     async def start_servers(self):
         # Register mock tools
@@ -55,7 +61,7 @@ class MockMCPClient(MCPClient):
                 self.tools[tool.name] = tool
                 self.tool_to_server[tool.name] = server_name
 
-    async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
+    async def _call_tool(self, server_name: str, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
         self.check_tool_exists(tool_name)
         # Simulate tool behavior
         if tool_name == "calculator":
@@ -69,6 +75,46 @@ class MockMCPClient(MCPClient):
             return CallToolResult(content=[TextContent(type="text", text=tool_args["message"])])
         else:
             raise Exception(f"Tool {tool_name} not implemented")
+
+
+def mocked_common_cache_dir():
+    return tempfile.mkdtemp(prefix="test_cache_")
+
+
+@pytest.mark.parametrize("use_cache, expected_call_count", [(True, 1), (False, 2)])
+def test_mcp_client_cache_behavior(use_cache, expected_call_count):
+    with patch("tapeagents.tools.tool_cache.common_cache_dir", mocked_common_cache_dir):
+        client = MockMCPClient(config_path="dummy_config.json", use_cache=use_cache)
+        asyncio.run(client.start_servers())
+        client._call_tool = AsyncMock(wraps=client._call_tool)
+
+        # Perform 2 calls with the same arguments
+        async def perform_calls():
+            result1 = await client.call_tool("calculator", {"operation": "add", "a": 1, "b": 2})
+            result2 = await client.call_tool("calculator", {"operation": "add", "a": 1, "b": 2})
+            assert isinstance(result1, CallToolResult)
+            assert result1.content[0].text == "3"
+            assert isinstance(result2, CallToolResult)
+            assert result2.content[0].text == "3"
+
+        asyncio.run(perform_calls())
+
+        # Verify _call_tool was called the expected number of times. Test has knowledge of internal implementation.
+        client._call_tool.assert_called_with("server1", "calculator", {"operation": "add", "a": 1, "b": 2})
+        assert client._call_tool.call_count == expected_call_count
+
+
+def test_mcp_env_init():
+    env = MCPEnvironment(tools=[Calculator()], client=MockMCPClient("dummy_config.json"))
+    env.initialize()
+
+    assert len(env.tools) == 4
+    assert sum(1 for tool in env.tools if isinstance(tool, Calculator)) == 1
+    assert sum(1 for tool in env.tools if isinstance(tool, ToolSpec)) == 3
+    actions = env.actions()
+    assert len(actions) == 4
+    assert sum(1 for action in actions if isinstance(action, ToolSpec)) == 3
+    assert sum(1 for action in actions if action == UseCalculatorAction) == 1
 
 
 def test_mcp_env():
