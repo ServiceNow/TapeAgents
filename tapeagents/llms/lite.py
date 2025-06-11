@@ -5,7 +5,6 @@ from typing import Generator
 import litellm
 import requests
 from omegaconf import DictConfig, OmegaConf
-from termcolor import colored
 
 from tapeagents.core import Prompt, TrainingText
 from tapeagents.llms.base import LLMEvent, LLMOutput
@@ -71,7 +70,6 @@ class LiteLLM(CachedLLM):
                 else:
                     kwargs[k] = v
             try:
-                logger.info(colored(f"Prompt tokens: {self.count_tokens(prompt.messages)}", "light_red"))
                 response = litellm.completion(
                     model=self.model_name,
                     messages=prompt.messages,
