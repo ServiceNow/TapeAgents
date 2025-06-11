@@ -85,6 +85,7 @@ def mocked_common_cache_dir():
 def test_mcp_client_cache_behavior(use_cache, expected_call_count):
     with patch("tapeagents.tools.tool_cache.common_cache_dir", mocked_common_cache_dir):
         client = MockMCPClient(config_path="dummy_config.json", use_cache=use_cache)
+        asyncio.run(client.start_servers())
         client._call_tool = AsyncMock(wraps=client._call_tool)
 
         # Perform 2 calls with the same arguments
@@ -105,6 +106,7 @@ def test_mcp_client_cache_behavior(use_cache, expected_call_count):
 
 def test_mcp_env_init():
     env = MCPEnvironment(tools=[Calculator()], client=MockMCPClient("dummy_config.json"))
+    env.initialize()
 
     assert len(env.tools) == 4
     assert sum(1 for tool in env.tools if isinstance(tool, Calculator)) == 1
