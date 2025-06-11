@@ -16,6 +16,7 @@ from tapeagents.agent import Agent, Node
 from tapeagents.core import (
     AgentStep,
     ControlFlow,
+    FinalStep,
     LLMOutputParsingFailureAction,
     Observation,
     PartialStep,
@@ -635,6 +636,10 @@ class FixedStepsNode(Node):
 
 class Return(FixedStepsNode):
     steps: list[Step] = [Respond(copy_output=True)]
+
+
+class Stop(FixedStepsNode):
+    steps: list[Step] = [FinalStep()]
 
 
 class GoTo(Node):
