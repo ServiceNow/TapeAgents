@@ -490,7 +490,7 @@ class SimpleBrowser(StatefulTool):
 
     actions: tuple[type[Action], ...] = (ReadDocumentAction, PageDownAction)
     observations: tuple[type[Observation], ...] = (PageObservation,)
-    exp_path: str
+    exp_path: str | None = None
     kwargs: dict[str, Any] | None = None
     _browser: SimpleTextBrowser = None  # type: ignore
 
@@ -513,4 +513,5 @@ class SimpleBrowser(StatefulTool):
         return obs
 
     def close(self) -> None:
-        self._browser.flush_log(self.exp_path)
+        if self.exp_path:
+            self._browser.flush_log(self.exp_path)
