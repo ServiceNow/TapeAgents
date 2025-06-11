@@ -671,7 +671,7 @@ class MarkdownConverter(DocumentConverter):
         # Try to extract title from the first heading
         title = None
         # Look for the first markdown heading (# Title)
-        heading_match = re.search(r'^#\s+(.+?)$', text_content, re.MULTILINE)
+        heading_match = re.search(r"^#\s+(.+?)$", text_content, re.MULTILINE)
         if heading_match:
             title = heading_match.group(1).strip()
 
