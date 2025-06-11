@@ -1,12 +1,12 @@
 {
     "metadata": {
-        "id": "7cb84167-d055-4352-81f1-55c1d59532f2",
-        "parent_id": "f9255a37-23b8-4d28-8f7d-4b9ada5348b3",
+        "id": "d32ea1ed-73b2-459b-a75a-59ce2ed490e4",
+        "parent_id": "f7fb0857-2f02-4bdb-89f8-e0688f88f44a",
         "author": "web_agent",
         "author_tape_id": null,
-        "n_added_steps": 2,
+        "n_added_steps": 3,
         "error": null,
-        "result": "",
+        "result": "THE CASTLE",
         "task": {
             "task_id": "4b6bb5f7-f634-410e-815d-e673ab7f8632",
             "Question": "In Series 9, Episode 11 of Doctor Who, the Doctor is trapped inside an ever-shifting maze. What is this location called in the official script for the episode? Give the setting exactly as it appears in the first scene heading.",
@@ -26,11 +26,11 @@
         "level": 1,
         "other": {
             "timers": {
-                "solve_task": 44.4632359999996,
-                "load_task": 0.0018958330001623835,
-                "instantiate_llm": 0.002223833000243758,
-                "create_agent_env": 6.883089332999589,
-                "close_env": 0.0819969169988326
+                "solve_task": 35.74035779100086,
+                "load_task": 0.0029442500017466955,
+                "instantiate_llm": 0.0013873749994672835,
+                "create_agent_env": 7.771649374997651,
+                "close_env": 0.26064600000245264
             }
         }
     },
@@ -40,7 +40,7 @@
     "steps": [
         {
             "metadata": {
-                "id": "a859e40c-6163-4f48-bdf2-8c397dc03960",
+                "id": "1b14a4c6-5a97-4418-a270-fefc134c09fe",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
@@ -53,32 +53,32 @@
         },
         {
             "metadata": {
-                "id": "40148720-f641-40f6-ae65-c0b10b845772",
-                "prompt_id": "3296549c-dd5b-445f-ae70-4aece78070ac",
+                "id": "a0e49dba-58a4-4407-8deb-18e1d930b4eb",
+                "prompt_id": "0d0f0ab1-4efa-40e2-a0bc-d3380561a6da",
                 "node": "plan",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
             "kind": "reasoning_thought",
-            "reasoning": "1. Perform a web search for \"Doctor Who Series 9 Episode 11 script\" to locate the official script for the episode.\n2. If the script is found, download or access the text of the script.\n3. Search within the script for the first scene heading to identify the location where the Doctor is trapped.\n4. Extract the exact wording of the location as it appears in the first scene heading.\n5. If the script is not found, perform a web search for a reliable summary or analysis of the episode that may include the location name."
+            "reasoning": "1. Perform a web search for \"Doctor Who Series 9 Episode 11 script\" to locate the official script for the episode.\n2. If the script is found, download or access the text of the script.\n3. Search within the script for the first scene heading to identify the location where the Doctor is trapped in the maze.\n4. Extract the exact wording of the setting as it appears in the first scene heading.\n5. If the script is not found, perform a web search for a detailed summary or analysis of Series 9, Episode 11 to find the location mentioned in the episode."
         },
         {
             "metadata": {
-                "id": "73d930f7-e14c-4b82-a86d-7cc589b128fb",
-                "prompt_id": "2adb51c9-2b4b-4163-89ab-c58e87001d71",
+                "id": "51aa83de-933b-408f-8de4-68c2e93e2e25",
+                "prompt_id": "56c62663-371c-463f-ba85-99def6f91158",
                 "node": "facts_survey",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
             "kind": "reasoning_thought",
-            "reasoning": "1. The specific facts given in the request are: \n   - Series 9, Episode 11 of Doctor Who\n   - The Doctor is trapped inside an ever-shifting maze.\n\n2. Facts that may need to be looked up:\n   - The exact name of the location as it appears in the first scene heading of the official script for Doctor Who Series 9, Episode 11. This can be found in the episode's official script or a reliable script database.\n\n3. Facts that may need to be derived:\n   - None.\n\n4. Facts that are recalled from memory, hunches, well-reasoned guesses:\n   - None."
+            "reasoning": "1. The specific facts given in the request are: \n   - Series 9, Episode 11 of Doctor Who\n   - The Doctor is trapped inside an ever-shifting maze.\n\n2. Facts that may need to be looked up include:\n   - The official script for Doctor Who Series 9, Episode 11 to find the exact wording of the location in the first scene heading. This can be found on script databases or fan sites dedicated to Doctor Who.\n\n3. There are no facts that need to be derived.\n\n4. There are no specific facts recalled from memory; the request is straightforward and requires looking up the script."
         },
         {
             "metadata": {
-                "id": "59b2ad8d-4700-41fc-a2ef-5e481e2fa4a6",
-                "prompt_id": "5d6059dd-184d-449d-af61-5dd05810b839",
+                "id": "a9a9d509-8cfe-423c-ba57-90b4fee2568c",
+                "prompt_id": "88e8b94c-84b0-49d8-995f-314d99198ce7",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -86,12 +86,13 @@
             },
             "kind": "search_action",
             "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 script"
+            "query": "Doctor Who Series 9 Episode 11 script",
+            "time_interval": ""
         },
         {
             "metadata": {
-                "id": "2e0ddb34-fcc2-4144-9b3f-b390e1e4a8ad",
-                "prompt_id": "5d6059dd-184d-449d-af61-5dd05810b839",
+                "id": "77d97122-cd4d-4227-a205-62047276e154",
+                "prompt_id": "88e8b94c-84b0-49d8-995f-314d99198ce7",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -102,38 +103,63 @@
         },
         {
             "metadata": {
-                "id": "1884fe58-d155-4b7c-bc6e-7bc859a9d22b",
+                "id": "f0dcc670-da47-40cd-beb3-81ca2ce21784",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "llm": "",
                 "other": {
-                    "action_execution_time": 0.001818791999539826,
+                    "action_execution_time": 0.9555511670005217,
                     "action_kind": "search_action"
                 }
             },
             "kind": "search_results_observation",
             "query": "Doctor Who Series 9 Episode 11 script",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
+            "serp": [
+                {
+                    "title": "[PDF] DW9 - EP 11 Heaven Sent BLUE 240815.fdx - BBC",
+                    "url": "https://www.bbc.co.uk/writers/documents/doctor-who-s9-ep11-heaven-sent-steven-moffat.pdf",
+                    "snippet": "DOCTOR WHO. SERIES 9. EPISODE 11. \"Heaven Sent\" by. STEVEN MOFFAT. BLUE AMENDMENTS. 24/08/2015. (SHOOTING BLOCK 6). (c) BBC Wales 2015. Page 2 ..."
+                },
+                {
+                    "title": "Doctor Who Script - 9.11 | PDF - Scribd",
+                    "url": "https://www.scribd.com/document/722109152/doctor-who-script-9-11",
+                    "snippet": "The document describes the Doctor arriving in an ancient castle via teleportation after the death of Clara. He emerges determined to find whoever was involved ..."
+                },
+                {
+                    "title": "The Doctor Who Transcripts",
+                    "url": "http://www.chakoteya.net/DoctorWho/",
+                    "snippet": "First Doctor episodes · Second Doctor episodes · Third Doctor episodes · Fourth Doctor episodes ; Fifth Doctor · Sixth Doctor · Seventh Doctor · Eighth Doctor."
+                },
+                {
+                    "title": "s09e11 - Heaven Sent - Doctor Who Transcripts - TvT",
+                    "url": "https://tvshowtranscripts.ourboard.org/viewtopic.php?f=53&t=24027",
+                    "snippet": "I am the Doctor. I'm coming to find you, and I will never, ever stop. Doctor Who Season 9 Episode 11. Heaven Sent"
+                },
+                {
+                    "title": "Doctor Who Series 9 (2015) - BBC",
+                    "url": "https://www.bbc.co.uk/writers/scripts/whoniverse/doctor-who/series-9-2015",
+                    "snippet": "Episode 10 - Face The Raven (Shooting Script) by Sarah Dollard. Episode 10 - Face The Raven by Sarah Dollard. Episode 11 - Heaven Sent by Steven Moffat."
+                }
+            ],
+            "error": null
         },
         {
             "metadata": {
-                "id": "2b9fc25b-1fc7-41c9-8d08-f29eb6a561e8",
-                "prompt_id": "d70434d1-c615-4422-a8af-8f98ee43292c",
+                "id": "bcb79074-35fb-4890-8308-c175735b291d",
+                "prompt_id": "4a7aa9e3-3dee-41aa-b3b0-64df8b70a965",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 location name first scene heading"
+            "kind": "open_url_action",
+            "url": "https://www.bbc.co.uk/writers/documents/doctor-who-s9-ep11-heaven-sent-steven-moffat.pdf"
         },
         {
             "metadata": {
-                "id": "7eabee03-66c5-4922-a83e-173fc56a43de",
-                "prompt_id": "d70434d1-c615-4422-a8af-8f98ee43292c",
+                "id": "647980a3-962b-4113-98c5-27f221cf5ee2",
+                "prompt_id": "4a7aa9e3-3dee-41aa-b3b0-64df8b70a965",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -144,38 +170,48 @@
         },
         {
             "metadata": {
-                "id": "5a8dcb19-4305-4cb4-848f-afa2a53bf9d3",
+                "id": "2ecc4569-d55e-43be-87a6-52339cb04b8d",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "llm": "",
                 "other": {
-                    "action_execution_time": 0.00031341700014309026,
-                    "action_kind": "search_action"
+                    "reward": 0,
+                    "truncated": false,
+                    "info": {
+                        "action_exec_start": 1749640833.4927151,
+                        "action_exec_timeout": 0,
+                        "action_exec_stop": 1749640834.857714,
+                        "task_info": {}
+                    },
+                    "screenshot_path": "45ebbbe2a71345d8919d133ba2652f87.png",
+                    "env_finished": false,
+                    "action_execution_time": 2.089662624999619,
+                    "action_kind": "open_url_action"
                 }
             },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 location name first scene heading",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
+            "kind": "page_observation",
+            "text": "",
+            "current_page": 1,
+            "total_pages": 1,
+            "error": "Error: net::ERR_ABORTED at https://www.bbc.co.uk/writers/documents/doctor-who-s9-ep11-heaven-sent-steven-moffat.pdf"
         },
         {
             "metadata": {
-                "id": "cb7db77f-c5d8-4316-a7ed-319b7cd07058",
-                "prompt_id": "f70e1da9-f5b9-4595-a8c2-5a66b64b1c2b",
+                "id": "3ba20e0c-ce9d-40ca-8584-7353134ab14e",
+                "prompt_id": "9b688cb6-d9e4-46a7-bfd2-4a727a74ab1f",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
-            "kind": "search_action",
-            "source": "wiki",
-            "query": "Doctor Who Series 9 Episode 11 summary"
+            "kind": "open_url_action",
+            "url": "https://www.scribd.com/document/722109152/doctor-who-script-9-11"
         },
         {
             "metadata": {
-                "id": "c291c4f8-92b3-4ab1-a2e8-a8da67b05915",
-                "prompt_id": "f70e1da9-f5b9-4595-a8c2-5a66b64b1c2b",
+                "id": "0d722bda-5006-472b-a227-e4b5b1718d1c",
+                "prompt_id": "9b688cb6-d9e4-46a7-bfd2-4a727a74ab1f",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -186,38 +222,47 @@
         },
         {
             "metadata": {
-                "id": "6fafa2da-1650-4930-89a8-8a9f1e48cbb7",
+                "id": "e456edae-54d6-4e39-a502-6e28e121a28a",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "llm": "",
                 "other": {
-                    "action_execution_time": 0.0010616670006129425,
-                    "action_kind": "search_action"
+                    "reward": 0,
+                    "truncated": false,
+                    "info": {
+                        "action_exec_start": 1749640836.603883,
+                        "action_exec_timeout": 0,
+                        "action_exec_stop": 1749640839.409924,
+                        "task_info": {}
+                    },
+                    "screenshot_path": "c46b23fd27a34fa0adda30abed87b350.png",
+                    "env_finished": false,
+                    "action_execution_time": 4.825692166999943,
+                    "action_kind": "open_url_action"
                 }
             },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 summary",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
+            "kind": "page_observation",
+            "text": "=== ACCESSIBILITY TREE ===\nRootWebArea Doctor Who Script - 9.11 | PDF | The Doctor (Doctor Who), focused\n  dialog Cookie Consent Banner, modal=False, describedby='456da196-22c2-425e-8eee-ac3749baca2b__label'\n    heading Control your privacy preferences\n      Control your privacy preferences\n    We and our 10 IAB TCF partners store and access information on your device for the following purposes: store and/or access information on a device, advertising and content measurement, audience research, and services development, personalised advertising, and personalised content. Personal data may be processed to do the following: use precise geolocation data and actively scan device characteristics for identification. Our third party IAB TCF partners may store and access information on your device such as IP address and device characteristics. Our IAB TCF Partners may process this personal data on the basis of legitimate interest, or with your consent. You may change or withdraw your preferences at any time by clicking on the cookie icon or link; however, as a consequence, you may not see relevant ads or personalized content. You may change your settings at any time or accept the default settings. You may close this banner to continue with only essential cookies.\n    BID:132 link Privacy Policy, focused, describedby='osano-cm-aria.newWindow'\n    \n      BID:134 link Storage Preferences\n      BID:135 link Third Parties\n    group\n      BID:138 LabelText\n        switch Storage, checked='true'\n        Storage\n      BID:143 LabelText\n        switch Targeted Advertising, checked='true'\n        Targeted Advertising\n      BID:148 LabelText\n        switch Personalization, checked='true'\n        Personalization\n      BID:153 LabelText\n        switch Analytics, checked='true'\n        Analytics\n    BID:158 button Save preferences\n      Save preferences\n    BID:159 button Accept All\n      Accept All\n    BID:160 button Reject All\n      Reject All\n  alert, live='assertive', atomic, relevant='additions text'\n  BID:195 link Open navigation menu, expanded=False\n  BID:201 link Scribd\n  search\n    Section\n      BID:210 LabelText\n        Search\n        searchbox Search\n      BID:213 button Search\n        Search\n  BID:223 button EN CHANGE LANGUAGE, hasPopup='menu', expanded=False\n    EN\n    CHANGE LANGUAGE\n  BID:234 link Upload\n  BID:244 button Sign in, hasPopup='menu', expanded=False\n    Sign in\n  BID:258 button Download free for 30 days\n    Download free for 30 days\n  alert, live='assertive', atomic, relevant='additions text'\n  Section\n    0% found this document useful (0 votes)\n    6K views\n    73 pages\n    heading Doctor Who Script - 9.11\n      \n        Doctor Who Script - 9.11\n    The document describes the Doctor arriving in an ancient castle via teleportation after the death of Clara. He emerges determined to find whoever was involved in Clara's death. The castle ap…\n    BID:447 button Full description\n      Full description\n    heading Uploaded by\n      Uploaded by\n    BID:454 link ddd\n    BID:456 button AI-enhanced title and description, hasPopup='dialog', expanded=False\n      \n        AI-enhanced title and description\n    Section\n      navigation\n      list\n        -\n          BID:508 button Save Save doctor who script - 9.11 For Later\n            Save\n            Save doctor who script - 9.11 For Later\n        -\n          BID:521 button 0% 0% found this document useful, undefined\n            0%\n            0% found this document useful, undefined\n        -\n          BID:534 button 0% , undefined\n            0%\n            , undefined\n        -\n          BID:547 button Embed\n            Embed\n        -\n          BID:559 button Share, hasPopup='dialog', expanded=False\n            Share\n        -\n          BID:571 button Print\n            Print\n        -\n          BID:583 button Report\n            Report\n  BID:601 button Download now, hasPopup='menu', expanded=False\n    Download now\n  Download as pdf or txt\n  BID:612 textbox Jump to Page value='1'\n    1\n  generic, live='polite', atomic, relevant='additions text'\n    You are on page 1\n    / 73\n  BID:620 textbox Find in document\n  BID:621 button Search\n    Search\n  BID:628 button Fullscreen\n    Fullscreen\n  main\n    document\n      \n      DOCTOR WHO\n      SERIES 9\n      EPISODE 11\n      \"Heaven Sent\"\n      by\n      STEVEN MOFFAT\n      \n      BLUE AMENDMENTS\n      24/08/2015\n      (SHOOTING BLOCK 6)\n      (c\n      ) B\n      BC\n      Wa\n      le\n      s 2\n      01\n      5\n      image\n      Canvas\n      BID:686 button Ad\n        Ad\n      BID:689 link Download to read ad-free\n      \n      INT. THE CASTLE - DAY\n      1\n      1\n      Spires and towers, an ancient sprawling castle.\n      Now a familiar voice:\n      THE DOCTOR\n      (V.O.)\n      As you come into this world,\n      something else is also born.\n      Pulling back -\n      We are looking at the sunrise through a row of windows in an\n      ancient, stone wall.\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      You begin your life and it begins a\n      journey - towards\n      you\n      .\n      Time lapse photography: as the sun moves in the sky, the\n      sunbeams sweep round the room like searchlights...\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      It moves slowly, but it never\n      stops.\n      Now: cutting round various different locations in this\n      sprawling castle world... Colonnades, and chambers, and\n      fountains, and libraries ... All in dusty ancient stone.\n      Moving closer over details: in every room, mounted somewhere\n      on the wall is a Cog Unit - a mechanical fixture that looks\n      like it could move the whole wall.\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      Wherever you go, whatever path you\n      take, it will follow; never faster,\n      never slower, always coming.\n      Now, tracking along a floor. Sprinkles of blood, streaks of\n      it, like someone, terribly injured has been hauling\n      themselves along.\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      You will run - it will walk. You\n      wil\n      l re\n      st\n      - i\n      t wi\n      ll\n      not\n      .\n      Now travelling along those corridors, picking out details.\n      Every now and then, incongruously, there is a television\n      mon\n      itor\n      wir\n      ed\n      into\n      the\n      wall\n      . E\n      ach\n      of t\n      hes\n      e i\n      s cu\n      rre\n      ntl\n      y\n      snowed with interference.\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      One day you will linger in the same\n      place too long.\n      (MORE)\n      (CONTINUED)\n      DW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n      BBC\n      2015\n      PRIVATE\n      AND\n      CONFIDENTIAL\n      1\n      image\n      Canvas\n      BID:842 button Ad\n        Ad\n      BID:845 link Download to read ad-free\n      \n      You will sit too still or sleep too\n      deep - and when, too late, you rise\n      to go, you will notice a second\n      shadow next to yours. Your life\n      wil\n      l th\n      en\n      be\n      over\n      .\n      Now on close on a section of wall. On closer inspection, a\n      door.\n      A crunching, grinding sound - and the wall section slides\n      away revealing -\n      CUT TO:\n      INT. TELEPORT CHAMBER/CASTLE - DAY\n      2\n      2\n      A circular chamber of ancient, but active, technology. Brass\n      and glass. Intricate mechanisms, spinning and ticking and\n      glittering everywhere. Again, dotted around the walls and\n      equipment, cogs, this time in gleaming brass.\n      Closer on:\n      The ceiling spirals down in towards the centre of the room,\n      like a funnel. Beneath the base of the funnel, a circular\n      glass cabinet, just big enough for a man to stand in. It\n      looks like what it is: a teleporter.\n      On\n      the\n      tele\n      por\n      ter\n      cont\n      rol\n      s.\n      The hunched shadow falls over it -\n      - a trembling, bloodied hand reaches for a lever -\n      The room shakes, shudders!\n      On the wall - the brass cogs start glowing.\n      The bloodied hand slams the lever and the hunched figure\n      falls, crashing to the floor.\n      In the glass cabinet, a glow is starting up - exactly like\n      the glo\n      w we sa\n      w as t\n      he Doct\n      or de\n      materia\n      lised\n      at the\n      end of\n      Trap Street.\n      On the walls - the cogs turning.\n      The floor - the bloodied hand, shaking with effort, is\n      wri\n      ting\n      let\n      ter\n      s in\n      the\n      dus\n      t.\n      B\n      Now cutting round various walls of the castle -\n      - the cogs turning and turning -\n      - faster and faster -\n      Back to the bloodied hand, writing in the dust -\n      CONTINUED:\n      1\n      1\n      THE DOCTOR (cont’d)\n      (CONTINUED)\n      DW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n      BBC\n      2015\n      PRIVATE\n      AND\n      CONFIDENTIAL\n      2\n      image\n      Canvas\n      BID:957 button Ad\n        Ad\n      BID:960 link Download to read ad-free\n      \n      BIR\n      The glow in the cabinet, stronger and stronger. Starting to\n      take familiar shape -\n      The cogs - faster and faster.\n      On the bloodied hand still writing - we see curves and lines\n      but not the finished word.\n      The hand starts to glow. Spasms in pain - steaming now. In a\n      mom\n      ent\n      the\n      hand\n      cru\n      mbl\n      es t\n      o t\n      he b\n      are\n      st\n      out\n      line\n      of\n      ash.\n      On the brass cogs. They all slam to a halt.\n      Cutting to the stone cogs on all the walls - also slamming to\n      a halt.\n      Now on the glass cabinet at the centre of the chamber.\n      The golden glow is resolving, refining -\n      - now clearly, this is the Doctor.\n      He is frozen for a moment -\n      - then convulses into life. Choking, spluttering. Slams\n      against the glass of the cabinet, starts to register where he\n      is.\n      A moment to recover.\n      Now he’s opening the door of the cabinet, stepping into the\n      gleaming brass and glass room. Looking around.\n      A haunted look crosses his face. A memory impacting,\n      sickeningly.\n      FLASHBACK: Clara’s death from Trap Street.\n      The Doctor: she’s dead, she’s gone. Nothing he can do.\n      So. To business.\n      He glances round. A studied show of indifference to his\n      surroundings.\n      Straightens his coat. Composes himself. If anyone is\n      observing, he’s telling them he means business and he is not\n      afraid.\n      Finally, he speaks.\n      THE DOCTOR\n      If you think, because she’s dead, I\n      am weak, you understand very\n      little. If you were any part of\n      killing her, and you are not\n      afraid, you understand nothing at\n      all. So for your own sake,\n      understand this. I’m the Doctor.\n      CONTINUED:\n      2\n      2\n      (MORE)\n      (CONTINUED)\n      DW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n      BBC\n      2015\n      PRIVATE\n      AND\n      CONFIDENTIAL\n      3\n      image\n      Canvas\n      BID:1058 button Ad\n        Ad\n      BID:1061 link Download to read ad-free\n      BID:1082 button Ad\n        Ad\n      BID:1085 link Download to read ad-free\n      BID:1106 button Ad\n        Ad\n      BID:1109 link Download to read ad-free\n      BID:1130 button Ad\n        Ad\n      BID:1133 link Download to read ad-free\n      BID:1154 button Ad\n        Ad\n      BID:1157 link Download to read ad-free\n      BID:1178 button Ad\n        Ad\n      BID:1181 link Download to read ad-free\n      BID:1202 button Ad\n        Ad\n      BID:1205 link Download to read ad-free\n      BID:1226 button Ad\n        Ad\n      BID:1229 link Download to read ad-free\n      BID:1250 button Ad\n        Ad\n      BID:1253 link Download to read ad-free\n      BID:1274 button Ad\n        Ad\n      BID:1277 link Download to read ad-free\n      BID:1298 button Ad\n        Ad\n      BID:1301 link Download to read ad-free\n      BID:1322 button Ad\n        Ad\n      BID:1325 link Download to read ad-free\n      BID:1346 button Ad\n        Ad\n      BID:1349 link Download to read ad-free\n      BID:1370 button Ad\n        Ad\n      BID:1373 link Download to read ad-free\n      BID:1394 button Ad\n        Ad\n      BID:1397 link Download to read ad-free\n      BID:1418 button Ad\n        Ad\n      BID:1421 link Download to read ad-free\n      BID:1442 button Ad\n        Ad\n      BID:1445 link Download to read ad-free\n      BID:1466 button Ad\n        Ad\n      BID:1469 link Download to read ad-free\n      BID:1490 button Ad\n        Ad\n      BID:1493 link Download to read ad-free\n      BID:1514 button Ad\n        Ad\n      BID:1517 link Download to read ad-free\n      BID:1538 button Ad\n        Ad\n      BID:1541 link Download to read ad-free\n      BID:1562 button Ad\n        Ad\n      BID:1565 link Download to read ad-free\n      BID:1586 button Ad\n        Ad\n      BID:1589 link Download to read ad-free\n      BID:1610 button Ad\n        Ad\n      BID:1613 link Download to read ad-free\n      BID:1634 button Ad\n        Ad\n      BID:1637 link Download to read ad-free\n      BID:1658 button Ad\n        Ad\n      BID:1661 link Download to read ad-free\n      BID:1682 button Ad\n        Ad\n      BID:1685 link Download to read ad-free\n      BID:1706 button Ad\n        Ad\n      BID:1709 link Download to read ad-free\n      BID:1730 button Ad\n        Ad\n      BID:1733 link Download to read ad-free\n      BID:1754 button Ad\n        Ad\n      BID:1757 link Download to read ad-free\n      BID:1778 button Ad\n        Ad\n      BID:1781 link Download to read ad-free\n      BID:1802 button Ad\n        Ad\n      BID:1805 link Download to read ad-free\n      BID:1826 button Ad\n        Ad\n      BID:1829 link Download to read ad-free\n      BID:1850 button Ad\n        Ad\n      BID:1853 link Download to read ad-free\n      BID:1874 button Ad\n        Ad\n      BID:1877 link Download to read ad-free\n      BID:1898 button Ad\n        Ad\n      BID:1901 link Download to read ad-free\n      BID:1922 button Ad\n        Ad\n      BID:1925 link Download to read ad-free\n      BID:1946 button Ad\n        Ad\n      BID:1949 link Download to read ad-free\n      BID:1970 button Ad\n        Ad\n      BID:1973 link Download to read ad-free\n      BID:1994 button Ad\n        Ad\n      BID:1997 link Download to read ad-free\n      BID:2018 button Ad\n        Ad\n      BID:2021 link Download to read ad-free\n      BID:2042 button Ad\n        Ad\n      BID:2045 link Download to read ad-free\n      BID:2066 button Ad\n        Ad\n      BID:2069 link Download to read ad-free\n      BID:2090 button Ad\n        Ad\n      BID:2093 link Download to read ad-free\n      BID:2114 button Ad\n        Ad\n      BID:2117 link Download to read ad-free\n      BID:2138 button Ad\n        Ad\n      BID:2141 link Download to read ad-free\n      BID:2162 button Ad\n        Ad\n      BID:2165 link Download to read ad-free\n      BID:2186 button Ad\n        Ad\n      BID:2189 link Download to read ad-free\n      BID:2210 button Ad\n        Ad\n      BID:2213 link Download to read ad-free\n      BID:2234 button Ad\n        Ad\n      BID:2237 link Download to read ad-free\n      BID:2258 button Ad\n        Ad\n      BID:2261 link Download to read ad-free\n      BID:2282 button Ad\n        Ad\n      BID:2285 link Download to read ad-free\n      BID:2306 button Ad\n        Ad\n      BID:2309 link Download to read ad-free\n      BID:2330 button Ad\n        Ad\n      BID:2333 link Download to read ad-free\n      BID:2354 button Ad\n        Ad\n      BID:2357 link Download to read ad-free\n      BID:2378 button Ad\n        Ad\n      BID:2381 link Download to read ad-free\n      BID:2402 button Ad\n        Ad\n      BID:2405 link Download to read ad-free\n      BID:2426 button Ad\n        Ad\n      BID:2429 link Download to read ad-free\n      BID:2450 button Ad\n        Ad\n      BID:2453 link Download to read ad-free\n      BID:2474 button Ad\n        Ad\n      BID:2477 link Download to read ad-free\n      BID:2498 button Ad\n        Ad\n      BID:2501 link Download to read ad-free\n      BID:2522 button Ad\n        Ad\n      BID:2525 link Download to read ad-free\n      BID:2546 button Ad\n        Ad\n      BID:2549 link Download to read ad-free\n      BID:2570 button Ad\n        Ad\n      BID:2573 link Download to read ad-free\n      BID:2594 button Ad\n        Ad\n      BID:2597 link Download to read ad-free\n      BID:2618 button Ad\n        Ad\n      BID:2621 link Download to read ad-free\n      BID:2642 button Ad\n        Ad\n      BID:2645 link Download to read ad-free\n      BID:2666 button Ad\n        Ad\n      BID:2669 link Download to read ad-free\n      BID:2690 button Ad\n        Ad\n      BID:2693 link Download to read ad-free\n  Section\n    Section\n      heading Share this document\n        Share this document\n      list\n        -\n          BID:2717 link Share on Facebook, opens a new window\n        -\n          BID:2725 link Share on LinkedIn, opens a new window\n        -\n          BID:2733 link Share with Email, opens mail client\n        -\n          BID:2741 button Copy link\n            Copy link\n    BID:2748 link Millions of documents at your fingertips, ad-freeSubscribe with a free trial\n  heading You might also like\n    You might also like\n  list\n    -\n      BID:2760 link Doctor Who - The Scripts - The Masters of Luxor PDF\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Doctor Who - The Scripts - The Masters of Luxor PDF\n      178 pages\n    -\n      BID:2779 link PSC I Girder Design by IRC Code (New)\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (2)\n      PSC I Girder Design by IRC Code (New)\n      128 pages\n    -\n      BID:2798 link Scherzo, by Robert Shearman\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Scherzo, by Robert Shearman\n      31 pages\n    -\n      BID:2817 link Standard Data Book For Analysis of Rates - 1\n      image PDF Document\n      SvgRoot\n        PDF\n      87% (45)\n      Standard Data Book For Analysis of Rates - 1\n      577 pages\n    -\n      BID:2836 link 1x02 - Time Reaver\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1x02 - Time Reaver\n      80 pages\n    -\n      BID:2851 link 115 - Doctor Who - The Mind Robber\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      115 - Doctor Who - The Mind Robber\n      57 pages\n    -\n      BID:2866 link Doctor Who - The Feast of The Stone PDF\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - The Feast of The Stone PDF\n      22 pages\n    -\n      BID:2881 link Doctor Who Script - 9.12\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who Script - 9.12\n      69 pages\n    -\n      BID:2896 link Doctor Who Series 9: The Witch's Familiar (Shooting Script)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who Series 9: The Witch's Familiar (Shooting Script)\n      64 pages\n    -\n      BID:2911 link Doctor Who - To Meet New Ones\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - To Meet New Ones\n      4 pages\n    -\n      BID:2926 link Doctor Who 3 Episode 11 Utopia Pink Revisions 12012007\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 3 Episode 11 Utopia Pink Revisions 12012007\n      64 pages\n    -\n      BID:2941 link Doctor Who - The Feast of Stone\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - The Feast of Stone\n      15 pages\n    -\n      BID:2956 link Things She Thought While Falling\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Things She Thought While Falling\n      3 pages\n    -\n      BID:2971 link Doctor Who 2023 Special 2 Wild Blue Yonder Pink Revisions 160722\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 2023 Special 2 Wild Blue Yonder Pink Revisions 160722\n      72 pages\n    -\n      BID:2986 link Valentines Day or No Such Thing As Second Chances\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Valentines Day or No Such Thing As Second Chances\n      60 pages\n    -\n      BID:3001 link End of Time Replace\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      End of Time Replace\n      32 pages\n    -\n      BID:3016 link Doctor Who S09E08 Inversion Of The Zygons Shooting Script 10515\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who S09E08 Inversion Of The Zygons Shooting Script 10515\n      54 pages\n    -\n      BID:3031 link 1.01 The Doctor, The Murderer (COMPLETED DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.01 The Doctor, The Murderer (COMPLETED DRAFT)\n      19 pages\n    -\n      BID:3046 link Doctor Who - Ninth Doctor Barn Scene - Steven Moffat\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - Ninth Doctor Barn Scene - Steven Moffat\n      7 pages\n    -\n      BID:3061 link Doctor Who - Exploration Earth The Time Machine - A Fan Novelisation\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - Exploration Earth The Time Machine - A Fan Novelisation\n      12 pages\n    -\n      BID:3076 link DR Who End of Time Replacement New\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      DR Who End of Time Replacement New\n      50 pages\n    -\n      BID:3091 link The Sound Machine\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      The Sound Machine\n      9 pages\n    -\n      BID:3106 link Doctor Who: Doctor Who Is A British Science Fiction Television Programme Produced by The BBC. The\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who: Doctor Who Is A British Science Fiction Television Programme Produced by The BBC. The\n      1 page\n    -\n      BID:3121 link Doctor Who Monthly - Issue 047 (1980)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who Monthly - Issue 047 (1980)\n      44 pages\n    -\n      BID:3136 link A Day To Yourselves (Short Story) Tardis Fandom\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      A Day To Yourselves (Short Story) Tardis Fandom\n      1 page\n    -\n      BID:3151 link Thine Medicine Final Script by Alex Pires\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Thine Medicine Final Script by Alex Pires\n      30 pages\n    -\n      BID:3166 link 1.08 The Forgotten 2 (FIRST DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.08 The Forgotten 2 (FIRST DRAFT)\n      18 pages\n    -\n      BID:3181 link Doctor Who 4 Ep.13 - Shooting Script - Journeys End - 31.03 08\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Doctor Who 4 Ep.13 - Shooting Script - Journeys End - 31.03 08\n      75 pages\n    -\n      BID:3200 link Phantoms V1\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Phantoms V1\n      3 pages\n    -\n      BID:3215 link Doctor Who 3 Episode 3 Gridlock Blue Revisions 15092006\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 3 Episode 3 Gridlock Blue Revisions 15092006\n      64 pages\n    -\n      BID:3230 link Blue Moon Blue Moon Blue Moon Blue Moon: by by by by Oli Smith Oli Smith Oli Smith Oli Smith\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Blue Moon Blue Moon Blue Moon Blue Moon: by by by by Oli Smith Oli Smith Oli Smith Oli Smith\n      22 pages\n    -\n      BID:3245 link 1 (71 Jjja\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1 (71 Jjja\n      62 pages\n    -\n      BID:3260 link Doctor Who 3 Episode 4 Daleks in Manhattan Green Revisions 21112006\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 3 Episode 4 Daleks in Manhattan Green Revisions 21112006\n      62 pages\n    -\n      BID:3275 link PHANTOMS v2\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      PHANTOMS v2\n      4 pages\n    -\n      BID:3290 link Target Novelisation 115 - Doctor Who The Mind Robber\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Target Novelisation 115 - Doctor Who The Mind Robber\n      152 pages\n    -\n      BID:3305 link RAV 2.04 - Seizure\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      RAV 2.04 - Seizure\n      23 pages\n    -\n      BID:3320 link PHANTOMS (d1-6)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      PHANTOMS (d1-6)\n      4 pages\n    -\n      BID:3335 link We Know The Doctor But, Doctor Who?: TV Series Review \"Doctor Who\" Season 8 Episode 4\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      We Know The Doctor But, Doctor Who?: TV Series Review \"Doctor Who\" Season 8 Episode 4\n      1 page\n    -\n      BID:3350 link Doctor Who - Retreat of The Daleks - Lance Parkin\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - Retreat of The Daleks - Lance Parkin\n      51 pages\n    -\n      BID:3365 link Doctor Who s13 Ep3 Chris Chibnall\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who s13 Ep3 Chris Chibnall\n      76 pages\n    -\n      BID:3380 link 1.03 The Hole in The Sky (COMPLETE DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.03 The Hole in The Sky (COMPLETE DRAFT)\n      34 pages\n    -\n      BID:3395 link Story Info Pirate Planet\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Story Info Pirate Planet\n      3 pages\n    -\n      BID:3410 link DW - TSD - Rebellion of The Silurians Regeneration\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      DW - TSD - Rebellion of The Silurians Regeneration\n      6 pages\n    -\n      BID:3425 link DOCTOR WHO Valley of The Deep\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      DOCTOR WHO Valley of The Deep\n      54 pages\n    -\n      BID:3440 link DW01S01E04.02 The Sorcerer's Apprentice\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      DW01S01E04.02 The Sorcerer's Apprentice\n      280 pages\n    -\n      BID:3455 link 1.02 Method in The Madness (COMPLETED DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.02 Method in The Madness (COMPLETED DRAFT)\n      28 pages\n    -\n      BID:3470 link 1.X The Children of Silverpus\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.X The Children of Silverpus\n      38 pages\n    -\n      BID:3485 link 1.11 Thirty Days Part 2 (FIRST DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.11 Thirty Days Part 2 (FIRST DRAFT)\n      24 pages\n    -\n      BID:3500 link Doctor Who 7 Ep 4 Post Production TX Script Master\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 7 Ep 4 Post Production TX Script Master\n      68 pages\n    -\n      BID:3515 link Doctor Who - Short Trips (Big Finish) - 27 - Christmas Around The World (Xanna Eve Chown) Guy N Smith (Z-Library)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - Short Trips (Big Finish) - 27 - Christmas Around The World (Xanna Eve Chown) Guy N Smith (Z-Library)\n      520 pages\n    -\n      BID:3530 link Doctor Who 3 Episode 2 The Shakespeare Code Yellow Revisions 24082006\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 3 Episode 2 The Shakespeare Code Yellow Revisions 24082006\n      61 pages\n    -\n      BID:3545 link Code Corrupted. Insert Fresh Copy.: Doctor Who (2005+) Transcripts\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Code Corrupted. Insert Fresh Copy.: Doctor Who (2005+) Transcripts\n      6 pages\n    -\n      BID:3560 link Doctor Who3\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who3\n      4 pages\n    -\n      BID:3575 link Snowglobe - Doctor Who Christmas 2014 Short Story\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Snowglobe - Doctor Who Christmas 2014 Short Story\n      10 pages\n    -\n      BID:3590 link The Sound Machine by Roald Dahl\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      The Sound Machine by Roald Dahl\n      7 pages\n    -\n      BID:3605 link Hawthorn’s Hill\n      image book\n      From Everand\n      Hawthorn’s Hill\n      BID:3617 link Denis Redmond\n      No ratings yet\n    -\n      BID:3624 link Dirk Gently's Holistic Detective Agency: The Beloved Cult Classic From Douglas Adams\n      image book\n      From Everand\n      Dirk Gently's Holistic Detective Agency: The Beloved Cult Classic From Douglas Adams\n      BID:3636 link Douglas Adams\n      4/5 (4022)\n    -\n      BID:3659 link Death Becomes the Bride: Netty and Constance Investigate, #1\n      image book\n      From Everand\n      Death Becomes the Bride: Netty and Constance Investigate, #1\n      BID:3671 link C P Verity\n      No ratings yet\n    -\n      BID:3678 link Resurrection : Dark Rising: The Dark Corner Series, #11\n      image book\n      From Everand\n      Resurrection : Dark Rising: The Dark Corner Series, #11\n      BID:3690 link David W. Adams\n      No ratings yet\n    -\n      BID:3697 link Happy Bunny and Other Mischiefs\n      image book\n      From Everand\n      Happy Bunny and Other Mischiefs\n      BID:3709 link Rebecca Gransden\n      No ratings yet\n    -\n      BID:3716 link Goliath: Kirov Series, #70\n      image book\n      From Everand\n      Goliath: Kirov Series, #70\n      BID:3728 link John Schettler\n      No ratings yet\n    -\n      BID:3735 link Masters of the Vortex\n      image book\n      From Everand\n      Masters of the Vortex\n      BID:3747 link E.E. \"Doc\" Smith\n      No ratings yet\n    -\n      BID:3754 link Alverson Ashlar 01312008\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Alverson Ashlar 01312008\n      4 pages\n    -\n      BID:3769 link AKTU One View by AKTU SDC PDF\n      image PDF Document\n      SvgRoot\n        PDF\n      0% (1)\n      AKTU One View by AKTU SDC PDF\n      1 page\n    -\n      BID:3788 link Almit T435\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Almit T435\n      2 pages\n    -\n      BID:3803 link GameDesignDoc Universal Game Dev Challenge\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (2)\n      GameDesignDoc Universal Game Dev Challenge\n      13 pages\n    -\n      BID:3822 link 2.2.3.3 Packet Tracer - Configuring Initial Switch Settings\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      2.2.3.3 Packet Tracer - Configuring Initial Switch Settings\n      7 pages\n    -\n      BID:3837 link UISC156\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      UISC156\n      12 pages\n    -\n      BID:3852 link EDistrict Presentation MP\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      EDistrict Presentation MP\n      15 pages\n    -\n      BID:3867 link Account Name - Vodafone - GPRS\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Account Name - Vodafone - GPRS\n      7 pages\n    -\n      BID:3882 link Best Practices For Data Quality\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Best Practices For Data Quality\n      37 pages\n    -\n      BID:3897 link Sample Inspection Report of Exchanger\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (4)\n      Sample Inspectio",
+            "current_page": 1,
+            "total_pages": 2,
+            "error": ""
         },
         {
             "metadata": {
-                "id": "a850d788-6bb5-44ae-a0be-8344dfcf39b4",
-                "prompt_id": "d65e1abd-c222-4ee0-b286-0722bab47402",
+                "id": "6dcf7e1c-31ff-4e33-b068-171a69f88dc1",
+                "prompt_id": "9b543015-82a3-46c9-bd20-36b7471411f7",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze location name"
+            "kind": "page_down_action"
         },
         {
             "metadata": {
-                "id": "6c186cd7-492e-40a0-805a-1a965bf2fc29",
-                "prompt_id": "d65e1abd-c222-4ee0-b286-0722bab47402",
+                "id": "d266a582-bfe7-453a-acff-d53afe9da0c3",
+                "prompt_id": "9b543015-82a3-46c9-bd20-36b7471411f7",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -228,38 +273,37 @@
         },
         {
             "metadata": {
-                "id": "eaa8cd16-47ed-4ff1-82a6-3446b4b8a9c5",
+                "id": "763c0944-12c3-4c57-a567-d936985cb21a",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "llm": "",
                 "other": {
-                    "action_execution_time": 0.00044800000068789814,
-                    "action_kind": "search_action"
+                    "action_execution_time": 5.321015207999153,
+                    "action_kind": "page_down_action"
                 }
             },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze location name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
+            "kind": "page_observation",
+            "text": "n Report of Exchanger\n      22 pages\n    -\n      BID:3916 link eph_Martello_Katunayake_6030\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      eph_Martello_Katunayake_6030\n      26 pages\n    -\n      BID:3931 link Hyper V Backups\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Hyper V Backups\n      21 pages\n    -\n      BID:3946 link Costway dehumidifier\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Costway dehumidifier\n      8 pages\n    -\n      BID:3961 link Three Story Condominium Building: Engr. Najeb B. Pendiaman\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Three Story Condominium Building: Engr. Najeb B. Pendiaman\n      57 pages\n    -\n      BID:3976 link Esaote Caris 7200 Service Manual7200s01c\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Esaote Caris 7200 Service Manual7200s01c\n      4 pages\n    -\n      BID:3995 link Design of Prestressed Concrete Bridges: Done By: Hadeel Sameeh \"Ahmed Hussien\"\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Design of Prestressed Concrete Bridges: Done By: Hadeel Sameeh \"Ahmed Hussien\"\n      52 pages\n    -\n      BID:4010 link Mobile Offshore Drilling Unit - Crew Habitability\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Mobile Offshore Drilling Unit - Crew Habitability\n      90 pages\n    -\n      BID:4025 link ENCAPSULATED CONCLUSION OF URBAN PLANNING THEORIES AND PRINCIPLES - Copy 1\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      ENCAPSULATED CONCLUSION OF URBAN PLANNING THEORIES AND PRINCIPLES - Copy 1\n      32 pages\n    -\n      BID:4040 link Analysis and Design of Diagrid Sturcture For HIGH RISE\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Analysis and Design of Diagrid Sturcture For HIGH RISE\n      10 pages\n    -\n      BID:4055 link Trnsys Tutorial\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (5)\n      Trnsys Tutorial\n      79 pages\n    -\n      BID:4074 link IP Planning\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      IP Planning\n      3 pages\n    -\n      BID:4089 link LG-Giant-C+\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      LG-Giant-C+\n      1 page\n    -\n      BID:4104 link Hilti - Quick Anchor Guide\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Hilti - Quick Anchor Guide\n      18 pages\n    -\n      BID:4123 link Spec - HVAC\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Spec - HVAC\n      228 pages\n    -\n      BID:4142 link Basic Landscape Company Profile\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Basic Landscape Company Profile\n      19 pages\n    -\n      BID:4157 link Magel Is\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Magel Is\n      40 pages\n    -\n      BID:4172 link Steel Reinforcement Bar A Tensile Testing Guide\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Steel Reinforcement Bar A Tensile Testing Guide\n      4 pages\n    -\n      BID:4187 link Pricelist Artica - Oct 2018 - Reseller\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Pricelist Artica - Oct 2018 - Reseller\n      41 pages\n  BID:4204 button Ad\n    Ad\n  BID:4207 link Download to read ad-free\n  BID:4216 button Ad\n    Ad\n  BID:4219 link Download to read ad-free\n  BID:4228 button Ad\n    Ad\n  BID:4231 link Download to read ad-free\n  BID:4240 button Ad\n    Ad\n  BID:4243 link Download to read ad-free\n  BID:4252 button Ad\n    Ad\n  BID:4255 link Download to read ad-free\n  BID:4264 button Ad\n    Ad\n  BID:4267 link Download to read ad-free\n  BID:4276 button Ad\n    Ad\n  BID:4279 link Download to read ad-free\n  BID:4288 button Ad\n    Ad\n  BID:4291 link Download to read ad-free\n  BID:4300 button Ad\n    Ad\n  BID:4303 link Download to read ad-free\n  BID:4312 button Ad\n    Ad\n  BID:4315 link Download to read ad-free\n  BID:4324 button Ad\n    Ad\n  BID:4327 link Download to read ad-free\n  BID:4336 button Ad\n    Ad\n  BID:4339 link Download to read ad-free\n  BID:4348 button Ad\n    Ad\n  BID:4351 link Download to read ad-free\n  BID:4360 button Ad\n    Ad\n  BID:4363 link Download to read ad-free\n  BID:4372 button Ad\n    Ad\n  BID:4375 link Download to read ad-free\n  BID:4384 button Ad\n    Ad\n  BID:4387 link Download to read ad-free\n  BID:4396 button Ad\n    Ad\n  BID:4399 link Download to read ad-free\n  BID:4408 button Ad\n    Ad\n  BID:4411 link Download to read ad-free\n  BID:4420 button Ad\n    Ad\n  BID:4423 link Download to read ad-free\n  BID:4432 button Ad\n    Ad\n  BID:4435 link Download to read ad-free\n  BID:4444 button Ad\n    Ad\n  BID:4447 link Download to read ad-free\n  BID:4456 button Ad\n    Ad\n  BID:4459 link Download to read ad-free\n  BID:4468 button Ad\n    Ad\n  BID:4471 link Download to read ad-free\n  BID:4480 button Ad\n    Ad\n  BID:4483 link Download to read ad-free\n  BID:4498 button Ad\n    Ad\n  BID:4502 button Close\n  contentinfo\n    heading Footer menu\n      Footer menu\n    BID:4516 link Back to top\n    \n      About\n    list\n      -\n        BID:4523 link About Scribd, Inc.\n      -\n        BID:4527 link Everand: Ebooks & Audiobooks\n      -\n        BID:4531 link SlideShare\n      -\n        BID:4535 link Join our team!\n      -\n        BID:4539 link Contact us\n    \n      Support\n    list\n      -\n        BID:4546 link Help / FAQ\n      -\n        BID:4550 link Accessibility\n      -\n        BID:4554 link Purchase help\n      -\n        BID:4558 link AdChoices\n    \n      Legal\n    list\n      -\n        BID:4565 link Terms\n      -\n        BID:4569 link Privacy\n      -\n        BID:4573 link Copyright\n      -\n        BID:4577 button Cookie Preferences\n          Cookie Preferences\n      -\n        BID:4581 link Do not sell or share my personal information\n    \n      Social\n    list\n      -\n        BID:4588 link Scribd on Instagram\n      -\n        BID:4595 link Scribd on Facebook\n      -\n        BID:4602 link Scribd on Pinterest\n    \n      Get our free apps\n    list\n      -\n        BID:4613 link Scribd - Download on the App Store\n      -\n        BID:4617 link Scribd - Get it on Google Play\n    list\n      -\n        BID:4731 link Documents\n    Language\n    :\n    BID:4739 button English, hasPopup='menu', expanded=False\n      English\n    Copyright © 2025 Scribd Inc.\n    We take content rights seriously.\n    BID:4749 link Learn more\n    in our FAQs or\n    BID:4750 link report infringement here\n    .",
+            "current_page": 2,
+            "total_pages": 2,
+            "error": null
         },
         {
             "metadata": {
-                "id": "a1bfb442-5dee-4c5a-9f81-fa32beed6f5f",
-                "prompt_id": "fde56ef6-0f39-4193-9faa-82e5778c953c",
+                "id": "60609620-c593-4011-831c-4531a2704356",
+                "prompt_id": "634c739f-d197-4b9a-ac74-d65708026808",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 script location name"
+            "kind": "page_up_action"
         },
         {
             "metadata": {
-                "id": "938f7dd5-cbcc-45f4-ab8d-3e2482578f49",
-                "prompt_id": "fde56ef6-0f39-4193-9faa-82e5778c953c",
+                "id": "507e6c2f-a23c-4231-80c6-afbfee7ca381",
+                "prompt_id": "634c739f-d197-4b9a-ac74-d65708026808",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -270,38 +314,38 @@
         },
         {
             "metadata": {
-                "id": "2f76d5e2-0d52-4301-b51b-61755094600c",
+                "id": "2864311e-0288-4a2d-beca-f065f82fcc21",
                 "prompt_id": "",
                 "node": "",
                 "agent": "",
                 "llm": "",
                 "other": {
-                    "action_execution_time": 0.0003315419999125879,
-                    "action_kind": "search_action"
+                    "action_execution_time": 5.352384624999104,
+                    "action_kind": "page_up_action"
                 }
             },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 script location name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
+            "kind": "page_observation",
+            "text": "=== ACCESSIBILITY TREE ===\nRootWebArea Doctor Who Script - 9.11 | PDF | The Doctor (Doctor Who), focused\n  dialog Cookie Consent Banner, modal=False, describedby='456da196-22c2-425e-8eee-ac3749baca2b__label'\n    heading Control your privacy preferences\n      Control your privacy preferences\n    We and our 10 IAB TCF partners store and access information on your device for the following purposes: store and/or access information on a device, advertising and content measurement, audience research, and services development, personalised advertising, and personalised content. Personal data may be processed to do the following: use precise geolocation data and actively scan device characteristics for identification. Our third party IAB TCF partners may store and access information on your device such as IP address and device characteristics. Our IAB TCF Partners may process this personal data on the basis of legitimate interest, or with your consent. You may change or withdraw your preferences at any time by clicking on the cookie icon or link; however, as a consequence, you may not see relevant ads or personalized content. You may change your settings at any time or accept the default settings. You may close this banner to continue with only essential cookies.\n    BID:132 link Privacy Policy, focused, describedby='osano-cm-aria.newWindow'\n    \n      BID:134 link Storage Preferences\n      BID:135 link Third Parties\n    group\n      BID:138 LabelText\n        switch Storage, checked='true'\n        Storage\n      BID:143 LabelText\n        switch Targeted Advertising, checked='true'\n        Targeted Advertising\n      BID:148 LabelText\n        switch Personalization, checked='true'\n        Personalization\n      BID:153 LabelText\n        switch Analytics, checked='true'\n        Analytics\n    BID:158 button Save preferences\n      Save preferences\n    BID:159 button Accept All\n      Accept All\n    BID:160 button Reject All\n      Reject All\n  alert, live='assertive', atomic, relevant='additions text'\n  BID:195 link Open navigation menu, expanded=False\n  BID:201 link Scribd\n  search\n    Section\n      BID:210 LabelText\n        Search\n        searchbox Search\n      BID:213 button Search\n        Search\n  BID:223 button EN CHANGE LANGUAGE, hasPopup='menu', expanded=False\n    EN\n    CHANGE LANGUAGE\n  BID:234 link Upload\n  BID:244 button Sign in, hasPopup='menu', expanded=False\n    Sign in\n  BID:258 button Download free for 30 days\n    Download free for 30 days\n  alert, live='assertive', atomic, relevant='additions text'\n  Section\n    0% found this document useful (0 votes)\n    6K views\n    73 pages\n    heading Doctor Who Script - 9.11\n      \n        Doctor Who Script - 9.11\n    The document describes the Doctor arriving in an ancient castle via teleportation after the death of Clara. He emerges determined to find whoever was involved in Clara's death. The castle ap…\n    BID:447 button Full description\n      Full description\n    heading Uploaded by\n      Uploaded by\n    BID:454 link ddd\n    BID:456 button AI-enhanced title and description, hasPopup='dialog', expanded=False\n      \n        AI-enhanced title and description\n    Section\n      navigation\n      list\n        -\n          BID:508 button Save Save doctor who script - 9.11 For Later\n            Save\n            Save doctor who script - 9.11 For Later\n        -\n          BID:521 button 0% 0% found this document useful, undefined\n            0%\n            0% found this document useful, undefined\n        -\n          BID:534 button 0% , undefined\n            0%\n            , undefined\n        -\n          BID:547 button Embed\n            Embed\n        -\n          BID:559 button Share, hasPopup='dialog', expanded=False\n            Share\n        -\n          BID:571 button Print\n            Print\n        -\n          BID:583 button Report\n            Report\n  BID:601 button Download now, hasPopup='menu', expanded=False\n    Download now\n  Download as pdf or txt\n  BID:612 textbox Jump to Page value='1'\n    1\n  generic, live='polite', atomic, relevant='additions text'\n    You are on page 1\n    / 73\n  BID:620 textbox Find in document\n  BID:621 button Search\n    Search\n  BID:628 button Fullscreen\n    Fullscreen\n  main\n    document\n      \n      DOCTOR WHO\n      SERIES 9\n      EPISODE 11\n      \"Heaven Sent\"\n      by\n      STEVEN MOFFAT\n      \n      BLUE AMENDMENTS\n      24/08/2015\n      (SHOOTING BLOCK 6)\n      (c\n      ) B\n      BC\n      Wa\n      le\n      s 2\n      01\n      5\n      image\n      Canvas\n      BID:686 button Ad\n        Ad\n      BID:689 link Download to read ad-free\n      \n      INT. THE CASTLE - DAY\n      1\n      1\n      Spires and towers, an ancient sprawling castle.\n      Now a familiar voice:\n      THE DOCTOR\n      (V.O.)\n      As you come into this world,\n      something else is also born.\n      Pulling back -\n      We are looking at the sunrise through a row of windows in an\n      ancient, stone wall.\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      You begin your life and it begins a\n      journey - towards\n      you\n      .\n      Time lapse photography: as the sun moves in the sky, the\n      sunbeams sweep round the room like searchlights...\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      It moves slowly, but it never\n      stops.\n      Now: cutting round various different locations in this\n      sprawling castle world... Colonnades, and chambers, and\n      fountains, and libraries ... All in dusty ancient stone.\n      Moving closer over details: in every room, mounted somewhere\n      on the wall is a Cog Unit - a mechanical fixture that looks\n      like it could move the whole wall.\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      Wherever you go, whatever path you\n      take, it will follow; never faster,\n      never slower, always coming.\n      Now, tracking along a floor. Sprinkles of blood, streaks of\n      it, like someone, terribly injured has been hauling\n      themselves along.\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      You will run - it will walk. You\n      wil\n      l re\n      st\n      - i\n      t wi\n      ll\n      not\n      .\n      Now travelling along those corridors, picking out details.\n      Every now and then, incongruously, there is a television\n      mon\n      itor\n      wir\n      ed\n      into\n      the\n      wall\n      . E\n      ach\n      of t\n      hes\n      e i\n      s cu\n      rre\n      ntl\n      y\n      snowed with interference.\n      TH\n      E\n      DO\n      CT\n      OR\n      (c\n      on\n      t’\n      d)\n      (V.O.)\n      One day you will linger in the same\n      place too long.\n      (MORE)\n      (CONTINUED)\n      DW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n      BBC\n      2015\n      PRIVATE\n      AND\n      CONFIDENTIAL\n      1\n      image\n      Canvas\n      BID:842 button Ad\n        Ad\n      BID:845 link Download to read ad-free\n      \n      You will sit too still or sleep too\n      deep - and when, too late, you rise\n      to go, you will notice a second\n      shadow next to yours. Your life\n      wil\n      l th\n      en\n      be\n      over\n      .\n      Now on close on a section of wall. On closer inspection, a\n      door.\n      A crunching, grinding sound - and the wall section slides\n      away revealing -\n      CUT TO:\n      INT. TELEPORT CHAMBER/CASTLE - DAY\n      2\n      2\n      A circular chamber of ancient, but active, technology. Brass\n      and glass. Intricate mechanisms, spinning and ticking and\n      glittering everywhere. Again, dotted around the walls and\n      equipment, cogs, this time in gleaming brass.\n      Closer on:\n      The ceiling spirals down in towards the centre of the room,\n      like a funnel. Beneath the base of the funnel, a circular\n      glass cabinet, just big enough for a man to stand in. It\n      looks like what it is: a teleporter.\n      On\n      the\n      tele\n      por\n      ter\n      cont\n      rol\n      s.\n      The hunched shadow falls over it -\n      - a trembling, bloodied hand reaches for a lever -\n      The room shakes, shudders!\n      On the wall - the brass cogs start glowing.\n      The bloodied hand slams the lever and the hunched figure\n      falls, crashing to the floor.\n      In the glass cabinet, a glow is starting up - exactly like\n      the glo\n      w we sa\n      w as t\n      he Doct\n      or de\n      materia\n      lised\n      at the\n      end of\n      Trap Street.\n      On the walls - the cogs turning.\n      The floor - the bloodied hand, shaking with effort, is\n      wri\n      ting\n      let\n      ter\n      s in\n      the\n      dus\n      t.\n      B\n      Now cutting round various walls of the castle -\n      - the cogs turning and turning -\n      - faster and faster -\n      Back to the bloodied hand, writing in the dust -\n      CONTINUED:\n      1\n      1\n      THE DOCTOR (cont’d)\n      (CONTINUED)\n      DW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n      BBC\n      2015\n      PRIVATE\n      AND\n      CONFIDENTIAL\n      2\n      image\n      Canvas\n      BID:957 button Ad\n        Ad\n      BID:960 link Download to read ad-free\n      \n      BIR\n      The glow in the cabinet, stronger and stronger. Starting to\n      take familiar shape -\n      The cogs - faster and faster.\n      On the bloodied hand still writing - we see curves and lines\n      but not the finished word.\n      The hand starts to glow. Spasms in pain - steaming now. In a\n      mom\n      ent\n      the\n      hand\n      cru\n      mbl\n      es t\n      o t\n      he b\n      are\n      st\n      out\n      line\n      of\n      ash.\n      On the brass cogs. They all slam to a halt.\n      Cutting to the stone cogs on all the walls - also slamming to\n      a halt.\n      Now on the glass cabinet at the centre of the chamber.\n      The golden glow is resolving, refining -\n      - now clearly, this is the Doctor.\n      He is frozen for a moment -\n      - then convulses into life. Choking, spluttering. Slams\n      against the glass of the cabinet, starts to register where he\n      is.\n      A moment to recover.\n      Now he’s opening the door of the cabinet, stepping into the\n      gleaming brass and glass room. Looking around.\n      A haunted look crosses his face. A memory impacting,\n      sickeningly.\n      FLASHBACK: Clara’s death from Trap Street.\n      The Doctor: she’s dead, she’s gone. Nothing he can do.\n      So. To business.\n      He glances round. A studied show of indifference to his\n      surroundings.\n      Straightens his coat. Composes himself. If anyone is\n      observing, he’s telling them he means business and he is not\n      afraid.\n      Finally, he speaks.\n      THE DOCTOR\n      If you think, because she’s dead, I\n      am weak, you understand very\n      little. If you were any part of\n      killing her, and you are not\n      afraid, you understand nothing at\n      all. So for your own sake,\n      understand this. I’m the Doctor.\n      CONTINUED:\n      2\n      2\n      (MORE)\n      (CONTINUED)\n      DW9: \"Episode 11\" by Steven Moffat - BLUE Draft - 24/08/15.\n      BBC\n      2015\n      PRIVATE\n      AND\n      CONFIDENTIAL\n      3\n      image\n      Canvas\n      BID:1058 button Ad\n        Ad\n      BID:1061 link Download to read ad-free\n      BID:1082 button Ad\n        Ad\n      BID:1085 link Download to read ad-free\n      BID:1106 button Ad\n        Ad\n      BID:1109 link Download to read ad-free\n      BID:1130 button Ad\n        Ad\n      BID:1133 link Download to read ad-free\n      BID:1154 button Ad\n        Ad\n      BID:1157 link Download to read ad-free\n      BID:1178 button Ad\n        Ad\n      BID:1181 link Download to read ad-free\n      BID:1202 button Ad\n        Ad\n      BID:1205 link Download to read ad-free\n      BID:1226 button Ad\n        Ad\n      BID:1229 link Download to read ad-free\n      BID:1250 button Ad\n        Ad\n      BID:1253 link Download to read ad-free\n      BID:1274 button Ad\n        Ad\n      BID:1277 link Download to read ad-free\n      BID:1298 button Ad\n        Ad\n      BID:1301 link Download to read ad-free\n      BID:1322 button Ad\n        Ad\n      BID:1325 link Download to read ad-free\n      BID:1346 button Ad\n        Ad\n      BID:1349 link Download to read ad-free\n      BID:1370 button Ad\n        Ad\n      BID:1373 link Download to read ad-free\n      BID:1394 button Ad\n        Ad\n      BID:1397 link Download to read ad-free\n      BID:1418 button Ad\n        Ad\n      BID:1421 link Download to read ad-free\n      BID:1442 button Ad\n        Ad\n      BID:1445 link Download to read ad-free\n      BID:1466 button Ad\n        Ad\n      BID:1469 link Download to read ad-free\n      BID:1490 button Ad\n        Ad\n      BID:1493 link Download to read ad-free\n      BID:1514 button Ad\n        Ad\n      BID:1517 link Download to read ad-free\n      BID:1538 button Ad\n        Ad\n      BID:1541 link Download to read ad-free\n      BID:1562 button Ad\n        Ad\n      BID:1565 link Download to read ad-free\n      BID:1586 button Ad\n        Ad\n      BID:1589 link Download to read ad-free\n      BID:1610 button Ad\n        Ad\n      BID:1613 link Download to read ad-free\n      BID:1634 button Ad\n        Ad\n      BID:1637 link Download to read ad-free\n      BID:1658 button Ad\n        Ad\n      BID:1661 link Download to read ad-free\n      BID:1682 button Ad\n        Ad\n      BID:1685 link Download to read ad-free\n      BID:1706 button Ad\n        Ad\n      BID:1709 link Download to read ad-free\n      BID:1730 button Ad\n        Ad\n      BID:1733 link Download to read ad-free\n      BID:1754 button Ad\n        Ad\n      BID:1757 link Download to read ad-free\n      BID:1778 button Ad\n        Ad\n      BID:1781 link Download to read ad-free\n      BID:1802 button Ad\n        Ad\n      BID:1805 link Download to read ad-free\n      BID:1826 button Ad\n        Ad\n      BID:1829 link Download to read ad-free\n      BID:1850 button Ad\n        Ad\n      BID:1853 link Download to read ad-free\n      BID:1874 button Ad\n        Ad\n      BID:1877 link Download to read ad-free\n      BID:1898 button Ad\n        Ad\n      BID:1901 link Download to read ad-free\n      BID:1922 button Ad\n        Ad\n      BID:1925 link Download to read ad-free\n      BID:1946 button Ad\n        Ad\n      BID:1949 link Download to read ad-free\n      BID:1970 button Ad\n        Ad\n      BID:1973 link Download to read ad-free\n      BID:1994 button Ad\n        Ad\n      BID:1997 link Download to read ad-free\n      BID:2018 button Ad\n        Ad\n      BID:2021 link Download to read ad-free\n      BID:2042 button Ad\n        Ad\n      BID:2045 link Download to read ad-free\n      BID:2066 button Ad\n        Ad\n      BID:2069 link Download to read ad-free\n      BID:2090 button Ad\n        Ad\n      BID:2093 link Download to read ad-free\n      BID:2114 button Ad\n        Ad\n      BID:2117 link Download to read ad-free\n      BID:2138 button Ad\n        Ad\n      BID:2141 link Download to read ad-free\n      BID:2162 button Ad\n        Ad\n      BID:2165 link Download to read ad-free\n      BID:2186 button Ad\n        Ad\n      BID:2189 link Download to read ad-free\n      BID:2210 button Ad\n        Ad\n      BID:2213 link Download to read ad-free\n      BID:2234 button Ad\n        Ad\n      BID:2237 link Download to read ad-free\n      BID:2258 button Ad\n        Ad\n      BID:2261 link Download to read ad-free\n      BID:2282 button Ad\n        Ad\n      BID:2285 link Download to read ad-free\n      BID:2306 button Ad\n        Ad\n      BID:2309 link Download to read ad-free\n      BID:2330 button Ad\n        Ad\n      BID:2333 link Download to read ad-free\n      BID:2354 button Ad\n        Ad\n      BID:2357 link Download to read ad-free\n      BID:2378 button Ad\n        Ad\n      BID:2381 link Download to read ad-free\n      BID:2402 button Ad\n        Ad\n      BID:2405 link Download to read ad-free\n      BID:2426 button Ad\n        Ad\n      BID:2429 link Download to read ad-free\n      BID:2450 button Ad\n        Ad\n      BID:2453 link Download to read ad-free\n      BID:2474 button Ad\n        Ad\n      BID:2477 link Download to read ad-free\n      BID:2498 button Ad\n        Ad\n      BID:2501 link Download to read ad-free\n      BID:2522 button Ad\n        Ad\n      BID:2525 link Download to read ad-free\n      BID:2546 button Ad\n        Ad\n      BID:2549 link Download to read ad-free\n      BID:2570 button Ad\n        Ad\n      BID:2573 link Download to read ad-free\n      BID:2594 button Ad\n        Ad\n      BID:2597 link Download to read ad-free\n      BID:2618 button Ad\n        Ad\n      BID:2621 link Download to read ad-free\n      BID:2642 button Ad\n        Ad\n      BID:2645 link Download to read ad-free\n      BID:2666 button Ad\n        Ad\n      BID:2669 link Download to read ad-free\n      BID:2690 button Ad\n        Ad\n      BID:2693 link Download to read ad-free\n  Section\n    Section\n      heading Share this document\n        Share this document\n      list\n        -\n          BID:2717 link Share on Facebook, opens a new window\n        -\n          BID:2725 link Share on LinkedIn, opens a new window\n        -\n          BID:2733 link Share with Email, opens mail client\n        -\n          BID:2741 button Copy link\n            Copy link\n    BID:2748 link Millions of documents at your fingertips, ad-freeSubscribe with a free trial\n  heading You might also like\n    You might also like\n  list\n    -\n      BID:2760 link Doctor Who - The Scripts - The Masters of Luxor PDF\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Doctor Who - The Scripts - The Masters of Luxor PDF\n      178 pages\n    -\n      BID:2779 link PSC I Girder Design by IRC Code (New)\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (2)\n      PSC I Girder Design by IRC Code (New)\n      128 pages\n    -\n      BID:2798 link Scherzo, by Robert Shearman\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Scherzo, by Robert Shearman\n      31 pages\n    -\n      BID:2817 link Standard Data Book For Analysis of Rates - 1\n      image PDF Document\n      SvgRoot\n        PDF\n      87% (45)\n      Standard Data Book For Analysis of Rates - 1\n      577 pages\n    -\n      BID:2836 link 1x02 - Time Reaver\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1x02 - Time Reaver\n      80 pages\n    -\n      BID:2851 link 115 - Doctor Who - The Mind Robber\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      115 - Doctor Who - The Mind Robber\n      57 pages\n    -\n      BID:2866 link Doctor Who - The Feast of The Stone PDF\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - The Feast of The Stone PDF\n      22 pages\n    -\n      BID:2881 link Doctor Who Script - 9.12\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who Script - 9.12\n      69 pages\n    -\n      BID:2896 link Doctor Who Series 9: The Witch's Familiar (Shooting Script)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who Series 9: The Witch's Familiar (Shooting Script)\n      64 pages\n    -\n      BID:2911 link Doctor Who - To Meet New Ones\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - To Meet New Ones\n      4 pages\n    -\n      BID:2926 link Doctor Who 3 Episode 11 Utopia Pink Revisions 12012007\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 3 Episode 11 Utopia Pink Revisions 12012007\n      64 pages\n    -\n      BID:2941 link Doctor Who - The Feast of Stone\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - The Feast of Stone\n      15 pages\n    -\n      BID:2956 link Things She Thought While Falling\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Things She Thought While Falling\n      3 pages\n    -\n      BID:2971 link Doctor Who 2023 Special 2 Wild Blue Yonder Pink Revisions 160722\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 2023 Special 2 Wild Blue Yonder Pink Revisions 160722\n      72 pages\n    -\n      BID:2986 link Valentines Day or No Such Thing As Second Chances\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Valentines Day or No Such Thing As Second Chances\n      60 pages\n    -\n      BID:3001 link End of Time Replace\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      End of Time Replace\n      32 pages\n    -\n      BID:3016 link Doctor Who S09E08 Inversion Of The Zygons Shooting Script 10515\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who S09E08 Inversion Of The Zygons Shooting Script 10515\n      54 pages\n    -\n      BID:3031 link 1.01 The Doctor, The Murderer (COMPLETED DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.01 The Doctor, The Murderer (COMPLETED DRAFT)\n      19 pages\n    -\n      BID:3046 link Doctor Who - Ninth Doctor Barn Scene - Steven Moffat\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - Ninth Doctor Barn Scene - Steven Moffat\n      7 pages\n    -\n      BID:3061 link Doctor Who - Exploration Earth The Time Machine - A Fan Novelisation\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - Exploration Earth The Time Machine - A Fan Novelisation\n      12 pages\n    -\n      BID:3076 link DR Who End of Time Replacement New\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      DR Who End of Time Replacement New\n      50 pages\n    -\n      BID:3091 link The Sound Machine\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      The Sound Machine\n      9 pages\n    -\n      BID:3106 link Doctor Who: Doctor Who Is A British Science Fiction Television Programme Produced by The BBC. The\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who: Doctor Who Is A British Science Fiction Television Programme Produced by The BBC. The\n      1 page\n    -\n      BID:3121 link Doctor Who Monthly - Issue 047 (1980)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who Monthly - Issue 047 (1980)\n      44 pages\n    -\n      BID:3136 link A Day To Yourselves (Short Story) Tardis Fandom\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      A Day To Yourselves (Short Story) Tardis Fandom\n      1 page\n    -\n      BID:3151 link Thine Medicine Final Script by Alex Pires\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Thine Medicine Final Script by Alex Pires\n      30 pages\n    -\n      BID:3166 link 1.08 The Forgotten 2 (FIRST DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.08 The Forgotten 2 (FIRST DRAFT)\n      18 pages\n    -\n      BID:3181 link Doctor Who 4 Ep.13 - Shooting Script - Journeys End - 31.03 08\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (1)\n      Doctor Who 4 Ep.13 - Shooting Script - Journeys End - 31.03 08\n      75 pages\n    -\n      BID:3200 link Phantoms V1\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Phantoms V1\n      3 pages\n    -\n      BID:3215 link Doctor Who 3 Episode 3 Gridlock Blue Revisions 15092006\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 3 Episode 3 Gridlock Blue Revisions 15092006\n      64 pages\n    -\n      BID:3230 link Blue Moon Blue Moon Blue Moon Blue Moon: by by by by Oli Smith Oli Smith Oli Smith Oli Smith\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Blue Moon Blue Moon Blue Moon Blue Moon: by by by by Oli Smith Oli Smith Oli Smith Oli Smith\n      22 pages\n    -\n      BID:3245 link 1 (71 Jjja\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1 (71 Jjja\n      62 pages\n    -\n      BID:3260 link Doctor Who 3 Episode 4 Daleks in Manhattan Green Revisions 21112006\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 3 Episode 4 Daleks in Manhattan Green Revisions 21112006\n      62 pages\n    -\n      BID:3275 link PHANTOMS v2\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      PHANTOMS v2\n      4 pages\n    -\n      BID:3290 link Target Novelisation 115 - Doctor Who The Mind Robber\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Target Novelisation 115 - Doctor Who The Mind Robber\n      152 pages\n    -\n      BID:3305 link RAV 2.04 - Seizure\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      RAV 2.04 - Seizure\n      23 pages\n    -\n      BID:3320 link PHANTOMS (d1-6)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      PHANTOMS (d1-6)\n      4 pages\n    -\n      BID:3335 link We Know The Doctor But, Doctor Who?: TV Series Review \"Doctor Who\" Season 8 Episode 4\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      We Know The Doctor But, Doctor Who?: TV Series Review \"Doctor Who\" Season 8 Episode 4\n      1 page\n    -\n      BID:3350 link Doctor Who - Retreat of The Daleks - Lance Parkin\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - Retreat of The Daleks - Lance Parkin\n      51 pages\n    -\n      BID:3365 link Doctor Who s13 Ep3 Chris Chibnall\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who s13 Ep3 Chris Chibnall\n      76 pages\n    -\n      BID:3380 link 1.03 The Hole in The Sky (COMPLETE DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.03 The Hole in The Sky (COMPLETE DRAFT)\n      34 pages\n    -\n      BID:3395 link Story Info Pirate Planet\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Story Info Pirate Planet\n      3 pages\n    -\n      BID:3410 link DW - TSD - Rebellion of The Silurians Regeneration\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      DW - TSD - Rebellion of The Silurians Regeneration\n      6 pages\n    -\n      BID:3425 link DOCTOR WHO Valley of The Deep\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      DOCTOR WHO Valley of The Deep\n      54 pages\n    -\n      BID:3440 link DW01S01E04.02 The Sorcerer's Apprentice\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      DW01S01E04.02 The Sorcerer's Apprentice\n      280 pages\n    -\n      BID:3455 link 1.02 Method in The Madness (COMPLETED DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.02 Method in The Madness (COMPLETED DRAFT)\n      28 pages\n    -\n      BID:3470 link 1.X The Children of Silverpus\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.X The Children of Silverpus\n      38 pages\n    -\n      BID:3485 link 1.11 Thirty Days Part 2 (FIRST DRAFT)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      1.11 Thirty Days Part 2 (FIRST DRAFT)\n      24 pages\n    -\n      BID:3500 link Doctor Who 7 Ep 4 Post Production TX Script Master\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 7 Ep 4 Post Production TX Script Master\n      68 pages\n    -\n      BID:3515 link Doctor Who - Short Trips (Big Finish) - 27 - Christmas Around The World (Xanna Eve Chown) Guy N Smith (Z-Library)\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who - Short Trips (Big Finish) - 27 - Christmas Around The World (Xanna Eve Chown) Guy N Smith (Z-Library)\n      520 pages\n    -\n      BID:3530 link Doctor Who 3 Episode 2 The Shakespeare Code Yellow Revisions 24082006\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who 3 Episode 2 The Shakespeare Code Yellow Revisions 24082006\n      61 pages\n    -\n      BID:3545 link Code Corrupted. Insert Fresh Copy.: Doctor Who (2005+) Transcripts\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Code Corrupted. Insert Fresh Copy.: Doctor Who (2005+) Transcripts\n      6 pages\n    -\n      BID:3560 link Doctor Who3\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Doctor Who3\n      4 pages\n    -\n      BID:3575 link Snowglobe - Doctor Who Christmas 2014 Short Story\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Snowglobe - Doctor Who Christmas 2014 Short Story\n      10 pages\n    -\n      BID:3590 link The Sound Machine by Roald Dahl\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      The Sound Machine by Roald Dahl\n      7 pages\n    -\n      BID:3605 link Hawthorn’s Hill\n      image book\n      From Everand\n      Hawthorn’s Hill\n      BID:3617 link Denis Redmond\n      No ratings yet\n    -\n      BID:3624 link Dirk Gently's Holistic Detective Agency: The Beloved Cult Classic From Douglas Adams\n      image book\n      From Everand\n      Dirk Gently's Holistic Detective Agency: The Beloved Cult Classic From Douglas Adams\n      BID:3636 link Douglas Adams\n      4/5 (4022)\n    -\n      BID:3659 link Death Becomes the Bride: Netty and Constance Investigate, #1\n      image book\n      From Everand\n      Death Becomes the Bride: Netty and Constance Investigate, #1\n      BID:3671 link C P Verity\n      No ratings yet\n    -\n      BID:3678 link Resurrection : Dark Rising: The Dark Corner Series, #11\n      image book\n      From Everand\n      Resurrection : Dark Rising: The Dark Corner Series, #11\n      BID:3690 link David W. Adams\n      No ratings yet\n    -\n      BID:3697 link Happy Bunny and Other Mischiefs\n      image book\n      From Everand\n      Happy Bunny and Other Mischiefs\n      BID:3709 link Rebecca Gransden\n      No ratings yet\n    -\n      BID:3716 link Goliath: Kirov Series, #70\n      image book\n      From Everand\n      Goliath: Kirov Series, #70\n      BID:3728 link John Schettler\n      No ratings yet\n    -\n      BID:3735 link Masters of the Vortex\n      image book\n      From Everand\n      Masters of the Vortex\n      BID:3747 link E.E. \"Doc\" Smith\n      No ratings yet\n    -\n      BID:3754 link Alverson Ashlar 01312008\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Alverson Ashlar 01312008\n      4 pages\n    -\n      BID:3769 link AKTU One View by AKTU SDC PDF\n      image PDF Document\n      SvgRoot\n        PDF\n      0% (1)\n      AKTU One View by AKTU SDC PDF\n      1 page\n    -\n      BID:3788 link Almit T435\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Almit T435\n      2 pages\n    -\n      BID:3803 link GameDesignDoc Universal Game Dev Challenge\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (2)\n      GameDesignDoc Universal Game Dev Challenge\n      13 pages\n    -\n      BID:3822 link 2.2.3.3 Packet Tracer - Configuring Initial Switch Settings\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      2.2.3.3 Packet Tracer - Configuring Initial Switch Settings\n      7 pages\n    -\n      BID:3837 link UISC156\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      UISC156\n      12 pages\n    -\n      BID:3852 link EDistrict Presentation MP\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      EDistrict Presentation MP\n      15 pages\n    -\n      BID:3867 link Account Name - Vodafone - GPRS\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Account Name - Vodafone - GPRS\n      7 pages\n    -\n      BID:3882 link Best Practices For Data Quality\n      image PDF Document\n      SvgRoot\n        PDF\n      No ratings yet\n      Best Practices For Data Quality\n      37 pages\n    -\n      BID:3897 link Sample Inspection Report of Exchanger\n      image PDF Document\n      SvgRoot\n        PDF\n      100% (4)\n      Sample Inspectio",
+            "current_page": 1,
+            "total_pages": 2,
+            "error": null
         },
         {
             "metadata": {
-                "id": "88df355b-1bf5-4f0e-8dbe-538afde7b14e",
-                "prompt_id": "49c4c97d-8ee0-4582-af55-2e7dd72a2406",
+                "id": "1ec6bc06-0d35-4599-b11b-73515493d8ee",
+                "prompt_id": "5178cdb1-bd41-4d34-b5c6-d51e009825eb",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 transcript"
+            "kind": "reasoning_thought",
+            "reasoning": "The first scene heading in the script indicates the location where the Doctor is trapped. The heading is 'INT. THE CASTLE - DAY', which suggests that the setting is an ancient castle."
         },
         {
             "metadata": {
-                "id": "0b7ce48a-e660-4c5d-a3ee-364186b47f0a",
-                "prompt_id": "49c4c97d-8ee0-4582-af55-2e7dd72a2406",
+                "id": "10e9bfac-5a55-4ae5-ac92-c532fc49627a",
+                "prompt_id": "5178cdb1-bd41-4d34-b5c6-d51e009825eb",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
@@ -312,1179 +356,19 @@
         },
         {
             "metadata": {
-                "id": "42d5c230-b023-47a8-a294-0edb6ee2a7fa",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00043725000068661757,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 transcript",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "65332fb2-c08a-4be5-a662-e655fc3b7e94",
-                "prompt_id": "339461b9-df25-4f0a-b5ef-fb33a3279456",
+                "id": "fd567068-ae1d-4dd2-8571-ff4739167f34",
+                "prompt_id": "806e4298-2693-4224-b377-78cbd889aa9c",
                 "node": "act",
                 "agent": "web_agent",
                 "llm": "default",
                 "other": {}
             },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 setting name"
-        },
-        {
-            "metadata": {
-                "id": "7e2840bd-7be9-49d9-94f2-07304296d590",
-                "prompt_id": "339461b9-df25-4f0a-b5ef-fb33a3279456",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "ca611fab-6e2a-402b-b25c-daa4c5c2c7f9",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00028520900013973005,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 setting name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "4e36731a-dbcc-4437-a595-23f9c0b4a71a",
-                "prompt_id": "5899b239-7ea8-43cf-8f7a-31219e163e74",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "wiki",
-            "query": "Doctor Who Series 9 Episode 11"
-        },
-        {
-            "metadata": {
-                "id": "1df037d9-8122-458a-90d0-cbc43d56e0a1",
-                "prompt_id": "5899b239-7ea8-43cf-8f7a-31219e163e74",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "77853498-8902-4ae1-9953-fc47d057890e",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0002923339998233132,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "1c7d37a5-1603-4028-afde-77fd121bc355",
-                "prompt_id": "e7187ee8-a19f-4824-8cd5-cbf47c8eaa58",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze location"
-        },
-        {
-            "metadata": {
-                "id": "7777b1b5-3f51-4962-86b5-239e6ced2f0d",
-                "prompt_id": "e7187ee8-a19f-4824-8cd5-cbf47c8eaa58",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "b8fc5c24-6bdb-465a-93bc-c4451d36bba1",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0004694170002039755,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze location",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "cb981c9b-d4d8-4811-aaf9-075c5dcde9da",
-                "prompt_id": "fdad9452-e7fe-4cfc-8590-fb6810c521a8",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading"
-        },
-        {
-            "metadata": {
-                "id": "d36c4e5c-8f0d-4b6c-95df-b1e649f5b14d",
-                "prompt_id": "fdad9452-e7fe-4cfc-8590-fb6810c521a8",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "7c670961-887d-4dcc-9b08-f69b05bf855e",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0003650420003395993,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "5e523173-dd97-4446-94bc-c39d263e077d",
-                "prompt_id": "faa4001f-7062-4b2e-97ae-e61d6915edf2",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 script or transcript"
-        },
-        {
-            "metadata": {
-                "id": "2297c933-06f4-426e-9a16-ad1b7e4bcd71",
-                "prompt_id": "faa4001f-7062-4b2e-97ae-e61d6915edf2",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "fdbbe004-a13e-49e6-a198-bc3b20b6671f",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0007844589999876916,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 script or transcript",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "782856ec-1669-49c2-8abb-9b5f0af175d7",
-                "prompt_id": "56fe2dfb-3f1b-4660-9a9d-2faedd293864",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 detailed summary"
-        },
-        {
-            "metadata": {
-                "id": "3778875b-352b-441c-b00f-93966f552a55",
-                "prompt_id": "56fe2dfb-3f1b-4660-9a9d-2faedd293864",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "4d285c6a-c200-4096-bec4-b3b7bd750984",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0003254160001233686,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 detailed summary",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "836b1dfb-82a1-4b4e-9c16-35f800536522",
-                "prompt_id": "c0633db0-fdbc-42a8-964e-c253c5ceafb4",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 plot details"
-        },
-        {
-            "metadata": {
-                "id": "a1729960-3810-4093-a92a-48fdb5ff411a",
-                "prompt_id": "c0633db0-fdbc-42a8-964e-c253c5ceafb4",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "7add35ad-98f2-4a54-9a30-3e6a3d02ef8f",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0005077500009065261,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 plot details",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "a2d07cec-14b0-4076-9cdd-948c30e62218",
-                "prompt_id": "99e21220-1401-4990-b1bf-ed5f3f419cc2",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze setting name"
-        },
-        {
-            "metadata": {
-                "id": "f08b3614-5854-4121-bf73-60b1bc058bf6",
-                "prompt_id": "99e21220-1401-4990-b1bf-ed5f3f419cc2",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "b523daa3-5d17-4785-b08c-f067f3daf8e0",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.000366541000403231,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze setting name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "ed120591-7f7d-494d-8a7e-897a80223be3",
-                "prompt_id": "badb97d1-76bf-44b8-9f1b-be6f4798d15a",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 setting name maze"
-        },
-        {
-            "metadata": {
-                "id": "aa494891-f091-4f32-a4c1-480d54633d69",
-                "prompt_id": "badb97d1-76bf-44b8-9f1b-be6f4798d15a",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "2437d62f-4ec3-4dfd-b511-1b0aae92c57f",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0005605829992418876,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 setting name maze",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "8a1dc6c9-5e48-4ea3-ba45-a7779b5b562d",
-                "prompt_id": "0367be2e-df11-4091-aeec-ce18958803f9",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading location"
-        },
-        {
-            "metadata": {
-                "id": "9dc42970-d7e3-4940-95d8-4440dac5cda7",
-                "prompt_id": "0367be2e-df11-4091-aeec-ce18958803f9",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "e2fdb626-42c0-4947-9f0d-5b19ac8a4097",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0003832080001302529,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading location",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "2176ea59-3b31-40d6-bf15-430d87868cd1",
-                "prompt_id": "5584ff6e-736b-46ce-8001-437222e4965e",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze location script"
-        },
-        {
-            "metadata": {
-                "id": "b5890032-5868-4213-8e26-795b39644cb0",
-                "prompt_id": "5584ff6e-736b-46ce-8001-437222e4965e",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "9a06cfa4-c83d-44cd-9245-78b7b6e2aba8",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0003170420004607877,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze location script",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "d534d50d-eddc-4782-9eb1-70a7fbf44981",
-                "prompt_id": "a8c9993a-ce95-44b5-8c37-fe1dba2a1422",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 location name"
-        },
-        {
-            "metadata": {
-                "id": "601d8adb-9dee-4424-bd42-79aae4be5183",
-                "prompt_id": "a8c9993a-ce95-44b5-8c37-fe1dba2a1422",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "6d3c7c1d-b387-4d33-a860-39baa7d21e5a",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0008031249999476131,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 location name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "a9829911-2dff-436b-9234-262482951ce9",
-                "prompt_id": "c55291ee-ef94-43a0-8ccc-8d358f7e7d9a",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze setting"
-        },
-        {
-            "metadata": {
-                "id": "5e2be098-d740-4cee-8b7d-1c773da13244",
-                "prompt_id": "c55291ee-ef94-43a0-8ccc-8d358f7e7d9a",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "c704adfc-486c-4fa8-a9bf-14427d5a1105",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0007677080011490034,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze setting",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "74090bac-348b-48a4-9cb0-cfe9381f52a2",
-                "prompt_id": "61255954-b496-4ad1-9e6e-25ec22f2d4a3",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze location details"
-        },
-        {
-            "metadata": {
-                "id": "9c1e5139-fa5b-431e-b84d-857d475aaa02",
-                "prompt_id": "61255954-b496-4ad1-9e6e-25ec22f2d4a3",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "31fa3643-4319-46e1-8cc3-83dadcfc031f",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0006018340009177336,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze location details",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "6edc7244-8a5b-4cb6-87dc-b23273f19bf2",
-                "prompt_id": "db7e06e3-0eff-4354-9ce1-d1cedabf55cd",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading"
-        },
-        {
-            "metadata": {
-                "id": "3e5cc05d-c3e0-40c5-82e5-b8ef9dac996c",
-                "prompt_id": "db7e06e3-0eff-4354-9ce1-d1cedabf55cd",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "0123a03c-d841-4374-9045-aef6b6deef28",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00006104099884396419,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "1d5631ff-7faf-4c0c-926d-158e4d8e65be",
-                "prompt_id": "b1211ded-aafb-4a5b-aa65-ca3f135efbb8",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 script location"
-        },
-        {
-            "metadata": {
-                "id": "54ae94bb-e28b-4738-bfbb-75e55af89c23",
-                "prompt_id": "b1211ded-aafb-4a5b-aa65-ca3f135efbb8",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "c2881232-65a6-4048-bdbd-97c1b7ac561f",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0006231659990589833,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 script location",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "c3e1fe92-9b37-4d5f-8b4d-bae8fda20a38",
-                "prompt_id": "b1998e9e-b6f0-4724-8e99-27887f297bcd",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze setting name in script"
-        },
-        {
-            "metadata": {
-                "id": "c8530d67-81be-4cfe-b47c-af5d9be656cc",
-                "prompt_id": "b1998e9e-b6f0-4724-8e99-27887f297bcd",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "60ffbc74-634f-4a18-b5f5-0f43a1e8241e",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0010931670003628824,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze setting name in script",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "3b5c1ca2-f6a9-4787-a643-8dfa2553d73f",
-                "prompt_id": "ef8dc6a3-feb8-4f45-945c-adb4285ce5f7",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze location name"
-        },
-        {
-            "metadata": {
-                "id": "75481036-b0af-4d9d-bb91-19ad0ad7ab91",
-                "prompt_id": "ef8dc6a3-feb8-4f45-945c-adb4285ce5f7",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "e35d5148-035f-4ca5-aded-0357496364b4",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00009374999899591785,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze location name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "fd0cb4d8-f880-4066-ba02-2cda17da54c2",
-                "prompt_id": "5c2f92de-a5eb-47c6-9839-2a459a0374a0",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 script location name"
-        },
-        {
-            "metadata": {
-                "id": "44ad06e5-3c42-4a47-b5a1-265c3507dfa2",
-                "prompt_id": "5c2f92de-a5eb-47c6-9839-2a459a0374a0",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "245ab440-2b40-46df-94d1-2e7b179192e4",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00006529100028274115,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 script location name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "c909d4c5-3ed6-4361-97a8-ac74475e875e",
-                "prompt_id": "867e4f26-2348-4eb2-aafd-305b77d6767a",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze setting first scene heading"
-        },
-        {
-            "metadata": {
-                "id": "1c28a4aa-d912-494a-bbc6-250233c92f98",
-                "prompt_id": "867e4f26-2348-4eb2-aafd-305b77d6767a",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "f7f4823b-c4dc-4635-9528-1c86f3d3530f",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00043279199962853454,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze setting first scene heading",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "7cb1bd43-3ccc-404c-9ff6-77b18749ad4c",
-                "prompt_id": "b0b49a8d-cf6c-4895-8538-4703285eb8b0",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze location details"
-        },
-        {
-            "metadata": {
-                "id": "4757d0c6-0d9d-4141-ad56-f3f06942c4dc",
-                "prompt_id": "b0b49a8d-cf6c-4895-8538-4703285eb8b0",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "b0119158-7656-4f3e-b915-06c3e8de33db",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00007987500066519715,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze location details",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "547fbf14-a4a3-4593-a59d-5ad0be99a4ac",
-                "prompt_id": "9c859f2d-cbe8-46a9-bccc-67eeaf9ae8b2",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 setting name"
-        },
-        {
-            "metadata": {
-                "id": "676ba648-58d7-453f-abee-0a390a313eca",
-                "prompt_id": "9c859f2d-cbe8-46a9-bccc-67eeaf9ae8b2",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "1c047df4-e44f-4785-8c0a-f28295248777",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00013395899986790027,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 setting name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "3b198f8a-6be0-4269-ac5c-f126f4cbd4f4",
-                "prompt_id": "82937357-cf18-4549-b5de-2d4701f47fe2",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze location"
-        },
-        {
-            "metadata": {
-                "id": "203d98cf-7810-4fc4-91f7-3aaad7b7d1cd",
-                "prompt_id": "82937357-cf18-4549-b5de-2d4701f47fe2",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "54bea37c-2086-4f14-9fdf-cd3cc07f41ac",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0001114999995479593,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze location",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "2b652e06-51a9-4ea9-ae70-f3d50743d5d8",
-                "prompt_id": "2d8eb3d6-85cc-42cf-aa5f-207c03d9be2f",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading location"
-        },
-        {
-            "metadata": {
-                "id": "901961b7-faf2-4528-8e74-a922b2e8bb03",
-                "prompt_id": "2d8eb3d6-85cc-42cf-aa5f-207c03d9be2f",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "1272e13d-c99d-40a6-a6a2-3cc7d1fffa33",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00012262500058568548,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading location",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "1d648f2d-229c-48d3-bb9a-5c7b573a7db0",
-                "prompt_id": "924fe62b-8b33-4f4d-b9d1-c917d3568933",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze setting name"
-        },
-        {
-            "metadata": {
-                "id": "5eeb71ff-9384-4857-a5dd-96b85a72da37",
-                "prompt_id": "924fe62b-8b33-4f4d-b9d1-c917d3568933",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "c7d467c2-62e3-4cec-8b0a-2210432fe915",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.00016745799985073972,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze setting name",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "2852eb43-380c-4346-9e1e-1af5bfc428b7",
-                "prompt_id": "fb8758da-5cf3-4cb6-b70e-572449ab8cee",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 script or transcript"
-        },
-        {
-            "metadata": {
-                "id": "829ebd22-968d-4544-a28e-96e1cccf66a1",
-                "prompt_id": "fb8758da-5cf3-4cb6-b70e-572449ab8cee",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "ec1f8188-cf1c-4fb3-8abd-d42e0a2d9ba3",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.0001073340008588275,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 script or transcript",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "35a7fd57-ef8b-43eb-9962-165111551642",
-                "prompt_id": "3aba3668-ad1c-4a6e-8db5-96df23e340d4",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 maze location in script"
-        },
-        {
-            "metadata": {
-                "id": "466549ab-a0dd-45a7-9909-13f2f1ae5294",
-                "prompt_id": "3aba3668-ad1c-4a6e-8db5-96df23e340d4",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
-        },
-        {
-            "metadata": {
-                "id": "eb1d4745-8370-46a6-b614-d4c1ec33a700",
-                "prompt_id": "",
-                "node": "",
-                "agent": "",
-                "llm": "",
-                "other": {
-                    "action_execution_time": 0.000774666999859619,
-                    "action_kind": "search_action"
-                }
-            },
-            "kind": "search_results_observation",
-            "query": "Doctor Who Series 9 Episode 11 maze location in script",
-            "serp": [],
-            "error": "SERPER_API_KEY env var is not set"
-        },
-        {
-            "metadata": {
-                "id": "fddc49cf-bf4a-4316-9635-38a62931ebed",
-                "prompt_id": "3c684af3-8b2a-46e0-a95a-e5ffa1ef0006",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "search_action",
-            "source": "web",
-            "query": "Doctor Who Series 9 Episode 11 first scene heading"
-        },
-        {
-            "metadata": {
-                "id": "7c247ed5-9162-49ad-8d2f-01af01861be9",
-                "prompt_id": "3c684af3-8b2a-46e0-a95a-e5ffa1ef0006",
-                "node": "act",
-                "agent": "web_agent",
-                "llm": "default",
-                "other": {}
-            },
-            "kind": "set_next_node",
-            "next_node": "act"
+            "kind": "gaia_answer_action",
+            "success": true,
+            "overview": "Extracted the first scene heading from the Doctor Who Series 9 Episode 11 script.",
+            "answer_unit": "",
+            "answer": "THE CASTLE",
+            "long_answer": "The first scene heading in the script for Doctor Who Series 9, Episode 11 is 'INT. THE CASTLE - DAY'."
         }
     ]
 }
