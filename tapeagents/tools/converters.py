@@ -13,11 +13,11 @@
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
 
-
 import base64
 import copy
 import html
 import json
+import logging
 import mimetypes
 import os
 import re
@@ -46,6 +46,8 @@ from pydantic import BaseModel, Field
 from readability import Document
 from youtube_transcript_api import YouTubeTranscriptApi
 
+logger = logging.getLogger(__name__)
+
 
 class DocumentConverterResult:
     """The result of converting a document to text."""
@@ -65,7 +67,7 @@ class DoclingConverter(DocumentConverter):
         converter = DoclingDocumentConverter(
             allowed_formats=kwargs.get("allowed_formats", None), format_options=kwargs.get("format_options", None)
         )
-        result = converter.convert(local_path)
+        result = converter.convert(local_path, page_range=(1, kwargs.get("max_pages", 20)))
         markdown = result.document.export_to_markdown()
         return DocumentConverterResult(
             title=None,
@@ -339,7 +341,8 @@ class PdfDoclingConverter(DoclingConverter):
         if extension.lower() != ".pdf":
             return None
         pipeline_options = PdfPipelineOptions(
-            do_table_structure=True, table_structure_options=TableStructureOptions(mode=TableFormerMode.ACCURATE)
+            do_table_structure=True,
+            table_structure_options=TableStructureOptions(mode=TableFormerMode.ACCURATE),
         )
         format_options = {InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
         return super().convert(local_path, format_options=format_options, **kwargs)
@@ -651,8 +654,31 @@ class ImageDoclingConverter(DoclingConverter):
         extension = kwargs.get("file_extension", "")
         if extension.lower() not in [".jpg", ".jpeg", ".png", ".tiff", ".bmp"]:
             return None
-        # TODO DT StandardPdfPipeline ?
         return super().convert(local_path, **kwargs)
+
+
+class MarkdownConverter(DocumentConverter):
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # Bail if not a Markdown file
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() not in [".md", ".markdown"]:
+            return None
+
+        text_content = ""
+        with open(local_path, "rt") as fh:
+            text_content = fh.read()
+
+        # Try to extract title from the first heading
+        title = None
+        # Look for the first markdown heading (# Title)
+        heading_match = re.search(r"^#\s+(.+?)$", text_content, re.MULTILINE)
+        if heading_match:
+            title = heading_match.group(1).strip()
+
+        return DocumentConverterResult(
+            title=title,
+            text_content=text_content,
+        )
 
 
 class FileConversionException(BaseException):
@@ -665,6 +691,7 @@ class UnsupportedFormatException(BaseException):
 
 class FileConverterOptions(BaseModel):
     text_converter: DocumentConverter = Field(default_factory=PlainTextConverter)
+    markdown_converter: DocumentConverter = Field(default_factory=MarkdownConverter)
     html_converter: DocumentConverter = Field(default_factory=HtmlConverter)
     wikipedia_converter: DocumentConverter = Field(default_factory=WikipediaConverter)
     youtube_converter: DocumentConverter = Field(default_factory=YouTubeConverter)
@@ -703,6 +730,7 @@ class FileConverter:
         # Later registrations are tried first / take higher priority than earlier registrations
         # To this end, the most specific converters should appear below the most generic converters
         self.register_page_converter(file_converter_options.text_converter)
+        self.register_page_converter(file_converter_options.markdown_converter)
         self.register_page_converter(file_converter_options.html_converter)
         self.register_page_converter(file_converter_options.wikipedia_converter)
         self.register_page_converter(file_converter_options.youtube_converter)
@@ -771,7 +799,7 @@ class FileConverter:
         self._append_ext(extensions, ext)
 
         # Save the file locally to a temporary file. It will be deleted before this method exits
-        handle, temp_path = tempfile.mkstemp()
+        handle, temp_path = tempfile.mkstemp(suffix=ext)
         fh = os.fdopen(handle, "wb")
         result = None
         try:
@@ -808,9 +836,11 @@ class FileConverter:
                     _kwargs["mlm_client"] = self._mlm_client
 
                 # If we hit an error log it and keep trying
+                res = None
                 try:
                     res = converter.convert(local_path, **_kwargs)
                 except Exception:
+                    logger.exception(f"Error converting {local_path} with {converter.__class__.__name__}")
                     error_trace = ("\n\n" + traceback.format_exc()).strip()
 
                 if res is not None:

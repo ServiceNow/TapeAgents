@@ -9,7 +9,7 @@ from typing import Generic, Literal
 
 from pydantic import BaseModel, Field
 
-from tapeagents.core import AgentStep, Call, Observation, Respond, SetNextNode, StepType, Tape, Thought
+from tapeagents.core import AgentStep, Call, ControlFlow, Observation, Respond, SetNextNode, StepType, Tape, Thought
 
 
 class Broadcast(Thought):
@@ -68,8 +68,8 @@ class TapeView(BaseModel, Generic[StepType]):
                 self.next_node = ""
             self.last_prompt_id = step.metadata.prompt_id
             self.last_node = step.metadata.node
-        if isinstance(step, SetNextNode):
-            self.next_node = step.next_node
+            if isinstance(step, SetNextNode):
+                self.next_node = step.next_node
         self.steps_by_kind[kind].append(step)
 
     def get_output(self, subagent_name_or_index: int | str) -> StepType:
@@ -138,7 +138,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
             case Observation():
                 top.add_step(step)
             case _:
-                raise ValueError(f"Unsupported step type {step}")
+                raise ValueError(f"Unsupported step type {type(step)}")
 
     def pop_view_from_stack(self, step: Respond):
         top = self.stack[-1]
@@ -154,7 +154,7 @@ class TapeViewStack(BaseModel, Generic[StepType]):
                 # - exclude Observation steps
                 # - among the remaining steps pick the last one
                 if not self.top.is_step_by_active_agent(top_step) and not isinstance(
-                    top_step, (Call, Respond, Observation)
+                    top_step, (ControlFlow, Observation)
                 ):
                     new_top.add_step(top_step)
                     new_top.outputs_by_subagent[top.agent_name] = top_step

@@ -12,6 +12,7 @@ from typing import Any, Generator, Generic
 
 import aiohttp
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
+from termcolor import colored
 from typing_extensions import Self
 
 from tapeagents.core import (
@@ -529,8 +530,14 @@ class Agent(BaseModel, Generic[TapeType]):
             - Empty prompts signal rule-based generation without LLM
             - Method may be optional for pure delegation agents
         """
-
-        return self.select_node(tape).make_prompt(self, tape)
+        node = self.select_node(tape)
+        prompt = node.make_prompt(self, tape)
+        msg_debug = "\n\n".join([f"{m['role']}:\n{m.get('content')}" for m in prompt.messages])
+        logger.debug(colored(f"Node {self.full_name}:{node.name}", "magenta"))
+        logger.debug(colored(f"Prompt messages:\n{msg_debug}", "magenta"))
+        logger.debug(colored(f"Prompt tools: {prompt.tools}", "magenta"))
+        logger.debug(colored(f"Prompt response_format: {prompt.response_format}", "magenta"))
+        return prompt
 
     def generate_steps(self, tape: TapeType, llm_stream: LLMStream) -> Generator[Step | PartialStep, None, None]:
         """
@@ -636,9 +643,6 @@ class Agent(BaseModel, Generic[TapeType]):
 
         Yields:
             Union[Step, PartialStep]: The generated steps or partial
-
-        Raises:
-            NotImplementedError: If the agent has multiple LLMs and no LLM stream is provided
         """
         if llm_stream is None:
             prompt = self.make_prompt(tape)
@@ -647,10 +651,16 @@ class Agent(BaseModel, Generic[TapeType]):
             elif len(self.llms) == 1:
                 llm = self.llm
             llm_stream = llm.generate(prompt) if prompt else LLMStream(None, prompt)
-        for step in self.generate_steps(tape, llm_stream):
-            if isinstance(step, AgentStep):
-                step.metadata.prompt_id = llm_stream.prompt.id
-            yield step
+        try:
+            for step in self.generate_steps(tape, llm_stream):
+                if isinstance(step, AgentStep):
+                    step.metadata.prompt_id = llm_stream.prompt.id
+                yield step
+        except Exception as e:
+            logger.exception(
+                f" - Agent '{self.full_name}' - Node '{self.select_node(tape).name}' - step generation error: {e}"
+            )
+            raise e
         if self.store_llm_calls and (llm_call := getattr(llm_stream, "llm_call", None)):
             step.metadata.other["llm_call"] = llm_call
 

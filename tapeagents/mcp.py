@@ -11,10 +11,13 @@ import nest_asyncio
 from mcp import ClientSession, StdioServerParameters, Tool as MCPTool, stdio_client
 from mcp.types import CallToolResult, TextContent
 
+from tapeagents.config import force_cache
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import ToolCollectionEnvironment
 from tapeagents.tool_calling import FunctionSpec, ToolCallAction, ToolResult, ToolSpec
 from tapeagents.tools.base import BaseTool
+from tapeagents.tools.tool_cache import add_to_cache, get_from_cache
+from tapeagents.utils import FatalError
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +95,23 @@ class MCPClient:
 
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
         server_name = self.check_tool_exists(tool_name)
+        # Current implementation of cache assumes tool calls are deterministic and do not alter state
+        if self.use_cache:
+            tool_name_key = f"mcp.{server_name}.{tool_name}"
+            result = get_from_cache(tool_name_key, args=(), kwargs=tool_args)
+            if not result and force_cache():
+                raise FatalError(f"Cache is forced but no cache entry found for {tool_name_key}({tool_args})")
+            if not result:
+                result = await self._call_tool(server_name, tool_name, tool_args)
+                add_to_cache(tool_name_key, args=(), kwargs=tool_args, result=result.model_dump(exclude_none=True))
+            else:
+                result = CallToolResult(**result)
+        else:
+            result = await self._call_tool(server_name, tool_name, tool_args)
+
+        return result
+
+    async def _call_tool(self, server_name: str, tool_name: str, tool_args: dict[str, Any]) -> CallToolResult:
         try:
             session = self.sessions[server_name]
             result = await session.call_tool(tool_name, tool_args)
@@ -116,12 +136,12 @@ class MCPEnvironment(ToolCollectionEnvironment):
         self,
         config_path: str = "",
         tools_whitelist: Optional[list[str]] = None,
-        other_tools: Optional[list[BaseTool]] = None,
+        tools: Optional[list[BaseTool]] = None,
         use_cache: bool = False,
         read_timeout_seconds: int = 10,
         client: MCPClient | None = None,
     ) -> None:
-        super().__init__(tools=other_tools or [])
+        super().__init__(tools=tools or [])
         logger.info(f"Initializing MCPEnvironment with config_path: {config_path}")
         self.client = client or MCPClient(
             config_path=config_path, use_cache=use_cache, read_timeout_seconds=read_timeout_seconds
