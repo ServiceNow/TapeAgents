@@ -402,7 +402,6 @@ class LLMCall(BaseModel):
 class TokenLogprob(BaseModel):
     logprob: float
     token_id: int
-    generated: int
 
 
 AnnotatorTape = Tape[TapeType, StepType]

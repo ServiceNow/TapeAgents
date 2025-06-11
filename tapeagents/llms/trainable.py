@@ -90,18 +90,8 @@ class TrainableLLM(CachedLLM):
         """
         return self.base_url.rstrip("/")
 
-    def make_llm_call_logprobs(
-        self, prompt_token_ids: list[int], completion_logprobs: list[dict]
-    ) -> list[TokenLogprob]:
+    def parse_completion_logprobs(self, completion_logprobs: list[dict]) -> list[TokenLogprob]:
         logprobs = []
-        for id in prompt_token_ids:
-            logprobs.append(
-                TokenLogprob(
-                    token_id=id,
-                    logprob=0.0,
-                    generated=0,
-                )
-            )
         for logprob in completion_logprobs:
             if logprob:
                 try:
@@ -111,7 +101,6 @@ class TrainableLLM(CachedLLM):
                         TokenLogprob(
                             token_id=int(logprob["token"].split(":")[-1]),
                             logprob=logprob["logprob"],
-                            generated=1,
                         )
                     )
                 except Exception as e:
@@ -156,7 +145,7 @@ class TrainableLLM(CachedLLM):
         if not r.ok:
             logger.error(f"Failed to get completion: {r.text}")
             r.raise_for_status()
-        logprobs = []
+        parsed_logprobs = []
         if self.stream:
             response_buffer = []
             for byte_payload in r.iter_lines():
@@ -182,18 +171,8 @@ class TrainableLLM(CachedLLM):
                     logger.warning(f"Empty completion {data}")
 
                 if self.collect_logprobs:
-                    prompt_token_ids = self.tokenizer.apply_chat_template(
-                        prompt.messages, add_special_tokens=True, add_generation_prompt=True
-                    )
-                    # prompt_decoded = self.tokenizer.decode(prompt_token_ids, skip_special_tokens=False)
                     completion_logprobs = data["choices"][0]["logprobs"]["content"]
-                    logprobs = self.make_llm_call_logprobs(prompt_token_ids, completion_logprobs)
-                    # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
-                    for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
-                        if content.endswith(eos_str):
-                            # the eos was added in the case where self.collect_logprobs is True
-                            # TapeAgents is not expecting the eos token in the completion
-                            content = content[: -len(eos_str)]
+                    parsed_logprobs = self.parse_completion_logprobs(completion_logprobs)
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
@@ -201,101 +180,8 @@ class TrainableLLM(CachedLLM):
             if tool_calls:
                 output.tool_calls = [litellm.ChatCompletionMessageToolCall(**tc) for tc in tool_calls]
         llm_call = self.log_output(prompt, output)
-        llm_call.logprobs = logprobs
+        llm_call.logprobs = parsed_logprobs
         yield LLMEvent(output=output, llm_call=llm_call)
-
-    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2))
-    def batch_generate(self, prompts: list[Prompt]) -> list[LLMCall]:
-        self.load_tokenizer()
-        if self.stream:
-            raise NotImplementedError()
-
-        headers = {"Content-Type": "application/json"}
-        if self.api_token:
-            headers |= {"Authorization": f"Bearer {self.api_token}"}
-
-        prompt_token_ids = [
-            p.token_ids
-            if p.token_ids
-            else self.tokenizer.apply_chat_template(p.messages, add_special_tokens=True, add_generation_prompt=True)
-            for p in prompts
-        ]
-        data = {
-            "model": self.model_name,
-            "prompt": prompt_token_ids,
-            "stream": self.stream,
-        }
-        if self.collect_logprobs:
-            data.update(
-                {
-                    "logprobs": 1,
-                    "include_stop_str_in_output": True,
-                    "skip_special_tokens": False,
-                }
-            )
-        logger.debug(f"POST request to {self.base_url}/v1/completions")
-        start_send_request = time.time()
-        r = requests.post(
-            url=f"{self.base_url}/v1/completions",
-            json=data | self.parameters,
-            headers=headers,
-            stream=self.stream,
-            verify=False,
-        )
-        self._stats["time_send_request"].append(time.time() - start_send_request)
-        if not r.ok:
-            logger.error(f"Failed to get completion: {r.text}")
-            r.raise_for_status()
-        data = r.json()
-        result = []
-        start_postprocess_time = time.time()
-        for i in range(len(prompts)):
-            try:
-                content = data["choices"][i]["text"]
-                if not content:
-                    logger.warning(f"Empty completion {data}")
-
-                logprobs = []
-                chat_completion_logprobs = []
-                if self.collect_logprobs:
-                    completion_logprobs = data["choices"][i]["logprobs"]
-                    # /v1/completions returns logprobs in a format different to /v1/chat/completions
-                    # Before calling self.process_logprobs, we need to convert the logprobs to a
-                    # list of dicts format similar to /v1/chat/completions
-
-                    chat_completion_logprobs = [
-                        {"token": completion_logprobs["tokens"][j], "logprob": completion_logprobs["token_logprobs"][j]}
-                        for j in range(len(completion_logprobs["tokens"]))
-                    ]
-                    logprobs = self.make_llm_call_logprobs(prompt_token_ids[i], chat_completion_logprobs)
-                    # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
-                    for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
-                        if content.endswith(eos_str):
-                            # the eos was added in the case where self.collect_logprobs is True
-                            # TapeAgents is not expecting the eos token in the completion
-                            content = content[: -len(eos_str)]
-            except Exception as e:
-                logger.exception(f"Failed to parse llm response: {r}")
-                raise e
-            output = LLMOutput(content=content)
-            # if logprobs is not None, we will directly take the token counts from vLLM
-            # otherwise, we will count the tokens in the output using the tokenizer (which is sometimes inaccurate)
-            if logprobs:
-                llm_call = self.log_output(prompts[i], output, count_tokens=False)
-                llm_call.prompt_length_tokens = len(prompt_token_ids[i])
-                llm_call.output_length_tokens = len(chat_completion_logprobs)
-                self._stats["prompt_length_tokens"].append(llm_call.prompt_length_tokens)
-                self._stats["output_length_tokens"].append(llm_call.output_length_tokens)
-                assert (
-                    llm_call.output_length_tokens <= self.parameters["max_tokens"]
-                ), f"output_length_tokens: {llm_call.output_length_tokens}, max_tokens: {self.parameters['max_tokens']}"
-            else:
-                llm_call = self.log_output(prompts[i], output, count_tokens=True)
-                # do not assert token count since the tokenizer may not be accurate
-            llm_call.logprobs = logprobs
-            result.append(llm_call)
-        self._stats["time_postprocess_llm_response"].append(time.time() - start_postprocess_time)
-        return result
 
     def get_step_schema(self, cls):
         return get_step_schemas_from_union_type(cls)
@@ -666,20 +552,23 @@ class TrainableLLM(CachedLLM):
             if not content and not tool_calls:
                 logger.warning(f"Empty completion {data}")
 
-            logprobs = []
+            parsed_logprobs = []
             if self.collect_logprobs:
-                self.load_tokenizer()
-                prompt_token_ids = self.tokenizer.apply_chat_template(
-                    prompt.messages, add_special_tokens=True, add_generation_prompt=True
-                )
                 completion_logprobs = data["choices"][0]["logprobs"]["content"]
-                logprobs = self.make_llm_call_logprobs(prompt_token_ids, completion_logprobs)
-                # <end_of_turn> is the end of message for Gemma2B, eos_token is wrong for this model
-                for eos_str in [self.tokenizer.eos_token, "<end_of_turn>"]:
-                    if content.endswith(eos_str):
-                        # the eos was added in the case where self.collect_logprobs is True
-                        # TapeAgents is not expecting the eos token in the completion
-                        content = content[: -len(eos_str)]
+                for logprob in completion_logprobs:
+                    if logprob:
+                        try:
+                            # We assume that the server was launched with --return-tokens-as-token-ids
+                            # and that the tokens are provided as: ['token_id:1271', 'token_id:1505', '
+                            parsed_logprobs.append(
+                                TokenLogprob(
+                                    token_id=int(logprob["token"].split(":")[-1]),
+                                    logprob=logprob["logprob"],
+                                )
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to process logprobs: {logprob}")
+                            logger.error(e)
         except Exception as e:
             logger.exception(f"Failed to parse llm response: {data}")
             raise e
@@ -698,7 +587,7 @@ class TrainableLLM(CachedLLM):
             count_tokens=False,
         )
         assert llm_call is not None, "llm_call is None"
-        llm_call.logprobs = logprobs
+        llm_call.logprobs = parsed_logprobs
 
         def _gen():
             yield LLMEvent(llm_call=llm_call, output=output)
