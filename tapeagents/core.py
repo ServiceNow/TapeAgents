@@ -20,13 +20,15 @@ class TrainingText(BaseModel):
 
     Attributes:
         text (str): The full text of the training instance.
-        n_predicted (int): The number of predicted tokens in the text.
+        n_predicted (int): The number of predicted characters in the text.
         reward (float): The reward associated with the training instance. Defaults to 0.0.
         logprobs (List[float]): A list of log probabilities of the completion tokens from the assistant model.
         ref_logprobs (List[float]): A list of reference log probabilities of the completion tokens from the reference model.
+        input_ids (List[int]): The tokenized input ids of the text.
+        labels (List[int]): The tokenized labels of the text (i.e., masked token ids for the prompt and regular token ids for the prediction).
         group_id (str, optional): ID of the group. It is used by the RL finetuning script to normalize rewards.
-        prompt_text (str): Portion of the text that serves as the prompt (i.e., the text excluding the predicted tokens).
-        output_text (str): Portion of the text that represents the predicted output (i.e., the last n_predicted tokens).
+        prompt_text (str): Portion of the text that serves as the prompt (i.e., the text excluding the predicted characters).
+        output_text (str): Portion of the text that represents the predicted output (i.e., the last n_predicted characters).
     """
 
     text: str
@@ -111,7 +113,7 @@ class Observation(Step):
     Base class representing an observation in a tape.
     """
 
-    def short_view(self) -> str:
+    def short_view(self, max_chars=100) -> str:
         """Returns a short string representation of the observation when the tape needs to be trimmed."""
         return self.llm_view()
 
@@ -153,7 +155,9 @@ class Action(AgentStep):
     Base class representing an agent's action in a tape.
     """
 
-    pass
+    @classmethod
+    def description(cls) -> str:
+        return f"{cls.__name__} - {cls.__doc__ or '[no description]'}"
 
 
 class LLMOutputParsingFailureAction(Action, Error):
@@ -460,3 +464,7 @@ class MakeObservation(Action, Generic[StepType]):
         obj = self.model_dump(exclude_none=True, exclude={"metadata"})
         del obj["new_observation"]["metadata"]
         return obj
+
+
+def last_actions(tape: Tape) -> list[Action]:
+    return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]

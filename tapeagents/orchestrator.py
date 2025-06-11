@@ -2,21 +2,31 @@
 Module contains the main loops of the agent-environment interaction and replay functions.
 """
 
+import asyncio
 import enum
 import logging
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Generator, Generic
 
+import aiohttp
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from pydantic import BaseModel, Field
 from termcolor import colored
 
+from tapeagents.agent import Agent
 from tapeagents.config import is_debug_mode
-
-from .agent import Agent
-from .core import AgentEvent, Observation, Step, StopStep, TapeType
-from .environment import Environment, ExternalObservationNeeded, NoActionsToReactTo, ToolCollectionEnvironment
-from .utils import FatalError, diff_dicts
+from tapeagents.core import AgentEvent, Observation, Step, StopStep, TapeType
+from tapeagents.environment import (
+    AsyncEnvironment,
+    Environment,
+    ExternalObservationNeeded,
+    NoActionsToReactTo,
+    ToolCollectionEnvironment,
+)
+from tapeagents.remote_environment import AsyncRemoteEnvironment
+from tapeagents.renderers import step_view
+from tapeagents.utils import FatalError, diff_dicts
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -78,10 +88,23 @@ class MainLoopStream(Generic[TapeType]):
 
 def get_agent_and_env_from_config(cfg: DictConfig) -> tuple[Agent, ToolCollectionEnvironment]:
     environment: ToolCollectionEnvironment = instantiate(cfg.environment)
+    environment.initialize()
+    logger.info(f"Environment tools: {environment.tools_description()}")
     agent: Agent = instantiate(
         cfg.agent, known_actions=environment.actions(), tools_description=environment.tools_description()
     )
     return agent, environment
+
+
+async def run_agent_with_remote_env(cfg: DictConfig, tape: TapeType, session: aiohttp.ClientSession) -> TapeType:
+    environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
+    async with environment.acontext(session, wait_for_env=True) as env:
+        actions = await environment.a_actions()
+        tools_description = await environment.a_tools_description()
+        logger.info(f"Available tools: {tools_description}")
+        agent: Agent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
+        tape = await async_execute_agent(agent, tape, env, session)
+        return tape
 
 
 def main_loop(
@@ -149,6 +172,123 @@ def main_loop(
             n_loops += 1
 
     return MainLoopStream(_implementation())
+
+
+async def async_main_loop(
+    agent: Agent[TapeType],
+    start_tape: TapeType,
+    environment: AsyncEnvironment,
+    session: aiohttp.ClientSession,
+    max_loops: int = -1,
+):
+    if is_debug_mode():
+        logger.setLevel(logging.DEBUG)
+    n_loops = 0
+    tape = start_tape
+    event = None
+    while n_loops < max_loops or max_loops == -1:
+        # --- RUN THE AGENT ---
+        async for event in agent.arun(tape, session):
+            yield MainLoopEvent(agent_event=event)
+            if event.step:
+                logger.info(colored(f"AGENT: {step_view(event.step)}", "green"))
+            if event.final_tape:
+                break
+        assert event and event.final_tape
+        agent_tape = event.final_tape
+        yield MainLoopEvent(agent_tape=agent_tape)
+
+        # --- RUN THE ENVIRONMENT ---
+        if any([isinstance(step, StopStep) for step in agent_tape.steps]):
+            logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
+            yield MainLoopEvent(status=MainLoopStatus.FINISHED)
+            return
+        try:
+            tape = await environment.areact(agent_tape)
+        except NoActionsToReactTo:
+            yield MainLoopEvent(status=MainLoopStatus.NO_ACTIONS)
+            return
+        except ExternalObservationNeeded:
+            yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
+            return
+        for observation in tape[len(agent_tape) :]:
+            logger.info(colored(f"ENV: {step_view(observation, trim=True)}", "yellow"))
+            yield MainLoopEvent(observation=observation)
+        yield MainLoopEvent[TapeType](env_tape=tape)
+
+        # --- REPEAT ---
+        n_loops += 1
+
+
+async def async_execute_agent(
+    agent: Agent[TapeType],
+    start_tape: TapeType,
+    environment: AsyncEnvironment,
+    session: aiohttp.ClientSession,
+    max_loops: int = 50,
+) -> TapeType:
+    final_tape = start_tape
+    try:
+        async for event in async_main_loop(agent, start_tape, environment, session, max_loops):
+            if event.agent_event and event.agent_event.final_tape:
+                final_tape = event.agent_event.final_tape
+            elif event.env_tape:
+                final_tape = event.env_tape
+    except Exception as e:
+        final_tape.metadata.error = f"Agent loop exception: {e}"
+        logger.error(colored(f"Agent loop exception: {e}, stopping", "red"))
+    tape_id = final_tape.metadata.id
+    final_tape.metadata = start_tape.metadata
+    final_tape.metadata.id = tape_id
+    final_tape.metadata.parent_id = start_tape.metadata.id
+    return final_tape
+
+
+class EnvironmentGroup:
+    def __init__(self, cfg: DictConfig, n_envs: int = 1):
+        self.cfg = cfg
+        self.semaphore = asyncio.Semaphore(n_envs)
+        self.envs: list[ToolCollectionEnvironment] = [instantiate(cfg) for _ in range(n_envs)]
+        self.exit_stack = AsyncExitStack()
+        logger.info(f"Created {len(self.envs)} environments")
+
+    async def __aenter__(self):
+        for env in self.envs:
+            await env.ainitialize()
+            logger.info(f"Environment tools: {env.tools_description()}")
+            self.exit_stack.push_async_callback(env.aclose)
+        logger.info(f"Initialized {len(self.envs)} environments")
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.exit_stack.aclose()
+
+    @asynccontextmanager
+    async def get_env(self):
+        logger.info("waiting for env")
+        async with self.semaphore:
+            env = self.envs.pop(0)
+            logger.info(f"pop env, {len(self.envs)} environments left")
+            try:
+                yield env
+            finally:
+                await env.areset()
+                self.envs.append(env)
+                logger.info(f"push env back, {len(self.envs)} environments available")
+
+
+async def async_execute_with_env(
+    env_group: EnvironmentGroup,
+    agent_cfg: DictConfig,
+    start_tape: TapeType,
+    session: aiohttp.ClientSession,
+    max_loops: int = 50,
+) -> TapeType:
+    async with env_group.get_env() as env:
+        agent = instantiate(agent_cfg, known_actions=env.actions(), tools_description=env.tools_description())
+        final_tape = await async_execute_agent(agent, start_tape, env, session, max_loops=max_loops)
+
+    return final_tape
 
 
 def replay_tape(

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from tapeagents.core import Action, Observation, Step
 from tapeagents.llms import LLMOutput
 from tapeagents.steps import ExplainableAction
-from tapeagents.tools.base import BaseTool
+from tapeagents.tools.base import AsyncBaseTool
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class FunctionSpec(BaseModel):
     parameters: dict
 
 
-class ToolSpec(BaseTool):
+class ToolSpec(AsyncBaseTool):
     """
     ToolSpec is a model that represents a tool specification with a type and a function.
 
@@ -179,7 +179,7 @@ def as_openai_tool(action: type[Step] | ToolSpec, decription_chars_limit: int = 
         description = f"Produce {description}"
     if len(description) > decription_chars_limit:  # OAI limit
         description = description[:decription_chars_limit]
-        logger.warning(f"Description of {name} truncated to {decription_chars_limit} characters: {description}")
+        logger.warning(f"Description of the '{name}' tool truncated to {decription_chars_limit} chars")
     return ToolSpec(
         function=FunctionSpec(
             name=name,

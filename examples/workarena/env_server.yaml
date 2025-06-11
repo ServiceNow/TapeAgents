@@ -1,0 +1,10 @@
+environment_server:
+  _target_: tapeagents.remote_environment.EnvironmentServer
+  n_envs: 8
+  host: localhost
+  port: 8000
+
+environment:
+  _target_: examples.workarena.environment.WorkArenaEnvironment
+  exp_path: outputs/workarena/env_server_test
+  headless: true

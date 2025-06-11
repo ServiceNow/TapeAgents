@@ -36,7 +36,8 @@ def _web_search(query: str, max_results: int = 5, retry_pause: int = 5, attempts
     try:
         results = web_search(query, max_results=max_results, retry_pause=retry_pause, attempts=attempts)
     except Exception as e:
-        logger.warning(f"Failed to fetch search results: {e}")
+        logger.exception(f"Failed to search the web: {e}")
+        raise e
     return results
 
 

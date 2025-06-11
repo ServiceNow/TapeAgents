@@ -471,12 +471,15 @@ class PageObservation(Observation):
     total_pages: int
     error: int | str | None = None
 
-    def short_view(self):
+    def short_view(self, max_chars=100):
         view = self.llm_dict()
-        view["text"] = self.text[:100] + "..."
-        short = json.dumps(view, indent=2, ensure_ascii=False)
-        logger.info(f"PageObservation long view was: {len(self.llm_view())}, short view is: {len(short)}")
-        return short
+        view_json = json.dumps(view, indent=2, ensure_ascii=False)
+        if len(view["text"]) > max_chars:
+            view["text"] = view["text"][:max_chars] + "..."
+            short = json.dumps(view, indent=2, ensure_ascii=False)
+            logger.info(f"PageObservation long view was: {len(self.llm_view())}, short view is: {len(short)}")
+            view_json = short
+        return view_json
 
 
 class SimpleBrowser(StatefulTool):

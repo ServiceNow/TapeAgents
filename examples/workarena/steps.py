@@ -6,7 +6,7 @@ from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, 
 from tapeagents.dialog_tape import DialogContext
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import (
-    ClickAction,
+    ClickBIDAction,
     GoBackAction,
     GoForwardAction,
     HoverAction,
@@ -107,7 +107,7 @@ WorkArenaStep = Union[
     ReasoningThought,
     ReflectionThought,
     # browser actions
-    ClickAction,
+    ClickBIDAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,
@@ -133,7 +133,7 @@ WorkArenaBaselineStep = (
     # thoughts
     ReasoningThought,
     # browser actions
-    ClickAction,
+    ClickBIDAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,
@@ -150,7 +150,7 @@ WorkArenaAgentStep = (
     ReasoningThought,
     ReflectionThought,
     # browser actions
-    ClickAction,
+    ClickBIDAction,
     SelectOptionAction,
     HoverAction,
     InputTextAction,
