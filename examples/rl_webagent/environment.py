@@ -12,7 +12,6 @@ from tapeagents.core import Action, FinalObservation, LLMOutputParsingFailureAct
 from tapeagents.environment import Environment
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
-from tapeagents.tools.simple_browser import PageObservation
 from tapeagents.utils import FatalError
 
 from .steps import (
@@ -147,7 +146,6 @@ class WebEnvironment(Environment):
                     logger.exception(f"Error during action execution: {observation.error}")
                     tape = tape.append(observation)
                     break
-                assert isinstance(observation, PageObservation), f"Observation is not a PageObservation: {observation}"
                 tape = tape.append(observation)  # type: ignore
             except FatalError:
                 self.timers["react"].append(time.perf_counter() - start_react)
