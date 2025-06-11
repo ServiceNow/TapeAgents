@@ -25,7 +25,6 @@ from tapeagents.core import (
     StopStep,
     Tape,
 )
-from tapeagents.dialog_tape import UserStep
 from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import REASON_TO_USE_KEY, BranchStep, ReasoningThought
@@ -462,18 +461,6 @@ class StandardNode(Node):
             Currently this is a placeholder method that returns the tape unchanged.
         """
         return tape
-
-
-class ViewNode(StandardNode):
-    system_prompt: str
-    view: Any = None
-    prompt: str
-
-    def get_steps(self, tape: Tape, agent: Agent) -> list[Step]:
-        view_cls = class_for_name(self.view)
-        kwargs = view_cls(tape).as_dict() if self.view else {}
-        content = self.prompt.format(**kwargs)
-        return [UserStep(content=content)]
 
 
 class AsStep(StandardNode):
