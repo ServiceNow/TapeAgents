@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Generic, Iterable, Iterator, List, Literal, TypeAlias, TypeVar
+from typing import Any, Generic, Iterable, Iterator, List, Literal, Type, TypeAlias, TypeVar
 from uuid import uuid4
 
 import litellm
@@ -142,6 +142,14 @@ class Thought(AgentStep):
     pass
 
 
+class ControlFlow(Thought):
+    """
+    Base class representing a flow control step in a tape.
+    """
+
+    pass
+
+
 class Action(AgentStep):
     """
     Base class representing an agent's action in a tape.
@@ -188,7 +196,7 @@ class FinalStep(StopStep):
     reason: str = ""
 
 
-class SetNextNode(Thought):
+class SetNextNode(ControlFlow):
     """
     Action that sets the next node to run in the current agent.
 
@@ -209,7 +217,7 @@ class Pass(Thought):
     kind: Literal["pass"] = "pass"
 
 
-class Call(Thought):
+class Call(ControlFlow):
     """
     Action that calls another agent.
 
@@ -224,7 +232,7 @@ class Call(Thought):
     agent_name: str
 
 
-class Respond(Thought):
+class Respond(ControlFlow):
     """
     Action that returns a response to the top-level agent after processing the call.
 
@@ -340,6 +348,7 @@ class Prompt(BaseModel):
     tools: list[dict] | None = None
     messages: list[dict] = Field(default_factory=list)
     token_ids: list[int] = Field(default_factory=list)
+    response_format: dict | Type[BaseModel] | None = None
 
     @staticmethod
     def from_user_message(content: str) -> Prompt:

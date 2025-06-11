@@ -1,5 +1,3 @@
-# TODO: define type signature for tools including JSONSchema and etc
-
 from __future__ import annotations
 
 import logging
@@ -11,6 +9,7 @@ from pydantic import BaseModel
 
 from tapeagents.core import Action, Observation, Step
 from tapeagents.llms import LLMOutput
+from tapeagents.steps import ExplainableAction
 from tapeagents.tools.base import AsyncBaseTool
 
 logger = logging.getLogger(__name__)
@@ -43,6 +42,9 @@ class ToolSpec(AsyncBaseTool):
     type: Literal["function"] = "function"
     function: FunctionSpec
 
+    def description(self) -> str:
+        return f"{self.function.name} - {self.function.description}"
+
     @classmethod
     def from_function(cls, function: Callable):
         """
@@ -55,9 +57,6 @@ class ToolSpec(AsyncBaseTool):
             (ToolSpec): An instance of the class with the validated model.
         """
         return cls.model_validate(convert_to_openai_tool(function))
-
-    def description(self) -> str:
-        return f"{self.function.name} - {self.function.description}"
 
 
 class FunctionCall(BaseModel):
@@ -88,7 +87,7 @@ class ToolCall(BaseModel):
     type: str = "function"
 
 
-class ToolCallAction(Action):
+class ToolCallAction(ExplainableAction):
     kind: Literal["tool_call"] = "tool_call"  # type: ignore
     id: str = ""
     function: FunctionCall
@@ -218,7 +217,7 @@ def as_function_def(action: Action) -> str:
         ptype = type_aliases.get(param_spec["type"], param_spec["type"])
         fdef += f"{param}: {ptype}, "
     fdef = fdef[:-2] + "):"
-    fdef += f"\n    \"\"\"{tool_spec['function']['description']}\n"
+    fdef += f'\n    """{tool_spec["function"]["description"]}\n'
     for param, param_spec in tool_spec["function"]["parameters"]["properties"].items():
         fdef += f"    {param}: {param_spec['description']}\n"
     fdef += '    """\n'
