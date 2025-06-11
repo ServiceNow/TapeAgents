@@ -93,7 +93,7 @@ class SearchAction(Action):
     kind: Literal["search_action"] = "search_action"
     source: str = Field(description="source to search in, could be web, wiki or youtube")
     query: str = Field(description="search query")
-    time_interval: str = Field(description="time interval for the search, could be h, d, w, m or empty")
+    time_interval: str = Field(description="time interval for the search, could be h, d, w, m or empty", default="")
 
 
 class SafeSearchAction(SearchAction):
