@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal, Optional
 
 from pydantic import Field
@@ -30,6 +31,7 @@ def read_document(path: str, file_converter_options: Optional[FileConverterOptio
 class DocumentObservation(Observation):
     kind: Literal["document_observation"] = "document_observation"
     text: str
+    source: str | None = None  # optional for tape backwards compatibility
     error: str | None = None
 
 
@@ -50,7 +52,74 @@ class DocumentReader(Tool):
     action: type[Action] = ReadLocalDocumentAction
     observation: type[Observation] = DocumentObservation
     file_converter_options: Optional[FileConverterOptions] = None
+    workspace_directory: str | None = None
 
     def execute_action(self, action: ReadLocalDocumentAction) -> DocumentObservation:
-        text, error = read_document(action.path, self.file_converter_options)
-        return DocumentObservation(text=text, error=error)
+        if self.workspace_directory is not None:
+            # Resolve the path safely within the workspace directory
+            workspace_dir = Path(self.workspace_directory).resolve()
+            path = Path(action.path)
+            abs_path = (workspace_dir / path).resolve() if not path.is_absolute() else path.resolve()
+            try:
+                abs_path.relative_to(workspace_dir)
+            except ValueError:
+                return DocumentObservation(
+                    text="", error="Access to files outside the workspace directory is not allowed"
+                )
+            workspace_path = abs_path
+        else:
+            workspace_path = Path(action.path)
+        if not workspace_path.exists():
+            return DocumentObservation(text="", error=f"File {action.path} not found in the workspace")
+        text, error = read_document(str(workspace_path), self.file_converter_options)
+        return DocumentObservation(text=text, source=str(action.path), error=error)
+
+
+class ListDocumentsAction(Action):
+    """
+    Action that lists all documents in the workspace directory.
+    """
+
+    kind: Literal["list_documents_action"] = "list_documents_action"  # type: ignore
+
+
+class ListDocumentsObservation(Observation):
+    """
+    Observation that lists all documents in the workspace directory.
+    """
+
+    kind: Literal["list_documents_observation"] = "list_documents_observation"  # type: ignore
+    documents: list[str] = Field(description="List of documents in the workspace directory")
+    error: str | None = None
+
+
+class ListDocuments(Tool):
+    """
+    Tool to list all documents in the workspace directory.
+    """
+
+    action: type[Action] = ListDocumentsAction
+    observation: type[Observation] = ListDocumentsObservation
+    workspace_directory: str
+
+    def execute_action(self, action: ListDocumentsAction) -> ListDocumentsObservation:
+        try:
+            documents = self.list_documents()
+            return ListDocumentsObservation(documents=documents)
+        except Exception as e:
+            return ListDocumentsObservation(documents=[], error=str(e))
+
+    def list_documents(self) -> list[str]:
+        """
+        List all documents in the workspace directory.
+        """
+        import os
+
+        documents = []
+        os.makedirs(self.workspace_directory, exist_ok=True)
+        for root, _, files in os.walk(self.workspace_directory):
+            for file in files:
+                abs_path = os.path.join(root, file)
+                rel_path = os.path.relpath(abs_path, self.workspace_directory)
+                documents.append(rel_path)
+        return documents

@@ -5,10 +5,19 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from tapeagents.core import Action, AgentStep, Error, Observation, Step, Thought
+from tapeagents.core import Action, ControlFlow, Error, Observation, Step, Thought
 from tapeagents.utils import image_base64_message
 
 logger = logging.getLogger(__name__)
+
+
+REASON_TO_USE_KEY = "reason_to_use"
+
+
+class ExplainableAction(Action):
+    reason_to_use: str = Field(
+        description="A summary of the reason you want to use this tool written in the form of 'I want to'", default=""
+    )
 
 
 class WatchVideoAction(Action):
@@ -104,8 +113,11 @@ class ReasoningThought(Thought):
     kind: Literal["reasoning_thought"] = "reasoning_thought"
     reasoning: str
 
+    def llm_view(self):
+        return self.reasoning
 
-class BranchStep(AgentStep):
+
+class BranchStep(ControlFlow):
     kind: Literal["branch"] = "branch"
 
 

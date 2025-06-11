@@ -167,6 +167,14 @@ class LLM(BaseModel, ABC):
         """
         pass
 
+    def quick_response(self, text_prompt: str) -> str:
+        prompt = Prompt(messages=[{"role": "user", "content": text_prompt}])
+        outputs = []
+        for e in self.generate(prompt):
+            if e.output:
+                outputs.append(e.output.content)
+        return "".join(outputs)
+
     async def agenerate(self, prompt: Prompt, session: Any, **kwargs):
         raise NotImplementedError(f"asynchronous generation is not implemented in {self.__class__}")
 

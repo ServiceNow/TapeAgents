@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Generator, Type
 
 import yaml
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 
 from tapeagents.agent import Agent
 from tapeagents.config import ATTACHMENT_DEFAULT_DIR
@@ -190,15 +190,17 @@ def load_tapes(
     for tape_dict in data:
         try:
             tape = tape_class.model_validate(tape_dict)
-            if attachment_dir_resolved:
-                # Update attachment_dir for steps that needs it
-                for step in tape:
-                    if isinstance(step, (VideoObservation)):
-                        step.attachment_dir = attachment_dir_resolved
-            tapes.append(tape)
-        except Exception as e:
-            logger.warning(f"Failed to load tape {tape_dict['metadata']}: {e}")
-            raise e
+        except ValidationError as ve:
+            step_kinds = "\n".join([f"{i}: {step.get('kind')}" for i, step in enumerate(tape_dict.get("steps", []))])
+            logger.error(f"Failed to load tape {tape_dict['metadata']}. Steps kinds:\n{step_kinds}")
+            raise ve
+
+        if attachment_dir_resolved:
+            # Update attachment_dir for steps that needs it
+            for step in tape:
+                if isinstance(step, (VideoObservation)):
+                    step.attachment_dir = attachment_dir_resolved
+        tapes.append(tape)
     return tapes
 
 
