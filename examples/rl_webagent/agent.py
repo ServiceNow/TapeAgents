@@ -143,7 +143,9 @@ class WebNode(StandardNode):
         previous_actions = [step for step in tape.steps if isinstance(step, Action)]
         last_action = previous_actions[-1] if previous_actions else None
         n_last_actions = len(list(takewhile(lambda x: x == last_action, reversed(previous_actions))))
-        action_monitor = StepRepeatMonitor(last_step=last_action, repeat_count=n_last_actions, max_repeats=self.max_same_action)
+        action_monitor = StepRepeatMonitor(
+            last_step=last_action, repeat_count=n_last_actions, max_repeats=self.max_same_action
+        )
 
         new_steps = []
         for event in llm_stream:

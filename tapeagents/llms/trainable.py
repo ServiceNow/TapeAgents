@@ -13,7 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 from pydantic import Field
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from tapeagents.core import LLMCall, LLMOutput, Prompt, TokenLogprob, TrainingText
+from tapeagents.core import LLMOutput, Prompt, TokenLogprob, TrainingText
 from tapeagents.llms.base import LLMEvent, LLMStream
 from tapeagents.llms.cached import CachedLLM
 from tapeagents.utils import get_step_schemas_from_union_type
