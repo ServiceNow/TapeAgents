@@ -427,44 +427,28 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
     Asynchronous environment that proxies actions to a remote environment server using aiohttp.
     """
 
-    def __init__(self, server_url: str):
+    def __init__(self, server_url: str, max_parallel_requests: int = 32):
         self.server_url = server_url
         self.session_id: str | None = None
-        self.tcp_session: aiohttp.ClientSession | None = None
+        self.session: aiohttp.ClientSession | None = None
+        self.semaphore = asyncio.Semaphore(max_parallel_requests)
 
     async def ainitialize(self, session: aiohttp.ClientSession) -> None:
-        self.tcp_session = session
-        async with self.tcp_session.post(f"{self.server_url}/acquire") as response:
-            if response.status != 200:
-                raise HTTPException(status_code=response.status, detail=await response.text())
-            response_data = await response.json()
+        self.session = session
+        response_data = await self.api_call("acquire")
         self.session_id = response_data.get("session_id")
         logger.info(f"Acquired environment with session ID: {self.session_id}")
         await super().ainitialize()  # In case parent class has async initialization logic
 
     async def start_task(self, task_data: dict) -> dict:
-        if not self.tcp_session or not self.session_id:
+        if not self.session or not self.session_id:
             raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        async with self.tcp_session.post(
-            f"{self.server_url}/start_task", json={"task_data": task_data, "session_id": self.session_id}
-        ) as response:
-            if response.status != 200:
-                text = await response.text()
-                logger.error(f"Failed to start task in environment: {text}")
-                raise HTTPException(status_code=response.status, detail=text)
-            return await response.json()
+        return await self.api_call("start_task", {"task_data": task_data})
 
     async def a_actions(self) -> tuple[type[Action], ...]:
-        if not self.tcp_session or not self.session_id:
+        if not self.session or not self.session_id:
             raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        async with self.tcp_session.post(
-            f"{self.server_url}/actions", json={"session_id": self.session_id}
-        ) as response:
-            if response.status != 200:
-                text = await response.text()
-                logger.error(f"Failed to fetch actions from environment: {text}")
-                raise HTTPException(status_code=response.status, detail=text)
-            response_data = await response.json()
+        response_data = await self.api_call("actions")
         action_names = response_data.get("actions", [])
         actions = []
         for action in action_names:
@@ -484,16 +468,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         t = time.perf_counter()
         if isinstance(action, LLMOutputParsingFailureAction):
             return UserStep(content="Try again")
-        if not self.tcp_session or not self.session_id:
+        if not self.session or not self.session_id:
             raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        async with self.tcp_session.post(
-            f"{self.server_url}/step", json={"action_data": action.model_dump(), "session_id": self.session_id}
-        ) as response:
-            if response.status != 200:
-                text = await response.text()
-                logger.error(f"Failed to step in environment: {text}")
-                raise HTTPException(status_code=response.status, detail=text)
-            response_dict = await response.json()
+        response_dict = await self.api_call("step", {"action_data": action.model_dump()})
         obs_dict = response_dict["observation"]
         obs_type: type[Observation] = class_for_name(response_dict["classname"])
         observation: Observation = obs_type.model_validate(obs_dict)
@@ -501,30 +478,36 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         observation.metadata.other["action_kind"] = action.kind
         return observation
 
+    async def api_call(self, endpoint: str, data: dict | None = None) -> dict:
+        if data is None:
+            data = {}
+        if self.session_id:
+            data["session_id"] = self.session_id
+        assert self.session, "AIOHTTP session must be initialized before making API calls."
+        async with self.semaphore:
+            async with self.session.post(f"{self.server_url}/{endpoint}", json=data) as response:
+                if response.status != 200:
+                    text = await response.text()
+                    logger.error(f"Failed to call {endpoint} with data {data}: {text}")
+                    raise HTTPException(status_code=response.status, detail=text)
+                response_dict = await response.json()
+        return response_dict
+
     async def areset(self) -> None:
-        if not self.tcp_session or not self.session_id:
+        if not self.session or not self.session_id:
             raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        async with self.tcp_session.post(f"{self.server_url}/reset", json={"session_id": self.session_id}) as response:
-            if response.status != 200:
-                text = await response.text()
-                logger.error(f"Failed to reset environment: {text}")
-                raise HTTPException(status_code=response.status, detail=text)
+        await self.api_call("reset")
 
     async def aclose(self) -> None:
-        if self.session_id and self.tcp_session:
+        if self.session_id:
             try:
-                async with self.tcp_session.post(
-                    f"{self.server_url}/release", json={"session_id": self.session_id}
-                ) as response:
-                    if response.status != 200:
-                        text = await response.text()
-                        logger.error(colored(f"Failed to release environment: {text}", "red"))
+                await self.api_call("release")
                 logger.info(f"Async environment with session id {self.session_id} closed.")
             except aiohttp.ClientError as e:
                 logger.error(colored(f"Failed to release environment: {e}", "red"))
             self.session_id = None
-            self.tcp_session = None
-        elif not self.tcp_session:
+            self.session = None
+        elif not self.session:
             logger.warning("No TCP session available to release environment.")
         else:
             logger.warning("No session ID to release.")
