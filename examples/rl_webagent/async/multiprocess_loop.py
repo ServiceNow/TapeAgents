@@ -53,9 +53,6 @@ def execute_single_task(cfg: DictConfig):
     return tape
 
 
-g
-
-
 @hydra.main(
     version_base=None,
     config_path=".",
