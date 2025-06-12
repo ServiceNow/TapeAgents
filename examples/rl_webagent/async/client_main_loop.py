@@ -63,13 +63,12 @@ async def amain(cfg: DictConfig) -> None:
     test_samples = abt_to_json(test_samples)
     samples = test_samples
     dt = time.perf_counter()
-    timeout = 3600.0
-    connector = aiohttp.TCPConnector(limit=1000, limit_per_host=1000)
+    timeout = 60.0
     timeout = aiohttp.ClientTimeout(total=timeout, connect=timeout, sock_read=timeout)
     coroutines = []
     results = []
 
-    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         for task in samples:
             logging.info(f"Schedule task {task['task']} with seed {task['seed']}")
             coroutines.append(run_agent_with_remote_env(cfg, task, session, max_loops=cfg.max_loops))

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -79,10 +80,15 @@ class TrainableLLM(CachedLLM):
     api_token: str = Field(default="", exclude=True)
     collect_logprobs: bool = False
     use_litellm_tokenizer_fallback: bool = False
+    max_parallel_requests: int = 32
+    max_retries: int = 5
+    base_delay: float = 0.5
+    _semaphore = None
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
         self.api_token = os.getenv(TAPEAGENTS_LLM_TOKEN, "") or os.getenv("OPENAI_API_KEY", "")
+        self._semaphore = asyncio.Semaphore(self.max_parallel_requests)
 
     def get_base_url(self) -> str:
         """
@@ -536,15 +542,37 @@ class TrainableLLM(CachedLLM):
         logger.debug(
             f"POST request to {self.base_url}/v1/chat/completions with params: {pprint.pformat(params, width=120)}"
         )
-
-        async with session.post(
-            url=f"{self.base_url}/v1/chat/completions", json=params, headers=headers, ssl=False
-        ) as response:
-            if not response.ok:
-                error_text = await response.text()
-                logger.error(f"Failed to get completion: {error_text}")
-                response.raise_for_status()
-            data = await response.json()
+        async with self._semaphore:  # type: ignore
+            retry_count = 0
+            while True:
+                try:
+                    async with session.post(
+                        url=f"{self.base_url}/v1/chat/completions", json=params, headers=headers, ssl=False
+                    ) as response:
+                        if not response.ok:
+                            error_text = await response.text()
+                            logger.error(f"Failed to get completion: {error_text}")
+                            response.raise_for_status()
+                        data = await response.json()
+                        break
+                except asyncio.TimeoutError as e:
+                    logger.exception("API Timeout, retrying in 1 sec")
+                    retry_count += 1
+                    if retry_count > self.max_retries:
+                        raise e
+                    delay = self.base_delay * (2 ** (retry_count - 1))
+                    logger.warning(
+                        f"API Timeout, retrying in {delay:.2f} seconds (attempt {retry_count}/{self.max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                except aiohttp.ClientError as e:
+                    logger.error(f"Connection error for {self.base_url}/v1/chat/completions: {e}")
+                    retry_count += 1
+                    if retry_count > self.max_retries:
+                        raise e
+                    delay = self.base_delay * (2 ** (retry_count - 1))
+                    logger.warning(f"Retrying in {delay:.2f} seconds (attempt {retry_count}/{self.max_retries})")
+                    await asyncio.sleep(delay)
 
         try:
             content = data["choices"][0]["message"]["content"]
