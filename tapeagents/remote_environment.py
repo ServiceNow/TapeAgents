@@ -435,7 +435,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
 
     async def ainitialize(self, session: aiohttp.ClientSession) -> None:
         self.session = session
-        response_data = await self.api_call("acquire")
+        response_data = await self.api_call("acquire", suppress_errors=True)
         self.session_id = response_data.get("session_id")
         logger.info(f"Acquired environment with session ID: {self.session_id}")
         await super().ainitialize()  # In case parent class has async initialization logic
@@ -478,7 +478,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         observation.metadata.other["action_kind"] = action.kind
         return observation
 
-    async def api_call(self, endpoint: str, data: dict | None = None) -> dict:
+    async def api_call(self, endpoint: str, data: dict | None = None, suppress_errors: bool = False) -> dict:
         if data is None:
             data = {}
         if self.session_id:
@@ -488,7 +488,8 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             async with self.session.post(f"{self.server_url}/{endpoint}", json=data) as response:
                 if response.status != 200:
                     text = await response.text()
-                    logger.error(f"Failed to call {endpoint} with data {data}: {text}")
+                    if not suppress_errors:
+                        logger.error(f"Failed to call {endpoint} with data {data}: {text}")
                     raise HTTPException(status_code=response.status, detail=text)
                 response_dict = await response.json()
         return response_dict
