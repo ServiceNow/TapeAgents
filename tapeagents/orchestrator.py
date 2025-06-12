@@ -182,7 +182,7 @@ def main_loop(
             # --- RUN THE AGENT ---
             for event in agent.run(tape):
                 if event.step:
-                    logger.info(
+                    logger.debug(
                         colored(
                             f"{n_loops}:AGENT {event.step.metadata}: {event.step.llm_view()}",
                             "green",
@@ -197,7 +197,7 @@ def main_loop(
 
             # --- RUN THE ENVIRONMENT ---
             if any([isinstance(step, StopStep) for step in agent_tape.steps]):
-                logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
+                logger.debug(f"Agent emitted final step {agent_tape.steps[-1]}")
                 yield MainLoopEvent(status=MainLoopStatus.FINISHED)
                 return
             try:
@@ -209,10 +209,10 @@ def main_loop(
                 yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
                 return
             for observation in tape[len(agent_tape) :]:
-                logger.info(colored(f"{n_loops}:ENV {observation.metadata}: {observation.llm_view()}", "yellow"))
+                logger.debug(colored(f"{n_loops}:ENV {observation.metadata}: {observation.llm_view()}", "yellow"))
                 yield MainLoopEvent(observation=observation)
                 if isinstance(observation, StopStep):
-                    logger.info(f"Environment emitted final step {observation}")
+                    logger.debug(f"Environment emitted final step {observation}")
                     yield MainLoopEvent[TapeType](env_tape=tape)
                     yield MainLoopEvent(status=MainLoopStatus.FINISHED)
                     return
@@ -241,7 +241,7 @@ async def async_main_loop(
         async for event in agent.arun(tape, session):
             yield MainLoopEvent(agent_event=event)
             if event.step:
-                logger.info(
+                logger.debug(
                     colored(
                         f"{n_loops}:AGENT {event.step.metadata}: {event.step.llm_view()}",
                         "green",
@@ -255,7 +255,7 @@ async def async_main_loop(
 
         # --- RUN THE ENVIRONMENT ---
         if any([isinstance(step, StopStep) for step in agent_tape.steps]):
-            logger.info(f"Agent emitted final step {agent_tape.steps[-1]}")
+            logger.debug(f"Agent emitted final step {agent_tape.steps[-1]}")
             yield MainLoopEvent(status=MainLoopStatus.FINISHED)
             return
         try:
@@ -267,10 +267,10 @@ async def async_main_loop(
             yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
             return
         for observation in tape[len(agent_tape) :]:
-            logger.info(colored(f"{n_loops}:ENV {observation.metadata}: {observation.llm_view()}", "yellow"))
+            logger.debug(colored(f"{n_loops}:ENV {observation.metadata}: {observation.llm_view()}", "yellow"))
             yield MainLoopEvent(observation=observation)
             if isinstance(observation, StopStep):
-                logger.info(f"Environment emitted final step {observation}")
+                logger.debug(f"Environment emitted final step {observation}")
                 yield MainLoopEvent[TapeType](env_tape=tape)
                 yield MainLoopEvent(status=MainLoopStatus.FINISHED)
                 return
@@ -454,7 +454,7 @@ def replay_tape(
         agent_tape = event.final_tape
         new_tape = agent_tape
         if isinstance(new_tape.steps[-1], StopStep):
-            logger.info("Agent emitted final step, stop")
+            logger.debug("Agent emitted final step, stop")
             break
 
         if reuse_observations:
@@ -486,10 +486,10 @@ def replay_tape(
                     logger.debug(f"Observation {new_steps_count} ok")
 
                 if isinstance(observation, StopStep):
-                    logger.info(f"Environment emitted final step {observation}")
+                    logger.debug(f"Environment emitted final step {observation}")
                     break
         if isinstance(new_tape.steps[-1], StopStep):
-            logger.info("Env emitted final step, stop")
+            logger.debug("Env emitted final step, stop")
             break
     if new_steps_count != len(tape.steps):
         logger.error(f"New tape has {new_steps_count} steps, old tape has {len(tape.steps)}")

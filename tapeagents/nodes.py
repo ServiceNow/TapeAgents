@@ -237,7 +237,7 @@ class StandardNode(Node):
             messages.append({"role": role, "content": view})
         if self.guidance:
             messages.append({"role": "user", "content": self.guidance})
-        logger.info(
+        logger.debug(
             f"Rendered short observations: {shorts} ({shorts_chars} chars), long observations: {longs} ({longs_chars} chars)"
         )
         return messages

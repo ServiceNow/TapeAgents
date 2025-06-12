@@ -348,7 +348,7 @@ class RemoteEnvironment(Environment):
             raise HTTPException(status_code=response.status_code, detail=response.text)
         response_data = response.json()
         self.session_id = response_data.get("session_id")
-        logger.info(f"Acquired environment with session ID: {self.session_id}")
+        logger.debug(f"Acquired environment with session ID: {self.session_id}")
 
     def start_task(self, task_data: dict) -> dict:
         response = requests.post(
@@ -439,7 +439,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 raise HTTPException(status_code=response.status, detail=await response.text())
             response_data = await response.json()
         self.session_id = response_data.get("session_id")
-        logger.info(f"Acquired environment with session ID: {self.session_id}")
+        logger.debug(f"Acquired environment with session ID: {self.session_id}")
         await super().ainitialize()  # In case parent class has async initialization logic
 
     async def start_task(self, task_data: dict) -> dict:
@@ -519,7 +519,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                     if response.status != 200:
                         text = await response.text()
                         logger.error(colored(f"Failed to release environment: {text}", "red"))
-                logger.info(f"Async environment with session id {self.session_id} closed.")
+                logger.debug(f"Async environment with session id {self.session_id} closed.")
             except aiohttp.ClientError as e:
                 logger.error(colored(f"Failed to release environment: {e}", "red"))
             self.session_id = None
@@ -559,7 +559,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             logger.warning("KeyboardInterrupt received, shutting down async environment.")
             raise
         finally:
-            logger.info("Closing environment session.")
+            logger.debug("Closing environment session.")
             await self.aclose()
 
     async def wait_initialize(self, session, wait_for_env, initialization_timeout_sec):
