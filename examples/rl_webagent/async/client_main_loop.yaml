@@ -20,6 +20,7 @@ llm:
   use_cache: false
   context_size: 32000
   parameters:
+    max_tokens: 512
     temperature: 0.7
     top_p: 0.8 # from https://huggingface.co/Qwen/Qwen3-8B for non-thinking mode. For thinking mode use t=0.6 p=0.95
     top_k: 20
