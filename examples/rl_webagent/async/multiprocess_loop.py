@@ -26,8 +26,6 @@ def abt_to_json(tasks: list[dict]) -> list[dict]:
 
 def execute_single_task(cfg: DictConfig):
     """Worker function to execute a single task with its own agent and environment"""
-    agent, env = get_agent_and_env_from_config(cfg)
-
     logging.basicConfig(
         format="%(asctime)s - PID_%(process)d - Thread_%(threadName)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
@@ -38,18 +36,23 @@ def execute_single_task(cfg: DictConfig):
     logger.info(f"Processing task {cfg.task}")
     assert cfg.task, "Task must be provided in the configuration"
 
-    tape, _ = env.start_task(cfg.task)  # type: ignore
-    t = time.perf_counter()
     try:
-        tape = execute_agent(agent, tape, env, max_loops=cfg.max_loops)
+        agent, env = get_agent_and_env_from_config(cfg)
+        tape, _ = env.start_task(cfg.task)  # type: ignore
+        t = time.perf_counter()
+        try:
+            tape = execute_agent(agent, tape, env, max_loops=cfg.max_loops)
+        except Exception as e:
+            logger.error(f"Error occurred while running agent: {e}")
+        logger.info("agent finished")
+        tape.metadata.result = {"execution_time": time.perf_counter() - t}
+        logger.info("save tape")
+        save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)  # type: ignore
+        logger.info("close environment")
+        env.close()
     except Exception as e:
-        logger.error(f"Error occurred while running agent: {e}")
-    logger.info("agent finished")
-    tape.metadata.result = {"execution_time": time.perf_counter() - t}
-    logger.info("save tape")
-    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)  # type: ignore
-    logger.info("close environment")
-    env.close()
+        logger.exception(f"Error during task execution: {e}")
+        raise e
     return tape
 
 
@@ -59,7 +62,6 @@ def execute_single_task(cfg: DictConfig):
     config_name="multiprocess_loop",
 )
 def main(cfg: DictConfig) -> None:
-    cfg.llm.base_url = os.environ["BASE_URL"]
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
     os.environ["MINIWOB_URL"] = cfg.environment_variables.miniwob_url
 
