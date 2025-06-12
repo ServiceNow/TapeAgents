@@ -68,8 +68,9 @@ def test_rl_gsm8k_data():
         training_sample, _ = extract_tape_training_samples(tape, agent, cfg)
         training_samples.append(training_sample[0])
     new_training_samples = load_samples(f"{run_dir}/training_samples.jsonl")
-    assert training_samples == new_training_samples
-
+    assert training_samples == new_training_samples, (
+        f"Training samples do not match: {len(training_samples)} != {len(new_training_samples)}"
+    )
 
 if __name__ == "__main__":
     test_gsm8k_tuning_tapes_generation()
