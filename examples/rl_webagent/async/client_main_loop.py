@@ -31,7 +31,18 @@ async def run_agent_with_remote_env(
 ) -> WebTape:
     environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
     async with environment.acontext(session, wait_for_env=True) as env:
-        tape_dict, _ = await env.start_task(task)
+        start_attempts = cfg.start_attempts
+        while True:
+            try:
+                tape_dict, _ = await env.start_task(task)
+                break
+            except Exception as e:
+                start_attempts -= 1
+                if start_attempts <= 0:
+                    raise e
+                logger.warning(f"Failed to start task, retry after 5 seconds: {e}")
+                await asyncio.sleep(5)
+        logger.info(f"Task {task['task']}/{task['seed']} started")
         tape: WebTape = WebTape(**tape_dict)  # convert http response dict to WebTape object
         t = time.perf_counter()
         try:
@@ -62,7 +73,7 @@ async def amain(cfg: DictConfig) -> None:
     test_samples = abt_to_json(test_samples)
     samples = test_samples
     dt = time.perf_counter()
-    timeout = 60.0
+    timeout = cfg.requests_timeout
     timeout = aiohttp.ClientTimeout(total=timeout, connect=timeout, sock_read=timeout)
     coroutines = []
     results = []
