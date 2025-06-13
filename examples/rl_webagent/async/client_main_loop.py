@@ -32,6 +32,7 @@ async def run_agent_with_remote_env(
     environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
     async with environment.acontext(session, wait_for_env=True) as env:
         start_attempts = cfg.start_attempts
+        t = time.perf_counter()
         while True:
             try:
                 tape_dict, _ = await env.start_task(task)
@@ -42,7 +43,7 @@ async def run_agent_with_remote_env(
                     raise e
                 logger.warning(f"Failed to start task, retry after 5 seconds: {e}")
                 await asyncio.sleep(5)
-        logger.info(f"Task {task['task']}/{task['seed']} started")
+        logger.info(f"Task {task['task']}/{task['seed']} started in {time.perf_counter() - t:.2f} seconds")
         tape: WebTape = WebTape(**tape_dict)  # convert http response dict to WebTape object
         t = time.perf_counter()
         try:
