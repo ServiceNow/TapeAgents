@@ -230,7 +230,7 @@ class Browser(StatefulTool):
     page_load_time_sec: int = 1
     gym_kwargs: dict = {}
     gym_task: str = "browsergym/openended"
-    mock: bool = False
+    start_gym: bool = True
 
     _env: BrowserEnv = None  # type: ignore
     _current_page: str = ""
@@ -298,7 +298,8 @@ class Browser(StatefulTool):
             os.makedirs(self._traces_dir, exist_ok=True)
             os.makedirs(self._record_video_dir, exist_ok=True)
             os.makedirs(self._screenshots_dir, exist_ok=True)
-        if self.mock:
+        if not self.start_gym:
+            logger.info("Browser initialized")
             return
         self._env = gym.make(
             self.gym_task,
@@ -316,7 +317,7 @@ class Browser(StatefulTool):
         self._env.context.tracing.start(screenshots=True, snapshots=True)
         screenshot = self._env.step("noop()")[0]["screenshot"]
         self._save_last_screenshot(screenshot)
-        logger.info("Browser initialized")
+        logger.info("Browser and gym initialized")
 
     def execute_action(self, action: Action) -> PageObservation | PageScreenshotObservation:
         action_type = type(action)
@@ -436,7 +437,8 @@ class Browser(StatefulTool):
 
     def click_bid(self, action: ClickBIDAction) -> PageObservation:
         try:
-            self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
+            modifiers = [m for m in action.modifiers if m in ["Alt", "Control", "Meta", "Shift"]]
+            self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={modifiers})")
         except Exception as e:
             logger.warning(f"Click failed: {e}")
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
