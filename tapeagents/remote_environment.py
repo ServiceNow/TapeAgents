@@ -475,7 +475,6 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         self.session = session
         response_data = await self.api_call("acquire", suppress_errors=True)
         if "error" in response_data:
-            logger.warning(f"Failed to acquire environment, server response: {response_data}")
             raise ResourceWarning(f"Failed to acquire environment, server response: {response_data}")
         self.session_id = response_data.get("session_id")
         logger.debug(f"Acquired environment with session ID: {self.session_id}")
