@@ -55,7 +55,7 @@ class EnvironmentServer:
             env_config_dict = OmegaConf.to_container(env_config, resolve=True)
             process = Process(
                 target=EnvironmentServer._environment_worker,
-                args=(env_config_dict, child_conn),
+                args=(env_config_dict, child_conn, i),
                 daemon=True,  # Daemonize workers so they exit if main process crashes
             )
             process.start()
@@ -64,79 +64,71 @@ class EnvironmentServer:
             self.env_processes[i] = process
 
     @staticmethod
-    def _handle_step(environment: Environment, data: dict) -> dict:
-        logger.info(f"Handling step: {data}")
-        if data.get("kind") == "tool_call":
-            action = ToolCallAction.model_validate(data)
-        else:
-            actions = [a for a in environment.actions() if not isinstance(a, ToolSpec)]
-            type_adapter = TypeAdapter(Annotated[Union[tuple(actions)], Field(discriminator="kind")])
-            action: Action = type_adapter.validate_python(data)
-
-        observation = environment.step(action)
-        return {"observation": observation.model_dump(), "classname": full_classname(type(observation))}
-
-    @staticmethod
-    def _handle_actions(environment: Environment, data: dict) -> dict:
-        actions = environment.actions()
-        return {
-            "actions": [
-                f"ToolSpec:{action.model_dump_json()}" if isinstance(action, ToolSpec) else full_classname(action)
-                for action in actions
-            ]
-        }
-
-    @staticmethod
-    def _handle_reset(environment: Environment, data: dict) -> dict:
-        environment.reset()
-        return {"status": "ok"}
-
-    @staticmethod
-    def _handle_start_task(environment: Environment, data: dict) -> dict:
-        start_result = environment.start_task(data)
-        return start_result
-
-    @staticmethod
-    def _handle_shutdown(environment: Environment, data: dict) -> dict:
-        environment.close()
-        exit(0)
-
-    @staticmethod
-    def _environment_worker(env_config: dict, conn: mp_connection.Connection):
+    def _environment_worker(env_config: dict, conn: mp_connection.Connection, env_idx: int):
         logging.basicConfig(
             format="[%(asctime)s][%(name)s][%(levelname)s][%(process)d] - %(message)s",
             datefmt="%m/%d/%Y %H:%M:%S",
             level=logging.INFO,
             handlers=[logging.StreamHandler()],
         )
-        handlers = {
-            "step": EnvironmentServer._handle_step,
-            "actions": EnvironmentServer._handle_actions,
-            "reset": EnvironmentServer._handle_reset,
-            "start_task": EnvironmentServer._handle_start_task,
-            "shutdown": EnvironmentServer._handle_shutdown,
-        }
-        environment: Environment = instantiate(OmegaConf.create(env_config))
-        logger.info(f"Worker started for env: {environment.__class__.__name__} (PID: {os.getpid()})")
-        try:
-            logger.info(f"Worker {os.getpid()} initializing environment...")
-            environment.initialize()
-            logger.info(f"Worker {os.getpid()} environment initialized.")
 
+        def _handle_step(environment: Environment, data: dict) -> dict:
+            logger.info(f"Handling step: {data}")
+            if data.get("kind") == "tool_call":
+                action = ToolCallAction.model_validate(data)
+            else:
+                actions = [a for a in environment.actions() if not isinstance(a, ToolSpec)]
+                type_adapter = TypeAdapter(Annotated[Union[tuple(actions)], Field(discriminator="kind")])
+                action: Action = type_adapter.validate_python(data)
+
+            observation = environment.step(action)
+            return {"observation": observation.model_dump(), "classname": full_classname(type(observation))}
+
+        def _handle_actions(environment: Environment, data: dict) -> dict:
+            actions = environment.actions()
+            return {
+                "actions": [
+                    f"ToolSpec:{action.model_dump_json()}" if isinstance(action, ToolSpec) else full_classname(action)
+                    for action in actions
+                ]
+            }
+
+        def _handle_start_task(environment: Environment, data: dict) -> dict:
+            start_result = environment.start_task(data)
+            return {"start_result": start_result}
+
+        environment: Environment = instantiate(OmegaConf.create(env_config))
+        logger.info(f"Worker started for env {env_idx}, process {os.getpid()})")
+        try:
+            environment.initialize()
             while True:
                 command, data = conn.recv()
-                logger.info(f"Worker {os.getpid()} received command: {command}")
-                assert command in handlers, f"Worker {os.getpid()} unknown command: {command}"
+                logger.info(f"Env {env_idx} received command: {command}")
                 try:
-                    result = handlers[command](environment, data)
+                    match command:
+                        case "step":
+                            result = _handle_step(environment, data)
+                        case "actions":
+                            result = _handle_actions(environment, data)
+                        case "reset":
+                            environment.reset()
+                            result = {"status": "ok"}
+                            logger.info(f"Env {env_idx} reset")
+                        case "start_task":
+                            result = _handle_start_task(environment, data)
+                        case "shutdown":
+                            environment.close()
+                            exit(0)
+                        case _:
+                            raise ValueError(f"Unknown command: {command}")
                     conn.send(result)
                 except Exception as e:
-                    logger.exception(f"Worker {os.getpid()} error during {command}: {e}")
+                    logger.exception(f"Env {env_idx} error during {command}: {e}")
                     conn.send({"error": str(e), "status": "error", "details": traceback.format_exc()})
         except EOFError:  # Main process closed the pipe
-            logger.info(f"Worker {os.getpid()} connection closed for {environment.__class__.__name__}")
+            logger.info(f"Env {env_idx} connection closed for {environment.__class__.__name__}")
         except KeyboardInterrupt:  # Graceful shutdown from worker side if possible
-            logger.info(f"Worker {os.getpid()} received KeyboardInterrupt, shutting down.")
+            logger.info(f"Env {env_idx} received KeyboardInterrupt, shutting down.")
             environment.close()
         except Exception as e:
             logger.exception(f"Unhandled exception in worker {os.getpid()} for {environment.__class__.__name__}: {e}")
@@ -154,7 +146,7 @@ class EnvironmentServer:
                     pass  # Pipe might be broken
         finally:
             conn.close()
-            logger.info(f"Worker {os.getpid()} for {environment.__class__.__name__} finished.")
+            logger.info(f"Env {env_idx} closed")
 
     def _cleanup_inactive_sessions(self):
         """Remove sessions that have been inactive for longer than max_session_inactivity_secs."""
@@ -214,7 +206,7 @@ class EnvironmentServer:
         class TaskRequest(ApiRequest):
             task_data: dict = {}
 
-        async def call_worker_process(session_id: str, command: str, data: dict | None = None) -> dict:
+        async def call_env_process(session_id: str, command: str, data: dict | None = None) -> dict:
             conn, env_idx = self._get_env_details(session_id)
             logger.info(
                 f"Session {session_id} env {env_idx} call {command}: {data}. Requests in progress: {self.requests_in_progress}"
@@ -228,7 +220,7 @@ class EnvironmentServer:
             self.requests_in_progress += 1
             try:
                 response = await loop.run_in_executor(None, send_recv)
-                assert isinstance(response, dict), "Response must be a dictionary"
+                assert isinstance(response, dict), f"Response must be a dictionary, got {type(response)}: {response}"
             except Exception as e:
                 logger.exception(f"Env {env_idx}. Error during async send/recv {command}: {e}")
                 msg = f"Env {env_idx}. Error during async send/recv {command}: {e}. Details: {traceback.format_exc()}"
@@ -243,7 +235,9 @@ class EnvironmentServer:
         @app.post("/acquire")
         async def acquire_environment():
             # Clean up inactive sessions before acquiring
+            t = time.perf_counter()
             self._cleanup_inactive_sessions()
+            logger.debug(f"Cleanup of inactive sessions took {(time.perf_counter() - t)*1000:.2f} ms")
 
             for i in range(self.n_envs):
                 if i not in self.sessions.values():
@@ -258,13 +252,13 @@ class EnvironmentServer:
                         f"Env {i} acquired, session ID: {session_id}. Free envs: {self.n_envs - len(self.sessions)}"
                     )
                     return {"session_id": session_id}
-            logger.warning("No free environments available for acquisition.")
-            return {"error": "No free environments available. Please try again later."}
+            logger.debug(f"Acquire took {(time.perf_counter() - t)*1000:.2f} ms")
+            return {"error": "No free environments available"}
 
         @app.post("/release")
         async def release_environment(request: ApiRequest):
             try:
-                await call_worker_process(request.session_id, "reset")
+                await call_env_process(request.session_id, "reset")
             except (EOFError, BrokenPipeError) as pipe_err:
                 msg = f"Pipe error during release for session {request.session_id}: {pipe_err}. Env could be not reset properly."
                 logger.error(msg)
@@ -277,15 +271,15 @@ class EnvironmentServer:
 
         @app.post("/step")
         async def step_endpoint(request: ActionRequest):
-            return await call_worker_process(request.session_id, "step", request.action_data)
+            return await call_env_process(request.session_id, "step", request.action_data)
 
         @app.post("/actions")
         async def actions_endpoint(request: ApiRequest):
-            return await call_worker_process(request.session_id, "actions")
+            return await call_env_process(request.session_id, "actions")
 
         @app.post("/reset")
         async def reset_endpoint(request: ApiRequest):
-            return await call_worker_process(request.session_id, "reset")
+            return await call_env_process(request.session_id, "reset")
 
         @app.get("/health")
         async def health_check():
@@ -293,7 +287,7 @@ class EnvironmentServer:
 
         @app.post("/start_task")
         async def start_task_endpoint(request: TaskRequest):
-            return await call_worker_process(request.session_id, "start_task", request.task_data)
+            return await call_env_process(request.session_id, "start_task", request.task_data)
 
         return app
 
@@ -438,7 +432,8 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
     async def start_task(self, task_data: dict) -> dict:
         if not self.session or not self.session_id:
             raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        return await self.api_call("start_task", {"task_data": task_data})
+        response_dict = await self.api_call("start_task", {"task_data": task_data})
+        return response_dict["start_result"]
 
     async def a_actions(self) -> tuple[type[Action], ...]:
         if not self.session or not self.session_id:
@@ -484,7 +479,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 if response.status != 200:
                     text = await response.text()
                     if not suppress_errors:
-                        logger.error(f"Failed to call {endpoint} with data {data}: {text}")
+                        logger.error(f"Failed to call remote env /{endpoint}: {text}")
                     raise HTTPException(status_code=response.status, detail=text)
                 response_dict = await response.json()
         return response_dict
@@ -553,7 +548,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 if time.perf_counter() - t > initialization_timeout_sec:
                     logger.error(f"Failed to initialize environment after {initialization_timeout_sec} seconds: {e}")
                     raise e
-                await asyncio.sleep(random.uniform(10, 100))
+                await asyncio.sleep(random.uniform(30, 120))
             except Exception as e:
                 logger.error(f"Failed to initialize environment: {e}")
                 raise e
