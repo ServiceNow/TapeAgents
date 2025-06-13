@@ -171,7 +171,7 @@ class WebNode(StandardNode):
                         new_steps.append(retry_step)
                         break
                     else:
-                        raise FatalError(f"Max retries reached for node {self.name}!")
+                        raise FatalError(f"Max retries reached for node {self.name}, parsing error: {step.llm_view()}!")
                 else:
                     self.current_retries = 0
         if not new_steps:
