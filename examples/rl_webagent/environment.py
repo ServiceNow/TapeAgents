@@ -51,6 +51,7 @@ class WebEnvironment(Environment):
             exp_path=self.exp_path,
             start_gym=False,
             observation_format=self.observation_format,  # type: ignore
+            timeout_ms=5000,  # 5 seconds timeout for browser actions
         )
 
     def start_task(self, task_data: dict) -> tuple[WebTape, dict[str, Any]]:
@@ -87,6 +88,7 @@ class WebEnvironment(Environment):
         two = time.perf_counter() - _two
         logger.info(f"WebEnv.start_task {task_id} WebTape creation took {two:.2f}s")
         self.timers["start_task"] = time.perf_counter() - start_start_task
+        logger.info(f"total start_task {task_id}: {self.timers['start_task']:.2f}s")
         return tape, info
 
     def finish_task(self) -> None:

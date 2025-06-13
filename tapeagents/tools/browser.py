@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import threading
+import time
 from time import sleep
 from typing import Any, Callable, Literal
 from uuid import uuid4
@@ -327,6 +328,11 @@ class Browser(StatefulTool):
 
     def start_task(self, task_id: str, seed: int = 1, **kwargs) -> dict:
         self._task_id = task_id
+        t = time.perf_counter()
+        if self._env is not None:
+            self._env.close()
+        logger.info(f"Old gym close took {time.perf_counter() - t:.2f}s")
+        t = time.perf_counter()
         self._env = gym.make(
             task_id,
             headless=self.headless,
@@ -335,7 +341,10 @@ class Browser(StatefulTool):
             timeout=self.timeout_ms,
             **kwargs,
         )  # type: ignore
+        logger.info(f"New gym make took {time.perf_counter() - t:.2f}s")
+        t = time.perf_counter()
         start_obs, info = self._env.reset(seed=seed)
+        logger.info(f"Gym reset took {time.perf_counter() - t:.2f}s")
         self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
         self._env.unwrapped.chat.add_message(role="assistant", msg="Running TapeAgent...")
         assert self._env.unwrapped.task is not None
@@ -346,7 +355,6 @@ class Browser(StatefulTool):
             "video": "",
             "chat_video": "",
         }
-        sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
     def close(self):
