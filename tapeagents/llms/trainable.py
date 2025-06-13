@@ -83,7 +83,7 @@ class TrainableLLM(CachedLLM):
     max_parallel_requests: int = 32
     max_retries: int = 5
     base_delay: float = 0.5
-    _semaphore = None
+    _semaphore: asyncio.Semaphore
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
