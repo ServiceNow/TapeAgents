@@ -53,6 +53,7 @@ async def run_agent_with_remote_env(
             tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
         except Exception as e:
             logger.error(f"Error occurred while running agent: {e}")
+            tape.metadata.error = str(e)
         tape.metadata.result = {"execution_time": time.perf_counter() - t}
     # save the tape as we go
     save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
@@ -91,6 +92,7 @@ async def amain(cfg: DictConfig) -> None:
     ### Print some statistics
     total_steps = 0
     errs = 0
+    no_reward = 0
     acc = []
     rewards = []
     for tape in results:
@@ -98,14 +100,17 @@ async def amain(cfg: DictConfig) -> None:
         last_obs = [step for step in tape if isinstance(step, Observation)][-1]
         success = last_obs.metadata.other.get("reward", 0.0) > 0.5
         acc.append(success)
-        if (
+        if tape.metadata.error:
+            errs += 1
+            logger.warning(f"Error in tape {tape.metadata.id}: {tape.metadata.error}")
+        elif (
             "info" in last_obs.metadata.other
             and "task_info" in last_obs.metadata.other["info"]
             and "REWARD_GLOBAL" in last_obs.metadata.other["info"]["task_info"]
         ):
             rewards.append(last_obs.metadata.other["info"]["task_info"]["REWARD_GLOBAL"])
         else:
-            errs += 1
+            no_reward += 1
             logger.warning(f"No reward found in last observation of tape {tape.metadata.id}")
 
     logger.info(f"Average tape length: {(total_steps / len(results)):.2f}")
@@ -113,6 +118,7 @@ async def amain(cfg: DictConfig) -> None:
     logger.info(f"Average time per tape: {(time.perf_counter() - dt) / len(results):.2f} seconds")
     logger.info(f"Accuracy: {sum(acc) / len(acc) if acc else 0:.2f}")
     logger.info(f"Average reward: {sum(rewards) / len(rewards) if rewards else 0:.2f}")
+    logger.info(f"Number of tapes with no reward: {no_reward}")
     logger.info(f"Failed tapes: {errs}")
 
     ### TODO: continue to copy things from orchestrate_rl.py / switch to pipelinerl
