@@ -34,17 +34,19 @@ class EnvironmentServer:
     environment, operate on it using a session ID, and then release it.
     """
 
-    def __init__(self, n_envs: int, host: str = "localhost", port: int = 8000):
+    def __init__(self, n_envs: int, host: str = "localhost", port: int = 8000, max_session_inactivity_secs: int = 600):
         if n_envs <= 0:
             raise ValueError("Number of instances must be positive.")
         self.n_envs = n_envs
 
         self.host = host
         self.port = port
+        self.max_session_inactivity_secs = max_session_inactivity_secs
 
         self.env_pipes: dict[int, mp_connection.Connection] = {}
         self.env_processes: dict[int, Process] = {}
         self.sessions: dict[str, int] = {}  # session_id -> env_idx
+        self.session_last_activity: dict[str, float] = {}  # session_id -> timestamp
         self.requests_in_progress: int = 0
 
     def start_envs(self, env_config: DictConfig):
@@ -154,9 +156,40 @@ class EnvironmentServer:
             conn.close()
             logger.info(f"Worker {os.getpid()} for {environment.__class__.__name__} finished.")
 
+    def _cleanup_inactive_sessions(self):
+        """Remove sessions that have been inactive for longer than max_session_inactivity_secs."""
+        current_time = time.time()
+        inactive_sessions = []
+
+        for session_id, last_activity in self.session_last_activity.items():
+            if current_time - last_activity > self.max_session_inactivity_secs:
+                inactive_sessions.append(session_id)
+
+        for session_id in inactive_sessions:
+            env_idx = self.sessions.get(session_id)
+            if env_idx is not None:
+                logger.info(f"Cleaning up inactive session {session_id} (env {env_idx})")
+                # Reset the environment
+                try:
+                    parent_conn = self.env_pipes[env_idx]
+                    parent_conn.send(("reset", None))
+                    response = parent_conn.recv()
+                    if isinstance(response, dict) and response.get("status") == "error":
+                        logger.warning(f"Error resetting env {env_idx} during cleanup: {response.get('error')}")
+                except Exception as e:
+                    logger.warning(f"Failed to reset env {env_idx} during cleanup: {e}")
+
+                # Remove from tracking
+                del self.sessions[session_id]
+                del self.session_last_activity[session_id]
+
     def _get_env_details(self, session_id: str) -> tuple[mp_connection.Connection, int]:
         if session_id not in self.sessions:
             raise HTTPException(status_code=400, detail=f"Invalid or expired session ID: {session_id}")
+
+        # Update activity timestamp
+        self.session_last_activity[session_id] = time.time()
+
         env_idx = self.sessions[session_id]
         assert env_idx in self.env_pipes, f"Environment index {env_idx} not found in pipes."
         assert env_idx in self.env_processes, f"Environment index {env_idx} not found in processes."
@@ -215,6 +248,9 @@ class EnvironmentServer:
 
         @app.post("/acquire")
         async def acquire_environment():
+            # Clean up inactive sessions before acquiring
+            self._cleanup_inactive_sessions()
+
             for i in range(self.n_envs):
                 if i not in self.sessions.values():
                     if not self.env_processes[i].is_alive():
@@ -223,10 +259,12 @@ class EnvironmentServer:
 
                     session_id = str(uuid.uuid4())
                     self.sessions[session_id] = i
+                    self.session_last_activity[session_id] = time.time()
                     logger.info(f"Environment {i} acquired with session ID: {session_id}")
                     logger.info(f"Remaining free environments: {self.n_envs - len(self.sessions)}")
                     return {"session_id": session_id}
-            raise HTTPException(status_code=503, detail="No environments available at the moment.")
+            logger.warning("No free environments available for acquisition.")
+            return {"error": "No free environments available. Please try again later."}
 
         @app.post("/release")
         async def release_environment(request: ApiRequest):
@@ -238,12 +276,12 @@ class EnvironmentServer:
                 _handle_worker_response(response, f"release (reset for env {env_idx})")
             except (EOFError, BrokenPipeError) as pipe_err:
                 logger.error(
-                    f"Pipe error during release for session {session_id} (env {env_idx}): {pipe_err}. Marking as error."
+                    f"Pipe error during release for session {session_id} (env {env_idx}): {pipe_err}. Env could be not reset properly."
                 )
-
-                raise HTTPException(status_code=503, detail=f"Communication error with env {env_idx} during release.")
             finally:
                 del self.sessions[session_id]
+                if session_id in self.session_last_activity:
+                    del self.session_last_activity[session_id]
                 logger.info(f"Environment {env_idx} released from session {session_id} and reset.")
                 logger.info(f"Remaining free environments: {self.n_envs - len(self.sessions)}")
 
@@ -436,6 +474,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
     async def ainitialize(self, session: aiohttp.ClientSession) -> None:
         self.session = session
         response_data = await self.api_call("acquire", suppress_errors=True)
+        if "error" in response_data:
+            logger.warning(f"Failed to acquire environment, server response: {response_data}")
+            raise ResourceWarning(f"Failed to acquire environment, server response: {response_data}")
         self.session_id = response_data.get("session_id")
         logger.debug(f"Acquired environment with session ID: {self.session_id}")
         await super().ainitialize()  # In case parent class has async initialization logic
@@ -552,14 +593,13 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             try:
                 await self.ainitialize(session)
                 return
-            except HTTPException as e:
-                if e.status_code == 503 and wait_for_env:
-                    if time.perf_counter() - t > initialization_timeout_sec:
-                        logger.error(
-                            f"Failed to initialize environment after {initialization_timeout_sec} seconds: {e.detail}"
-                        )
-                        raise e
-                    await asyncio.sleep(random.uniform(5, 10))
-                else:
-                    logger.error(f"Failed to initialize environment: {e.status_code}, {e.detail}")
+            except ResourceWarning as e:
+                if not wait_for_env:
                     raise e
+                if time.perf_counter() - t > initialization_timeout_sec:
+                    logger.error(f"Failed to initialize environment after {initialization_timeout_sec} seconds: {e}")
+                    raise e
+                await asyncio.sleep(random.uniform(10, 100))
+            except Exception as e:
+                logger.error(f"Failed to initialize environment: {e}")
+                raise e
