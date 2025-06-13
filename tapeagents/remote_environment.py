@@ -17,7 +17,6 @@ from fastapi import FastAPI, HTTPException
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel, Field, TypeAdapter
-from termcolor import colored
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, TapeType, last_actions
 from tapeagents.environment import AsyncEnvironment, Environment, UserStep
@@ -494,8 +493,8 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             try:
                 await self.api_call("release")
                 logger.debug(f"Async environment with session id {self.session_id} closed.")
-            except aiohttp.ClientError as e:
-                logger.error(colored(f"Failed to release environment: {e}", "red"))
+            except Exception as e:
+                logger.error(f"Failed to release environment correctly: {e}")
             self.session_id = None
             self.session = None
         elif not self.session:
