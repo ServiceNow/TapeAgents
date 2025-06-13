@@ -241,6 +241,7 @@ async def async_main_loop(
         async for event in agent.arun(tape, session):
             yield MainLoopEvent(agent_event=event)
             if event.step:
+                logger.info(f"Tape {tape.metadata.id} turn {n_loops} agent step")
                 logger.debug(
                     colored(
                         f"{n_loops}:AGENT {event.step.metadata}: {event.step.llm_view()}",
@@ -267,6 +268,7 @@ async def async_main_loop(
             yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
             return
         for observation in tape[len(agent_tape) :]:
+            logger.info(f"Tape {tape.metadata.id} turn {n_loops} env step")
             logger.debug(colored(f"{n_loops}:ENV {observation.metadata}: {observation.llm_view()}", "yellow"))
             yield MainLoopEvent(observation=observation)
             if isinstance(observation, StopStep):
