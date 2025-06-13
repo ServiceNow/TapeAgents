@@ -43,12 +43,14 @@ class WebEnvironment(Environment):
         self.exp_path = exp_path
         self.headless = headless
         self.observation_format = observation_format
-        self.initialize()
 
     def initialize(self):
         self.timers = {}  # reset timers
         self.browser = Browser(
-            headless=self.headless, exp_path=self.exp_path, mock=True, observation_format=self.observation_format
+            headless=self.headless,
+            exp_path=self.exp_path,
+            start_gym=False,
+            observation_format=self.observation_format,  # type: ignore
         )
 
     def start_task(self, task_data: dict) -> tuple[WebTape, dict[str, Any]]:
@@ -172,4 +174,17 @@ class WebEnvironment(Environment):
         return self.browser.actions
 
     def reset(self):
-        self.browser.reset()
+        try:
+            self.browser.reset()
+        except Exception as e:
+            logger.warning(f"Failed to reset browser: {e}, recreate browser instance instead.")
+            try:
+                self.browser.close()
+            except Exception:
+                pass
+            self.browser = Browser(
+                headless=self.headless,
+                exp_path=self.exp_path,
+                start_gym=False,
+                observation_format=self.observation_format,  # type: ignore
+            )

@@ -8,7 +8,7 @@ import time
 import traceback
 import uuid
 from multiprocessing import Pipe, Process, connection as mp_connection  # type: ignore
-from typing import Annotated, Any, Union
+from typing import Annotated, Union
 
 import aiohttp
 import requests
@@ -214,37 +214,31 @@ class EnvironmentServer:
         class TaskRequest(ApiRequest):
             task_data: dict = {}
 
-        def _handle_worker_response(response: Any, operation_name: str):
-            if isinstance(response, dict) and response.get("status") == "error":
-                logger.error(
-                    f"Worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}"
-                )
-                raise HTTPException(
-                    status_code=500, detail=f"Worker error during {operation_name}: {response.get('error')}"
-                )
-            elif isinstance(response, dict) and response.get("status") == "critical_error":
-                logger.error(
-                    f"Critical worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}"
-                )
-                raise HTTPException(
-                    status_code=503,
-                    detail=f"Critical worker error during {operation_name}: {response.get('error')}. Details: {response.get('details')}",
-                )
-            return response
-
-        async def _send_recv_async(conn, command, data):
+        async def call_worker_process(session_id: str, command: str, data: dict | None = None) -> dict:
+            conn, env_idx = self._get_env_details(session_id)
+            logger.info(
+                f"Session {session_id} env {env_idx} call {command}: {data}. Requests in progress: {self.requests_in_progress}"
+            )
             loop = asyncio.get_running_loop()
 
             def send_recv():
                 conn.send((command, data))
                 return conn.recv()
 
+            self.requests_in_progress += 1
             try:
-                result = await loop.run_in_executor(None, send_recv)
+                response = await loop.run_in_executor(None, send_recv)
+                assert isinstance(response, dict), "Response must be a dictionary"
             except Exception as e:
-                logger.error(f"Error during async send/recv for command {command}: {e}")
-                result = {"status": "critical_error", "error": str(e), "details": traceback.format_exc()}
-            return result
+                logger.exception(f"Env {env_idx}. Error during async send/recv {command}: {e}")
+                msg = f"Env {env_idx}. Error during async send/recv {command}: {e}. Details: {traceback.format_exc()}"
+                raise HTTPException(status_code=503, detail=msg)
+            finally:
+                self.requests_in_progress -= 1
+            if response.get("status") == "error":
+                msg = f"Env {env_idx}. Worker error: {response.get('error')}"
+                raise HTTPException(status_code=500, detail=msg)
+            return response
 
         @app.post("/acquire")
         async def acquire_environment():
@@ -260,85 +254,46 @@ class EnvironmentServer:
                     session_id = str(uuid.uuid4())
                     self.sessions[session_id] = i
                     self.session_last_activity[session_id] = time.time()
-                    logger.info(f"Environment {i} acquired with session ID: {session_id}")
-                    logger.info(f"Remaining free environments: {self.n_envs - len(self.sessions)}")
+                    logger.info(
+                        f"Env {i} acquired, session ID: {session_id}. Free envs: {self.n_envs - len(self.sessions)}"
+                    )
                     return {"session_id": session_id}
             logger.warning("No free environments available for acquisition.")
             return {"error": "No free environments available. Please try again later."}
 
         @app.post("/release")
         async def release_environment(request: ApiRequest):
-            session_id = request.session_id
-            parent_conn, env_idx = self._get_env_details(session_id)
-
             try:
-                response = await _send_recv_async(parent_conn, "reset", None)
-                _handle_worker_response(response, f"release (reset for env {env_idx})")
+                await call_worker_process(request.session_id, "reset")
             except (EOFError, BrokenPipeError) as pipe_err:
-                logger.error(
-                    f"Pipe error during release for session {session_id} (env {env_idx}): {pipe_err}. Env could be not reset properly."
-                )
+                msg = f"Pipe error during release for session {request.session_id}: {pipe_err}. Env could be not reset properly."
+                logger.error(msg)
             finally:
-                del self.sessions[session_id]
-                if session_id in self.session_last_activity:
-                    del self.session_last_activity[session_id]
-                logger.info(f"Environment {env_idx} released from session {session_id} and reset.")
-                logger.info(f"Remaining free environments: {self.n_envs - len(self.sessions)}")
-
-            return {"status": "released", "env_idx": env_idx}
+                del self.sessions[request.session_id]
+                if request.session_id in self.session_last_activity:
+                    del self.session_last_activity[request.session_id]
+                logger.info(f"Environment released, remaining free environments: {self.n_envs - len(self.sessions)}")
+            return {"status": "ok"}
 
         @app.post("/step")
         async def step_endpoint(request: ActionRequest):
-            parent_conn, env_idx = self._get_env_details(request.session_id)
-            logger.info(
-                f"Session {request.session_id} (Env {env_idx}): Run step {request.action_data['kind']}. Requests in progress: {self.requests_in_progress}"
-            )
-            self.requests_in_progress += 1
-            response = await _send_recv_async(parent_conn, "step", request.action_data)
-            self.requests_in_progress -= 1
-            return _handle_worker_response(response, f"step for env {env_idx}")
+            return await call_worker_process(request.session_id, "step", request.action_data)
 
         @app.post("/actions")
         async def actions_endpoint(request: ApiRequest):
-            parent_conn, env_idx = self._get_env_details(request.session_id)
-            logger.info(
-                f"Session {request.session_id} (Env {env_idx}): Get actions. Requests in progress: {self.requests_in_progress}"
-            )
-            self.requests_in_progress += 1
-            response = await _send_recv_async(parent_conn, "actions", None)
-            self.requests_in_progress -= 1
-            return _handle_worker_response(response, f"actions for env {env_idx}")
+            return await call_worker_process(request.session_id, "actions")
 
         @app.post("/reset")
         async def reset_endpoint(request: ApiRequest):
-            logger.info(f"Resetting environment for session {request.session_id}")
-            parent_conn, env_idx = self._get_env_details(request.session_id)
-            logger.info(
-                f"Session {request.session_id} (Env {env_idx}): Explicit reset. Requests in progress: {self.requests_in_progress}"
-            )
-            self.requests_in_progress += 1
-            response = await _send_recv_async(parent_conn, "reset", None)
-            self.requests_in_progress -= 1
-            return _handle_worker_response(response, f"reset for env {env_idx}")
+            return await call_worker_process(request.session_id, "reset")
 
         @app.get("/health")
         async def health_check():
-            """
-            Health check endpoint to verify if the server is running.
-            Returns a simple status message.
-            """
             return {"status": "ok"}
 
         @app.post("/start_task")
         async def start_task_endpoint(request: TaskRequest):
-            parent_conn, env_idx = self._get_env_details(request.session_id)
-            logger.info(
-                f"Session {request.session_id} (Env {env_idx}): Start task. Requests in progress: {self.requests_in_progress}"
-            )
-            self.requests_in_progress += 1
-            response = await _send_recv_async(parent_conn, "start_task", request.task_data)
-            self.requests_in_progress -= 1
-            return _handle_worker_response(response, f"start_task for env {env_idx}")
+            return await call_worker_process(request.session_id, "start_task", request.task_data)
 
         return app
 
