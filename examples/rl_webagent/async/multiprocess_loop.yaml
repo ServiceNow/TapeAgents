@@ -1,11 +1,11 @@
-exp_name: remote_webagent_qwen3_8b
+exp_name: multiprocess_miniwob_llama31_8b
 exp_path: outputs/rl_webagent/${exp_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 train_split: 0.6  # 0.6 of tasks for training, 0.4 for testing
 seeds: [0, 42, 1337, 900, 103]
 max_loops: 10
 task: {}
-workers: 32
+workers: 64
 
 environment_variables:
   miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
@@ -14,20 +14,31 @@ environment_variables:
   # snow_instance_uname: ???
   # snow_instance_pwd: ???
 
+# llm:
+#   _target_: tapeagents.llms.TrainableLLM
+#   base_url: http://localhost:8080
+#   model_name: Qwen/Qwen3-8B
+#   use_litellm_tokenizer_fallback: true
+#   use_cache: false
+#   context_size: 32000
+#   parameters:
+#     max_tokens: 512
+#     temperature: 0.7
+#     top_p: 0.8 # from https://huggingface.co/Qwen/Qwen3-8B for non-thinking mode. For thinking mode use t=0.6 p=0.95
+#     top_k: 20
+#     chat_template_kwargs:
+#       enable_thinking: false
+
 llm:
   _target_: tapeagents.llms.TrainableLLM
   base_url: http://localhost:8080
-  model_name: Qwen/Qwen3-8B
+  model_name: meta-llama/Llama-3.1-8B-Instruct
   use_litellm_tokenizer_fallback: true
   use_cache: false
   context_size: 32000
   parameters:
     max_tokens: 512
-    temperature: 0.7
-    top_p: 0.8 # from https://huggingface.co/Qwen/Qwen3-8B for non-thinking mode. For thinking mode use t=0.6 p=0.95
-    top_k: 20
-    chat_template_kwargs:
-      enable_thinking: false
+    temperature: 0.1
 
 environment:
   _target_: examples.rl_webagent.environment.WebEnvironment 
