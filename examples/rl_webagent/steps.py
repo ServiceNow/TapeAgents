@@ -21,6 +21,7 @@ from tapeagents.tools.browser import (
     GoForwardAction,
     HoverAction,
     InputTextAction,
+    OpenUrlAction,
     PageDownAction,
     PageObservation,
     PageUpAction,
@@ -96,6 +97,7 @@ WebTapeStep = Union[
     ReasoningThought,
     ReflectionThought,
     # browser actions
+    OpenUrlAction,
     ClickBIDAction,
     ClickCoordinatesAction,
     SelectOptionAction,
