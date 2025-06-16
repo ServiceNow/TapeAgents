@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import random
 import time
 
 import aiohttp
@@ -49,7 +50,11 @@ async def run_agent_with_remote_env(
         try:
             actions = await env.a_actions()
             tools_description = await env.a_tools_description()
+            llms = [instantiate(cfg.llm), instantiate(cfg.llm2)]
+            llm = random.choice(llms)
+            logger.info(f"Using LLM: {llm.base_url}")
             agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
+            agent.llms["default"] = llm
             tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
         except Exception as e:
             logger.error(f"Error occurred while running agent: {e}")
