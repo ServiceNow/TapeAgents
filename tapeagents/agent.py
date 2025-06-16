@@ -927,14 +927,17 @@ class Agent(BaseModel, Generic[TapeType]):
         else:
             llm = self.llm
         prompt = self.make_prompt(tape)
-        dt = time.perf_counter()
+        t = time.perf_counter()
         llm_stream = await llm.agenerate(prompt, session) if prompt else LLMStream(None, prompt)
-        dt = time.perf_counter() - dt
+        llm_call_time = time.perf_counter() - t
         step = None
+        time_saved = False
         for step in self.generate_steps(tape, llm_stream):
             if isinstance(step, AgentStep):
                 step.metadata.prompt_id = llm_stream.prompt.id
-                step.metadata.other["llm_call_time"] = dt
+                if not time_saved:
+                    step.metadata.other["llm_call_time"] = llm_call_time
+                    time_saved = True
             yield step
         if (
             step
