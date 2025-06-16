@@ -51,8 +51,15 @@ async def run_agent_with_remote_env(
         try:
             actions = await env.a_actions()
             tools_description = await env.a_tools_description()
-            llms = [instantiate(cfg.llm), instantiate(cfg.llm2)]
-            llm = random.choice(llms)
+            llm = instantiate(cfg.llm)
+            llms = None
+            try:
+                # try to load multiple LLMs from the configuration and choose one randomly
+                llms = instantiate(cfg.llms)
+                logger.info(f"Loaded {len(llms)} LLMs from configuration.")
+                llm = random.choice(llms)
+            except Exception:
+                pass
             logger.info(f"Using LLM: {llm.base_url}")
             agent: WebAgent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
             agent.llms["default"] = llm
