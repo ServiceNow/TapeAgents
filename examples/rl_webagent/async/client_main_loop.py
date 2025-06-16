@@ -44,7 +44,8 @@ async def run_agent_with_remote_env(
                     raise e
                 logger.warning(f"Failed to start task, retry after 5 seconds: {e}")
                 await asyncio.sleep(5)
-        logger.info(f"Task {task['task']}/{task['seed']} started in {time.perf_counter() - t:.2f} seconds")
+        start_time = time.perf_counter() - t
+        logger.info(f"Task {task['task']}/{task['seed']} started in {start_time:.2f} seconds")
         tape: WebTape = WebTape(**tape_dict)  # convert http response dict to WebTape object
         t = time.perf_counter()
         try:
@@ -59,7 +60,7 @@ async def run_agent_with_remote_env(
         except Exception as e:
             logger.error(f"Error occurred while running agent: {e}")
             tape.metadata.error = str(e)
-        tape.metadata.result = {"execution_time": time.perf_counter() - t}
+        tape.metadata.result = {"execution_time": time.perf_counter() - t, "start_time": start_time}
     # save the tape as we go
     save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
     return tape
