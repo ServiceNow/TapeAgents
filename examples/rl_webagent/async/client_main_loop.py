@@ -51,7 +51,6 @@ async def run_agent_with_remote_env(
         try:
             actions = await env.a_actions()
             tools_description = await env.a_tools_description()
-            llm = instantiate(cfg.llm)
             llms = None
             try:
                 # try to load multiple LLMs from the configuration and choose one randomly
