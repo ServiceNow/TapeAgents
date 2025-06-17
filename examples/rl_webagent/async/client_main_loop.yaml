@@ -40,16 +40,25 @@ llm:
     max_tokens: 512
     temperature: 0.1
 
-llm2:
-  _target_: tapeagents.llms.TrainableLLM
-  base_url: http://localhost:8081
-  model_name: meta-llama/Llama-3.1-8B-Instruct
-  use_litellm_tokenizer_fallback: true
-  use_cache: false
-  context_size: 32000
-  parameters:
-    max_tokens: 512
-    temperature: 0.1
+llms:
+  - _target_: tapeagents.llms.TrainableLLM
+    base_url: http://localhost:8080
+    model_name: meta-llama/Llama-3.1-8B-Instruct
+    use_litellm_tokenizer_fallback: true
+    use_cache: false
+    context_size: 32000
+    parameters:
+      max_tokens: 512
+      temperature: 0.1
+  - _target_: tapeagents.llms.TrainableLLM
+    base_url: http://localhost:8081
+    model_name: meta-llama/Llama-3.1-8B-Instruct
+    use_litellm_tokenizer_fallback: true
+    use_cache: false
+    context_size: 32000
+    parameters:
+      max_tokens: 512
+      temperature: 0.1
 
 environment:
   _target_: tapeagents.remote_environment.AsyncRemoteEnvironment
