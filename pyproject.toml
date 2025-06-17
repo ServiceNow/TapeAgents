@@ -99,7 +99,7 @@ converters = [
   "yt-dlp>=2024.12.13",
 ]
 finetune = [
-  "accelerate~=1.2.0",
+  "accelerate~=1.7.0",
   "datasets~=2.21",
   "deepspeed~=0.15.4",
   "numpy~=1.26",
