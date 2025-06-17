@@ -33,7 +33,14 @@ class EnvironmentServer:
     environment, operate on it using a session ID, and then release it.
     """
 
-    def __init__(self, n_envs: int, host: str = "localhost", port: int = 8000, max_session_inactivity_secs: int = 600):
+    def __init__(
+        self,
+        n_envs: int,
+        host: str = "localhost",
+        port: int = 8000,
+        max_session_inactivity_secs: int = 600,
+        env_call_timeout: int = 60,
+    ):
         if n_envs <= 0:
             raise ValueError("Number of instances must be positive.")
         self.n_envs = n_envs
@@ -41,6 +48,7 @@ class EnvironmentServer:
         self.host = host
         self.port = port
         self.max_session_inactivity_secs = max_session_inactivity_secs
+        self.env_call_timeout = env_call_timeout
 
         self.env_pipes: dict[int, mp_connection.Connection] = {}
         self.env_processes: dict[int, Process] = {}
@@ -218,7 +226,8 @@ class EnvironmentServer:
 
             self.requests_in_progress += 1
             try:
-                response = await loop.run_in_executor(None, send_recv)
+                future = loop.run_in_executor(None, send_recv)
+                response = await asyncio.wait_for(future, self.env_call_timeout) # wait for up to env_call_timeout seconds
                 assert isinstance(response, dict), f"Response must be a dictionary, got {type(response)}: {response}"
             except Exception as e:
                 logger.exception(f"Env {env_idx}. Error during async send/recv {command}: {e}")
