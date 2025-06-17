@@ -131,11 +131,9 @@ class StandardNode(Node):
             messages = self.steps_to_messages(steps, steps_description)
             self.trim_obs_except_last_n = old_trim
         format = response_format(self._steps[0]) if self.structured_output else None
-        logger.info(f"Response format: {format}")
         tools = (
             [as_openai_tool(s).model_dump() for s in self._steps] if self.use_function_calls and not format else None
         )
-        logger.info(f"Tools: {[t['function']['name'] for t in (tools or [])]}")
         prompt = Prompt(messages=messages, tools=tools, response_format=format)
         logger.debug(colored(f"PROMPT tools:\n{prompt.tools}", "red"))
         for i, m in enumerate(prompt.messages):
@@ -239,7 +237,7 @@ class StandardNode(Node):
             messages.append({"role": role, "content": view})
         if self.guidance:
             messages.append({"role": "user", "content": self.guidance})
-        logger.info(
+        logger.debug(
             f"Rendered short observations: {shorts} ({shorts_chars} chars), long observations: {longs} ({longs_chars} chars)"
         )
         return messages

@@ -4,14 +4,14 @@ import time
 from typing import Any, Literal
 
 from browsergym.core.task import AbstractBrowserTask
+from browsergym.miniwob import ALL_MINIWOB_TASKS
 from browsergym.miniwob.base import AbstractMiniwobTask
 from joblib import Parallel, delayed
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction
+from tapeagents.core import Action, FinalObservation, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import Environment
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
-from tapeagents.tools.simple_browser import PageObservation
 from tapeagents.utils import FatalError
 
 from .steps import (
@@ -40,30 +40,55 @@ class WebEnvironment(Environment):
         super().__init__()
         if exp_path:
             os.makedirs(exp_path, exist_ok=True)
-        self.browser = Browser(headless=headless, exp_path=exp_path, mock=True, observation_format=observation_format)
-        self.timers = {}  # keep track of time taken in each method
+        self.exp_path = exp_path
+        self.headless = headless
+        self.observation_format = observation_format
 
-    def start_task(self, task_entrypoint: type[AbstractBrowserTask], seed: int = 42) -> tuple[WebTape, dict[str, Any]]:
+    def initialize(self):
+        self.timers = {}  # reset timers
+        self.browser = Browser(
+            headless=self.headless,
+            exp_path=self.exp_path,
+            mock=True,
+            observation_format=self.observation_format,  # type: ignore
+            timeout_ms=5000,  # 5 seconds timeout for browser actions
+        )
+
+    def start_task(self, task_data: dict) -> tuple[WebTape, dict[str, Any]]:
+        # if task_data["task"] is a string, it is the task_id of a registered task
+        if isinstance(task_data["task"], str):
+            # reconstruct the task entrypoint from the dataset and task_id
+            assert "dataset" in task_data, "Task data must contain 'dataset' key."
+            if "miniwob" in task_data["dataset"]:
+                task_entrypoint = [t for t in ALL_MINIWOB_TASKS if t.get_task_id() == task_data["task"]][0]
+            else:
+                raise ValueError(f"Unknown dataset {task_data['dataset']} for task {task_data['task']}.")
+        else:
+            task_entrypoint: AbstractBrowserTask = task_data["task"]
+        assert issubclass(task_entrypoint, AbstractBrowserTask)
+        seed: int = task_data.get("seed", 42)
+
         self.timers = {}  # reset timers
         start_start_task = time.perf_counter()
         task_id = f"browsergym/{task_entrypoint.get_task_id()}"
         # logger.info(f"WebEnv.start_task {task_id} starting task...")
-        # _zero = time.perf_counter()
+        _zero = time.perf_counter()
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
-        # zero = time.perf_counter() - _zero
-        # logger.info(f"WebEnv.start_task {task_id} browser.start_task took {zero:.2f}s")
-        # _one = time.perf_counter()
+        zero = time.perf_counter() - _zero
+        logger.info(f"WebEnv.start_task {task_id} browser.start_task took {zero:.2f}s")
+        _one = time.perf_counter()
         obs = self.browser.run_browser_action("noop()")
-        # one = time.perf_counter() - _one
-        # logger.info(f"WebEnv.start_task {task_id} browser.run_browser_action took {one:.2f}s")
-        # _two = time.perf_counter()
+        one = time.perf_counter() - _one
+        logger.info(f"WebEnv.start_task {task_id} browser.run_browser_action took {one:.2f}s")
+        _two = time.perf_counter()
         tape = WebTape(
             metadata=WebTapeMetadata(task_name=task_entrypoint.get_task_id(), seed=seed),
             steps=[obs, WebTask(task=info["goal"])],
         )
-        # two = time.perf_counter() - _two
-        # logger.info(f"WebEnv.start_task {task_id} WebTape creation took {two:.2f}s")
+        two = time.perf_counter() - _two
+        logger.info(f"WebEnv.start_task {task_id} WebTape creation took {two:.2f}s")
         self.timers["start_task"] = time.perf_counter() - start_start_task
+        logger.info(f"total start_task {task_id}: {self.timers['start_task']:.2f}s")
         return tape, info
 
     def finish_task(self) -> None:
@@ -107,7 +132,7 @@ class WebEnvironment(Environment):
             self.timers["react"] = []
         start_react = time.perf_counter()
 
-        actions = []
+        actions: list[Action] = []
         for step in tape.steps[-tape.metadata.n_added_steps :]:
             if isinstance(step, Action):
                 actions.append(step)
@@ -120,12 +145,11 @@ class WebEnvironment(Environment):
             try:
                 if isinstance(action, LLMOutputParsingFailureAction):
                     continue
-                observation = self.browser.run(action)
+                observation = self.step(action)
                 if isinstance(observation, ActionExecutionFailure):
                     logger.exception(f"Error during action execution: {observation.error}")
                     tape = tape.append(observation)
                     break
-                assert isinstance(observation, PageObservation), f"Observation is not a PageObservation: {observation}"
                 tape = tape.append(observation)  # type: ignore
             except FatalError:
                 self.timers["react"].append(time.perf_counter() - start_react)
@@ -141,3 +165,28 @@ class WebEnvironment(Environment):
     def react_batch(self, tapes: list[WebTape], n_processes: int) -> list[WebTape]:
         results = Parallel(n_jobs=n_processes)([delayed(self.react)(tape) for tape in tapes])
         return results
+
+    def step(self, action: Action) -> Observation:
+        obs = self.browser.run(action)
+        if obs.metadata.other.get("env_finished", False):
+            obs = FinalObservation(metadata=obs.metadata)
+        return obs
+
+    def actions(self) -> tuple[type[Action], ...]:
+        return self.browser.actions
+
+    def reset(self):
+        try:
+            self.browser.reset()
+        except Exception as e:
+            logger.warning(f"Failed to reset browser: {e}, recreate browser instance instead.")
+            try:
+                self.browser.close()
+            except Exception:
+                pass
+            self.browser = Browser(
+                headless=self.headless,
+                exp_path=self.exp_path,
+                mock=True,
+                observation_format=self.observation_format,  # type: ignore
+            )

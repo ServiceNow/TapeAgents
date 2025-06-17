@@ -196,6 +196,10 @@ class FinalStep(StopStep):
     reason: str = ""
 
 
+class FinalObservation(Observation, StopStep):
+    kind: Literal["final_observation"] = "final_observation"
+
+
 class SetNextNode(ControlFlow):
     """
     Action that sets the next node to run in the current agent.
@@ -398,7 +402,6 @@ class LLMCall(BaseModel):
 class TokenLogprob(BaseModel):
     logprob: float
     token_id: int
-    generated: int
 
 
 AnnotatorTape = Tape[TapeType, StepType]

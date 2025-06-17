@@ -192,7 +192,7 @@ def load_tapes(
             tape = tape_class.model_validate(tape_dict)
         except ValidationError as ve:
             step_kinds = "\n".join([f"{i}: {step.get('kind')}" for i, step in enumerate(tape_dict.get("steps", []))])
-            logger.error(f"Failed to validate tape. Steps kinds:\n{step_kinds}")
+            logger.error(f"Failed to load tape {tape_dict['metadata']}. Steps kinds:\n{step_kinds}")
             raise ve
 
         if attachment_dir_resolved:

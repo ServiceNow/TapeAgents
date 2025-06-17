@@ -1,6 +1,7 @@
 from itertools import takewhile
 from typing import Generator
 
+from examples.rl_webagent.utils import StepRepeatMonitor
 from tapeagents.agent import Agent
 from tapeagents.core import (
     Action,
@@ -90,8 +91,8 @@ class WebNode(StandardNode):
                 view = f"Task: {step.task}"
             elif isinstance(step, UserStep):
                 view = step.content
-            # elif isinstance(step, ReasoningThought):
-            #     view = step.reasoning
+            elif isinstance(step, ReasoningThought):
+                view = step.reasoning
             else:
                 view = step.llm_view()
             messages.append({"role": role, "content": view})
@@ -142,6 +143,9 @@ class WebNode(StandardNode):
         previous_actions = [step for step in tape.steps if isinstance(step, Action)]
         last_action = previous_actions[-1] if previous_actions else None
         n_last_actions = len(list(takewhile(lambda x: x == last_action, reversed(previous_actions))))
+        action_monitor = StepRepeatMonitor(
+            last_step=last_action, repeat_count=n_last_actions, max_repeats=self.max_same_action
+        )
 
         new_steps = []
         for event in llm_stream:
@@ -150,20 +154,14 @@ class WebNode(StandardNode):
             if event.output.content:
                 new_steps += list(self.parse_completion(event.output.content))
             if event.output.tool_calls and self.use_function_calls:
-                new_steps += [self.tool_call_to_step(tool_call) for tool_call in event.output.tool_calls]
+                new_steps += [self.tool_call_to_step(agent, tool_call) for tool_call in event.output.tool_calls]
 
             for i, step in enumerate(new_steps):
                 step = self.postprocess_step(tape, new_steps[:i], step)
                 yield step
                 # check that the new step is not a repetition of the last action up to max_same_action times
-                if isinstance(step, Action):
-                    if step == last_action:
-                        n_last_actions += 1
-                        if n_last_actions > self.max_same_action:
-                            raise FatalError(f"Max same action reached! {step}")
-                    else:
-                        n_last_actions = 1
-                        last_action = step
+                if isinstance(step, Action) and action_monitor.should_stop(step):
+                    raise FatalError(f"Max same action reached! {step}")
                 # if the last step was an LLMOutputParsingFailureAction, retry the current node up to max_retries times
                 if isinstance(step, LLMOutputParsingFailureAction):
                     if self.current_retries < self.max_retries:
@@ -173,7 +171,7 @@ class WebNode(StandardNode):
                         new_steps.append(retry_step)
                         break
                     else:
-                        raise FatalError(f"Max retries reached for node {self.name}!")
+                        raise FatalError(f"Max retries reached for node {self.name}, parsing error: {step.llm_view()}!")
                 else:
                     self.current_retries = 0
         if not new_steps:

@@ -164,9 +164,12 @@ def extract_tape_training_samples(
 
             if logprobs := getattr(llm_call, "logprobs", None):
                 trace = agent.llm.make_training_text(llm_call.prompt, llm_call.output)
+                prompt_token_ids = agent.llm.tokenizer.apply_chat_template(
+                    llm_call.prompt.messages, add_special_tokens=True, add_generation_prompt=True
+                )
 
-                input_ids = [lp.token_id for lp in logprobs]
-                labels = [lp.token_id for lp in logprobs if lp.generated]
+                input_ids = prompt_token_ids + [lp.token_id for lp in logprobs]
+                labels = [lp.token_id for lp in logprobs]
                 # MASKED_TOKEN_ID is -100 and is the default "ignore_index" in nn.CrossEntropyLoss,
                 # see https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
                 labels = [MASKED_TOKEN_ID] * (len(input_ids) - len(labels)) + labels
@@ -175,7 +178,7 @@ def extract_tape_training_samples(
                 trace.labels = labels
 
                 reward = -1 if overflow else reward
-                trace.logprobs = [lp.logprob for lp in llm_call.logprobs if lp.generated]
+                trace.logprobs = [lp.logprob for lp in llm_call.logprobs]
                 trace.group_id = new_tape.metadata.parent_id
                 trace.reward = reward
                 training_samples.append(trace)

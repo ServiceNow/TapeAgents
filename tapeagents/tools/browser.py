@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import threading
+import time
 from time import sleep
 from typing import Any, Callable, Literal
 from uuid import uuid4
@@ -34,7 +35,6 @@ from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
 
-nest_asyncio.apply()
 NODES_WITH_BID = [
     "button",
     "link",
@@ -50,6 +50,10 @@ NODES_WITH_BID = [
     "tab",
 ]
 logger = logging.getLogger(__name__)
+try:
+    nest_asyncio.apply()
+except Exception as e:
+    logger.warning("Cannot apply nest_asyncio, continuing without it: %s", e)
 
 
 class OpenUrlAction(Action):
@@ -227,7 +231,7 @@ class Browser(StatefulTool):
     page_load_time_sec: int = 1
     gym_kwargs: dict = {}
     gym_task: str = "browsergym/openended"
-    mock: bool = False
+    mock: bool = False # TODO: investigate why renaming it to any other name brokes running 2 async tests at one pytest call (but not a singular one)
 
     _env: BrowserEnv = None  # type: ignore
     _current_page: str = ""
@@ -296,6 +300,7 @@ class Browser(StatefulTool):
             os.makedirs(self._record_video_dir, exist_ok=True)
             os.makedirs(self._screenshots_dir, exist_ok=True)
         if self.mock:
+            logger.info("Browser initialized")
             return
         self._env = gym.make(
             self.gym_task,
@@ -313,7 +318,7 @@ class Browser(StatefulTool):
         self._env.context.tracing.start(screenshots=True, snapshots=True)
         screenshot = self._env.step("noop()")[0]["screenshot"]
         self._save_last_screenshot(screenshot)
-        logger.info("Browser initialized")
+        logger.info("Browser and gym initialized")
 
     def execute_action(self, action: Action) -> PageObservation | PageScreenshotObservation:
         action_type = type(action)
@@ -323,6 +328,11 @@ class Browser(StatefulTool):
 
     def start_task(self, task_id: str, seed: int = 1, **kwargs) -> dict:
         self._task_id = task_id
+        t = time.perf_counter()
+        if self._env is not None:
+            self._env.close()
+        logger.info(f"Old gym close took {time.perf_counter() - t:.2f}s")
+        t = time.perf_counter()
         self._env = gym.make(
             task_id,
             headless=self.headless,
@@ -331,7 +341,10 @@ class Browser(StatefulTool):
             timeout=self.timeout_ms,
             **kwargs,
         )  # type: ignore
+        logger.info(f"New gym make took {time.perf_counter() - t:.2f}s")
+        t = time.perf_counter()
         start_obs, info = self._env.reset(seed=seed)
+        logger.info(f"Gym reset took {time.perf_counter() - t:.2f}s")
         self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
         self._env.unwrapped.chat.add_message(role="assistant", msg="Running TapeAgent...")
         assert self._env.unwrapped.task is not None
@@ -342,8 +355,6 @@ class Browser(StatefulTool):
             "video": "",
             "chat_video": "",
         }
-
-        sleep(self.page_load_time_sec)  # wait for the page to load
         return info
 
     def close(self):
@@ -434,7 +445,8 @@ class Browser(StatefulTool):
 
     def click_bid(self, action: ClickBIDAction) -> PageObservation:
         try:
-            self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={action.modifiers})")
+            modifiers = [m for m in action.modifiers if m in ["Alt", "Control", "Meta", "Shift"]]
+            self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={modifiers})")
         except Exception as e:
             logger.warning(f"Click failed: {e}")
         sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change

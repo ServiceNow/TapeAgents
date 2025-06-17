@@ -476,9 +476,7 @@ class PageObservation(Observation):
         view_json = json.dumps(view, indent=2, ensure_ascii=False)
         if len(view["text"]) > max_chars:
             view["text"] = view["text"][:max_chars] + "..."
-            short = json.dumps(view, indent=2, ensure_ascii=False)
-            logger.info(f"PageObservation long view was: {len(self.llm_view())}, short view is: {len(short)}")
-            view_json = short
+            view_json = json.dumps(view, indent=2, ensure_ascii=False)
         return view_json
 
 

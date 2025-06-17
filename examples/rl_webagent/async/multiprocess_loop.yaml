@@ -1,0 +1,119 @@
+exp_name: multiprocess_miniwob_llama31_8b
+exp_path: outputs/rl_webagent/${exp_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+train_split: 0.6  # 0.6 of tasks for training, 0.4 for testing
+seeds: [0, 42, 1337, 900, 103]
+max_loops: 10
+task: {}
+workers: 64
+
+environment_variables:
+  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
+  # snow_instance_url: ???
+  # snow_instance_uname: ???
+  # snow_instance_pwd: ???
+
+# llm:
+#   _target_: tapeagents.llms.TrainableLLM
+#   base_url: http://localhost:8080
+#   model_name: Qwen/Qwen3-8B
+#   use_litellm_tokenizer_fallback: true
+#   use_cache: false
+#   context_size: 32000
+#   parameters:
+#     max_tokens: 512
+#     temperature: 0.7
+#     top_p: 0.8 # from https://huggingface.co/Qwen/Qwen3-8B for non-thinking mode. For thinking mode use t=0.6 p=0.95
+#     top_k: 20
+#     chat_template_kwargs:
+#       enable_thinking: false
+
+llm:
+  _target_: tapeagents.llms.TrainableLLM
+  base_url: http://localhost:8080
+  model_name: meta-llama/Llama-3.1-8B-Instruct
+  use_litellm_tokenizer_fallback: true
+  use_cache: false
+  context_size: 32000
+  parameters:
+    max_tokens: 512
+    temperature: 0.1
+
+environment:
+  _target_: examples.rl_webagent.environment.WebEnvironment 
+  exp_path: ${exp_path} # or something like this: /mnt/llmd/results/exps/gontiern/llama3_8b_i_miniwob_yyyy_mm_dd__hh_mm_ss/env
+  headless: true
+  observation_format: html
+  # _target_: tapeagents.remote_environment.AsyncRemoteEnvironment
+  # server_url: http://localhost:8000
+
+agent:
+  _target_: tapeagents.agent.Agent
+  name : web_agent
+  max_iterations: 4
+  store_llm_calls: true
+  llms:
+    default: ${llm}
+  templates:
+    system_prompt: |
+      You are an expert AI Agent, your goal is to help the user perform tasks using a web browser.
+      Your role is to understand user queries and respond in a helpful and accurate manner.
+      Keep your replies concise and direct. Prioritize clarity and avoid over-elaboration.
+      You will be provided with the content of the current page and a task from the user.
+      Do not express your emotions or opinions about the user question.
+    allowed_tools: |
+      You have access to the following tools:
+      {tools_description}
+    thought_format: |
+      Important! Respond with the plain text, do not include any JSON or code.
+      Do not output anything besides what I asked in this message.
+  nodes:
+    - _target_: examples.rl_webagent.agent.WebNode
+      name: set_goal
+      system_prompt: ${agent.templates.system_prompt}
+      guidance: |
+        Produce the thought that describes the intended solution to the task. In the reasoning lines:
+        - review the instructions from the user and the content of the page.
+        - outline the main task to be accomplished and the steps to be taken to achieve it.
+        - produce definiton of done, that will be checked later to verify if the task was completed.
+        ${agent.templates.thought_format}
+      steps_prompt: ${agent.templates.allowed_tools}
+      trim_obs_except_last_n: 3  # keep the last 3 observations from the tape in prompt messages
+      max_chars_page_observation: 3000  # keep up to 3000 chars in PageObservation steps
+
+    - _target_: examples.rl_webagent.agent.WebNode
+      name: reflect
+      system_prompt: ${agent.templates.system_prompt}
+      guidance: |
+        Review the current state of the page and previous steps to find the best possible next action to accomplish the task.
+        Produce the reflection_thought to describe the current page state, reflect on your last action, describe what is left to do, and what will be the immediate next action.
+        Produce only one reflection_thought step!
+        ${agent.templates.thought_format}
+      steps_prompt: ${agent.templates.allowed_tools}
+      trim_obs_except_last_n: 3  # keep the last 3 observations from the tape in prompt messages
+      max_chars_page_observation: 3000  # keep up to 3000 chars in PageObservation steps
+
+    - _target_: examples.rl_webagent.agent.WebNode
+      name: act
+      system_prompt: ${agent.templates.system_prompt}
+      guidance: |
+        Produce the single next tool call to be performed with the current page.
+        If you think that the task is solved, call the FinalAnswer.
+        You can interact with the page elements using their BIDs or coordinates as arguments for actions.
+        HINTS:
+        - You can use the BIDs of the elements or the mouse position in x, y coordinates to interact with them.
+        - To select value in a dropdown or combobox, ALWAYS use SelectOption tool.
+        - To click on a checkbox or radio button, ALWAYS use BID (or coordinates) of the corresponding Text and not the BID (or coordinates) of the element itself.
+        - Press enter key to submit the search query.
+      use_known_actions: true
+      use_function_calls: true
+      steps:
+        - examples.rl_webagent.steps.FinalAnswerAction
+      trim_obs_except_last_n: 3  # keep the last 3 observations from the tape in prompt messages
+      max_chars_page_observation: 3000  # keep up to 3000 chars in PageObservation steps
+      next_node: reflect
+
+hydra:
+  run:
+    dir: ${exp_path}

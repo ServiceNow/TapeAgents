@@ -1,0 +1,24 @@
+environment_server:
+  _target_: tapeagents.remote_environment.EnvironmentServer
+  n_envs: 64
+  host: localhost
+  port: 8000
+  max_session_inactivity_secs: 300
+
+environment:
+  _target_: examples.rl_webagent.environment.WebEnvironment 
+  exp_path: outputs/rl_webagent/env_server_web/${now:%Y-%m-%d}/${now:%H-%M-%S} # or something like this: /mnt/llmd/results/exps/gontiern/llama3_8b_i_miniwob_yyyy_mm_dd__hh_mm_ss/env
+  headless: true
+  observation_format: html
+
+environment_variables:
+  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
+  # snow_instance_url: ???
+  # snow_instance_uname: ???
+  # snow_instance_pwd: ???
+
+
+hydra:
+  run:
+    dir: ${environment.exp_path}
