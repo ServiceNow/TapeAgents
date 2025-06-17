@@ -231,7 +231,7 @@ class Browser(StatefulTool):
     page_load_time_sec: int = 1
     gym_kwargs: dict = {}
     gym_task: str = "browsergym/openended"
-    start_gym: bool = True
+    mock: bool = False # TODO: investigate why renaming it to any other name brokes running 2 async tests at one pytest call (but not a singular one)
 
     _env: BrowserEnv = None  # type: ignore
     _current_page: str = ""
@@ -299,7 +299,7 @@ class Browser(StatefulTool):
             os.makedirs(self._traces_dir, exist_ok=True)
             os.makedirs(self._record_video_dir, exist_ok=True)
             os.makedirs(self._screenshots_dir, exist_ok=True)
-        if not self.start_gym:
+        if self.mock:
             logger.info("Browser initialized")
             return
         self._env = gym.make(

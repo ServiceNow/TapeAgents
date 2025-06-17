@@ -49,7 +49,7 @@ class WebEnvironment(Environment):
         self.browser = Browser(
             headless=self.headless,
             exp_path=self.exp_path,
-            start_gym=False,
+            mock=True,
             observation_format=self.observation_format,  # type: ignore
             timeout_ms=5000,  # 5 seconds timeout for browser actions
         )
@@ -187,6 +187,6 @@ class WebEnvironment(Environment):
             self.browser = Browser(
                 headless=self.headless,
                 exp_path=self.exp_path,
-                start_gym=False,
+                mock=True,
                 observation_format=self.observation_format,  # type: ignore
             )
