@@ -1,6 +1,6 @@
 [project]
 name = "TapeAgents"
-version = "0.1.14"
+version = "0.1.15"
 requires-python = ">= 3.10, <3.13"
 description = "TapeAgents framework for building, tuning and evaluating LLM Agents"
 authors = [
@@ -104,7 +104,7 @@ finetune = [
   "deepspeed~=0.15.4",
   "numpy~=1.26",
   "peft==0.12",
-  "transformers>=4.42,<4.46",
+  "transformers~=4.51.0",
   "wandb~=0.19",
 ]
 rl-gsm8k = ["vllm>=0.5.3,<=0.6.6.post1"]
