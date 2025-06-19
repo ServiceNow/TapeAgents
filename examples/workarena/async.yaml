@@ -1,0 +1,49 @@
+exp_name: workarena_agent_llama31_8b
+exp_path: outputs/rl_webagent/${exp_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+train_split: 0.6  # 0.6 of tasks for training, 0.4 for testing
+seeds: [0, 42, 1337]
+max_loops: 10
+start_attempts: 3
+requests_timeout: 120.0
+
+environment_variables:
+  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
+  # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
+  # snow_instance_url: ???
+  # snow_instance_uname: ???
+  # snow_instance_pwd: ???
+
+llms:
+  - _target_: tapeagents.llms.TrainableLLM
+    base_url: http://localhost:8080
+    model_name: meta-llama/Llama-3.1-8B-Instruct
+    use_litellm_tokenizer_fallback: true
+    use_cache: false
+    context_size: 32000
+    parameters:
+      max_tokens: 512
+      temperature: 0.1
+
+environment:
+  _target_: tapeagents.remote_environment.AsyncRemoteEnvironment
+  server_url: http://localhost:8000
+
+agent:
+  _target_: tapeagents.agent.Agent
+  name : web_agent
+  store_llm_calls: true
+  llms: {}
+  nodes:
+    - _target_: examples.workarena.agent.WorkArenaBaselineNode
+      name: main
+      use_known_actions: true
+      use_function_calls: true
+      steps: 
+        - tapeagents.steps.ReasoningThought
+        - examples.workarena.steps.FinalAnswerAction
+      next_node: main
+
+hydra:
+  run:
+    dir: ${exp_path}

@@ -53,12 +53,12 @@ user instructions. You can interact with the page and explore, and send messages
 submit an action it will be sent to the browser and you will receive a new page."""
 
 GOAL_INSTRUCTIONS = """
-# Instructions
+## Instructions
 Review the current state of the page and all other information to find the best
 possible next action to accomplish your goal. Your answer will be interpreted
 and executed by a program, make sure to follow the formatting instructions.
 
-## Goal:
+# Goal
 {goal}
 """
 
@@ -74,6 +74,7 @@ characters and wait until next step.
 * Interacting with combobox, dropdowns and auto-complete fields can be tricky,
 sometimes you need to use select_option, while other times you need to use fill
 or click and wait for the reaction of the page.
+* Avoid using hover actions, they can cause unexpected behavior.
 """
 
 BE_CAUTIOUS = """

@@ -1,10 +1,10 @@
-from typing import Literal, Union
+from typing import Annotated, Literal, Union
 
 from pydantic import Field
 
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Tape, Thought
 from tapeagents.dialog_tape import DialogContext
-from tapeagents.steps import ActionExecutionFailure
+from tapeagents.steps import ActionExecutionFailure, ReasoningThought
 from tapeagents.tools.browser import (
     ClickBIDAction,
     GoBackAction,
@@ -38,15 +38,6 @@ class WorkArenaObservation(Observation):
 class WorkArenaTask(WorkArenaObservation):
     kind: Literal["task"] = "task"
     task: str
-
-
-class ReasoningThought(WorkArenaThought):
-    """
-    Thoughts produced by the agent during the reasoning process.
-    """
-
-    kind: Literal["reasoning_thought"] = "reasoning_thought"
-    reasoning: str = Field(description="chain of thoughts")
 
 
 class ReflectionThought(WorkArenaThought):
@@ -165,3 +156,6 @@ WorkArenaAgentStep = (
     # GotoPageAction,
     FinalAnswerAction,
 )
+
+
+BASELINE_STEPS_CLS = Annotated[Union[WorkArenaBaselineStep], Field(discriminator="kind")]

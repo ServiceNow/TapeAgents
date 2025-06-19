@@ -21,19 +21,20 @@ class WorkArenaEnvironment(Environment):
     Translates action steps into gym browser python commands in the form of a string.
     """
 
-    def __init__(self, exp_path: str, headless: bool = True) -> None:
+    def __init__(self, exp_path: str, headless: bool = True, timeout_ms: int = 30000) -> None:
         super().__init__()
         os.makedirs(exp_path, exist_ok=True)
         self.exp_path = exp_path
         self.headless = headless
+        self.timeout_ms = timeout_ms
 
     def initialize(self):
-        self.browser = Browser(headless=self.headless, exp_path=self.exp_path)
+        self.browser = Browser(headless=self.headless, exp_path=self.exp_path, timeout_ms=self.timeout_ms)
 
-    def start_task(
-        self, task_entrypoint: type[AbstractServiceNowTask], seed: int = 42
-    ) -> tuple[WorkArenaTape, dict[str, Any]]:
-        task_id = f"browsergym/{task_entrypoint.get_task_id()}"
+    def start_task(self, task_data: dict) -> tuple[WorkArenaTape, dict[str, Any]]:
+        task: type[AbstractServiceNowTask] = task_data["task"]
+        seed: int = task_data["seed"]
+        task_id = f"browsergym/{task}"
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         obs = self.browser.run_browser_action("noop()")
         tape = WorkArenaTape(steps=[obs, WorkArenaTask(task=info["goal"])])
