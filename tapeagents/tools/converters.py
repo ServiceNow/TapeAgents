@@ -29,6 +29,7 @@ import traceback
 from typing import Any, List, Optional, Union
 from urllib.parse import parse_qs, urlparse
 
+os.environ["PYTORCH_JIT"] = "0"  # Disable JIT due to import slowdown
 import markdownify
 import numpy as np
 import pdfminer
@@ -37,11 +38,8 @@ import PIL
 import pptx
 import puremagic
 import requests
-import whisper
 from bs4 import BeautifulSoup
-from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, TableStructureOptions
-from docling.document_converter import DocumentConverter as DoclingDocumentConverter, PdfFormatOption
 from pydantic import BaseModel, Field
 from readability import Document
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -64,6 +62,9 @@ class DocumentConverter(BaseModel):
 
 class DoclingConverter(DocumentConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # slow import, > 30 seconds
+        from docling.document_converter import DocumentConverter as DoclingDocumentConverter  # noqa: I001
+
         converter = DoclingDocumentConverter(
             allowed_formats=kwargs.get("allowed_formats", None), format_options=kwargs.get("format_options", None)
         )
@@ -336,6 +337,10 @@ class PdfMinerConverter(DocumentConverter):
 
 class PdfDoclingConverter(DoclingConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        # slow import, > 30 seconds
+        from docling.document_converter import PdfFormatOption  # noqa: I001
+        from docling.datamodel.base_models import InputFormat  # noqa: I001
+
         # Bail if not a PDF
         extension = kwargs.get("file_extension", "")
         if extension.lower() != ".pdf":
@@ -510,6 +515,9 @@ class WavConverter(DocumentConverter):
         extension = kwargs.get("file_extension", "")
         if extension.lower() != ".wav":
             return None
+
+        # slow import, > 4 seconds
+        import whisper
 
         model = whisper.load_model("turbo")
         text_content = model.transcribe(local_path) or "[No speech detected]"
