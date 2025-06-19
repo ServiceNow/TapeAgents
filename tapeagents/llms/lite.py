@@ -1,13 +1,15 @@
+import asyncio
 import logging
 import time
 from typing import Generator
 
+import aiohttp
 import litellm
 import requests
 from omegaconf import DictConfig, OmegaConf
 
 from tapeagents.core import Prompt, TrainingText
-from tapeagents.llms.base import LLMEvent, LLMOutput
+from tapeagents.llms.base import LLMEvent, LLMOutput, LLMStream
 from tapeagents.llms.cached import CachedLLM
 from tapeagents.utils import get_step_schemas_from_union_type
 
@@ -135,3 +137,55 @@ class LiteLLM(CachedLLM):
             NotImplementedError: If the method is not implemented by a subclass.
         """
         raise NotImplementedError()
+
+    async def agenerate(
+        self,
+        prompt: Prompt,
+        session: aiohttp.ClientSession,
+        max_retries: int = 5,
+        retry_count: int = 0,
+        base_delay: float = 0.5,
+        **kwargs,
+    ):
+        response = None
+        while True:
+            for k, v in self.parameters.items():
+                if isinstance(v, DictConfig):
+                    kwargs[k] = OmegaConf.to_container(v)
+                else:
+                    kwargs[k] = v
+            try:
+                response = await litellm.acompletion(
+                    model=self.model_name,
+                    messages=prompt.messages,
+                    tools=prompt.tools,
+                    stream=self.stream,
+                    response_format=prompt.response_format,
+                    **kwargs,
+                )
+                break
+            except litellm.RateLimitError as e:
+                retry_count += 1
+                if retry_count > max_retries:
+                    logger.error(f"Rate limit exceeded after {max_retries} retries")
+                    raise e
+                delay = base_delay * (2 ** (retry_count - 1))
+                logger.warning(f"Rate limit hit, retrying in {delay:.2f} seconds (attempt {retry_count}/{max_retries})")
+                await asyncio.sleep(delay)
+            except litellm.Timeout as e:
+                logger.exception("API Timeout, retrying in 1 sec")
+                retry_count += 1
+                if retry_count > max_retries:
+                    raise e
+                delay = base_delay * (2 ** (retry_count - 1))
+                logger.warning(f"API Timeout, retrying in {delay:.2f} seconds (attempt {retry_count}/{max_retries})")
+                await asyncio.sleep(delay)
+        assert isinstance(response, litellm.ModelResponse)
+        assert isinstance(response.choices[0], litellm.utils.Choices)
+        output = response.choices[0].message
+        llm_call = self.log_output(prompt, output)
+
+        def _gen():
+            yield LLMEvent(llm_call=llm_call, output=output)
+
+        return LLMStream(generator=_gen(), prompt=prompt)
