@@ -234,6 +234,7 @@ async def async_main_loop(
     if is_debug_mode():
         logger.setLevel(logging.DEBUG)
     n_loops = 0
+    task_number = start_tape.metadata.author_tape_id
     tape = start_tape
     event = None
     while n_loops < max_loops or max_loops == -1:
@@ -241,10 +242,10 @@ async def async_main_loop(
         async for event in agent.arun(tape, session):
             yield MainLoopEvent(agent_event=event)
             if event.step:
-                logger.info(f"Tape {tape.metadata.id} turn {n_loops} agent step")
+                logger.info(f"task {task_number} turn {n_loops} agent step")
                 logger.debug(
                     colored(
-                        f"{n_loops}:AGENT {event.step.metadata}: {event.step.llm_view()}",
+                        f"task {task_number} turn {n_loops} AGENT {event.step.kind} {event.step.metadata}: {event.step.llm_view()}",
                         "green",
                     )
                 )
@@ -268,8 +269,13 @@ async def async_main_loop(
             yield MainLoopEvent(status=MainLoopStatus.EXTERNAL_INPUT_NEEDED)
             return
         for observation in tape[len(agent_tape) :]:
-            logger.info(f"Tape {tape.metadata.id} turn {n_loops} env step")
-            logger.debug(colored(f"{n_loops}:ENV {observation.metadata}: {observation.llm_view()}", "yellow"))
+            logger.info(f"task {task_number} turn {n_loops} env step")
+            logger.debug(
+                colored(
+                    f"task {task_number} turn {n_loops} ENV {observation.kind} {observation.metadata}: {observation.short_view()}",
+                    "yellow",
+                )
+            )
             yield MainLoopEvent(observation=observation)
             if isinstance(observation, StopStep):
                 logger.debug(f"Environment emitted final step {observation}")
