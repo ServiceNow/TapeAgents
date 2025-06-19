@@ -9,7 +9,6 @@ from typing import Any, Generator
 import aiohttp
 import litellm
 import requests
-import transformers
 from omegaconf import DictConfig, OmegaConf
 from pydantic import Field
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -23,7 +22,7 @@ from tapeagents.utils import get_step_schemas_from_union_type
 _MOCK_TOKENIZER: str = ""
 TAPEAGENTS_LLM_TOKEN = "TAPEAGENTS_LLM_TOKEN"
 logger = logging.getLogger(__name__)
-
+transformers = None
 
 def trainable_llm_make_training_text(prompt: Prompt, output: LLMOutput, tokenizer) -> TrainingText:
     """
