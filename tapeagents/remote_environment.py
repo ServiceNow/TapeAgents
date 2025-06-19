@@ -55,6 +55,7 @@ class EnvironmentServer:
         self.sessions: dict[str, int] = {}  # session_id -> env_idx
         self.session_last_activity: dict[str, float] = {}  # session_id -> timestamp
         self.requests_in_progress: int = 0
+        self.acquire_lock = asyncio.Lock()
 
     def start_envs(self, env_config: DictConfig):
         for i in range(self.n_envs):
@@ -66,6 +67,7 @@ class EnvironmentServer:
                 daemon=True,  # Daemonize workers so they exit if main process crashes
             )
             process.start()
+            logger.info(f"Environment process {i} started")
 
             self.env_pipes[i] = parent_conn
             self.env_processes[i] = process
@@ -227,7 +229,7 @@ class EnvironmentServer:
             self.requests_in_progress += 1
             try:
                 future = loop.run_in_executor(None, send_recv)
-                response = await asyncio.wait_for(future, self.env_call_timeout) # wait for up to env_call_timeout seconds
+                response = await asyncio.wait_for(future, self.env_call_timeout)
                 assert isinstance(response, dict), f"Response must be a dictionary, got {type(response)}: {response}"
             except Exception as e:
                 logger.exception(f"Env {env_idx}. Error during async send/recv {command}: {e}")
@@ -247,8 +249,10 @@ class EnvironmentServer:
             self._cleanup_inactive_sessions()
             logger.debug(f"Cleanup of inactive sessions took {(time.perf_counter() - t)*1000:.2f} ms")
 
-            for i in range(self.n_envs):
-                if i not in self.sessions.values():
+            async with self.acquire_lock:
+                for i in range(self.n_envs):
+                    if i in self.sessions.values():
+                        continue
                     if not self.env_processes[i].is_alive():
                         logger.warning(f"Attempted to acquire env {i}, but its process is dead. Skipping.")
                         continue
@@ -256,9 +260,7 @@ class EnvironmentServer:
                     session_id = str(uuid.uuid4())
                     self.sessions[session_id] = i
                     self.session_last_activity[session_id] = time.time()
-                    logger.info(
-                        f"Env {i} acquired, session ID: {session_id}. Free envs: {self.n_envs - len(self.sessions)}"
-                    )
+                    logger.info(f"Env {i} acquired by {session_id}. Free envs: {self.n_envs - len(self.sessions)}")
                     return {"session_id": session_id}
             logger.debug(f"Acquire took {(time.perf_counter() - t)*1000:.2f} ms")
             return {"error": "No free environments available"}
@@ -320,10 +322,9 @@ class EnvironmentServer:
         logger.info("All environment processes cleaned up.")
 
     def launch(self, env_config: DictConfig):
-        app = self.create_app()
         self.start_envs(env_config)
         atexit.register(self.shutdown)
-
+        app = self.create_app()
         logger.info(f"Starting Environment Server at http://{self.host}:{self.port} with {self.n_envs} environments.")
         uvicorn.run(app, host=self.host, port=self.port, timeout_keep_alive=3600, log_level="info")
 
@@ -503,7 +504,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 await self.api_call("release")
                 logger.debug(f"Async environment with session id {self.session_id} closed.")
             except Exception as e:
-                logger.error(f"Failed to release environment correctly: {e}")
+                logger.warning(f"Failed to close remote environment: {e}")
             self.session_id = None
             self.session = None
         elif not self.session:
