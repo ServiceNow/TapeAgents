@@ -330,7 +330,10 @@ class Browser(StatefulTool):
         self._task_id = task_id
         t = time.perf_counter()
         if self._env is not None:
-            self._env.close()
+            try:
+                self._env.close()
+            except Exception as e:
+                logger.warning(f"Failed to close old gym properly: {e}, could be resource leakage")
         logger.info(f"Old gym close took {time.perf_counter() - t:.2f}s")
         t = time.perf_counter()
         self._env = gym.make(
