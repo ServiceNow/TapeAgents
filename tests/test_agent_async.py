@@ -153,9 +153,9 @@ async def test_concurrent_execution():
         return question, steps
 
     # Measure time for concurrent execution
-    start_time = time.time()
+    start_time = time.perf_counter()
     results = await asyncio.gather(*[process_question(q) for q in questions])
-    elapsed_time = time.time() - start_time
+    elapsed_time = time.perf_counter() - start_time
 
     # Verify results
     assert len(results) == 10
@@ -170,8 +170,7 @@ async def test_concurrent_execution():
             assert "Berlin" in steps[0].reasoning
             assert "Berlin" in steps[1].reasoning
 
-    assert elapsed_time < 3  # 2 llm requests per question each taking 1 second, plus some overhead
-    print(f"Elapsed time {elapsed_time:.2f}")
+    assert elapsed_time < 3, f"Execution took too long: {elapsed_time:.2f} seconds"
 
 
 if __name__ == "__main__":
