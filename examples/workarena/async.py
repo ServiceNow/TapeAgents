@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import random
@@ -29,6 +30,8 @@ def abt_to_json(tasks: list[dict]) -> list[dict]:
 async def run_agent_with_remote_env(
     cfg: DictConfig, task: dict, session: aiohttp.ClientSession, max_loops: int
 ) -> WorkArenaTape:
+    task_number = task["task_number"]
+    logger.info(f"Starting task {task_number}")
     environment: AsyncRemoteEnvironment = instantiate(cfg.environment)  # type: ignore
     async with environment.acontext(session, wait_for_env=True) as env:
         start_attempts = cfg.start_attempts
@@ -41,11 +44,16 @@ async def run_agent_with_remote_env(
                 start_attempts -= 1
                 if start_attempts <= 0:
                     raise e
-                logger.warning(f"Failed to start task, retry after 5 seconds: {e}")
+                logger.warning(f"Failed to start task {task_number}, retry after 5 seconds: {e}")
                 await asyncio.sleep(5)
         start_time = time.perf_counter() - t
-        logger.info(f"Task {task['task']}/{task['seed']} started in {start_time:.2f} seconds")
-        tape: WorkArenaTape = WorkArenaTape(**tape_dict)
+        logger.info(f"Task {task_number} started in {start_time:.2f} seconds")
+        try:
+            tape: WorkArenaTape = WorkArenaTape(**tape_dict)
+        except Exception as e:
+            logger.error(f"Failed to create tape from task data: {e}: {json.dumps(tape_dict, indent=2)}")
+            raise e
+        tape.metadata.author_tape_id = task_number
         t = time.perf_counter()
         try:
             actions = await env.a_actions()
@@ -53,12 +61,12 @@ async def run_agent_with_remote_env(
             llms = instantiate(cfg.llms)
             logger.info(f"Loaded {len(llms)} LLMs from configuration.")
             llm = random.choice(llms)
-            logger.info(f"Using LLM: {llm.base_url}")
+            # logger.info(f"Using LLM: {llm.base_url}")
             agent = instantiate(cfg.agent, known_actions=actions, tools_description=tools_description)
             agent.llms["default"] = llm
             tape = await async_execute_agent(agent, tape, env, session, max_loops=max_loops)
         except Exception as e:
-            logger.exception(f"Error occurred while running agent: {e}")
+            logger.exception(f"task {tape.metadata.author_tape_id}: Error occurred while running agent: {e}")
             tape.metadata.error = str(e)
         tape.metadata.result = {"execution_time": time.perf_counter() - t, "start_time": start_time}
     # save the tape as we go
@@ -69,23 +77,27 @@ async def run_agent_with_remote_env(
 async def amain(cfg: DictConfig) -> None:
     os.environ["TAPEAGENTS_SQLITE_DB"] = os.path.join(cfg.exp_path, "tapedata.sqlite")
 
-    alogger = logging.getLogger("tapeagents.agent")
+    # alogger = logging.getLogger("tapeagents.agent")
     # alogger.setLevel(logging.DEBUG)
-    ologger = logging.getLogger("tapeagents.orchestrator")
+    # ologger = logging.getLogger("tapeagents.orchestrator")
     # ologger.setLevel(logging.DEBUG)
 
     ### Step 1: load datasets ###
     samples = [{"task": task.get_task_id(), "seed": seed} for seed in cfg.seeds for task in ATOMIC_TASKS]
-    samples = samples[:2]
-    logger.info(f"SAMPLES: {len(samples)}")
+    # shuffle the samples to avoid bias
+    random.shuffle(samples)
+    logger.info(f"Loaded {len(samples)} samples")
+
     dt = time.perf_counter()
     timeout = cfg.requests_timeout
+    connector = aiohttp.TCPConnector(limit=1000)
     timeout = aiohttp.ClientTimeout(total=timeout, connect=timeout, sock_read=timeout)
     coroutines = []
     results = []
 
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        for task in samples:
+    async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+        for i, task in enumerate(samples):
+            task["task_number"] = i
             logging.info(f"Schedule task {task['task']} with seed {task['seed']}")
             coroutines.append(run_agent_with_remote_env(cfg, task, session, max_loops=cfg.max_loops))
         logger.info(f"Solving {len(coroutines)} tasks")

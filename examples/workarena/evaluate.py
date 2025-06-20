@@ -7,13 +7,13 @@ from omegaconf import DictConfig
 from termcolor import colored
 
 from tapeagents.agent import Agent
+from tapeagents.core import Action
 from tapeagents.io import save_json_tape
 from tapeagents.llms import LLM
 from tapeagents.orchestrator import main_loop
 
 from .agent import WorkArenaAgent, WorkArenaBaselineNode
 from .environment import WorkArenaEnvironment
-from .steps import WorkArenaAction
 
 logging.basicConfig(level=logging.INFO)
 
@@ -55,7 +55,7 @@ def main(cfg: DictConfig) -> None:
             for event in main_loop(agent, tape, env, max_loops=20):  # type: ignore
                 if event.agent_event and event.agent_event.step:
                     step = event.agent_event.step
-                    if isinstance(step, WorkArenaAction):
+                    if isinstance(step, Action):
                         step_view = step.llm_view()
                         if step_view == last_action:
                             repeated_action_cnt += 1

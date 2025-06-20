@@ -4,13 +4,13 @@ from typing import Any
 
 from browsergym.workarena.tasks.base import AbstractServiceNowTask
 
-from tapeagents.core import LLMOutputParsingFailureAction, Observation
+from examples.workarena.steps import FinalAnswerAction, ReflectionThought, WorkArenaTape
+from tapeagents.core import Action, FinalObservation, LLMOutputParsingFailureAction, Observation
+from tapeagents.dialog_tape import UserStep
 from tapeagents.environment import Environment
 from tapeagents.steps import ActionExecutionFailure
 from tapeagents.tools.browser import Browser
 from tapeagents.utils import FatalError
-
-from .steps import Action, FinalAnswerAction, ReflectionThought, WorkArenaTape, WorkArenaTask
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class WorkArenaEnvironment(Environment):
         self.timeout_ms = timeout_ms
 
     def initialize(self):
-        self.browser = Browser(headless=self.headless, exp_path=self.exp_path, timeout_ms=self.timeout_ms)
+        self.browser = Browser(headless=self.headless, exp_path=self.exp_path, timeout_ms=self.timeout_ms, mock=True)
 
     def start_task(self, task_data: dict) -> tuple[WorkArenaTape, dict[str, Any]]:
         task: type[AbstractServiceNowTask] = task_data["task"]
@@ -37,7 +37,7 @@ class WorkArenaEnvironment(Environment):
         task_id = f"browsergym/{task}"
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         obs = self.browser.run_browser_action("noop()")
-        tape = WorkArenaTape(steps=[obs, WorkArenaTask(task=info["goal"])])
+        tape = WorkArenaTape(steps=[obs, UserStep(content=info["goal"])])
         return tape, info
 
     def actions(self) -> tuple[type[Action], ...]:
@@ -89,7 +89,10 @@ class WorkArenaEnvironment(Environment):
         return tape
 
     def step(self, action: Action) -> Observation:
-        return self.browser.run(action)
+        obs = self.browser.run(action)
+        if obs.metadata.other.get("env_finished", False):
+            obs = FinalObservation(metadata=obs.metadata)
+        return obs
 
     def reset(self):
         self.browser.reset()

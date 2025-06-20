@@ -1,8 +1,5 @@
 import platform
-from pprint import pprint
 from typing import Any
-
-from pydantic import Field
 
 from examples.workarena.prompts import (
     ABSTRACT_EXAMPLE,
@@ -20,16 +17,18 @@ from examples.workarena.prompts import (
     SYSTEM_PROMPT,
 )
 from examples.workarena.steps import (
-    WorkArenaAgentStep,
+    FinalAnswerAction,
+    ReflectionThought,
     WorkArenaTape,
-    WorkArenaTask,
 )
 from tapeagents.agent import Agent
-from tapeagents.core import Action, Prompt, Step
+from tapeagents.core import Action, Prompt
 from tapeagents.llms import LLM
 from tapeagents.nodes import StandardNode
-from tapeagents.tool_calling import as_openai_tool
+from tapeagents.steps import ReasoningThought
 from tapeagents.tools.browser import PageObservation
+
+mac_hint = MAC_HINT if platform.system() == "Darwin" else ""
 
 
 class WorkArenaBaselineNode(StandardNode):
@@ -45,31 +44,23 @@ class WorkArenaBaselineNode(StandardNode):
     - long_description
     """
 
-    guidance: str = ""
-    agent_steps: type[Step] | tuple[type[Step], ...] = Field(exclude=True, default=WorkArenaAgentStep)
+    guidance: str = f"{mac_hint}\n{HINTS}\n{BE_CAUTIOUS}\n{ABSTRACT_EXAMPLE}\n{CONCRETE_EXAMPLE}"
+    system_prompt: str = BASELINE_SYSTEM_PROMPT
+    steps_prompt: str = BASELINE_STEPS_PROMPT
 
     def make_prompt(self, agent: Any, tape: WorkArenaTape) -> Prompt:
-        assert isinstance(tape.steps[1], WorkArenaTask)
-        goal = GOAL_INSTRUCTIONS.format(goal=tape.steps[1].task)
+        goal = GOAL_INSTRUCTIONS.format(goal=tape.steps[1].content)
         obs = [s for s in tape if isinstance(s, PageObservation)][-1].text
         history = self.history_prompt(tape)
-        mac_hint = MAC_HINT if platform.system() == "Darwin" else ""
-        main_prompt = f"""{goal}\n\n# Web Page Content\n{obs}\n\n{history}
-{BASELINE_STEPS_PROMPT}{mac_hint}
-{HINTS}
-{BE_CAUTIOUS}
-{ABSTRACT_EXAMPLE}
-{CONCRETE_EXAMPLE}
-        """.strip()
+
         self._steps = self.prepare_step_types(agent)
-        tools = [as_openai_tool(s).model_dump() for s in self._steps]
-        pprint(tools, width=140)
+        steps_description = self.get_steps_description(agent)
+
+        main_prompt = f"{goal}\n\n# Web Page Content\n{obs}\n\n{history}\n{steps_description}\n{self.guidance}"
+        # tools = [as_openai_tool(s).model_dump() for s in self._steps]
         return Prompt(
-            messages=[
-                {"role": "system", "content": BASELINE_SYSTEM_PROMPT},
-                {"role": "user", "content": main_prompt},
-            ],
-            tools=tools,
+            messages=[{"role": "system", "content": self.system_prompt}, {"role": "user", "content": main_prompt}],
+            # tools=tools,
         )
 
     def history_prompt(self, tape: WorkArenaTape) -> str:
@@ -100,14 +91,16 @@ class WorkArenaAgent(Agent):
                     system_prompt=SYSTEM_PROMPT,
                     guidance=START,
                     steps_prompt=ALLOWED_STEPS,
-                    steps=WorkArenaAgentStep,
+                    use_known_actions=True,
+                    steps=[ReasoningThought, ReflectionThought, FinalAnswerAction],
                 ),
                 StandardNode(
                     name="reflect",
                     system_prompt=SYSTEM_PROMPT,
                     guidance=REFLECT,
                     steps_prompt=ALLOWED_STEPS,
-                    steps=WorkArenaAgentStep,
+                    use_known_actions=True,
+                    steps=[ReasoningThought, ReflectionThought, FinalAnswerAction],
                 ),
                 StandardNode(
                     name="act",
@@ -115,7 +108,8 @@ class WorkArenaAgent(Agent):
                     guidance=ACT,
                     next_node="reflect",
                     steps_prompt=ALLOWED_STEPS,
-                    steps=WorkArenaAgentStep,
+                    use_known_actions=True,
+                    steps=[ReasoningThought, ReflectionThought, FinalAnswerAction],
                 ),
             ],
             max_iterations=max_iterations,

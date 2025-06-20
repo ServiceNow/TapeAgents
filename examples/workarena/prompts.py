@@ -121,9 +121,12 @@ response from the page."
     }
 ]
 """
-BASELINE_STEPS_PROMPT = """# Action space:
+BASELINE_STEPS_PROMPT = """
+# Action space:
 Note: This action set allows you to interact with your environment. The primary way of referring to
 elements in the page is through bid which are specified in your observations.
+Allowed actions:
+{allowed_steps}
 """
 
 MAC_HINT = "\nNote: you are on mac so you should use Meta instead of Control for Control+C etc.\n"

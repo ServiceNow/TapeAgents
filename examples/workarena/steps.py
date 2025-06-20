@@ -2,8 +2,8 @@ from typing import Annotated, Literal, Union
 
 from pydantic import Field
 
-from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, SetNextNode, StopStep, Tape, Thought
-from tapeagents.dialog_tape import DialogContext
+from tapeagents.core import FinalObservation, LLMOutputParsingFailureAction, SetNextNode, StopStep, Tape, Thought
+from tapeagents.dialog_tape import DialogContext, UserStep
 from tapeagents.steps import ActionExecutionFailure, ReasoningThought
 from tapeagents.tools.browser import (
     ClickBIDAction,
@@ -19,28 +19,7 @@ from tapeagents.tools.browser import (
 )
 
 
-################### Base Step Classes ###################
-class WorkArenaThought(Thought):
-    pass
-
-
-class WorkArenaAction(Action):
-    pass
-
-
-class WorkArenaObservation(Observation):
-    pass
-
-
-################### Steps ###################
-
-
-class WorkArenaTask(WorkArenaObservation):
-    kind: Literal["task"] = "task"
-    task: str
-
-
-class ReflectionThought(WorkArenaThought):
+class ReflectionThought(Thought):
     """
     Review the current state of the page and previous steps to find the best possible next action to accomplish the task:
     1. Produce reasoning thougt explaining the observed state, think about which blocks could be relevant to the given task and its current state, note relevant BIDs.
@@ -50,7 +29,7 @@ class ReflectionThought(WorkArenaThought):
     5. Describe the next action to be performed and expected effect on the page.
     """
 
-    kind: Literal["reflection_thought"] = "reflection_thought"
+    kind: Literal["reflection_thought"] = "reflection_thought"  # type: ignore
     page_state: str = Field(
         description="description of the current page state, think about which blocks could be relevant to the given task and its current state, note relevant BIDs"
     )
@@ -78,19 +57,19 @@ class ReflectionThought(WorkArenaThought):
     )
 
 
-class FinalAnswerAction(WorkArenaAction, StopStep):
+class FinalAnswerAction(StopStep):
     """
     Action that provides the final answer to the user after completing the task.
     Should be produced when the agent has finished the task.
     When the task has question about numerical value, the answer should contain only one number!
     """
 
-    kind: Literal["final_answer_action"] = "final_answer_action"
+    kind: Literal["final_answer_action"] = "final_answer_action"  # type: ignore
     text: str = Field(description="final answer to the user")
 
 
 WorkArenaStep = Union[
-    WorkArenaTask,
+    UserStep,
     PageObservation,
     ActionExecutionFailure,
     LLMOutputParsingFailureAction,
@@ -117,24 +96,8 @@ WorkArenaStep = Union[
 
 
 class WorkArenaTape(Tape[DialogContext, WorkArenaStep]):
-    context: DialogContext = DialogContext(tools=[])
+    pass
 
-
-WorkArenaBaselineStep = (
-    # thoughts
-    ReasoningThought,
-    # browser actions
-    ClickBIDAction,
-    SelectOptionAction,
-    HoverAction,
-    InputTextAction,
-    PressAction,
-    PageDownAction,
-    PageUpAction,
-    GoBackAction,
-    GoForwardAction,
-    FinalAnswerAction,
-)
 
 WorkArenaAgentStep = (
     # thoughts
@@ -155,7 +118,8 @@ WorkArenaAgentStep = (
     GoForwardAction,
     # GotoPageAction,
     FinalAnswerAction,
+    FinalObservation,
 )
 
 
-BASELINE_STEPS_CLS = Annotated[Union[WorkArenaBaselineStep], Field(discriminator="kind")]
+steps_cls = Annotated[Union[WorkArenaStep], Field(discriminator="kind")]

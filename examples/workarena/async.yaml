@@ -24,6 +24,12 @@ llms:
     parameters:
       max_tokens: 512
       temperature: 0.1
+  # - _target_: tapeagents.llms.LiteLLM
+  #   model_name: gpt-4.1-mini-2025-04-14
+  #   use_cache: false
+  #   context_size: 128000
+  #   parameters:
+  #     temperature: 0.2
 
 environment:
   _target_: tapeagents.remote_environment.AsyncRemoteEnvironment
@@ -38,7 +44,7 @@ agent:
     - _target_: examples.workarena.agent.WorkArenaBaselineNode
       name: main
       use_known_actions: true
-      use_function_calls: true
+      use_function_calls: false
       steps: 
         - tapeagents.steps.ReasoningThought
         - examples.workarena.steps.FinalAnswerAction
