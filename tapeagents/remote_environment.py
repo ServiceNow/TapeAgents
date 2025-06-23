@@ -223,8 +223,25 @@ class EnvironmentServer:
             loop = asyncio.get_running_loop()
 
             def send_recv():
-                conn.send((command, data))
-                return conn.recv()
+                try:
+                    conn.send((command, data))
+                except Exception as e:
+                    logger.exception(f"Env {env_idx}. Error sending command {command}: {e}")
+                    return {
+                        "status": "error",
+                        "error": f"Error sending command to worker: {e}",
+                        "details": traceback.format_exc(),
+                    }
+                try:
+                    result = conn.recv()
+                except Exception as e:
+                    logger.exception(f"Env {env_idx}. Error receiving response for command {command}: {e}")
+                    result = {
+                        "status": "error",
+                        "error": f"Error receiving response from worker: {e}",
+                        "details": traceback.format_exc(),
+                    }
+                return result
 
             self.requests_in_progress += 1
             try:
