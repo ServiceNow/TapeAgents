@@ -46,7 +46,7 @@ async def run_agent_with_remote_env(
                 logger.warning(err)
                 if start_attempts <= 0:
                     tape = WorkArenaTape(steps=[], metadata=TapeMetadata(error=err, author_tape_id=str(task_number)))
-                    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.id)
+                    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), f"task_{task_number}")
                     return tape
                 await asyncio.sleep(5)
         start_time = time.perf_counter() - t
@@ -74,7 +74,7 @@ async def run_agent_with_remote_env(
             tape.metadata.error = str(e)
         tape.metadata.result = {"execution_time": time.perf_counter() - t, "start_time": start_time}
     # save the tape as we go
-    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
+    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), f"task_{task_number}")
     return tape
 
 
