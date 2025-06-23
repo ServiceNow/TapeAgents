@@ -1,35 +1,40 @@
-exp_name: workarena_agent_llama31_8b
+exp_name: workarena_agent_qwen3_32b
 exp_path: outputs/rl_webagent/${exp_name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
-train_split: 0.6  # 0.6 of tasks for training, 0.4 for testing
 seeds: [0, 42, 1337]
 max_loops: 10
 start_attempts: 3
 requests_timeout: 120.0
 
-environment_variables:
-  miniwob_url: file:///home/toolkit/miniwob-plusplus/miniwob/html/miniwob/
-  # for workarena, create instance here https://github.com/ServiceNow/WorkArena?tab=readme-ov-file#a-create-a-servicenow-developer-instance
-  # snow_instance_url: ???
-  # snow_instance_uname: ???
-  # snow_instance_pwd: ???
-
 llms:
-  - _target_: tapeagents.llms.TrainableLLM
-    base_url: http://localhost:8080
-    model_name: meta-llama/Llama-3.1-8B-Instruct
-    use_litellm_tokenizer_fallback: true
-    use_cache: false
-    context_size: 32000
-    parameters:
-      max_tokens: 512
-      temperature: 0.1
+  # - _target_: tapeagents.llms.TrainableLLM
+  #   base_url: http://localhost:8080
+  #   model_name: meta-llama/Llama-3.1-8B-Instruct
+  #   use_litellm_tokenizer_fallback: true
+  #   use_cache: false
+  #   context_size: 32000
+  #   parameters:
+  #     max_tokens: 512
+  #     temperature: 0.1
   # - _target_: tapeagents.llms.LiteLLM
   #   model_name: gpt-4.1-mini-2025-04-14
   #   use_cache: false
   #   context_size: 128000
   #   parameters:
   #     temperature: 0.2
+  - _target_: tapeagents.llms.TrainableLLM
+    base_url: http://localhost:8080
+    model_name: Qwen/Qwen3-32B
+    use_litellm_tokenizer_fallback: true
+    use_cache: false
+    context_size: 32000
+    parameters:
+      max_tokens: 512
+      temperature: 0.7
+      top_p: 0.8 # from https://huggingface.co/Qwen/Qwen3-32B for non-thinking mode. For thinking mode use t=0.6 p=0.95
+      top_k: 20
+      chat_template_kwargs:
+        enable_thinking: false
 
 environment:
   _target_: tapeagents.remote_environment.AsyncRemoteEnvironment
