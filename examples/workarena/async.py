@@ -12,7 +12,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from examples.workarena.steps import WorkArenaTape
-from tapeagents.core import Observation
+from tapeagents.core import Observation, TapeMetadata
 from tapeagents.io import save_json_tape
 from tapeagents.orchestrator import async_execute_agent
 from tapeagents.remote_environment import AsyncRemoteEnvironment
@@ -42,18 +42,20 @@ async def run_agent_with_remote_env(
                 break
             except Exception as e:
                 start_attempts -= 1
+                err = f"Failed to start task {task_number}, retry after 5 seconds: {e}"
+                logger.warning(err)
                 if start_attempts <= 0:
-                    raise e
-                logger.warning(f"Failed to start task {task_number}, retry after 5 seconds: {e}")
+                    return WorkArenaTape(steps=[], metadata=TapeMetadata(error=err, author_tape_id=str(task_number)))
                 await asyncio.sleep(5)
         start_time = time.perf_counter() - t
         logger.info(f"Task {task_number} started in {start_time:.2f} seconds")
         try:
             tape: WorkArenaTape = WorkArenaTape(**tape_dict)
         except Exception as e:
-            logger.error(f"Failed to create tape from task data: {e}: {json.dumps(tape_dict, indent=2)}")
-            raise e
-        tape.metadata.author_tape_id = task_number
+            err = f"Failed to create tape from task data: {e}: {json.dumps(tape_dict, indent=2)}"
+            logger.error(err)
+            return WorkArenaTape(steps=[], metadata=TapeMetadata(error=err, author_tape_id=str(task_number)))
+        tape.metadata.author_tape_id = str(task_number)
         t = time.perf_counter()
         try:
             actions = await env.a_actions()
@@ -113,7 +115,16 @@ async def amain(cfg: DictConfig) -> None:
     rewards = []
     for tape in results:
         total_steps += len(tape.steps)
-        last_obs = [step for step in tape if isinstance(step, Observation)][-1]
+        observations = [step for step in tape if isinstance(step, Observation)]
+        if not observations:
+            logger.warning(f"No observations found in tape {tape.metadata.id}")
+            acc.append(False)
+            no_reward += 1
+            if tape.metadata.error:
+                errs += 1
+                logger.warning(f"Error in tape {tape.metadata.id}: {tape.metadata.error}")
+            continue
+        last_obs = observations[-1]
         success = last_obs.metadata.other.get("reward", 0.0) > 0.5
         acc.append(success)
         if tape.metadata.error:
