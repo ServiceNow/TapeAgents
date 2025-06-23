@@ -91,6 +91,7 @@ WorkArenaStep = Union[
     GoForwardAction,
     # GotoPageAction,
     FinalAnswerAction,
+    FinalObservation,
     SetNextNode,
 ]
 
