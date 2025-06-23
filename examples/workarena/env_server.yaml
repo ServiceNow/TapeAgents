@@ -1,6 +1,6 @@
 environment_server:
   _target_: tapeagents.remote_environment.EnvironmentServer
-  n_envs: 2
+  n_envs: 32
   host: localhost
   port: 8000
   max_session_inactivity_secs: 300
