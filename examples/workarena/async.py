@@ -45,7 +45,9 @@ async def run_agent_with_remote_env(
                 err = f"Failed to start task {task_number}, retry after 5 seconds: {e}"
                 logger.warning(err)
                 if start_attempts <= 0:
-                    return WorkArenaTape(steps=[], metadata=TapeMetadata(error=err, author_tape_id=str(task_number)))
+                    tape = WorkArenaTape(steps=[], metadata=TapeMetadata(error=err, author_tape_id=str(task_number)))
+                    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.id)
+                    return tape
                 await asyncio.sleep(5)
         start_time = time.perf_counter() - t
         logger.info(f"Task {task_number} started in {start_time:.2f} seconds")
