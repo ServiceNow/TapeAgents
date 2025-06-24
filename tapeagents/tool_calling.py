@@ -168,9 +168,9 @@ def as_openai_tool(action: type[Step] | ToolSpec, decription_chars_limit: int = 
     schema: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
     schema.pop("$defs", None)
     props = schema["properties"]
+    name = props["kind"]
     props.pop("metadata", None)
     props.pop("kind", None)
-    name = schema["title"]
     description = schema.get("description", "")
     if name.lower().endswith("action"):
         name = name[:-6]  # len("action")
