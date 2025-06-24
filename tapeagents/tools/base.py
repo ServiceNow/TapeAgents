@@ -32,10 +32,13 @@ class BaseTool(BaseModel):
         """
         Return a description of the tool.
         """
+        def to_snake_case(name: str) -> str:
+            return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+            
         assert self.__doc__ is not None, f"{self.__class__.__name__} has no docstring, cannot generate tool description"
         doc = self.__doc__.replace("\n", " ").strip()
         doc = re.sub(r"\s+", " ", doc)
-        return f"{self.__class__.__name__} - {doc}"
+        return f"{to_snake_case(self.__class__.__name__)} - {doc}"
 
 
 class AsyncBaseTool(BaseTool):
