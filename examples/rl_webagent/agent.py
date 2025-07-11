@@ -19,14 +19,7 @@ from tapeagents.tools.simple_browser import PageObservation
 from tapeagents.utils import FatalError
 
 from .prompts import PromptRegistry
-from .steps import (
-    ReasoningThought,
-    WebAgentAction,
-    WebAgentStep,
-    WebTape,
-    WebTask,
-    WebTapeStep
-)
+from .steps import ReasoningThought, WebAgentAction, WebAgentStep, WebTape, WebTapeStep, WebTask
 
 
 class WebNode(StandardNode):
@@ -153,7 +146,12 @@ class WebNode(StandardNode):
             if not event.output:
                 continue
             if event.output.content:
-                if hasattr(agent, "llm") and hasattr(agent, "llm") and hasattr(agent.llm, "tokenizer") and agent.llm.tokenizer:
+                if (
+                    hasattr(agent, "llm")
+                    and hasattr(agent, "llm")
+                    and hasattr(agent.llm, "tokenizer")
+                    and agent.llm.tokenizer
+                ):
                     # remove the tokenizer.eos_token from the output if needed
                     eos_token = agent.llm.tokenizer.eos_token
                     if eos_token and eos_token in event.output.content:
