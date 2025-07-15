@@ -59,7 +59,7 @@ agent:
   max_iterations: 4
   store_llm_calls: true
   llms:
-    default: ${llm}
+    default: ${llms.0}
   templates:
     system_prompt: |
       You are an expert AI Agent, your goal is to help the user perform tasks using a web browser.

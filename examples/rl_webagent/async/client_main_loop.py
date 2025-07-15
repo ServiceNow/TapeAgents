@@ -68,7 +68,7 @@ async def run_agent_with_remote_env(
             tape.metadata.error = str(e)
         tape.metadata.result = {"execution_time": time.perf_counter() - t, "start_time": start_time}
     # save the tape as we go
-    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.parent_id)
+    save_json_tape(tape, os.path.join(cfg.exp_path, "tapes"), tape.metadata.id)
     return tape
 
 
@@ -132,8 +132,6 @@ async def amain(cfg: DictConfig) -> None:
     logger.info(f"Average reward: {sum(rewards) / len(rewards) if rewards else 0:.2f}")
     logger.info(f"Number of tapes with no reward: {no_reward}")
     logger.info(f"Failed tapes: {errs}")
-
-    ### TODO: continue to copy things from orchestrate_rl.py / switch to pipelinerl
 
 
 @hydra.main(
