@@ -12,6 +12,7 @@ from typing import Annotated, Union
 
 import aiohttp
 import requests
+import tenacity
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from hydra.utils import instantiate
@@ -476,6 +477,12 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         observation.metadata.other["action_kind"] = action.kind
         return observation
 
+    @tenacity.retry(
+            retry=tenacity.retry_if_exception_type(HTTPException),
+            stop=tenacity.stop_after_delay(300),  # Retry for up to 5 minutes
+            wait=tenacity.wait_random_exponential(multiplier=1, max=32)
+            # wait randomly up to 2^x * 1 seconds between each retry until the range reaches 32 seconds
+    )
     async def api_call(self, endpoint: str, data: dict | None = None, suppress_errors: bool = False) -> dict:
         if data is None:
             data = {}
