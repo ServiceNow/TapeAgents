@@ -479,9 +479,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
 
     @tenacity.retry(
             retry=tenacity.retry_if_exception_type(HTTPException),
-            stop=tenacity.stop_after_delay(300),  # Retry for up to 5 minutes
-            wait=tenacity.wait_random_exponential(multiplier=1, max=32)
-            # wait randomly up to 2^x * 1 seconds between each retry until the range reaches 32 seconds
+            stop=tenacity.stop_after_delay(3600),  # Retry for up to 1 hour
+            wait=tenacity.wait_random_exponential(multiplier=1, max=60)
+            # wait randomly up to 2^x * 1 seconds between each retry until the range reaches 60 seconds
     )
     async def api_call(self, endpoint: str, data: dict | None = None, suppress_errors: bool = False) -> dict:
         if data is None:
