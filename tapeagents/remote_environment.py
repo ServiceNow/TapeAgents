@@ -5,6 +5,7 @@ import logging
 import os
 import pickle
 import socket
+import threading
 import time
 import traceback
 import uuid
@@ -58,7 +59,9 @@ class ProcessPoolManager:
     def __init__(self, max_workers: int, socket_dir: str = "/tmp/tapeagents_envs"):
         self.max_workers = max_workers
         self.socket_dir = socket_dir
-        self.active_workers: dict[str, TaskWorker] = {}
+        self.active_workers: dict[str, TaskWorker | None] = {}
+        self.stopped_workers: int = 0
+        self.lock = threading.Lock()
 
         # Create socket directory
         os.makedirs(self.socket_dir, exist_ok=True)
@@ -67,6 +70,8 @@ class ProcessPoolManager:
         """Remove dead workers from tracking."""
         dead_workers = []
         for worker_id, task_proc in self.active_workers.items():
+            if task_proc is None:
+                continue  # this worker is starting right now
             if not task_proc.process.is_alive():
                 logger.info(f"Cleaning up dead worker {worker_id}")
                 dead_workers.append(worker_id)
@@ -78,6 +83,7 @@ class ProcessPoolManager:
 
         for worker_id in dead_workers:
             del self.active_workers[worker_id]
+        self.stopped_workers += len(dead_workers)
 
     def can_spawn_new_process(self) -> bool:
         """Check if we can spawn a new process."""
@@ -86,11 +92,12 @@ class ProcessPoolManager:
 
     def spawn_worker(self, worker_id: str, env_config: dict) -> str:
         """Spawn a new process for a worker and return socket path."""
-        if not self.can_spawn_new_process():
-            raise ResourceExhaustedException(
-                f"Cannot spawn process: {len(self.active_workers)}/{self.max_workers} slots occupied"
-            )
-
+        with self.lock:
+            if not self.can_spawn_new_process():
+                raise ResourceExhaustedException(
+                    f"Cannot spawn process: {len(self.active_workers)}/{self.max_workers} slots occupied"
+                )
+            self.active_workers[worker_id] = None  # Mark as starting
         socket_path = os.path.join(self.socket_dir, f"worker_{worker_id}.sock")
         logger.info("Starting process")
         process = Process(
@@ -101,7 +108,7 @@ class ProcessPoolManager:
 
         # Wait for the socket file to be created and accessible
         socket_ready = False
-        max_wait_time = 10  # seconds
+        max_wait_time = 60  # seconds
         check_interval = 0.1  # seconds
         elapsed_time = 0
 
@@ -153,9 +160,13 @@ class ProcessPoolManager:
             raise HTTPException(status_code=400, detail=f"Worker {worker_id} not found")
 
         task_proc = self.active_workers[worker_id]
+        if task_proc is None:
+            raise HTTPException(status_code=503, detail=f"Worker {worker_id} is starting, please wait")
+
         if not task_proc.process.is_alive():
             logger.error(f"Process for worker {worker_id} is dead, removing from tracking")
             del self.active_workers[worker_id]
+            self.stopped_workers += 1
             raise HTTPException(status_code=503, detail=f"Worker {worker_id} process is not responding")
 
         # Update activity
@@ -166,6 +177,8 @@ class ProcessPoolManager:
         """Terminate a specific worker process."""
         if worker_id in self.active_workers:
             worker_info = self.active_workers[worker_id]
+            if worker_info is None:
+                return  # Worker is still starting, nothing to terminate
             logger.info(f"Terminating worker {worker_id} process {worker_info.process.pid}")
 
             if worker_info.process.is_alive():
@@ -183,6 +196,7 @@ class ProcessPoolManager:
                 pass
 
             del self.active_workers[worker_id]
+            self.stopped_workers += 1
 
     def shutdown_all(self) -> None:
         """Shutdown all active task processes."""
@@ -530,8 +544,12 @@ class EnvironmentServer:
         @app.get("/health")
         async def health_check():
             """Health check endpoint."""
-            active_workers = len(self.pool_manager.active_workers)
-            return {"status": "ok", "active_workers": active_workers, "max_workers": self.pool_manager.max_workers}
+            return {
+                "status": "ok",
+                "active_workers": len(self.pool_manager.active_workers),
+                "max_workers": self.pool_manager.max_workers,
+                "stopped_workers": self.pool_manager.stopped_workers,
+            }
 
         @app.get("/workers")
         async def list_workers():
@@ -690,11 +708,12 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
     Asynchronous environment that proxies actions to a remote environment server using the new task-based API.
     """
 
-    def __init__(self, server_url: str, max_parallel_requests: int = 32):
+    def __init__(self, server_url: str, max_parallel_requests: int = 32, start_timeout_sec: int = 3600):
         self.server_url = server_url
         self.worker_id: str | None = None
         self.session: aiohttp.ClientSession | None = None
         self.semaphore = asyncio.Semaphore(max_parallel_requests)
+        self.start_timeout_sec = start_timeout_sec
 
     async def ainitialize(self, session: aiohttp.ClientSession) -> None:
         """Initialize with aiohttp session."""
@@ -702,10 +721,26 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         await super().ainitialize()  # In case parent class has async initialization logic
 
     async def start_task(self, task_data: dict) -> dict:
+        t = time.perf_counter()
+        while True:
+            try:
+                result = await self._start_task(task_data)
+                break
+            except Exception as e:
+                if time.perf_counter() - t > self.start_timeout_sec:
+                    logger.error(f"Failed to start task after {self.start_timeout_sec} seconds: {e}")
+                    raise HTTPException(status_code=500, detail=f"Failed to start task: {str(e)}")
+                logger.warning(f"Failed to start task, retry after 5 seconds: {e}")
+                await asyncio.sleep(5)
+        start_time = time.perf_counter() - t
+        logger.info(f"Task started in {start_time:.2f} seconds")
+        return result
+
+    async def _start_task(self, task_data: dict) -> dict:
         """Start a new task on the server."""
         if not self.session:
             raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        response_dict = await self.api_call("start_task", {"task_data": task_data})
+        response_dict = await self.api_call("start_task", {"task_data": task_data}, suppress_errors=True)
         self.worker_id = response_dict.get("worker_id")
         logger.debug(f"Started async task with ID: {self.worker_id}")
         return response_dict.get("start_result", {})
