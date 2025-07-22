@@ -1,13 +1,15 @@
 import asyncio
 import atexit
 import contextlib
+import json
 import logging
 import os
-import random
+import socket
 import time
 import traceback
 import uuid
-from multiprocessing import Pipe, Process, connection as mp_connection  # type: ignore
+from dataclasses import dataclass
+from multiprocessing import Process
 from typing import Annotated, Union
 
 import aiohttp
@@ -25,60 +27,179 @@ from tapeagents.tool_calling import ToolCallAction, ToolSpec
 from tapeagents.utils import class_for_name, full_classname
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format="[%(asctime)s][%(levelname)s][Server][%(process)d][%(name)s:%(lineno)d] - %(message)s",
+    datefmt="%m/%d/%Y %H:%M:%S",
+    level=logging.INFO,
+    handlers=[logging.StreamHandler()],
+)
 
 
-class EnvironmentServer:
-    """
-    Manages multiple environment instances, each running in a separate process,
-    and exposes them via an HTTP server using FastAPI. Clients can acquire an
-    environment, operate on it using a session ID, and then release it.
-    """
+@dataclass
+class TaskWorker:
+    """Information about a running task process."""
 
-    def __init__(
-        self,
-        n_envs: int,
-        host: str = "localhost",
-        port: int = 8000,
-        max_session_inactivity_secs: int = 600,
-        env_call_timeout: int = 60,
-    ):
-        if n_envs <= 0:
-            raise ValueError("Number of instances must be positive.")
-        self.n_envs = n_envs
+    worker_id: str
+    process: Process
+    socket_path: str
+    start_time: float
+    last_activity: float
 
-        self.host = host
-        self.port = port
-        self.max_session_inactivity_secs = max_session_inactivity_secs
-        self.env_call_timeout = env_call_timeout
 
-        self.env_pipes: dict[int, mp_connection.Connection] = {}
-        self.env_processes: dict[int, Process] = {}
-        self.sessions: dict[str, int] = {}  # session_id -> env_idx
-        self.session_last_activity: dict[str, float] = {}  # session_id -> timestamp
-        self.requests_in_progress: int = 0
+class ResourceExhaustedException(Exception):
+    """Raised when all environment slots are occupied."""
 
-    def start_envs(self, env_config: DictConfig):
-        for i in range(self.n_envs):
-            parent_conn, child_conn = Pipe()
-            env_config_dict = OmegaConf.to_container(env_config, resolve=True)
-            process = Process(
-                target=EnvironmentServer._environment_worker,
-                args=(env_config_dict, child_conn, i),
-                daemon=True,  # Daemonize workers so they exit if main process crashes
+    pass
+
+
+class ProcessPoolManager:
+    """Manages a pool of environment processes, spawning them per task."""
+
+    def __init__(self, max_processes: int, socket_dir: str = "/tmp/tapeagents_envs"):
+        self.max_processes = max_processes
+        self.socket_dir = socket_dir
+        self.active_workers: dict[str, TaskWorker] = {}
+
+        # Create socket directory
+        os.makedirs(self.socket_dir, exist_ok=True)
+
+    def cleanup_dead_workers(self) -> None:
+        """Remove dead workers from tracking."""
+        dead_workers = []
+        for worker_id, task_proc in self.active_workers.items():
+            if not task_proc.process.is_alive():
+                logger.info(f"Cleaning up dead worker {worker_id}")
+                dead_workers.append(worker_id)
+                # Clean up socket file
+                try:
+                    os.unlink(task_proc.socket_path)
+                except FileNotFoundError:
+                    pass
+
+        for worker_id in dead_workers:
+            del self.active_workers[worker_id]
+
+    def can_spawn_new_process(self) -> bool:
+        """Check if we can spawn a new process."""
+        self.cleanup_dead_workers()
+        return len(self.active_workers) < self.max_processes
+
+    def spawn_worker(self, worker_id: str, env_config: dict) -> str:
+        """Spawn a new process for a worker and return socket path."""
+        if not self.can_spawn_new_process():
+            raise ResourceExhaustedException(
+                f"Cannot spawn process: {len(self.active_workers)}/{self.max_processes} slots occupied"
             )
-            process.start()
 
-            self.env_pipes[i] = parent_conn
-            self.env_processes[i] = process
+        socket_path = os.path.join(self.socket_dir, f"worker_{worker_id}.sock")
+
+        process = Process(
+            target=ProcessPoolManager._task_worker, args=(env_config, socket_path, worker_id), daemon=True
+        )
+        process.start()
+
+        # Wait for the socket file to be created and accessible
+        socket_ready = False
+        max_wait_time = 10  # seconds
+        check_interval = 0.1  # seconds
+        elapsed_time = 0
+
+        while elapsed_time < max_wait_time and not socket_ready:
+            if os.path.exists(socket_path):
+                # Socket file exists, try to connect to verify it's ready
+                try:
+                    test_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    test_sock.settimeout(0.1)
+                    test_sock.connect(socket_path)
+                    test_sock.close()
+                    socket_ready = True
+                    logger.info(f"Socket {socket_path} is ready for worker {worker_id}")
+                except (socket.error, ConnectionRefusedError, FileNotFoundError):
+                    # Socket exists but not ready yet
+                    pass
+
+            if not socket_ready:
+                time.sleep(check_interval)
+                elapsed_time += check_interval
+
+        if not process.is_alive():
+            logger.error(f"Worker {worker_id} failed to start!")
+            raise RuntimeError(f"Failed to start worker {worker_id}")
+
+        if not socket_ready:
+            logger.error(f"Socket {socket_path} not ready after {max_wait_time} seconds")
+            process.terminate()
+            process.join(timeout=2)
+            if process.is_alive():
+                process.kill()
+            raise RuntimeError(f"Worker {worker_id} socket not ready within timeout")
+
+        task_proc = TaskWorker(
+            worker_id=worker_id,
+            process=process,
+            socket_path=socket_path,
+            start_time=time.time(),
+            last_activity=time.time(),
+        )
+
+        self.active_workers[worker_id] = task_proc
+        logger.info(f"Spawned process {process.pid} for worker {worker_id}, socket: {socket_path}")
+        return socket_path
+
+    def get_socket_path(self, worker_id: str) -> str:
+        """Get socket path for a worker, updating activity timestamp."""
+        if worker_id not in self.active_workers:
+            raise HTTPException(status_code=400, detail=f"Worker {worker_id} not found")
+
+        task_proc = self.active_workers[worker_id]
+        if not task_proc.process.is_alive():
+            logger.error(f"Process for worker {worker_id} is dead, removing from tracking")
+            del self.active_workers[worker_id]
+            raise HTTPException(status_code=503, detail=f"Worker {worker_id} process is not responding")
+
+        # Update activity
+        task_proc.last_activity = time.time()
+        return task_proc.socket_path
+
+    def terminate(self, worker_id: str) -> None:
+        """Terminate a specific task process."""
+        if worker_id in self.active_workers:
+            task_proc = self.active_workers[worker_id]
+            logger.info(f"Terminating task {worker_id} process {task_proc.process.pid}")
+
+            if task_proc.process.is_alive():
+                task_proc.process.terminate()
+                task_proc.process.join(timeout=5)
+                if task_proc.process.is_alive():
+                    logger.warning(f"Force killing task {worker_id} process {task_proc.process.pid}")
+                    task_proc.process.kill()
+                    task_proc.process.join()
+
+            # Clean up socket
+            try:
+                os.unlink(task_proc.socket_path)
+            except FileNotFoundError:
+                pass
+
+            del self.active_workers[worker_id]
+
+    def shutdown_all(self) -> None:
+        """Shutdown all active task processes."""
+        logger.info(f"Shutting down {len(self.active_workers)} active task processes")
+        for worker_id in list(self.active_workers.keys()):
+            self.terminate(worker_id)
 
     @staticmethod
-    def _environment_worker(env_config: dict, conn: mp_connection.Connection, env_idx: int):
+    def _task_worker(env_config: dict, socket_path: str, worker_id: str):
+        """Worker process for a single task using Unix domain socket communication."""
+        print("START!!!!")
         logging.basicConfig(
-            format="[%(asctime)s][%(name)s][%(levelname)s][%(process)d] - %(message)s",
+            format=f"[%(asctime)s][%(levelname)s][Worker-{worker_id}][%(process)d][%(name)s:%(lineno)d] - %(message)s",
             datefmt="%m/%d/%Y %H:%M:%S",
             level=logging.INFO,
-            handlers=[logging.StreamHandler()],
+            handlers=[logging.StreamHandler(), logging.FileHandler(f"/tmp/tapeagents_worker_{worker_id}.log")],
         )
+        print("LOGGER SET!!!!")
 
         def _handle_step(environment: Environment, data: dict) -> dict:
             logger.info(f"Handling step: {data}")
@@ -105,258 +226,388 @@ class EnvironmentServer:
             start_result = environment.start_task(data)
             return {"start_result": start_result}
 
+        def _handle_reset(environment: Environment, data: dict) -> dict:
+            environment.reset()
+            logger.info(f"Worker {worker_id} environment reset")
+            return {"status": "ok", "should_exit": True}  # Signal worker to exit after reset
+
+        # Initialize environment
         environment: Environment = instantiate(OmegaConf.create(env_config))
-        logger.info(f"Worker started for env {env_idx}, process {os.getpid()})")
+        logger.info(f"Task worker started for {worker_id}, process {os.getpid()}")
+
+        # Create Unix domain socket
+        server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        logger.info(f"Worker {worker_id} created socket object")
+
         try:
+            # Remove socket file if it exists
+            try:
+                os.unlink(socket_path)
+                logger.info(f"Worker {worker_id} removed existing socket file {socket_path}")
+            except FileNotFoundError:
+                logger.info(f"Worker {worker_id} no existing socket file to remove at {socket_path}")
+
+            logger.info(f"Worker {worker_id} attempting to bind to {socket_path}")
+            server_sock.bind(socket_path)
+            logger.info(f"Worker {worker_id} successfully bound to {socket_path}")
+
+            server_sock.listen(1)
+            logger.info(f"Worker {worker_id} now listening on socket {socket_path}")
+
+            # Verify socket file was created
+            if os.path.exists(socket_path):
+                logger.info(f"Worker {worker_id} confirmed socket file exists at {socket_path}")
+            else:
+                logger.error(f"Worker {worker_id} socket file NOT found at {socket_path}")
+
+            logger.info(f"Worker {worker_id} initializing environment...")
             environment.initialize()
+            logger.info(f"Worker {worker_id} environment initialized successfully")
+
             while True:
-                command, data = conn.recv()
-                logger.info(f"Env {env_idx} received command: {command}")
+                # Accept connection
+                client_sock, addr = server_sock.accept()
+                logger.debug(f"Worker {worker_id} accepted connection")
+
                 try:
-                    match command:
-                        case "step":
-                            result = _handle_step(environment, data)
-                        case "actions":
-                            result = _handle_actions(environment, data)
-                        case "reset":
-                            environment.reset()
-                            result = {"status": "ok"}
-                            logger.info(f"Env {env_idx} reset")
-                        case "start_task":
-                            result = _handle_start_task(environment, data)
-                        case "shutdown":
-                            environment.close()
-                            exit(0)
-                        case _:
-                            raise ValueError(f"Unknown command: {command}")
-                    conn.send(result)
+                    with client_sock:
+                        # Receive data
+                        data_length_bytes = client_sock.recv(4)
+                        if len(data_length_bytes) != 4:
+                            logger.warning(f"Worker {worker_id} received incomplete length header")
+                            continue
+
+                        data_length = int.from_bytes(data_length_bytes, byteorder="big")
+                        data_bytes = b""
+                        while len(data_bytes) < data_length:
+                            chunk = client_sock.recv(data_length - len(data_bytes))
+                            if not chunk:
+                                break
+                            data_bytes += chunk
+
+                        if len(data_bytes) != data_length:
+                            logger.warning(f"Worker {worker_id} received incomplete data")
+                            continue
+
+                        request = json.loads(data_bytes.decode("utf-8"))
+                        command = request.get("command")
+                        data = request.get("data")
+
+                        logger.info(f"Worker {worker_id} received command: {command}")
+
+                        try:
+                            should_exit = False
+                            match command:
+                                case "step":
+                                    result = _handle_step(environment, data)
+                                case "actions":
+                                    result = _handle_actions(environment, data)
+                                case "reset":
+                                    result = _handle_reset(environment, data)
+                                    should_exit = result.get("should_exit", False)
+                                case "start_task":
+                                    result = _handle_start_task(environment, data)
+                                case "shutdown":
+                                    environment.close()
+                                    result = {"status": "ok"}
+                                    should_exit = True
+                                case _:
+                                    raise ValueError(f"Unknown command: {command}")
+
+                            # Send response
+                            response_data = json.dumps(result).encode("utf-8")
+                            response_length = len(response_data)
+                            client_sock.sendall(response_length.to_bytes(4, byteorder="big"))
+                            client_sock.sendall(response_data)
+
+                            if should_exit:
+                                logger.info(f"Worker {worker_id} exiting after {command}")
+                                break
+
+                        except Exception as e:
+                            logger.exception(f"Worker {worker_id} error during {command}: {e}")
+                            error_result = {"error": str(e), "status": "error", "details": traceback.format_exc()}
+                            response_data = json.dumps(error_result).encode("utf-8")
+                            response_length = len(response_data)
+                            client_sock.sendall(response_length.to_bytes(4, byteorder="big"))
+                            client_sock.sendall(response_data)
+
                 except Exception as e:
-                    logger.exception(f"Env {env_idx} error during {command}: {e}")
-                    conn.send({"error": str(e), "status": "error", "details": traceback.format_exc()})
-        except EOFError:  # Main process closed the pipe
-            logger.info(f"Env {env_idx} connection closed for {environment.__class__.__name__}")
-        except KeyboardInterrupt:  # Graceful shutdown from worker side if possible
-            logger.info(f"Env {env_idx} received KeyboardInterrupt, shutting down.")
-            environment.close()
+                    logger.exception(f"Worker {worker_id} connection error: {e}")
+
         except Exception as e:
-            logger.exception(f"Unhandled exception in worker {os.getpid()} for {environment.__class__.__name__}: {e}")
-            # Try to inform parent if pipe is still open
-            if not conn.closed:
-                try:
-                    conn.send(
-                        {
-                            "error": f"Unhandled worker exception: {str(e)}",
-                            "status": "critical_error",
-                            "details": traceback.format_exc(),
-                        }
-                    )
-                except Exception:
-                    pass  # Pipe might be broken
+            logger.exception(f"Worker {worker_id} socket error: {e}")
         finally:
-            conn.close()
-            logger.info(f"Env {env_idx} closed")
+            try:
+                environment.close()
+            except Exception as e:
+                logger.exception(f"Worker {worker_id} error closing environment: {e}")
 
-    def _cleanup_inactive_sessions(self):
-        """Remove sessions that have been inactive for longer than max_session_inactivity_secs."""
-        current_time = time.time()
-        inactive_sessions = []
+            server_sock.close()
+            try:
+                os.unlink(socket_path)
+            except FileNotFoundError:
+                pass
+            logger.info(f"Worker {worker_id} process {os.getpid()} exiting")
 
-        for session_id, last_activity in self.session_last_activity.items():
-            if current_time - last_activity > self.max_session_inactivity_secs:
-                inactive_sessions.append(session_id)
 
-        for session_id in inactive_sessions:
-            env_idx = self.sessions.get(session_id)
-            if env_idx is not None:
-                logger.info(f"Cleaning up inactive session {session_id} (env {env_idx})")
-                # Reset the environment
-                try:
-                    parent_conn = self.env_pipes[env_idx]
-                    parent_conn.send(("reset", None))
-                    response = parent_conn.recv()
-                    if isinstance(response, dict) and response.get("status") == "error":
-                        logger.warning(f"Error resetting env {env_idx} during cleanup: {response.get('error')}")
-                except Exception as e:
-                    logger.warning(f"Failed to reset env {env_idx} during cleanup: {e}")
+async def send_socket_request(socket_path: str, command: str, data: dict | None = None, timeout: int = 60) -> dict:
+    """Send a request to a Unix domain socket and return the response."""
+    client_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
-                # Remove from tracking
-                del self.sessions[session_id]
-                del self.session_last_activity[session_id]
+    try:
+        # Connect with timeout
+        try:
+            client_sock.settimeout(timeout)
+            client_sock.connect(socket_path)
+        except socket.error as e:
+            raise ConnectionError(f"Failed to connect to socket {socket_path}: {e}")
 
-    def _get_env_details(self, session_id: str) -> tuple[mp_connection.Connection, int]:
-        if session_id not in self.sessions:
-            raise HTTPException(status_code=400, detail=f"Invalid or expired session ID: {session_id}")
+        # Prepare request
+        request = {"command": command, "data": data}
+        request_data = json.dumps(request).encode("utf-8")
+        request_length = len(request_data)
 
-        # Update activity timestamp
-        self.session_last_activity[session_id] = time.time()
+        # Send request
+        client_sock.sendall(request_length.to_bytes(4, byteorder="big"))
+        client_sock.sendall(request_data)
 
-        env_idx = self.sessions[session_id]
-        assert env_idx in self.env_pipes, f"Environment index {env_idx} not found in pipes."
-        assert env_idx in self.env_processes, f"Environment index {env_idx} not found in processes."
+        # Receive response
+        response_length_bytes = client_sock.recv(4)
+        if len(response_length_bytes) != 4:
+            raise ConnectionError("Failed to receive response length")
 
-        if not self.env_processes[env_idx].is_alive():
-            logger.error(f"Process for env_idx {env_idx} (session {session_id}) is not alive, killing session.")
-            del self.sessions[session_id]
-            raise HTTPException(status_code=503, detail="Environment process is not responding, session terminated.")
+        response_length = int.from_bytes(response_length_bytes, byteorder="big")
+        response_data = b""
+        while len(response_data) < response_length:
+            chunk = client_sock.recv(response_length - len(response_data))
+            if not chunk:
+                break
+            response_data += chunk
 
-        parent_conn = self.env_pipes[env_idx]
-        return parent_conn, env_idx
+        if len(response_data) != response_length:
+            raise ConnectionError("Failed to receive complete response")
+
+        response = json.loads(response_data.decode("utf-8"))
+        return response
+
+    finally:
+        client_sock.close()
+
+
+class EnvironmentServer:
+    """
+    Manages multiple environment instances using process-per-task model,
+    and exposes them via an HTTP server using FastAPI. Each task gets its own
+    environment process that dies when the task completes.
+    """
+
+    def __init__(
+        self,
+        n_envs: int,
+        host: str = "localhost",
+        port: int = 8000,
+        env_call_timeout: int = 60,
+    ):
+        if n_envs <= 0:
+            raise ValueError("Number of instances must be positive.")
+
+        self.host = host
+        self.port = port
+        self.env_call_timeout = env_call_timeout
+
+        # Process pool manager handles task processes
+        self.pool_manager = ProcessPoolManager(max_processes=n_envs)
+        self.env_config: dict | None = None
 
     def create_app(self):
-        app = FastAPI(title="Environment Server", version="1.0.0")
+        app = FastAPI(title="Environment Server", version="2.0.0")
 
-        class ApiRequest(BaseModel):
-            session_id: str
-
-        class ActionRequest(ApiRequest):
-            action_data: dict
-
-        class TaskRequest(ApiRequest):
+        class TaskRequest(BaseModel):
             task_data: dict = {}
 
-        async def call_env_process(session_id: str, command: str, data: dict | None = None) -> dict:
-            conn, env_idx = self._get_env_details(session_id)
-            logger.info(
-                f"Session {session_id} env {env_idx} call {command}: {data}. Requests in progress: {self.requests_in_progress}"
-            )
-            loop = asyncio.get_running_loop()
+        class ActionRequest(BaseModel):
+            worker_id: str
+            action_data: dict
 
-            def send_recv():
-                conn.send((command, data))
-                return conn.recv()
+        class WorkerRequest(BaseModel):
+            worker_id: str
 
-            self.requests_in_progress += 1
+        async def call_task_worker(worker_id: str, command: str, data: dict | None = None) -> dict:
+            """Send a command to a task process via Unix domain socket."""
+            socket_path = self.pool_manager.get_socket_path(worker_id)
+
             try:
-                future = loop.run_in_executor(None, send_recv)
-                response = await asyncio.wait_for(future, self.env_call_timeout) # wait for up to env_call_timeout seconds
-                assert isinstance(response, dict), f"Response must be a dictionary, got {type(response)}: {response}"
+                response = await send_socket_request(socket_path, command, data, self.env_call_timeout)
+
+                if response.get("status") == "error":
+                    msg = f"Worker {worker_id} error: {response.get('error')}"
+                    raise HTTPException(status_code=500, detail=msg)
+
+                return response
+
+            except ConnectionError as e:
+                logger.error(f"Connection error to worker {worker_id}: {e}")
+                # Clean up dead task
+                self.pool_manager.terminate(worker_id)
+                raise HTTPException(status_code=503, detail=f"Worker {worker_id} process is not responding")
             except Exception as e:
-                logger.exception(f"Env {env_idx}. Error during async send/recv {command}: {e}")
-                msg = f"Env {env_idx}. Error during async send/recv {command}: {e}. Details: {traceback.format_exc()}"
-                raise HTTPException(status_code=503, detail=msg)
-            finally:
-                self.requests_in_progress -= 1
-            if response.get("status") == "error":
-                msg = f"Env {env_idx}. Worker error: {response.get('error')}"
-                raise HTTPException(status_code=500, detail=msg)
-            return response
-
-        @app.post("/acquire")
-        async def acquire_environment():
-            # Clean up inactive sessions before acquiring
-            t = time.perf_counter()
-            self._cleanup_inactive_sessions()
-            logger.debug(f"Cleanup of inactive sessions took {(time.perf_counter() - t)*1000:.2f} ms")
-
-            for i in range(self.n_envs):
-                if i not in self.sessions.values():
-                    if not self.env_processes[i].is_alive():
-                        logger.warning(f"Attempted to acquire env {i}, but its process is dead. Skipping.")
-                        continue
-
-                    session_id = str(uuid.uuid4())
-                    self.sessions[session_id] = i
-                    self.session_last_activity[session_id] = time.time()
-                    logger.info(
-                        f"Env {i} acquired, session ID: {session_id}. Free envs: {self.n_envs - len(self.sessions)}"
-                    )
-                    return {"session_id": session_id}
-            logger.debug(f"Acquire took {(time.perf_counter() - t)*1000:.2f} ms")
-            return {"error": "No free environments available"}
-
-        @app.post("/release")
-        async def release_environment(request: ApiRequest):
-            try:
-                await call_env_process(request.session_id, "reset")
-            except (EOFError, BrokenPipeError) as pipe_err:
-                msg = f"Pipe error during release for session {request.session_id}: {pipe_err}. Env could be not reset properly."
-                logger.error(msg)
-            finally:
-                del self.sessions[request.session_id]
-                if request.session_id in self.session_last_activity:
-                    del self.session_last_activity[request.session_id]
-                logger.info(f"Environment released, remaining free environments: {self.n_envs - len(self.sessions)}")
-            return {"status": "ok"}
-
-        @app.post("/step")
-        async def step_endpoint(request: ActionRequest):
-            return await call_env_process(request.session_id, "step", request.action_data)
-
-        @app.post("/actions")
-        async def actions_endpoint(request: ApiRequest):
-            return await call_env_process(request.session_id, "actions")
-
-        @app.post("/reset")
-        async def reset_endpoint(request: ApiRequest):
-            return await call_env_process(request.session_id, "reset")
-
-        @app.get("/health")
-        async def health_check():
-            return {"status": "ok"}
+                logger.exception(f"Error calling worker {worker_id}: {e}")
+                raise HTTPException(status_code=503, detail=f"Worker {worker_id} communication error: {str(e)}")
 
         @app.post("/start_task")
         async def start_task_endpoint(request: TaskRequest):
-            return await call_env_process(request.session_id, "start_task", request.task_data)
+            """Start a new task, spawning a dedicated environment process."""
+            if self.env_config is None:
+                raise HTTPException(status_code=500, detail="Environment not configured")
+
+            worker_id = str(uuid.uuid4())
+
+            try:
+                # Spawn new process for this task
+                socket_path = self.pool_manager.spawn_worker(worker_id, self.env_config)
+                logger.info(f"Created worker {worker_id} with socket {socket_path}")
+
+                # Wait a bit for the process to start up
+                await asyncio.sleep(0.1)
+
+                # Start the task
+                response = await call_task_worker(worker_id, "start_task", request.task_data)
+
+                return {"worker_id": worker_id, "start_result": response.get("start_result")}
+
+            except ResourceExhaustedException as e:
+                logger.warning(f"Resource exhaustion: {e}")
+                raise HTTPException(status_code=503, detail=str(e))
+            except Exception as e:
+                logger.exception(f"Failed to start task: {e}")
+                # Clean up on failure
+                self.pool_manager.terminate(worker_id)
+                raise HTTPException(status_code=500, detail=f"Failed to start task: {str(e)}")
+
+        @app.post("/step")
+        async def step_endpoint(request: ActionRequest):
+            """Execute an action in the specified task environment."""
+            return await call_task_worker(request.worker_id, "step", request.action_data)
+
+        @app.post("/actions")
+        async def actions_endpoint(request: WorkerRequest):
+            """Get available actions for the specified task environment."""
+            return await call_task_worker(request.worker_id, "actions")
+
+        @app.post("/reset")
+        async def reset_endpoint(request: WorkerRequest):
+            """Reset the task environment and terminate its process."""
+            try:
+                # Send reset command to environment, this will cause worker to exit
+                await call_task_worker(request.worker_id, "reset")
+
+                # Wait a moment for graceful shutdown
+                await asyncio.sleep(0.1)
+
+                # Ensure process is terminated
+                self.pool_manager.terminate(request.worker_id)
+
+                return {"status": "ok", "message": f"Task {request.worker_id} reset and terminated"}
+
+            except HTTPException as e:
+                # If process is already dead, that's fine for reset
+                if e.status_code == 503:
+                    logger.info(f"Task {request.worker_id} was already dead during reset")
+                    return {"status": "ok", "message": f"Task {request.worker_id} was already terminated"}
+                raise
+            except Exception as e:
+                logger.exception(f"Error resetting task {request.worker_id}: {e}")
+                # Force cleanup
+                self.pool_manager.terminate(request.worker_id)
+                raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
+
+        @app.get("/health")
+        async def health_check():
+            """Health check endpoint."""
+            active_tasks = len(self.pool_manager.active_workers)
+            return {"status": "ok", "active_tasks": active_tasks, "max_processes": self.pool_manager.max_processes}
+
+        @app.get("/workers")
+        async def list_workers():
+            """List all active workers."""
+            self.pool_manager.cleanup_dead_workers()
+            workers = []
+            for worker_id, task_proc in self.pool_manager.active_workers.items():
+                workers.append(
+                    {
+                        "worker_id": worker_id,
+                        "pid": task_proc.process.pid,
+                        "start_time": task_proc.start_time,
+                        "last_activity": task_proc.last_activity,
+                        "age_seconds": time.time() - task_proc.start_time,
+                    }
+                )
+            return {"workers": workers}
+
+        @app.delete("/workers/{worker_id}")
+        async def stop_worker(worker_id: str):
+            """Manually terminate a specific worker."""
+            try:
+                self.pool_manager.terminate(worker_id)
+                return {"status": "ok", "message": f"Worker {worker_id} terminated"}
+            except Exception as e:
+                logger.exception(f"Error terminating worker {worker_id}: {e}")
+                raise HTTPException(status_code=500, detail=f"Failed to terminate worker: {str(e)}")
 
         return app
 
     def shutdown(self):
-        logger.info("Server shutting down. Cleaning up environment processes...")
-        for env_idx, parent_conn in self.env_pipes.items():
-            if self.env_processes[env_idx].is_alive():
-                logger.info(f"Sending shutdown to worker for env {env_idx}")
-                try:
-                    parent_conn.send(("shutdown", None))
-                except (BrokenPipeError, EOFError):
-                    logger.warning(f"Pipe to worker {env_idx} already closed.")
-            parent_conn.close()
-
-        for env_idx, process in self.env_processes.items():
-            logger.info(f"Waiting for worker process {env_idx} (PID: {process.pid}) to join...")
-            process.join(timeout=5)
-            if process.is_alive():
-                logger.warning(f"Worker process {env_idx} (PID: {process.pid}) did not terminate, killing.")
-                process.terminate()
-                process.join()
-        logger.info("All environment processes cleaned up.")
+        """Shutdown all active worker processes."""
+        logger.info("Server shutting down. Cleaning up all worker processes...")
+        self.pool_manager.shutdown_all()
+        logger.info("All worker processes cleaned up.")
 
     def launch(self, env_config: DictConfig):
+        """Launch the environment server."""
+        config_container = OmegaConf.to_container(env_config, resolve=True)
+        if not isinstance(config_container, dict):
+            raise ValueError("Environment config must be a dictionary")
+        self.env_config = config_container
         app = self.create_app()
-        self.start_envs(env_config)
         atexit.register(self.shutdown)
 
-        logger.info(f"Starting Environment Server at http://{self.host}:{self.port} with {self.n_envs} environments.")
+        logger.info(
+            f"Starting Environment Server at http://{self.host}:{self.port} with max {self.pool_manager.max_processes} processes."
+        )
         uvicorn.run(app, host=self.host, port=self.port, timeout_keep_alive=3600, log_level="info")
 
 
 class RemoteEnvironment(Environment):
     """
-    Environment that proxies actions to a remote environment server.
+    Environment that proxies actions to a remote environment server using the new task-based API.
     """
 
     def __init__(self, server_url: str):
         self.server_url = server_url
-        self.session_id = None
+        self.worker_id: str | None = None
 
     def initialize(self) -> None:
-        response = requests.post(f"{self.server_url}/acquire")
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-        response_data = response.json()
-        self.session_id = response_data.get("session_id")
-        logger.debug(f"Acquired environment with session ID: {self.session_id}")
+        """Initialize is a no-op since task creation happens in start_task."""
+        pass
 
     def start_task(self, task_data: dict) -> dict:
-        response = requests.post(
-            f"{self.server_url}/start_task", json={"task_data": task_data, "session_id": self.session_id}
-        )
+        """Start a new task on the server."""
+        response = requests.post(f"{self.server_url}/start_task", json={"task_data": task_data})
         if response.status_code != 200:
             logger.error(f"Failed to start task in environment: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=response.text)
-        return response.json()
+
+        result = response.json()
+        self.worker_id = result.get("worker_id")
+        logger.debug(f"Started task with worker ID: {self.worker_id}")
+        return result.get("start_result", {})
 
     def actions(self) -> tuple[type[Action], ...]:
-        response = requests.post(f"{self.server_url}/actions", json={"session_id": self.session_id})
+        if not self.worker_id:
+            raise RuntimeError("No active task. Call start_task first.")
+
+        response = requests.post(f"{self.server_url}/actions", json={"worker_id": self.worker_id})
         if response.status_code != 200:
             logger.error(f"Failed to fetch actions from environment: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=response.text)
@@ -378,8 +629,11 @@ class RemoteEnvironment(Environment):
         return tape
 
     def step(self, action: Action) -> BaseModel:
+        if not self.worker_id:
+            raise RuntimeError("No active worker. Call start_task first.")
+
         response = requests.post(
-            f"{self.server_url}/step", json={"action_data": action.model_dump(), "session_id": self.session_id}
+            f"{self.server_url}/step", json={"worker_id": self.worker_id, "action_data": action.model_dump()}
         )
         if response.status_code != 200:
             logger.error(f"Failed to step in environment: {response.text}")
@@ -391,63 +645,70 @@ class RemoteEnvironment(Environment):
         return observation
 
     def reset(self) -> None:
-        response = requests.post(f"{self.server_url}/reset", json={"session_id": self.session_id})
+        if not self.worker_id:
+            logger.warning("No active task to reset.")
+            return
+
+        response = requests.post(f"{self.server_url}/reset", json={"worker_id": self.worker_id})
         if response.status_code != 200:
             logger.error(f"Failed to reset environment: {response.text}")
             raise HTTPException(status_code=response.status_code, detail=response.text)
 
+        # Reset clears the worker
+        self.worker_id = None
+
     def close(self) -> None:
-        if self.session_id:
-            response = requests.post(f"{self.server_url}/release", json={"session_id": self.session_id})
-            if response.status_code != 200:
-                logger.error(f"Failed to release environment: {response.text}")
-                raise HTTPException(status_code=response.status_code, detail=response.text)
+        if self.worker_id:
+            try:
+                # Reset will terminate the task process
+                self.reset()
+            except Exception as e:
+                logger.error(f"Error during close: {e}")
         else:
-            logger.warning("No session ID to release.")
+            logger.debug("No active task to close.")
 
     @contextlib.contextmanager
     def context(self):
         """
-        Context manager to automatically acquire and release the environment.
+        Context manager to automatically start and clean up the task.
+        Note: You still need to call start_task manually in the new API.
         """
-        self.initialize()
         try:
             yield self
         finally:
             self.close()
-            logger.info("Environment session closed.")
+            logger.info("Environment task closed.")
 
 
 class AsyncRemoteEnvironment(AsyncEnvironment):
     """
-    Asynchronous environment that proxies actions to a remote environment server using aiohttp.
+    Asynchronous environment that proxies actions to a remote environment server using the new task-based API.
     """
 
     def __init__(self, server_url: str, max_parallel_requests: int = 32):
         self.server_url = server_url
-        self.session_id: str | None = None
+        self.worker_id: str | None = None
         self.session: aiohttp.ClientSession | None = None
         self.semaphore = asyncio.Semaphore(max_parallel_requests)
 
     async def ainitialize(self, session: aiohttp.ClientSession) -> None:
+        """Initialize with aiohttp session."""
         self.session = session
-        response_data = await self.api_call("acquire", suppress_errors=True)
-        if "error" in response_data:
-            raise ResourceWarning(f"Failed to acquire environment, server response: {response_data}")
-        self.session_id = response_data.get("session_id")
-        logger.debug(f"Acquired environment with session ID: {self.session_id}")
         await super().ainitialize()  # In case parent class has async initialization logic
 
     async def start_task(self, task_data: dict) -> dict:
-        if not self.session or not self.session_id:
+        """Start a new task on the server."""
+        if not self.session:
             raise RuntimeError("Environment not initialized. Call ainitialize first.")
         response_dict = await self.api_call("start_task", {"task_data": task_data})
-        return response_dict["start_result"]
+        self.worker_id = response_dict.get("worker_id")
+        logger.debug(f"Started async task with ID: {self.worker_id}")
+        return response_dict.get("start_result", {})
 
     async def a_actions(self) -> tuple[type[Action], ...]:
-        if not self.session or not self.session_id:
-            raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        response_data = await self.api_call("actions")
+        if not self.session or not self.worker_id:
+            raise RuntimeError("Environment not initialized or no active task.")
+        response_data = await self.api_call("actions", {"worker_id": self.worker_id})
         action_names = response_data.get("actions", [])
         actions = []
         for action in action_names:
@@ -467,9 +728,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         t = time.perf_counter()
         if isinstance(action, LLMOutputParsingFailureAction):
             return UserStep(content="Try again")
-        if not self.session or not self.session_id:
-            raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        response_dict = await self.api_call("step", {"action_data": action.model_dump()})
+        if not self.session or not self.worker_id:
+            raise RuntimeError("Environment not initialized or no active task.")
+        response_dict = await self.api_call("step", {"worker_id": self.worker_id, "action_data": action.model_dump()})
         obs_dict = response_dict["observation"]
         obs_type: type[Observation] = class_for_name(response_dict["classname"])
         observation: Observation = obs_type.model_validate(obs_dict)
@@ -478,16 +739,14 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         return observation
 
     @tenacity.retry(
-            retry=tenacity.retry_if_exception_type(HTTPException),
-            stop=tenacity.stop_after_delay(3600),  # Retry for up to 1 hour
-            wait=tenacity.wait_random_exponential(multiplier=1, max=60)
-            # wait randomly up to 2^x * 1 seconds between each retry until the range reaches 60 seconds
+        retry=tenacity.retry_if_exception_type(HTTPException),
+        stop=tenacity.stop_after_delay(3600),  # Retry for up to 1 hour
+        wait=tenacity.wait_random_exponential(multiplier=1, max=60),
+        # wait randomly up to 2^x * 1 seconds between each retry until the range reaches 60 seconds
     )
     async def api_call(self, endpoint: str, data: dict | None = None, suppress_errors: bool = False) -> dict:
         if data is None:
             data = {}
-        if self.session_id:
-            data["session_id"] = self.session_id
         assert self.session, "AIOHTTP session must be initialized before making API calls."
         async with self.semaphore:
             async with self.session.post(f"{self.server_url}/{endpoint}", json=data) as response:
@@ -500,23 +759,25 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         return response_dict
 
     async def areset(self) -> None:
-        if not self.session or not self.session_id:
-            raise RuntimeError("Environment not initialized. Call ainitialize first.")
-        await self.api_call("reset")
+        if not self.session or not self.worker_id:
+            logger.warning("Environment not initialized or no active task to reset.")
+            return
+        await self.api_call("reset", {"worker_id": self.worker_id})
+        # Reset clears the task
+        self.worker_id = None
 
     async def aclose(self) -> None:
-        if self.session_id:
+        if self.worker_id:
             try:
-                await self.api_call("release")
-                logger.debug(f"Async environment with session id {self.session_id} closed.")
+                await self.areset()
+                logger.debug(f"Async environment with task id {self.worker_id} closed.")
             except Exception as e:
-                logger.error(f"Failed to release environment correctly: {e}")
-            self.session_id = None
-            self.session = None
+                logger.error(f"Failed to reset task correctly: {e}")
+            self.worker_id = None
         elif not self.session:
-            logger.warning("No TCP session available to release environment.")
+            logger.warning("No session available.")
         else:
-            logger.warning("No session ID to release.")
+            logger.debug("No active worker to close.")
 
     def react(self, tape: TapeType) -> TapeType:
         raise NotImplementedError("Use areact for asynchronous environments.")
@@ -535,8 +796,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         initialization_timeout_sec: int = 3600,
     ):
         """
-        Asynchronous context manager to automatically acquire and release the environment.
+        Asynchronous context manager to automatically manage the environment.
         The aiohttp.ClientSession is passed in and managed externally.
+        Note: You still need to call start_task manually in the new API.
         """
         await self.wait_initialize(session, wait_for_env, initialization_timeout_sec)
         try:
@@ -548,22 +810,11 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             logger.warning("KeyboardInterrupt received, shutting down async environment.")
             raise
         finally:
-            logger.debug("Closing environment session.")
+            logger.debug("Closing environment task.")
             await self.aclose()
 
     async def wait_initialize(self, session, wait_for_env, initialization_timeout_sec):
-        t = time.perf_counter()
-        while True:
-            try:
-                await self.ainitialize(session)
-                return
-            except ResourceWarning as e:
-                if not wait_for_env:
-                    raise e
-                if time.perf_counter() - t > initialization_timeout_sec:
-                    logger.error(f"Failed to initialize environment after {initialization_timeout_sec} seconds: {e}")
-                    raise e
-                await asyncio.sleep(random.uniform(30, 120))
-            except Exception as e:
-                logger.error(f"Failed to initialize environment: {e}")
-                raise e
+        """Wait for environment to be available."""
+        await self.ainitialize(session)
+        # In the new API, we don't pre-acquire environments
+        # Task creation happens when start_task is called
