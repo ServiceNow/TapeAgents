@@ -55,8 +55,8 @@ class ResourceExhaustedException(Exception):
 class ProcessPoolManager:
     """Manages a pool of environment processes, spawning them per task."""
 
-    def __init__(self, max_processes: int, socket_dir: str = "/tmp/tapeagents_envs"):
-        self.max_processes = max_processes
+    def __init__(self, max_workers: int, socket_dir: str = "/tmp/tapeagents_envs"):
+        self.max_workers = max_workers
         self.socket_dir = socket_dir
         self.active_workers: dict[str, TaskWorker] = {}
 
@@ -82,13 +82,13 @@ class ProcessPoolManager:
     def can_spawn_new_process(self) -> bool:
         """Check if we can spawn a new process."""
         self.cleanup_dead_workers()
-        return len(self.active_workers) < self.max_processes
+        return len(self.active_workers) < self.max_workers
 
     def spawn_worker(self, worker_id: str, env_config: dict) -> str:
         """Spawn a new process for a worker and return socket path."""
         if not self.can_spawn_new_process():
             raise ResourceExhaustedException(
-                f"Cannot spawn process: {len(self.active_workers)}/{self.max_processes} slots occupied"
+                f"Cannot spawn process: {len(self.active_workers)}/{self.max_workers} slots occupied"
             )
 
         socket_path = os.path.join(self.socket_dir, f"worker_{worker_id}.sock")
@@ -399,7 +399,7 @@ class EnvironmentServer:
         self.env_call_timeout = env_call_timeout
 
         # Process pool manager handles task processes
-        self.pool_manager = ProcessPoolManager(max_processes=n_envs)
+        self.pool_manager = ProcessPoolManager(max_workers=n_envs)
         self.env_config: dict | None = None
 
     def create_app(self):
@@ -530,8 +530,8 @@ class EnvironmentServer:
         @app.get("/health")
         async def health_check():
             """Health check endpoint."""
-            active_tasks = len(self.pool_manager.active_workers)
-            return {"status": "ok", "active_tasks": active_tasks, "max_processes": self.pool_manager.max_processes}
+            active_workers = len(self.pool_manager.active_workers)
+            return {"status": "ok", "active_workers": active_workers, "max_workers": self.pool_manager.max_workers}
 
         @app.get("/workers")
         async def list_workers():
@@ -578,7 +578,7 @@ class EnvironmentServer:
         atexit.register(self.shutdown)
 
         logger.info(
-            f"Starting Environment Server at http://{self.host}:{self.port} with max {self.pool_manager.max_processes} processes."
+            f"Starting Environment Server at http://{self.host}:{self.port} with max {self.pool_manager.max_workers} processes."
         )
         uvicorn.run(app, host=self.host, port=self.port, timeout_keep_alive=3600, log_level="info")
 
