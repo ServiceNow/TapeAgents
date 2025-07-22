@@ -1,9 +1,9 @@
 import asyncio
 import atexit
 import contextlib
-import json
 import logging
 import os
+import pickle
 import socket
 import time
 import traceback
@@ -92,11 +92,12 @@ class ProcessPoolManager:
             )
 
         socket_path = os.path.join(self.socket_dir, f"worker_{worker_id}.sock")
-
+        logger.info("Starting process")
         process = Process(
             target=ProcessPoolManager._task_worker, args=(env_config, socket_path, worker_id), daemon=True
         )
         process.start()
+        logger.info(f"Process {process.pid} started for worker {worker_id}, wait for socket..")
 
         # Wait for the socket file to be created and accessible
         socket_ready = False
@@ -162,22 +163,22 @@ class ProcessPoolManager:
         return task_proc.socket_path
 
     def terminate(self, worker_id: str) -> None:
-        """Terminate a specific task process."""
+        """Terminate a specific worker process."""
         if worker_id in self.active_workers:
-            task_proc = self.active_workers[worker_id]
-            logger.info(f"Terminating task {worker_id} process {task_proc.process.pid}")
+            worker_info = self.active_workers[worker_id]
+            logger.info(f"Terminating worker {worker_id} process {worker_info.process.pid}")
 
-            if task_proc.process.is_alive():
-                task_proc.process.terminate()
-                task_proc.process.join(timeout=5)
-                if task_proc.process.is_alive():
-                    logger.warning(f"Force killing task {worker_id} process {task_proc.process.pid}")
-                    task_proc.process.kill()
-                    task_proc.process.join()
+            if worker_info.process.is_alive():
+                worker_info.process.terminate()
+                worker_info.process.join(timeout=5)
+                if worker_info.process.is_alive():
+                    logger.warning(f"Force killing worker {worker_id} process {worker_info.process.pid}")
+                    worker_info.process.kill()
+                    worker_info.process.join()
 
             # Clean up socket
             try:
-                os.unlink(task_proc.socket_path)
+                os.unlink(worker_info.socket_path)
             except FileNotFoundError:
                 pass
 
@@ -192,14 +193,13 @@ class ProcessPoolManager:
     @staticmethod
     def _task_worker(env_config: dict, socket_path: str, worker_id: str):
         """Worker process for a single task using Unix domain socket communication."""
-        print("START!!!!")
         logging.basicConfig(
             format=f"[%(asctime)s][%(levelname)s][Worker-{worker_id}][%(process)d][%(name)s:%(lineno)d] - %(message)s",
             datefmt="%m/%d/%Y %H:%M:%S",
             level=logging.INFO,
             handlers=[logging.StreamHandler(), logging.FileHandler(f"/tmp/tapeagents_worker_{worker_id}.log")],
         )
-        print("LOGGER SET!!!!")
+        logger.info(f"Worker {worker_id} process starting")
 
         def _handle_step(environment: Environment, data: dict) -> dict:
             logger.info(f"Handling step: {data}")
@@ -233,7 +233,7 @@ class ProcessPoolManager:
 
         # Initialize environment
         environment: Environment = instantiate(OmegaConf.create(env_config))
-        logger.info(f"Task worker started for {worker_id}, process {os.getpid()}")
+        logger.info(f"Worker started for {worker_id}, process {os.getpid()}")
 
         # Create Unix domain socket
         server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -243,22 +243,11 @@ class ProcessPoolManager:
             # Remove socket file if it exists
             try:
                 os.unlink(socket_path)
-                logger.info(f"Worker {worker_id} removed existing socket file {socket_path}")
             except FileNotFoundError:
-                logger.info(f"Worker {worker_id} no existing socket file to remove at {socket_path}")
-
-            logger.info(f"Worker {worker_id} attempting to bind to {socket_path}")
+                pass
             server_sock.bind(socket_path)
-            logger.info(f"Worker {worker_id} successfully bound to {socket_path}")
-
             server_sock.listen(1)
             logger.info(f"Worker {worker_id} now listening on socket {socket_path}")
-
-            # Verify socket file was created
-            if os.path.exists(socket_path):
-                logger.info(f"Worker {worker_id} confirmed socket file exists at {socket_path}")
-            else:
-                logger.error(f"Worker {worker_id} socket file NOT found at {socket_path}")
 
             logger.info(f"Worker {worker_id} initializing environment...")
             environment.initialize()
@@ -289,7 +278,7 @@ class ProcessPoolManager:
                             logger.warning(f"Worker {worker_id} received incomplete data")
                             continue
 
-                        request = json.loads(data_bytes.decode("utf-8"))
+                        request = pickle.loads(data_bytes)  # Changed from json.loads
                         command = request.get("command")
                         data = request.get("data")
 
@@ -315,7 +304,7 @@ class ProcessPoolManager:
                                     raise ValueError(f"Unknown command: {command}")
 
                             # Send response
-                            response_data = json.dumps(result).encode("utf-8")
+                            response_data = pickle.dumps(result)  # Changed from json.dumps
                             response_length = len(response_data)
                             client_sock.sendall(response_length.to_bytes(4, byteorder="big"))
                             client_sock.sendall(response_data)
@@ -327,7 +316,7 @@ class ProcessPoolManager:
                         except Exception as e:
                             logger.exception(f"Worker {worker_id} error during {command}: {e}")
                             error_result = {"error": str(e), "status": "error", "details": traceback.format_exc()}
-                            response_data = json.dumps(error_result).encode("utf-8")
+                            response_data = pickle.dumps(error_result)  # Changed from json.dumps
                             response_length = len(response_data)
                             client_sock.sendall(response_length.to_bytes(4, byteorder="big"))
                             client_sock.sendall(response_data)
@@ -352,47 +341,40 @@ class ProcessPoolManager:
 
 
 async def send_socket_request(socket_path: str, command: str, data: dict | None = None, timeout: int = 60) -> dict:
-    """Send a request to a Unix domain socket and return the response."""
-    client_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-
+    """Send a request to a Unix domain socket and return the response using asyncio."""
     try:
-        # Connect with timeout
+        # Connect using asyncio - no need for wait_for wrapper
+        reader, writer = await asyncio.open_unix_connection(socket_path)
+
         try:
-            client_sock.settimeout(timeout)
-            client_sock.connect(socket_path)
-        except socket.error as e:
-            raise ConnectionError(f"Failed to connect to socket {socket_path}: {e}")
+            # Prepare request
+            request = {"command": command, "data": data}
+            request_data = pickle.dumps(request)
+            request_length = len(request_data)
 
-        # Prepare request
-        request = {"command": command, "data": data}
-        request_data = json.dumps(request).encode("utf-8")
-        request_length = len(request_data)
+            # Send request
+            writer.write(request_length.to_bytes(4, byteorder="big"))
+            writer.write(request_data)
+            await writer.drain()
 
-        # Send request
-        client_sock.sendall(request_length.to_bytes(4, byteorder="big"))
-        client_sock.sendall(request_data)
+            # Receive response length - readexactly handles connection issues
+            response_length_bytes = await reader.readexactly(4)
+            response_length = int.from_bytes(response_length_bytes, byteorder="big")
 
-        # Receive response
-        response_length_bytes = client_sock.recv(4)
-        if len(response_length_bytes) != 4:
-            raise ConnectionError("Failed to receive response length")
+            # Receive response data
+            response_data = await reader.readexactly(response_length)
 
-        response_length = int.from_bytes(response_length_bytes, byteorder="big")
-        response_data = b""
-        while len(response_data) < response_length:
-            chunk = client_sock.recv(response_length - len(response_data))
-            if not chunk:
-                break
-            response_data += chunk
+            response = pickle.loads(response_data)
+            return response
 
-        if len(response_data) != response_length:
-            raise ConnectionError("Failed to receive complete response")
+        finally:
+            writer.close()
+            await writer.wait_closed()
 
-        response = json.loads(response_data.decode("utf-8"))
-        return response
-
-    finally:
-        client_sock.close()
+    except (OSError, ConnectionError, asyncio.IncompleteReadError) as e:
+        raise ConnectionError(f"Failed to communicate with socket {socket_path}: {e}")
+    except Exception as e:
+        raise ConnectionError(f"Socket communication error: {e}")
 
 
 class EnvironmentServer:
@@ -465,11 +447,34 @@ class EnvironmentServer:
 
             try:
                 # Spawn new process for this task
-                socket_path = self.pool_manager.spawn_worker(worker_id, self.env_config)
+                socket_path = os.path.join(self.pool_manager.socket_dir, f"worker_{worker_id}.sock")
+                logger.info(f"Spawning worker {worker_id} with socket {socket_path}")
+                await asyncio.get_event_loop().run_in_executor(
+                    None, self.pool_manager.spawn_worker, worker_id, self.env_config
+                )
                 logger.info(f"Created worker {worker_id} with socket {socket_path}")
 
-                # Wait a bit for the process to start up
-                await asyncio.sleep(0.1)
+                # Wait for socket to be ready
+                socket_ready = False
+                max_wait_time = 5  # seconds
+                check_interval = 0.1  # seconds
+                elapsed_time = 0
+
+                while elapsed_time < max_wait_time and not socket_ready:
+                    if os.path.exists(socket_path):
+                        socket_ready = True
+                        logger.info(
+                            f"Socket {socket_path} is ready for worker {worker_id} after {elapsed_time:.2f} seconds"
+                        )
+                        break
+                    await asyncio.sleep(check_interval)
+                    elapsed_time += check_interval
+
+                if not socket_ready:
+                    self.pool_manager.terminate(worker_id)
+                    raise HTTPException(
+                        status_code=500, detail=f"Socket {socket_path} not ready within {max_wait_time} seconds"
+                    )
 
                 # Start the task
                 response = await call_task_worker(worker_id, "start_task", request.task_data)
@@ -816,5 +821,3 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
     async def wait_initialize(self, session, wait_for_env, initialization_timeout_sec):
         """Wait for environment to be available."""
         await self.ainitialize(session)
-        # In the new API, we don't pre-acquire environments
-        # Task creation happens when start_task is called
