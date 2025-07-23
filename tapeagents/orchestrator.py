@@ -5,8 +5,8 @@ Module contains the main loops of the agent-environment interaction and replay f
 import asyncio
 import enum
 import logging
-from contextlib import AsyncExitStack, asynccontextmanager
 import time
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Generator, Generic
 
 import aiohttp
@@ -319,7 +319,9 @@ def execute_agent(
     final_tape.metadata = start_tape.metadata
     final_tape.metadata.id = tape_id
     final_tape.metadata.parent_id = start_tape.metadata.id
-    final_tape.metadata.result.update({"agent_execution_time": agent_execution_time, "environment_execution_time": environment_execution_time})
+    final_tape.metadata.result.update(
+        {"agent_execution_time": agent_execution_time, "environment_execution_time": environment_execution_time}
+    )
     return final_tape
 
 
@@ -351,7 +353,9 @@ async def async_execute_agent(
     final_tape.metadata = start_tape.metadata
     final_tape.metadata.id = tape_id
     final_tape.metadata.parent_id = start_tape.metadata.id
-    final_tape.metadata.result.update({"agent_execution_time": agent_execution_time, "environment_execution_time": environment_execution_time})
+    final_tape.metadata.result.update(
+        {"agent_execution_time": agent_execution_time, "environment_execution_time": environment_execution_time}
+    )
     return final_tape
 
 
