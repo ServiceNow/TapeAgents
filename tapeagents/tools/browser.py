@@ -10,8 +10,6 @@ from uuid import uuid4
 
 import gymnasium as gym
 import markdownify
-
-# import nest_asyncio
 import numpy as np
 import requests
 from browsergym.core.action.highlevel import HighLevelActionSet
@@ -51,10 +49,6 @@ NODES_WITH_BID = [
     "tab",
 ]
 logger = logging.getLogger(__name__)
-# try:
-#     nest_asyncio.apply()
-# except Exception as e:
-#     logger.warning("Cannot apply nest_asyncio, continuing without it: %s", e)
 
 
 class OpenUrlAction(Action):

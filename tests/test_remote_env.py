@@ -1,11 +1,4 @@
-#!/usr/bin/env python3
-"""
-Test script for the new remote environment implementation.
-This demonstrates the new process-per-task architecture with Unix domain sockets.
-"""
-
 import asyncio
-import logging
 import threading
 import time
 from typing import Any, Dict
@@ -61,15 +54,6 @@ class MockEnvironment(Environment):
     def close(self) -> None:
         """Close the environment."""
         pass
-
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()],
-)
-logger = logging.getLogger(__name__)
 
 
 def create_mock_env_config() -> Dict[str, Any]:
@@ -166,19 +150,12 @@ def test_sync_client():
             workers = response.json()["workers"]
             logger.info(f"Workers after reset: {len(workers)}")
             assert len(workers) == 0
-
-    except Exception as e:
-        logger.error(f"Sync client test failed: {e}")
+    finally:
         server.shutdown()
-        return False
-
-    server.shutdown()
-    logger.info("Synchronous client test passed!")
-    return True
 
 
-# def test_async_client():
-#     asyncio.run(_test_async_client())
+def test_async_client():
+    asyncio.run(_test_async_client())
 
 
 async def _test_async_client():
@@ -226,15 +203,8 @@ async def _test_async_client():
                     workers = workers_data["workers"]
                     logger.info(f"Async workers after reset: {len(workers)}")
                     assert len(workers) == 0
-
-    except Exception as e:
-        logger.error(f"Async client test failed: {e}")
+    finally:
         server.shutdown()
-        return False
-
-    server.shutdown()
-    logger.info("Asynchronous client test passed!")
-    return True
 
 
 def test_process_per_task():
@@ -292,14 +262,8 @@ def test_process_per_task():
         for worker_id in worker_ids[1:]:
             requests.post("http://localhost:8004/reset", json={"worker_id": worker_id})
 
-    except Exception as e:
-        logger.error(f"Process-per-task test failed: {e}")
+    finally:
         server.shutdown()
-        return False
-
-    server.shutdown()
-    logger.info("Process-per-task test passed!")
-    return True
 
 
 if __name__ == "__main__":
