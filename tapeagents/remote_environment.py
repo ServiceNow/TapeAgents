@@ -90,7 +90,7 @@ class ProcessPoolManager:
         self.cleanup_dead_workers()
         return len(self.active_workers) < self.max_workers
 
-    def spawn_worker(self, worker_id: str, env_config: dict) -> str:
+    def spawn_worker(self, worker_id: str, env_config: dict, env_class: type[Environment]) -> str:
         """Spawn a new process for a worker and return socket path."""
         with self.lock:
             if not self.can_spawn_new_process():
@@ -102,7 +102,7 @@ class ProcessPoolManager:
         logger.info("Starting process")
         t = time.perf_counter()
         process = Process(
-            target=ProcessPoolManager._task_worker, args=(env_config, socket_path, worker_id), daemon=True
+            target=ProcessPoolManager._task_worker, args=(env_config, env_class, socket_path, worker_id), daemon=True
         )
         process.start()
         logger.info(f"Process {process.pid} started for worker {worker_id} in {time.perf_counter() - t:.2f} seconds")
@@ -173,7 +173,7 @@ class ProcessPoolManager:
             self.terminate(worker_id)
 
     @staticmethod
-    def _task_worker(env_config: dict, socket_path: str, worker_id: str):
+    def _task_worker(env_config: dict, env_class: type[Environment], socket_path: str, worker_id: str):
         """Worker process for a single task using Unix domain socket communication."""
         logging.basicConfig(
             format=f"[%(asctime)s][%(levelname)s][Worker-{worker_id}][%(process)d][%(name)s:%(lineno)d] - %(message)s",
@@ -214,8 +214,7 @@ class ProcessPoolManager:
             logger.info(f"Worker {worker_id} environment reset")
             return {"status": "ok", "should_exit": True}  # Signal worker to exit after reset
 
-        # Initialize environment
-        environment: Environment = instantiate(OmegaConf.create(env_config))
+        environment: Environment = env_class(**env_config)  # type: ignore
         logger.info(f"Worker started for {worker_id}, process {os.getpid()}")
 
         # Create Unix domain socket
@@ -384,6 +383,7 @@ class EnvironmentServer:
         # Process pool manager handles task processes
         self.pool_manager = ProcessPoolManager(max_workers=n_envs)
         self.env_config: dict | None = None
+        self.env_class: type[Environment] = None  # type: ignore
 
     def create_app(self):
         app = FastAPI(title="Environment Server", version="2.0.0")
@@ -438,7 +438,11 @@ class EnvironmentServer:
                 socket_path = os.path.join(self.pool_manager.socket_dir, f"worker_{worker_id}.sock")
                 logger.info(f"Spawning worker {worker_id} with socket {socket_path}")
                 await asyncio.get_event_loop().run_in_executor(
-                    None, self.pool_manager.spawn_worker, worker_id, self.env_config
+                    None,
+                    self.pool_manager.spawn_worker,
+                    worker_id,
+                    self.env_config,
+                    self.env_class,
                 )
                 logger.info(f"Created worker {worker_id} with socket {socket_path}")
 
@@ -572,9 +576,12 @@ class EnvironmentServer:
     def launch(self, env_config: DictConfig):
         """Launch the environment server."""
         config_container = OmegaConf.to_container(env_config, resolve=True)
+        environment: Environment = instantiate(env_config)
         if not isinstance(config_container, dict):
             raise ValueError("Environment config must be a dictionary")
+        config_container.pop("_target_")  # Remove target key
         self.env_config = config_container
+        self.env_class = type(environment)
         app = self.create_app()
         atexit.register(self.shutdown)
 
