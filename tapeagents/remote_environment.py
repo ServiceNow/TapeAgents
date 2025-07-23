@@ -478,7 +478,9 @@ class EnvironmentServer:
                     )
 
                 # Start the task
+                t = time.perf_counter()
                 response = await call_task_worker(worker_id, "start_task", request.task_data)
+                logger.info(f"Task {worker_id} started in {time.perf_counter() - t:.2f} seconds")
 
                 return {"worker_id": worker_id, "start_result": response.get("start_result")}
 
@@ -544,6 +546,8 @@ class EnvironmentServer:
             self.pool_manager.cleanup_dead_workers()
             workers = []
             for worker_id, task_proc in self.pool_manager.active_workers.items():
+                if task_proc is None:
+                    continue
                 workers.append(
                     {
                         "worker_id": worker_id,
