@@ -100,11 +100,12 @@ class ProcessPoolManager:
             self.active_workers[worker_id] = None  # Mark as starting
         socket_path = os.path.join(self.socket_dir, f"worker_{worker_id}.sock")
         logger.info("Starting process")
+        t = time.perf_counter()
         process = Process(
             target=ProcessPoolManager._task_worker, args=(env_config, socket_path, worker_id), daemon=True
         )
         process.start()
-        logger.info(f"Process {process.pid} started for worker {worker_id}, wait for socket..")
+        logger.info(f"Process {process.pid} started for worker {worker_id} in {time.perf_counter() - t:.2f} seconds")
 
         if not process.is_alive():
             logger.error(f"Worker {worker_id} failed to start!")
@@ -119,7 +120,6 @@ class ProcessPoolManager:
         )
 
         self.active_workers[worker_id] = task_proc
-        logger.info(f"Spawned process {process.pid} for worker {worker_id}, socket: {socket_path}")
         return socket_path
 
     def get_socket_path(self, worker_id: str) -> str:
@@ -182,6 +182,7 @@ class ProcessPoolManager:
             handlers=[logging.StreamHandler(), logging.FileHandler(f"/tmp/tapeagents_worker_{worker_id}.log")],
         )
         logger.info(f"Worker {worker_id} process starting")
+        t = time.perf_counter()
 
         def _handle_step(environment: Environment, data: dict) -> dict:
             logger.info(f"Handling step: {data}")
@@ -233,7 +234,7 @@ class ProcessPoolManager:
 
             logger.info(f"Worker {worker_id} initializing environment...")
             environment.initialize()
-            logger.info(f"Worker {worker_id} environment initialized successfully")
+            logger.info(f"Worker {worker_id} environment initialized in {time.perf_counter() - t:.2f} seconds")
 
             while True:
                 # Accept connection
@@ -451,10 +452,9 @@ class EnvironmentServer:
                 while elapsed_time < max_wait_time and not socket_ready:
                     if os.path.exists(socket_path):
                         try:
-                            test_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                            test_sock.settimeout(0.1)
-                            test_sock.connect(socket_path)
-                            test_sock.close()
+                            _, writer = await asyncio.open_unix_connection(socket_path)
+                            writer.close()
+                            await writer.wait_closed()
                             socket_ready = True
                             logger.info(
                                 f"Socket {socket_path} is ready for worker {worker_id} after {elapsed_time:.2f} seconds"
