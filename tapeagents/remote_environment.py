@@ -106,41 +106,9 @@ class ProcessPoolManager:
         process.start()
         logger.info(f"Process {process.pid} started for worker {worker_id}, wait for socket..")
 
-        # Wait for the socket file to be created and accessible
-        socket_ready = False
-        max_wait_time = 60  # seconds
-        check_interval = 0.1  # seconds
-        elapsed_time = 0
-
-        while elapsed_time < max_wait_time and not socket_ready:
-            if os.path.exists(socket_path):
-                # Socket file exists, try to connect to verify it's ready
-                try:
-                    test_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                    test_sock.settimeout(0.1)
-                    test_sock.connect(socket_path)
-                    test_sock.close()
-                    socket_ready = True
-                    logger.info(f"Socket {socket_path} is ready for worker {worker_id}")
-                except (socket.error, ConnectionRefusedError, FileNotFoundError):
-                    # Socket exists but not ready yet
-                    pass
-
-            if not socket_ready:
-                time.sleep(check_interval)
-                elapsed_time += check_interval
-
         if not process.is_alive():
             logger.error(f"Worker {worker_id} failed to start!")
             raise RuntimeError(f"Failed to start worker {worker_id}")
-
-        if not socket_ready:
-            logger.error(f"Socket {socket_path} not ready after {max_wait_time} seconds")
-            process.terminate()
-            process.join(timeout=2)
-            if process.is_alive():
-                process.kill()
-            raise RuntimeError(f"Worker {worker_id} socket not ready within timeout")
 
         task_proc = TaskWorker(
             worker_id=worker_id,
@@ -446,7 +414,7 @@ class EnvironmentServer:
                 logger.error(f"Connection error to worker {worker_id}: {e}")
                 # Clean up dead task
                 self.pool_manager.terminate(worker_id)
-                raise HTTPException(status_code=503, detail=f"Worker {worker_id} process is not responding")
+                raise HTTPException(status_code=503, detail=f"Worker {worker_id} process is not responding: {e}")
             except Exception as e:
                 logger.exception(f"Error calling worker {worker_id}: {e}")
                 raise HTTPException(status_code=503, detail=f"Worker {worker_id} communication error: {str(e)}")
@@ -470,24 +438,33 @@ class EnvironmentServer:
 
                 # Wait for socket to be ready
                 socket_ready = False
-                max_wait_time = 5  # seconds
+                max_wait_time = 60  # seconds
                 check_interval = 0.1  # seconds
                 elapsed_time = 0
 
                 while elapsed_time < max_wait_time and not socket_ready:
                     if os.path.exists(socket_path):
-                        socket_ready = True
-                        logger.info(
-                            f"Socket {socket_path} is ready for worker {worker_id} after {elapsed_time:.2f} seconds"
-                        )
-                        break
+                        try:
+                            test_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                            test_sock.settimeout(0.1)
+                            test_sock.connect(socket_path)
+                            test_sock.close()
+                            socket_ready = True
+                            logger.info(
+                                f"Socket {socket_path} is ready for worker {worker_id} after {elapsed_time:.2f} seconds"
+                            )
+                            break
+                        except (socket.error, ConnectionRefusedError, FileNotFoundError):
+                            # Socket exists but not ready yet
+                            pass
                     await asyncio.sleep(check_interval)
                     elapsed_time += check_interval
 
                 if not socket_ready:
                     self.pool_manager.terminate(worker_id)
                     raise HTTPException(
-                        status_code=500, detail=f"Socket {socket_path} not ready within {max_wait_time} seconds"
+                        status_code=500,
+                        detail=f"Socket {socket_path} not ready within {max_wait_time} seconds, worker {worker_id} terminated",
                     )
 
                 # Start the task
@@ -733,7 +710,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 logger.warning(f"Failed to start task, retry after 5 seconds: {e}")
                 await asyncio.sleep(5)
         start_time = time.perf_counter() - t
-        logger.info(f"Task started in {start_time:.2f} seconds")
+        logger.info(f"Task started after {start_time:.2f} seconds")
         return result
 
     async def _start_task(self, task_data: dict) -> dict:
