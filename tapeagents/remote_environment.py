@@ -411,13 +411,18 @@ class EnvironmentServer:
                 return response
 
             except ConnectionError as e:
-                logger.error(f"Connection error to worker {worker_id}: {e}")
+                logger.error(f"Connection error to worker {worker_id} when running '{command}': {e}")
                 # Clean up dead task
                 self.pool_manager.terminate(worker_id)
-                raise HTTPException(status_code=503, detail=f"Worker {worker_id} process is not responding: {e}")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Worker {worker_id} process connection error when running '{command}': {e}, worker terminated",
+                )
             except Exception as e:
                 logger.exception(f"Error calling worker {worker_id}: {e}")
-                raise HTTPException(status_code=503, detail=f"Worker {worker_id} communication error: {str(e)}")
+                raise HTTPException(
+                    status_code=503, detail=f"Worker {worker_id} communication error when running '{command}': {e}"
+                )
 
         @app.post("/start_task")
         async def start_task_endpoint(request: TaskRequest):
@@ -442,6 +447,7 @@ class EnvironmentServer:
                 check_interval = 0.1  # seconds
                 elapsed_time = 0
 
+                t = time.perf_counter()
                 while elapsed_time < max_wait_time and not socket_ready:
                     if os.path.exists(socket_path):
                         try:
@@ -458,7 +464,7 @@ class EnvironmentServer:
                             # Socket exists but not ready yet
                             pass
                     await asyncio.sleep(check_interval)
-                    elapsed_time += check_interval
+                    elapsed_time = time.perf_counter() - t
 
                 if not socket_ready:
                     self.pool_manager.terminate(worker_id)
