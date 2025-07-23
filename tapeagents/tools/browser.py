@@ -310,7 +310,7 @@ class Browser(StatefulTool):
             timeout=self.timeout_ms,
             viewport={"width": self.viewport_width, "height": self.viewport_height},
             task_kwargs={"start_url": "about:blank"},
-            disable_env_checker=True,  # disable env checker as it slowdown the gym significantly
+            disable_env_checker=True,  # disable env checker to avoid reflection slowdown
             **self.gym_kwargs,
         )  # type: ignore
         while not isinstance(self._env, BrowserEnv):
@@ -340,6 +340,7 @@ class Browser(StatefulTool):
             record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default", subsets=["coord", "workarena++"]).to_python_code,
             timeout=self.timeout_ms,
+            disable_env_checker=True,  # disable env checker to avoid reflection slowdown
             **kwargs,
         )  # type: ignore
         logger.info(f"New gym make took {time.perf_counter() - t:.2f}s")
