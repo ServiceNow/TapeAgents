@@ -702,12 +702,19 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
     Asynchronous environment that proxies actions to a remote environment server using the new task-based API.
     """
 
-    def __init__(self, server_url: str, max_parallel_requests: int = 32, start_timeout_sec: int = 3600):
+    def __init__(
+        self,
+        server_url: str,
+        max_parallel_requests: int = 32,
+        start_timeout_sec: int = 3600,
+        start_repeat_delay: int = 15,
+    ):
         self.server_url = server_url
         self.worker_id: str | None = None
         self.session: aiohttp.ClientSession | None = None
         self.semaphore = asyncio.Semaphore(max_parallel_requests)
         self.start_timeout_sec = start_timeout_sec
+        self.start_repeat_delay = start_repeat_delay
 
     async def ainitialize(self, session: aiohttp.ClientSession) -> None:
         """Initialize with aiohttp session."""
@@ -725,7 +732,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                     logger.error(f"Failed to start task after {self.start_timeout_sec} seconds: {e}")
                     raise HTTPException(status_code=500, detail=f"Failed to start task: {str(e)}")
                 logger.warning(f"Failed to start task, retry after 5 seconds: {e}")
-                await asyncio.sleep(5)
+                await asyncio.sleep(self.start_repeat_delay)
         start_time = time.perf_counter() - t
         logger.info(f"Task started after {start_time:.2f} seconds")
         return result
