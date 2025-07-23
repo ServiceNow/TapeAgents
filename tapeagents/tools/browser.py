@@ -231,7 +231,7 @@ class Browser(StatefulTool):
     page_load_time_sec: int = 1
     gym_kwargs: dict = {}
     gym_task: str = "browsergym/openended"
-    mock: bool = False # TODO: investigate why renaming it to any other name brokes running 2 async tests at one pytest call (but not a singular one)
+    mock: bool = False  # TODO: investigate why renaming it to any other name brokes running 2 async tests at one pytest call (but not a singular one)
 
     _env: BrowserEnv = None  # type: ignore
     _current_page: str = ""
@@ -310,6 +310,7 @@ class Browser(StatefulTool):
             timeout=self.timeout_ms,
             viewport={"width": self.viewport_width, "height": self.viewport_height},
             task_kwargs={"start_url": "about:blank"},
+            disable_env_checker=True,  # disable env checker as it slowdown the gym significantly
             **self.gym_kwargs,
         )  # type: ignore
         while not isinstance(self._env, BrowserEnv):
@@ -449,12 +450,10 @@ class Browser(StatefulTool):
             self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={modifiers})")
         except Exception as e:
             logger.warning(f"Click failed: {e}")
-        sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 
     def click_coordinates(self, action: ClickCoordinatesAction) -> PageObservation:
         self.run_browser_action(f"mouse_click({action.x}, {action.y}, button='{action.button}')")
-        sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 
     def click_grounded(self, action: ClickElementAction) -> PageObservation:
