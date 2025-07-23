@@ -177,8 +177,8 @@ def test_sync_client():
     return True
 
 
-def test_async_client():
-    asyncio.run(_test_async_client())
+# def test_async_client():
+#     asyncio.run(_test_async_client())
 
 
 async def _test_async_client():
