@@ -781,7 +781,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
 
     @tenacity.retry(
         retry=tenacity.retry_if_exception_type(HTTPException),
-        stop=tenacity.stop_after_delay(1800),  # Retry for up to 30 minutes
+        stop=tenacity.stop_after_delay(120),  # Retry for up to 2 minutes (will retry at least 6 times)
         wait=tenacity.wait_random_exponential(multiplier=1, max=60),
         # wait randomly up to 2^x * 1 seconds between each retry until the range reaches 60 seconds
     )
@@ -790,7 +790,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             data = {}
         assert self.session, "AIOHTTP session must be initialized before making API calls."
         async with self.semaphore:
-            logger.debug(f"Calling remote env /{endpoint} with data: {data}")
+            # logger.debug(f"Calling remote env /{endpoint} with data: {data}")
             async with self.session.post(f"{self.server_url}/{endpoint}", json=data) as response:
                 if response.status != 200:
                     text = await response.text()
