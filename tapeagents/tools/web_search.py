@@ -133,6 +133,7 @@ class WebSearch(Tool):
 
     action: type[Action] = SearchAction
     observation: type[Observation] = SearchResultsObservation
+    max_results: int = Field(5, description="Maximum number of search results to request")
     cached: bool = True
 
     def execute_action(self, action: SearchAction) -> SearchResultsObservation:
@@ -145,7 +146,7 @@ class WebSearch(Tool):
         error = None
         results = []
         try:
-            results = web_search(query)
+            results = web_search(query, max_results=self.max_results)
         except Exception as e:
             logger.exception(f"Failed to search the web: {e}")
             error = str(e)
@@ -224,7 +225,7 @@ class SafeWebSearch(WebSearch):
                 new_query = query
                 logger.warning(f'\nSAFE_SEARCH: Risk Level {level} Keeping original query "{query}"')
 
-            results = web_search(new_query, time_interval=action.time_interval)
+            results = web_search(new_query, time_interval=action.time_interval, max_results=self.max_results)
             result_obs = SafeSearchResultsObservation(
                 safe_search=True,
                 safe_query=new_query,
@@ -366,6 +367,7 @@ class MultiSearchExtract(Tool):
     observation: type[Observation] = ExtractedFactsObservation
     cached: bool = True
     top_k: int = 3
+    max_results_per_query: int = 5
     max_workers: int = 20
     search_timeout: int = 10
     fetch_timeout: int = 30
@@ -376,9 +378,9 @@ class MultiSearchExtract(Tool):
 
     def model_post_init(self, __context):
         if self.safe_search:
-            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached, prompt=self.safe_search_prompt)
+            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached, max_results=self.max_results_per_query, prompt=self.safe_search_prompt)
         else:
-            self._search_tool = WebSearch(cached=self.cached)
+            self._search_tool = WebSearch(cached=self.cached, max_results=self.max_results_per_query)
         return super().model_post_init(__context)
 
     def execute_action(self, action: SearchAndExtract) -> ExtractedFactsObservation:
