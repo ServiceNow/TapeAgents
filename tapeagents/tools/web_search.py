@@ -133,7 +133,7 @@ class WebSearch(Tool):
 
     action: type[Action] = SearchAction
     observation: type[Observation] = SearchResultsObservation
-    max_results: int = 5
+    max_results: int = Field(5, description="Maximum number of search results to request")
     cached: bool = True
 
     def execute_action(self, action: SearchAction) -> SearchResultsObservation:
