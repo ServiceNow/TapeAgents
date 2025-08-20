@@ -55,8 +55,10 @@ class EnvironmentServer:
         self.sessions: dict[str, int] = {}  # session_id -> env_idx
         self.session_last_activity: dict[str, float] = {}  # session_id -> timestamp
         self.requests_in_progress: int = 0
+        self.env_config: DictConfig | None = None
 
     def start_envs(self, env_config: DictConfig):
+        self.env_config = env_config  # Store for potential restarts
         for i in range(self.n_envs):
             parent_conn, child_conn = Pipe()
             env_config_dict = OmegaConf.to_container(env_config, resolve=True)
@@ -182,6 +184,36 @@ class EnvironmentServer:
                 self.sessions.pop(session_id, None)
                 self.session_last_activity.pop(session_id, None)
 
+    def _restart_dead_process(self, env_idx: int, env_config: DictConfig):
+        """Restart a dead environment process."""
+        logger.warning(f"Restarting dead process for env {env_idx}")
+        
+        # Clean up old process
+        if env_idx in self.env_processes:
+            old_process = self.env_processes[env_idx]
+            if old_process.is_alive():
+                old_process.terminate()
+                old_process.join(timeout=5)
+        
+        if env_idx in self.env_pipes:
+            old_conn = self.env_pipes[env_idx]
+            if not old_conn.closed:
+                old_conn.close()
+        
+        # Start new process
+        parent_conn, child_conn = Pipe()
+        env_config_dict = OmegaConf.to_container(env_config, resolve=True)
+        process = Process(
+            target=EnvironmentServer._environment_worker,
+            args=(env_config_dict, child_conn, env_idx),
+            daemon=True,
+        )
+        process.start()
+        
+        self.env_pipes[env_idx] = parent_conn
+        self.env_processes[env_idx] = process
+        logger.info(f"Successfully restarted env {env_idx} (PID: {process.pid})")
+
     def _get_env_details(self, session_id: str) -> tuple[mp_connection.Connection, int]:
         if session_id not in self.sessions:
             raise HTTPException(status_code=400, detail=f"Invalid or expired session ID: {session_id}")
@@ -263,8 +295,16 @@ class EnvironmentServer:
             for i in range(self.n_envs):
                 if i not in self.sessions.values():
                     if not self.env_processes[i].is_alive():
-                        logger.warning(f"Attempted to acquire env {i}, but its process is dead. Skipping.")
-                        continue
+                        logger.warning(f"Env {i} process is dead, attempting to restart...")
+                        if self.env_config:
+                            try:
+                                self._restart_dead_process(i, self.env_config)
+                            except Exception as e:
+                                logger.error(f"Failed to restart env {i}: {e}")
+                                continue
+                        else:
+                            logger.error(f"Cannot restart env {i} - no config stored")
+                            continue
 
                     session_id = str(uuid.uuid4())
                     self.sessions[session_id] = i
@@ -280,11 +320,16 @@ class EnvironmentServer:
         async def release_environment(request: ApiRequest):
             try:
                 await call_env_process(request.session_id, "reset")
+            except HTTPException as http_err:
+                # HTTPException from call_env_process indicates connection issues
+                logger.warning(f"Failed to reset env during release for session {request.session_id}: {http_err.detail}")
             except (EOFError, BrokenPipeError) as pipe_err:
                 msg = f"Pipe error during release for session {request.session_id}: {pipe_err}. Env could be not reset properly."
                 logger.error(msg)
+            except Exception as e:
+                logger.error(f"Unexpected error during release for session {request.session_id}: {e}")
             finally:
-                # Safely remove session - use pop() to avoid KeyError
+                # Always clean up session regardless of reset success
                 self.sessions.pop(request.session_id, None)
                 self.session_last_activity.pop(request.session_id, None)
                 logger.info(f"Environment released, remaining free environments: {self.n_envs - len(self.sessions)}")
@@ -513,10 +558,18 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
     async def aclose(self) -> None:
         if self.session_id:
             try:
-                await self.api_call("release")
-                logger.debug(f"Async environment with session id {self.session_id} closed.")
+                # Check if aiohttp session is still open before attempting release
+                if self.session and not self.session.closed:
+                    await self.api_call("release")
+                    logger.debug(f"Async environment with session id {self.session_id} closed.")
+                else:
+                    logger.debug(f"Skipping release for session {self.session_id} - aiohttp session already closed.")
             except Exception as e:
-                logger.error(f"Failed to release environment correctly: {e}")
+                # Don't log as error for expected session closure scenarios
+                if "Session is closed" in str(e) or "closed" in str(e).lower():
+                    logger.debug(f"Release skipped for session {self.session_id}: {e}")
+                else:
+                    logger.error(f"Failed to release environment correctly: {e}")
             self.session_id = None
             self.session = None
         elif not self.session:
