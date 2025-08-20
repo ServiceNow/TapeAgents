@@ -178,9 +178,9 @@ class EnvironmentServer:
                 except Exception as e:
                     logger.warning(f"Failed to reset env {env_idx} during cleanup: {e}")
 
-                # Remove from tracking
-                del self.sessions[session_id]
-                del self.session_last_activity[session_id]
+                # Remove from tracking safely
+                self.sessions.pop(session_id, None)
+                self.session_last_activity.pop(session_id, None)
 
     def _get_env_details(self, session_id: str) -> tuple[mp_connection.Connection, int]:
         if session_id not in self.sessions:
@@ -195,7 +195,8 @@ class EnvironmentServer:
 
         if not self.env_processes[env_idx].is_alive():
             logger.error(f"Process for env_idx {env_idx} (session {session_id}) is not alive, killing session.")
-            del self.sessions[session_id]
+            self.sessions.pop(session_id, None)  # Safe removal
+            self.session_last_activity.pop(session_id, None)  # Safe removal
             raise HTTPException(status_code=503, detail="Environment process is not responding, session terminated.")
 
         parent_conn = self.env_pipes[env_idx]
@@ -214,31 +215,43 @@ class EnvironmentServer:
             task_data: dict = {}
 
         async def call_env_process(session_id: str, command: str, data: dict | None = None) -> dict:
-            conn, env_idx = self._get_env_details(session_id)
-            logger.info(
-                f"Session {session_id} env {env_idx} call {command}: {data}. Requests in progress: {self.requests_in_progress}"
-            )
-            loop = asyncio.get_running_loop()
-
-            def send_recv():
-                conn.send((command, data))
-                return conn.recv()
-
-            self.requests_in_progress += 1
             try:
-                future = loop.run_in_executor(None, send_recv)
-                response = await asyncio.wait_for(future, self.env_call_timeout) # wait for up to env_call_timeout seconds
-                assert isinstance(response, dict), f"Response must be a dictionary, got {type(response)}: {response}"
+                conn, env_idx = self._get_env_details(session_id)
+                logger.info(
+                    f"Session {session_id} env {env_idx} call {command}: {data}. Requests in progress: {self.requests_in_progress}"
+                )
+                loop = asyncio.get_running_loop()
+
+                def send_recv():
+                    conn.send((command, data))
+                    return conn.recv()
+
+                self.requests_in_progress += 1
+                try:
+                    future = loop.run_in_executor(None, send_recv)
+                    response = await asyncio.wait_for(future, self.env_call_timeout) # wait for up to env_call_timeout seconds
+                    assert isinstance(response, dict), f"Response must be a dictionary, got {type(response)}: {response}"
+                except (ConnectionResetError, BrokenPipeError, EOFError) as conn_err:
+                    logger.error(f"Env {env_idx}. Connection error during {command}: {conn_err}")
+                    # Mark environment as failed and clean up session
+                    self.sessions.pop(session_id, None)
+                    self.session_last_activity.pop(session_id, None)
+                    msg = f"Env {env_idx}. Connection lost to worker process during {command}. Session terminated."
+                    raise HTTPException(status_code=503, detail=msg)
+                except Exception as e:
+                    logger.exception(f"Env {env_idx}. Error during async send/recv {command}: {e}")
+                    msg = f"Env {env_idx}. Error during async send/recv {command}: {e}. Details: {traceback.format_exc()}"
+                    raise HTTPException(status_code=503, detail=msg)
+                finally:
+                    self.requests_in_progress -= 1
+                if response.get("status") == "error":
+                    msg = f"Env {env_idx}. Worker error: {response.get('error')}"
+                    raise HTTPException(status_code=500, detail=msg)
+                return response
             except Exception as e:
-                logger.exception(f"Env {env_idx}. Error during async send/recv {command}: {e}")
-                msg = f"Env {env_idx}. Error during async send/recv {command}: {e}. Details: {traceback.format_exc()}"
-                raise HTTPException(status_code=503, detail=msg)
-            finally:
-                self.requests_in_progress -= 1
-            if response.get("status") == "error":
-                msg = f"Env {env_idx}. Worker error: {response.get('error')}"
-                raise HTTPException(status_code=500, detail=msg)
-            return response
+                # Log the error but don't crash the server  
+                logger.warning(f"Session validation failed for {session_id}: {e}")
+                raise e  # Re-raise but now it's handled gracefully by FastAPI
 
         @app.post("/acquire")
         async def acquire_environment():
@@ -271,9 +284,9 @@ class EnvironmentServer:
                 msg = f"Pipe error during release for session {request.session_id}: {pipe_err}. Env could be not reset properly."
                 logger.error(msg)
             finally:
-                del self.sessions[request.session_id]
-                if request.session_id in self.session_last_activity:
-                    del self.session_last_activity[request.session_id]
+                # Safely remove session - use pop() to avoid KeyError
+                self.sessions.pop(request.session_id, None)
+                self.session_last_activity.pop(request.session_id, None)
                 logger.info(f"Environment released, remaining free environments: {self.n_envs - len(self.sessions)}")
             return {"status": "ok"}
 
