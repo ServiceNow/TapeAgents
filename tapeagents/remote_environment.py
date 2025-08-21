@@ -127,7 +127,7 @@ class EnvironmentServer:
                             result = _handle_start_task(environment, data)
                         case "shutdown":
                             environment.close()
-                            exit(0)
+                            return
                         case _:
                             raise ValueError(f"Unknown command: {command}")
                     conn.send(result)
