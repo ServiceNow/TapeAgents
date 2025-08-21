@@ -153,9 +153,15 @@ class MCPEnvironment(ToolCollectionEnvironment):
         self.client.use_cache = use_cache
 
     def initialize(self):
+        logger.info("Starting MCPEnvironment initialization")
         nest_asyncio.apply()
         self.loop = asyncio.get_event_loop()
         self.loop.run_until_complete(self.client.start_servers())
+        available_tools = [
+            tool.name for tool in self.client.tools.values()
+            if tool.name in self.tools_whitelist or not self.tools_whitelist
+        ]
+        logger.info(f"Adding {len(available_tools)} MCP tools: {available_tools}")
         self.tools.extend(
             [
                 ToolSpec(
@@ -167,9 +173,16 @@ class MCPEnvironment(ToolCollectionEnvironment):
                 if tool.name in self.tools_whitelist or not self.tools_whitelist
             ]
         )
+        logger.info("MCPEnvironment initialization completed")
 
     async def ainitialize(self) -> None:
+        logger.info("Starting async MCPEnvironment initialization")
         await self.client.start_servers()
+        available_tools = [
+            tool.name for tool in self.client.tools.values()
+            if tool.name in self.tools_whitelist or not self.tools_whitelist
+        ]
+        logger.info(f"Adding {len(available_tools)} MCP tools: {available_tools}")
         self.tools.extend(
             [
                 ToolSpec(
@@ -181,6 +194,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
                 if tool.name in self.tools_whitelist or not self.tools_whitelist
             ]
         )
+        logger.info("Async MCPEnvironment initialization completed")
 
     def actions(self) -> tuple[type[Action] | ToolSpec, ...]:
         actions = super().actions()
@@ -191,12 +205,18 @@ class MCPEnvironment(ToolCollectionEnvironment):
         if not isinstance(action, ToolCallAction):
             return super().step(action)
         if isinstance(action, LLMOutputParsingFailureAction):
+            logger.debug("Handling LLMOutputParsingFailureAction")
             return ToolResult(tool_call_id="", content="Try again")
+        
+        logger.debug(f"Executing tool call: {action.function.name} with args: {action.function.arguments}")
+        start_time = time.perf_counter()
         try:
             assert self.client is not None, "MCPClient is not initialized"
             result = self.loop.run_until_complete(
                 self.client.call_tool(action.function.name, action.function.arguments)
             )
+            execution_time = time.perf_counter() - start_time
+            logger.info(f"Tool call {action.function.name} completed successfully in {execution_time:.3f}s")
         except NoTool:
             logger.exception(f"Tool {action.function.name} not found in MCP client")
             result = CallToolResult(
@@ -217,22 +237,31 @@ class MCPEnvironment(ToolCollectionEnvironment):
         return ToolResult(tool_call_id=action.id, content=result)
 
     def close(self) -> None:
+        logger.info("Closing MCPEnvironment")
         super().close()
         if self.client is not None:
             try:
                 self.loop.run_until_complete(self.client.close())
+                logger.info("MCP client closed successfully")
             except Exception as e:
                 logger.warning(f"Failed to close MCP client properly: {e}")
+        else:
+            logger.debug("No MCP client to close")
 
     async def astep(self, action: Action) -> Observation:
         if not isinstance(action, ToolCallAction):
             return await super().astep(action)
         if isinstance(action, LLMOutputParsingFailureAction):
+            logger.debug("Handling LLMOutputParsingFailureAction in async step")
             return ToolResult(tool_call_id="", content="Try again")
+        
+        logger.debug(f"Executing async tool call: {action.function.name} with args: {action.function.arguments}")
         t = time.perf_counter()
         try:
             assert self.client is not None, "MCPClient is not initialized"
             result = await self.client.call_tool(action.function.name, action.function.arguments)
+            execution_time = time.perf_counter() - t
+            logger.info(f"Async tool call {action.function.name} completed successfully in {execution_time:.3f}s")
         except NoTool:
             logger.exception(f"Tool {action.function.name} not found in MCP client")
             result = CallToolResult(
@@ -256,5 +285,10 @@ class MCPEnvironment(ToolCollectionEnvironment):
         return observation
 
     async def aclose(self) -> None:
+        logger.info("Closing MCPEnvironment asynchronously")
         await super().aclose()
-        await self.client.close()
+        if self.client is not None:
+            await self.client.close()
+            logger.info("MCP client closed successfully (async)")
+        else:
+            logger.debug("No MCP client to close (async)")
