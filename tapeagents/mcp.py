@@ -257,6 +257,18 @@ class MCPEnvironment(ToolCollectionEnvironment):
         observation.metadata.other["action_kind"] = action.kind
         return observation
 
+    def start_task(self, task_data: dict) -> dict:
+        """Initialize MCP environment for a new task (sync version)."""
+        if not hasattr(self, 'loop') or not self.client.sessions:
+            self.initialize()
+        return {"task_started": True, "mcp_servers": len(self.client.servers)}
+
+    async def astart_task(self, task_data: dict) -> dict:
+        """Initialize MCP environment for a new task (async version)."""
+        if not self.client.sessions:
+            await self.ainitialize()
+        return {"task_started": True, "mcp_servers": len(self.client.servers)}
+
     async def aclose(self) -> None:
         await super().aclose()
         await self.client.close()
