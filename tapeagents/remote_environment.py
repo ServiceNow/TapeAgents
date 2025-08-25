@@ -5,6 +5,7 @@ import glob
 import logging
 import os
 import pickle
+import psutil
 import socket
 import threading
 import time
@@ -88,6 +89,9 @@ class ProcessPoolManager:
         
         # Also clean up any stale socket files not tracked in active_workers
         self._cleanup_stale_sockets()
+        
+        # Log resource usage after cleanup
+        self._log_resource_usage()
 
     def _cleanup_stale_sockets(self) -> None:
         """Clean up stale socket files that are no longer connected to active processes."""
@@ -131,6 +135,72 @@ class ProcessPoolManager:
         except Exception as e:
             logger.warning(f"Error during stale socket cleanup: {e}")
 
+    def _log_resource_usage(self) -> dict:
+        """Log current system resource usage and return metrics."""
+        try:
+            # Get process info
+            current_process = psutil.Process()
+            
+            # File descriptor count
+            try:
+                fd_count = current_process.num_fds() if hasattr(current_process, 'num_fds') else 0
+            except (psutil.AccessDenied, AttributeError):
+                fd_count = 0
+                
+            # Memory usage
+            memory = psutil.virtual_memory()
+            process_memory = current_process.memory_info()
+            
+            # Disk usage for socket directory
+            socket_dir_usage = psutil.disk_usage(self.socket_dir if os.path.exists(self.socket_dir) else '/tmp')
+            
+            # Count socket files
+            socket_pattern = os.path.join(self.socket_dir, "worker_*.sock")
+            socket_file_count = len(glob.glob(socket_pattern))
+            
+            # CPU usage
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            
+            metrics = {
+                'active_workers': len([w for w in self.active_workers.values() if w is not None]),
+                'total_worker_slots': self.max_workers,
+                'stopped_workers': self.stopped_workers,
+                'socket_files': socket_file_count,
+                'file_descriptors': fd_count,
+                'memory_percent': memory.percent,
+                'memory_available_gb': memory.available / (1024**3),
+                'process_memory_mb': process_memory.rss / (1024**2),
+                'disk_free_gb': socket_dir_usage.free / (1024**3),
+                'cpu_percent': cpu_percent,
+                'system_processes': len(psutil.pids())
+            }
+            
+            # Log resource summary
+            logger.info(
+                f"Resources: Workers={metrics['active_workers']}/{metrics['total_worker_slots']}, "
+                f"Sockets={metrics['socket_files']}, FDs={metrics['file_descriptors']}, "
+                f"Memory={metrics['memory_percent']:.1f}%({metrics['memory_available_gb']:.1f}GB free), "
+                f"Process={metrics['process_memory_mb']:.1f}MB, "
+                f"Disk={metrics['disk_free_gb']:.1f}GB, CPU={metrics['cpu_percent']:.1f}%, "
+                f"Stopped={metrics['stopped_workers']}"
+            )
+            
+            # Warning thresholds
+            if metrics['memory_percent'] > 90:
+                logger.warning(f"High memory usage: {metrics['memory_percent']:.1f}%")
+            if metrics['disk_free_gb'] < 1.0:
+                logger.warning(f"Low disk space: {metrics['disk_free_gb']:.1f}GB free")
+            if metrics['file_descriptors'] > 1000:
+                logger.warning(f"High file descriptor count: {metrics['file_descriptors']}")
+            if metrics['socket_files'] > metrics['total_worker_slots'] * 2:
+                logger.warning(f"Too many socket files: {metrics['socket_files']} (max workers: {metrics['total_worker_slots']})")
+                
+            return metrics
+            
+        except Exception as e:
+            logger.warning(f"Failed to collect resource metrics: {e}")
+            return {}
+
     def can_spawn_new_process(self) -> bool:
         """Check if we can spawn a new process."""
         self.cleanup_dead_workers()
@@ -166,6 +236,11 @@ class ProcessPoolManager:
         )
 
         self.active_workers[worker_id] = task_proc
+        
+        # Log resource usage after spawning worker
+        logger.info(f"Worker {worker_id} spawned, logging resources:")
+        self._log_resource_usage()
+        
         return socket_path
 
     def get_socket_path(self, worker_id: str) -> str:
