@@ -141,6 +141,15 @@ class ProcessPoolManager:
         task_proc.last_activity = time.time()
         return task_proc.socket_path
 
+    def is_worker_alive(self, worker_id: str) -> bool:
+        """Check if a worker is alive and responsive."""
+        if worker_id not in self.active_workers:
+            return False
+        task_proc = self.active_workers[worker_id]
+        if task_proc is None:
+            return False  # Still starting
+        return task_proc.process.is_alive()
+
     def terminate(self, worker_id: str) -> None:
         """Terminate a specific worker process."""
         if worker_id in self.active_workers:
@@ -322,40 +331,78 @@ class ProcessPoolManager:
             logger.info(f"Worker {worker_id} process {os.getpid()} exiting")
 
 
+@tenacity.retry(
+    retry=tenacity.retry_if_exception_type((ConnectionError, OSError, asyncio.IncompleteReadError)),
+    stop=tenacity.stop_after_attempt(3),
+    wait=tenacity.wait_exponential(multiplier=1, min=1, max=10),
+    reraise=True,
+)
 async def send_socket_request(socket_path: str, command: str, data: dict | None = None, timeout: int = 60) -> dict:
-    """Send a request to a Unix domain socket and return the response using asyncio."""
+    """Send a request to a Unix domain socket and return the response using asyncio with retry logic."""
+    logger.info(f"[SOCKET] Starting {command} request to {socket_path} (timeout={timeout}s)")
+    start_time = time.time()
+    
     try:
-        # Connect using asyncio - no need for wait_for wrapper
-        reader, writer = await asyncio.open_unix_connection(socket_path)
+        # Connect using asyncio with timeout
+        logger.debug(f"[SOCKET] Connecting to {socket_path}...")
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_unix_connection(socket_path), 
+            timeout=timeout
+        )
+        logger.debug(f"[SOCKET] Connected successfully after {time.time() - start_time:.2f}s")
 
         try:
             # Prepare request
             request = {"command": command, "data": data}
             request_data = pickle.dumps(request)
             request_length = len(request_data)
+            logger.debug(f"[SOCKET] Sending {len(request_data)} bytes for '{command}' command...")
 
-            # Send request
+            # Send request with timeout
             writer.write(request_length.to_bytes(4, byteorder="big"))
             writer.write(request_data)
-            await writer.drain()
+            logger.debug(f"[SOCKET] Data written, draining...")
+            await asyncio.wait_for(writer.drain(), timeout=timeout)
+            logger.debug(f"[SOCKET] Request sent after {time.time() - start_time:.2f}s")
 
-            # Receive response length - readexactly handles connection issues
-            response_length_bytes = await reader.readexactly(4)
+            # Receive response length with timeout
+            logger.debug(f"[SOCKET] Reading response length...")
+            response_length_bytes = await asyncio.wait_for(
+                reader.readexactly(4), 
+                timeout=timeout
+            )
             response_length = int.from_bytes(response_length_bytes, byteorder="big")
+            logger.debug(f"[SOCKET] Response length: {response_length} bytes")
 
-            # Receive response data
-            response_data = await reader.readexactly(response_length)
+            # Receive response data with timeout
+            logger.debug(f"[SOCKET] Reading response data ({response_length} bytes)...")
+            response_data = await asyncio.wait_for(
+                reader.readexactly(response_length), 
+                timeout=timeout
+            )
+            logger.debug(f"[SOCKET] Response data received after {time.time() - start_time:.2f}s")
 
             response = pickle.loads(response_data)
+            logger.info(f"[SOCKET] {command} completed successfully after {time.time() - start_time:.2f}s")
             return response
 
         finally:
+            logger.debug(f"[SOCKET] Closing connection...")
             writer.close()
             await writer.wait_closed()
+            logger.debug(f"[SOCKET] Connection closed")
 
+    except asyncio.TimeoutError as e:
+        elapsed = time.time() - start_time
+        logger.error(f"[SOCKET] {command} to {socket_path} TIMED OUT after {elapsed:.2f}s (limit: {timeout}s)")
+        raise ConnectionError(f"Socket communication to {socket_path} timed out after {timeout}s during '{command}': {e}")
     except (OSError, ConnectionError, asyncio.IncompleteReadError) as e:
+        elapsed = time.time() - start_time
+        logger.error(f"[SOCKET] {command} to {socket_path} FAILED after {elapsed:.2f}s: {e}")
         raise ConnectionError(f"Failed to communicate with socket {socket_path}: {e}")
     except Exception as e:
+        elapsed = time.time() - start_time
+        logger.error(f"[SOCKET] {command} to {socket_path} ERROR after {elapsed:.2f}s: {e}")
         raise ConnectionError(f"Socket communication error: {e}")
 
 
@@ -398,8 +445,28 @@ class EnvironmentServer:
         class WorkerRequest(BaseModel):
             worker_id: str
 
-        async def call_task_worker(worker_id: str, command: str, data: dict | None = None) -> dict:
-            """Send a command to a task process via Unix domain socket."""
+        async def call_task_worker(worker_id: str, command: str, data: dict | None = None, allow_restart: bool = True) -> dict:
+            """Send a command to a task process via Unix domain socket with recovery logic."""
+            # First check if worker is alive
+            if not self.pool_manager.is_worker_alive(worker_id):
+                logger.warning(f"Worker {worker_id} appears to be dead before executing '{command}'")
+                if allow_restart and command == "start_task":
+                    # For start_task, we can try to spawn a new worker
+                    logger.info(f"Attempting to respawn worker {worker_id} for start_task")
+                    self.pool_manager.terminate(worker_id)  # Clean up the dead worker
+                    # The start_task_endpoint will handle spawning a new worker
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Worker {worker_id} was dead, please retry to spawn a new one",
+                    )
+                else:
+                    # For other commands, the task is lost
+                    self.pool_manager.terminate(worker_id)
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Worker {worker_id} process died unexpectedly before '{command}'",
+                    )
+
             socket_path = self.pool_manager.get_socket_path(worker_id)
 
             try:
@@ -407,22 +474,44 @@ class EnvironmentServer:
 
                 if response.get("status") == "error":
                     msg = f"Worker {worker_id} error: {response.get('error')}"
+                    logger.error(msg)
+                    # Don't terminate worker for application-level errors
                     raise HTTPException(status_code=500, detail=msg)
 
                 return response
 
             except ConnectionError as e:
                 logger.error(f"Connection error to worker {worker_id} when running '{command}': {e}")
-                # Clean up dead task
-                self.pool_manager.terminate(worker_id)
-                raise HTTPException(
-                    status_code=503,
-                    detail=f"Worker {worker_id} process connection error when running '{command}': {e}, worker terminated",
-                )
+                # Check if the process is still alive
+                if not self.pool_manager.is_worker_alive(worker_id):
+                    logger.error(f"Worker {worker_id} process confirmed dead after connection error")
+                    # Clean up dead task
+                    self.pool_manager.terminate(worker_id)
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Worker {worker_id} process died during '{command}': {e}",
+                    )
+                else:
+                    # Process is alive but socket connection failed - could be transient
+                    logger.warning(f"Worker {worker_id} is alive but socket connection failed, may be transient")
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Worker {worker_id} connection error during '{command}': {e}, please retry",
+                    )
+            except HTTPException:
+                # Re-raise HTTP exceptions as-is
+                raise
             except Exception as e:
-                logger.exception(f"Error calling worker {worker_id}: {e}")
+                logger.exception(f"Unexpected error calling worker {worker_id}: {e}")
+                # Check worker health before deciding what to do
+                if not self.pool_manager.is_worker_alive(worker_id):
+                    self.pool_manager.terminate(worker_id)
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Worker {worker_id} died during '{command}': {e}",
+                    )
                 raise HTTPException(
-                    status_code=503, detail=f"Worker {worker_id} communication error when running '{command}': {e}"
+                    status_code=503, detail=f"Worker {worker_id} error during '{command}': {e}"
                 )
 
         @app.post("/start_task")
@@ -506,26 +595,41 @@ class EnvironmentServer:
         @app.post("/reset")
         async def reset_endpoint(request: WorkerRequest):
             """Reset the task environment and terminate its process."""
+            logger.info(f"[RESET] Starting reset for worker {request.worker_id}")
+            reset_start = time.time()
+            
             try:
-                # Send reset command to environment, this will cause worker to exit
-                await call_task_worker(request.worker_id, "reset")
+                # Check if worker is alive first
+                is_alive = self.pool_manager.is_worker_alive(request.worker_id)
+                logger.info(f"[RESET] Worker {request.worker_id} alive status: {is_alive}")
+                
+                if is_alive:
+                    # Send reset command to environment, this will cause worker to exit
+                    logger.info(f"[RESET] Sending reset command to worker {request.worker_id}")
+                    await call_task_worker(request.worker_id, "reset")
+                    logger.info(f"[RESET] Reset command sent after {time.time() - reset_start:.2f}s")
 
-                # Wait a moment for graceful shutdown
-                await asyncio.sleep(0.1)
+                    # Wait a moment for graceful shutdown
+                    logger.debug(f"[RESET] Waiting 0.1s for graceful shutdown...")
+                    await asyncio.sleep(0.1)
+                else:
+                    logger.info(f"[RESET] Worker {request.worker_id} already dead, skipping socket reset")
 
                 # Ensure process is terminated
+                logger.info(f"[RESET] Terminating worker {request.worker_id} process...")
                 self.pool_manager.terminate(request.worker_id)
+                logger.info(f"[RESET] Worker {request.worker_id} reset completed in {time.time() - reset_start:.2f}s")
 
                 return {"status": "ok", "message": f"Task {request.worker_id} reset and terminated"}
 
             except HTTPException as e:
                 # If process is already dead, that's fine for reset
                 if e.status_code == 503:
-                    logger.info(f"Task {request.worker_id} was already dead during reset")
+                    logger.info(f"[RESET] Task {request.worker_id} was already dead during reset (after {time.time() - reset_start:.2f}s)")
                     return {"status": "ok", "message": f"Task {request.worker_id} was already terminated"}
                 raise
             except Exception as e:
-                logger.exception(f"Error resetting task {request.worker_id}: {e}")
+                logger.exception(f"[RESET] Error resetting task {request.worker_id} after {time.time() - reset_start:.2f}s: {e}")
                 # Force cleanup
                 self.pool_manager.terminate(request.worker_id)
                 raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
@@ -780,10 +884,10 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         return observation
 
     @tenacity.retry(
-        retry=tenacity.retry_if_exception_type(HTTPException),
-        stop=tenacity.stop_after_delay(120),  # Retry for up to 2 minutes (will retry at least 6 times)
+        retry=tenacity.retry_if_exception(lambda e: isinstance(e, HTTPException) and e.status_code in [502, 503]),
+        stop=tenacity.stop_after_delay(120),  # Retry for up to 2 minutes
         wait=tenacity.wait_random_exponential(multiplier=1, max=60),
-        # wait randomly up to 2^x * 1 seconds between each retry until the range reaches 60 seconds
+        reraise=True,
     )
     async def api_call(self, endpoint: str, data: dict | None = None, suppress_errors: bool = False) -> dict:
         if data is None:
@@ -796,6 +900,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                     text = await response.text()
                     if not suppress_errors:
                         logger.error(f"Failed to call remote env /{endpoint}: {text}")
+                    # Parse error details if it's a 503 error related to worker issues
+                    if response.status == 503 and "please retry" in text.lower():
+                        logger.info(f"Received retriable 503 error for /{endpoint}: {text}")
                     raise HTTPException(status_code=response.status, detail=text)
                 response_dict = await response.json()
         return response_dict
