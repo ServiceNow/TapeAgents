@@ -87,53 +87,8 @@ class ProcessPoolManager:
             del self.active_workers[worker_id]
         self.stopped_workers += len(dead_workers)
         
-        # Also clean up any stale socket files not tracked in active_workers
-        self._cleanup_stale_sockets()
-        
         # Log resource usage after cleanup
         self._log_resource_usage()
-
-    def _cleanup_stale_sockets(self) -> None:
-        """Clean up stale socket files that are no longer connected to active processes."""
-        try:
-            socket_pattern = os.path.join(self.socket_dir, "worker_*.sock")
-            all_socket_files = glob.glob(socket_pattern)
-            
-            # Get currently tracked socket paths
-            tracked_sockets = set()
-            for task_proc in self.active_workers.values():
-                if task_proc is not None:
-                    tracked_sockets.add(task_proc.socket_path)
-            
-            stale_count = 0
-            for socket_path in all_socket_files:
-                # Skip if this socket is tracked and active
-                if socket_path in tracked_sockets:
-                    continue
-                    
-                # Test if socket is actually responsive
-                try:
-                    test_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                    test_sock.settimeout(0.1)  # Very short timeout
-                    test_sock.connect(socket_path)
-                    test_sock.close()
-                    # If connection succeeds, socket is active - don't remove
-                except (ConnectionRefusedError, FileNotFoundError, OSError):
-                    # Socket is stale or unresponsive, remove it
-                    try:
-                        os.unlink(socket_path)
-                        stale_count += 1
-                        logger.info(f"Removed stale socket file: {socket_path}")
-                    except FileNotFoundError:
-                        pass  # Already gone
-                    except Exception as e:
-                        logger.warning(f"Failed to remove stale socket {socket_path}: {e}")
-            
-            if stale_count > 0:
-                logger.info(f"Cleaned up {stale_count} stale socket files")
-                
-        except Exception as e:
-            logger.warning(f"Error during stale socket cleanup: {e}")
 
     def _log_resource_usage(self) -> dict:
         """Log current system resource usage and return metrics."""
