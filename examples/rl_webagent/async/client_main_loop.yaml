@@ -32,7 +32,7 @@ environment_variables:
 llms:
   - _target_: tapeagents.llms.TrainableLLM
     base_url: http://localhost:8080
-    model_name: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
+    model_name: meta-llama/Llama-3.1-8B-Instruct
     use_litellm_tokenizer_fallback: true
     use_cache: false
     context_size: 32000
@@ -41,7 +41,7 @@ llms:
       temperature: 0.1
   - _target_: tapeagents.llms.TrainableLLM
     base_url: http://localhost:8081
-    model_name: /mnt/llmd/base_models/Meta-Llama-3.1-8B-Instruct
+    model_name: meta-llama/Llama-3.1-8B-Instruct
     use_litellm_tokenizer_fallback: true
     use_cache: false
     context_size: 32000
