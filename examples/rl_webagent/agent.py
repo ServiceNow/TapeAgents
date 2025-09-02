@@ -19,13 +19,7 @@ from tapeagents.tools.simple_browser import PageObservation
 from tapeagents.utils import FatalError
 
 from .prompts import PromptRegistry
-from .steps import (
-    ReasoningThought,
-    WebAgentAction,
-    WebAgentStep,
-    WebTape,
-    WebTask,
-)
+from .steps import ReasoningThought, WebAgentAction, WebAgentStep, WebTape, WebTapeStep, WebTask
 
 
 class WebNode(StandardNode):
@@ -36,9 +30,9 @@ class WebNode(StandardNode):
     max_same_action: int = 4  # max number of times to repeat the same action
     max_chars_page_observation: int = 2000  # max number of characters to keep in PageObservation["text"]
 
-    def tape_to_messages(self, tape: WebTape, steps_description: str) -> list[dict]:
+    def steps_to_messages(self, steps: list[WebTapeStep], steps_description: str) -> list[dict]:
         """
-        Converts a Tape object and steps description into a list of messages for LLM conversation.
+        Converts a list of steps and steps description into a list of messages for LLM conversation.
 
         Modifications from the original StandardNode:
         - If the last n steps are LLMOutputParsingFailureAction, put the guidance before the error steps
@@ -48,7 +42,7 @@ class WebNode(StandardNode):
         - Truncate PageObservation steps up to `max_chars_page_observation` chars (instead of 100 by default).
 
         Args:
-            tape (Tape): A Tape object containing conversation steps.
+            steps (list[WebTapeStep]): A list of conversation steps.
             steps_description (str): A description of the conversation steps.
 
         Returns:
@@ -67,7 +61,7 @@ class WebNode(StandardNode):
             messages.append({"role": "user", "content": steps_description})
         # ignore the last n consecutive parsing error steps for now, will add them later
         last_parsing_error_steps: list[LLMOutputParsingFailureAction] = []
-        for step in reversed(tape.steps):
+        for step in reversed(steps):
             if isinstance(step, LLMOutputParsingFailureAction):
                 last_parsing_error_steps.append(step)
             else:
@@ -75,7 +69,7 @@ class WebNode(StandardNode):
         # put back the last n parsing error steps in the original order
         last_parsing_error_steps.reverse()
         # remove all the parsing error steps
-        cleaned_steps = [step for step in tape.steps if not isinstance(step, LLMOutputParsingFailureAction)]
+        cleaned_steps = [step for step in steps if not isinstance(step, LLMOutputParsingFailureAction)]
         # get the positions of all observations to trim the old ones
         page_observation_idx = [i for i, step in enumerate(cleaned_steps) if isinstance(step, PageObservation)]
         for i, step in enumerate(cleaned_steps):
@@ -152,7 +146,13 @@ class WebNode(StandardNode):
             if not event.output:
                 continue
             if event.output.content:
-                new_steps += list(self.parse_completion(event.output.content))
+                output_content_to_parse = event.output.content
+                # remove the trailing eos_token from the output_content_to_parse if needed
+                if hasattr(agent, "llm") and hasattr(agent.llm, "tokenizer") and agent.llm.tokenizer:
+                    eos_token = agent.llm.tokenizer.eos_token
+                    if eos_token and output_content_to_parse.endswith(eos_token):
+                        output_content_to_parse = output_content_to_parse[:-len(eos_token)]
+                new_steps += list(self.parse_completion(output_content_to_parse))
             if event.output.tool_calls and self.use_function_calls:
                 new_steps += [self.tool_call_to_step(agent, tool_call) for tool_call in event.output.tool_calls]
 

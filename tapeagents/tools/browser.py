@@ -10,7 +10,6 @@ from uuid import uuid4
 
 import gymnasium as gym
 import markdownify
-import nest_asyncio
 import numpy as np
 import requests
 from browsergym.core.action.highlevel import HighLevelActionSet
@@ -50,10 +49,6 @@ NODES_WITH_BID = [
     "tab",
 ]
 logger = logging.getLogger(__name__)
-try:
-    nest_asyncio.apply()
-except Exception as e:
-    logger.warning("Cannot apply nest_asyncio, continuing without it: %s", e)
 
 
 class OpenUrlAction(Action):
@@ -231,7 +226,7 @@ class Browser(StatefulTool):
     page_load_time_sec: int = 1
     gym_kwargs: dict = {}
     gym_task: str = "browsergym/openended"
-    mock: bool = False # TODO: investigate why renaming it to any other name brokes running 2 async tests at one pytest call (but not a singular one)
+    mock: bool = False  # TODO: investigate why renaming it to any other name brokes running 2 async tests at one pytest call (but not a singular one)
 
     _env: BrowserEnv = None  # type: ignore
     _current_page: str = ""
@@ -310,6 +305,7 @@ class Browser(StatefulTool):
             timeout=self.timeout_ms,
             viewport={"width": self.viewport_width, "height": self.viewport_height},
             task_kwargs={"start_url": "about:blank"},
+            disable_env_checker=True,  # disable env checker to avoid reflection slowdown
             **self.gym_kwargs,
         )  # type: ignore
         while not isinstance(self._env, BrowserEnv):
@@ -339,6 +335,7 @@ class Browser(StatefulTool):
             record_video_dir=self._record_video_dir if self.save_video else None,
             action_mapping=HighLevelActionSet(demo_mode="default", subsets=["coord", "workarena++"]).to_python_code,
             timeout=self.timeout_ms,
+            disable_env_checker=True,  # disable env checker to avoid reflection slowdown
             **kwargs,
         )  # type: ignore
         logger.info(f"New gym make took {time.perf_counter() - t:.2f}s")
@@ -449,12 +446,10 @@ class Browser(StatefulTool):
             self.run_browser_action(f"click('{action.bid}', button='{action.button}', modifiers={modifiers})")
         except Exception as e:
             logger.warning(f"Click failed: {e}")
-        sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 
     def click_coordinates(self, action: ClickCoordinatesAction) -> PageObservation:
         self.run_browser_action(f"mouse_click({action.x}, {action.y}, button='{action.button}')")
-        sleep(self.page_load_time_sec)  # wait for the page to load in case click triggers a page change
         return self.run_browser_action("noop()")
 
     def click_grounded(self, action: ClickElementAction) -> PageObservation:

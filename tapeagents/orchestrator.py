@@ -5,6 +5,7 @@ Module contains the main loops of the agent-environment interaction and replay f
 import asyncio
 import enum
 import logging
+import time
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Generator, Generic
 
@@ -298,12 +299,19 @@ def execute_agent(
     :return: final tape after running the agent
     """
     final_tape = start_tape
+    start_time = time.perf_counter()
+    agent_execution_time = 0
+    environment_execution_time = 0
     try:
         for event in main_loop(agent, start_tape, environment, max_loops=max_loops):
             if event.agent_event and event.agent_event.final_tape:
                 final_tape = event.agent_event.final_tape
+                agent_execution_time += time.perf_counter() - start_time
+                start_time = time.perf_counter()
             elif event.env_tape:
                 final_tape = event.env_tape
+                environment_execution_time += time.perf_counter() - start_time
+                start_time = time.perf_counter()
     except Exception as e:
         final_tape.metadata.error = f"Agent loop exception: {e}"
         logger.exception(colored(f"Agent loop exception: {e}, stopping", "red"))
@@ -311,6 +319,9 @@ def execute_agent(
     final_tape.metadata = start_tape.metadata
     final_tape.metadata.id = tape_id
     final_tape.metadata.parent_id = start_tape.metadata.id
+    final_tape.metadata.result.update(
+        {"agent_execution_time": agent_execution_time, "environment_execution_time": environment_execution_time}
+    )
     return final_tape
 
 
@@ -322,12 +333,19 @@ async def async_execute_agent(
     max_loops: int = 50,
 ) -> TapeType:
     final_tape = start_tape
+    start_time = time.perf_counter()
+    agent_execution_time = 0
+    environment_execution_time = 0
     try:
         async for event in async_main_loop(agent, start_tape, environment, session, max_loops):
             if event.agent_event and event.agent_event.final_tape:
                 final_tape = event.agent_event.final_tape
+                agent_execution_time += time.perf_counter() - start_time
+                start_time = time.perf_counter()
             elif event.env_tape:
                 final_tape = event.env_tape
+                environment_execution_time += time.perf_counter() - start_time
+                start_time = time.perf_counter()
     except Exception as e:
         final_tape.metadata.error = f"Agent loop exception: {e}"
         logger.exception(colored(f"Agent loop exception: {e}, stopping", "red"))
@@ -335,6 +353,9 @@ async def async_execute_agent(
     final_tape.metadata = start_tape.metadata
     final_tape.metadata.id = tape_id
     final_tape.metadata.parent_id = start_tape.metadata.id
+    final_tape.metadata.result.update(
+        {"agent_execution_time": agent_execution_time, "environment_execution_time": environment_execution_time}
+    )
     return final_tape
 
 

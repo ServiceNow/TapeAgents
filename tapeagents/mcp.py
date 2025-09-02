@@ -7,7 +7,6 @@ from contextlib import AsyncExitStack
 from datetime import timedelta
 from typing import Any, Optional
 
-import nest_asyncio
 from mcp import ClientSession, StdioServerParameters, Tool as MCPTool, stdio_client
 from mcp.types import CallToolResult, TextContent
 
@@ -153,8 +152,11 @@ class MCPEnvironment(ToolCollectionEnvironment):
         self.client.use_cache = use_cache
 
     def initialize(self):
-        nest_asyncio.apply()
-        self.loop = asyncio.get_event_loop()
+        try:
+            self.loop = asyncio.get_event_loop()
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self.client.start_servers())
         self.tools.extend(
             [
