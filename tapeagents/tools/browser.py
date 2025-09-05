@@ -379,7 +379,7 @@ class Browser(StatefulTool):
         try:
             self._env.step("goto('about:blank')")
         except TargetClosedError as e:
-            logger.warning(f"Browser page/context closed during reset: {e}")
+            logger.exception(f"Browser page/context closed during reset: {e}")
             # Browser is closed, nothing to reset
             pass
 
@@ -387,7 +387,7 @@ class Browser(StatefulTool):
         try:
             obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
         except TargetClosedError as e:
-            logger.warning(f"Browser page/context closed during action '{action_text}': {e}")
+            logger.exception(f"Browser page/context closed during action '{action_text}': {e}")
             # Return an observation indicating the browser was closed
             return PageObservation(
                 text="Browser page/context has been closed. Unable to perform action.",
