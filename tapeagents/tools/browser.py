@@ -22,6 +22,7 @@ from browsergym.utils.obs import (
 )
 from bs4 import BeautifulSoup, Comment
 from PIL import Image
+from playwright._impl._errors import TargetClosedError
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 from pydantic import Field
@@ -375,10 +376,26 @@ class Browser(StatefulTool):
         return img_path
 
     def reset(self):
-        self._env.step("goto('about:blank')")
+        try:
+            self._env.step("goto('about:blank')")
+        except TargetClosedError as e:
+            logger.exception(f"Browser page/context closed during reset: {e}")
+            # Browser is closed, nothing to reset
+            pass
 
     def run_browser_action(self, action_text: str) -> PageObservation:
-        obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
+        try:
+            obs_dict, reward, terminated, truncated, info = self._env.step(action_text)
+        except TargetClosedError as e:
+            logger.exception(f"Browser page/context closed during action '{action_text}': {e}")
+            # Return an observation indicating the browser was closed
+            return PageObservation(
+                text="Browser page/context has been closed. Unable to perform action.",
+                current_page=self._current_viewport,
+                total_pages=self._n_viewports,
+                error=f"Browser closed: {str(e)}",
+                metadata=StepMetadata(other=dict(reward=0.0, truncated=False, info={})),
+            )
         error = self.format_error(obs_dict["last_action_error"])
         screen_path = self._save_last_screenshot(obs_dict["screenshot"])
         if self.use_grounding:
