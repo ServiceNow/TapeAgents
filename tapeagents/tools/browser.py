@@ -22,6 +22,7 @@ from browsergym.utils.obs import (
 )
 from bs4 import BeautifulSoup, Comment
 from PIL import Image
+from playwright._impl._errors import TargetClosedError
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 from pydantic import Field
@@ -33,9 +34,6 @@ from tapeagents.tools.converters import FileConverter
 from tapeagents.tools.document_reader import read_document
 from tapeagents.tools.grounding import GroundingModel
 from tapeagents.tools.simple_browser import PageDownAction, PageObservation, PageUpAction
-
-from playwright._impl._errors import TargetClosedError
-
 
 NODES_WITH_BID = [
     "button",
