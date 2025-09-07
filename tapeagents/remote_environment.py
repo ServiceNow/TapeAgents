@@ -199,7 +199,9 @@ class ProcessPoolManager:
                 return {
                     "error": observation.error,
                     "status": "error",
-                    "should_exit": True
+                    "should_exit": True,
+                    "observation": observation.model_dump(),
+                    "classname": full_classname(type(observation)),
                 }
             return {"observation": observation.model_dump(), "classname": full_classname(type(observation))}
 
