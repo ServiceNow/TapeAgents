@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 from tapeagents.core import Action, LLMOutputParsingFailureAction, Observation, TapeType, last_actions
 from tapeagents.environment import AsyncEnvironment, Environment, UserStep
 from tapeagents.tool_calling import ToolCallAction, ToolSpec
+from tapeagents.tools.simple_browser import PageObservation
 from tapeagents.utils import class_for_name, full_classname
 
 logger = logging.getLogger(__name__)
@@ -194,6 +195,12 @@ class ProcessPoolManager:
                 action: Action = type_adapter.validate_python(data)
 
             observation = environment.step(action)
+            if isinstance(observation, PageObservation) and observation.error:
+                return {
+                    "error": observation.error,
+                    "status": "error",
+                    "should_exit": True
+                }
             return {"observation": observation.model_dump(), "classname": full_classname(type(observation))}
 
         def _handle_actions(environment: Environment, data: dict) -> dict:
@@ -271,6 +278,7 @@ class ProcessPoolManager:
                             match command:
                                 case "step":
                                     result = _handle_step(environment, data)
+                                    should_exit = result.get("should_exit", False)
                                 case "actions":
                                     result = _handle_actions(environment, data)
                                 case "reset":
