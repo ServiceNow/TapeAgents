@@ -360,7 +360,10 @@ class Browser(StatefulTool):
     def close(self):
         if self._traces_dir is not None:
             self._env.unwrapped.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
-        self._env.close()
+        try:
+            self._env.close()
+        except TargetClosedError:
+            logger.debug("Browser already closed.")
 
     def _save_last_screenshot(self, image) -> str:
         if self._screenshots_dir is None:
@@ -378,12 +381,7 @@ class Browser(StatefulTool):
         return img_path
 
     def reset(self):
-        try:
-            self._env.step("goto('about:blank')")
-        except TargetClosedError as e:
-            logger.exception(f"Browser page/context closed during reset: {e}")
-            # Browser is closed, nothing to reset
-            pass
+        self._env.step("goto('about:blank')")
 
     def run_browser_action(self, action_text: str) -> PageObservation:
         try:
@@ -392,7 +390,7 @@ class Browser(StatefulTool):
             logger.exception(f"Browser page/context closed during action '{action_text}': {e}")
             # Return an observation indicating the browser was closed
             return PageObservation(
-                text="Browser page/context has been closed. Unable to perform action.",
+                text=f"Browser page/context has been closed. Unable to perform action '{action_text}'",
                 current_page=self._current_viewport,
                 total_pages=self._n_viewports,
                 error=f"Browser closed: {str(e)}",
