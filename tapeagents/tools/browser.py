@@ -312,7 +312,8 @@ class Browser(StatefulTool):
         while not isinstance(self._env, BrowserEnv):
             self._env = self._env.env
         self._env.reset()
-        self._env.context.tracing.start(screenshots=True, snapshots=True)
+        if self._traces_dir is not None:
+            self._env.context.tracing.start(screenshots=True, snapshots=True)
         screenshot = self._env.step("noop()")[0]["screenshot"]
         self._save_last_screenshot(screenshot)
         logger.info("Browser and gym initialized")
@@ -343,7 +344,8 @@ class Browser(StatefulTool):
         t = time.perf_counter()
         start_obs, info = self._env.reset(seed=seed)
         logger.info(f"Gym reset took {time.perf_counter() - t:.2f}s")
-        self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
+        if self._traces_dir is not None:
+            self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
         self._env.unwrapped.chat.add_message(role="assistant", msg="Running TapeAgent...")
         assert self._env.unwrapped.task is not None
         info = {
@@ -356,8 +358,8 @@ class Browser(StatefulTool):
         return info
 
     def close(self):
-        assert self._traces_dir is not None
-        self._env.unwrapped.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
+        if self._traces_dir is not None:
+            self._env.unwrapped.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
         self._env.close()
 
     def _save_last_screenshot(self, image) -> str:
