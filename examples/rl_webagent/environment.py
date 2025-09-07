@@ -162,10 +162,6 @@ class WebEnvironment(Environment):
         return tape
         # TODO: MAYBE make sure to update parent_id, author_name, etc... in the new tape.metadata just like in agent.run()
 
-    def react_batch(self, tapes: list[WebTape], n_processes: int) -> list[WebTape]:
-        results = Parallel(n_jobs=n_processes)([delayed(self.react)(tape) for tape in tapes])
-        return results
-
     def step(self, action: Action) -> Observation:
         obs = self.browser.run(action)
         if obs.metadata.other.get("env_finished", False):
@@ -180,13 +176,11 @@ class WebEnvironment(Environment):
             self.browser.reset()
         except Exception as e:
             logger.warning(f"Failed to reset browser: {e}, recreate browser instance instead.")
-            try:
-                self.browser.close()
-            except Exception:
-                pass
-            self.browser = Browser(
-                headless=self.headless,
-                exp_path=self.exp_path,
-                mock=True,
-                observation_format=self.observation_format,  # type: ignore
-            )
+            self.close()
+            self.initialize()
+
+    def close(self):
+        try:
+            self.browser.close()
+        except Exception as e:
+            logger.exception(f"Failed to close browser: {e}", stack_info=True)
