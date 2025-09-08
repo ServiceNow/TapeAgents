@@ -487,8 +487,14 @@ class EnvironmentServer:
                 # Start the task
                 t = time.perf_counter()
                 response = await call_task_worker(worker_id, "start_task", request.task_data)
-                logger.info(f"Task {worker_id} started in {time.perf_counter() - t:.2f} seconds")
-
+                # if we couldn't start the task because of the environment, terminate the worker
+                if response.get("should_exit", False):
+                    logger.error(f"Environment server failed to start task: {response.get('start_result', {}).get('error', 'Unknown error')}")
+                    await asyncio.sleep(0.1)  # Wait a moment for graceful shutdown
+                    self.pool_manager.terminate(worker_id)
+                    raise HTTPException(status_code=500, detail=f"Failed to start task: {response.get('start_result', {}).get('error', 'Unknown error')}")
+                else:
+                    logger.info(f"Task {worker_id} started in {time.perf_counter() - t:.2f} seconds")
                 return {"worker_id": worker_id, "start_result": response.get("start_result")}
 
             except ResourceExhaustedException as e:
@@ -503,7 +509,12 @@ class EnvironmentServer:
         @app.post("/step")
         async def step_endpoint(request: ActionRequest):
             """Execute an action in the specified task environment."""
-            return await call_task_worker(request.worker_id, "step", request.action_data)
+            response = await call_task_worker(request.worker_id, "step", request.action_data)
+            if response.get("should_exit", False):
+                await asyncio.sleep(0.1)  # Wait a moment for graceful shutdown
+                self.pool_manager.terminate(request.worker_id)
+                raise HTTPException(status_code=500, detail=f"Task {request.worker_id} was terminated. Error: {response.get('observation', {}).get('error', 'Unknown error')}")
+            return response
 
         @app.post("/actions")
         async def actions_endpoint(request: WorkerRequest):
@@ -540,6 +551,7 @@ class EnvironmentServer:
         @app.get("/health")
         async def health_check():
             """Health check endpoint."""
+            self.pool_manager.cleanup_dead_workers()
             return {
                 "status": "ok",
                 "active_workers": len(self.pool_manager.active_workers),
@@ -565,6 +577,29 @@ class EnvironmentServer:
                     }
                 )
             return {"workers": workers}
+
+        @app.get("/worker/{worker_id}")
+        async def get_worker(worker_id: str):
+            """Get information about a specific worker."""
+            self.pool_manager.cleanup_dead_workers()
+            if worker_id not in self.pool_manager.active_workers:
+                raise HTTPException(status_code=400, detail=f"Worker {worker_id} not found")
+            task_proc = self.pool_manager.active_workers[worker_id]
+            if task_proc is None:
+                logger.error(f"Worker {worker_id} is starting, please wait")
+                raise HTTPException(status_code=503, detail=f"Worker {worker_id} is starting, please wait")
+            if not task_proc.process.is_alive():
+                logger.error(f"Process for worker {worker_id} is dead, removing from tracking")
+                await asyncio.sleep(0.1)  # Wait a moment for graceful shutdown
+                self.pool_manager.terminate(worker_id)
+                raise HTTPException(status_code=500, detail=f"Worker {worker_id} process is not responding")
+            return {
+                "worker_id": worker_id,
+                "pid": task_proc.process.pid,
+                "start_time": task_proc.start_time,
+                "last_activity": task_proc.last_activity,
+                "age_seconds": time.time() - task_proc.start_time,
+            }
 
         @app.delete("/workers/{worker_id}")
         async def stop_worker(worker_id: str):
@@ -778,6 +813,14 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             return UserStep(content="Try again")
         if not self.session or not self.worker_id:
             raise RuntimeError("Environment not initialized or no active task.")
+        # Check if worker is alive
+        check_worker = await self.session.get(f"{self.server_url}/worker/{self.worker_id}")
+        if check_worker.status != 200:
+            text = await check_worker.text()
+            logger.error(f"Failed to check if worker is alive: {text}")
+            self.worker_id = None
+            raise HTTPException(status_code=check_worker.status, detail=text)
+        # If worker is not alive, do a step
         response_dict = await self.api_call("step", {"worker_id": self.worker_id, "action_data": action.model_dump()})
         obs_dict = response_dict["observation"]
         obs_type: type[Observation] = class_for_name(response_dict["classname"])
