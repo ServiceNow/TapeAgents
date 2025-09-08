@@ -771,12 +771,12 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 break
             except Exception as e:
                 if time.perf_counter() - t > self.start_timeout_sec:
-                    logger.error(f"Failed to start task after {self.start_timeout_sec} seconds: {e}")
+                    logger.error(f"Async remote environment failed to start task after {self.start_timeout_sec} seconds: {e}")
                     raise HTTPException(status_code=500, detail=f"Failed to start task: {str(e)}")
-                logger.warning(f"Failed to start task, retry after 5 seconds: {e}")
+                logger.warning(f"Async remote environment failed to start task, retry after 5 seconds: {e}")
                 await asyncio.sleep(self.start_repeat_delay)
         start_time = time.perf_counter() - t
-        logger.info(f"Task {self.worker_id} started after {start_time:.2f} seconds")
+        logger.info(f"Async remote environment started task {self.worker_id} after {start_time:.2f} seconds")
         return result
 
     async def _start_task(self, task_data: dict) -> dict:
@@ -817,7 +817,7 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         check_worker = await self.session.get(f"{self.server_url}/worker/{self.worker_id}")
         if check_worker.status != 200:
             text = await check_worker.text()
-            logger.error(f"Failed to check if worker is alive: {text}")
+            logger.error(f"Async remote environment failed to check if worker is alive: {text}")
             self.worker_id = None
             raise HTTPException(status_code=check_worker.status, detail=text)
         # If worker is not alive, do a step
@@ -840,7 +840,6 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             data = {}
         assert self.session, "AIOHTTP session must be initialized before making API calls."
         async with self.semaphore:
-            # logger.debug(f"Calling remote env /{endpoint} with data: {data}")
             async with self.session.post(f"{self.server_url}/{endpoint}", json=data) as response:
                 if response.status != 200:
                     text = await response.text()
