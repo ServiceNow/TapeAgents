@@ -813,14 +813,6 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             return UserStep(content="Try again")
         if not self.session or not self.worker_id:
             raise RuntimeError("Environment not initialized or no active task.")
-        # Check if worker is alive
-        check_worker = await self.session.get(f"{self.server_url}/worker/{self.worker_id}")
-        if check_worker.status != 200:
-            text = await check_worker.text()
-            logger.error(f"Async remote environment failed to check if worker is alive: {text}")
-            self.worker_id = None
-            raise HTTPException(status_code=check_worker.status, detail=text)
-        # If worker is not alive, do a step
         response_dict = await self.api_call("step", {"worker_id": self.worker_id, "action_data": action.model_dump()})
         obs_dict = response_dict["observation"]
         obs_type: type[Observation] = class_for_name(response_dict["classname"])
@@ -828,6 +820,17 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         observation.metadata.other["action_execution_time"] = time.perf_counter() - t
         observation.metadata.other["action_kind"] = action.kind
         return observation
+
+    async def _check_worker_alive(self) -> dict:
+        """Check if worker is alive."""
+        response = await self.session.get(f"{self.server_url}/worker/{self.worker_id}")
+        if response.status != 200:
+            text = await response.text()
+            logger.error(f"Async remote environment failed to check if worker is alive: {text}")
+            self.worker_id = None
+            raise RuntimeError(f"Worker {self.worker_id} is not alive")
+        response_dict = await response.json()
+        return response_dict
 
     @tenacity.retry(
         retry=tenacity.retry_if_exception_type(HTTPException),
@@ -840,6 +843,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
             data = {}
         assert self.session, "AIOHTTP session must be initialized before making API calls."
         async with self.semaphore:
+            # first check if worker is alive
+            if self.worker_id:
+                _ = await self._check_worker_alive()  # this will raise RuntimeError if worker is not alive anymore, which will NOT be retried
             async with self.session.post(f"{self.server_url}/{endpoint}", json=data) as response:
                 if response.status != 200:
                     text = await response.text()
