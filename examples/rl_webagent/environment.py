@@ -6,7 +6,6 @@ from typing import Any, Literal
 from browsergym.core.task import AbstractBrowserTask
 from browsergym.miniwob import ALL_MINIWOB_TASKS
 from browsergym.miniwob.base import AbstractMiniwobTask
-from joblib import Parallel, delayed
 
 from tapeagents.core import Action, FinalObservation, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import Environment
@@ -76,6 +75,10 @@ class WebEnvironment(Environment):
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         zero = time.perf_counter() - _zero
         logger.info(f"WebEnv.start_task {task_id} browser.start_task took {zero:.2f}s")
+        # Check if browser failed to start task
+        if isinstance(info, dict) and "error" in info:
+            logger.warning(f"Browser failed to start task {task_id}: {info['error']}")
+            return info
         _one = time.perf_counter()
         obs = self.browser.run_browser_action("noop()")
         one = time.perf_counter() - _one

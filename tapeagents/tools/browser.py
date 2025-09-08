@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import logging
 import os
 import re
@@ -328,7 +329,11 @@ class Browser(StatefulTool):
         self._task_id = task_id
         t = time.perf_counter()
         if self._env is not None:
+            # Close browser context first
+            if hasattr(self._env, 'unwrapped') and hasattr(self._env.unwrapped, 'context'):
+                self._env.unwrapped.context.close()
             self._env.close()
+            gc.collect()  # Force garbage collection to free resources
         logger.info(f"Old gym close took {time.perf_counter() - t:.2f}s")
         t = time.perf_counter()
         self._env = gym.make(
@@ -342,7 +347,15 @@ class Browser(StatefulTool):
         )  # type: ignore
         logger.info(f"New gym make took {time.perf_counter() - t:.2f}s")
         t = time.perf_counter()
-        start_obs, info = self._env.reset(seed=seed)
+        try:
+            start_obs, info = self._env.reset(seed=seed)
+        except TargetClosedError as e:
+            logger.exception(f"Browser context closed during start_task '{task_id}': {e}")
+            # Return error info that indicates the browser context is closed
+            return {
+                "name": task_id,
+                "error": f"Browser context closed during start_task '{task_id}': {str(e)}"
+            }
         logger.info(f"Gym reset took {time.perf_counter() - t:.2f}s")
         if self._traces_dir is not None:
             self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)

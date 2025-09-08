@@ -212,7 +212,7 @@ class ProcessPoolManager:
 
         def _handle_start_task(environment: Environment, data: dict) -> dict:
             start_result = environment.start_task(data)
-            return {"start_result": start_result}
+            return {"start_result": start_result, "should_exit": isinstance(start_result, dict) and "error" in start_result}
 
         def _handle_reset(environment: Environment, data: dict) -> dict:
             environment.reset()
@@ -284,6 +284,7 @@ class ProcessPoolManager:
                                     should_exit = result.get("should_exit", False)
                                 case "start_task":
                                     result = _handle_start_task(environment, data)
+                                    should_exit = result.get("should_exit", False)
                                 case "shutdown":
                                     environment.close()
                                     result = {"status": "ok"}
