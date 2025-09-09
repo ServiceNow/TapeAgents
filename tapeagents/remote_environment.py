@@ -581,7 +581,6 @@ class EnvironmentServer:
         @app.get("/worker/{worker_id}")
         async def get_worker(worker_id: str):
             """Get information about a specific worker."""
-            self.pool_manager.cleanup_dead_workers()
             if worker_id not in self.pool_manager.active_workers:
                 raise HTTPException(status_code=400, detail=f"Worker {worker_id} not found")
             task_proc = self.pool_manager.active_workers[worker_id]
@@ -827,8 +826,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         if response.status != 200:
             text = await response.text()
             logger.error(f"Async remote environment failed to check if worker is alive: {text}")
+            tmp = self.worker_id
             self.worker_id = None
-            raise RuntimeError(f"Worker {self.worker_id} is not alive")
+            raise RuntimeError(f"Worker {tmp} is not alive")
         response_dict = await response.json()
         return response_dict
 
