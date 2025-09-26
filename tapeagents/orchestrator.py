@@ -302,6 +302,7 @@ def execute_agent(
     start_time = time.perf_counter()
     agent_execution_time = 0
     environment_execution_time = 0
+    tape_error = None
     try:
         for event in main_loop(agent, start_tape, environment, max_loops=max_loops):
             if event.agent_event and event.agent_event.final_tape:
@@ -313,10 +314,11 @@ def execute_agent(
                 environment_execution_time += time.perf_counter() - start_time
                 start_time = time.perf_counter()
     except Exception as e:
-        final_tape.metadata.error = f"Agent loop exception: {e}"
+        tape_error = f"Agent loop exception: {e}"
         logger.exception(colored(f"Agent loop exception: {e}, stopping", "red"))
     tape_id = final_tape.metadata.id
     final_tape.metadata = start_tape.metadata
+    final_tape.metadata.error = tape_error
     final_tape.metadata.id = tape_id
     final_tape.metadata.parent_id = start_tape.metadata.id
     final_tape.metadata.result.update(
@@ -336,6 +338,7 @@ async def async_execute_agent(
     start_time = time.perf_counter()
     agent_execution_time = 0
     environment_execution_time = 0
+    tape_error = None
     try:
         async for event in async_main_loop(agent, start_tape, environment, session, max_loops):
             if event.agent_event and event.agent_event.final_tape:
@@ -347,10 +350,11 @@ async def async_execute_agent(
                 environment_execution_time += time.perf_counter() - start_time
                 start_time = time.perf_counter()
     except Exception as e:
-        final_tape.metadata.error = f"Agent loop exception: {e}"
+        tape_error = f"Agent loop exception: {e}"
         logger.exception(colored(f"Agent loop exception: {e}, stopping", "red"))
     tape_id = final_tape.metadata.id
     final_tape.metadata = start_tape.metadata
+    final_tape.metadata.error = tape_error
     final_tape.metadata.id = tape_id
     final_tape.metadata.parent_id = start_tape.metadata.id
     final_tape.metadata.result.update(
