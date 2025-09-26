@@ -394,7 +394,12 @@ class Browser(StatefulTool):
         return img_path
 
     def reset(self):
-        self._env.step("goto('about:blank')")
+        try:
+            self._env.step("goto('about:blank')")
+        except TargetClosedError as e:
+            logger.exception(f"Browser page/context closed during reset: {e}")
+            self.close()
+            self.model_post_init()
 
     def run_browser_action(self, action_text: str) -> PageObservation:
         try:
