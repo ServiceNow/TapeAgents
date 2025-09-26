@@ -551,7 +551,6 @@ class EnvironmentServer:
         @app.get("/health")
         async def health_check():
             """Health check endpoint."""
-            self.pool_manager.cleanup_dead_workers()
             return {
                 "status": "ok",
                 "active_workers": len(self.pool_manager.active_workers),
