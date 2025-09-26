@@ -589,7 +589,7 @@ class EnvironmentServer:
             task_proc = self.pool_manager.active_workers[worker_id]
             if task_proc is None:
                 logger.error(f"Worker {worker_id} is starting, please wait")
-                raise HTTPException(status_code=503, detail=f"Worker {worker_id} is starting, please wait")
+                return {"worker_id": worker_id, "status": "starting"}
             if not task_proc.process.is_alive():
                 logger.error(f"Process for worker {worker_id} is dead, removing from tracking")
                 await asyncio.sleep(0.1)  # Wait a moment for graceful shutdown
@@ -597,6 +597,7 @@ class EnvironmentServer:
                 raise HTTPException(status_code=500, detail=f"Worker {worker_id} process is not responding")
             return {
                 "worker_id": worker_id,
+                "status": "alive",
                 "pid": task_proc.process.pid,
                 "start_time": task_proc.start_time,
                 "last_activity": task_proc.last_activity,
@@ -823,15 +824,17 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         observation.metadata.other["action_kind"] = action.kind
         return observation
 
-    async def _check_worker_alive(self) -> dict:
+    async def check_worker_alive(self) -> dict:
         """Check if worker is alive."""
+        if not self.session or not self.worker_id:
+            raise RuntimeError("Environment not initialized or no active task.")
         response = await self.session.get(f"{self.server_url}/worker/{self.worker_id}")
         if response.status != 200:
             text = await response.text()
-            logger.error(f"Async remote environment failed to check if worker {self.worker_id} is alive: {text}")
+            logger.error(f"Async remote environment failed to check if worker {self.worker_id} is alive: HTTP {response.status}: {text}")
             tmp = self.worker_id
             self.worker_id = None
-            raise RuntimeError(f"Worker {tmp} is not alive")
+            raise RuntimeError(f"Worker {tmp} is not alive: {text}")
         response_dict = await response.json()
         return response_dict
 
@@ -848,13 +851,16 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         async with self.semaphore:
             # first check if worker is alive
             if self.worker_id:
-                _ = await self._check_worker_alive()  # this will raise RuntimeError if worker is not alive anymore, which will NOT be retried
+                worker_status = await self.check_worker_alive()  # this will raise RuntimeError if worker is not alive anymore, which will NOT be retried
+                # otherwise, check that the worker is fully started
+                if worker_status.get("status") == "starting":
+                    raise HTTPException(status_code=503, detail=f"Worker {self.worker_id} is starting, please wait")  # will be retried by tenacity
             async with self.session.post(f"{self.server_url}/{endpoint}", json=data) as response:
                 if response.status != 200:
                     text = await response.text()
                     if not suppress_errors:
                         logger.error(f"Failed to call remote env /{endpoint} with data: {data}: {text}")
-                    raise HTTPException(status_code=response.status, detail=text)
+                    raise HTTPException(status_code=response.status, detail=text)  # will be retried by tenacity
                 response_dict = await response.json()
         return response_dict
 
