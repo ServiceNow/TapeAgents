@@ -6,7 +6,6 @@ from typing import Any, Literal
 from browsergym.core.task import AbstractBrowserTask
 from browsergym.miniwob import ALL_MINIWOB_TASKS
 from browsergym.miniwob.base import AbstractMiniwobTask
-from joblib import Parallel, delayed
 
 from tapeagents.core import Action, FinalObservation, LLMOutputParsingFailureAction, Observation
 from tapeagents.environment import Environment
@@ -76,6 +75,14 @@ class WebEnvironment(Environment):
         info = self.browser.start_task(task_id, seed, wait_for_user_message=False)  # type: ignore
         zero = time.perf_counter() - _zero
         logger.info(f"WebEnv.start_task {task_id} browser.start_task took {zero:.2f}s")
+        # Check if browser failed to start task
+        if isinstance(info, dict) and "error" in info:
+            logger.warning(f"Browser failed to start task {task_id}: {info['error']}")
+            error_tape = WebTape(
+                metadata=WebTapeMetadata(task_name=task_entrypoint.get_task_id(), seed=seed),
+                steps=[ActionExecutionFailure(error=info["error"])],
+            )
+            return error_tape, info
         _one = time.perf_counter()
         obs = self.browser.run_browser_action("noop()")
         one = time.perf_counter() - _one
@@ -162,10 +169,6 @@ class WebEnvironment(Environment):
         return tape
         # TODO: MAYBE make sure to update parent_id, author_name, etc... in the new tape.metadata just like in agent.run()
 
-    def react_batch(self, tapes: list[WebTape], n_processes: int) -> list[WebTape]:
-        results = Parallel(n_jobs=n_processes)([delayed(self.react)(tape) for tape in tapes])
-        return results
-
     def step(self, action: Action) -> Observation:
         obs = self.browser.run(action)
         if obs.metadata.other.get("env_finished", False):
@@ -180,13 +183,11 @@ class WebEnvironment(Environment):
             self.browser.reset()
         except Exception as e:
             logger.warning(f"Failed to reset browser: {e}, recreate browser instance instead.")
-            try:
-                self.browser.close()
-            except Exception:
-                pass
-            self.browser = Browser(
-                headless=self.headless,
-                exp_path=self.exp_path,
-                mock=True,
-                observation_format=self.observation_format,  # type: ignore
-            )
+            self.close()
+            self.initialize()
+
+    def close(self):
+        try:
+            self.browser.close()
+        except Exception as e:
+            logger.exception(f"Failed to close browser: {e}", stack_info=True)

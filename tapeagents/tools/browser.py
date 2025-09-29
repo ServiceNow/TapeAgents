@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import logging
 import os
 import re
@@ -312,7 +313,8 @@ class Browser(StatefulTool):
         while not isinstance(self._env, BrowserEnv):
             self._env = self._env.env
         self._env.reset()
-        self._env.context.tracing.start(screenshots=True, snapshots=True)
+        if self._traces_dir is not None:
+            self._env.context.tracing.start(screenshots=True, snapshots=True)
         screenshot = self._env.step("noop()")[0]["screenshot"]
         self._save_last_screenshot(screenshot)
         logger.info("Browser and gym initialized")
@@ -327,7 +329,11 @@ class Browser(StatefulTool):
         self._task_id = task_id
         t = time.perf_counter()
         if self._env is not None:
+            # Close browser context first
+            if hasattr(self._env, 'unwrapped') and hasattr(self._env.unwrapped, 'context'):
+                self._env.unwrapped.context.close()
             self._env.close()
+            gc.collect()  # Force garbage collection to free resources
         logger.info(f"Old gym close took {time.perf_counter() - t:.2f}s")
         t = time.perf_counter()
         self._env = gym.make(
@@ -341,9 +347,18 @@ class Browser(StatefulTool):
         )  # type: ignore
         logger.info(f"New gym make took {time.perf_counter() - t:.2f}s")
         t = time.perf_counter()
-        start_obs, info = self._env.reset(seed=seed)
+        try:
+            start_obs, info = self._env.reset(seed=seed)
+        except TargetClosedError as e:
+            logger.exception(f"Browser context closed during start_task '{task_id}': {e}")
+            # Return error info that indicates the browser context is closed
+            return {
+                "name": task_id,
+                "error": f"Browser context closed during start_task '{task_id}': {str(e)}"
+            }
         logger.info(f"Gym reset took {time.perf_counter() - t:.2f}s")
-        self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
+        if self._traces_dir is not None:
+            self._env.unwrapped.context.tracing.start(screenshots=True, snapshots=True)
         self._env.unwrapped.chat.add_message(role="assistant", msg="Running TapeAgent...")
         assert self._env.unwrapped.task is not None
         info = {
@@ -356,9 +371,12 @@ class Browser(StatefulTool):
         return info
 
     def close(self):
-        assert self._traces_dir is not None
-        self._env.unwrapped.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
-        self._env.close()
+        if self._traces_dir is not None:
+            self._env.unwrapped.context.tracing.stop(path=os.path.join(self._traces_dir, f"{self._task_id}.zip"))
+        try:
+            self._env.close()
+        except TargetClosedError:
+            logger.debug("Browser already closed.")
 
     def _save_last_screenshot(self, image) -> str:
         if self._screenshots_dir is None:
@@ -380,8 +398,8 @@ class Browser(StatefulTool):
             self._env.step("goto('about:blank')")
         except TargetClosedError as e:
             logger.exception(f"Browser page/context closed during reset: {e}")
-            # Browser is closed, nothing to reset
-            pass
+            self.close()
+            self.model_post_init()
 
     def run_browser_action(self, action_text: str) -> PageObservation:
         try:
@@ -390,7 +408,7 @@ class Browser(StatefulTool):
             logger.exception(f"Browser page/context closed during action '{action_text}': {e}")
             # Return an observation indicating the browser was closed
             return PageObservation(
-                text="Browser page/context has been closed. Unable to perform action.",
+                text=f"Browser page/context has been closed. Unable to perform action '{action_text}'",
                 current_page=self._current_viewport,
                 total_pages=self._n_viewports,
                 error=f"Browser closed: {str(e)}",
