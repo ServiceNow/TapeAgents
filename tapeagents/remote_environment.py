@@ -513,10 +513,6 @@ class EnvironmentServer:
             """Execute an action in the specified task environment."""
             response = await call_task_worker(request.worker_id, "step", request.action_data)
             if response.get("should_exit", False):
-                # Send reset command to environment, this will cause worker to exit
-                await call_task_worker(request.worker_id, "reset")
-                await asyncio.sleep(0.1)  # Wait a moment for graceful shutdown
-                self.pool_manager.terminate(request.worker_id)
                 raise HTTPException(status_code=500, detail=f"Task {request.worker_id} was terminated. Error: {response.get('observation', {}).get('error', 'Unknown error')}")
             return response
 
