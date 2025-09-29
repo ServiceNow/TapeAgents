@@ -278,19 +278,15 @@ class ProcessPoolManager:
                             match command:
                                 case "step":
                                     result = _handle_step(environment, data)
-                                    should_exit = result.get("should_exit", False)
                                 case "actions":
                                     result = _handle_actions(environment, data)
                                 case "reset":
                                     result = _handle_reset(environment, data)
-                                    should_exit = result.get("should_exit", False)
                                 case "start_task":
                                     result = _handle_start_task(environment, data)
-                                    should_exit = result.get("should_exit", False)
                                 case "shutdown":
                                     environment.close()
-                                    result = {"status": "ok"}
-                                    should_exit = True
+                                    result = {"status": "ok", "should_exit": True}
                                 case _:
                                     raise ValueError(f"Unknown command: {command}")
 
@@ -300,6 +296,7 @@ class ProcessPoolManager:
                             client_sock.sendall(response_length.to_bytes(4, byteorder="big"))
                             client_sock.sendall(response_data)
 
+                            should_exit = result.get("should_exit", False)
                             if should_exit:
                                 logger.info(f"Worker {worker_id} exiting after command `{command}` with data: {data}")
                                 break

@@ -78,7 +78,11 @@ class WebEnvironment(Environment):
         # Check if browser failed to start task
         if isinstance(info, dict) and "error" in info:
             logger.warning(f"Browser failed to start task {task_id}: {info['error']}")
-            return info
+            error_tape = WebTape(
+                metadata=WebTapeMetadata(task_name=task_entrypoint.get_task_id(), seed=seed),
+                steps=[ActionExecutionFailure(error=info["error"])],
+            )
+            return error_tape, info
         _one = time.perf_counter()
         obs = self.browser.run_browser_action("noop()")
         one = time.perf_counter() - _one
