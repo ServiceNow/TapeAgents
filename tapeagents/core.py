@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import re
 from typing import Any, Generic, Iterable, Iterator, List, Literal, Type, TypeAlias, TypeVar
 from uuid import uuid4
 
@@ -76,12 +77,27 @@ class Step(BaseModel):
 
     Attributes:
         metadata (StepMetadata): Metadata associated with the step.
-        kind (Literal["define_me"]): A placeholder value indicating the kind of step.
-                                     This should be overwritten in subclasses.
+        kind (str): A string identifier automatically derived from the class name (converted to snake_case) 
+            that indicates the type of step. This is set automatically for each subclass.
     """
 
     metadata: StepMetadata = Field(default_factory=StepMetadata)
-    kind: Literal["define_me"] = "define_me"  # This is a placeholder value, it should be overwritten in subclasses
+    kind: str = Field(init=False)  # placeholder to satisfy base
+
+    def __init_subclass__(cls):
+        def to_snake_case(name: str) -> str:
+            return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+        super().__init_subclass__()
+
+        kind_value = to_snake_case(cls.__name__)
+
+        # Dynamically assign Literal[...] annotation as a proper field
+        cls.__annotations__["kind"] = Literal[kind_value]
+
+        # Assign default value to the kind field
+        setattr(cls, "kind", kind_value)
+
 
     def llm_dict(self) -> dict[str, Any]:
         """Dumps the step data as dictionary, excluding the metadata."""

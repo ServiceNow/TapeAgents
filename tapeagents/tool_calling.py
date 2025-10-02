@@ -168,14 +168,13 @@ def as_openai_tool(action: type[Step] | ToolSpec, decription_chars_limit: int = 
     schema: dict = dict(jsonref.replace_refs(schema, proxies=False))  # type: ignore
     schema.pop("$defs", None)
     props = schema["properties"]
+    name = props.pop("kind")["const"]
     props.pop("metadata", None)
-    props.pop("kind", None)
-    name = schema["title"]
     description = schema.get("description", "")
-    if name.lower().endswith("action"):
-        name = name[:-6]  # len("action")
-    elif name.lower().endswith("thought"):
-        name = f"Produce{name}"
+    if name.lower().endswith("_action"):
+        name = name[:-7]  # len("_action")
+    elif name.lower().endswith("_thought"):
+        name = f"produce_{name}"
         description = f"Produce {description}"
     if len(description) > decription_chars_limit:  # OAI limit
         description = description[:decription_chars_limit]
