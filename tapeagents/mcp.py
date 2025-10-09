@@ -194,6 +194,7 @@ class MCPEnvironment(ToolCollectionEnvironment):
             return super().step(action)
         if isinstance(action, LLMOutputParsingFailureAction):
             return ToolResult(tool_call_id="", content="Try again")
+        t = time.perf_counter()
         try:
             assert self.client is not None, "MCPClient is not initialized"
             result = self.loop.run_until_complete(
@@ -216,7 +217,10 @@ class MCPEnvironment(ToolCollectionEnvironment):
                 content=[TextContent(type="text", text=f"Error executing tool {action.function.name}: {str(e)}")],
                 isError=True,
             )
-        return ToolResult(tool_call_id=action.id, content=result)
+        observation = ToolResult(tool_call_id=action.id, content=result)
+        observation.metadata.other["action_execution_time"] = time.perf_counter() - t
+        observation.metadata.other["action_kind"] = action.kind
+        return observation
 
     def close(self) -> None:
         super().close()

@@ -650,11 +650,17 @@ class Agent(BaseModel, Generic[TapeType]):
                 llm = self.llms[self.select_node(tape).llm]
             elif len(self.llms) == 1:
                 llm = self.llm
+
             llm_stream = llm.generate(prompt) if prompt else LLMStream(None, prompt)
         try:
+            time_saved = False
+            t = time.perf_counter()
             for step in self.generate_steps(tape, llm_stream):
                 if isinstance(step, AgentStep):
                     step.metadata.prompt_id = llm_stream.prompt.id
+                    if not time_saved:
+                        step.metadata.other["llm_call_time"] = time.perf_counter() - t
+                        time_saved = True
                 yield step
         except Exception as e:
             logger.exception(
