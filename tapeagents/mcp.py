@@ -7,8 +7,7 @@ from contextlib import AsyncExitStack
 from datetime import timedelta
 from typing import Any, Optional
 
-from mcp import ClientSession, StdioServerParameters, stdio_client
-from mcp import Tool as MCPTool
+from mcp import ClientSession, StdioServerParameters, Tool as MCPTool, stdio_client
 from mcp.types import CallToolResult, TextContent
 
 from tapeagents.config import force_cache

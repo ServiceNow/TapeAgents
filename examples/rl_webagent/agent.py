@@ -151,7 +151,7 @@ class WebNode(StandardNode):
                 if hasattr(agent, "llm") and hasattr(agent.llm, "tokenizer") and agent.llm.tokenizer:
                     eos_token = agent.llm.tokenizer.eos_token
                     if eos_token and output_content_to_parse.endswith(eos_token):
-                        output_content_to_parse = output_content_to_parse[:-len(eos_token)]
+                        output_content_to_parse = output_content_to_parse[: -len(eos_token)]
                 new_steps += list(self.parse_completion(output_content_to_parse))
             if event.output.tool_calls and self.use_function_calls:
                 new_steps += [self.tool_call_to_step(agent, tool_call) for tool_call in event.output.tool_calls]

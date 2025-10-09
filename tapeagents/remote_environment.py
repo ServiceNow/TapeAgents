@@ -212,7 +212,10 @@ class ProcessPoolManager:
         def _handle_start_task(environment: Environment, data: dict) -> dict:
             logger.info(f"Worker {worker_id} handling 'start_task' with data: {data}")
             start_result = environment.start_task(data)
-            return {"start_result": start_result, "should_exit": isinstance(start_result, dict) and "error" in start_result}
+            return {
+                "start_result": start_result,
+                "should_exit": isinstance(start_result, dict) and "error" in start_result,
+            }
 
         def _handle_reset(environment: Environment, data: dict) -> dict:
             logger.info(f"Worker {worker_id} handling 'reset' with data: {data}")
@@ -301,7 +304,9 @@ class ProcessPoolManager:
                                 break
 
                         except Exception as e:
-                            logger.exception(f"Worker {worker_id} error during command `{command}` with data: {data}: {e}")
+                            logger.exception(
+                                f"Worker {worker_id} error during command `{command}` with data: {data}: {e}"
+                            )
                             error_result = {"error": str(e), "status": "error", "details": traceback.format_exc()}
                             response_data = pickle.dumps(error_result)  # Changed from json.dumps
                             response_length = len(response_data)
@@ -427,7 +432,8 @@ class EnvironmentServer:
             except Exception as e:
                 logger.exception(f"Error calling worker {worker_id} with command `{command}` and data: {data}: {e}")
                 raise HTTPException(
-                    status_code=503, detail=f"Worker {worker_id} communication error with command `{command}` and data: {data}: {e}"
+                    status_code=503,
+                    detail=f"Worker {worker_id} communication error with command `{command}` and data: {data}: {e}",
                 )
 
         @app.post("/start_task")
@@ -487,12 +493,19 @@ class EnvironmentServer:
                 response = await call_task_worker(worker_id, "start_task", request.task_data)
                 # if we couldn't start the task because of the environment, terminate the worker
                 if response.get("should_exit", False):
-                    logger.error(f"Task {worker_id} failed to start with data: {request.task_data}: Environment server failed to start task: {response.get('start_result', {}).get('error', 'Unknown error')}")
+                    logger.error(
+                        f"Task {worker_id} failed to start with data: {request.task_data}: Environment server failed to start task: {response.get('start_result', {}).get('error', 'Unknown error')}"
+                    )
                     await asyncio.sleep(0.1)  # Wait a moment for graceful shutdown
                     self.pool_manager.terminate(worker_id)
-                    raise HTTPException(status_code=500, detail=f"Failed to start task: {response.get('start_result', {}).get('error', 'Unknown error')}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to start task: {response.get('start_result', {}).get('error', 'Unknown error')}",
+                    )
                 else:
-                    logger.info(f"Task {worker_id} started with data: {request.task_data} in {time.perf_counter() - t:.2f} seconds")
+                    logger.info(
+                        f"Task {worker_id} started with data: {request.task_data} in {time.perf_counter() - t:.2f} seconds"
+                    )
                 return {"worker_id": worker_id, "start_result": response.get("start_result")}
 
             except ResourceExhaustedException as e:
@@ -502,14 +515,19 @@ class EnvironmentServer:
                 logger.exception(f"Failed to start task {worker_id} with data: {request.task_data}: {e}")
                 # Clean up on failure
                 self.pool_manager.terminate(worker_id)
-                raise HTTPException(status_code=500, detail=f"Failed to start task {worker_id} with data: {request.task_data}: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to start task {worker_id} with data: {request.task_data}: {str(e)}"
+                )
 
         @app.post("/step")
         async def step_endpoint(request: ActionRequest):
             """Execute an action in the specified task environment."""
             response = await call_task_worker(request.worker_id, "step", request.action_data)
             if response.get("should_exit", False):
-                raise HTTPException(status_code=500, detail=f"Task {request.worker_id} was terminated. Error: {response.get('observation', {}).get('error', 'Unknown error')}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Task {request.worker_id} was terminated. Error: {response.get('observation', {}).get('error', 'Unknown error')}",
+                )
             return response
 
         @app.post("/actions")
@@ -690,7 +708,9 @@ class RemoteEnvironment(Environment):
             f"{self.server_url}/step", json={"worker_id": self.worker_id, "action_data": action.model_dump()}
         )
         if response.status_code != 200:
-            logger.error(f"The server failed to do a 'step' with aciton_data: {action.model_dump()} in task {self.worker_id}: {response.text}")
+            logger.error(
+                f"The server failed to do a 'step' with aciton_data: {action.model_dump()} in task {self.worker_id}: {response.text}"
+            )
             raise HTTPException(status_code=response.status_code, detail=response.text)
         response_dict = response.json()
         obs_dict = response_dict["observation"]
@@ -766,12 +786,18 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
                 break
             except Exception as e:
                 if time.perf_counter() - t > self.start_timeout_sec:
-                    logger.error(f"Async remote environment failed to start task with data: {task_data} after {self.start_timeout_sec} seconds: {e}")
+                    logger.error(
+                        f"Async remote environment failed to start task with data: {task_data} after {self.start_timeout_sec} seconds: {e}"
+                    )
                     raise HTTPException(status_code=500, detail=f"Failed to start task: {str(e)}")
-                logger.warning(f"Async remote environment failed to start task with data: {task_data}, retry after 5 seconds: {e}")
+                logger.warning(
+                    f"Async remote environment failed to start task with data: {task_data}, retry after 5 seconds: {e}"
+                )
                 await asyncio.sleep(self.start_repeat_delay)
         start_time = time.perf_counter() - t
-        logger.info(f"Async remote environment started task with data: {task_data} and assigned worker ID: {self.worker_id} after {start_time:.2f} seconds")
+        logger.info(
+            f"Async remote environment started task with data: {task_data} and assigned worker ID: {self.worker_id} after {start_time:.2f} seconds"
+        )
         return result
 
     async def _start_task(self, task_data: dict) -> dict:
@@ -823,7 +849,9 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         response = await self.session.get(f"{self.server_url}/worker/{self.worker_id}")
         if response.status != 200:
             text = await response.text()
-            logger.error(f"Async remote environment failed to check if worker {self.worker_id} is alive: HTTP {response.status}: {text}")
+            logger.error(
+                f"Async remote environment failed to check if worker {self.worker_id} is alive: HTTP {response.status}: {text}"
+            )
             tmp = self.worker_id
             self.worker_id = None
             raise RuntimeError(f"Worker {tmp} is not alive: {text}")
@@ -843,10 +871,14 @@ class AsyncRemoteEnvironment(AsyncEnvironment):
         async with self.semaphore:
             # first check if worker is alive
             if self.worker_id:
-                worker_status = await self.check_worker_alive()  # this will raise RuntimeError if worker is not alive anymore, which will NOT be retried
+                worker_status = (
+                    await self.check_worker_alive()
+                )  # this will raise RuntimeError if worker is not alive anymore, which will NOT be retried
                 # otherwise, check that the worker is fully started
                 if worker_status.get("status") == "starting":
-                    raise HTTPException(status_code=503, detail=f"Worker {self.worker_id} is starting, please wait")  # will be retried by tenacity
+                    raise HTTPException(
+                        status_code=503, detail=f"Worker {self.worker_id} is starting, please wait"
+                    )  # will be retried by tenacity
             async with self.session.post(f"{self.server_url}/{endpoint}", json=data) as response:
                 if response.status != 200:
                     text = await response.text()

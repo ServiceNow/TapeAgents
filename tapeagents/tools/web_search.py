@@ -378,7 +378,9 @@ class MultiSearchExtract(Tool):
 
     def model_post_init(self, __context):
         if self.safe_search:
-            self._search_tool = SafeWebSearch(llm=self.llm, cached=self.cached, max_results=self.max_results_per_query, prompt=self.safe_search_prompt)
+            self._search_tool = SafeWebSearch(
+                llm=self.llm, cached=self.cached, max_results=self.max_results_per_query, prompt=self.safe_search_prompt
+            )
         else:
             self._search_tool = WebSearch(cached=self.cached, max_results=self.max_results_per_query)
         return super().model_post_init(__context)
