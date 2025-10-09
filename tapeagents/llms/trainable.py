@@ -135,7 +135,7 @@ class TrainableLLM(CachedLLM):
                     "skip_special_tokens": False,
                 }
             )
-        logger.debug(f"POST request to {self.base_url}/v1/chat/completions")
+        logger.info(f"POST request to LLM {self.base_url}/v1/chat/completions")
         start_send_request = time.time()
         for k, v in self.parameters.items():
             data[k] = OmegaConf.to_container(v) if isinstance(v, DictConfig) else v
@@ -147,6 +147,7 @@ class TrainableLLM(CachedLLM):
             verify=False,
         )
         time_send_request = time.time() - start_send_request
+        logger.info(f"LLM request done in {time_send_request:.2f}s")
         self._stats["time_send_request"].append(time_send_request)
         if not r.ok:
             logger.error(f"Failed to get completion: {r.text}")
