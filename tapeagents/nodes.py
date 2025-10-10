@@ -28,9 +28,20 @@ from tapeagents.core import (
 from tapeagents.environment import CodeBlock
 from tapeagents.llms import LLMOutput, LLMStream
 from tapeagents.steps import REASON_TO_USE_KEY, BranchStep, ReasoningThought
-from tapeagents.tool_calling import FunctionCall, ToolCallAction, ToolSpec, as_openai_tool
+from tapeagents.tool_calling import (
+    FunctionCall,
+    ToolCallAction,
+    ToolSpec,
+    as_openai_tool,
+)
 from tapeagents.tools.code_executor import PythonCodeAction
-from tapeagents.utils import FatalError, class_for_name, response_format, sanitize_json_completion, step_schema_json
+from tapeagents.utils import (
+    FatalError,
+    class_for_name,
+    response_format,
+    sanitize_json_completion,
+    step_schema_json,
+)
 from tapeagents.view import Call, Respond, TapeViewStack
 
 logger = logging.getLogger(__name__)
@@ -323,22 +334,40 @@ class StandardNode(Node):
             step = LLMOutputParsingFailureAction(
                 error=f"Unknown tool call: {name}", llm_output=tool_call.model_dump_json(indent=2)
             )
-        elif step_cls == ToolCallAction:
+            return step
+        try:
+            args = json.loads(tool_call.function.arguments) if tool_call.function.arguments else {}
+            args.pop("kind", None)
+        except json.JSONDecodeError as e:
+            step = LLMOutputParsingFailureAction(
+                error=f"Failed to parse tool call arguments: {e}.\nArguments json: {tool_call.function.arguments}",
+                llm_output=tool_call.model_dump_json(indent=2),
+            )
+            return step
+        if step_cls == ToolCallAction:
+            step = ToolCallAction(
+                id=tool_call.id,
+                function=FunctionCall(name=name, arguments=args),
+                reason_to_use=(args[REASON_TO_USE_KEY] if REASON_TO_USE_KEY in args else ""),
+            )
+        else:  # convert tool call to Action subclass object
+            if not args:
+                step = step_cls()
+                return step
             try:
-                args = json.loads(tool_call.function.arguments)
-                step = ToolCallAction(
-                    id=tool_call.id,
-                    function=FunctionCall(name=name, arguments=args),
-                    reason_to_use=args[REASON_TO_USE_KEY] if REASON_TO_USE_KEY in args else "",
+                step = step_cls.model_validate(args)
+            except ValidationError as e:
+                err_text = ""
+                for err in e.errors():
+                    loc = ".".join([str(loc) for loc in err["loc"]])
+                    err_text += f"{loc}: {err['msg']}\n"
+                logger.error(
+                    f"Failed to validate LLM tool call args for {step_cls.__name__}: {args}\nTool args errors:\n{err_text}"
                 )
-            except json.JSONDecodeError:
                 step = LLMOutputParsingFailureAction(
-                    error=f"Failed to parse tool call arguments: {tool_call.function.arguments}",
+                    error=f"Failed to validate tool call arguments for {step_cls.__name__}: {err_text}",
                     llm_output=tool_call.model_dump_json(indent=2),
                 )
-        else:
-            args = tool_call.function.arguments
-            step = step_cls.model_validate_json(args) if args else step_cls()
         return step
 
     def postprocess_step(self, tape: Tape, new_steps: list[Step], step: Step) -> Step:
@@ -386,14 +415,16 @@ class StandardNode(Node):
                         yield ReasoningThought(reasoning=code_block)
                     elif code_block.language and code_block.language != "python":
                         yield LLMOutputParsingFailureAction(
-                            error=f"Unsupported code block language: {code_block.language}", llm_output=llm_output
+                            error=f"Unsupported code block language: {code_block.language}",
+                            llm_output=llm_output,
                         )
                     else:
                         yield PythonCodeAction(name="code.py", code=code_block.code, input_files=[])
             elif self._steps_type:
                 logger.exception(f"Failed to parse LLM output as json: {llm_output}\n\nError: {e}")
                 yield LLMOutputParsingFailureAction(
-                    error=f"Failed to parse LLM output as json: {e}", llm_output=llm_output
+                    error=f"Failed to parse LLM output as json: {e}",
+                    llm_output=llm_output,
                 )
             else:
                 yield ReasoningThought(reasoning=llm_output)
@@ -411,7 +442,8 @@ class StandardNode(Node):
                 err_text += f"{loc}: {err['msg']}\n"
             logger.exception(f"Failed to validate LLM output: {step_dicts}\n\nErrors:\n{err_text}")
             yield LLMOutputParsingFailureAction(
-                error=f"Failed to validate LLM output: {err_text}", llm_output=llm_output
+                error=f"Failed to validate LLM: {err_text}",
+                llm_output=llm_output,
             )
             return
         except Exception as e:
@@ -483,11 +515,19 @@ DO NOT OUTPUT ANYTHING BESIDES THE JSON! DO NOT PLACE ANY COMMENTS INSIDE THE JS
         msg = f"{self.guidance}\n\n{text}"
         messages = [{"role": "user", "content": msg}]
         if not self.structured_output:
-            messages.append({"role": "user", "content": self.format_prompt.format(schema=step_schema_json(step_cls))})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": self.format_prompt.format(schema=step_schema_json(step_cls)),
+                }
+            )
         if errors_after:
             msg = f"Our previous attempt resulted in failure:\n\n{errors_after[-1]}"
             messages.append({"role": "user", "content": msg})
-        return Prompt(messages=messages, response_format=response_format(step_cls) if self.structured_output else None)
+        return Prompt(
+            messages=messages,
+            response_format=(response_format(step_cls) if self.structured_output else None),
+        )
 
 
 class ControlFlowNode(Node):
