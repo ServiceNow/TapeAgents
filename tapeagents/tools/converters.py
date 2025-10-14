@@ -41,7 +41,6 @@ import whisper
 from bs4 import BeautifulSoup
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode, TableStructureOptions
-from docling.document_converter import DocumentConverter as DoclingDocumentConverter, PdfFormatOption
 from pydantic import BaseModel, Field
 from readability import Document
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -64,6 +63,7 @@ class DocumentConverter(BaseModel):
 
 class DoclingConverter(DocumentConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        from docling.document_converter import DocumentConverter as DoclingDocumentConverter
         converter = DoclingDocumentConverter(
             allowed_formats=kwargs.get("allowed_formats", None), format_options=kwargs.get("format_options", None)
         )
@@ -336,6 +336,7 @@ class PdfMinerConverter(DocumentConverter):
 
 class PdfDoclingConverter(DoclingConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        from docling.document_converter import PdfFormatOption
         # Bail if not a PDF
         extension = kwargs.get("file_extension", "")
         if extension.lower() != ".pdf":

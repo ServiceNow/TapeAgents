@@ -74,7 +74,7 @@ class Environment(ABC, Generic[TapeType]):
         return tuple()
 
     def tools_description(self) -> str:
-        desc_list = [f"{a.__class__.__name__} - {a.__doc__ or '[no description]'}" for a in self.actions()]
+        desc_list = [f"{a.__name__} - {a.__doc__ or '[no description]'}" for a in self.actions()]
         return "\n".join(f"- {desc}" for desc in desc_list)
 
     def reset(self) -> None:

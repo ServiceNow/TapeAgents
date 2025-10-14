@@ -330,7 +330,7 @@ class Browser(StatefulTool):
         t = time.perf_counter()
         if self._env is not None:
             # Close browser context first
-            if hasattr(self._env, "unwrapped") and hasattr(self._env.unwrapped, "context"):
+            if hasattr(self._env, "unwrapped") and hasattr(self._env.unwrapped, "context") and self._env.unwrapped.context is not None:
                 self._env.unwrapped.context.close()
             self._env.close()
             gc.collect()  # Force garbage collection to free resources
