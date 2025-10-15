@@ -21,6 +21,23 @@ from .steps import (
     WebTask,
 )
 
+from browsergym.core.chat import Chat
+# Mock the Chat class to avoid huge slowdown caused by it
+def mock_chat_init(self, *args, **kwargs):
+    self.messages = []
+
+def mock_wait_for_user_message(self, *args, **kwargs):
+    pass
+
+def mock_add_message(self, role: str, msg: str):
+    self.messages.append({"role": role, "timestamp": time.time(), "message": msg})
+
+Chat.__init__ = mock_chat_init
+Chat.wait_for_user_message = mock_wait_for_user_message
+Chat.add_message = mock_add_message
+
+
+
 logger = logging.getLogger(__name__)
 
 
