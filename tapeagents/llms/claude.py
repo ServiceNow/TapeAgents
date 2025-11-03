@@ -3,6 +3,7 @@ import time
 from typing import Generator
 
 import anthropic
+from litellm import ChatCompletionMessageToolCall
 from omegaconf import DictConfig, OmegaConf
 
 from tapeagents.core import Prompt
@@ -11,6 +12,13 @@ from tapeagents.llms.cached import CachedLLM
 from tapeagents.utils import get_step_schemas_from_union_type, resize_base64_message
 
 logger = logging.getLogger(__name__)
+
+def as_anthropic_tool(tool_spec_dict: dict) -> dict:
+    return {
+        "name": tool_spec_dict["function"]["name"],
+        "description": tool_spec_dict["function"]["description"],
+        "input_schema": tool_spec_dict["function"]["parameters"],
+    }
 
 
 class Claude(CachedLLM):
@@ -33,13 +41,25 @@ class Claude(CachedLLM):
         messages = self.update_image_messages_format(messages)
         while True:
             try:
-                response: anthropic.types.Message = anthropic.Anthropic().messages.create(
-                    model=self.model_name,
-                    max_tokens=self.max_tokens,
-                    system=system_message,
-                    messages=messages,
-                    **kwargs,
-                )
+                if prompt.tools is not None and len(prompt.tools) > 0:
+                    tools = [as_anthropic_tool(tool) for tool in prompt.tools]
+                    logger.info(f"Tools: {tools}")
+                    response: anthropic.types.Message = anthropic.Anthropic().messages.create(
+                        model=self.model_name,
+                        max_tokens=self.max_tokens,
+                        system=system_message,
+                        messages=messages,
+                        tools=tools,
+                        **kwargs,
+                    )
+                else:
+                    response: anthropic.types.Message = anthropic.Anthropic().messages.create(
+                        model=self.model_name,
+                        max_tokens=self.max_tokens,
+                        system=system_message,
+                        messages=messages,
+                        **kwargs,
+                    )
                 break
             except anthropic.RateLimitError as e:
                 retry_count += 1
@@ -66,7 +86,15 @@ class Claude(CachedLLM):
                 output = LLMOutput(content=content_block.text)
                 yield LLMEvent(output=output)
             elif content_block.type == "tool_use":
-                output = LLMOutput(tool_calls=[content_block])
+                logger.info(f"Tool use: {content_block}")
+                tool_call = ChatCompletionMessageToolCall(
+                    id=content_block.id,
+                    function=dict(
+                        name=content_block.name,
+                        arguments=content_block.input,
+                    ),
+                )
+                output = LLMOutput(tool_calls=[tool_call])
                 yield LLMEvent(output=output)
             elif content_block.type == "thinking":
                 output = LLMOutput(content=content_block.text)

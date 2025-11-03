@@ -21,7 +21,33 @@ from .steps import (
     WebTask,
 )
 
+from browsergym.core.chat import Chat
+
 logger = logging.getLogger(__name__)
+
+# Mock the Chat class to avoid huge slowdown caused by it
+def mock_chat_init(self, *args, **kwargs):
+    logger.info("Mocked Chat.__init__")
+    self.messages = []
+
+def mock_wait_for_user_message(self, *args, **kwargs):
+    logger.info("Mocked Chat.wait_for_user_message")
+    pass
+
+def mock_add_message(self, role: str, msg: str):
+    logger.info("Mocked Chat.add_message")
+    self.messages.append({"role": role, "timestamp": time.time(), "message": msg})
+
+def mock_close(self, *args, **kwargs):
+    logger.info("Mocked Chat.close")
+    pass
+
+Chat.__init__ = mock_chat_init
+Chat.wait_for_user_message = mock_wait_for_user_message
+Chat.add_message = mock_add_message
+Chat.close = mock_close
+
+logger.info("Mocked Chat class initialized")
 
 
 class WebEnvironment(Environment):
@@ -170,9 +196,11 @@ class WebEnvironment(Environment):
         # TODO: MAYBE make sure to update parent_id, author_name, etc... in the new tape.metadata just like in agent.run()
 
     def step(self, action: Action) -> Observation:
+        t = time.perf_counter()
         obs = self.browser.run(action)
         if obs.metadata.other.get("env_finished", False):
             obs = FinalObservation(metadata=obs.metadata)
+        obs.metadata.other["action_execution_time"] = time.perf_counter() - t
         return obs
 
     def actions(self) -> tuple[type[Action], ...]:
