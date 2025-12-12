@@ -3,6 +3,7 @@ from typing import Literal, Union
 from pydantic import Field
 
 from tapeagents.core import (
+    Action,
     FinalObservation,
     LLMOutputParsingFailureAction,
     Observation,
@@ -86,6 +87,13 @@ class FinalAnswerAction(StopStep):
     text: str = Field(description="final answer to the user")
 
 
+class SendMessageToUserAction(Action):
+    """Action for sending an intermediate message to the user without ending the episode."""
+
+    kind: Literal["send_msg_to_user_action"] = "send_msg_to_user_action"
+    text: str = Field(description="message to display to the user")
+
+
 WebTapeStep = Union[
     UserStep,
     WebTask,
@@ -113,6 +121,7 @@ WebTapeStep = Union[
     GoForwardAction,
     # GotoPageAction,
     FinalAnswerAction,
+    SendMessageToUserAction,
     SetNextNode,
 ]
 
@@ -146,6 +155,7 @@ WebAgentStep = (
     GoForwardAction,
     # GotoPageAction,
     FinalAnswerAction,
+    SendMessageToUserAction,
 )
 
 
@@ -164,4 +174,5 @@ WebAgentAction = (
     GoForwardAction,
     # GotoPageAction,
     FinalAnswerAction,
+    SendMessageToUserAction,
 )

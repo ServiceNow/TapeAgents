@@ -16,6 +16,7 @@ from tapeagents.utils import FatalError
 from .steps import (
     FinalAnswerAction,
     ReflectionThought,
+    SendMessageToUserAction,
     WebTape,
     WebTapeMetadata,
     WebTask,
@@ -151,6 +152,9 @@ class WebEnvironment(Environment):
         for action in actions:
             try:
                 if isinstance(action, LLMOutputParsingFailureAction):
+                    continue
+                if isinstance(action, SendMessageToUserAction):
+                    self.browser._env.unwrapped.chat.add_message(role="assistant", msg=action.text)
                     continue
                 observation = self.step(action)
                 if isinstance(observation, ActionExecutionFailure):
