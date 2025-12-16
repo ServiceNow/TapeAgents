@@ -160,7 +160,12 @@ class GenericWebNode(WebNode):
     def generate_steps(
         self, agent: Agent, tape: WebTape, llm_stream: LLMStream
     ) -> Generator[Step | PartialStep, None, None]:
-        """Generate steps using think/action parsing for generic outputs."""
+        """Generate steps using think/action parsing for generic outputs.
+        
+        When vLLM reasoning parser is enabled, the reasoning is returned in the
+        output.reasoning field, and the action is in output.content.
+        Otherwise, we parse <think> and <action> blocks from output.content.
+        """
 
         previous_actions = [step for step in tape.steps if isinstance(step, Action)]
         last_action = previous_actions[-1] if previous_actions else None
@@ -173,21 +178,78 @@ class GenericWebNode(WebNode):
         for event in llm_stream:
             if not event.output:
                 continue
-            if event.output.content:
-                output_content = event.output.content
-                if hasattr(agent, "llm") and hasattr(agent.llm, "tokenizer") and agent.llm.tokenizer:
-                    eos_token = agent.llm.tokenizer.eos_token
-                    if eos_token and output_content.endswith(eos_token):
-                        output_content = output_content[: -len(eos_token)]
-
-                parsed_steps = self._parse_think_action_completion(output_content)
+            
+            # Check if vLLM reasoning parser provided reasoning separately
+            reasoning = getattr(event.output, "reasoning", None)
+            content = event.output.content
+            
+            if hasattr(agent, "llm") and hasattr(agent.llm, "tokenizer") and agent.llm.tokenizer:
+                eos_token = agent.llm.tokenizer.eos_token
+                if eos_token:
+                    if content and content.endswith(eos_token):
+                        content = content[: -len(eos_token)]
+                    if reasoning and reasoning.endswith(eos_token):
+                        reasoning = reasoning[: -len(eos_token)]
+            
+            if reasoning is not None:
+                # vLLM reasoning parser mode: reasoning is separate from content
+                if reasoning:
+                    new_steps.append(ReasoningThought(reasoning=reasoning.strip()))
+                
+                if content:
+                    # Content contains the action (without <action> tags in vLLM mode)
+                    # Try to parse as action directly
+                    try:
+                        action_step = self._parse_action_string(content.strip())
+                        if action_step:
+                            new_steps.append(action_step)
+                        else:
+                            # Empty action content
+                            new_steps.append(
+                                LLMOutputParsingFailureAction(
+                                    error="Empty action content from vLLM reasoning output",
+                                    llm_output=content,
+                                )
+                            )
+                    except Exception as exc:
+                        # Maybe content still has <action> tags
+                        action_match = _ACTION_PATTERN.search(content)
+                        if action_match:
+                            try:
+                                action_step = self._parse_action_string(action_match.group(1))
+                                if action_step:
+                                    new_steps.append(action_step)
+                            except Exception as inner_exc:
+                                new_steps.append(
+                                    LLMOutputParsingFailureAction(
+                                        error=f"Failed to parse action: {inner_exc}",
+                                        llm_output=content,
+                                    )
+                                )
+                        else:
+                            new_steps.append(
+                                LLMOutputParsingFailureAction(
+                                    error=f"Failed to parse action from vLLM output: {exc}",
+                                    llm_output=content,
+                                )
+                            )
+                elif not reasoning:
+                    new_steps.append(
+                        LLMOutputParsingFailureAction(
+                            error="Empty output from vLLM (no reasoning or content)",
+                            llm_output="",
+                        )
+                    )
+            elif content:
+                # Fallback: parse <think> and <action> blocks from content
+                parsed_steps = self._parse_think_action_completion(content)
                 if parsed_steps:
                     new_steps.extend(parsed_steps)
                 else:
                     new_steps.append(
                         LLMOutputParsingFailureAction(
                             error="Missing <think>/<action> blocks in LLM output",
-                            llm_output=output_content,
+                            llm_output=content,
                         )
                     )
 

@@ -172,9 +172,12 @@ class TrainableLLM(CachedLLM):
         else:
             data = r.json()
             try:
-                content = data["choices"][0]["message"]["content"]
-                tool_calls = data["choices"][0]["message"].get("tool_calls", [])
-                if not content and not tool_calls:
+                message = data["choices"][0]["message"]
+                content = message.get("content")
+                # vLLM reasoning parser returns reasoning in 'reasoning' or 'reasoning_content' field
+                reasoning = message.get("reasoning") or message.get("reasoning_content")
+                tool_calls = message.get("tool_calls", [])
+                if not content and not tool_calls and not reasoning:
                     logger.warning(f"Empty completion {data}")
 
                 if self.collect_logprobs:
@@ -183,7 +186,7 @@ class TrainableLLM(CachedLLM):
             except Exception as e:
                 logger.exception(f"Failed to parse llm response: {r}")
                 raise e
-            output = LLMOutput(content=content)
+            output = LLMOutput(content=content, reasoning=reasoning)
             if tool_calls:
                 output.tool_calls = [litellm.ChatCompletionMessageToolCall(**tc) for tc in tool_calls]
         llm_call = self.log_output(prompt, output)
@@ -576,9 +579,12 @@ class TrainableLLM(CachedLLM):
                     await asyncio.sleep(delay)
 
         try:
-            content = data["choices"][0]["message"]["content"]
-            tool_calls = data["choices"][0]["message"].get("tool_calls", [])
-            if not content and not tool_calls:
+            message = data["choices"][0]["message"]
+            content = message.get("content")
+            # vLLM reasoning parser returns reasoning in 'reasoning' or 'reasoning_content' field
+            reasoning = message.get("reasoning") or message.get("reasoning_content")
+            tool_calls = message.get("tool_calls", [])
+            if not content and not tool_calls and not reasoning:
                 logger.warning(f"Empty completion {data}")
 
             parsed_logprobs = []
@@ -605,7 +611,7 @@ class TrainableLLM(CachedLLM):
         prompt_tokens = data["usage"]["prompt_tokens"]
         completion_tokens = data["usage"]["completion_tokens"]
 
-        output = LLMOutput(content=content or "")
+        output = LLMOutput(content=content or "", reasoning=reasoning)
         if tool_calls:
             output.tool_calls = [litellm.ChatCompletionMessageToolCall(**tc) for tc in tool_calls]
         llm_call = self.log_output(
