@@ -1,7 +1,7 @@
 import json
 from typing import Literal
 
-from tapeagents.core import Action, Tape, TapeMetadata
+from tapeagents.core import Action, Tape, TapeMetadata, last_actions
 
 
 class DummyStep(Action):
@@ -84,6 +84,44 @@ def test_getitem_slice_empty():
     assert isinstance(sliced_tape, Tape)
     assert len(sliced_tape.steps) == 0
     assert sliced_tape.metadata.author is None
+
+
+def test_getitem_slice_with_step_reversed():
+    steps = [DummyStep(), DummyStep(), DummyStep()]
+    tape = TestTape(steps=steps)
+
+    sliced_tape = tape[::-1]
+
+    assert [step.metadata.id for step in sliced_tape.steps] == [step.metadata.id for step in reversed(steps)]
+
+
+def test_getitem_slice_with_step_stride():
+    steps = [DummyStep(), DummyStep(), DummyStep(), DummyStep(), DummyStep()]
+    tape = TestTape(steps=steps)
+
+    sliced_tape = tape[::2]
+
+    assert [step.metadata.id for step in sliced_tape.steps] == [steps[0].metadata.id, steps[2].metadata.id, steps[4].metadata.id]
+
+
+def test_last_actions_zero_added_steps_returns_empty():
+    """n_added_steps == 0 is the field's own default AND a value __add__
+    legitimately produces when zero new steps were added -- Python's
+    `-0 == 0` previously made `tape.steps[-0:]` return the WHOLE list
+    instead of an empty one, which would make Environment.react() silently
+    re-execute every action in the tape's entire history."""
+    tape = TestTape(steps=[DummyStep(), DummyStep()], metadata=TapeMetadata(n_added_steps=0))
+
+    assert last_actions(tape) == []
+
+
+def test_last_actions_positive_n_added_steps_unchanged():
+    steps = [DummyStep(), DummyStep(), DummyStep()]
+    tape = TestTape(steps=steps, metadata=TapeMetadata(n_added_steps=2))
+
+    result = last_actions(tape)
+
+    assert [step.metadata.id for step in result] == [steps[1].metadata.id, steps[2].metadata.id]
 
 
 def test_append_single_step():

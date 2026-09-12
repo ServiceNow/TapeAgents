@@ -306,7 +306,11 @@ class Tape(BaseModel, Generic[ContextType, StepType]):
 
     def __getitem__(self, key: int | slice) -> StepType | Self:
         if isinstance(key, slice):  # cut and erase metadata
-            return self.model_copy(update=dict(steps=self.steps[key.start : key.stop], metadata=TapeMetadata()))
+            # Pass the slice object through directly rather than reconstructing
+            # it from start/stop -- that discarded key.step, silently ignoring
+            # a step component (tape[::2], tape[::-1], tape[1:5:2], etc.)
+            # instead of applying or rejecting it.
+            return self.model_copy(update=dict(steps=self.steps[key], metadata=TapeMetadata()))
         return self.steps[key]
 
     def __add__(self, tape: Self | Iterable[Step]) -> Self:
@@ -470,4 +474,12 @@ class MakeObservation(Action, Generic[StepType]):
 
 
 def last_actions(tape: Tape) -> list[Action]:
+    # n_added_steps == 0 is a real, legitimate value (default, and produced by
+    # __add__ when zero new steps were added) -- Python's `-0 == 0`, so
+    # `tape.steps[-0:]` returns the WHOLE list rather than an empty one.
+    # Environment.react()/areact() use this to decide which actions to
+    # execute against tools; without this guard, a zero-new-steps iteration
+    # would silently re-execute every action in the tape's entire history.
+    if tape.metadata.n_added_steps <= 0:
+        return []
     return [step for step in tape.steps[-tape.metadata.n_added_steps :] if isinstance(step, Action)]
